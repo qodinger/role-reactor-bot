@@ -1,0 +1,66 @@
+{
+  "name": "role-reactor-bot",
+  "version": "1.0.0",
+  "description": "A professional Discord bot for self-assignable roles through reactions. Features role management, permission controls, and customizable role-emoji mappings.",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "deploy-commands": "node deploy-commands.js",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "test": "jest --passWithNoTests",
+    "test:watch": "jest --watch --passWithNoTests",
+    "build": "echo 'No build step required for Node.js bot'",
+    "clean": "rm -rf node_modules && pnpm install",
+    "prepare": "husky install",
+    "pre-commit": "lint-staged",
+    "pre-push": "pnpm test"
+  },
+  "keywords": [
+    "discord",
+    "bot",
+    "roles",
+    "reactions",
+    "self-assign",
+    "role-management",
+    "discord.js",
+    "automation"
+  ],
+  "author": {
+    "name": "RoleReactor Bot Team",
+    "email": "support@rolereactor.com",
+    "url": "https://github.com/rolereactor-bot"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rolereactor-bot/role-reactor-bot.git"
+  },
+  "bugs": {
+    "url": "https://github.com/rolereactor-bot/role-reactor-bot/issues"
+  },
+  "homepage": "https://github.com/rolereactor-bot/role-reactor-bot#readme",
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "dependencies": {
+    "discord.js": "^14.14.1",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2",
+    "eslint": "^9.0.0",
+    "jest": "^29.7.0",
+    "husky": "^9.0.0",
+    "lint-staged": "^15.2.0",
+    "prettier": "^3.2.0"
+  },
+  "lint-staged": {
+    "*.js": [
+      "eslint --fix",
+      "prettier --write"
+    ]
+  }
+}

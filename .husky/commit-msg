@@ -1,0 +1,20 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "📝 Validating commit message..."
+
+# Get the commit message
+commit_msg=$(cat "$1")
+
+# Check if commit message follows conventional commits format
+if ! echo "$commit_msg" | grep -qE "^(feat|fix|docs|style|refactor|test|chore)(\(.+\))?: .+"; then
+  echo "❌ Commit message must follow conventional commits format:"
+  echo "   Format: type(scope): description"
+  echo "   Types: feat, fix, docs, style, refactor, test, chore"
+  echo "   Example: feat(commands): add new help command"
+  echo ""
+  echo "Your message: $commit_msg"
+  exit 1
+fi
+
+echo "✅ Commit message is valid!" 

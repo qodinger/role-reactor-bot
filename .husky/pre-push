@@ -1,0 +1,9 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🧪 Running tests before push..."
+
+# Run tests to ensure everything is working
+pnpm test
+
+echo "✅ Tests passed! Ready to push." 
