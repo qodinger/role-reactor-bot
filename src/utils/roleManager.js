@@ -1,5 +1,9 @@
-const fs = require("fs").promises;
-const path = require("path");
+import fs from "fs/promises";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // File path for storing role mappings
 const ROLE_MAPPINGS_FILE = path.join(__dirname, "../config/role-mappings.json");
@@ -20,20 +24,20 @@ const loadRoleMappings = async () => {
     await ensureConfigDir();
     const data = await fs.readFile(ROLE_MAPPINGS_FILE, "utf8");
     return JSON.parse(data);
-  } catch (error) {
+  } catch {
     // File doesn't exist or is invalid, return empty object
     return {};
   }
 };
 
 // Save role mappings to file
-const saveRoleMappings = async (mappings) => {
+const saveRoleMappings = async mappings => {
   await ensureConfigDir();
   await fs.writeFile(ROLE_MAPPINGS_FILE, JSON.stringify(mappings, null, 2));
 };
 
 // Get role mapping for a specific message
-const getRoleMapping = async (messageId) => {
+const getRoleMapping = async messageId => {
   const mappings = await loadRoleMappings();
   return mappings[messageId] || null;
 };
@@ -46,7 +50,7 @@ const setRoleMapping = async (messageId, roleMapping) => {
 };
 
 // Remove role mapping for a specific message
-const removeRoleMapping = async (messageId) => {
+const removeRoleMapping = async messageId => {
   const mappings = await loadRoleMappings();
   delete mappings[messageId];
   await saveRoleMappings(mappings);
@@ -58,7 +62,7 @@ const getAllRoleMappings = async () => {
 };
 
 // Validate emoji format
-const isValidEmoji = (emoji) => {
+const isValidEmoji = emoji => {
   // Check if it's a custom emoji (format: <:name:id>)
   const customEmojiRegex = /^<a?:.+?:\d+>$/;
   if (customEmojiRegex.test(emoji)) return true;
@@ -70,7 +74,7 @@ const isValidEmoji = (emoji) => {
 };
 
 // Parse emoji to get the name/id
-const parseEmoji = (emoji) => {
+const parseEmoji = emoji => {
   if (emoji.length === 1) {
     return emoji; // Unicode emoji
   }
@@ -80,11 +84,38 @@ const parseEmoji = (emoji) => {
   return match ? match[1] : emoji;
 };
 
-module.exports = {
+// Parse role string (flat, no categories)
+const parseRoleString = rolesString => {
+  const roles = [];
+  const errors = [];
+
+  // Split by comma or newline
+  const lines = rolesString
+    .split(/,|\n/)
+    .map(line => line.trim())
+    .filter(line => line);
+
+  for (const line of lines) {
+    const [emoji, roleName] = line.split(":").map(s => s.trim());
+    if (!emoji || !roleName) {
+      errors.push(`❌ Invalid format: "${line}" (use format: emoji:role)`);
+      continue;
+    }
+    if (!isValidEmoji(emoji)) {
+      errors.push(`❌ Invalid emoji: "${emoji}"`);
+      continue;
+    }
+    roles.push({ emoji, roleName });
+  }
+  return { roles, errors };
+};
+
+export {
   getRoleMapping,
   setRoleMapping,
   removeRoleMapping,
   getAllRoleMappings,
   isValidEmoji,
   parseEmoji,
+  parseRoleString,
 };

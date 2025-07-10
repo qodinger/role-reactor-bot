@@ -40,16 +40,16 @@ describe("RoleReactor Bot", () => {
   });
 
   describe("Mock Discord.js", () => {
-    it("should mock Discord.js components", () => {
-      const { Client, Events, ActivityType } = require("discord.js");
+    it("should mock Discord.js components", async () => {
+      const { Client, Events, ActivityType } = await import("discord.js");
 
       expect(Client).toBeDefined();
       expect(Events).toBeDefined();
       expect(ActivityType).toBeDefined();
     });
 
-    it("should create mock client instance", () => {
-      const { Client } = require("discord.js");
+    it("should create mock client instance", async () => {
+      const { Client } = await import("discord.js");
       const client = new Client();
 
       expect(client.login).toBeDefined();
@@ -63,7 +63,7 @@ describe("RoleReactor Bot", () => {
 
   describe("Utility Functions", () => {
     it("should format uptime correctly", () => {
-      const formatUptime = (ms) => {
+      const formatUptime = ms => {
         const seconds = Math.floor(ms / 1000);
         const minutes = Math.floor(seconds / 60);
         const hours = Math.floor(minutes / 60);

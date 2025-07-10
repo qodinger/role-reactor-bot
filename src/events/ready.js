@@ -1,15 +1,19 @@
-const {
+import {
   Events,
   OAuth2Scopes,
   PermissionFlagsBits,
   ActivityType,
-} = require("discord.js");
+} from "discord.js";
+import {
+  requiredPermissions,
+  formatPermissionName,
+} from "../utils/permissions.js";
 
-module.exports = {
+export default {
   name: Events.ClientReady,
   once: true,
   execute(client) {
-    // Professional startup logging
+    // Startup logging
     console.log(
       "╔══════════════════════════════════════════════════════════════╗"
     );
@@ -23,7 +27,7 @@ module.exports = {
       "╚══════════════════════════════════════════════════════════════╝"
     );
     console.log("");
-    console.log(`✅ Bot Status: ONLINE`);
+    console.log("✅ Bot Status: ONLINE");
     console.log(`🤖 Bot Name: ${client.user.tag}`);
     console.log(`🆔 Bot ID: ${client.user.id}`);
     console.log(`📊 Servers: ${client.guilds.cache.size.toLocaleString()}`);
@@ -38,7 +42,7 @@ module.exports = {
     );
     console.log("");
 
-    // Set professional bot status
+    // Set bot status
     const activities = [
       { name: "role reactions", type: ActivityType.Watching },
       { name: "/help for commands", type: ActivityType.Playing },
@@ -60,24 +64,16 @@ module.exports = {
     // Generate and log OAuth2 invite link with required permissions
     const inviteLink = client.generateInvite({
       scopes: [OAuth2Scopes.Bot, OAuth2Scopes.ApplicationsCommands],
-      permissions: [
-        PermissionFlagsBits.ManageRoles,
-        PermissionFlagsBits.ManageMessages,
-        PermissionFlagsBits.AddReactions,
-        PermissionFlagsBits.ReadMessageHistory,
-        PermissionFlagsBits.ViewChannel,
-      ],
+      permissions: requiredPermissions,
     });
 
     console.log("🔗 Bot Invite Link:");
     console.log(inviteLink);
     console.log("");
     console.log("📋 Required Permissions:");
-    console.log("   • Manage Roles");
-    console.log("   • Manage Messages");
-    console.log("   • Add Reactions");
-    console.log("   • Read Message History");
-    console.log("   • View Channel");
+    requiredPermissions.forEach(perm => {
+      console.log(`   • ${formatPermissionName(perm)}`);
+    });
     console.log("");
     console.log("🚀 Bot is ready to serve!");
     console.log("");

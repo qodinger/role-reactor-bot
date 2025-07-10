@@ -11,8 +11,6 @@ A Discord bot that enables users to self-assign roles through message reactions.
 - **🎨 Custom Emojis**: Support for both Unicode and custom server emojis
 - **📊 Role Categories**: Organize roles into logical groups
 - **🔧 Easy Setup**: Simple slash commands for configuration
-- **📝 Audit Logging**: Track role assignments for moderation
-- **⚡ High Performance**: Optimized for large servers
 - **🛠️ Error Handling**: Graceful error handling with user-friendly messages
 
 ## 🚀 Quick Start
@@ -68,9 +66,29 @@ A Discord bot that enables users to self-assign roles through message reactions.
 
 Administrators can create role-reaction messages using the `/setup-roles` command:
 
+**Simple format:**
 ```
 /setup-roles title:"Server Roles" description:"Choose your roles by reacting!" roles:"🎮:Gamer,🎨:Artist,💻:Developer"
 ```
+
+**With categories:**
+```
+/setup-roles title:"Server Roles" description:"Choose your roles by reacting!" roles:"#Gaming\n🎮:Gamer,🎲:Board Games\n#Music\n🎵:Music Lover,🎸:Guitarist"
+```
+
+**Multiple categories:**
+```
+/setup-roles title:"Server Roles" description:"Choose your roles by reacting!" roles:"#Gaming|#Music\n🎮:Gamer|🎵:Music Lover"
+```
+
+### Role Categories
+
+The bot supports organizing roles into categories:
+
+- **Use `#CategoryName`** to start a category
+- **Use `|`** to separate different categories  
+- **Roles without categories** go to 'General'
+- **Each category** appears as a separate field in the message
 
 ### Available Commands
 

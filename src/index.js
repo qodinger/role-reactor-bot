@@ -1,12 +1,13 @@
-const {
-  Client,
-  GatewayIntentBits,
-  Collection,
-  Partials,
-} = require("discord.js");
-const fs = require("fs");
-const path = require("path");
-require("dotenv").config();
+import { Client, Collection, GatewayIntentBits, Partials } from "discord.js";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Professional startup banner
 console.log("╔══════════════════════════════════════════════════════════════╗");
@@ -17,13 +18,11 @@ console.log("");
 
 // Validate environment variables
 const requiredEnvVars = ["DISCORD_TOKEN", "CLIENT_ID"];
-const missingEnvVars = requiredEnvVars.filter(
-  (varName) => !process.env[varName]
-);
+const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
 
 if (missingEnvVars.length > 0) {
   console.error("❌ Missing required environment variables:");
-  missingEnvVars.forEach((varName) => {
+  missingEnvVars.forEach(varName => {
     console.error(`   • ${varName}`);
   });
   console.error(
@@ -32,200 +31,71 @@ if (missingEnvVars.length > 0) {
   process.exit(1);
 }
 
-// Create a new client instance with professional configuration
+// Create a new client instance
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.GuildMessageReactions,
     GatewayIntentBits.GuildMembers,
-    GatewayIntentBits.MessageContent,
   ],
-  partials: [
-    Partials.Message,
-    Partials.Channel,
-    Partials.Reaction,
-    Partials.User,
-    Partials.GuildMember,
-  ],
-  // Professional client options
-  failIfNotExists: false,
-  retryLimit: 3,
-  restTimeOffset: 750,
+  partials: [Partials.Message, Partials.Channel, Partials.Reaction],
 });
 
-// Collections for commands and events
+// Create a collection for commands
 client.commands = new Collection();
-client.events = new Collection();
 
-// Professional event loading with error handling
-async function loadEvents() {
-  try {
-    const eventsPath = path.join(__dirname, "events");
+// Load commands
+const loadCommands = async () => {
+  const commandsPath = path.join(__dirname, "commands");
+  const commandFolders = fs.readdirSync(commandsPath);
 
-    if (!fs.existsSync(eventsPath)) {
-      console.error("❌ Events directory not found");
-      return;
-    }
+  for (const folder of commandFolders) {
+    const folderPath = path.join(commandsPath, folder);
+    const commandFiles = fs
+      .readdirSync(folderPath)
+      .filter(file => file.endsWith(".js"));
 
-    const eventFiles = fs
-      .readdirSync(eventsPath)
-      .filter((file) => file.endsWith(".js"));
+    for (const file of commandFiles) {
+      const filePath = path.join(folderPath, file);
+      const command = (await import(filePath)).default;
 
-    console.log(`📁 Loading ${eventFiles.length} event(s)...`);
-
-    for (const file of eventFiles) {
-      try {
-        const filePath = path.join(eventsPath, file);
-        const event = require(filePath);
-
-        if (event.once) {
-          client.once(event.name, (...args) => event.execute(...args, client));
-        } else {
-          client.on(event.name, (...args) => event.execute(...args, client));
-        }
-
-        console.log(`   ✅ Loaded event: ${event.name}`);
-      } catch (error) {
-        console.error(`   ❌ Failed to load event ${file}:`, error.message);
+      if ("data" in command && "execute" in command) {
+        client.commands.set(command.data.name, command);
+        console.log(`✅ Loaded command: ${command.data.name}`);
+      } else {
+        console.log(
+          `[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`
+        );
       }
     }
-  } catch (error) {
-    console.error("❌ Error loading events:", error);
   }
-}
+};
 
-// Professional command loading with error handling
-async function loadCommands() {
-  try {
-    const commandsPath = path.join(__dirname, "commands");
+// Load events
+const loadEvents = async () => {
+  const eventsPath = path.join(__dirname, "events");
+  const eventFiles = fs
+    .readdirSync(eventsPath)
+    .filter(file => file.endsWith(".js"));
 
-    if (!fs.existsSync(commandsPath)) {
-      console.error("❌ Commands directory not found");
-      return;
+  for (const file of eventFiles) {
+    const filePath = path.join(eventsPath, file);
+    const event = (await import(filePath)).default;
+
+    if (event.once) {
+      client.once(event.name, (...args) => event.execute(...args, client));
+    } else {
+      client.on(event.name, (...args) => event.execute(...args, client));
     }
 
-    const commandFolders = fs.readdirSync(commandsPath);
-    let totalCommands = 0;
-
-    console.log(
-      `📁 Loading commands from ${commandFolders.length} category(ies)...`
-    );
-
-    for (const folder of commandFolders) {
-      const folderPath = path.join(commandsPath, folder);
-
-      if (!fs.statSync(folderPath).isDirectory()) continue;
-
-      const commandFiles = fs
-        .readdirSync(folderPath)
-        .filter((file) => file.endsWith(".js"));
-
-      console.log(
-        `   📂 Category: ${folder} (${commandFiles.length} command(s))`
-      );
-
-      for (const file of commandFiles) {
-        try {
-          const filePath = path.join(folderPath, file);
-          const command = require(filePath);
-
-          if ("data" in command && "execute" in command) {
-            client.commands.set(command.data.name, command);
-            console.log(`      ✅ Loaded command: ${command.data.name}`);
-            totalCommands++;
-          } else {
-            console.warn(
-              `      ⚠️  Command at ${filePath} is missing required properties`
-            );
-          }
-        } catch (error) {
-          console.error(
-            `      ❌ Failed to load command ${file}:`,
-            error.message
-          );
-        }
-      }
-    }
-
-    console.log(`📊 Total commands loaded: ${totalCommands}`);
-  } catch (error) {
-    console.error("❌ Error loading commands:", error);
+    console.log(`✅ Loaded event: ${event.name}`);
   }
-}
+};
 
-// Professional error handling
-process.on("unhandledRejection", (error) => {
-  console.error("❌ Unhandled promise rejection:");
-  console.error("   Error:", error.message);
-  console.error("   Stack:", error.stack);
+// Login to Discord with your client's token
+client.login(process.env.DISCORD_TOKEN);
 
-  // Log to file in production
-  if (process.env.NODE_ENV === "production") {
-    const fs = require("fs");
-    const logEntry = `[${new Date().toISOString()}] Unhandled Rejection: ${
-      error.message
-    }\n${error.stack}\n\n`;
-    fs.appendFileSync("error.log", logEntry);
-  }
-});
-
-process.on("uncaughtException", (error) => {
-  console.error("❌ Uncaught exception:");
-  console.error("   Error:", error.message);
-  console.error("   Stack:", error.stack);
-
-  // Log to file in production
-  if (process.env.NODE_ENV === "production") {
-    const fs = require("fs");
-    const logEntry = `[${new Date().toISOString()}] Uncaught Exception: ${
-      error.message
-    }\n${error.stack}\n\n`;
-    fs.appendFileSync("error.log", logEntry);
-  }
-
-  // Graceful shutdown
-  console.log("🔄 Shutting down gracefully...");
-  process.exit(1);
-});
-
-// Graceful shutdown handling
-process.on("SIGINT", () => {
-  console.log("\n🛑 Received SIGINT, shutting down gracefully...");
-  client.destroy();
-  process.exit(0);
-});
-
-process.on("SIGTERM", () => {
-  console.log("\n🛑 Received SIGTERM, shutting down gracefully...");
-  client.destroy();
-  process.exit(0);
-});
-
-// Professional startup sequence
-async function startBot() {
-  try {
-    console.log("🚀 Starting RoleReactor Bot...");
-    console.log("");
-
-    // Load events and commands
-    await loadEvents();
-    await loadCommands();
-
-    console.log("");
-    console.log("🔐 Logging in to Discord...");
-
-    // Login to Discord with error handling
-    await client.login(process.env.DISCORD_TOKEN);
-
-    console.log("✅ Bot startup completed successfully!");
-    console.log("");
-  } catch (error) {
-    console.error("❌ Failed to start bot:", error.message);
-    console.error("   Please check your Discord token and try again.");
-    process.exit(1);
-  }
-}
-
-// Start the bot
-startBot();
+// Load commands and events
+await loadCommands();
+await loadEvents();

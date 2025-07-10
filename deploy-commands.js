@@ -1,9 +1,14 @@
-const { REST, Routes } = require("discord.js");
-const fs = require("fs");
-const path = require("path");
-require("dotenv").config();
+import { REST, Routes } from "discord.js";
+import fs from "fs";
+import path from "path";
+import process from "process";
+import dotenv from "dotenv";
 
-// Professional deployment banner
+dotenv.config();
+
+const __dirname = path.dirname(new URL(import.meta.url).pathname);
+
+// Deployment banner
 console.log("╔══════════════════════════════════════════════════════════════╗");
 console.log("║                RoleReactor Bot - Command Deployer            ║");
 console.log(
@@ -14,13 +19,11 @@ console.log("");
 
 // Validate environment variables
 const requiredEnvVars = ["DISCORD_TOKEN", "CLIENT_ID"];
-const missingEnvVars = requiredEnvVars.filter(
-  (varName) => !process.env[varName]
-);
+const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
 
 if (missingEnvVars.length > 0) {
   console.error("❌ Missing required environment variables:");
-  missingEnvVars.forEach((varName) => {
+  missingEnvVars.forEach(varName => {
     console.error(`   • ${varName}`);
   });
   console.error(
@@ -29,7 +32,7 @@ if (missingEnvVars.length > 0) {
   process.exit(1);
 }
 
-// Professional command collection with validation
+// Command collection with validation
 async function collectCommands() {
   const commands = [];
   const commandsPath = path.join(__dirname, "src", "commands");
@@ -56,7 +59,7 @@ async function collectCommands() {
 
     const commandFiles = fs
       .readdirSync(folderPath)
-      .filter((file) => file.endsWith(".js"));
+      .filter(file => file.endsWith(".js"));
 
     console.log(
       `   📂 Category: ${folder} (${commandFiles.length} command(s))`
@@ -65,7 +68,8 @@ async function collectCommands() {
     for (const file of commandFiles) {
       try {
         const filePath = path.join(folderPath, file);
-        const command = require(filePath);
+        const command =
+          (await import(filePath)).default || (await import(filePath));
 
         if (!command.data) {
           console.warn(`      ⚠️  Command ${file} missing 'data' property`);
@@ -106,7 +110,7 @@ async function collectCommands() {
   return commands;
 }
 
-// Professional deployment function
+// Deployment function
 async function deployCommands() {
   try {
     console.log("🚀 Starting command deployment...");
@@ -196,14 +200,14 @@ async function deployCommands() {
   }
 }
 
-// Professional error handling
-process.on("unhandledRejection", (error) => {
+// Error handling
+process.on("unhandledRejection", error => {
   console.error("❌ Unhandled promise rejection:");
   console.error("   Error:", error.message);
   process.exit(1);
 });
 
-process.on("uncaughtException", (error) => {
+process.on("uncaughtException", error => {
   console.error("❌ Uncaught exception:");
   console.error("   Error:", error.message);
   process.exit(1);
@@ -216,4 +220,4 @@ process.on("SIGINT", () => {
 });
 
 // Start deployment
-deployCommands();
+await deployCommands();

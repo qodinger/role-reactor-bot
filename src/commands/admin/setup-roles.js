@@ -1,47 +1,47 @@
-const {
+import {
   SlashCommandBuilder,
   PermissionFlagsBits,
   EmbedBuilder,
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-} = require("discord.js");
-const {
+} from "discord.js";
+import {
   hasAdminPermissions,
   botHasRequiredPermissions,
   getMissingBotPermissions,
   formatPermissionName,
-} = require("../../utils/permissions");
-const { setRoleMapping, isValidEmoji } = require("../../utils/roleManager");
+} from "../../utils/permissions.js";
+import { setRoleMapping, parseRoleString } from "../../utils/roleManager.js";
 
-module.exports = {
+export default {
   data: new SlashCommandBuilder()
     .setName("setup-roles")
-    .setDescription(
-      "Create a professional role-reaction message for self-assignable roles"
-    )
-    .addStringOption((option) =>
+    .setDescription("Create a role-reaction message for self-assignable roles")
+    .addStringOption(option =>
       option
         .setName("title")
         .setDescription("Title for the role message (e.g., 'Server Roles')")
         .setRequired(true)
         .setMaxLength(256)
     )
-    .addStringOption((option) =>
+    .addStringOption(option =>
       option
         .setName("description")
         .setDescription("Description for the role message")
         .setRequired(true)
         .setMaxLength(2000)
     )
-    .addStringOption((option) =>
+    .addStringOption(option =>
       option
         .setName("roles")
-        .setDescription("Role-emoji pairs (format: emoji:role,emoji:role)")
+        .setDescription(
+          "Role-emoji pairs (format: emoji:role, one per line or comma-separated)"
+        )
         .setRequired(true)
-        .setMaxLength(2000)
+        .setMaxLength(4000)
     )
-    .addStringOption((option) =>
+    .addStringOption(option =>
       option
         .setName("color")
         .setDescription("Embed color (hex code, e.g., #0099ff)")
@@ -92,49 +92,37 @@ module.exports = {
         });
       }
 
-      // Parse role-emoji pairs
-      const rolePairs = rolesString.split(",").map((pair) => pair.trim());
+      // Parse role-emoji pairs (flat)
+      const { roles, errors: parseErrors } = parseRoleString(rolesString);
       const roleMapping = {};
       const validPairs = [];
-      const errors = [];
+      const errors = [...parseErrors];
 
       // Fetch the bot's member object and highest role
       const botMember = await interaction.guild.members.fetchMe();
       const botHighestRole = botMember.roles.highest;
 
-      for (const pair of rolePairs) {
-        const [emoji, roleName] = pair.split(":").map((s) => s.trim());
-
-        if (!emoji || !roleName) {
-          errors.push(`❌ Invalid format: "${pair}" (use format: emoji:role)`);
-          continue;
-        }
-
-        if (!isValidEmoji(emoji)) {
-          errors.push(`❌ Invalid emoji: "${emoji}"`);
-          continue;
-        }
-
+      for (const { emoji, roleName } of roles) {
         // Check if role exists
         const role = interaction.guild.roles.cache.find(
-          (r) => r.name.toLowerCase() === roleName.toLowerCase()
+          r => r.name.toLowerCase() === roleName.toLowerCase()
         );
         if (!role) {
-          errors.push(`❌ Role "${roleName}" not found in this server`);
+          errors.push(`❌ Role \"${roleName}\" not found in this server`);
           continue;
         }
 
         // Check if the bot can manage this role
         if (role.position >= botHighestRole.position) {
           errors.push(
-            `❌ Cannot manage role "${roleName}" - it's higher than my highest role`
+            `❌ Cannot manage role \"${roleName}\" - it's higher than my highest role`
           );
           continue;
         }
 
         // Check for duplicate emojis
         if (roleMapping[emoji]) {
-          errors.push(`❌ Duplicate emoji "${emoji}" found`);
+          errors.push(`❌ Duplicate emoji \"${emoji}\" found`);
           continue;
         }
 
@@ -162,7 +150,7 @@ module.exports = {
 
         errorChunks.forEach((chunk, index) => {
           errorEmbed.addFields({
-            name: index === 0 ? "Errors" : `Errors (continued)`,
+            name: index === 0 ? "Errors" : "Errors (continued)",
             value: chunk.join("\n"),
             inline: false,
           });
@@ -182,7 +170,7 @@ module.exports = {
         });
       }
 
-      // Create professional embed message
+      // Create embed message
       const embed = new EmbedBuilder()
         .setTitle(title)
         .setDescription(description)
@@ -194,17 +182,12 @@ module.exports = {
         })
         .setThumbnail(interaction.guild.iconURL({ dynamic: true }));
 
-      // Add role-emoji pairs to embed with better formatting
-      const roleList = validPairs
-        .map(({ emoji, roleName, role }) => {
-          const memberCount = role.members.size;
-          return `${emoji} **${roleName}** (${memberCount} members)`;
-        })
-        .join("\n");
-
+      // Add roles as a single field
       embed.addFields({
-        name: "🎯 Available Roles",
-        value: roleList,
+        name: "Roles",
+        value: validPairs
+          .map(({ emoji, roleName }) => `${emoji} **${roleName}**`)
+          .join("\n"),
         inline: false,
       });
 
@@ -233,7 +216,9 @@ module.exports = {
       for (const { emoji } of validPairs) {
         await message.react(emoji);
         // Small delay to avoid rate limiting
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        await new Promise(resolve => {
+          setTimeout(resolve, 500);
+        });
       }
 
       // Store the role mapping

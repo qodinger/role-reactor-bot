@@ -1,9 +1,17 @@
-const { Events } = require("discord.js");
-const { getRoleMapping } = require("../utils/roleManager");
+import { Events } from "discord.js";
+import { getRoleMapping } from "../utils/roleManager.js";
 
-module.exports = {
+export default {
   name: Events.MessageReactionAdd,
-  async execute(reaction, user, client) {
+  async execute(reaction, user) {
+    console.log("🔥 MESSAGE REACTION ADD EVENT TRIGGERED!");
+    console.log("Reaction object:", {
+      emoji: reaction.emoji?.name || reaction.emoji?.toString(),
+      userId: user?.id,
+      messageId: reaction.message?.id,
+      guildId: reaction.message?.guild?.id,
+    });
+
     // Log every reaction event
     console.log("messageReactionAdd event fired!", {
       emoji: reaction.emoji.name,
@@ -77,7 +85,7 @@ module.exports = {
       console.log(`Found role "${roleName}" for emoji ${emoji}`);
 
       // Find the role
-      const role = guild.roles.cache.find((r) => r.name === roleName);
+      const role = guild.roles.cache.find(r => r.name === roleName);
 
       if (!role) {
         console.error(`Role "${roleName}" not found in guild ${guild.name}`);

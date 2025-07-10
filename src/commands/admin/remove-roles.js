@@ -1,15 +1,12 @@
-const { SlashCommandBuilder, PermissionFlagsBits } = require("discord.js");
-const { hasAdminPermissions } = require("../../utils/permissions");
-const {
-  removeRoleMapping,
-  getRoleMapping,
-} = require("../../utils/roleManager");
+import { SlashCommandBuilder, PermissionFlagsBits } from "discord.js";
+import { hasAdminPermissions } from "../../utils/permissions.js";
+import { removeRoleMapping, getRoleMapping } from "../../utils/roleManager.js";
 
-module.exports = {
+export default {
   data: new SlashCommandBuilder()
     .setName("remove-roles")
     .setDescription("Remove a role-reaction message")
-    .addStringOption((option) =>
+    .addStringOption(option =>
       option
         .setName("message_id")
         .setDescription("The ID of the message to remove")
@@ -17,7 +14,7 @@ module.exports = {
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles),
 
-  async execute(interaction, client) {
+  async execute(interaction) {
     // Check user permissions
     if (!hasAdminPermissions(interaction.member)) {
       return interaction.reply({
@@ -44,7 +41,7 @@ module.exports = {
         const channel = interaction.channel;
         const message = await channel.messages.fetch(messageId);
         await message.delete();
-      } catch (error) {
+      } catch {
         // Message might not exist anymore, that's okay
         console.log(`Message ${messageId} not found or already deleted`);
       }
@@ -53,11 +50,11 @@ module.exports = {
       await removeRoleMapping(messageId);
 
       await interaction.reply({
-        content: `✅ Role-reaction message removed successfully!`,
+        content: "✅ Role-reaction message removed successfully!",
         ephemeral: true,
       });
-    } catch (error) {
-      console.error("Error removing role-reaction message:", error);
+    } catch {
+      console.error("Error removing role-reaction message:");
       await interaction.reply({
         content:
           "❌ An error occurred while removing the role-reaction message",

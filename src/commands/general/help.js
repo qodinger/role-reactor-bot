@@ -1,25 +1,20 @@
-const {
+import {
   SlashCommandBuilder,
   EmbedBuilder,
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-} = require("discord.js");
+} from "discord.js";
 
-module.exports = {
+export default {
   data: new SlashCommandBuilder()
     .setName("help")
-    .setDescription("Get help and information about RoleReactor Bot")
-    .addStringOption((option) =>
+    .setDescription("Get help and information about the bot")
+    .addStringOption(option =>
       option
         .setName("command")
         .setDescription("Get help for a specific command")
         .setRequired(false)
-        .addChoices(
-          { name: "setup-roles", value: "setup-roles" },
-          { name: "remove-roles", value: "remove-roles" },
-          { name: "help", value: "help" }
-        )
     ),
 
   async execute(interaction, client) {
@@ -29,11 +24,11 @@ module.exports = {
       return await showCommandHelp(interaction, command);
     }
 
+    // Main help embed
     const embed = new EmbedBuilder()
       .setTitle("🤖 RoleReactor Bot Help")
       .setDescription(
-        "Welcome to **RoleReactor Bot** - The professional Discord role management solution!\n\n" +
-          "This bot allows users to self-assign roles by reacting to messages with emojis."
+        "A Discord bot for self-assignable roles through reactions."
       )
       .setColor(0x0099ff)
       .setThumbnail(client.user.displayAvatarURL())
@@ -87,7 +82,6 @@ module.exports = {
         "🎯 **Self-Assignable Roles** - Users can assign/remove roles",
         "🛡️ **Permission Controls** - Secure admin-only setup",
         "🎨 **Custom Emojis** - Unicode and server emojis supported",
-        "📊 **Role Categories** - Organize roles logically",
         "⚡ **High Performance** - Optimized for large servers",
         "🛠️ **Error Handling** - Graceful error management",
       ].join("\n"),
@@ -163,7 +157,7 @@ async function showCommandHelp(interaction, commandName) {
         value: [
           "**title** - The title of the role message",
           "**description** - Description text for the message",
-          "**roles** - Role-emoji pairs (format: emoji:role,emoji:role)",
+          "**roles** - Role-emoji pairs (format: emoji:role,emoji:role or one per line)",
         ].join("\n"),
         inline: false,
       });
