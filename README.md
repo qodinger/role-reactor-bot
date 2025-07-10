@@ -1,10 +1,8 @@
 # RoleReactor Bot 🤖
 
-[![Node.js](https://img.shields.io/badge/Node.js-16+-green.svg)](https://nodejs.org/)
-[![Discord.js](https://img.shields.io/badge/Discord.js-14.14.1-blue.svg)](https://discord.js.org/)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Node.js](https://img.shields.io/badge/Node.js-16+-green.svg)](https://nodejs.org/) [![Discord.js](https://img.shields.io/badge/Discord.js-14.14.1-blue.svg)](https://discord.js.org/) [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-A professional Discord bot that enables users to self-assign roles through message reactions. Built with Discord.js v14, featuring robust permission controls, customizable role-emoji mappings, and enterprise-grade error handling.
+A Discord bot that enables users to self-assign roles through message reactions. Built with Discord.js v14, featuring robust permission controls, customizable role-emoji mappings, and enterprise-grade error handling.
 
 ## ✨ Features
 
@@ -186,5 +184,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - All contributors and users who provide feedback
 
 ---
-
-**Made with ❤️ by the RoleReactor Team** 

@@ -28,19 +28,19 @@
     "automation"
   ],
   "author": {
-    "name": "RoleReactor Bot Team",
-    "email": "support@rolereactor.com",
-    "url": "https://github.com/rolereactor-bot"
+    "name": "Tyecode",
+    "email": "support@tyecode.com",
+    "url": "https://github.com/tyecode"
   },
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/rolereactor-bot/role-reactor-bot.git"
+    "url": "https://github.com/tyecode/role-reactor-bot.git"
   },
   "bugs": {
-    "url": "https://github.com/rolereactor-bot/role-reactor-bot/issues"
+    "url": "https://github.com/tyecode/role-reactor-bot/issues"
   },
-  "homepage": "https://github.com/rolereactor-bot/role-reactor-bot#readme",
+  "homepage": "https://github.com/tyecode/role-reactor-bot#readme",
   "engines": {
     "node": ">=16.0.0",
     "npm": ">=8.0.0"
