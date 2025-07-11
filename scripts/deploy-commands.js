@@ -3,29 +3,35 @@ import fs from "fs";
 import path from "path";
 import process from "process";
 import dotenv from "dotenv";
+import { fileURLToPath } from "url";
+import {
+  createErrorMessage,
+  createInfoBox,
+  createSpinner,
+  colors,
+  icons,
+} from "../src/utils/terminal.js";
 
 dotenv.config();
 
-const __dirname = path.dirname(new URL(import.meta.url).pathname);
-
-// Deployment banner
-console.log("╔══════════════════════════════════════════════════════════════╗");
-console.log("║                RoleReactor Bot - Command Deployer            ║");
-console.log("║                    Role Management System                    ║");
-console.log("╚══════════════════════════════════════════════════════════════╝");
-console.log("");
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Validate environment variables
 const requiredEnvVars = ["DISCORD_TOKEN", "CLIENT_ID"];
 const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
 
 if (missingEnvVars.length > 0) {
-  console.error("❌ Missing required environment variables:");
+  console.error(createErrorMessage("Missing required environment variables:"));
   missingEnvVars.forEach(varName => {
-    console.error(`   • ${varName}`);
+    console.error(colors.error(`   • ${varName}`));
   });
   console.error(
-    "\nPlease check your .env file and ensure all required variables are set.",
+    createInfoBox(
+      "Check your .env file",
+      ["Please ensure all required variables are set."],
+      { borderColor: "red" },
+    ),
   );
   process.exit(1);
 }
@@ -33,10 +39,11 @@ if (missingEnvVars.length > 0) {
 // Command collection with validation
 async function collectCommands() {
   const commands = [];
-  const commandsPath = path.join(__dirname, "src", "commands");
+  const commandsPath = path.join(__dirname, "../src/commands");
+  console.log(colors.info(`Looking for commands in: ${commandsPath}`));
 
   if (!fs.existsSync(commandsPath)) {
-    console.error("❌ Commands directory not found");
+    console.error(createErrorMessage("Commands directory not found"));
     return commands;
   }
 
@@ -44,14 +51,14 @@ async function collectCommands() {
   let totalCommands = 0;
 
   console.log(
-    `📁 Collecting commands from ${commandFolders.length} category(ies)...`,
+    `${icons.folder || "📁"} ${colors.cyan(`Found ${commandFolders.length} category(ies).`)}`,
   );
 
   for (const folder of commandFolders) {
     const folderPath = path.join(commandsPath, folder);
 
     if (!fs.statSync(folderPath).isDirectory()) {
-      console.warn(`   ⚠️  Skipping non-directory: ${folder}`);
+      console.warn(colors.warning(`   ⚠️  Skipping non-directory: ${folder}`));
       continue;
     }
 
@@ -60,7 +67,7 @@ async function collectCommands() {
       .filter(file => file.endsWith(".js"));
 
     console.log(
-      `   📂 Category: ${folder} (${commandFiles.length} command(s))`,
+      `${icons.folder || "📂"} ${colors.cyan(`${commandFiles.length} command(s) in category: ${folder}`)}`,
     );
 
     for (const file of commandFiles) {
@@ -70,55 +77,71 @@ async function collectCommands() {
           (await import(filePath)).default || (await import(filePath));
 
         if (!command.data) {
-          console.warn(`      ⚠️  Command ${file} missing 'data' property`);
+          console.warn(
+            colors.warning(`      ⚠️  Command ${file} missing 'data' property`),
+          );
           continue;
         }
 
         if (!command.execute) {
-          console.warn(`      ⚠️  Command ${file} missing 'execute' property`);
+          console.warn(
+            colors.warning(
+              `      ⚠️  Command ${file} missing 'execute' property`,
+            ),
+          );
           continue;
         }
 
         // Validate command structure
         if (!command.data.name) {
-          console.warn(`      ⚠️  Command ${file} missing name`);
+          console.warn(
+            colors.warning(`      ⚠️  Command ${file} missing name`),
+          );
           continue;
         }
 
         if (!command.data.description) {
           console.warn(
-            `      ⚠️  Command ${command.data.name} missing description`,
+            colors.warning(
+              `      ⚠️  Command ${command.data.name} missing description`,
+            ),
           );
           continue;
         }
 
         commands.push(command.data.toJSON());
-        console.log(`      ✅ Collected command: ${command.data.name}`);
+        console.log(
+          colors.success(`      ✅ Collected command: ${command.data.name}`),
+        );
         totalCommands++;
       } catch (error) {
         console.error(
-          `      ❌ Failed to load command ${file}:`,
-          error.message,
+          createErrorMessage(
+            `      ❌ Failed to load command ${file}: ${error.message}`,
+          ),
         );
       }
     }
   }
 
-  console.log(`📊 Total commands collected: ${totalCommands}`);
+  console.log(colors.magenta(`📊 Total commands collected: ${totalCommands}`));
   return commands;
 }
 
 // Deployment function
 async function deployCommands() {
   try {
-    console.log("🚀 Starting command deployment...\n");
+    console.log(
+      `${icons.rocket} ${colors.green("Starting command deployment...")}`,
+    );
 
     // Collect all commands
     const commands = await collectCommands();
-    console.log(`📊 Total commands collected: ${commands.length}\n`);
+    console.log(
+      colors.green(`📊 Total commands collected: ${commands.length}`),
+    );
 
     // Initialize REST client
-    console.log("🔐 Initializing REST client...");
     const rest = new REST({ version: "10" }).setToken(
       process.env.DISCORD_TOKEN,
     );
@@ -126,18 +149,18 @@ async function deployCommands() {
     // Determine deployment type
     const isGlobal = process.argv.includes("--global");
     const deploymentType = isGlobal ? "Global" : "Guild";
-    console.log(`📡 Deployment Type: ${deploymentType}`);
-
+    console.log(
+      `${icons.info} Deployment Type: ${colors.cyan(deploymentType)}`,
+    );
     if (isGlobal) {
-      console.log("🌍 Target: All guilds (global deployment)");
+      console.log(`${icons.server} Global`);
     } else {
-      console.log(`🎯 Target Guild: ${process.env.GUILD_ID}`);
+      console.log(`${icons.server} Guild: ${process.env.GUILD_ID}`);
     }
 
-    console.log("\n📤 Deploying commands to Discord...");
-
-    // Force refresh by removing all commands first
-    console.log("🔄 Removing existing commands...");
+    // Remove all commands first
+    const spinner = createSpinner("Removing existing commands...");
+    spinner.start();
     if (isGlobal) {
       await rest.put(Routes.applicationCommands(process.env.CLIENT_ID), {
         body: [],
@@ -151,9 +174,11 @@ async function deployCommands() {
         { body: [] },
       );
     }
-    console.log("✅ Existing commands removed");
+    spinner.succeed(colors.success("Existing commands removed"));
 
     // Deploy new commands
+    const deploySpinner = createSpinner("Deploying new commands...");
+    deploySpinner.start();
     if (isGlobal) {
       await rest.put(Routes.applicationCommands(process.env.CLIENT_ID), {
         body: commands,
@@ -169,44 +194,72 @@ async function deployCommands() {
         },
       );
     }
-
-    console.log("\n✅ Command deployment completed successfully!");
-    console.log(`📊 Deployed ${commands.length} command(s):`);
+    deploySpinner.succeed(
+      colors.success("Command deployment completed successfully!"),
+    );
+    console.log(
+      createInfoBox(
+        "Deployment Summary",
+        [
+          `${icons.success} Deployed ${commands.length} command(s)`,
+          `${icons.info} Deployment Type: ${deploymentType}`,
+          isGlobal
+            ? `${icons.server} Global`
+            : `${icons.server} Guild: ${process.env.GUILD_ID}`,
+          `${icons.time} ${new Date().toLocaleString()}`,
+        ],
+        { borderColor: "green" },
+      ),
+    );
 
     commands.forEach((command, index) => {
-      console.log(`   ${index + 1}. /${command.name} - ${command.description}`);
+      console.log(
+        colors.success(
+          `   ${index + 1}. /${command.name} - ${command.description}`,
+        ),
+      );
     });
 
-    console.log("\n⏰ Note: Global commands may take up to 1 hour to appear.");
-    console.log("   Guild commands appear immediately.\n");
+    console.log(
+      colors.info("🕒 Note: Global commands may take up to 1 hour to appear."),
+    );
+    console.log(colors.info("   Guild commands appear immediately.\n"));
   } catch (error) {
-    console.error("\n❌ Command deployment failed:");
-    console.error("   Error:", error.message);
-    console.error("\n🔧 Troubleshooting:");
-    console.error("   • Verify your bot token is correct");
-    console.error('   • Ensure the bot has the "applications.commands" scope');
-    console.error("   • Check that CLIENT_ID matches your application");
-    console.error("   • For guild deployment, verify GUILD_ID is correct");
+    console.error(
+      createErrorMessage(`Command deployment failed: ${error.message}`),
+    );
+    console.error(
+      createInfoBox(
+        "Troubleshooting",
+        [
+          "Verify your bot token is correct",
+          'Ensure the bot has the "applications.commands" scope',
+          "Check that CLIENT_ID matches your application",
+          "For guild deployment, verify GUILD_ID is correct",
+        ],
+        { borderColor: "red" },
+      ),
+    );
     process.exit(1);
   }
 }
 
 // Error handling
 process.on("unhandledRejection", error => {
-  console.error("❌ Unhandled promise rejection:");
-  console.error("   Error:", error.message);
+  console.error(
+    createErrorMessage(`Unhandled promise rejection: ${error.message}`),
+  );
   process.exit(1);
 });
 
 process.on("uncaughtException", error => {
-  console.error("❌ Uncaught exception:");
-  console.error("   Error:", error.message);
+  console.error(createErrorMessage(`Uncaught exception: ${error.message}`));
   process.exit(1);
 });
 
 // Graceful shutdown
 process.on("SIGINT", () => {
-  console.log("\n🛑 Deployment interrupted");
+  console.log(colors.warning("\n🛑 Deployment interrupted"));
   process.exit(0);
 });
 

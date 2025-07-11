@@ -3,33 +3,48 @@ import {
   requiredPermissions,
   formatPermissionName,
 } from "../utils/permissions.js";
+import {
+  createSpinner,
+  createInfoBox,
+  createSuccessMessage,
+  printBotStats,
+  createWelcomeBox,
+} from "../utils/terminal.js";
 import { BOT_VERSION } from "../utils/version.js";
 
 export default {
   name: Events.ClientReady,
   once: true,
-  execute(client) {
-    // Startup logging
+  async execute(client) {
+    // Create a beautiful startup spinner
+    const spinner = createSpinner("Initializing RoleReactor Bot...");
+    spinner.start();
+
+    // Simulate a brief loading time for visual effect
+    await new Promise(resolve => {
+      setTimeout(resolve, 1500);
+    });
+
+    spinner.succeed("Bot initialized successfully!");
+
+    // Welcome section using terminal.js utility
+    const titleText = `🤖 RoleReactor Bot v${BOT_VERSION} 🤖`;
+    const titleBox = createWelcomeBox(titleText, "cristal");
     console.log("");
-    console.log(`==================================`);
-    console.log(`🤖 RoleReactor Bot v${BOT_VERSION}`);
-    console.log(`🔧 Role Management System`);
-    console.log(`==================================`);
+    console.log(titleBox);
     console.log("");
-    console.log("✅ Bot Status: ONLINE");
-    console.log(`🤖 Bot Name: ${client.user.tag}`);
-    console.log(`🆔 Bot ID: ${client.user.id}`);
-    console.log(`📊 Servers: ${client.guilds.cache.size.toLocaleString()}`);
-    console.log(`👥 Total Users: ${client.users.cache.size.toLocaleString()}`);
-    console.log(`⏰ Started at: ${new Date().toLocaleString()}`);
-    console.log(
-      `💾 Memory Usage: ${(
-        process.memoryUsage().heapUsed /
-        1024 /
-        1024
-      ).toFixed(2)} MB`,
-    );
-    console.log("");
+
+    // Print bot statistics
+    const stats = {
+      botName: client.user.tag,
+      botId: client.user.id,
+      servers: client.guilds.cache.size,
+      users: client.users.cache.size,
+      startTime: new Date().toLocaleString(),
+      memoryUsage: (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2),
+    };
+
+    printBotStats(stats);
 
     // Set bot status
     const activities = [
@@ -56,15 +71,26 @@ export default {
       permissions: requiredPermissions,
     });
 
-    console.log("🔗 Bot Invite Link:");
-    console.log(inviteLink);
-    console.log("");
-    console.log("📋 Required Permissions:");
-    requiredPermissions.forEach(perm => {
-      console.log(`   • ${formatPermissionName(perm)}`);
+    // Create invite link section
+    const inviteSection = [
+      `🔗 Bot Invite Link:`,
+      inviteLink,
+      "",
+      `📋 Required Permissions:`,
+      ...requiredPermissions.map(perm => `   • ${formatPermissionName(perm)}`),
+    ];
+
+    const inviteBox = createInfoBox("🔗 Invitation Details", inviteSection, {
+      borderColor: "green",
     });
+
     console.log("");
-    console.log("🚀 Bot is ready to serve!");
+    console.log(inviteBox);
+    console.log("");
+
+    // Final success message
+    const successMessage = createSuccessMessage("🚀 Bot is ready to serve!");
+    console.log(successMessage);
     console.log("");
   },
 };

@@ -63,8 +63,12 @@
     "npm": ">=8.0.0"
   },
   "dependencies": {
+    "boxen": "^8.0.1",
+    "chalk": "^5.4.1",
     "discord.js": "^14.14.1",
-    "dotenv": "^16.3.1"
+    "dotenv": "^16.3.1",
+    "gradient-string": "^3.0.0",
+    "ora": "^8.2.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.30.1",
