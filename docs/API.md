@@ -29,16 +29,41 @@ Creates a role-reaction message where users can self-assign roles.
 
 **Response:** Creates an embed message with reaction buttons
 
-### `/remove-roles`
+### `/update-roles`
 
-Removes role-reaction mappings from a message.
+Updates an existing role-reaction message with new content.
 
 **Parameters:**
-- `message_id` (string, required): The ID of the message to remove reactions from
+- `message_id` (string, required): The ID of the message to update
+- `title` (string, optional): New title for the message
+- `description` (string, optional): New description for the message
+- `roles` (string, optional): New role-emoji mappings
+- `color` (string, optional): New color for the embed (hex format)
 
 **Permissions Required:** Manage Roles
 
-**Response:** Removes all reactions and disables role assignment
+**Response:** Updates the embed message with new content
+
+### `/delete-roles`
+
+Deletes a role-reaction message and removes its mappings.
+
+**Parameters:**
+- `message_id` (string, required): The ID of the message to delete
+
+**Permissions Required:** Manage Roles
+
+**Response:** Deletes the message and removes role mappings
+
+### `/list-roles`
+
+Lists all current role-reaction messages and their message IDs.
+
+**Parameters:** None
+
+**Permissions Required:** Manage Roles
+
+**Response:** Shows a list of all active role-reaction messages
 
 ### `/help`
 

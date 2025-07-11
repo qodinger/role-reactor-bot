@@ -103,7 +103,9 @@ The bot supports organizing roles into categories:
 | Command | Description | Permissions Required |
 |---------|-------------|-------------------|
 | `/setup-roles` | Create a role-reaction message | Manage Roles |
-| `/remove-roles` | Remove role-reaction mappings | Manage Roles |
+| `/update-roles` | Update an existing role-reaction message | Manage Roles |
+| `/delete-roles` | Delete a role-reaction message | Manage Roles |
+| `/list-roles` | List all role-reaction messages | Manage Roles |
 | `/help` | Display bot information | None |
 
 ### Role-Emoji Format

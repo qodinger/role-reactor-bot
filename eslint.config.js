@@ -39,17 +39,6 @@ export default [
         createMockClient: "readonly",
       },
     },
-    settings: {
-      "import/resolver": {
-        alias: {
-          map: [
-            ["@", "./src"],
-            ["@jest/globals", "./node_modules/@jest/globals"],
-          ],
-          extensions: [".js", ".json"],
-        },
-      },
-    },
     rules: {
       // Code quality rules
       "no-unused-vars": ["error", { argsIgnorePattern: "^_" }],

@@ -3,17 +3,15 @@ import {
   PermissionFlagsBits,
   EmbedBuilder,
 } from "discord.js";
-import { hasAdminPermissions } from "@/utils/permissions.js";
-import { getAllRoleMappings } from "@/utils/roleManager.js";
+import { hasAdminPermissions } from "../../utils/permissions.js";
+import { getAllRoleMappings } from "../../utils/roleManager.js";
 
 const PAGE_SIZE = 5;
 
 export default {
   data: new SlashCommandBuilder()
-    .setName("role-messages")
-    .setDescription(
-      "List all current role-reaction messages and their message IDs",
-    )
+    .setName("list-roles")
+    .setDescription("List all role-reaction messages")
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles),
 
   async execute(interaction, _client) {

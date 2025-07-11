@@ -1,21 +1,21 @@
 import { SlashCommandBuilder, PermissionFlagsBits } from "discord.js";
-import { hasAdminPermissions } from "@/utils/permissions.js";
-import { getRoleMapping, setRoleMapping } from "@/utils/roleManager.js";
+import { hasAdminPermissions } from "../../utils/permissions.js";
+import { getRoleMapping, setRoleMapping } from "../../utils/roleManager.js";
 import {
   rolesOption,
   titleOption,
   descriptionOption,
   colorOption,
-} from "@/utils/roleMessageOptions.js";
+} from "../../utils/roleMessageOptions.js";
 
 export default {
   data: new SlashCommandBuilder()
-    .setName("edit-role-message")
-    .setDescription("Edit an existing role-reaction message by message ID")
+    .setName("update-roles")
+    .setDescription("Update an existing role-reaction message")
     .addStringOption(option =>
       option
         .setName("message_id")
-        .setDescription("The ID of the message to edit")
+        .setDescription("The ID of the message to update")
         .setRequired(true),
     )
     .addStringOption(titleOption())

@@ -5,7 +5,7 @@ import {
   ButtonBuilder,
   ButtonStyle,
 } from "discord.js";
-import { BOT_VERSION } from "@/utils/version.js";
+import { BOT_VERSION } from "../../utils/version.js";
 
 export default {
   data: new SlashCommandBuilder()
@@ -58,9 +58,9 @@ export default {
       name: "🔧 Available Commands",
       value: [
         "`/setup-roles` — **Create** a new role-reaction message for self-assignable roles. _Use this to let users assign themselves roles by reacting to a message._",
-        "`/edit-role-message` — **Edit** an existing role-reaction message (title, description, roles, color). _Use this to update the content or roles of an existing message._",
-        "`/remove-role-message` — **Remove** a role-reaction message by message ID. _Use this to delete a role-reaction message and its mapping._",
-        "`/role-messages` — **List** all current role-reaction messages and their message IDs. _Use this to find message IDs for editing or removal._",
+        "`/update-roles` — **Update** an existing role-reaction message (title, description, roles, color). _Use this to update the content or roles of an existing message._",
+        "`/delete-roles` — **Delete** a role-reaction message by message ID. _Use this to delete a role-reaction message and its mapping._",
+        "`/list-roles` — **List** all current role-reaction messages and their message IDs. _Use this to find message IDs for editing or removal._",
         "`/help` — Show this help message and command details.",
       ].join("\n"),
       inline: false,
@@ -71,10 +71,10 @@ export default {
       name: "📖 Usage Examples",
       value: [
         "• `/setup-roles title:'Server Roles' description:'Pick your roles!' roles:'🎮:Gamer,🎨:Artist'`",
-        "• `/edit-role-message message_id:123456789012345678 title:'New Title' roles:'🎮:Gamer,🎨:Artist'`",
-        "• `/remove-role-message message_id:123456789012345678`",
-        "• `/role-messages`",
-        "• `/help edit-role-message`",
+        "• `/update-roles message_id:123456789012345678 title:'New Title' roles:'🎮:Gamer,🎨:Artist'`",
+        "• `/delete-roles message_id:123456789012345678`",
+        "• `/list-roles`",
+        "• `/help update-roles`",
       ].join("\n"),
       inline: false,
     });
@@ -86,7 +86,7 @@ export default {
         "1. Use `/setup-roles` to create a role message",
         "2. Users react to get roles automatically",
         "3. Remove reactions to lose roles",
-        "4. Manage with `/remove-roles` when needed",
+        "4. Manage with `/delete-roles` when needed",
       ].join("\n"),
       inline: false,
     });
@@ -194,20 +194,69 @@ async function showCommandHelp(interaction, commandName) {
       });
       break;
 
-    case "remove-roles":
+    case "update-roles":
       embed.addFields({
         name: "📝 Usage",
-        value: "`/remove-roles message_id:123456789012345678`",
+        value:
+          "`/update-roles message_id:123456789012345678 title:'New Title' roles:'🎮:Gamer,🎨:Artist'`",
         inline: false,
       });
       embed.addFields({
         name: "📋 Parameters",
-        value: "**message_id** - The ID of the role-reaction message to remove",
+        value: [
+          "**message_id** - The ID of the role-reaction message to update",
+          "**title** (optional) - New title for the message",
+          "**description** (optional) - New description for the message",
+          "**roles** (optional) - New role-emoji pairs",
+          "**color** (optional) - New color for the embed (hex format)",
+        ].join("\n"),
         inline: false,
       });
       embed.addFields({
         name: "🔐 Permissions Required",
         value: "• Manage Roles (User)\n• Manage Messages (Bot)",
+        inline: false,
+      });
+      break;
+
+    case "delete-roles":
+      embed.addFields({
+        name: "📝 Usage",
+        value: "`/delete-roles message_id:123456789012345678`",
+        inline: false,
+      });
+      embed.addFields({
+        name: "📋 Parameters",
+        value: "**message_id** - The ID of the role-reaction message to delete",
+        inline: false,
+      });
+      embed.addFields({
+        name: "🔐 Permissions Required",
+        value: "• Manage Roles (User)\n• Manage Messages (Bot)",
+        inline: false,
+      });
+      break;
+
+    case "list-roles":
+      embed.addFields({
+        name: "📝 Usage",
+        value: "`/list-roles`",
+        inline: false,
+      });
+      embed.addFields({
+        name: "📋 Parameters",
+        value: "No parameters required",
+        inline: false,
+      });
+      embed.addFields({
+        name: "🔐 Permissions Required",
+        value: "• Manage Roles (User)",
+        inline: false,
+      });
+      embed.addFields({
+        name: "💡 What it shows",
+        value:
+          "Lists all active role-reaction messages with their message IDs, titles, and channel locations",
         inline: false,
       });
       break;

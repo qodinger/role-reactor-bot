@@ -2,26 +2,19 @@ import { Events, OAuth2Scopes, ActivityType } from "discord.js";
 import {
   requiredPermissions,
   formatPermissionName,
-} from "@/utils/permissions.js";
-import { BOT_VERSION } from "@/utils/version.js";
+} from "../utils/permissions.js";
+import { BOT_VERSION } from "../utils/version.js";
 
 export default {
   name: Events.ClientReady,
   once: true,
   execute(client) {
     // Startup logging
-    console.log(
-      "╔══════════════════════════════════════════════════════════════╗",
-    );
-    console.log(
-      `║                    RoleReactor Bot v${BOT_VERSION}                    ║`,
-    );
-    console.log(
-      "║                    Role Management System                    ║",
-    );
-    console.log(
-      "╚══════════════════════════════════════════════════════════════╝",
-    );
+    console.log("");
+    console.log(`==================================`);
+    console.log(`🤖 RoleReactor Bot v${BOT_VERSION}`);
+    console.log(`🔧 Role Management System`);
+    console.log(`==================================`);
     console.log("");
     console.log("✅ Bot Status: ONLINE");
     console.log(`🤖 Bot Name: ${client.user.tag}`);

@@ -1,15 +1,15 @@
 import { SlashCommandBuilder, PermissionFlagsBits } from "discord.js";
-import { hasAdminPermissions } from "@/utils/permissions.js";
-import { removeRoleMapping, getRoleMapping } from "@/utils/roleManager.js";
+import { hasAdminPermissions } from "../../utils/permissions.js";
+import { removeRoleMapping, getRoleMapping } from "../../utils/roleManager.js";
 
 export default {
   data: new SlashCommandBuilder()
-    .setName("remove-role-message")
-    .setDescription("Remove a role-reaction message by message ID")
+    .setName("delete-roles")
+    .setDescription("Delete a role-reaction message")
     .addStringOption(option =>
       option
         .setName("message_id")
-        .setDescription("The ID of the message to remove")
+        .setDescription("The ID of the message to delete")
         .setRequired(true),
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles),
