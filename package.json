@@ -7,6 +7,18 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
+    "pm2:start": "pm2 start ecosystem.config.js",
+    "pm2:start:prod": "pm2 start ecosystem.config.js --env production",
+    "pm2:start:staging": "pm2 start ecosystem.config.js --env staging",
+    "pm2:stop": "pm2 stop role-reactor-bot",
+    "pm2:restart": "pm2 restart role-reactor-bot",
+    "pm2:reload": "pm2 reload role-reactor-bot",
+    "pm2:delete": "pm2 delete role-reactor-bot",
+    "pm2:logs": "pm2 logs role-reactor-bot",
+    "pm2:monit": "pm2 monit",
+    "pm2:status": "pm2 status",
+    "pm2:save": "pm2 save",
+    "pm2:resurrect": "pm2 resurrect",
     "deploy-commands": "node scripts/deploy-commands.js",
     "delete-commands": "node scripts/delete-commands.js",
     "lint": "eslint src/ scripts/",
@@ -65,6 +77,7 @@
     "jest": "^29.7.0",
     "lint-staged": "^15.2.0",
     "nodemon": "^3.0.2",
+    "pm2": "^5.3.0",
     "prettier": "^3.2.0"
   },
   "lint-staged": {

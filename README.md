@@ -60,6 +60,14 @@ A Discord bot that enables users to self-assign roles through message reactions.
    npm start
    ```
 
+## 📖 Documentation
+
+For detailed documentation, guides, and development information, see our [Documentation](./docs/README.md):
+
+- **[📚 Documentation Index](./docs/README.md)** - Complete documentation overview
+- **[🚀 PM2 Deployment Guide](./docs/PM2_GUIDE.md)** - Production deployment with PM2
+- **[🤝 Contributing Guidelines](./docs/CONTRIBUTING.md)** - How to contribute to the project
+
 ## 📖 Usage
 
 ### Setting Up Role Reactions
@@ -174,7 +182,7 @@ npm run lint:fix
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
+We welcome contributions! Please see our [Contributing Guidelines](./docs/CONTRIBUTING.md) for details.
 
 ### Development Setup
 
