@@ -50,9 +50,16 @@ for (const folder of commandFolders) {
     .filter(file => file.endsWith(".js"));
   for (const file of commandFiles) {
     const filePath = path.join(folderPath, file);
-    const command = (await import(filePath)).default;
-    if (command && command.data && command.data.name) {
-      client.commands.set(command.data.name, command);
+    try {
+      const command = (await import(filePath)).default;
+      if (command && command.data && command.data.name) {
+        client.commands.set(command.data.name, command);
+        console.log(`✅ Loaded command: ${command.data.name}`);
+      } else {
+        console.log(`⚠️ Skipping invalid command file: ${file}`);
+      }
+    } catch (error) {
+      console.error(`❌ Error loading command from ${file}:`, error);
     }
   }
 }

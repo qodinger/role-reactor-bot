@@ -102,42 +102,48 @@ export default {
       const messageResults = await Promise.all(messagePromises);
 
       // For each message, show roles and their limits/quotas
-      // (Assume you have access to the guild object as interaction.guild)
-      for (const messageId of getPage(page)) {
+      for (let idx = 0; idx < messageResults.length; idx++) {
+        const result = messageResults[idx];
+        const messageId = result.messageId;
         const mapping = allMappings[messageId];
-        const fields = [];
-        // Support new structure: { guildId, roles }
-        const rolesObj = mapping && mapping.roles ? mapping.roles : mapping;
-        for (const [emoji, roleConfig] of Object.entries(rolesObj)) {
-          let roleName, limit;
-          if (typeof roleConfig === "string") {
-            roleName = roleConfig;
-            limit = null;
-          } else {
-            roleName =
-              roleConfig.roleName || roleConfig.role || roleConfig.name;
-            limit = roleConfig.limit;
+
+        // Build role information
+        let roleInfo = "";
+        if (mapping) {
+          // Support new structure: { guildId, roles }
+          const rolesObj = mapping.roles ? mapping.roles : mapping;
+          const roleEntries = [];
+
+          for (const [emoji, roleConfig] of Object.entries(rolesObj)) {
+            let roleName, limit;
+            if (typeof roleConfig === "string") {
+              roleName = roleConfig;
+              limit = null;
+            } else {
+              roleName =
+                roleConfig.roleName || roleConfig.role || roleConfig.name;
+              limit = roleConfig.limit;
+            }
+
+            const role = interaction.guild.roles.cache.find(
+              r => r.name === roleName,
+            );
+            const currentCount = role ? role.members.size : 0;
+            const limitText = limit
+              ? `${currentCount}/${limit} users`
+              : `${currentCount} users`;
+            roleEntries.push(`${emoji} **${roleName}** (${limitText})`);
           }
-          const role = interaction.guild.roles.cache.find(
-            r => r.name === roleName,
-          );
-          const currentCount = role ? role.members.size : 0;
-          const limitText = limit
-            ? `${currentCount}/${limit} users`
-            : `${currentCount} users (unlimited)`;
-          fields.push({
-            name: `${emoji} ${roleName}`,
-            value: limitText,
-            inline: true,
-          });
+
+          if (roleEntries.length > 0) {
+            roleInfo = `\n**Roles:** ${roleEntries.join(", ")}`;
+          }
         }
-        // Add fields to embed
-        messageResults.forEach((result, idx) => {
-          embed.addFields({
-            name: `#${idx + 1} ${result.channelMention}`,
-            value: `${result.preview}\nMessage ID: \`${result.messageId}\``,
-            inline: false,
-          });
+
+        embed.addFields({
+          name: `#${idx + 1} ${result.channelMention}`,
+          value: `${result.preview}${roleInfo}\nMessage ID: \`${result.messageId}\``,
+          inline: false,
         });
       }
 

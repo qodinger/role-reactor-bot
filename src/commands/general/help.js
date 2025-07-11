@@ -19,7 +19,13 @@ export default {
         .setDescription(
           "The command to get help for (e.g. setup-roles, update-roles, etc.)",
         )
-        .setRequired(false),
+        .setRequired(false)
+        .addChoices(
+      { name: "Delete Roles - Delete a role-reaction message", value: "delete-roles" },
+      { name: "List Roles - List all role-reaction messages", value: "list-roles" },
+      { name: "Setup Roles - Create a role-reaction message for self-assignable roles", value: "setup-roles" },
+      { name: "Update Roles - Update an existing role-reaction message", value: "update-roles" }
+    ),
     ),
 
   async execute(interaction, client) {
@@ -130,7 +136,7 @@ async function showCommandHelp(interaction, commandName) {
       embed.addFields({
         name: "📝 Usage",
         value:
-          '`/setup-roles title:"Server Roles" description:"Choose your roles!" roles:"🎮:Gamer,🎨:Artist,💻:Developer"`',
+          '`/setup-roles title:"Server Roles" description:"Choose your roles!" roles:"🎮:Gamer,🎨:Artist,💻:Developer" color:"#0099ff"`',
         inline: false,
       });
       embed.addFields({
@@ -139,6 +145,7 @@ async function showCommandHelp(interaction, commandName) {
           "**title** - The title of the role message",
           "**description** - Description text for the message",
           "**roles** - Role-emoji pairs (format: emoji:role,emoji:role or one per line)",
+          "**color** (optional) - Embed color (hex code like #0099ff or choose from preset colors)",
         ].join("\n"),
         inline: false,
       });
@@ -163,7 +170,7 @@ async function showCommandHelp(interaction, commandName) {
       embed.addFields({
         name: "📝 Usage",
         value:
-          "`/update-roles message_id:123456789012345678 title:'New Title' roles:'🎮:Gamer,🎨:Artist'`",
+          "`/update-roles message_id:123456789012345678 title:'New Title' roles:'🎮:Gamer,🎨:Artist' color:'#ff0000'`",
         inline: false,
       });
       embed.addFields({
@@ -173,7 +180,7 @@ async function showCommandHelp(interaction, commandName) {
           "**title** (optional) - New title for the message",
           "**description** (optional) - New description for the message",
           "**roles** (optional) - New role-emoji pairs",
-          "**color** (optional) - New color for the embed (hex format)",
+          "**color** (optional) - New color for the embed (hex format like #ff0000)",
         ].join("\n"),
         inline: false,
       });
