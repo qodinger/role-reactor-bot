@@ -1,12 +1,12 @@
 import { SlashCommandBuilder, PermissionFlagsBits } from "discord.js";
-import { hasAdminPermissions } from "../../utils/permissions.js";
-import { getRoleMapping, setRoleMapping } from "../../utils/roleManager.js";
+import { hasAdminPermissions } from "@/utils/permissions.js";
+import { getRoleMapping, setRoleMapping } from "@/utils/roleManager.js";
 import {
   rolesOption,
   titleOption,
   descriptionOption,
   colorOption,
-} from "../../utils/roleMessageOptions.js";
+} from "@/utils/roleMessageOptions.js";
 
 export default {
   data: new SlashCommandBuilder()

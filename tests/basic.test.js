@@ -1,5 +1,6 @@
 // ESM-compatible mocking for discord.js
 import { jest } from "@jest/globals";
+import "./setup.js";
 
 await jest.unstable_mockModule("discord.js", () => ({
   Client: jest.fn().mockImplementation(() => ({

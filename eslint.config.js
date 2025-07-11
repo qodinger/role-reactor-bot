@@ -1,12 +1,15 @@
 import js from "@eslint/js";
+import importPlugin from "eslint-plugin-import";
 
 export default [
   js.configs.recommended,
   {
+    plugins: {
+      import: importPlugin,
+    },
     languageOptions: {
-      ecmaVersion: 2022,
-      sourceType: "module",
       globals: {
+        // Node.js globals
         console: "readonly",
         process: "readonly",
         Buffer: "readonly",
@@ -21,6 +24,30 @@ export default [
         setInterval: "readonly",
         clearInterval: "readonly",
         URL: "readonly",
+        // Jest globals
+        jest: "readonly",
+        describe: "readonly",
+        it: "readonly",
+        test: "readonly",
+        expect: "readonly",
+        beforeEach: "readonly",
+        afterEach: "readonly",
+        beforeAll: "readonly",
+        afterAll: "readonly",
+        // Test utilities
+        createMockInteraction: "readonly",
+        createMockClient: "readonly",
+      },
+    },
+    settings: {
+      "import/resolver": {
+        alias: {
+          map: [
+            ["@", "./src"],
+            ["@jest/globals", "./node_modules/@jest/globals"],
+          ],
+          extensions: [".js", ".json"],
+        },
       },
     },
     rules: {
@@ -31,7 +58,6 @@ export default [
       "no-alert": "error",
 
       // Code style rules
-      indent: ["error", 2],
       "linebreak-style": ["error", "unix"],
       quotes: "off",
       semi: ["error", "always"],
@@ -64,6 +90,10 @@ export default [
 
       // Import/export rules (if using modules)
       "no-duplicate-imports": "error",
+      "import/no-unresolved": "error",
+      "import/named": "error",
+      "import/default": "error",
+      "import/namespace": "error",
 
       // Discord.js specific rules
       camelcase: ["error", { properties: "never" }],

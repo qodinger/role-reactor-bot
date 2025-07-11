@@ -2,8 +2,8 @@ import { Events, OAuth2Scopes, ActivityType } from "discord.js";
 import {
   requiredPermissions,
   formatPermissionName,
-} from "../utils/permissions.js";
-import { BOT_VERSION } from "../utils/version.js";
+} from "@/utils/permissions.js";
+import { BOT_VERSION } from "@/utils/version.js";
 
 export default {
   name: Events.ClientReady,

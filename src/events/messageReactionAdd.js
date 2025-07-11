@@ -1,5 +1,5 @@
 import { Events } from "discord.js";
-import { getRoleMapping } from "../utils/roleManager.js";
+import { getRoleMapping } from "@/utils/roleManager.js";
 
 export default {
   name: Events.MessageReactionAdd,

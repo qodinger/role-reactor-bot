@@ -11,14 +11,14 @@ import {
   botHasRequiredPermissions,
   getMissingBotPermissions,
   formatPermissionName,
-} from "../../utils/permissions.js";
-import { setRoleMapping, parseRoleString } from "../../utils/roleManager.js";
+} from "@/utils/permissions.js";
+import { setRoleMapping, parseRoleString } from "@/utils/roleManager.js";
 import {
   titleOption,
   descriptionOption,
   rolesOption,
   colorOption,
-} from "../../utils/roleMessageOptions.js";
+} from "@/utils/roleMessageOptions.js";
 
 export default {
   data: new SlashCommandBuilder()

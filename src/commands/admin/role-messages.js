@@ -3,8 +3,8 @@ import {
   PermissionFlagsBits,
   EmbedBuilder,
 } from "discord.js";
-import { hasAdminPermissions } from "../../utils/permissions.js";
-import { getAllRoleMappings } from "../../utils/roleManager.js";
+import { hasAdminPermissions } from "@/utils/permissions.js";
+import { getAllRoleMappings } from "@/utils/roleManager.js";
 
 const PAGE_SIZE = 5;
 

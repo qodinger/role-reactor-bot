@@ -1,4 +1,3 @@
-// Simple test to check ESM compatibility
 describe("Simple ESM Test", () => {
   it("should work with ESM", () => {
     expect(true).toBe(true);

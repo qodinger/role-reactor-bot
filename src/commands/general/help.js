@@ -5,7 +5,7 @@ import {
   ButtonBuilder,
   ButtonStyle,
 } from "discord.js";
-import { BOT_VERSION } from "../../utils/version.js";
+import { BOT_VERSION } from "@/utils/version.js";
 
 export default {
   data: new SlashCommandBuilder()
