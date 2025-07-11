@@ -2,26 +2,21 @@ import {
   SlashCommandBuilder,
   PermissionFlagsBits,
   EmbedBuilder,
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-  StringSelectMenuBuilder,
 } from "discord.js";
 import { hasAdminPermissions } from "../../utils/permissions.js";
-import {
-  getAllRoleMappings,
-  removeRoleMapping,
-} from "../../utils/roleManager.js";
+import { getAllRoleMappings } from "../../utils/roleManager.js";
 
 const PAGE_SIZE = 5;
 
 export default {
   data: new SlashCommandBuilder()
-    .setName("manage-roles")
-    .setDescription("List and manage all role-reaction messages")
+    .setName("role-messages")
+    .setDescription(
+      "List all current role-reaction messages and their message IDs",
+    )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles),
 
-  async execute(interaction, client) {
+  async execute(interaction, _client) {
     if (!hasAdminPermissions(interaction.member)) {
       return interaction.reply({
         content: "❌ You need administrator permissions to use this command!",
@@ -42,7 +37,7 @@ export default {
     }
 
     // Pagination logic
-    let page = 0;
+    const page = 0;
     const totalPages = Math.ceil(messageIds.length / PAGE_SIZE);
     const getPage = pageIdx => {
       const start = pageIdx * PAGE_SIZE;
@@ -54,9 +49,9 @@ export default {
     const buildPage = async pageIdx => {
       const ids = getPage(pageIdx);
       const embed = new EmbedBuilder()
-        .setTitle("🗂️ Manage Role-Reaction Messages")
+        .setTitle("🗂️ Role-Reaction Messages")
         .setDescription(
-          `Page ${pageIdx + 1} of ${totalPages}\nSelect a message to remove or use Remove All.`
+          `Page ${pageIdx + 1} of ${totalPages}\nList of all role-reaction messages.`,
         )
         .setColor(0x0099ff)
         .setTimestamp();
@@ -96,47 +91,13 @@ export default {
       messageResults.forEach((result, idx) => {
         embed.addFields({
           name: `#${idx + 1} ${result.channelMention}`,
-          value: result.preview,
+          value: `${result.preview}\nMessage ID: \`${result.messageId}\``,
           inline: false,
         });
       });
 
-      // Buttons for each message
-      const row = new ActionRowBuilder();
-      ids.forEach((messageId, idx) => {
-        row.addComponents(
-          new ButtonBuilder()
-            .setCustomId(`remove_roles_${messageId}`)
-            .setLabel(`Remove #${pageIdx * PAGE_SIZE + idx + 1}`)
-            .setStyle(ButtonStyle.Danger)
-        );
-      });
-      // Remove All button
-      row.addComponents(
-        new ButtonBuilder()
-          .setCustomId(`remove_roles_all`)
-          .setLabel("Remove All")
-          .setStyle(ButtonStyle.Secondary)
-      );
-
-      // Pagination buttons if needed
-      let navRow = null;
-      if (totalPages > 1) {
-        navRow = new ActionRowBuilder();
-        navRow.addComponents(
-          new ButtonBuilder()
-            .setCustomId("manage_roles_prev")
-            .setLabel("Previous")
-            .setStyle(ButtonStyle.Primary)
-            .setDisabled(pageIdx === 0),
-          new ButtonBuilder()
-            .setCustomId("manage_roles_next")
-            .setLabel("Next")
-            .setStyle(ButtonStyle.Primary)
-            .setDisabled(pageIdx === totalPages - 1)
-        );
-      }
-      return { embed, components: navRow ? [row, navRow] : [row] };
+      // No buttons or components
+      return { embed, components: [] };
     };
 
     // Show first page

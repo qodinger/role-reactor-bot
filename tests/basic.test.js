@@ -1,3 +1,53 @@
+// ESM-compatible mocking for discord.js
+import { jest } from "@jest/globals";
+
+await jest.unstable_mockModule("discord.js", () => ({
+  Client: jest.fn().mockImplementation(() => ({
+    login: jest.fn().mockResolvedValue(undefined),
+    on: jest.fn(),
+    once: jest.fn(),
+    user: {
+      tag: "RoleReactor#0000",
+      id: "123456789",
+      setActivity: jest.fn(),
+      displayAvatarURL: jest
+        .fn()
+        .mockReturnValue("https://example.com/avatar.png"),
+    },
+    guilds: {
+      cache: {
+        size: 1,
+        toLocaleString: jest.fn().mockReturnValue("1"),
+      },
+    },
+    users: {
+      cache: {
+        size: 10,
+        toLocaleString: jest.fn().mockReturnValue("10"),
+      },
+    },
+    commands: new Map(),
+    events: new Map(),
+    uptime: 1000,
+    generateInvite: jest
+      .fn()
+      .mockReturnValue("https://discord.com/invite/test"),
+  })),
+  Events: {
+    ClientReady: "ready",
+    InteractionCreate: "interactionCreate",
+    MessageReactionAdd: "messageReactionAdd",
+    MessageReactionRemove: "messageReactionRemove",
+  },
+  ActivityType: {
+    Playing: 0,
+    Streaming: 1,
+    Listening: 2,
+    Watching: 3,
+    Competing: 5,
+  },
+}));
+
 // Basic tests for RoleReactor Bot
 
 describe("RoleReactor Bot", () => {

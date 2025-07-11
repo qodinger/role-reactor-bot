@@ -9,13 +9,6 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Professional startup banner
-console.log("╔══════════════════════════════════════════════════════════════╗");
-console.log("║                    RoleReactor Bot v1.0.0                    ║");
-console.log("║                    Role Management System                    ║");
-console.log("╚══════════════════════════════════════════════════════════════╝");
-console.log("");
-
 // Validate environment variables
 const requiredEnvVars = ["DISCORD_TOKEN", "CLIENT_ID"];
 const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
@@ -26,7 +19,7 @@ if (missingEnvVars.length > 0) {
     console.error(`   • ${varName}`);
   });
   console.error(
-    "\nPlease check your .env file and ensure all required variables are set."
+    "\nPlease check your .env file and ensure all required variables are set.",
   );
   process.exit(1);
 }
@@ -65,7 +58,7 @@ const loadCommands = async () => {
         console.log(`✅ Loaded command: ${command.data.name}`);
       } else {
         console.log(
-          `[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`
+          `[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`,
         );
       }
     }

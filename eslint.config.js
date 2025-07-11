@@ -20,6 +20,7 @@ export default [
         clearTimeout: "readonly",
         setInterval: "readonly",
         clearInterval: "readonly",
+        URL: "readonly",
       },
     },
     rules: {
@@ -32,9 +33,8 @@ export default [
       // Code style rules
       indent: ["error", 2],
       "linebreak-style": ["error", "unix"],
-      quotes: ["error", "double"],
+      quotes: "off",
       semi: ["error", "always"],
-      "comma-dangle": ["error", "always-multiline"],
       "object-curly-spacing": ["error", "always"],
       "array-bracket-spacing": ["error", "never"],
 

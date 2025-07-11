@@ -5,6 +5,7 @@ import {
   ButtonBuilder,
   ButtonStyle,
 } from "discord.js";
+import { BOT_VERSION } from "../../utils/version.js";
 
 export default {
   data: new SlashCommandBuilder()
@@ -14,7 +15,7 @@ export default {
       option
         .setName("command")
         .setDescription("Get help for a specific command")
-        .setRequired(false)
+        .setRequired(false),
     ),
 
   async execute(interaction, client) {
@@ -28,13 +29,13 @@ export default {
     const embed = new EmbedBuilder()
       .setTitle("🤖 RoleReactor Bot Help")
       .setDescription(
-        "A Discord bot for self-assignable roles through reactions."
+        "A Discord bot for self-assignable roles through reactions.",
       )
       .setColor(0x0099ff)
       .setThumbnail(client.user.displayAvatarURL())
       .setTimestamp()
       .setFooter({
-        text: "RoleReactor Bot v1.0.0 • Role Management System",
+        text: `RoleReactor Bot v${BOT_VERSION} • Role Management System`,
         iconURL: client.user.displayAvatarURL(),
       });
 
@@ -46,7 +47,7 @@ export default {
         `**Users:** ${client.users.cache.size.toLocaleString()}`,
         `**Uptime:** ${formatUptime(client.uptime)}`,
         `**Memory:** ${(process.memoryUsage().heapUsed / 1024 / 1024).toFixed(
-          2
+          2,
         )} MB`,
       ].join("\n"),
       inline: true,
@@ -56,11 +57,26 @@ export default {
     embed.addFields({
       name: "🔧 Available Commands",
       value: [
-        "`/setup-roles` - Create role-reaction messages",
-        "`/remove-roles` - Remove role mappings",
-        "`/help` - Show this help message",
+        "`/setup-roles` — **Create** a new role-reaction message for self-assignable roles. _Use this to let users assign themselves roles by reacting to a message._",
+        "`/edit-role-message` — **Edit** an existing role-reaction message (title, description, roles, color). _Use this to update the content or roles of an existing message._",
+        "`/remove-role-message` — **Remove** a role-reaction message by message ID. _Use this to delete a role-reaction message and its mapping._",
+        "`/role-messages` — **List** all current role-reaction messages and their message IDs. _Use this to find message IDs for editing or removal._",
+        "`/help` — Show this help message and command details.",
       ].join("\n"),
-      inline: true,
+      inline: false,
+    });
+
+    // Usage Examples
+    embed.addFields({
+      name: "📖 Usage Examples",
+      value: [
+        "• `/setup-roles title:'Server Roles' description:'Pick your roles!' roles:'🎮:Gamer,🎨:Artist'`",
+        "• `/edit-role-message message_id:123456789012345678 title:'New Title' roles:'🎮:Gamer,🎨:Artist'`",
+        "• `/remove-role-message message_id:123456789012345678`",
+        "• `/role-messages`",
+        "• `/help edit-role-message`",
+      ].join("\n"),
+      inline: false,
     });
 
     // Quick Start Guide
@@ -113,7 +129,7 @@ export default {
       new ButtonBuilder()
         .setLabel("GitHub")
         .setURL("https://github.com/rolereactor-bot/role-reactor-bot")
-        .setStyle(ButtonStyle.Link)
+        .setStyle(ButtonStyle.Link),
     );
 
     await interaction.reply({

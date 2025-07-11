@@ -13,41 +13,21 @@ import {
   formatPermissionName,
 } from "../../utils/permissions.js";
 import { setRoleMapping, parseRoleString } from "../../utils/roleManager.js";
+import {
+  titleOption,
+  descriptionOption,
+  rolesOption,
+  colorOption,
+} from "../../utils/roleMessageOptions.js";
 
 export default {
   data: new SlashCommandBuilder()
     .setName("setup-roles")
     .setDescription("Create a role-reaction message for self-assignable roles")
-    .addStringOption(option =>
-      option
-        .setName("title")
-        .setDescription("Title for the role message (e.g., 'Server Roles')")
-        .setRequired(true)
-        .setMaxLength(256)
-    )
-    .addStringOption(option =>
-      option
-        .setName("description")
-        .setDescription("Description for the role message")
-        .setRequired(true)
-        .setMaxLength(2000)
-    )
-    .addStringOption(option =>
-      option
-        .setName("roles")
-        .setDescription(
-          "Role-emoji pairs (format: emoji:role, one per line or comma-separated)"
-        )
-        .setRequired(true)
-        .setMaxLength(4000)
-    )
-    .addStringOption(option =>
-      option
-        .setName("color")
-        .setDescription("Embed color (hex code, e.g., #0099ff)")
-        .setRequired(false)
-        .setMaxLength(7)
-    )
+    .addStringOption(titleOption().setRequired(true))
+    .addStringOption(descriptionOption().setRequired(true))
+    .addStringOption(rolesOption(true))
+    .addStringOption(colorOption())
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles),
 
   async execute(interaction, client) {
@@ -105,24 +85,24 @@ export default {
       for (const { emoji, roleName } of roles) {
         // Check if role exists
         const role = interaction.guild.roles.cache.find(
-          r => r.name.toLowerCase() === roleName.toLowerCase()
+          r => r.name.toLowerCase() === roleName.toLowerCase(),
         );
         if (!role) {
-          errors.push(`❌ Role \"${roleName}\" not found in this server`);
+          errors.push(`❌ Role "${roleName}" not found in this server`);
           continue;
         }
 
         // Check if the bot can manage this role
         if (role.position >= botHighestRole.position) {
           errors.push(
-            `❌ Cannot manage role \"${roleName}\" - it's higher than my highest role`
+            `❌ Cannot manage role "${roleName}" - it's higher than my highest role`,
           );
           continue;
         }
 
         // Check for duplicate emojis
         if (roleMapping[emoji]) {
-          errors.push(`❌ Duplicate emoji \"${emoji}\" found`);
+          errors.push(`❌ Duplicate emoji "${emoji}" found`);
           continue;
         }
 
@@ -205,7 +185,7 @@ export default {
       const reactionProgress = new EmbedBuilder()
         .setTitle("⏳ Adding Reactions...")
         .setDescription(
-          `Adding ${validPairs.length} reactions to the message...`
+          `Adding ${validPairs.length} reactions to the message...`,
         )
         .setColor(0xffff00)
         .setTimestamp();
@@ -228,7 +208,7 @@ export default {
       const successEmbed = new EmbedBuilder()
         .setTitle("✅ Role-Reaction Message Created!")
         .setDescription(
-          "Your role-reaction message has been successfully created."
+          "Your role-reaction message has been successfully created.",
         )
         .setColor(0x00ff00)
         .setTimestamp()
@@ -257,7 +237,7 @@ export default {
         new ButtonBuilder()
           .setLabel("Remove Setup")
           .setCustomId(`remove_roles_${message.id}`)
-          .setStyle(ButtonStyle.Danger)
+          .setStyle(ButtonStyle.Danger),
       );
 
       await interaction.editReply({
@@ -270,7 +250,7 @@ export default {
       const errorEmbed = new EmbedBuilder()
         .setTitle("❌ Setup Failed")
         .setDescription(
-          "An unexpected error occurred while setting up the role-reaction message."
+          "An unexpected error occurred while setting up the role-reaction message.",
         )
         .setColor(0xff0000)
         .setTimestamp()

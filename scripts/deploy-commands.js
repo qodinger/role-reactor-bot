@@ -11,9 +11,7 @@ const __dirname = path.dirname(new URL(import.meta.url).pathname);
 // Deployment banner
 console.log("╔══════════════════════════════════════════════════════════════╗");
 console.log("║                RoleReactor Bot - Command Deployer            ║");
-console.log(
-  "║                    Role Management System                     ║"
-);
+console.log("║                    Role Management System                    ║");
 console.log("╚══════════════════════════════════════════════════════════════╝");
 console.log("");
 
@@ -27,7 +25,7 @@ if (missingEnvVars.length > 0) {
     console.error(`   • ${varName}`);
   });
   console.error(
-    "\nPlease check your .env file and ensure all required variables are set."
+    "\nPlease check your .env file and ensure all required variables are set.",
   );
   process.exit(1);
 }
@@ -46,7 +44,7 @@ async function collectCommands() {
   let totalCommands = 0;
 
   console.log(
-    `📁 Collecting commands from ${commandFolders.length} category(ies)...`
+    `📁 Collecting commands from ${commandFolders.length} category(ies)...`,
   );
 
   for (const folder of commandFolders) {
@@ -62,7 +60,7 @@ async function collectCommands() {
       .filter(file => file.endsWith(".js"));
 
     console.log(
-      `   📂 Category: ${folder} (${commandFiles.length} command(s))`
+      `   📂 Category: ${folder} (${commandFiles.length} command(s))`,
     );
 
     for (const file of commandFiles) {
@@ -89,7 +87,7 @@ async function collectCommands() {
 
         if (!command.data.description) {
           console.warn(
-            `      ⚠️  Command ${command.data.name} missing description`
+            `      ⚠️  Command ${command.data.name} missing description`,
           );
           continue;
         }
@@ -100,7 +98,7 @@ async function collectCommands() {
       } catch (error) {
         console.error(
           `      ❌ Failed to load command ${file}:`,
-          error.message
+          error.message,
         );
       }
     }
@@ -113,89 +111,82 @@ async function collectCommands() {
 // Deployment function
 async function deployCommands() {
   try {
-    console.log("🚀 Starting command deployment...");
-    console.log("");
+    console.log("🚀 Starting command deployment...\n");
 
-    // Collect commands
+    // Collect all commands
     const commands = await collectCommands();
-
-    if (commands.length === 0) {
-      console.error("❌ No valid commands found to deploy");
-      process.exit(1);
-    }
-
-    console.log("");
-    console.log("🔐 Initializing REST client...");
+    console.log(`📊 Total commands collected: ${commands.length}\n`);
 
     // Initialize REST client
+    console.log("🔐 Initializing REST client...");
     const rest = new REST({ version: "10" }).setToken(
-      process.env.DISCORD_TOKEN
+      process.env.DISCORD_TOKEN,
     );
 
-    // Determine deployment scope
-    const guildId = process.env.GUILD_ID;
-    const deploymentType = guildId ? "Guild" : "Global";
-
+    // Determine deployment type
+    const isGlobal = process.argv.includes("--global");
+    const deploymentType = isGlobal ? "Global" : "Guild";
     console.log(`📡 Deployment Type: ${deploymentType}`);
-    if (guildId) {
-      console.log(`🎯 Target Guild: ${guildId}`);
+
+    if (isGlobal) {
+      console.log("🌍 Target: All guilds (global deployment)");
+    } else {
+      console.log(`🎯 Target Guild: ${process.env.GUILD_ID}`);
     }
 
-    console.log("");
-    console.log("📤 Deploying commands to Discord...");
+    console.log("\n📤 Deploying commands to Discord...");
 
-    // Deploy commands
-    const data = await rest.put(
-      guildId
-        ? Routes.applicationGuildCommands(process.env.CLIENT_ID, guildId)
-        : Routes.applicationCommands(process.env.CLIENT_ID),
-      { body: commands }
-    );
+    // Force refresh by removing all commands first
+    console.log("🔄 Removing existing commands...");
+    if (isGlobal) {
+      await rest.put(Routes.applicationCommands(process.env.CLIENT_ID), {
+        body: [],
+      });
+    } else {
+      await rest.put(
+        Routes.applicationGuildCommands(
+          process.env.CLIENT_ID,
+          process.env.GUILD_ID,
+        ),
+        { body: [] },
+      );
+    }
+    console.log("✅ Existing commands removed");
 
-    console.log("");
-    console.log("✅ Command deployment completed successfully!");
-    console.log(`📊 Deployed ${data.length} command(s):`);
+    // Deploy new commands
+    if (isGlobal) {
+      await rest.put(Routes.applicationCommands(process.env.CLIENT_ID), {
+        body: commands,
+      });
+    } else {
+      await rest.put(
+        Routes.applicationGuildCommands(
+          process.env.CLIENT_ID,
+          process.env.GUILD_ID,
+        ),
+        {
+          body: commands,
+        },
+      );
+    }
 
-    data.forEach((command, index) => {
+    console.log("\n✅ Command deployment completed successfully!");
+    console.log(`📊 Deployed ${commands.length} command(s):`);
+
+    commands.forEach((command, index) => {
       console.log(`   ${index + 1}. /${command.name} - ${command.description}`);
     });
 
-    console.log("");
-    console.log("⏰ Note: Global commands may take up to 1 hour to appear.");
-    console.log("   Guild commands appear immediately.");
-    console.log("");
-
-    if (!guildId) {
-      console.log(
-        "💡 Tip: For faster development, set GUILD_ID in your .env file"
-      );
-      console.log("   to deploy commands to a specific guild only.");
-    }
-
-    console.log("");
+    console.log("\n⏰ Note: Global commands may take up to 1 hour to appear.");
+    console.log("   Guild commands appear immediately.\n");
   } catch (error) {
-    console.error("❌ Command deployment failed:");
+    console.error("\n❌ Command deployment failed:");
     console.error("   Error:", error.message);
-
-    if (error.code === 50001) {
-      console.error("   Missing Access - Check bot permissions");
-    } else if (error.code === 50013) {
-      console.error(
-        "   Missing Permissions - Bot needs application.commands scope"
-      );
-    } else if (error.code === 40001) {
-      console.error("   Unauthorized - Check your bot token");
-    } else if (error.code === 10062) {
-      console.error("   Unknown Interaction - Try again in a few seconds");
-    }
-
-    console.error("");
-    console.error("🔧 Troubleshooting:");
+    console.error("\n🔧 Troubleshooting:");
     console.error("   • Verify your bot token is correct");
     console.error('   • Ensure the bot has the "applications.commands" scope');
     console.error("   • Check that CLIENT_ID matches your application");
     console.error("   • For guild deployment, verify GUILD_ID is correct");
-
     process.exit(1);
   }
 }

@@ -4,13 +4,13 @@ import { removeRoleMapping, getRoleMapping } from "../../utils/roleManager.js";
 
 export default {
   data: new SlashCommandBuilder()
-    .setName("remove-roles")
-    .setDescription("Remove a role-reaction message")
+    .setName("remove-role-message")
+    .setDescription("Remove a role-reaction message by message ID")
     .addStringOption(option =>
       option
         .setName("message_id")
         .setDescription("The ID of the message to remove")
-        .setRequired(true)
+        .setRequired(true),
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles),
 

@@ -35,7 +35,7 @@ export default {
       } catch (error) {
         console.error(
           "Something went wrong when fetching the reaction:",
-          error
+          error,
         );
         return;
       }
@@ -63,7 +63,7 @@ export default {
     try {
       // Get role mapping for this message
       console.log(
-        `Looking for role mapping for message ${reaction.message.id}`
+        `Looking for role mapping for message ${reaction.message.id}`,
       );
       const roleMapping = await getRoleMapping(reaction.message.id);
 
@@ -105,7 +105,7 @@ export default {
       // Optional: Send DM notification
       try {
         await user.send(
-          `You've been removed from the **${roleName}** role in ${guild.name}.`
+          `You've been removed from the **${roleName}** role in ${guild.name}.`,
         );
       } catch (dmError) {
         // User might have DMs disabled, that's okay
