@@ -4,34 +4,15 @@ import { getRoleMapping } from "../utils/roleManager.js";
 export default {
   name: Events.MessageReactionAdd,
   async execute(reaction, user) {
-    console.log("🔥 MESSAGE REACTION ADD EVENT TRIGGERED!");
-    console.log("Reaction object:", {
-      emoji: reaction.emoji?.name || reaction.emoji?.toString(),
-      userId: user?.id,
-      messageId: reaction.message?.id,
-      guildId: reaction.message?.guild?.id,
-    });
-
-    // Log every reaction event
-    console.log("messageReactionAdd event fired!", {
-      emoji: reaction.emoji.name,
-      user: user.tag,
-      messageId: reaction.message.id,
-      guild: reaction.message.guild?.name || "DM",
-    });
-
     // Ignore bot reactions
     if (user.bot) {
-      console.log("Ignoring bot reaction");
       return;
     }
 
     // Fetch the reaction if it's partial
     if (reaction.partial) {
       try {
-        console.log("Fetching partial reaction...");
         await reaction.fetch();
-        console.log("Successfully fetched partial reaction");
       } catch (error) {
         console.error(
           "Something went wrong when fetching the reaction:",
@@ -44,7 +25,6 @@ export default {
     // Get the guild and member
     const guild = reaction.message.guild;
     if (!guild) {
-      console.log("No guild found for reaction");
       return;
     }
 
@@ -52,7 +32,6 @@ export default {
     try {
       member = await guild.members.fetch(user.id);
       if (!member) {
-        console.log(`Could not fetch member for user ${user.tag}`);
         return;
       }
     } catch (error) {
@@ -62,17 +41,11 @@ export default {
 
     try {
       // Get role mapping for this message
-      console.log(
-        `Looking for role mapping for message ${reaction.message.id}`,
-      );
       const roleMapping = await getRoleMapping(reaction.message.id);
 
       if (!roleMapping) {
-        console.log(`No role mapping found for message ${reaction.message.id}`);
         return;
       }
-
-      console.log("Found role mapping:", roleMapping);
 
       // Support new structure: { guildId, roles }
       const rolesObj =
@@ -81,7 +54,6 @@ export default {
       const roleConfig = rolesObj[emoji];
 
       if (!roleConfig) {
-        console.log(`No role found for emoji ${emoji}`);
         return;
       }
 
@@ -95,8 +67,6 @@ export default {
         limit = roleConfig.limit;
       }
 
-      console.log(`Found role "${roleName}" for emoji ${emoji}`);
-
       // Find the role
       const role = guild.roles.cache.find(r => r.name === roleName);
 
@@ -107,7 +77,6 @@ export default {
 
       // Check if user already has the role
       if (member.roles.cache.has(role.id)) {
-        console.log(`User ${user.tag} already has role ${roleName}`);
         return;
       }
 
@@ -117,13 +86,9 @@ export default {
           await user.send(
             `❌ The **${roleName}** role is limited to ${limit} users. Current count: ${role.members.size}/${limit}.`,
           );
-        } catch (dmError) {
+        } catch {
           // User might have DMs disabled, that's okay
-          console.log(`Could not send DM to ${user.tag}: ${dmError.message}`);
         }
-        console.log(
-          `Role limit reached for ${roleName}: ${role.members.size}/${limit}`,
-        );
         return;
       }
 
@@ -136,9 +101,8 @@ export default {
         await user.send(
           `You've been assigned the **${roleName}** role in ${guild.name}!`,
         );
-      } catch (dmError) {
+      } catch {
         // User might have DMs disabled, that's okay
-        console.log(`Could not send DM to ${user.tag}: ${dmError.message}`);
       }
     } catch (error) {
       console.error("Error handling reaction add:", error);
