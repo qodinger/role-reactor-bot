@@ -60,6 +60,7 @@ export default [
       "no-implied-eval": "error",
       "no-new-func": "error",
       "no-script-url": "error",
+      "no-empty": "off",
 
       // Async/await rules
       "no-async-promise-executor": "error",

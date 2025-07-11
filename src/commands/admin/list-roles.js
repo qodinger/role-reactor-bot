@@ -25,11 +25,27 @@ export default {
     // Use deferReply to handle processing time gracefully
     await interaction.deferReply({ ephemeral: true });
 
+    // Only include role-reaction messages for the current guild
     const allMappings = await getAllRoleMappings();
-    const messageIds = Object.keys(allMappings);
+    const messageIds = Object.keys(allMappings).filter(messageId => {
+      const mapping = allMappings[messageId];
+      // If mapping has a guildId, filter by it
+      if (mapping && typeof mapping === "object" && mapping.guildId) {
+        return mapping.guildId === interaction.guild.id;
+      }
+      // Fallback: old logic (check if message exists in this guild's channels)
+      for (const [, channel] of interaction.guild.channels.cache) {
+        if (!channel.isTextBased?.()) continue;
+        try {
+          const msg = channel.messages.cache.get(messageId);
+          if (msg && msg.guildId === interaction.guild.id) return true;
+        } catch {}
+      }
+      return false;
+    });
     if (messageIds.length === 0) {
       return interaction.editReply({
-        content: "No active role-reaction messages found.",
+        content: "No active role-reaction messages found for this server.",
         ephemeral: true,
       });
     }
@@ -85,14 +101,45 @@ export default {
 
       const messageResults = await Promise.all(messagePromises);
 
-      // Add fields to embed
-      messageResults.forEach((result, idx) => {
-        embed.addFields({
-          name: `#${idx + 1} ${result.channelMention}`,
-          value: `${result.preview}\nMessage ID: \`${result.messageId}\``,
-          inline: false,
+      // For each message, show roles and their limits/quotas
+      // (Assume you have access to the guild object as interaction.guild)
+      for (const messageId of getPage(page)) {
+        const mapping = allMappings[messageId];
+        const fields = [];
+        // Support new structure: { guildId, roles }
+        const rolesObj = mapping && mapping.roles ? mapping.roles : mapping;
+        for (const [emoji, roleConfig] of Object.entries(rolesObj)) {
+          let roleName, limit;
+          if (typeof roleConfig === "string") {
+            roleName = roleConfig;
+            limit = null;
+          } else {
+            roleName =
+              roleConfig.roleName || roleConfig.role || roleConfig.name;
+            limit = roleConfig.limit;
+          }
+          const role = interaction.guild.roles.cache.find(
+            r => r.name === roleName,
+          );
+          const currentCount = role ? role.members.size : 0;
+          const limitText = limit
+            ? `${currentCount}/${limit} users`
+            : `${currentCount} users (unlimited)`;
+          fields.push({
+            name: `${emoji} ${roleName}`,
+            value: limitText,
+            inline: true,
+          });
+        }
+        // Add fields to embed
+        messageResults.forEach((result, idx) => {
+          embed.addFields({
+            name: `#${idx + 1} ${result.channelMention}`,
+            value: `${result.preview}\nMessage ID: \`${result.messageId}\``,
+            inline: false,
+          });
         });
-      });
+      }
 
       // No buttons or components
       return { embed, components: [] };

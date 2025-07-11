@@ -74,12 +74,25 @@ export default {
 
       console.log("Found role mapping:", roleMapping);
 
+      // Support new structure: { guildId, roles }
+      const rolesObj =
+        roleMapping && roleMapping.roles ? roleMapping.roles : roleMapping;
       const emoji = reaction.emoji.name;
-      const roleName = roleMapping[emoji];
+      const roleConfig = rolesObj[emoji];
 
-      if (!roleName) {
+      if (!roleConfig) {
         console.log(`No role found for emoji ${emoji}`);
         return;
+      }
+
+      // Support both string and object mapping for backward compatibility
+      let roleName, limit;
+      if (typeof roleConfig === "string") {
+        roleName = roleConfig;
+        limit = null;
+      } else {
+        roleName = roleConfig.roleName || roleConfig.role || roleConfig.name;
+        limit = roleConfig.limit;
       }
 
       console.log(`Found role "${roleName}" for emoji ${emoji}`);
@@ -95,6 +108,22 @@ export default {
       // Check if user already has the role
       if (member.roles.cache.has(role.id)) {
         console.log(`User ${user.tag} already has role ${roleName}`);
+        return;
+      }
+
+      // Enforce role limit if set
+      if (limit && role.members.size >= limit) {
+        try {
+          await user.send(
+            `❌ The **${roleName}** role is limited to ${limit} users. Current count: ${role.members.size}/${limit}.`,
+          );
+        } catch (dmError) {
+          // User might have DMs disabled, that's okay
+          console.log(`Could not send DM to ${user.tag}: ${dmError.message}`);
+        }
+        console.log(
+          `Role limit reached for ${roleName}: ${role.members.size}/${limit}`,
+        );
         return;
       }
 

@@ -93,7 +93,20 @@ export default {
             await message.edit({ embeds: [newEmbed] });
           }
           if (mapping) {
-            await setRoleMapping(messageId, mapping);
+            // If the old mapping is an object with guildId, update its roles property
+            let newMapping;
+            if (
+              roleMapping &&
+              typeof roleMapping === "object" &&
+              roleMapping.guildId &&
+              roleMapping.roles
+            ) {
+              newMapping = { ...roleMapping, roles: mapping };
+            } else {
+              // Backward compatibility: add guildId and wrap mapping
+              newMapping = { guildId: interaction.guild.id, roles: mapping };
+            }
+            await setRoleMapping(messageId, newMapping);
           }
           found = true;
           break;

@@ -36,6 +36,21 @@ export default {
         });
       }
 
+      // Check if this mapping belongs to the current guild
+      if (
+        roleMapping &&
+        typeof roleMapping === "object" &&
+        roleMapping.guildId
+      ) {
+        if (roleMapping.guildId !== interaction.guild.id) {
+          return interaction.reply({
+            content:
+              "❌ This role-reaction message does not belong to this server",
+            ephemeral: true,
+          });
+        }
+      }
+
       // Try to delete the message
       try {
         const channel = interaction.channel;

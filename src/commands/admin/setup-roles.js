@@ -72,7 +72,7 @@ export default {
         });
       }
 
-      // Parse role-emoji pairs (flat)
+      // Parse role-emoji(-limit) pairs (flat)
       const { roles, errors: parseErrors } = parseRoleString(rolesString);
       const roleMapping = {};
       const validPairs = [];
@@ -82,7 +82,7 @@ export default {
       const botMember = await interaction.guild.members.fetchMe();
       const botHighestRole = botMember.roles.highest;
 
-      for (const { emoji, roleName } of roles) {
+      for (const { emoji, roleName, limit } of roles) {
         // Check if role exists
         const role = interaction.guild.roles.cache.find(
           r => r.name.toLowerCase() === roleName.toLowerCase(),
@@ -106,12 +106,19 @@ export default {
           continue;
         }
 
-        roleMapping[emoji] = roleName;
-        validPairs.push({ emoji, roleName, role });
+        // Store as object with optional limit
+        roleMapping[emoji] = limit ? { roleName, limit } : roleName;
+        validPairs.push({ emoji, roleName, role, limit });
       }
 
       // Show errors if any
       if (errors.length > 0) {
+        // Add fix suggestion once if any error is about highest role
+        if (errors.some(e => e.includes("higher than my highest role"))) {
+          errors.push(
+            "\n**How to fix:** Move the bot's highest role above the target role(s) in your server's role settings (Server Settings > Roles).",
+          );
+        }
         const errorEmbed = new EmbedBuilder()
           .setTitle("❌ Setup Errors")
           .setDescription("The following errors were found:")
@@ -202,7 +209,10 @@ export default {
       }
 
       // Store the role mapping
-      await setRoleMapping(message.id, roleMapping);
+      await setRoleMapping(message.id, {
+        guildId: interaction.guild.id,
+        roles: roleMapping,
+      });
 
       // Success embed
       const successEmbed = new EmbedBuilder()

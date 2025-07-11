@@ -96,16 +96,24 @@ const parseRoleString = rolesString => {
     .filter(line => line);
 
   for (const line of lines) {
-    const [emoji, roleName] = line.split(":").map(s => s.trim());
+    // Support emoji:role or emoji:role:limit
+    const parts = line.split(":").map(s => s.trim());
+    const [emoji, roleName, limitStr] = parts;
     if (!emoji || !roleName) {
-      errors.push(`❌ Invalid format: "${line}" (use format: emoji:role)`);
+      errors.push(
+        `❌ Invalid format: "${line}" (use format: emoji:role or emoji:role:limit)`,
+      );
       continue;
     }
     if (!isValidEmoji(emoji)) {
       errors.push(`❌ Invalid emoji: "${emoji}"`);
       continue;
     }
-    roles.push({ emoji, roleName });
+    let limit = undefined;
+    if (limitStr && !isNaN(Number(limitStr))) {
+      limit = parseInt(limitStr, 10);
+    }
+    roles.push({ emoji, roleName, limit });
   }
   return { roles, errors };
 };
