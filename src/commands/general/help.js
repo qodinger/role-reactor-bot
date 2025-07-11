@@ -10,11 +10,15 @@ import { BOT_VERSION } from "../../utils/version.js";
 export default {
   data: new SlashCommandBuilder()
     .setName("help")
-    .setDescription("Get help and information about the bot")
+    .setDescription(
+      "Get help and information about the bot. Use `/help [command]` for details on a specific command.",
+    )
     .addStringOption(option =>
       option
         .setName("command")
-        .setDescription("Get help for a specific command")
+        .setDescription(
+          "The command to get help for (e.g. setup-roles, update-roles, etc.)",
+        )
         .setRequired(false),
     ),
 
@@ -29,7 +33,8 @@ export default {
     const embed = new EmbedBuilder()
       .setTitle("🤖 RoleReactor Bot Help")
       .setDescription(
-        "A Discord bot for self-assignable roles through reactions.",
+        "A Discord bot for self-assignable roles through reactions.\n\n" +
+          "**Usage:** `/help [command]` to get detailed help for a specific command.",
       )
       .setColor(0x0099ff)
       .setThumbnail(client.user.displayAvatarURL())
@@ -39,43 +44,17 @@ export default {
         iconURL: client.user.displayAvatarURL(),
       });
 
-    // Bot Information
-    embed.addFields({
-      name: "📊 Bot Statistics",
-      value: [
-        `**Servers:** ${client.guilds.cache.size.toLocaleString()}`,
-        `**Users:** ${client.users.cache.size.toLocaleString()}`,
-        `**Uptime:** ${formatUptime(client.uptime)}`,
-        `**Memory:** ${(process.memoryUsage().heapUsed / 1024 / 1024).toFixed(
-          2,
-        )} MB`,
-      ].join("\n"),
-      inline: true,
-    });
+    const availableCommands = client.commands
+      .filter(cmd => !cmd.hidden && cmd.data && cmd.data.name !== "help")
+      .map(
+        cmd =>
+          `• \`/${cmd.data.name}\` — ${cmd.data.description.split(".")[0]}`,
+      )
+      .join("\n");
 
-    // Available Commands
     embed.addFields({
       name: "🔧 Available Commands",
-      value: [
-        "`/setup-roles` — **Create** a new role-reaction message for self-assignable roles. _Use this to let users assign themselves roles by reacting to a message._",
-        "`/update-roles` — **Update** an existing role-reaction message (title, description, roles, color). _Use this to update the content or roles of an existing message._",
-        "`/delete-roles` — **Delete** a role-reaction message by message ID. _Use this to delete a role-reaction message and its mapping._",
-        "`/list-roles` — **List** all current role-reaction messages and their message IDs. _Use this to find message IDs for editing or removal._",
-        "`/help` — Show this help message and command details.",
-      ].join("\n"),
-      inline: false,
-    });
-
-    // Usage Examples
-    embed.addFields({
-      name: "📖 Usage Examples",
-      value: [
-        "• `/setup-roles title:'Server Roles' description:'Pick your roles!' roles:'🎮:Gamer,🎨:Artist'`",
-        "• `/update-roles message_id:123456789012345678 title:'New Title' roles:'🎮:Gamer,🎨:Artist'`",
-        "• `/delete-roles message_id:123456789012345678`",
-        "• `/list-roles`",
-        "• `/help update-roles`",
-      ].join("\n"),
+      value: availableCommands || "No commands available.",
       inline: false,
     });
 
@@ -91,27 +70,13 @@ export default {
       inline: false,
     });
 
-    // Features
+    // User-focused support/help section
     embed.addFields({
-      name: "✨ Features",
+      name: "🆘 Need Help?",
       value: [
-        "🎯 **Self-Assignable Roles** - Users can assign/remove roles",
-        "🛡️ **Permission Controls** - Secure admin-only setup",
-        "🎨 **Custom Emojis** - Unicode and server emojis supported",
-        "⚡ **High Performance** - Optimized for large servers",
-        "🛠️ **Error Handling** - Graceful error management",
-      ].join("\n"),
-      inline: false,
-    });
-
-    // Support Information
-    embed.addFields({
-      name: "🆘 Support",
-      value: [
-        "**Documentation:** [GitHub Wiki](https://github.com/rolereactor-bot/role-reactor-bot/wiki)",
-        "**Issues:** [GitHub Issues](https://github.com/rolereactor-bot/role-reactor-bot/issues)",
-        "**Discord:** [Support Server](https://discord.gg/rolereactor)",
-        "**Website:** [RoleReactor.com](https://rolereactor.com)",
+        "• Use `/help [command]` for details on a specific command.",
+        "• Visit our [Support Server](https://discord.gg/rolereactor) for live help.",
+        "• See the [Documentation](https://github.com/rolereactor-bot/role-reactor-bot/wiki) for guides and FAQs.",
       ].join("\n"),
       inline: false,
     });
@@ -279,16 +244,4 @@ async function showCommandHelp(interaction, commandName) {
     embeds: [embed],
     ephemeral: true,
   });
-}
-
-function formatUptime(ms) {
-  const seconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-
-  if (days > 0) return `${days}d ${hours % 24}h ${minutes % 60}m`;
-  if (hours > 0) return `${hours}h ${minutes % 60}m`;
-  if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
-  return `${seconds}s`;
 }

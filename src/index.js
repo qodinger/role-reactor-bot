@@ -35,35 +35,32 @@ const client = new Client({
   partials: [Partials.Message, Partials.Channel, Partials.Reaction],
 });
 
-// Create a collection for commands
+// Register commands collection
 client.commands = new Collection();
 
-// Load commands
-const loadCommands = async () => {
-  const commandsPath = path.join(__dirname, "commands");
-  const commandFolders = fs.readdirSync(commandsPath);
+// Load commands from src/commands (including subfolders)
+const commandsPath = path.join(__dirname, "commands");
+const commandFolders = fs.readdirSync(commandsPath);
 
-  for (const folder of commandFolders) {
-    const folderPath = path.join(commandsPath, folder);
-    const commandFiles = fs
-      .readdirSync(folderPath)
-      .filter(file => file.endsWith(".js"));
-
-    for (const file of commandFiles) {
-      const filePath = path.join(folderPath, file);
-      const command = (await import(filePath)).default;
-
-      if ("data" in command && "execute" in command) {
-        client.commands.set(command.data.name, command);
-        console.log(`✅ Loaded command: ${command.data.name}`);
-      } else {
-        console.log(
-          `[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`,
-        );
-      }
+for (const folder of commandFolders) {
+  const folderPath = path.join(commandsPath, folder);
+  if (!fs.statSync(folderPath).isDirectory()) continue;
+  const commandFiles = fs
+    .readdirSync(folderPath)
+    .filter(file => file.endsWith(".js"));
+  for (const file of commandFiles) {
+    const filePath = path.join(folderPath, file);
+    const command = (await import(filePath)).default;
+    if (command && command.data && command.data.name) {
+      client.commands.set(command.data.name, command);
     }
   }
-};
+}
+
+console.log(
+  "Registered commands:",
+  client.commands.map(cmd => cmd.data.name),
+);
 
 // Load events
 const loadEvents = async () => {
@@ -90,5 +87,4 @@ const loadEvents = async () => {
 client.login(process.env.DISCORD_TOKEN);
 
 // Load commands and events
-await loadCommands();
 await loadEvents();
