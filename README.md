@@ -7,6 +7,7 @@ A Discord bot that enables users to self-assign roles through message reactions.
 ## ✨ Features
 
 - **🎯 Self-Assignable Roles**: Users can assign/remove roles by reacting to messages
+- **⏰ Temporary Roles**: Auto-expire roles after a set time (useful for events, trials)
 - **🛡️ Permission Controls**: Comprehensive permission checking for administrators
 - **🎨 Custom Emojis**: Support for both Unicode and custom server emojis
 - **📊 Role Categories**: Organize roles into logical groups
@@ -89,6 +90,33 @@ Administrators can create role-reaction messages using the `/setup-roles` comman
 /setup-roles title:"Server Roles" description:"Choose your roles by reacting!" roles:"#Gaming|#Music\n🎮:Gamer|🎵:Music Lover"
 ```
 
+### Temporary Roles
+
+The bot supports temporary roles that automatically expire after a set time:
+
+**Assign a temporary role:**
+```
+/assign-temp-role user:@username role:@EventRole duration:"2h" reason:"Event participation"
+```
+
+**Duration formats:**
+- `30m` - 30 minutes
+- `2h` - 2 hours  
+- `1d` - 1 day
+- `1w` - 1 week
+- `1h30m` - 1 hour 30 minutes
+
+**List temporary roles:**
+```
+/list-temp-roles user:@username  # For specific user
+/list-temp-roles                 # For all users
+```
+
+**Remove temporary role early:**
+```
+/remove-temp-role user:@username role:@EventRole reason:"Early removal"
+```
+
 ### Role Categories
 
 The bot supports organizing roles into categories:
@@ -106,6 +134,9 @@ The bot supports organizing roles into categories:
 | `/update-roles` | Update an existing role-reaction message | Manage Roles |
 | `/delete-roles` | Delete a role-reaction message | Manage Roles |
 | `/list-roles` | List all role-reaction messages | Manage Roles |
+| `/assign-temp-role` | Assign a temporary role to a user | Manage Roles |
+| `/list-temp-roles` | List temporary roles for users | Manage Roles |
+| `/remove-temp-role` | Remove a temporary role from a user | Manage Roles |
 | `/help` | Display bot information | None |
 
 ### Role-Emoji Format

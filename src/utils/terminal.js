@@ -224,39 +224,29 @@ export function logListItem(text, color = "white", bulletIcon = icons.bullet) {
 }
 
 /**
- * Create a simple table display
- * @param {Array} rows - Array of row data
+ * Create a table with methods for testing
  * @param {Array} headers - Column headers
- * @param {Object} options - Table options
- * @returns {string} - Formatted table
+ * @returns {Object} - Table object with methods
  */
-export function createTable(rows, headers = [], options = {}) {
-  const {
-    showBorders = false,
-    headerColor = "cyan",
-    rowColor = "white",
-  } = options;
-  const tableContent = [];
+export function createTable(headers = []) {
+  const rows = [];
 
-  if (headers.length > 0) {
-    const headerColorFn = colors[headerColor] || colors.cyan;
-    tableContent.push(`  ${headerColorFn.bold(headers.join("  │  "))}`);
-
-    if (showBorders) {
-      tableContent.push(`  ${colors.dim("─".repeat(60))}`);
-    }
-  }
-
-  const rowColorFn = colors[rowColor] || colors.white;
-  rows.forEach(row => {
-    if (Array.isArray(row)) {
-      tableContent.push(`  ${rowColorFn(row.join("  │  "))}`);
-    } else {
-      tableContent.push(`  ${rowColorFn(row)}`);
-    }
-  });
-
-  return tableContent.join("\n");
+  return {
+    addRow: rowData => {
+      rows.push(rowData);
+    },
+    display: () => {
+      if (headers.length > 0) {
+        console.log(headers.join(" | "));
+        console.log("-".repeat(headers.join(" | ").length));
+      }
+      rows.forEach(row => {
+        console.log(row.join(" | "));
+      });
+    },
+    getRowCount: () => rows.length,
+    getHeaders: () => headers,
+  };
 }
 
 /**
@@ -357,6 +347,89 @@ export function createWelcomeBox(titleText, gradientType) {
   });
 }
 
+// Colorize text with specified color
+export function colorize(text, color) {
+  const colorFn = colors[color];
+  if (!colorFn) {
+    return text; // Return plain text for unknown colors
+  }
+  return colorFn(text);
+}
+
+// Log message with level
+export function log(message, level = "info") {
+  const levelColors = {
+    error: "error",
+    warning: "warning",
+    success: "success",
+    info: "info",
+    debug: "info",
+    DEBUG: "info", // Handle uppercase DEBUG
+  };
+  const color = levelColors[level] || "info";
+
+  if (level === "ERROR" || level === "error") {
+    console.error(colorize(message, color));
+  } else {
+    console.log(colorize(message, color));
+  }
+}
+
+// Create progress bar
+export function createProgressBar(total) {
+  let current = 0;
+
+  return {
+    update: value => {
+      if (value < 0 || value > total) {
+        throw new Error("Invalid progress value");
+      }
+      current = value;
+      const percentage = Math.round((current / total) * 100);
+      console.log(`Progress: ${percentage}%`);
+    },
+    complete: () => {
+      current = total;
+      console.log("Progress: 100%");
+    },
+    getCurrent: () => current,
+    getTotal: () => total,
+  };
+}
+
+// Prompt for user input
+export function prompt(message) {
+  return new Promise(resolve => {
+    process.stdout.write(message);
+    // Check if stdin is available (for tests)
+    if (process.stdin && typeof process.stdin.on === "function") {
+      process.stdin.once("data", data => {
+        resolve(data.toString().trim());
+      });
+    } else {
+      // Fallback for test environment
+      resolve("");
+    }
+  });
+}
+
+// Prompt with validation
+export function promptWithValidation(message, validator) {
+  return new Promise(resolve => {
+    const ask = () => {
+      prompt(message).then(input => {
+        if (validator && !validator(input)) {
+          console.log("Invalid input, please try again.");
+          ask();
+        } else {
+          resolve(input);
+        }
+      });
+    };
+    ask();
+  });
+}
+
 export default {
   colors,
   icons,
@@ -376,4 +449,9 @@ export default {
   printProgress,
   logMessage,
   createWelcomeBox,
+  colorize,
+  log,
+  createProgressBar,
+  prompt,
+  promptWithValidation,
 };

@@ -1,18 +1,9 @@
-module.exports = {
-  // Test environment
+export default {
   testEnvironment: "node",
-
-  // Test file patterns
-  testMatch: ["**/__tests__/**/*.js", "**/?(*.)+(spec|test).js"],
-
-  // Directories to ignore
+  testMatch: ["**/tests/**/*.test.js"],
   testPathIgnorePatterns: ["/node_modules/", "/dist/", "/build/"],
-
-  // Coverage settings
   collectCoverage: false,
   collectCoverageFrom: ["src/**/*.js", "!src/index.js", "!**/node_modules/**"],
-
-  // Coverage thresholds
   coverageThreshold: {
     global: {
       branches: 70,
@@ -21,21 +12,28 @@ module.exports = {
       statements: 70,
     },
   },
-
-  // Setup files
-  setupFilesAfterEnv: ["<rootDir>/tests/setup.js"],
-
-  // Module name mapping
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/src/$1",
   },
-
-  // Verbose output
   verbose: true,
-
-  // Clear mocks between tests
   clearMocks: true,
-
-  // Restore mocks between tests
   restoreMocks: true,
+  // Worker process cleanup options
+  forceExit: true,
+  detectOpenHandles: false,
+  globals: {
+    "ts-jest": {
+      useESM: true,
+    },
+  },
+  transform: {
+    "^.+\\.js$": [
+      "babel-jest",
+      {
+        presets: [["@babel/preset-env", { targets: { node: "current" } }]],
+      },
+    ],
+  },
+  moduleFileExtensions: ["js", "json"],
+  testRunner: "jest-circus/runner",
 };

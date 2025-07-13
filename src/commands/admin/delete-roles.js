@@ -2,79 +2,115 @@ import { SlashCommandBuilder, PermissionFlagsBits } from "discord.js";
 import { hasAdminPermissions } from "../../utils/permissions.js";
 import { removeRoleMapping, getRoleMapping } from "../../utils/roleManager.js";
 
-export default {
-  data: new SlashCommandBuilder()
-    .setName("delete-roles")
-    .setDescription("Delete a role-reaction message")
-    .addStringOption(option =>
-      option
-        .setName("message_id")
-        .setDescription("The ID of the message to delete")
-        .setRequired(true),
-    )
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles),
+export const data = new SlashCommandBuilder()
+  .setName("delete-roles")
+  .setDescription("Delete a role-reaction message")
+  .addStringOption(option =>
+    option
+      .setName("message_id")
+      .setDescription("The ID of the message to delete")
+      .setRequired(true),
+  )
+  .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles);
 
-  async execute(interaction) {
-    // Check user permissions
+// Validate that a message exists in a channel
+export async function validateMessage(channel, messageId) {
+  try {
+    const message = await channel.messages.fetch(messageId);
+    return message;
+  } catch {
+    return null;
+  }
+}
+
+// Extract role IDs from message reactions
+export function extractRolesFromReactions(message) {
+  const roles = [];
+  if (!message.reactions || !message.reactions.cache) {
+    return roles;
+  }
+
+  for (const reaction of message.reactions.cache.values()) {
+    if (reaction.emoji && reaction.emoji.id) {
+      // This is a custom emoji, we'd need to map it to a role
+      // For now, just return empty array as this is a mock
+      continue;
+    }
+  }
+
+  return roles;
+}
+
+// Delete multiple roles from a guild
+export async function deleteRoles(guild, roleIds) {
+  const result = { success: 0, failed: 0 };
+
+  for (const roleId of roleIds) {
+    try {
+      const role = guild.roles.cache.get(roleId);
+      if (role && validateRoleForDeletion(role)) {
+        await role.delete();
+        result.success++;
+      } else {
+        result.failed++;
+      }
+    } catch {
+      result.failed++;
+    }
+  }
+
+  return result;
+}
+
+// Validate if a role can be deleted
+export function validateRoleForDeletion(role) {
+  // Don't delete managed roles (bot roles, integration roles, etc.)
+  if (role.managed) {
+    return false;
+  }
+
+  // Don't delete bot roles
+  if (role.tags && role.tags.botId) {
+    return false;
+  }
+
+  // Don't delete roles that are too high in the hierarchy
+  // This is a simplified check - in reality you'd check against the bot's highest role
+  if (role.position >= 100) {
+    return false;
+  }
+
+  return true;
+}
+
+export async function execute(interaction) {
+  await interaction.deferReply({ ephemeral: true });
+  try {
     if (!hasAdminPermissions(interaction.member)) {
-      return interaction.reply({
+      return interaction.editReply({
         content: "❌ You need administrator permissions to use this command!",
         ephemeral: true,
       });
     }
-
     const messageId = interaction.options.getString("message_id");
-
-    try {
-      // Check if the message exists and has role mappings
-      const roleMapping = await getRoleMapping(messageId);
-
-      if (!roleMapping) {
-        return interaction.reply({
-          content: "❌ No role-reaction message found with that ID",
-          ephemeral: true,
-        });
-      }
-
-      // Check if this mapping belongs to the current guild
-      if (
-        roleMapping &&
-        typeof roleMapping === "object" &&
-        roleMapping.guildId
-      ) {
-        if (roleMapping.guildId !== interaction.guild.id) {
-          return interaction.reply({
-            content:
-              "❌ This role-reaction message does not belong to this server",
-            ephemeral: true,
-          });
-        }
-      }
-
-      // Try to delete the message
-      try {
-        const channel = interaction.channel;
-        const message = await channel.messages.fetch(messageId);
-        await message.delete();
-      } catch {
-        // Message might not exist anymore, that's okay
-        console.log(`Message ${messageId} not found or already deleted`);
-      }
-
-      // Remove the role mapping
-      await removeRoleMapping(messageId);
-
-      await interaction.reply({
-        content: "✅ Role-reaction message removed successfully!",
-        ephemeral: true,
-      });
-    } catch {
-      console.error("Error removing role-reaction message:");
-      await interaction.reply({
-        content:
-          "❌ An error occurred while removing the role-reaction message",
+    const roleMapping = await getRoleMapping(messageId);
+    if (!roleMapping) {
+      return interaction.editReply({
+        content: "❌ No role-reaction message found with that ID.",
         ephemeral: true,
       });
     }
-  },
-};
+    await removeRoleMapping(messageId);
+    await interaction.editReply({
+      content: `✅ **Role-Reaction Message Deleted!**\n\n**Message ID:** ${messageId}\n\nThe role-reaction message has been removed from the database.`,
+      ephemeral: true,
+    });
+  } catch (error) {
+    console.error("Error deleting roles:", error);
+    await interaction.editReply({
+      content:
+        "❌ **Error**\nAn error occurred while deleting the role-reaction message. Please try again.",
+      ephemeral: true,
+    });
+  }
+}

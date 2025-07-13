@@ -83,14 +83,12 @@ async function updateHelpCommandChoices() {
       .sort((a, b) => a.data.name.localeCompare(b.data.name))
       .map(cmd => {
         const commandName = cmd.data.name;
-        const description = cmd.data.description.split(".")[0];
         const displayName = commandName
           .split("-")
           .map(word => word.charAt(0).toUpperCase() + word.slice(1))
           .join(" ");
-
         return {
-          name: `${displayName} - ${description}`,
+          name: displayName,
           value: commandName,
         };
       });
