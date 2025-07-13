@@ -101,13 +101,13 @@ export async function removeTemporaryRoleData(roleData) {
 }
 
 export async function execute(interaction, client) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
   try {
     if (!hasAdminPermissions(interaction.member)) {
       return interaction.editReply({
         content:
           "❌ **Permission Denied**\nYou need administrator permissions to use this command.",
-        ephemeral: true,
+        flags: 64,
       });
     }
     if (!botHasRequiredPermissions(interaction.guild)) {
@@ -117,7 +117,7 @@ export async function execute(interaction, client) {
         .join(", ");
       return interaction.editReply({
         content: `❌ **Missing Bot Permissions**\nI need the following permissions: **${permissionNames}**\n\nPlease ensure I have the required permissions and try again.`,
-        ephemeral: true,
+        flags: 64,
       });
     }
     const targetUser = interaction.options.getUser("user");
@@ -128,13 +128,13 @@ export async function execute(interaction, client) {
     if (targetRole.position >= botMember.roles.highest.position) {
       return interaction.editReply({
         content: `❌ **Role Too High**\nI cannot manage the **${targetRole.name}** role because it's higher than my highest role.\n\n**How to fix:** Move my highest role above the target role in your server's role settings (Server Settings > Roles).`,
-        ephemeral: true,
+        flags: 64,
       });
     }
     if (targetRole.position >= interaction.member.roles.highest.position) {
       return interaction.editReply({
         content: `❌ **Role Too High**\nYou cannot manage the **${targetRole.name}** role because it's higher than your highest role.`,
-        ephemeral: true,
+        flags: 64,
       });
     }
     const targetMember = await interaction.guild.members.fetch(targetUser.id);
@@ -142,14 +142,14 @@ export async function execute(interaction, client) {
       return interaction.editReply({
         content:
           "❌ **User Not Found**\nThe specified user is not a member of this server.",
-        ephemeral: true,
+        flags: 64,
       });
     }
     const hasRole = targetMember.roles.cache.has(targetRole.id);
     if (!hasRole) {
       return interaction.editReply({
         content: `❌ **User Doesn't Have Role**\n${targetUser} doesn't have the **${targetRole.name}** role.`,
-        ephemeral: true,
+        flags: 64,
       });
     }
     const tempRoles = await getUserTemporaryRoles(
@@ -160,7 +160,7 @@ export async function execute(interaction, client) {
     if (!tempRole) {
       return interaction.editReply({
         content: `❌ **Not a Temporary Role**\nThe **${targetRole.name}** role is not a temporary role for ${targetUser}.`,
-        ephemeral: true,
+        flags: 64,
       });
     }
     await targetMember.roles.remove(
@@ -207,7 +207,7 @@ export async function execute(interaction, client) {
     );
     await interaction.editReply({
       embeds: [embed],
-      ephemeral: true,
+      flags: 64,
     });
     try {
       const userEmbed = new EmbedBuilder()
@@ -242,7 +242,7 @@ export async function execute(interaction, client) {
     await interaction.editReply({
       content:
         "❌ **Error**\nAn error occurred while removing the temporary role. Please try again.",
-      ephemeral: true,
+      flags: 64,
     });
   }
 }

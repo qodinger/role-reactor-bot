@@ -44,8 +44,6 @@ By participating in this project, you agree to abide by our Code of Conduct. We 
 
 2. **Install dependencies**
    ```bash
-   npm install
-   # or
    pnpm install
    ```
 
@@ -57,12 +55,12 @@ By participating in this project, you agree to abide by our Code of Conduct. We 
 
 4. **Deploy commands (development)**
    ```bash
-   npm run deploy-commands
+   pnpm run deploy-commands
    ```
 
 5. **Start the bot**
    ```bash
-   npm run dev
+   pnpm run dev
    ```
 
 ## 📝 Contributing Guidelines
@@ -101,9 +99,9 @@ We welcome various types of contributions:
 
 3. **Test your changes**
    ```bash
-   npm run lint
-   npm test
-   npm run dev  # Test the bot locally
+   pnpm run lint
+   pnpm test
+   pnpm run dev  # Test the bot locally
    ```
 
 4. **Commit your changes**
@@ -159,7 +157,7 @@ docs(readme): update installation instructions
 ### JavaScript Guidelines
 
 - **Use ES6+ features** - Prefer modern JavaScript
-- **Follow ESLint rules** - Run `npm run lint` before committing
+- **Follow ESLint rules** - Run `pnpm run lint` before committing
 - **Use meaningful names** - Clear variable and function names
 - **Add comments** - Explain complex logic
 - **Handle errors properly** - Use try-catch blocks
@@ -191,16 +189,16 @@ src/
 
 ```bash
 # Run all tests
-npm test
+pnpm test
 
 # Run tests in watch mode
-npm run test:watch
+pnpm run test:watch
 
 # Run linting
-npm run lint
+pnpm run lint
 
 # Fix linting issues
-npm run lint:fix
+pnpm run lint:fix
 ```
 
 ### Writing Tests

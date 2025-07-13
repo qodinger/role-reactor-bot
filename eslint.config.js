@@ -41,7 +41,10 @@ export default [
     },
     rules: {
       // Code quality rules
-      "no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
+      "no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", caughtErrorsIgnorePattern: "^_" },
+      ],
       "no-console": "off", // Allow console.log for bot logging
       "no-debugger": "error",
       "no-alert": "error",

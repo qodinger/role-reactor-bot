@@ -92,13 +92,13 @@ export async function getRoleInfo(guild, roleId) {
 export { getTemporaryRoles, getTemporaryRolesByUser, formatTemporaryRole };
 
 export async function execute(interaction, client) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
   try {
     if (!hasAdminPermissions(interaction.member)) {
       return interaction.editReply({
         content:
           "❌ **Permission Denied**\nYou need administrator permissions to use this command.",
-        ephemeral: true,
+        flags: 64,
       });
     }
     if (!botHasRequiredPermissions(interaction.guild)) {
@@ -108,7 +108,7 @@ export async function execute(interaction, client) {
         .join(", ");
       return interaction.editReply({
         content: `❌ **Missing Bot Permissions**\nI need the following permissions: **${permissionNames}**\n\nPlease ensure I have the required permissions and try again.`,
-        ephemeral: true,
+        flags: 64,
       });
     }
     const targetUser = interaction.options.getUser("user");
@@ -120,7 +120,7 @@ export async function execute(interaction, client) {
       if (tempRoles.length === 0) {
         return interaction.editReply({
           content: `📋 **No Temporary Roles**\n${targetUser} has no temporary roles assigned.`,
-          ephemeral: true,
+          flags: 64,
         });
       }
       const embed = new EmbedBuilder()
@@ -152,7 +152,7 @@ export async function execute(interaction, client) {
       }
       await interaction.editReply({
         embeds: [embed],
-        ephemeral: true,
+        flags: 64,
       });
     } else {
       const { getExpiredTemporaryRoles } = await import(
@@ -166,7 +166,7 @@ export async function execute(interaction, client) {
         return interaction.editReply({
           content:
             "📋 **No Temporary Roles**\nThere are no temporary roles assigned in this server.",
-          ephemeral: true,
+          flags: 64,
         });
       }
       const userRoles = {};
@@ -232,7 +232,7 @@ export async function execute(interaction, client) {
       }
       await interaction.editReply({
         embeds: [embed],
-        ephemeral: true,
+        flags: 64,
       });
     }
   } catch (error) {
@@ -240,7 +240,7 @@ export async function execute(interaction, client) {
     await interaction.editReply({
       content:
         "❌ **Error**\nAn error occurred while listing temporary roles. Please try again.",
-      ephemeral: true,
+      flags: 64,
     });
   }
 }

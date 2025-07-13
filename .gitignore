@@ -123,10 +123,6 @@ coverage/
 # Bot data and caches
 data/
 cache/
-role-mappings.json
-*.db
-*.sqlite
-*.sqlite3
 
 # Backup files
 *.backup
@@ -189,7 +185,6 @@ local/
 # =============================================================================
 
 # Bot-specific data
-src/config/role-mappings.json
 error.log
 bot.log
 audit.log

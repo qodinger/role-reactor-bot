@@ -4,6 +4,15 @@ export const name = Events.InteractionCreate;
 
 export async function execute(interaction, client) {
   try {
+    // Diagnostic: log interaction age
+    const now = Date.now();
+    const created =
+      interaction.createdTimestamp || interaction.createdAt?.getTime() || now;
+    const age = now - created;
+    console.log(
+      `[InteractionCreate] Received interaction: ${interaction.commandName || interaction.type} | Age: ${age}ms`,
+    );
+
     // Validate inputs
     if (!interaction || !client) {
       throw new Error("Missing required parameters");
@@ -13,9 +22,6 @@ export async function execute(interaction, client) {
     switch (interaction.type) {
       case InteractionType.ApplicationCommand:
         await handleCommandInteraction(interaction, client);
-        break;
-      case InteractionType.MessageComponent:
-        await handleComponentInteraction(interaction);
         break;
       case InteractionType.ApplicationCommandAutocomplete:
         await handleAutocompleteInteraction(interaction, client);
@@ -27,17 +33,17 @@ export async function execute(interaction, client) {
   } catch (error) {
     console.error("Error handling interaction:", error);
 
-    // Try to reply with error message
+    // Try to reply with error message only if not already handled
     try {
-      if (interaction.replied || interaction.deferred) {
-        await interaction.followUp({
-          content: "❌ An error occurred while processing your request.",
-          ephemeral: true,
-        });
-      } else {
+      if (!interaction.replied && !interaction.deferred) {
         await interaction.reply({
           content: "❌ An error occurred while processing your request.",
-          ephemeral: true,
+          flags: 64, // ephemeral flag
+        });
+      } else if (interaction.deferred) {
+        await interaction.editReply({
+          content: "❌ An error occurred while processing your request.",
+          flags: 64,
         });
       }
     } catch (replyError) {
@@ -51,10 +57,13 @@ const handleCommandInteraction = async (interaction, client) => {
   const command = client.commands.get(interaction.commandName);
 
   if (!command) {
-    await interaction.reply({
-      content: "❌ Unknown command.",
-      ephemeral: true,
-    });
+    // Check if already replied to prevent double responses
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.reply({
+        content: "❌ Unknown command.",
+        flags: 64,
+      });
+    }
     return;
   }
 
@@ -65,86 +74,23 @@ const handleCommandInteraction = async (interaction, client) => {
     );
   } catch (error) {
     console.error(`Error executing command ${interaction.commandName}:`, error);
-    await interaction.reply({
-      content: "❌ Error executing command.",
-      ephemeral: true,
-    });
-  }
-};
 
-// Handle component interactions (buttons, select menus)
-const handleComponentInteraction = async interaction => {
-  const customId = interaction.customId;
-
-  if (customId.startsWith("role_")) {
-    // Handle role button interactions
-    const roleName = customId.replace("role_", "");
-    const member = interaction.member;
-    const role = interaction.guild.roles.cache.find(r => r.name === roleName);
-
-    // --- Emoji reaction logic ---
-    const messageId = interaction.message.id;
-    const mapping = global.roleMappings?.[messageId];
-    let emoji = null;
-    if (mapping && mapping.roles) {
-      for (const [em, roleObj] of Object.entries(mapping.roles)) {
-        if (roleObj.roleName === roleName) {
-          emoji = em;
-          break;
-        }
-      }
-    }
-    // --- End emoji reaction logic ---
-
-    if (role) {
-      try {
-        if (member.roles.cache.has(role.id)) {
-          // Remove role from user
-          await member.roles.remove(role);
-          // Remove the user's reaction (if present)
-          if (emoji) {
-            try {
-              const userReactions =
-                interaction.message.reactions.cache.get(emoji);
-              if (userReactions) {
-                await userReactions.users.remove(member.user.id);
-              }
-            } catch (err) {
-              console.error("Failed to remove reaction:", err);
-            }
-          }
-        } else {
-          // Add role to user
-          await member.roles.add(role);
-          // Add the emoji reaction to the message
-          if (emoji) {
-            try {
-              await interaction.message.react(emoji);
-            } catch (err) {
-              console.error("Failed to add reaction:", err);
-            }
-          }
-        }
-        // No reply message
-        if (!interaction.replied && !interaction.deferred) {
-          await interaction.deferUpdate();
-        }
-      } catch (err) {
-        console.error("Failed to update role:", err);
-        if (!interaction.replied && !interaction.deferred) {
-          await interaction.deferUpdate();
-        }
-      }
-    } else {
+    // Only try to reply if we haven't already and the command didn't handle it
+    try {
       if (!interaction.replied && !interaction.deferred) {
-        await interaction.deferUpdate();
+        await interaction.reply({
+          content: "❌ Error executing command.",
+          flags: 64,
+        });
+      } else if (interaction.deferred) {
+        await interaction.editReply({
+          content: "❌ Error executing command.",
+          flags: 64,
+        });
       }
+    } catch (replyError) {
+      console.error("Failed to send error response:", replyError);
     }
-  } else {
-    await interaction.reply({
-      content: "❌ Unknown button interaction.",
-      ephemeral: true,
-    });
   }
 };
 

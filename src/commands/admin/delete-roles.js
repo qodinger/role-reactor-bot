@@ -84,33 +84,58 @@ export function validateRoleForDeletion(role) {
 }
 
 export async function execute(interaction) {
-  await interaction.deferReply({ ephemeral: true });
   try {
+    // Check if already replied to prevent double responses
+    if (interaction.replied || interaction.deferred) {
+      console.log("Interaction already handled, skipping");
+      return;
+    }
+
+    await interaction.deferReply({ flags: 64 });
+
     if (!hasAdminPermissions(interaction.member)) {
       return interaction.editReply({
         content: "❌ You need administrator permissions to use this command!",
-        ephemeral: true,
+        flags: 64,
       });
     }
+
     const messageId = interaction.options.getString("message_id");
     const roleMapping = await getRoleMapping(messageId);
+
     if (!roleMapping) {
       return interaction.editReply({
         content: "❌ No role-reaction message found with that ID.",
-        ephemeral: true,
+        flags: 64,
       });
     }
+
     await removeRoleMapping(messageId);
+
     await interaction.editReply({
       content: `✅ **Role-Reaction Message Deleted!**\n\n**Message ID:** ${messageId}\n\nThe role-reaction message has been removed from the database.`,
-      ephemeral: true,
+      flags: 64,
     });
   } catch (error) {
     console.error("Error deleting roles:", error);
-    await interaction.editReply({
-      content:
-        "❌ **Error**\nAn error occurred while deleting the role-reaction message. Please try again.",
-      ephemeral: true,
-    });
+
+    // Only try to reply if we haven't already
+    try {
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({
+          content:
+            "❌ **Error**\nAn error occurred while deleting the role-reaction message. Please try again.",
+          flags: 64,
+        });
+      } else if (interaction.deferred) {
+        await interaction.editReply({
+          content:
+            "❌ **Error**\nAn error occurred while deleting the role-reaction message. Please try again.",
+          flags: 64,
+        });
+      }
+    } catch (replyError) {
+      console.error("Failed to send error response:", replyError);
+    }
   }
 }

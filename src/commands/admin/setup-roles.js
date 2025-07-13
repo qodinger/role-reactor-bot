@@ -2,9 +2,6 @@ import {
   SlashCommandBuilder,
   PermissionFlagsBits,
   EmbedBuilder,
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
 } from "discord.js";
 import {
   hasAdminPermissions,
@@ -31,13 +28,13 @@ export const data = new SlashCommandBuilder()
   .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles);
 
 export async function execute(interaction, client) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
   try {
     if (!hasAdminPermissions(interaction.member)) {
       return interaction.editReply({
         content:
           "❌ **Permission Denied**\nYou need administrator permissions to use this command.",
-        ephemeral: true,
+        flags: 64,
       });
     }
     if (!botHasRequiredPermissions(interaction.guild)) {
@@ -47,7 +44,7 @@ export async function execute(interaction, client) {
         .join(", ");
       return interaction.editReply({
         content: `❌ **Missing Bot Permissions**\nI need the following permissions: **${permissionNames}**\n\nPlease ensure I have the required permissions and try again.`,
-        ephemeral: true,
+        flags: 64,
       });
     }
     const title = interaction.options.getString("title");
@@ -61,7 +58,7 @@ export async function execute(interaction, client) {
         return interaction.editReply({
           content:
             "❌ **Invalid Color Format**\nPlease provide a valid hex color code (e.g., #0099ff or 0099ff)",
-          ephemeral: true,
+          flags: 64,
         });
       }
       color = hex;
@@ -95,13 +92,13 @@ export async function execute(interaction, client) {
     if (errors.length > 0) {
       return interaction.editReply({
         content: `❌ **Setup Errors**\n\n${errors.join("\n")}`,
-        ephemeral: true,
+        flags: 64,
       });
     }
     if (validPairs.length === 0) {
       return interaction.editReply({
         content: "❌ **No Valid Roles**\nNo valid roles were found to set up.",
-        ephemeral: true,
+        flags: 64,
       });
     }
     const embed = new EmbedBuilder()
@@ -124,39 +121,40 @@ export async function execute(interaction, client) {
       value: roleList,
       inline: false,
     });
-    const rows = [];
-    const buttonsPerRow = 5;
-    for (let i = 0; i < validPairs.length; i += buttonsPerRow) {
-      const row = new ActionRowBuilder();
-      const rowPairs = validPairs.slice(i, i + buttonsPerRow);
-      for (const pair of rowPairs) {
-        const button = new ButtonBuilder()
-          .setCustomId(`role_${pair.role}`)
-          .setLabel(pair.role)
-          .setStyle(ButtonStyle.Secondary)
-          .setEmoji(pair.emoji);
-        row.addComponents(button);
-      }
-      rows.push(row);
-    }
+
+    // Send the message without buttons
     const message = await interaction.channel.send({
       embeds: [embed],
-      components: rows,
     });
+
+    // Add reactions for each role
+    for (const pair of validPairs) {
+      try {
+        await message.react(pair.emoji);
+      } catch (error) {
+        console.error(
+          `Failed to add reaction ${pair.emoji} to message:`,
+          error,
+        );
+      }
+    }
+
     await setRoleMapping(message.id, {
       guildId: interaction.guild.id,
+      channelId: interaction.channel.id,
       roles: roleMapping,
     });
+
     await interaction.editReply({
-      content: `✅ **Role-Reaction Message Created!**\n\n**Message:** ${message.url}\n**Roles:** ${validPairs.length} role(s) set up\n\nUsers can now click the buttons to assign/remove roles.`,
-      ephemeral: true,
+      content: `✅ **Role-Reaction Message Created!**\n\n**Message:** ${message.url}\n**Roles:** ${validPairs.length} role(s) set up\n\nUsers can now react with the emojis to assign/remove roles.`,
+      flags: 64,
     });
   } catch (error) {
     console.error("Error setting up roles:", error);
     await interaction.editReply({
       content:
         "❌ **Error**\nAn error occurred while setting up the role-reaction message. Please try again.",
-      ephemeral: true,
+      flags: 64,
     });
   }
 }

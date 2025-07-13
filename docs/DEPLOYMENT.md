@@ -1,221 +1,172 @@
 # Deployment Guide
 
-This guide covers different deployment methods for the Role Reactor Bot.
+## 🚀 Production Deployment
 
-## 🚀 Deployment Options
-
-### 1. PM2 Deployment (Recommended)
-
-PM2 is the recommended deployment method for production environments.
-
-**Quick Start:**
+### Initial Setup
 ```bash
-# Install PM2 globally
-pnpm add -g pm2
-
-# Start in production mode
-pnpm run pm2:start:prod
+# Build and start production container
+pnpm docker:build
+pnpm docker:prod
 
 # Check status
-pnpm run pm2:status
+docker ps | grep role-reactor-bot
 ```
 
-**For detailed PM2 instructions, see [PM2 Guide](./PM2_GUIDE.md)**
-
-### 2. Manual Deployment
-
-For simple setups or development environments:
-
+### Production Updates
 ```bash
-# Install dependencies
-pnpm install
+# Option 1: Full update (stops, rebuilds, restarts)
+pnpm docker:update
 
-# Set environment variables
-cp env.example .env
-# Edit .env with your Discord token
+# Option 2: Just restart (if no code changes)
+pnpm docker:restart:prod
 
-# Deploy commands
-pnpm run deploy-commands
-
-# Start the bot
-pnpm start
+# Option 3: Manual update (step by step)
+docker stop role-reactor-bot
+docker rm role-reactor-bot
+pnpm docker:build:force
+pnpm docker:prod
 ```
 
-### 3. Docker Deployment
-
-Create a `Dockerfile`:
-
-```dockerfile
-FROM node:18-alpine
-
-WORKDIR /app
-
-# Copy package files
-COPY package.json pnpm-lock.yaml ./
-
-# Install dependencies
-RUN npm install -g pnpm
-RUN pnpm install --frozen-lockfile
-
-# Copy source code
-COPY . .
-
-# Expose port (if needed)
-EXPOSE 3000
-
-# Start the bot
-CMD ["pnpm", "start"]
-```
-
-**Build and run:**
+### Production Monitoring
 ```bash
-docker build -t role-reactor-bot .
-docker run -d --name role-reactor-bot role-reactor-bot
+# View logs
+docker logs -f role-reactor-bot
+
+# Check container status
+docker ps | grep role-reactor-bot
+
+# Check resource usage
+docker stats role-reactor-bot
 ```
 
-## 🔧 Environment Setup
+## 🛠️ Development Workflow
 
-### Required Environment Variables
+### Development Mode (Live Reload)
+```bash
+# Start development with code mounting
+pnpm docker:dev
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `DISCORD_TOKEN` | Discord bot token | Yes |
-| `CLIENT_ID` | Discord application client ID | Yes |
-| `GUILD_ID` | Target guild ID (development) | No |
-| `NODE_ENV` | Environment (production/development) | No |
+# View logs
+pnpm docker:dev:logs
 
-### Environment File Setup
+# Restart development
+pnpm docker:dev:restart
 
-1. Copy the example environment file:
-   ```bash
-   cp env.example .env
-   ```
+# Stop development
+pnpm docker:dev:down
+```
 
-2. Edit `.env` with your Discord bot credentials:
-   ```env
-   DISCORD_TOKEN=your_discord_bot_token_here
-   CLIENT_ID=your_discord_application_client_id
-   GUILD_ID=your_guild_id_for_development
-   NODE_ENV=production
-   ```
+### Testing Changes
+```bash
+# Test in isolation
+pnpm docker:test
 
-## 🛡️ Security Considerations
+# Build and test locally
+pnpm docker:build
+pnpm docker:run
+```
 
-### Production Security
+## 📋 Command Reference
 
-1. **Environment Variables**: Never commit `.env` files to version control
-2. **Bot Permissions**: Use minimal required permissions
-3. **Token Security**: Keep your Discord token secure
-4. **Network Security**: Use HTTPS in production
-5. **Logging**: Avoid logging sensitive information
+### Production Commands
+- `pnpm docker:prod` - Start production container
+- `pnpm docker:restart:prod` - Restart production container
+- `pnpm docker:update` - Full update (stop, rebuild, restart)
+- `pnpm docker:stop` - Stop production container
+- `pnpm docker:clean` - Stop and remove container
 
-### Bot Permissions
+### Development Commands
+- `pnpm docker:dev` - Start development mode
+- `pnpm docker:dev:logs` - View development logs
+- `pnpm docker:dev:restart` - Restart development
+- `pnpm docker:dev:down` - Stop development
 
-Ensure your bot has these permissions:
-- **Manage Roles**: To assign/remove roles
-- **Manage Messages**: To add reactions
-- **Add Reactions**: To add emoji reactions
-- **Read Message History**: To access reaction events
-- **View Channel**: To read channel content
+### Build Commands
+- `pnpm docker:build` - Build image (with cache)
+- `pnpm docker:build:force` - Build image (no cache)
+- `pnpm docker:test` - Test container functionality
+
+## 🔄 Update Workflows
+
+### Minor Updates (No Code Changes)
+```bash
+pnpm docker:restart:prod
+```
+
+### Code Updates
+```bash
+pnpm docker:update
+```
+
+### Development Iteration
+```bash
+# Start development mode
+pnpm docker:dev
+
+# Make code changes (auto-reloads)
+# Test functionality
+
+# Deploy to production
+pnpm docker:update
+```
+
+## 🚨 Emergency Procedures
+
+### Container Crashed
+```bash
+# Check status
+docker ps -a | grep role-reactor-bot
+
+# Restart if stopped
+docker start role-reactor-bot
+
+# Or full restart
+pnpm docker:restart:prod
+```
+
+### Database Issues
+```bash
+# Check MongoDB connection
+docker logs role-reactor-bot | grep -i mongo
+
+# Restart with fresh connection
+pnpm docker:restart:prod
+```
+
+### Bot Not Responding
+```bash
+# Check logs
+docker logs role-reactor-bot --tail 50
+
+# Restart bot
+pnpm docker:restart:prod
+
+# If still issues, full update
+pnpm docker:update
+```
 
 ## 📊 Monitoring
 
-### PM2 Monitoring
-
-```bash
-# View real-time logs
-pnpm run pm2:logs
-
-# Open monitoring dashboard
-pnpm run pm2:monit
-
-# Check process status
-pnpm run pm2:status
-```
-
 ### Health Checks
-
-Monitor these metrics:
-- **Memory Usage**: Should stay under 100MB
-- **CPU Usage**: Should be low during idle
-- **Response Time**: Role operations should be <100ms
-- **Uptime**: Target 99.9% availability
-
-## 🔄 Updates and Maintenance
-
-### Updating the Bot
-
 ```bash
-# Pull latest changes
-git pull origin main
+# Container status
+docker ps | grep role-reactor-bot
 
-# Install updated dependencies
-pnpm install
+# Resource usage
+docker stats role-reactor-bot
 
-# Deploy updated commands
-pnpm run deploy-commands
-
-# Restart the bot
-pnpm run pm2:restart
+# Recent logs
+docker logs role-reactor-bot --tail 20
 ```
 
-### Backup and Recovery
-
-1. **Backup Configuration**:
-   ```bash
-   # Save PM2 process list
-   pnpm run pm2:save
-   
-   # Backup environment files
-   cp .env .env.backup
-   ```
-
-2. **Recovery**:
-   ```bash
-   # Restore PM2 processes
-   pnpm run pm2:resurrect
-   
-   # Restore environment
-   cp .env.backup .env
-   ```
-
-## 🚨 Troubleshooting
-
-### Common Issues
-
-**Bot not starting:**
+### Log Analysis
 ```bash
-# Check logs
-pnpm run pm2:logs
+# Follow logs in real-time
+docker logs -f role-reactor-bot
 
-# Verify environment variables
-pm2 show role-reactor-bot
-```
+# Search for errors
+docker logs role-reactor-bot | grep -i error
 
-**Commands not working:**
-```bash
-# Redeploy commands
-pnpm run deploy-commands
-
-# Check bot permissions
-# Ensure bot has required permissions in Discord
-```
-
-**High memory usage:**
-```bash
-# Monitor memory usage
-pnpm run pm2:monit
-
-# Check for memory leaks
-pm2 show role-reactor-bot
-```
-
-### Support
-
-- **Documentation**: [Main Documentation](./README.md)
-- **Issues**: [GitHub Issues](https://github.com/tyecode/role-reactor-bot/issues)
-- **Discord**: [Support Server](https://discord.gg/rolereactor)
-
----
-
-*For PM2-specific deployment, see [PM2 Guide](./PM2_GUIDE.md)* 
+# Search for specific events
+docker logs role-reactor-bot | grep "messageDelete"
+``` 

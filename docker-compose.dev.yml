@@ -1,0 +1,15 @@
+services:
+  role-reactor-bot:
+    build: .
+    container_name: role-reactor-bot-dev
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      # Mount source code for live development
+      - ./src:/usr/src/app/src
+      - ./scripts:/usr/src/app/scripts
+      - ./package.json:/usr/src/app/package.json
+      - ./pnpm-lock.yaml:/usr/src/app/pnpm-lock.yaml
+    # Use nodemon for development
+    command: ["pnpm", "dev"] 

@@ -34,26 +34,41 @@ export async function execute(interaction, client) {
   // Debug logging to help diagnose issues
   console.log("DEBUG: /list-roles called");
   console.log("guildId:", interaction.guild?.id);
-  console.log("roleMappings:", JSON.stringify(global.roleMappings, null, 2));
+  const start = Date.now();
 
-  await interaction.deferReply({ ephemeral: true });
   try {
+    // Check if already replied to prevent double responses
+    if (interaction.replied || interaction.deferred) {
+      console.log("Interaction already handled, skipping");
+      return;
+    }
+
+    // Defer the reply first
+    await interaction.deferReply({ flags: 64 }); // 64 = ephemeral flag
+
     if (!hasAdminPermissions(interaction.member)) {
       return interaction.editReply({
         content: "❌ You need administrator permissions to use this command!",
-        ephemeral: true,
+        flags: 64,
       });
     }
+
     const allMappings = await getAllRoleMappings();
+    console.log("Retrieved mappings:", Object.keys(allMappings).length);
+
     const guildMappings = Object.entries(allMappings).filter(
       ([, mapping]) => mapping.guildId === interaction.guild.id,
     );
+
+    console.log("Guild mappings found:", guildMappings.length);
+
     if (guildMappings.length === 0) {
       return interaction.editReply({
         content: "❌ No role-reaction messages found in this server.",
-        ephemeral: true,
+        flags: 64,
       });
     }
+
     const embed = new EmbedBuilder()
       .setTitle("🎭 Role-Reaction Messages")
       .setDescription(
@@ -65,27 +80,69 @@ export async function execute(interaction, client) {
         text: "RoleReactor • Role Management",
         iconURL: client.user.displayAvatarURL(),
       });
+
     const roleList = guildMappings
       .map(([messageId, mapping]) => {
         const roleCount = Object.keys(mapping.roles || {}).length;
         return `**Message ID:** ${messageId}\n**Roles:** ${roleCount} role(s)`;
       })
       .join("\n\n");
+
     embed.addFields({
       name: "📋 Messages",
       value: roleList,
       inline: false,
     });
+
     await interaction.editReply({
       embeds: [embed],
-      ephemeral: true,
+      flags: 64,
     });
+    console.log(`list-roles command completed in ${Date.now() - start}ms`);
   } catch (error) {
     console.error("Error listing roles:", error);
-    await interaction.editReply({
-      content:
-        "❌ **Error**\nAn error occurred while listing the role-reaction messages. Please try again.",
-      ephemeral: true,
-    });
+
+    // Only try to reply if we haven't already
+    try {
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({
+          content:
+            "❌ **Error**\nAn error occurred while listing the role-reaction messages. Please try again.",
+          flags: 64,
+        });
+      } else if (interaction.deferred) {
+        try {
+          await interaction.editReply({
+            content:
+              "❌ **Error**\nAn error occurred while listing the role-reaction messages. Please try again.",
+            flags: 64,
+          });
+        } catch (editError) {
+          // If editReply fails due to unknown interaction, send a follow-up
+          if (
+            editError.code === 10062 ||
+            (editError.rawError &&
+              editError.rawError.message === "Unknown interaction")
+          ) {
+            try {
+              await interaction.followUp({
+                content:
+                  "❌ **Error**\nAn error occurred while listing the role-reaction messages. Please try again.",
+                flags: 64,
+              });
+            } catch (followUpError) {
+              console.error(
+                "Failed to send follow-up error response:",
+                followUpError,
+              );
+            }
+          } else {
+            console.error("Failed to send error response:", editError);
+          }
+        }
+      }
+    } catch (replyError) {
+      console.error("Failed to send error response:", replyError);
+    }
   }
 }

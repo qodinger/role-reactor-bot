@@ -1,12 +1,32 @@
-// Mock functions for temporary roles (these would be implemented in a real app)
-const cleanupExpiredRoles = async () => {
-  // Mock implementation for tests
-  console.log("Mock: Cleaning up expired roles");
-};
+import { getDatabaseManager } from "./databaseManager.js";
 
+// Get expired temporary roles from database
 const getExpiredTemporaryRoles = async () => {
-  // Mock implementation for tests
-  return [];
+  try {
+    const dbManager = await getDatabaseManager();
+    const tempRoles = await dbManager.getTemporaryRoles();
+    const expiredRoles = [];
+
+    for (const [guildId, guildRoles] of Object.entries(tempRoles)) {
+      for (const [userId, userRoles] of Object.entries(guildRoles)) {
+        for (const [roleId, roleData] of Object.entries(userRoles)) {
+          if (new Date(roleData.expiresAt) <= new Date()) {
+            expiredRoles.push({
+              guildId,
+              userId,
+              roleId,
+              expiresAt: roleData.expiresAt,
+            });
+          }
+        }
+      }
+    }
+
+    return expiredRoles;
+  } catch (error) {
+    console.error("❌ Failed to get expired temporary roles:", error);
+    return [];
+  }
 };
 
 // Task management for testing
@@ -252,30 +272,17 @@ class RoleExpirationScheduler {
         } catch (error) {
           errorCount++;
           console.error(
-            `❌ Error removing expired role for user ${expiredRole.userId} in guild ${expiredRole.guildId}:`,
+            `❌ Error removing expired role for user ${expiredRole.userId}:`,
             error,
           );
         }
       }
 
-      // Clean up the expired roles from tracking
-      if (removedCount > 0 || errorCount > 0) {
-        await cleanupExpiredRoles();
-      }
-
-      if (removedCount > 0) {
-        console.log(
-          `✅ Successfully removed ${removedCount} expired temporary role(s)`,
-        );
-      }
-
-      if (errorCount > 0) {
-        console.log(
-          `❌ Failed to remove ${errorCount} expired temporary role(s)`,
-        );
-      }
+      console.log(
+        `✅ Cleanup complete: ${removedCount} roles removed, ${errorCount} errors`,
+      );
     } catch (error) {
-      console.error("❌ Error in cleanupExpiredRoles:", error);
+      console.error("❌ Error in cleanup process:", error);
     }
   }
 
@@ -283,7 +290,7 @@ class RoleExpirationScheduler {
   getStatus() {
     return {
       isRunning: this.isRunning,
-      interval: this.interval ? "1 minute" : null,
+      interval: this.interval ? "active" : "inactive",
     };
   }
 }

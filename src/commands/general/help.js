@@ -73,7 +73,9 @@ export default {
             "The command to get help for (e.g. setup-roles, update-roles, etc.)",
           )
           .setRequired(false)
-          .addChoices(), // Placeholder for deploy-commands.js to auto-insert choices
+          .addChoices(
+
+    ), // Placeholder for deploy-commands.js to auto-insert choices
     ),
 
   async execute(interaction, client) {
@@ -168,7 +170,7 @@ async function showCommandHelp(interaction, commandName) {
   if (!command) {
     return await interaction.reply({
       content: "❌ Command not found!",
-      ephemeral: true,
+      flags: 64,
     });
   }
 
@@ -391,6 +393,6 @@ async function showCommandHelp(interaction, commandName) {
 
   await interaction.reply({
     embeds: [embed],
-    ephemeral: true,
+    flags: 64,
   });
 }

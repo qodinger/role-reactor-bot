@@ -94,12 +94,12 @@ export function getRoleInfo(guild, roleIds) {
 }
 
 export async function execute(interaction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
   try {
     if (!hasAdminPermissions(interaction.member)) {
       return interaction.editReply({
         content: "❌ You need administrator permissions to use this command!",
-        ephemeral: true,
+        flags: 64,
       });
     }
     const messageId = interaction.options.getString("message_id");
@@ -111,7 +111,7 @@ export async function execute(interaction) {
     if (!existingMapping) {
       return interaction.editReply({
         content: "❌ No role-reaction message found with that ID.",
-        ephemeral: true,
+        flags: 64,
       });
     }
     const updates = {};
@@ -122,7 +122,7 @@ export async function execute(interaction) {
       if (errors.length > 0) {
         return interaction.editReply({
           content: `❌ **Parse Errors**\n\n${errors.join("\n")}`,
-          ephemeral: true,
+          flags: 64,
         });
       }
       updates.roles = roles;
@@ -133,7 +133,7 @@ export async function execute(interaction) {
         return interaction.editReply({
           content:
             "❌ **Invalid Color Format**\nPlease provide a valid hex color code (e.g., #0099ff or 0099ff)",
-          ephemeral: true,
+          flags: 64,
         });
       }
       updates.color = hex;
@@ -142,14 +142,14 @@ export async function execute(interaction) {
     await setRoleMapping(messageId, updatedMapping);
     await interaction.editReply({
       content: `✅ **Role-Reaction Message Updated!**\n\n**Message ID:** ${messageId}\n**Updates:** ${Object.keys(updates).join(", ")}`,
-      ephemeral: true,
+      flags: 64,
     });
   } catch (error) {
     console.error("Error updating roles:", error);
     await interaction.editReply({
       content:
         "❌ **Error**\nAn error occurred while updating the role-reaction message. Please try again.",
-      ephemeral: true,
+      flags: 64,
     });
   }
 }

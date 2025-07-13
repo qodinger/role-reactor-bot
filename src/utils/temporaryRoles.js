@@ -1,4 +1,51 @@
-// Parses a duration string like '1h30m' or '2d' into milliseconds
+import { getDatabaseManager } from "./databaseManager.js";
+
+// Temporary role functions
+export async function addTemporaryRole(guildId, userId, roleId, expiresAt) {
+  try {
+    const dbManager = await getDatabaseManager();
+    return await dbManager.addTemporaryRole(guildId, userId, roleId, expiresAt);
+  } catch (error) {
+    console.error("❌ Failed to add temporary role:", error);
+    return false;
+  }
+}
+
+export async function removeTemporaryRole(guildId, userId, roleId) {
+  try {
+    const dbManager = await getDatabaseManager();
+    return await dbManager.removeTemporaryRole(guildId, userId, roleId);
+  } catch (error) {
+    console.error("❌ Failed to remove temporary role:", error);
+    return false;
+  }
+}
+
+export async function getUserTemporaryRoles(guildId, userId) {
+  try {
+    const dbManager = await getDatabaseManager();
+    const tempRoles = await dbManager.getTemporaryRoles();
+    return tempRoles[guildId]?.[userId]
+      ? Object.keys(tempRoles[guildId][userId])
+      : [];
+  } catch (error) {
+    console.error("❌ Failed to get user temporary roles:", error);
+    return [];
+  }
+}
+
+export async function getTemporaryRoles(guildId) {
+  try {
+    const dbManager = await getDatabaseManager();
+    const tempRoles = await dbManager.getTemporaryRoles();
+    return tempRoles[guildId] || {};
+  } catch (error) {
+    console.error("❌ Failed to get temporary roles:", error);
+    return {};
+  }
+}
+
+// Duration parsing and formatting
 export function parseDuration(str) {
   if (!str || typeof str !== "string") return 0;
   const regex = /([0-9]+)([smhdw])/g;
@@ -10,7 +57,6 @@ export function parseDuration(str) {
     h: 60 * 60 * 1000,
     d: 24 * 60 * 60 * 1000,
     w: 7 * 24 * 60 * 60 * 1000,
-    // y: 365 * 24 * 60 * 60 * 1000, // years not supported by test
   };
   while ((match = regex.exec(str)) !== null) {
     const value = parseInt(match[1], 10);
@@ -19,11 +65,9 @@ export function parseDuration(str) {
       ms += value * unitToMs[unit];
     }
   }
-  // If there are any unsupported characters left, ignore them (do not throw)
   return ms;
 }
 
-// Formats a future ISO date string as a human-readable remaining time
 export function formatRemainingTime(isoString) {
   const now = Date.now();
   const end = new Date(isoString).getTime();
@@ -45,121 +89,109 @@ export function formatRemainingTime(isoString) {
   return "<1 second";
 }
 
-// Mock functions for temporary role management (these would be implemented in a real app)
-export async function removeTemporaryRole(guildId, userId, roleId) {
-  // Mock implementation for tests
-  console.log(
-    `Mock: Removing temporary role ${roleId} from user ${userId} in guild ${guildId}`,
-  );
-  return true;
-}
+export function validateDuration(durationStr) {
+  if (!durationStr || typeof durationStr !== "string") {
+    return { isValid: false, error: "Duration must be a string" };
+  }
 
-export async function getUserTemporaryRoles(guildId, userId) {
-  // Mock implementation for tests
-  console.log(
-    `Mock: Getting temporary roles for user ${userId} in guild ${guildId}`,
-  );
-  return [];
-}
+  const duration = parseDuration(durationStr);
+  if (duration <= 0) {
+    return { isValid: false, error: "Invalid duration format" };
+  }
 
-export async function addTemporaryRole(guildId, userId, roleId, expiresAt) {
-  // Mock implementation for tests
-  console.log(
-    `Mock: Adding temporary role ${roleId} to user ${userId} in guild ${guildId}, expires at ${expiresAt}`,
-  );
-  return true;
+  if (duration > 30 * 24 * 60 * 60 * 1000) {
+    // 30 days
+    return { isValid: false, error: "Duration cannot exceed 30 days" };
+  }
+
+  return { isValid: true, duration };
 }
 
 export function formatDuration(durationStr) {
-  // Mock implementation for tests
-  const duration = parseDuration(durationStr);
-  if (duration === 0) return "Invalid duration";
+  const durationMs = parseDuration(durationStr);
+  if (durationMs === 0) return "Invalid duration";
 
-  const hours = Math.floor(duration / (60 * 60 * 1000));
-  const minutes = Math.floor((duration % (60 * 60 * 1000)) / (60 * 1000));
-  const days = Math.floor(duration / (24 * 60 * 60 * 1000));
+  const units = [
+    { label: "day", ms: 24 * 60 * 60 * 1000 },
+    { label: "hour", ms: 60 * 60 * 1000 },
+    { label: "minute", ms: 60 * 1000 },
+    { label: "second", ms: 1000 },
+  ];
 
-  if (days > 0) return `${days} day${days > 1 ? "s" : ""}`;
-  if (hours > 0) return `${hours} hour${hours > 1 ? "s" : ""}`;
-  if (minutes > 0) return `${minutes} minute${minutes > 1 ? "s" : ""}`;
-  return "Less than 1 minute";
+  const parts = [];
+  let remaining = durationMs;
+  for (const { label, ms } of units) {
+    const value = Math.floor(remaining / ms);
+    if (value > 0) {
+      parts.push(value === 1 ? `1 ${label}` : `${value} ${label}s`);
+      break;
+    }
+    remaining %= ms;
+  }
+
+  return parts.join(", ") || "0 seconds";
 }
 
-// Additional functions for list-temp-roles command
-export async function getTemporaryRoles(guildId) {
-  // Mock implementation for tests
-  console.log(`Mock: Getting all temporary roles for guild ${guildId}`);
-  return [];
-}
-
+// Utility functions
 export async function getTemporaryRolesByUser(guildId, userId) {
-  // Mock implementation for tests
-  console.log(
-    `Mock: Getting temporary roles for user ${userId} in guild ${guildId}`,
-  );
-  return [];
+  return await getUserTemporaryRoles(guildId, userId);
 }
 
-export function formatTemporaryRole(tempRole, userInfo, roleInfo) {
-  // Mock implementation for tests
-  const userName = userInfo ? userInfo.username : "Unknown User";
-  const roleName = roleInfo ? roleInfo.name : "Unknown Role";
-  const isExpired = new Date(tempRole.expiresAt) < new Date();
-  const status = isExpired ? "EXPIRED" : "Active";
-
-  return `${userName} - ${roleName} (${status})`;
+export async function formatTemporaryRole(tempRole, userInfo, roleInfo) {
+  return {
+    user: userInfo,
+    role: roleInfo,
+    expiresAt: tempRole.expiresAt,
+    remainingTime: formatRemainingTime(tempRole.expiresAt),
+  };
 }
 
-export function calculateTimeRemaining(expiresAt) {
-  // Mock implementation for tests
-  const now = Date.now();
-  const end = new Date(expiresAt).getTime();
-  const diff = end - now;
-
-  if (diff <= 0) return "EXPIRED";
-
-  const days = Math.floor(diff / (24 * 60 * 60 * 1000));
-  const hours = Math.floor((diff % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
-  const minutes = Math.floor((diff % (60 * 60 * 1000)) / (60 * 1000));
-
-  if (days > 0) return `${days} day${days > 1 ? "s" : ""}`;
-  if (hours > 0) return `${hours} hour${hours > 1 ? "s" : ""}`;
-  if (minutes > 0) return `${minutes} minute${minutes > 1 ? "s" : ""}`;
-  return "Less than 1 minute";
+export async function calculateTimeRemaining(expiresAt) {
+  return formatRemainingTime(expiresAt);
 }
 
 export async function getUserInfo(guild, userId) {
-  // Mock implementation for tests
-  console.log(`Mock: Getting user info for ${userId} in guild ${guild.id}`);
-  return {
-    username: "TestUser",
-    discriminator: "1234",
-    id: userId,
-  };
+  try {
+    const member = await guild.members.fetch(userId);
+    return {
+      id: member.user.id,
+      tag: member.user.tag,
+      displayName: member.displayName,
+      avatarURL: member.user.displayAvatarURL(),
+    };
+  } catch (_error) {
+    return {
+      id: userId,
+      tag: "Unknown User",
+      displayName: "Unknown User",
+      avatarURL: null,
+    };
+  }
 }
 
 export async function getRoleInfo(guild, roleId) {
-  // Mock implementation for tests
-  console.log(`Mock: Getting role info for ${roleId} in guild ${guild.id}`);
-  return {
-    name: "Test Role",
-    color: "#FF0000",
-    id: roleId,
-  };
-}
-
-export function validateDuration(durationStr) {
-  // Mock implementation for tests
-  const duration = parseDuration(durationStr);
-  if (duration === 0) return false;
-
-  // Check minimum duration (e.g., 5 minutes)
-  const minDuration = 5 * 60 * 1000; // 5 minutes in milliseconds
-  if (duration < minDuration) return false;
-
-  // Check maximum duration (e.g., 1 year)
-  const maxDuration = 365 * 24 * 60 * 60 * 1000; // 1 year in milliseconds
-  if (duration > maxDuration) return false;
-
-  return true;
+  try {
+    const role = guild.roles.cache.get(roleId);
+    if (!role) {
+      return {
+        id: roleId,
+        name: "Unknown Role",
+        color: "#000000",
+        position: 0,
+      };
+    }
+    return {
+      id: role.id,
+      name: role.name,
+      color: `#${role.color.toString(16).padStart(6, "0")}`,
+      position: role.position,
+    };
+  } catch (_error) {
+    return {
+      id: roleId,
+      name: "Unknown Role",
+      color: "#000000",
+      position: 0,
+    };
+  }
 }

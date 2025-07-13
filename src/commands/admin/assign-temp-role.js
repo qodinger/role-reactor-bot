@@ -104,13 +104,13 @@ export function validateDuration(durationStr) {
 }
 
 export async function execute(interaction, client) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
   try {
     if (!hasAdminPermissions(interaction.member)) {
       return interaction.editReply({
         content:
           "❌ **Permission Denied**\nYou need administrator permissions to use this command.",
-        ephemeral: true,
+        flags: 64,
       });
     }
     if (!botHasRequiredPermissions(interaction.guild)) {
@@ -120,7 +120,7 @@ export async function execute(interaction, client) {
         .join(", ");
       return interaction.editReply({
         content: `❌ **Missing Bot Permissions**\nI need the following permissions: **${permissionNames}**\n\nPlease ensure I have the required permissions and try again.`,
-        ephemeral: true,
+        flags: 64,
       });
     }
     const targetUser = interaction.options.getUser("user");
@@ -131,29 +131,36 @@ export async function execute(interaction, client) {
     if (targetUser.bot) {
       return interaction.editReply({
         content: "❌ **Invalid Target**\nYou cannot assign roles to bots.",
-        ephemeral: true,
+        flags: 64,
       });
     }
     const botMember = await interaction.guild.members.fetchMe();
     if (targetRole.position >= botMember.roles.highest.position) {
       return interaction.editReply({
         content: `❌ **Role Too High**\nI cannot manage the **${targetRole.name}** role because it's higher than my highest role.\n\n**How to fix:** Move my highest role above the target role in your server's role settings (Server Settings > Roles).`,
-        ephemeral: true,
+        flags: 64,
       });
     }
     if (targetRole.position >= interaction.member.roles.highest.position) {
       return interaction.editReply({
         content: `❌ **Role Too High**\nYou cannot manage the **${targetRole.name}** role because it's higher than your highest role.`,
-        ephemeral: true,
+        flags: 64,
       });
     }
     let expiresAt;
     try {
-      expiresAt = parseDuration(durationStr);
+      const durationMs = parseDuration(durationStr);
+      if (!durationMs || isNaN(durationMs)) {
+        return interaction.editReply({
+          content: `❌ **Invalid Duration Format**\n\n**Valid formats:**\n• \`30m\` - 30 minutes\n• \`2h\` - 2 hours\n• \`1d\` - 1 day\n• \`1w\` - 1 week\n• \`1h30m\` - 1 hour 30 minutes`,
+          flags: 64,
+        });
+      }
+      expiresAt = new Date(Date.now() + durationMs);
     } catch (error) {
       return interaction.editReply({
         content: `❌ **Invalid Duration Format**\n\n**Valid formats:**\n• \`30m\` - 30 minutes\n• \`2h\` - 2 hours\n• \`1d\` - 1 day\n• \`1w\` - 1 week\n• \`1h30m\` - 1 hour 30 minutes\n\n**Error:** ${error.message}`,
-        ephemeral: true,
+        flags: 64,
       });
     }
     const maxDuration = new Date();
@@ -162,7 +169,7 @@ export async function execute(interaction, client) {
       return interaction.editReply({
         content:
           "❌ **Duration Too Long**\nThe maximum duration for temporary roles is 1 year.",
-        ephemeral: true,
+        flags: 64,
       });
     }
     const targetMember = await interaction.guild.members.fetch(targetUser.id);
@@ -170,20 +177,24 @@ export async function execute(interaction, client) {
       return interaction.editReply({
         content:
           "❌ **User Not Found**\nThe specified user is not a member of this server.",
-        ephemeral: true,
+        flags: 64,
       });
     }
     const alreadyHasRole = targetMember.roles.cache.has(targetRole.id);
     if (alreadyHasRole) {
       return interaction.editReply({
         content: `❌ **User Already Has Role**\n${targetUser} already has the **${targetRole.name}** role.`,
-        ephemeral: true,
+        flags: 64,
       });
     }
     await targetMember.roles.add(
       targetRole,
       `Temporary role assigned by ${interaction.user.tag}: ${reason}`,
     );
+    // Ensure expiresAt is a Date object before calling toISOString
+    if (!(expiresAt instanceof Date)) {
+      expiresAt = new Date(expiresAt);
+    }
     await addTemporaryRole(
       interaction.guild.id,
       targetUser.id,
@@ -235,7 +246,7 @@ export async function execute(interaction, client) {
     );
     await interaction.editReply({
       embeds: [embed],
-      ephemeral: true,
+      flags: 64,
     });
     try {
       const userEmbed = new EmbedBuilder()
@@ -281,7 +292,7 @@ export async function execute(interaction, client) {
     await interaction.editReply({
       content:
         "❌ **Error**\nAn error occurred while assigning the temporary role. Please try again.",
-      ephemeral: true,
+      flags: 64,
     });
   }
 }

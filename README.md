@@ -19,7 +19,7 @@ A Discord bot that enables users to self-assign roles through message reactions.
 ### Prerequisites
 
 - Node.js 16.0.0 or higher
-- pnpm package manager (recommended) or npm
+- pnpm package manager
 - Discord Bot Token
 
 ### Installation
@@ -33,8 +33,6 @@ A Discord bot that enables users to self-assign roles through message reactions.
 2. **Install dependencies**
    ```bash
    pnpm install
-   # or alternatively
-   npm install
    ```
 
 3. **Configure environment variables**
@@ -50,15 +48,11 @@ A Discord bot that enables users to self-assign roles through message reactions.
 4. **Deploy slash commands**
    ```bash
    pnpm run deploy-commands
-   # or
-   npm run deploy-commands
    ```
 
 5. **Start the bot**
    ```bash
    pnpm start
-   # or
-   npm start
    ```
 
 ## 📖 Documentation
@@ -166,6 +160,9 @@ src/
 | `DISCORD_TOKEN` | Discord bot token | Yes |
 | `CLIENT_ID` | Discord application client ID | Yes |
 | `GUILD_ID` | Target guild ID (for development) | No |
+| `DATABASE_TYPE` | Database type (MongoDB only) | No (default: 'mongodb') |
+| `MONGODB_URI` | MongoDB connection URI | No (default: 'mongodb://localhost:27017') |
+| `MONGODB_DB` | MongoDB database name | No (default: 'role-reactor-bot') |
 
 ### Bot Permissions
 
@@ -176,14 +173,86 @@ The bot requires the following permissions:
 - **Read Message History**: To access reaction events
 - **View Channel**: To read channel content
 
+## 🗄️ Database & Scaling
+
+### Database Type
+
+The bot now uses **MongoDB** for all data storage:
+- **Document-based storage** perfect for Discord bot data
+- **Horizontal scaling** for many servers and users
+- **Automatic indexing** for fast queries
+- **Cloud-ready** with MongoDB Atlas support
+
+**Environment variables:**
+```
+DATABASE_TYPE=mongodb
+MONGODB_URI=mongodb://localhost:27017
+MONGODB_DB=role-reactor-bot
+```
+
+### MongoDB Setup
+
+#### **Local Development:**
+1. **Install MongoDB Community Server:**
+   - [Download MongoDB](https://www.mongodb.com/try/download/community)
+   - Or use Docker: `docker run -d -p 27017:27017 --name mongodb mongo:latest`
+
+2. **Start MongoDB:**
+   ```bash
+   # macOS with Homebrew
+   brew services start mongodb-community
+   
+   # Or manually
+   mongod --dbpath /usr/local/var/mongodb
+   ```
+
+#### **Production (MongoDB Atlas):**
+1. **Create a free MongoDB Atlas cluster**
+2. **Get your connection string**
+3. **Set environment variables:**
+   ```bash
+   MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net
+   MONGODB_DB=role-reactor-bot
+   ```
+
+### Database Collections
+
+The bot creates two collections:
+- **`role_mappings`** - Stores role-reaction message configurations
+- **`temporary_roles`** - Stores temporary role assignments with expiration
+
+### Docker Deployment
+
+For Docker deployments, you can use MongoDB in a container:
+
+```yaml
+# docker-compose.yml
+services:
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+  
+  role-reactor-bot:
+    build: .
+    depends_on:
+      - mongodb
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017
+      - MONGODB_DB=role-reactor-bot
+
+volumes:
+  mongodb_data:
+```
+
 ## 🧪 Development
 
 ### Running in Development Mode
 
 ```bash
 pnpm run dev
-# or
-npm run dev
 ```
 
 ### Running Tests
@@ -191,9 +260,6 @@ npm run dev
 ```bash
 pnpm test
 pnpm run test:watch
-# or
-npm test
-npm run test:watch
 ```
 
 ### Code Linting
@@ -201,9 +267,6 @@ npm run test:watch
 ```bash
 pnpm run lint
 pnpm run lint:fix
-# or
-npm run lint
-npm run lint:fix
 ```
 
 ## 📊 Performance

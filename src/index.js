@@ -1,9 +1,19 @@
-import { Client, Collection, GatewayIntentBits, Partials } from "discord.js";
+import {
+  Client,
+  Collection,
+  GatewayIntentBits,
+  Partials,
+  Options,
+} from "discord.js";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import RoleExpirationScheduler from "./utils/scheduler.js";
+import { getCommandHandler } from "./utils/commandHandler.js";
+import { getEventHandler } from "./utils/eventHandler.js";
+import { getPerformanceMonitor } from "./utils/performanceMonitor.js";
+import { getDatabaseManager } from "./utils/databaseManager.js";
 
 dotenv.config();
 
@@ -34,11 +44,31 @@ const createClient = () => {
   return new Client({
     intents: [
       GatewayIntentBits.Guilds,
+      GatewayIntentBits.GuildMembers,
       GatewayIntentBits.GuildMessages,
       GatewayIntentBits.GuildMessageReactions,
-      GatewayIntentBits.GuildMembers,
+      GatewayIntentBits.MessageContent,
     ],
-    partials: [Partials.Message, Partials.Channel, Partials.Reaction],
+    partials: [
+      Partials.Message,
+      Partials.Channel,
+      Partials.Reaction,
+      Partials.GuildMember,
+      Partials.User,
+    ],
+    // Optimize for faster startup
+    ws: {
+      properties: {
+        browser: "Discord iOS",
+      },
+    },
+    // Reduce initial cache size
+    makeCache: Options.cacheWithLimits({
+      MessageManager: 25,
+      ChannelManager: 100,
+      GuildManager: 10,
+      UserManager: 100,
+    }),
   });
 };
 
@@ -81,13 +111,19 @@ const validateCommand = command => {
   );
 };
 
-// Register events on client
+// Register events on client with optimized handler
 const registerEvents = (client, events) => {
+  const eventHandler = getEventHandler();
+
   for (const event of events) {
     if (event.once) {
-      client.once(event.name, (...args) => event.execute(...args, client));
+      client.once(event.name, (...args) => {
+        eventHandler.processEvent(event.name, event.execute, ...args, client);
+      });
     } else {
-      client.on(event.name, (...args) => event.execute(...args, client));
+      client.on(event.name, (...args) => {
+        eventHandler.processEvent(event.name, event.execute, ...args, client);
+      });
     }
   }
 };
@@ -134,9 +170,29 @@ const logError = error => {
 
 // Setup graceful shutdown
 const setupGracefulShutdown = (client, roleScheduler) => {
-  const shutdown = () => {
+  const shutdown = async () => {
     console.log("\n🛑 Shutting down gracefully...");
+
+    // Stop the role scheduler
     if (roleScheduler) roleScheduler.stop();
+
+    // Close database connections
+    try {
+      const dbManager = await getDatabaseManager();
+      await dbManager.close();
+    } catch (error) {
+      console.error("Error closing database:", error);
+    }
+
+    // Log final performance metrics
+    try {
+      const performanceMonitor = getPerformanceMonitor();
+      const summary = performanceMonitor.getPerformanceSummary();
+      console.log("📊 Final Performance Summary:", summary);
+    } catch (error) {
+      console.error("Error getting performance summary:", error);
+    }
+
     client.destroy();
     process.exit(0);
   };
@@ -159,11 +215,42 @@ const validateConfig = config => {
   return !!(config && config.token && config.clientId);
 };
 
+// Initialize systems
+const initializeSystems = async () => {
+  console.log("🔧 Initializing systems...");
+
+  // Initialize all systems in parallel for faster startup
+  const [dbManager, performanceMonitor, commandHandler, eventHandler] =
+    await Promise.all([
+      getDatabaseManager().catch(error => {
+        console.error("❌ Failed to initialize database manager:", error);
+        throw error;
+      }),
+      Promise.resolve(getPerformanceMonitor()),
+      Promise.resolve(getCommandHandler()),
+      Promise.resolve(getEventHandler()),
+    ]);
+
+  console.log("✅ Database manager initialized");
+  console.log("✅ Performance monitor initialized");
+  console.log("✅ Command handler initialized");
+  console.log("✅ Event handler initialized");
+
+  return { dbManager, performanceMonitor, commandHandler, eventHandler };
+};
+
 // Main application logic
 const main = async () => {
+  const startTime = Date.now();
+
   try {
     validateEnvironment();
     logStartup();
+
+    // Initialize all systems
+    const systemsInitStart = Date.now();
+    const systems = await initializeSystems();
+    console.log(`⚡ Systems initialized in ${Date.now() - systemsInitStart}ms`);
 
     const client = createClient();
     const roleScheduler = new RoleExpirationScheduler(client);
@@ -171,10 +258,18 @@ const main = async () => {
     // Register commands collection
     client.commands = new Collection();
 
-    // Load commands
-    const commands = await loadCommands();
+    // Load commands and events in parallel with bot login
+    const loadStart = Date.now();
+    const [commands, events] = await Promise.all([
+      loadCommands(),
+      loadEvents(),
+    ]);
+    console.log(`⚡ Commands and events loaded in ${Date.now() - loadStart}ms`);
+
+    // Register commands
     commands.forEach(command => {
       client.commands.set(command.data.name, command);
+      systems.commandHandler.registerCommand(command);
     });
 
     console.log(
@@ -182,21 +277,42 @@ const main = async () => {
       client.commands.map(cmd => cmd.data.name),
     );
 
-    // Load and register events
-    const events = await loadEvents();
+    // Register events
+    console.log(
+      "Loaded events:",
+      events.map(event => event.name),
+    );
     registerEvents(client, events);
 
     // Setup graceful shutdown
     setupGracefulShutdown(client, roleScheduler);
 
-    // Start the bot
-    await startBot(client);
+    // Start the bot and role scheduler in parallel
+    const botStart = Date.now();
+    await Promise.all([
+      startBot(client),
+      // Start role scheduler after a short delay to ensure bot is ready
+      new Promise(resolve => {
+        client.once("ready", () => {
+          const readyTime = Date.now() - botStart;
+          console.log(`⚡ Bot ready in ${readyTime}ms`);
 
-    // Start the role expiration scheduler after login
-    client.once("ready", () => {
-      logClientReady(client);
-      roleScheduler.start();
-    });
+          logClientReady(client);
+          roleScheduler.start();
+
+          // Log initial performance metrics
+          const summary = systems.performanceMonitor.getPerformanceSummary();
+          console.log("📊 Initial Performance Summary:", summary);
+
+          // Debug: Log client configuration
+          console.log(`🔍 Client intents:`, client.options.intents.toArray());
+          console.log(`🔍 Client partials:`, client.options.partials);
+          resolve();
+        });
+      }),
+    ]);
+
+    console.log(`🚀 Total startup time: ${Date.now() - startTime}ms`);
   } catch (error) {
     logError(error);
     process.exit(1);
@@ -218,6 +334,7 @@ export {
   setupGracefulShutdown,
   loadConfig,
   validateConfig,
+  initializeSystems,
 };
 
 // Run the application if this file is executed directly
