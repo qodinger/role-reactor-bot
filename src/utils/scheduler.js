@@ -234,6 +234,24 @@ class RoleExpirationScheduler {
             `✅ Removed expired role "${role.name}" from ${member.user.tag} in ${guild.name}`,
           );
 
+          // Remove the expired role record from the database
+          try {
+            const dbManager = await getDatabaseManager();
+            await dbManager.removeTemporaryRole(
+              expiredRole.guildId,
+              expiredRole.userId,
+              expiredRole.roleId,
+            );
+            console.log(
+              `🗑️ Removed expired role record for user ${expiredRole.userId} in guild ${expiredRole.guildId}`,
+            );
+          } catch (dbError) {
+            console.error(
+              `❌ Failed to remove expired role record for user ${expiredRole.userId}:`,
+              dbError,
+            );
+          }
+
           // Send notification to user
           try {
             const { EmbedBuilder } = await import("discord.js");
