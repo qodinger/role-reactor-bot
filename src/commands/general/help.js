@@ -122,7 +122,7 @@ export default {
       value: [
         "• Use `/help [command]` for details on a specific command.",
         "• Visit our [Support Server](https://discord.gg/rolereactor) for live help.",
-        "• See the [Documentation](https://github.com/tyecode/role-reactor-bot/blob/main/README.md) for guides and FAQs.",
+        "• See the [Documentation](https://github.com/tyecode-bots/role-reactor-bot/blob/main/README.md) for guides and FAQs.",
       ].join("\n"),
       inline: false,
     });
@@ -144,7 +144,7 @@ export default {
       new ButtonBuilder()
         .setLabel("Documentation")
         .setURL(
-          "https://github.com/tyecode/role-reactor-bot/blob/main/README.md",
+          "https://github.com/tyecode-bots/role-reactor-bot/blob/main/README.md",
         )
         .setStyle(ButtonStyle.Link),
       new ButtonBuilder()
@@ -153,7 +153,7 @@ export default {
         .setStyle(ButtonStyle.Link),
       new ButtonBuilder()
         .setLabel("GitHub")
-        .setURL("https://github.com/tyecode/role-reactor-bot")
+        .setURL("https://github.com/tyecode-bots/role-reactor-bot")
         .setStyle(ButtonStyle.Link),
     );
 

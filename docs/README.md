@@ -15,5 +15,5 @@ This directory contains documentation for the Role Reactor Bot project.
 
 ## 🆘 Support
 
-- **GitHub Issues**: [Create an issue](https://github.com/tyecode/role-reactor-bot/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/tyecode/role-reactor-bot/discussions) 
+- **GitHub Issues**: [Create an issue](https://github.com/tyecode-bots/role-reactor-bot/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/tyecode-bots/role-reactor-bot/discussions) 

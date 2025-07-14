@@ -41,7 +41,7 @@ Thank you for your interest in contributing to Role Reactor Bot! This document p
 
 ```bash
 # Clone the repository
-git clone https://github.com/tyecode/role-reactor-bot.git
+git clone https://github.com/tyecode-bots/role-reactor-bot.git
 cd role-reactor-bot
 
 # Install dependencies
