@@ -16,7 +16,6 @@
     "clean": "rm -rf node_modules pnpm-lock.yaml && pnpm install",
     "prepare": "husky install",
     "pre-commit": "lint-staged",
-    "pre-push": "pnpm test",
     "docker:build": "docker build -t role-reactor-bot .",
     "docker:build:force": "docker build --no-cache -t role-reactor-bot .",
     "docker:run": "docker run --rm --env-file .env --network host role-reactor-bot",
