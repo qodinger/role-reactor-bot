@@ -1,7 +1,9 @@
 import { MongoClient } from "mongodb";
+import { getLogger } from "./logger.js";
 
 class DatabaseManager {
   constructor() {
+    this.logger = getLogger();
     this.client = null;
     this.db = null;
     this.isConnected = false;
@@ -43,9 +45,9 @@ class DatabaseManager {
       };
 
       if (isAtlas) {
-        console.log("🔐 Using MongoDB Atlas connection");
+        this.logger.info("🔐 Using MongoDB Atlas connection");
       } else {
-        console.log("🔓 Using local MongoDB connection");
+        this.logger.info("🔓 Using local MongoDB connection");
       }
 
       // Use optimized options for MongoClient
@@ -57,13 +59,15 @@ class DatabaseManager {
 
       // Create indexes for better performance (non-blocking)
       this._createIndexes().catch(error => {
-        console.warn("⚠️ Index creation failed (non-critical):", error.message);
+        this.logger.warn("⚠️ Index creation failed (non-critical)", {
+          error: error.message,
+        });
       });
 
-      console.log(`✅ Connected to MongoDB database: ${dbName}`);
+      this.logger.success(`✅ Connected to MongoDB database: ${dbName}`);
       return true;
     } catch (error) {
-      console.error("❌ Failed to connect to MongoDB database:", error);
+      this.logger.error("❌ Failed to connect to MongoDB database", error);
       this.isConnected = false;
       throw error;
     }
@@ -141,7 +145,7 @@ class DatabaseManager {
       this._setCache(cacheKey, mappings);
       return mappings;
     } catch (error) {
-      console.error("❌ Failed to get role mappings:", error);
+      this.logger.error("❌ Failed to get role mappings", error);
       return {};
     }
   }
@@ -165,10 +169,10 @@ class DatabaseManager {
 
       // Clear cache for role mappings
       this._clearCache();
-      console.log(`💾 Saved role mapping for message ${messageId}`);
+      this.logger.info(`💾 Saved role mapping for message ${messageId}`);
       return true;
     } catch (error) {
-      console.error("❌ Failed to save role mapping:", error);
+      this.logger.error("❌ Failed to save role mapping", error);
       return false;
     }
   }
@@ -180,10 +184,10 @@ class DatabaseManager {
 
       // Clear cache for role mappings
       this._clearCache();
-      console.log(`🗑️ Deleted role mapping for message ${messageId}`);
+      this.logger.info(`🗑️ Deleted role mapping for message ${messageId}`);
       return true;
     } catch (error) {
-      console.error("❌ Failed to delete role mapping:", error);
+      this.logger.error("❌ Failed to delete role mapping", error);
       return false;
     }
   }
@@ -214,7 +218,7 @@ class DatabaseManager {
       this._setCache(cacheKey, tempRoles);
       return tempRoles;
     } catch (error) {
-      console.error("❌ Failed to get temporary roles:", error);
+      this.logger.error("❌ Failed to get temporary roles", error);
       return {};
     }
   }
@@ -238,12 +242,12 @@ class DatabaseManager {
 
       // Clear cache for temporary roles
       this._clearCache();
-      console.log(
+      this.logger.info(
         `💾 Added temporary role ${roleId} for user ${userId} in guild ${guildId}`,
       );
       return true;
     } catch (error) {
-      console.error("❌ Failed to add temporary role:", error);
+      this.logger.error("❌ Failed to add temporary role", error);
       return false;
     }
   }
@@ -255,12 +259,12 @@ class DatabaseManager {
 
       // Clear cache for temporary roles
       this._clearCache();
-      console.log(
+      this.logger.info(
         `🗑️ Removed temporary role ${roleId} for user ${userId} in guild ${guildId}`,
       );
       return true;
     } catch (error) {
-      console.error("❌ Failed to remove temporary role:", error);
+      this.logger.error("❌ Failed to remove temporary role", error);
       return false;
     }
   }
@@ -274,13 +278,15 @@ class DatabaseManager {
 
       const deletedCount = result.deletedCount;
       if (deletedCount > 0) {
-        console.log(`🧹 Cleaned up ${deletedCount} expired temporary roles`);
+        this.logger.info(
+          `🧹 Cleaned up ${deletedCount} expired temporary roles`,
+        );
         this._clearCache(); // Clear cache when data changes
       }
 
       return deletedCount;
     } catch (error) {
-      console.error("❌ Failed to cleanup expired roles:", error);
+      this.logger.error("❌ Failed to cleanup expired roles", error);
       return 0;
     }
   }
@@ -289,7 +295,7 @@ class DatabaseManager {
     if (this.client) {
       await this.client.close();
       this.isConnected = false;
-      console.log("🔌 MongoDB database connection closed");
+      this.logger.info("🔌 MongoDB database connection closed");
     }
   }
 
@@ -300,7 +306,7 @@ class DatabaseManager {
       await this.db.admin().ping();
       return true;
     } catch (error) {
-      console.error("❌ Database health check failed:", error);
+      this.logger.error("❌ Database health check failed", error);
       return false;
     }
   }

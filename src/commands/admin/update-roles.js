@@ -11,6 +11,7 @@ import {
   descriptionOption,
   colorOption,
 } from "../../utils/roleMessageOptions.js";
+import { getLogger } from "../../utils/logger.js";
 
 export const data = new SlashCommandBuilder()
   .setName("update-roles")
@@ -94,6 +95,8 @@ export function getRoleInfo(guild, roleIds) {
 }
 
 export async function execute(interaction) {
+  const logger = getLogger();
+
   await interaction.deferReply({ flags: 64 });
   try {
     if (!hasAdminPermissions(interaction.member)) {
@@ -145,7 +148,7 @@ export async function execute(interaction) {
       flags: 64,
     });
   } catch (error) {
-    console.error("Error updating roles:", error);
+    logger.error("Error updating roles", error);
     await interaction.editReply({
       content:
         "❌ **Error**\nAn error occurred while updating the role-reaction message. Please try again.",

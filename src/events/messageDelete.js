@@ -1,14 +1,17 @@
 import { Events } from "discord.js";
 import { removeRoleMapping } from "../utils/roleManager.js";
+import { getLogger } from "../utils/logger.js";
 
 export const name = Events.MessageDelete;
 
 export async function execute(message, client) {
+  const logger = getLogger();
+
   if (!message) throw new Error("Missing message");
   if (!client) throw new Error("Missing client");
 
   try {
-    console.log(
+    logger.info(
       `🔍 Message deleted: ${message.id} in channel ${message.channel?.id}`,
     );
 
@@ -16,16 +19,16 @@ export async function execute(message, client) {
     const roleMapping = await removeRoleMapping(message.id);
 
     if (roleMapping) {
-      console.log(`🗑️ Role mapping removed for deleted message: ${message.id}`);
-      console.log(
+      logger.info(`🗑️ Role mapping removed for deleted message: ${message.id}`);
+      logger.info(
         `📊 Removed ${Object.keys(roleMapping.roles || {}).length} role mappings`,
       );
     } else {
-      console.log(
+      logger.info(
         `ℹ️ No role mapping found for deleted message: ${message.id}`,
       );
     }
   } catch (error) {
-    console.error("Error handling message deletion:", error);
+    logger.error("Error handling message deletion", error);
   }
 }

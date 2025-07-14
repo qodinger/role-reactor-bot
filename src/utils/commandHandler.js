@@ -1,8 +1,10 @@
 import { Collection } from "discord.js";
 import { getEventHandler } from "./eventHandler.js";
+import { getLogger } from "./logger.js";
 
 class CommandHandler {
   constructor() {
+    this.logger = getLogger();
     this.commands = new Collection();
     this.permissionCache = new Collection();
     this.commandStats = new Map();
@@ -13,7 +15,7 @@ class CommandHandler {
   registerCommand(command) {
     if (command.data && command.execute) {
       this.commands.set(command.data.name, command);
-      console.log(`✅ Registered command: ${command.data.name}`);
+      this.logger.info(`✅ Registered command: ${command.data.name}`);
     }
   }
 
@@ -97,7 +99,7 @@ class CommandHandler {
     try {
       // Check if interaction is already handled
       if (interaction.replied || interaction.deferred) {
-        console.log(
+        this.logger.warn(
           `⚠️ Interaction already handled for command: ${commandName}`,
         );
         return;
@@ -116,12 +118,10 @@ class CommandHandler {
       const duration = Date.now() - startTime;
       this.recordCommand(commandName, interaction.user.id, duration);
 
-      console.log(
-        `✅ Command executed: ${commandName} by ${interaction.user.tag} (${duration}ms)`,
-      );
+      this.logger.logCommand(commandName, interaction.user.id, duration, true);
     } catch (error) {
       const duration = Date.now() - startTime;
-      console.error(`❌ Error executing command ${commandName}:`, error);
+      this.logger.error(`❌ Error executing command ${commandName}`, error);
 
       await this.handleCommandError(interaction, error, duration);
     }
@@ -137,7 +137,7 @@ class CommandHandler {
         });
       }
     } catch (error) {
-      console.error("Failed to handle unknown command:", error);
+      this.logger.error("Failed to handle unknown command", error);
     }
   }
 
@@ -170,7 +170,7 @@ class CommandHandler {
         });
       }
     } catch (replyError) {
-      console.error("Failed to send error response:", replyError);
+      this.logger.error("Failed to send error response", replyError);
     }
   }
 

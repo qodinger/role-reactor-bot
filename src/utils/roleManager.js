@@ -1,44 +1,53 @@
 import { PermissionFlagsBits } from "discord.js";
 import { getDatabaseManager } from "./databaseManager.js";
+import { getLogger } from "./logger.js";
 
 // Role mapping functions
 export async function getRoleMapping(messageId) {
+  const logger = getLogger();
+
   try {
     const dbManager = await getDatabaseManager();
     const mappings = await dbManager.getRoleMappings();
     return mappings[messageId] || null;
   } catch (error) {
-    console.error("❌ Failed to get role mapping:", error);
+    logger.error("❌ Failed to get role mapping", error);
     return null;
   }
 }
 
 export async function getAllRoleMappings() {
+  const logger = getLogger();
+
   try {
     const dbManager = await getDatabaseManager();
     return await dbManager.getRoleMappings();
   } catch (error) {
-    console.error("❌ Failed to get all role mappings:", error);
+    logger.error("❌ Failed to get all role mappings", error);
     return {};
   }
 }
 
 export async function setRoleMapping(messageId, guildId, channelId, roles) {
+  const logger = getLogger();
+
   try {
     const dbManager = await getDatabaseManager();
     return await dbManager.setRoleMapping(messageId, guildId, channelId, roles);
   } catch (error) {
-    console.error("❌ Failed to set role mapping:", error);
+    logger.error("❌ Failed to set role mapping", error);
     return false;
   }
 }
 
 export async function removeRoleMapping(messageId) {
+  const logger = getLogger();
+
   try {
     const dbManager = await getDatabaseManager();
     return await dbManager.deleteRoleMapping(messageId);
   } catch (error) {
-    console.error("❌ Failed to remove role mapping:", error);
+    logger.error("❌ Failed to remove role mapping", error);
     return false;
   }
 }
@@ -154,12 +163,14 @@ export function userHasRole(member, roleId) {
 }
 
 export async function addRoleToUser(member, role, reason = "Role assignment") {
+  const logger = getLogger();
+
   try {
     await member.roles.add(role, reason);
     return true;
   } catch (error) {
-    console.error(
-      `❌ Failed to add role ${role.name} to ${member.user.tag}:`,
+    logger.error(
+      `❌ Failed to add role ${role.name} to ${member.user.tag}`,
       error,
     );
     return false;
@@ -171,12 +182,14 @@ export async function removeRoleFromUser(
   role,
   reason = "Role removal",
 ) {
+  const logger = getLogger();
+
   try {
     await member.roles.remove(role, reason);
     return true;
   } catch (error) {
-    console.error(
-      `❌ Failed to remove role ${role.name} from ${member.user.tag}:`,
+    logger.error(
+      `❌ Failed to remove role ${role.name} from ${member.user.tag}`,
       error,
     );
     return false;

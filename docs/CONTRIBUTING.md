@@ -1,337 +1,199 @@
-# Contributing to RoleReactor Bot 🤝
+# Contributing Guidelines
 
-Thank you for your interest in contributing to RoleReactor Bot! This document provides guidelines and information for contributors.
+Thank you for your interest in contributing to Role Reactor Bot! This document provides guidelines for contributing to the project.
 
-## 📋 Table of Contents
+## 🤝 How to Contribute
 
-- [Code of Conduct](#code-of-conduct)
-- [Getting Started](#getting-started)
-- [Development Setup](#development-setup)
-- [Contributing Guidelines](#contributing-guidelines)
-- [Pull Request Process](#pull-request-process)
-- [Code Style](#code-style)
-- [Testing](#testing)
-- [Reporting Issues](#reporting-issues)
-- [Feature Requests](#feature-requests)
+### Reporting Issues
 
-## 🤝 Code of Conduct
+1. **Check existing issues** before creating a new one
+2. **Use the issue template** and provide all requested information
+3. **Include logs** if reporting a bug
+4. **Be specific** about the problem and steps to reproduce
 
-By participating in this project, you agree to abide by our Code of Conduct. We are committed to providing a welcoming and inspiring community for all.
+### Suggesting Features
 
-### Our Standards
+1. **Check existing feature requests** first
+2. **Explain the use case** and why it's needed
+3. **Provide examples** of how it would work
+4. **Consider implementation complexity**
 
-- **Be respectful** - Treat everyone with respect
-- **Be collaborative** - Work together to achieve common goals
-- **Be constructive** - Provide constructive feedback and suggestions
-- **Be professional** - Maintain professional behavior in all interactions
+### Code Contributions
 
-## 🚀 Getting Started
+1. **Fork the repository**
+2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
+3. **Make your changes** following the coding standards
+4. **Test your changes** thoroughly
+5. **Commit your changes**: `git commit -m 'Add amazing feature'`
+6. **Push to your branch**: `git push origin feature/amazing-feature`
+7. **Open a Pull Request**
+
+## 🛠️ Development Setup
 
 ### Prerequisites
 
 - Node.js 16.0.0 or higher
-- npm or pnpm package manager
-- Git
-- Discord Bot Token (for testing)
+- pnpm package manager
+- MongoDB (local or Docker)
+- Discord Bot Token
 
-### Development Setup
-
-1. **Fork the repository**
-   ```bash
-   git clone https://github.com/your-username/role-reactor-bot.git
-   cd role-reactor-bot
-   ```
-
-2. **Install dependencies**
-   ```bash
-   pnpm install
-   ```
-
-3. **Set up environment variables**
-   ```bash
-   cp env.example .env
-   # Edit .env with your Discord bot token and other settings
-   ```
-
-4. **Deploy commands (development)**
-   ```bash
-   pnpm run deploy-commands
-   ```
-
-5. **Start the bot**
-   ```bash
-   pnpm run dev
-   ```
-
-## 📝 Contributing Guidelines
-
-### Types of Contributions
-
-We welcome various types of contributions:
-
-- **🐛 Bug Fixes** - Fix issues and improve stability
-- **✨ New Features** - Add new functionality
-- **📚 Documentation** - Improve docs and examples
-- **🧪 Tests** - Add or improve test coverage
-- **🔧 Improvements** - Enhance existing features
-- **🌐 Localization** - Add language support
-
-### Before You Start
-
-1. **Check existing issues** - Avoid duplicate work
-2. **Discuss major changes** - Open an issue first for significant features
-3. **Follow the coding standards** - Maintain code quality
-4. **Test your changes** - Ensure everything works correctly
-
-## 🔄 Pull Request Process
-
-### Creating a Pull Request
-
-1. **Create a feature branch**
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
-
-2. **Make your changes**
-   - Follow the code style guidelines
-   - Add tests if applicable
-   - Update documentation
-
-3. **Test your changes**
-   ```bash
-   pnpm run lint
-   pnpm test
-   pnpm run dev  # Test the bot locally
-   ```
-
-4. **Commit your changes**
-   ```bash
-   git add .
-   git commit -m "feat: add new feature description"
-   ```
-
-5. **Push and create PR**
-   ```bash
-   git push origin feature/your-feature-name
-   # Create PR on GitHub
-   ```
-
-### Pull Request Guidelines
-
-- **Use descriptive titles** - Clear, concise titles
-- **Provide detailed descriptions** - Explain what and why
-- **Include screenshots** - For UI changes
-- **Link related issues** - Reference any related issues
-- **Follow the template** - Use the provided PR template
-
-### Commit Message Format
-
-We follow [Conventional Commits](https://www.conventionalcommits.org/):
-
-```
-type(scope): description
-
-[optional body]
-
-[optional footer]
-```
-
-**Types:**
-- `feat` - New feature
-- `fix` - Bug fix
-- `docs` - Documentation changes
-- `style` - Code style changes
-- `refactor` - Code refactoring
-- `test` - Test changes
-- `chore` - Maintenance tasks
-
-**Examples:**
-```
-feat(commands): add new help command
-fix(permissions): resolve role hierarchy issue
-docs(readme): update installation instructions
-```
-
-## 🎨 Code Style
-
-### JavaScript Guidelines
-
-- **Use ES6+ features** - Prefer modern JavaScript
-- **Follow ESLint rules** - Run `pnpm run lint` before committing
-- **Use meaningful names** - Clear variable and function names
-- **Add comments** - Explain complex logic
-- **Handle errors properly** - Use try-catch blocks
-
-### Discord.js Best Practices
-
-- **Use proper intents** - Only request necessary intents
-- **Handle partials correctly** - For reaction events
-- **Use embeds for responses** - Professional appearance
-- **Implement proper permissions** - Check user and bot permissions
-- **Rate limiting** - Respect Discord API limits
-
-### File Structure
-
-```
-src/
-├── commands/          # Command handlers
-│   ├── admin/        # Admin commands
-│   └── general/      # General commands
-├── events/           # Event listeners
-├── utils/            # Utility functions
-├── config/           # Configuration files
-└── index.js          # Main entry point
-```
-
-## 🧪 Testing
-
-### Running Tests
+### Local Development
 
 ```bash
-# Run all tests
-pnpm test
+# Clone the repository
+git clone https://github.com/tyecode/role-reactor-bot.git
+cd role-reactor-bot
 
-# Run tests in watch mode
-pnpm run test:watch
+# Install dependencies
+pnpm install
 
+# Copy environment file
+cp env.example .env
+
+# Edit .env with your Discord bot token
+# DISCORD_TOKEN=your_bot_token_here
+# CLIENT_ID=your_client_id_here
+
+# Start development mode
+pnpm dev
+```
+
+### Testing
+
+```bash
 # Run linting
-pnpm run lint
+pnpm lint
 
 # Fix linting issues
-pnpm run lint:fix
+pnpm lint:fix
+
+# Format code
+pnpm format
+
+# Check formatting
+pnpm format:check
 ```
 
-### Writing Tests
+## 📝 Coding Standards
 
-- **Test new features** - Add tests for new functionality
-- **Test edge cases** - Cover error scenarios
-- **Mock external dependencies** - Use mocks for Discord API calls
-- **Test permissions** - Verify permission checks work correctly
+### JavaScript/Node.js
 
-### Test Structure
+- **ESLint**: Follow the project's ESLint configuration
+- **Prettier**: Use Prettier for code formatting
+- **ES6+**: Use modern JavaScript features
+- **Async/Await**: Prefer async/await over Promises
+- **Error Handling**: Always handle errors properly
 
-```javascript
-describe('Command: setup-roles', () => {
-  it('should create role-reaction message successfully', async () => {
-    // Test implementation
-  });
+### Code Style
 
-  it('should handle invalid permissions', async () => {
-    // Test error handling
-  });
-});
-```
+- **Indentation**: 2 spaces
+- **Quotes**: Single quotes for strings
+- **Semicolons**: Always use semicolons
+- **Trailing commas**: Use trailing commas in objects/arrays
+- **Line length**: Keep lines under 100 characters
 
-## 🐛 Reporting Issues
+### File Organization
 
-### Before Reporting
+- **Commands**: Place in `src/commands/` with appropriate subdirectories
+- **Events**: Place in `src/events/`
+- **Utilities**: Place in `src/utils/`
+- **Configuration**: Place in `src/config/`
 
-1. **Check existing issues** - Search for similar problems
-2. **Try to reproduce** - Ensure the issue is reproducible
-3. **Check documentation** - Verify it's not a configuration issue
-4. **Test in isolation** - Remove other factors
+### Naming Conventions
 
-### Issue Template
+- **Files**: Use kebab-case (e.g., `setup-roles.js`)
+- **Functions**: Use camelCase (e.g., `setupRoles`)
+- **Constants**: Use UPPER_SNAKE_CASE (e.g., `THEME_COLOR`)
+- **Classes**: Use PascalCase (e.g., `RoleExpirationScheduler`)
 
-Use the provided issue template and include:
+## 🧪 Testing Guidelines
 
-- **Clear title** - Descriptive issue title
-- **Detailed description** - What happened vs expected
-- **Steps to reproduce** - Step-by-step instructions
-- **Environment info** - Node.js version, OS, etc.
-- **Screenshots/logs** - Visual evidence if applicable
-- **Additional context** - Any relevant information
+### Manual Testing
 
-### Bug Report Example
+1. **Test all commands** with different permission levels
+2. **Test error scenarios** (invalid inputs, missing permissions)
+3. **Test edge cases** (empty inputs, very long inputs)
+4. **Test performance** with multiple users/roles
+
+### Code Quality
+
+1. **Run linting** before committing
+2. **Check for console logs** (use structured logging)
+3. **Verify error handling** is comprehensive
+4. **Test database operations** work correctly
+
+## 📋 Pull Request Guidelines
+
+### Before Submitting
+
+1. **Test your changes** thoroughly
+2. **Run linting**: `pnpm lint`
+3. **Format code**: `pnpm format`
+4. **Update documentation** if needed
+5. **Add tests** for new features
+
+### Pull Request Template
 
 ```markdown
-## Bug Description
-The bot fails to assign roles when users react to messages.
+## Description
+Brief description of changes
 
-## Steps to Reproduce
-1. Use `/setup-roles` to create a role message
-2. React to the message with the correct emoji
-3. Role is not assigned
+## Type of Change
+- [ ] Bug fix
+- [ ] New feature
+- [ ] Documentation update
+- [ ] Code refactoring
 
-## Expected Behavior
-User should receive the role when reacting.
+## Testing
+- [ ] Manual testing completed
+- [ ] Linting passes
+- [ ] No console.log statements added
 
-## Actual Behavior
-No role is assigned, no error message shown.
-
-## Environment
-- Node.js: 16.15.0
-- Discord.js: 14.14.1
-- OS: macOS 12.0
+## Checklist
+- [ ] Code follows project style guidelines
+- [ ] Self-review completed
+- [ ] Documentation updated
+- [ ] No breaking changes
 ```
 
-## 💡 Feature Requests
+## 🚫 What Not to Do
 
-### Before Requesting
+- **Don't commit** `.env` files or sensitive data
+- **Don't add** `console.log` statements (use structured logging)
+- **Don't break** existing functionality
+- **Don't ignore** linting errors
+- **Don't commit** without testing
 
-1. **Check existing features** - Ensure it's not already implemented
-2. **Search issues** - Look for similar requests
-3. **Consider impact** - Think about how it affects the project
-4. **Provide use cases** - Explain why it's needed
+## 🎯 Areas for Contribution
 
-### Feature Request Template
+### High Priority
+- **Bug fixes** and error handling improvements
+- **Performance optimizations**
+- **Security enhancements**
+- **Documentation improvements**
 
-```markdown
-## Feature Description
-Brief description of the requested feature.
+### Medium Priority
+- **New features** (discuss in issues first)
+- **Code refactoring**
+- **Test coverage improvements**
+- **Logging enhancements**
 
-## Use Cases
-- How would this feature be used?
-- What problems does it solve?
-
-## Proposed Implementation
-Optional: How you think it could be implemented.
-
-## Alternatives Considered
-What other approaches were considered?
-
-## Additional Context
-Any other relevant information.
-```
-
-## 📚 Documentation
-
-### Contributing to Documentation
-
-- **Keep docs updated** - Update docs when changing features
-- **Use clear language** - Write for different skill levels
-- **Include examples** - Provide practical examples
-- **Add screenshots** - Visual aids for complex topics
-
-### Documentation Standards
-
-- **Use markdown** - Follow markdown best practices
-- **Include code examples** - Show how to use features
-- **Update README** - Keep main README current
-- **Add inline comments** - Document complex code
-
-## 🏆 Recognition
-
-Contributors will be recognized in:
-
-- **README.md** - List of contributors
-- **Release notes** - Credit for significant contributions
-- **Discord server** - Special contributor role
-- **GitHub profile** - Public recognition
+### Low Priority
+- **Cosmetic changes**
+- **Minor UI improvements**
+- **Additional examples**
 
 ## 📞 Getting Help
 
-If you need help contributing:
+- **GitHub Issues**: Create an issue for questions
+- **Discussions**: Use GitHub Discussions for general questions
+- **Code Review**: Ask for review on draft PRs
 
-- **Discord Server** - Join our community
-- **GitHub Issues** - Ask questions in issues
-- **Documentation** - Check the wiki
-- **Code Reviews** - Learn from feedback
+## 🙏 Recognition
 
-## 🎉 Thank You
+Contributors will be recognized in:
+- **README.md** contributors section
+- **GitHub** contributors page
+- **Release notes** for significant contributions
 
-Thank you for contributing to RoleReactor Bot! Your contributions help make Discord servers better for everyone.
-
----
-
-**Happy coding! 🚀** 
+Thank you for contributing to Role Reactor Bot! 🎉 

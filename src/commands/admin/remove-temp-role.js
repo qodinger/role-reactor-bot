@@ -14,6 +14,7 @@ import {
   getUserTemporaryRoles,
 } from "../../utils/temporaryRoles.js";
 import { THEME_COLOR } from "../../config/theme.js";
+import { getLogger } from "../../utils/logger.js";
 
 export const data = new SlashCommandBuilder()
   .setName("remove-temp-role")
@@ -40,6 +41,8 @@ export const data = new SlashCommandBuilder()
 
 // Validate if a role is a temporary role for a user
 export async function validateTemporaryRole(roleData) {
+  const logger = getLogger();
+
   try {
     const tempRoles = await getUserTemporaryRoles(
       roleData.guildId,
@@ -60,13 +63,15 @@ export async function validateTemporaryRole(roleData) {
 
     return true;
   } catch (error) {
-    console.error("Error validating temporary role:", error);
+    logger.error("Error validating temporary role", error);
     return false;
   }
 }
 
 // Remove role from user
 export async function removeRoleFromUser(member, roleId) {
+  const logger = getLogger();
+
   try {
     const role = member.guild.roles.cache.get(roleId);
     if (!role) {
@@ -80,13 +85,15 @@ export async function removeRoleFromUser(member, roleId) {
     await member.roles.remove(role);
     return true;
   } catch (error) {
-    console.error("Error removing role from user:", error);
+    logger.error("Error removing role from user", error);
     return false;
   }
 }
 
 // Remove temporary role data
 export async function removeTemporaryRoleData(roleData) {
+  const logger = getLogger();
+
   try {
     await removeTemporaryRole(
       roleData.guildId,
@@ -95,7 +102,7 @@ export async function removeTemporaryRoleData(roleData) {
     );
     return true;
   } catch (error) {
-    console.error("Error removing temporary role data:", error);
+    logger.error("Error removing temporary role data", error);
     return false;
   }
 }
@@ -180,7 +187,7 @@ export async function execute(interaction, client) {
       .setColor(THEME_COLOR)
       .setTimestamp()
       .setFooter({
-        text: "RoleReactor • Temporary Roles",
+        text: "Role Reactor • Temporary Roles",
         iconURL: client.user.displayAvatarURL(),
       });
     embed.addFields(
@@ -218,7 +225,7 @@ export async function execute(interaction, client) {
         .setColor(THEME_COLOR)
         .setTimestamp()
         .setFooter({
-          text: "RoleReactor • Temporary Roles",
+          text: "Role Reactor • Temporary Roles",
           iconURL: client.user.displayAvatarURL(),
         });
       userEmbed.addFields(
@@ -235,10 +242,14 @@ export async function execute(interaction, client) {
       );
       await targetUser.send({ embeds: [userEmbed] });
     } catch (error) {
-      console.log(`Could not send DM to ${targetUser.tag}: ${error.message}`);
+      const logger = getLogger();
+      logger.warn(`Could not send DM to ${targetUser.tag}`, {
+        error: error.message,
+      });
     }
   } catch (error) {
-    console.error("Error removing temporary role:", error);
+    const logger = getLogger();
+    logger.error("Error removing temporary role", error);
     await interaction.editReply({
       content:
         "❌ **Error**\nAn error occurred while removing the temporary role. Please try again.",

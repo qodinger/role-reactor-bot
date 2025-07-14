@@ -7,6 +7,7 @@ import { hasAdminPermissions } from "../../utils/permissions.js";
 import { getPerformanceMonitor } from "../../utils/performanceMonitor.js";
 import { getCommandHandler } from "../../utils/commandHandler.js";
 import { THEME_COLOR } from "../../config/theme.js";
+import { getLogger } from "../../utils/logger.js";
 
 export const data = new SlashCommandBuilder()
   .setName("performance")
@@ -14,10 +15,12 @@ export const data = new SlashCommandBuilder()
   .setDefaultMemberPermissions(PermissionFlagsBits.Administrator);
 
 export async function execute(interaction, client) {
+  const logger = getLogger();
+
   try {
     // Check if already replied to prevent double responses
     if (interaction.replied || interaction.deferred) {
-      console.log("Interaction already handled, skipping");
+      logger.debug("Interaction already handled, skipping");
       return;
     }
 
@@ -44,7 +47,7 @@ export async function execute(interaction, client) {
       .setColor(THEME_COLOR)
       .setTimestamp()
       .setFooter({
-        text: "RoleReactor • Performance Monitor",
+        text: "Role Reactor • Performance Monitor",
         iconURL: client.user.displayAvatarURL(),
       });
 
@@ -157,7 +160,7 @@ export async function execute(interaction, client) {
       flags: 64,
     });
   } catch (error) {
-    console.error("Error getting performance metrics:", error);
+    logger.error("Error getting performance metrics", error);
 
     try {
       if (!interaction.replied && !interaction.deferred) {
@@ -174,7 +177,7 @@ export async function execute(interaction, client) {
         });
       }
     } catch (replyError) {
-      console.error("Failed to send error response:", replyError);
+      logger.error("Failed to send error response", replyError);
     }
   }
 }

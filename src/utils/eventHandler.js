@@ -1,7 +1,9 @@
 import { Collection } from "discord.js";
+import { getLogger } from "./logger.js";
 
 class EventHandler {
   constructor() {
+    this.logger = getLogger();
     this.rateLimitMap = new Collection();
     this.rateLimitWindow = 60000; // 1 minute
     this.maxRequestsPerWindow = 10;
@@ -59,7 +61,11 @@ class EventHandler {
       if (args[0]?.user?.id) {
         const userId = args[0].user.id;
         if (this.isRateLimited(userId, eventType)) {
-          console.log(`⚠️ Rate limited: ${eventType} from user ${userId}`);
+          this.logger.logRateLimit(
+            userId,
+            eventType,
+            this.getRateLimitInfo(userId, eventType),
+          );
           return;
         }
       }
@@ -71,10 +77,10 @@ class EventHandler {
 
       // Log slow events
       if (duration > 1000) {
-        console.warn(`🐌 Slow event: ${eventType} took ${duration}ms`);
+        this.logger.warn(`🐌 Slow event: ${eventType} took ${duration}ms`);
       }
     } catch (error) {
-      console.error(`❌ Error processing event ${eventType}:`, error);
+      this.logger.error(`❌ Error processing event ${eventType}`, error);
 
       // Don't throw - let the bot continue running
       // but log the error for debugging

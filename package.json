@@ -7,8 +7,8 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
-    "deploy-commands": "node scripts/deploy-commands.js",
-    "delete-commands": "node scripts/delete-commands.js",
+    "deploy:commands": "node scripts/deploy-commands.js",
+    "delete:commands": "node scripts/delete-commands.js",
     "lint": "eslint src/ scripts/",
     "lint:fix": "eslint src/ scripts/ --fix",
     "format": "prettier --write src/ scripts/",
@@ -67,7 +67,8 @@
     "dotenv": "^16.3.1",
     "gradient-string": "^3.0.0",
     "mongodb": "^6.17.0",
-    "ora": "^8.2.0"
+    "ora": "^8.2.0",
+    "p-limit": "6.2.0"
   },
   "devDependencies": {
     "@babel/core": "^7.28.0",

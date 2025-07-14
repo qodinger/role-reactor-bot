@@ -1,6 +1,7 @@
 import { SlashCommandBuilder, PermissionFlagsBits } from "discord.js";
 import { hasAdminPermissions } from "../../utils/permissions.js";
 import { removeRoleMapping, getRoleMapping } from "../../utils/roleManager.js";
+import { getLogger } from "../../utils/logger.js";
 
 export const data = new SlashCommandBuilder()
   .setName("delete-roles")
@@ -84,10 +85,12 @@ export function validateRoleForDeletion(role) {
 }
 
 export async function execute(interaction) {
+  const logger = getLogger();
+
   try {
     // Check if already replied to prevent double responses
     if (interaction.replied || interaction.deferred) {
-      console.log("Interaction already handled, skipping");
+      logger.debug("Interaction already handled, skipping");
       return;
     }
 
@@ -117,7 +120,7 @@ export async function execute(interaction) {
       flags: 64,
     });
   } catch (error) {
-    console.error("Error deleting roles:", error);
+    logger.error("Error deleting roles", error);
 
     // Only try to reply if we haven't already
     try {
@@ -135,7 +138,7 @@ export async function execute(interaction) {
         });
       }
     } catch (replyError) {
-      console.error("Failed to send error response:", replyError);
+      logger.error("Failed to send error response", replyError);
     }
   }
 }

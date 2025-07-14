@@ -14,6 +14,8 @@ import { getCommandHandler } from "./utils/commandHandler.js";
 import { getEventHandler } from "./utils/eventHandler.js";
 import { getPerformanceMonitor } from "./utils/performanceMonitor.js";
 import { getDatabaseManager } from "./utils/databaseManager.js";
+import { getLogger } from "./utils/logger.js";
+import { getHealthCheck } from "./utils/healthCheck.js";
 
 dotenv.config();
 
@@ -22,19 +24,16 @@ const __dirname = path.dirname(__filename);
 
 // Validate environment variables
 const validateEnvironment = () => {
+  const logger = getLogger();
   const requiredEnvVars = ["DISCORD_TOKEN", "CLIENT_ID"];
   const missingEnvVars = requiredEnvVars.filter(
     varName => !process.env[varName],
   );
 
   if (missingEnvVars.length > 0) {
-    console.error("❌ Missing required environment variables:");
-    missingEnvVars.forEach(varName => {
-      console.error(`   • ${varName}`);
+    logger.error("❌ Missing required environment variables", {
+      missingVars: missingEnvVars,
     });
-    console.error(
-      "\nPlease check your .env file and ensure all required variables are set.",
-    );
     throw new Error("Missing required environment variables");
   }
 };
@@ -94,7 +93,8 @@ const loadCommands = async () => {
           commands.push(command);
         }
       } catch (error) {
-        console.error(`❌ Error loading command from ${file}:`, error);
+        const logger = getLogger();
+        logger.error(`❌ Error loading command from ${file}`, error);
       }
     }
   }
@@ -144,7 +144,8 @@ const loadEvents = async () => {
       const event = eventModule.default || eventModule;
       events.push(event);
     } catch (error) {
-      console.error(`❌ Error loading event from ${file}:`, error);
+      const logger = getLogger();
+      logger.error(`❌ Error loading event from ${file}`, error);
     }
   }
   return events;
@@ -157,21 +158,25 @@ const startBot = async client => {
 
 // Logging functions
 const logStartup = () => {
-  console.log("🚀 Starting RoleReactor Bot...");
+  const logger = getLogger();
+  logger.info("🚀 Starting Role Reactor Bot...");
 };
 
 const logClientReady = client => {
-  console.log(`✅ ${client.user.tag} is ready!`);
+  const logger = getLogger();
+  logger.success(`✅ ${client.user.tag} is ready!`);
 };
 
 const logError = error => {
-  console.error("❌ Error:", error);
+  const logger = getLogger();
+  logger.error("❌ Error:", error);
 };
 
 // Setup graceful shutdown
 const setupGracefulShutdown = (client, roleScheduler) => {
   const shutdown = async () => {
-    console.log("\n🛑 Shutting down gracefully...");
+    const logger = getLogger();
+    logger.info("🛑 Shutting down gracefully...");
 
     // Stop the role scheduler
     if (roleScheduler) roleScheduler.stop();
@@ -180,19 +185,21 @@ const setupGracefulShutdown = (client, roleScheduler) => {
     try {
       const dbManager = await getDatabaseManager();
       await dbManager.close();
+      logger.success("Database connections closed");
     } catch (error) {
-      console.error("Error closing database:", error);
+      logger.error("Error closing database", error);
     }
 
     // Log final performance metrics
     try {
       const performanceMonitor = getPerformanceMonitor();
       const summary = performanceMonitor.getPerformanceSummary();
-      console.log("📊 Final Performance Summary:", summary);
+      logger.info("📊 Final Performance Summary", summary);
     } catch (error) {
-      console.error("Error getting performance summary:", error);
+      logger.error("Error getting performance summary", error);
     }
 
+    logger.info("Bot shutdown complete");
     client.destroy();
     process.exit(0);
   };
@@ -217,26 +224,40 @@ const validateConfig = config => {
 
 // Initialize systems
 const initializeSystems = async () => {
-  console.log("🔧 Initializing systems...");
+  const logger = getLogger();
+  logger.info("🔧 Initializing systems...");
 
   // Initialize all systems in parallel for faster startup
-  const [dbManager, performanceMonitor, commandHandler, eventHandler] =
-    await Promise.all([
-      getDatabaseManager().catch(error => {
-        console.error("❌ Failed to initialize database manager:", error);
-        throw error;
-      }),
-      Promise.resolve(getPerformanceMonitor()),
-      Promise.resolve(getCommandHandler()),
-      Promise.resolve(getEventHandler()),
-    ]);
+  const [
+    dbManager,
+    performanceMonitor,
+    commandHandler,
+    eventHandler,
+    healthCheck,
+  ] = await Promise.all([
+    getDatabaseManager().catch(error => {
+      logger.error("❌ Failed to initialize database manager", error);
+      throw error;
+    }),
+    Promise.resolve(getPerformanceMonitor()),
+    Promise.resolve(getCommandHandler()),
+    Promise.resolve(getEventHandler()),
+    Promise.resolve(getHealthCheck()),
+  ]);
 
-  console.log("✅ Database manager initialized");
-  console.log("✅ Performance monitor initialized");
-  console.log("✅ Command handler initialized");
-  console.log("✅ Event handler initialized");
+  logger.success("✅ Database manager initialized");
+  logger.success("✅ Performance monitor initialized");
+  logger.success("✅ Command handler initialized");
+  logger.success("✅ Event handler initialized");
+  logger.success("✅ Health check system initialized");
 
-  return { dbManager, performanceMonitor, commandHandler, eventHandler };
+  return {
+    dbManager,
+    performanceMonitor,
+    commandHandler,
+    eventHandler,
+    healthCheck,
+  };
 };
 
 // Main application logic
@@ -250,7 +271,8 @@ const main = async () => {
     // Initialize all systems
     const systemsInitStart = Date.now();
     const systems = await initializeSystems();
-    console.log(`⚡ Systems initialized in ${Date.now() - systemsInitStart}ms`);
+    const logger = getLogger();
+    logger.info(`⚡ Systems initialized in ${Date.now() - systemsInitStart}ms`);
 
     const client = createClient();
     const roleScheduler = new RoleExpirationScheduler(client);
@@ -264,7 +286,7 @@ const main = async () => {
       loadCommands(),
       loadEvents(),
     ]);
-    console.log(`⚡ Commands and events loaded in ${Date.now() - loadStart}ms`);
+    logger.info(`⚡ Commands and events loaded in ${Date.now() - loadStart}ms`);
 
     // Register commands
     commands.forEach(command => {
@@ -272,16 +294,14 @@ const main = async () => {
       systems.commandHandler.registerCommand(command);
     });
 
-    console.log(
-      "Registered commands:",
-      client.commands.map(cmd => cmd.data.name),
-    );
+    logger.info("Registered commands", {
+      commands: client.commands.map(cmd => cmd.data.name),
+    });
 
     // Register events
-    console.log(
-      "Loaded events:",
-      events.map(event => event.name),
-    );
+    logger.info("Loaded events", {
+      events: events.map(event => event.name),
+    });
     registerEvents(client, events);
 
     // Setup graceful shutdown
@@ -295,24 +315,26 @@ const main = async () => {
       new Promise(resolve => {
         client.once("ready", () => {
           const readyTime = Date.now() - botStart;
-          console.log(`⚡ Bot ready in ${readyTime}ms`);
+          logger.info(`⚡ Bot ready in ${readyTime}ms`);
 
           logClientReady(client);
           roleScheduler.start();
 
           // Log initial performance metrics
           const summary = systems.performanceMonitor.getPerformanceSummary();
-          console.log("📊 Initial Performance Summary:", summary);
+          logger.info("📊 Initial Performance Summary", summary);
 
           // Debug: Log client configuration
-          console.log(`🔍 Client intents:`, client.options.intents.toArray());
-          console.log(`🔍 Client partials:`, client.options.partials);
+          logger.debug("Client configuration", {
+            intents: client.options.intents.toArray(),
+            partials: client.options.partials,
+          });
           resolve();
         });
       }),
     ]);
 
-    console.log(`🚀 Total startup time: ${Date.now() - startTime}ms`);
+    logger.info(`🚀 Total startup time: ${Date.now() - startTime}ms`);
   } catch (error) {
     logError(error);
     process.exit(1);

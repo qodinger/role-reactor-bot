@@ -1,15 +1,18 @@
 import { Events, InteractionType } from "discord.js";
+import { getLogger } from "../utils/logger.js";
 
 export const name = Events.InteractionCreate;
 
 export async function execute(interaction, client) {
+  const logger = getLogger();
+
   try {
     // Diagnostic: log interaction age
     const now = Date.now();
     const created =
       interaction.createdTimestamp || interaction.createdAt?.getTime() || now;
     const age = now - created;
-    console.log(
+    logger.debug(
       `[InteractionCreate] Received interaction: ${interaction.commandName || interaction.type} | Age: ${age}ms`,
     );
 
@@ -31,7 +34,7 @@ export async function execute(interaction, client) {
         break;
     }
   } catch (error) {
-    console.error("Error handling interaction:", error);
+    logger.error("Error handling interaction", error);
 
     // Try to reply with error message only if not already handled
     try {
@@ -47,13 +50,14 @@ export async function execute(interaction, client) {
         });
       }
     } catch (replyError) {
-      console.error("Error sending error reply:", replyError);
+      logger.error("Error sending error reply", replyError);
     }
   }
 }
 
 // Handle command interactions
 const handleCommandInteraction = async (interaction, client) => {
+  const logger = getLogger();
   const command = client.commands.get(interaction.commandName);
 
   if (!command) {
@@ -69,11 +73,11 @@ const handleCommandInteraction = async (interaction, client) => {
 
   try {
     await command.execute(interaction, client);
-    console.log(
+    logger.info(
       `Command executed: ${interaction.commandName} by ${interaction.user.tag}`,
     );
   } catch (error) {
-    console.error(`Error executing command ${interaction.commandName}:`, error);
+    logger.error(`Error executing command ${interaction.commandName}`, error);
 
     // Only try to reply if we haven't already and the command didn't handle it
     try {
@@ -89,21 +93,22 @@ const handleCommandInteraction = async (interaction, client) => {
         });
       }
     } catch (replyError) {
-      console.error("Failed to send error response:", replyError);
+      logger.error("Failed to send error response", replyError);
     }
   }
 };
 
 // Handle autocomplete interactions
 const handleAutocompleteInteraction = async (interaction, client) => {
+  const logger = getLogger();
   const command = client.commands.get(interaction.commandName);
 
   if (command && command.autocomplete) {
     try {
       await command.autocomplete(interaction, client);
     } catch (error) {
-      console.error(
-        `Error in autocomplete for ${interaction.commandName}:`,
+      logger.error(
+        `Error in autocomplete for ${interaction.commandName}`,
         error,
       );
       await interaction.respond([]);

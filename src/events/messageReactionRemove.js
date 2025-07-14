@@ -1,9 +1,12 @@
 import { Events } from "discord.js";
 import { getRoleMapping } from "../utils/roleManager.js";
+import { getLogger } from "../utils/logger.js";
 
 export const name = Events.MessageReactionRemove;
 
 export async function execute(reaction, user, client) {
+  const logger = getLogger();
+
   if (!reaction) throw new Error("Missing reaction");
   if (!user) throw new Error("Missing user");
   if (!client) throw new Error("Missing client");
@@ -68,8 +71,8 @@ export async function execute(reaction, user, client) {
     }
 
     await member.roles.remove(roleId);
-    console.log(`✅ Role removed: ${roleId} from ${user.tag}`);
+    logger.info(`✅ Role removed: ${roleId} from ${user.tag}`);
   } catch (error) {
-    console.error("Error processing reaction removal:", error);
+    logger.error("Error processing reaction removal", error);
   }
 }

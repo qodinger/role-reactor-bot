@@ -17,6 +17,7 @@ import {
   formatTemporaryRole,
 } from "../../utils/temporaryRoles.js";
 import { THEME_COLOR } from "../../config/theme.js";
+import { getLogger } from "../../utils/logger.js";
 
 export const data = new SlashCommandBuilder()
   .setName("list-temp-roles")
@@ -92,6 +93,8 @@ export async function getRoleInfo(guild, roleId) {
 export { getTemporaryRoles, getTemporaryRolesByUser, formatTemporaryRole };
 
 export async function execute(interaction, client) {
+  const logger = getLogger();
+
   await interaction.deferReply({ flags: 64 });
   try {
     if (!hasAdminPermissions(interaction.member)) {
@@ -129,7 +132,7 @@ export async function execute(interaction, client) {
         .setColor(THEME_COLOR)
         .setTimestamp()
         .setFooter({
-          text: "RoleReactor • Temporary Roles",
+          text: "Role Reactor • Temporary Roles",
           iconURL: client.user.displayAvatarURL(),
         })
         .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }));
@@ -184,7 +187,7 @@ export async function execute(interaction, client) {
         .setColor(THEME_COLOR)
         .setTimestamp()
         .setFooter({
-          text: "RoleReactor • Temporary Roles",
+          text: "Role Reactor • Temporary Roles",
           iconURL: client.user.displayAvatarURL(),
         });
       const userEntries = Object.entries(userRoles).slice(0, 10);
@@ -236,7 +239,7 @@ export async function execute(interaction, client) {
       });
     }
   } catch (error) {
-    console.error("Error listing temporary roles:", error);
+    logger.error("Error listing temporary roles", error);
     await interaction.editReply({
       content:
         "❌ **Error**\nAn error occurred while listing temporary roles. Please try again.",

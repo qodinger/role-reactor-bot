@@ -1,7 +1,10 @@
 import { getDatabaseManager } from "./databaseManager.js";
+import { getLogger } from "./logger.js";
 
 // Get expired temporary roles from database
 const getExpiredTemporaryRoles = async () => {
+  const logger = getLogger();
+
   try {
     const dbManager = await getDatabaseManager();
     const tempRoles = await dbManager.getTemporaryRoles();
@@ -24,7 +27,7 @@ const getExpiredTemporaryRoles = async () => {
 
     return expiredRoles;
   } catch (error) {
-    console.error("❌ Failed to get expired temporary roles:", error);
+    logger.error("❌ Failed to get expired temporary roles", error);
     return [];
   }
 };
@@ -48,7 +51,8 @@ const scheduleTask = (task, delay) => {
     try {
       task();
     } catch (error) {
-      console.error("Task execution error:", error);
+      const logger = getLogger();
+      logger.error("Task execution error", error);
     } finally {
       tasks.delete(taskId);
     }
@@ -84,7 +88,8 @@ const scheduleRecurringTask = (task, interval) => {
     try {
       task();
     } catch (error) {
-      console.error("Recurring task execution error:", error);
+      const logger = getLogger();
+      logger.error("Recurring task execution error", error);
     }
   };
 
@@ -136,6 +141,7 @@ const clearAllTasks = () => {
 class RoleExpirationScheduler {
   constructor(client) {
     this.client = client;
+    this.logger = getLogger();
     this.interval = null;
     this.isRunning = false;
   }
@@ -143,11 +149,11 @@ class RoleExpirationScheduler {
   // Start the scheduler
   start() {
     if (this.isRunning) {
-      console.log("⚠️ Role expiration scheduler is already running");
+      this.logger.warn("⚠️ Role expiration scheduler is already running");
       return;
     }
 
-    console.log("🕐 Starting role expiration scheduler...");
+    this.logger.info("🕐 Starting role expiration scheduler...");
     this.isRunning = true;
 
     // Run cleanup every minute
@@ -155,7 +161,7 @@ class RoleExpirationScheduler {
       try {
         await this.cleanupExpiredRoles();
       } catch (error) {
-        console.error("❌ Error in role expiration scheduler:", error);
+        this.logger.error("❌ Error in role expiration scheduler", error);
       }
     }, 60000).unref(); // Check every minute
 
@@ -170,7 +176,7 @@ class RoleExpirationScheduler {
       this.interval = null;
     }
     this.isRunning = false;
-    console.log("🛑 Role expiration scheduler stopped");
+    this.logger.info("🛑 Role expiration scheduler stopped");
   }
 
   // Clean up expired roles
@@ -182,7 +188,7 @@ class RoleExpirationScheduler {
         return;
       }
 
-      console.log(
+      this.logger.info(
         `⏰ Found ${expiredRoles.length} expired temporary role(s) to clean up`,
       );
 
@@ -194,7 +200,7 @@ class RoleExpirationScheduler {
           // Get the guild
           const guild = this.client.guilds.cache.get(expiredRole.guildId);
           if (!guild) {
-            console.log(
+            this.logger.warn(
               `⚠️ Guild ${expiredRole.guildId} not found, skipping role cleanup`,
             );
             continue;
@@ -203,7 +209,7 @@ class RoleExpirationScheduler {
           // Get the member
           const member = await guild.members.fetch(expiredRole.userId);
           if (!member) {
-            console.log(
+            this.logger.warn(
               `⚠️ Member ${expiredRole.userId} not found in guild ${guild.name}, skipping role cleanup`,
             );
             continue;
@@ -212,7 +218,7 @@ class RoleExpirationScheduler {
           // Get the role
           const role = guild.roles.cache.get(expiredRole.roleId);
           if (!role) {
-            console.log(
+            this.logger.warn(
               `⚠️ Role ${expiredRole.roleId} not found in guild ${guild.name}, skipping role cleanup`,
             );
             continue;
@@ -220,7 +226,7 @@ class RoleExpirationScheduler {
 
           // Check if member still has the role
           if (!member.roles.cache.has(role.id)) {
-            console.log(
+            this.logger.info(
               `ℹ️ Member ${member.user.tag} no longer has role ${role.name}, skipping removal`,
             );
             continue;
@@ -230,7 +236,7 @@ class RoleExpirationScheduler {
           await member.roles.remove(role, "Temporary role expired");
           removedCount++;
 
-          console.log(
+          this.logger.success(
             `✅ Removed expired role "${role.name}" from ${member.user.tag} in ${guild.name}`,
           );
 
@@ -242,12 +248,12 @@ class RoleExpirationScheduler {
               expiredRole.userId,
               expiredRole.roleId,
             );
-            console.log(
+            this.logger.info(
               `🗑️ Removed expired role record for user ${expiredRole.userId} in guild ${expiredRole.guildId}`,
             );
           } catch (dbError) {
-            console.error(
-              `❌ Failed to remove expired role record for user ${expiredRole.userId}:`,
+            this.logger.error(
+              `❌ Failed to remove expired role record for user ${expiredRole.userId}`,
               dbError,
             );
           }
@@ -263,7 +269,7 @@ class RoleExpirationScheduler {
               .setColor(0xff0000)
               .setTimestamp()
               .setFooter({
-                text: "RoleReactor • Temporary Roles",
+                text: "Role Reactor • Temporary Roles",
                 iconURL: this.client.user.displayAvatarURL(),
               });
 
@@ -283,24 +289,25 @@ class RoleExpirationScheduler {
             await member.user.send({ embeds: [embed] });
           } catch (error) {
             // User might have DMs disabled, that's okay
-            console.log(
-              `Could not send expiration notification to ${member.user.tag}: ${error.message}`,
+            this.logger.warn(
+              `Could not send expiration notification to ${member.user.tag}`,
+              { error: error.message },
             );
           }
         } catch (error) {
           errorCount++;
-          console.error(
-            `❌ Error removing expired role for user ${expiredRole.userId}:`,
+          this.logger.error(
+            `❌ Error removing expired role for user ${expiredRole.userId}`,
             error,
           );
         }
       }
 
-      console.log(
+      this.logger.success(
         `✅ Cleanup complete: ${removedCount} roles removed, ${errorCount} errors`,
       );
     } catch (error) {
-      console.error("❌ Error in cleanup process:", error);
+      this.logger.error("❌ Error in cleanup process", error);
     }
   }
 

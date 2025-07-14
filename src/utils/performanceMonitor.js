@@ -1,5 +1,8 @@
+import { getLogger } from "./logger.js";
+
 class PerformanceMonitor {
   constructor() {
+    this.logger = getLogger();
     this.metrics = {
       startTime: Date.now(),
       events: new Map(),
@@ -241,7 +244,7 @@ class PerformanceMonitor {
     setInterval(
       () => {
         const summary = this.getPerformanceSummary();
-        console.log("📊 Performance Summary:", {
+        this.logger.logPerformance({
           uptime: summary.uptime.formatted,
           events: summary.events.total,
           commands: summary.commands.total,

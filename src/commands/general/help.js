@@ -99,7 +99,7 @@ export default {
       .setThumbnail(client.user.displayAvatarURL())
       .setTimestamp()
       .setFooter({
-        text: `Requested by ${interaction.user.tag} • Thanks for using RoleReactor!`,
+        text: `Requested by ${interaction.user.tag} • Thanks for using Role Reactor!`,
         iconURL: client.user.displayAvatarURL(),
       });
 
@@ -180,7 +180,7 @@ async function showCommandHelp(interaction, commandName) {
     .setColor(THEME_COLOR)
     .setTimestamp()
     .setFooter({
-      text: `Requested by ${interaction.user.tag} • Thanks for using RoleReactor!`,
+      text: `Requested by ${interaction.user.tag} • Thanks for using Role Reactor!`,
       iconURL: interaction.client.user.displayAvatarURL(),
     });
 

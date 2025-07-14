@@ -1,18 +1,19 @@
-# RoleReactor Bot 🤖
+# Role Reactor Bot 🤖
 
 [![Node.js](https://img.shields.io/badge/Node.js-16+-green.svg)](https://nodejs.org/) [![Discord.js](https://img.shields.io/badge/Discord.js-14.14.1-blue.svg)](https://discord.js.org/) [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-A Discord bot that enables users to self-assign roles through message reactions. Built with Discord.js v14, featuring robust permission controls, customizable role-emoji mappings, and enterprise-grade error handling.
+A production-ready Discord bot for self-assignable roles through reactions. Built with Discord.js v14, featuring enterprise-grade logging, health monitoring, and scalable MongoDB integration.
 
 ## ✨ Features
 
 - **🎯 Self-Assignable Roles**: Users can assign/remove roles by reacting to messages
-- **⏰ Temporary Roles**: Auto-expire roles after a set time (useful for events, trials)
-- **🛡️ Permission Controls**: Comprehensive permission checking for administrators
-- **🎨 Custom Emojis**: Support for both Unicode and custom server emojis
+- **⏰ Temporary Roles**: Auto-expire roles after a set time
+- **🛡️ Permission Controls**: Comprehensive permission checking
+- **🎨 Custom Emojis**: Support for Unicode and custom server emojis
 - **📊 Role Categories**: Organize roles into logical groups
 - **🔧 Easy Setup**: Simple slash commands for configuration
-- **🛠️ Error Handling**: Graceful error handling with user-friendly messages
+- **📈 Health Monitoring**: Built-in health checks and performance metrics
+- **📝 Structured Logging**: Enterprise-grade logging with file output
 
 ## 🚀 Quick Start
 
@@ -20,13 +21,14 @@ A Discord bot that enables users to self-assign roles through message reactions.
 
 - Node.js 16.0.0 or higher
 - pnpm package manager
+- MongoDB (local or Atlas)
 - Discord Bot Token
 
 ### Installation
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/rolereactor-bot/role-reactor-bot.git
+   git clone https://github.com/tyecode/role-reactor-bot.git
    cd role-reactor-bot
    ```
 
@@ -40,9 +42,11 @@ A Discord bot that enables users to self-assign roles through message reactions.
    cp env.example .env
    ```
    
-   Edit `.env` and add your Discord bot token:
-   ```
+   Edit `.env` with your configuration:
+   ```env
    DISCORD_TOKEN=your_bot_token_here
+   CLIENT_ID=your_client_id_here
+   MONGODB_URI=mongodb://localhost:27017
    ```
 
 4. **Deploy slash commands**
@@ -57,17 +61,14 @@ A Discord bot that enables users to self-assign roles through message reactions.
 
 ## 📖 Documentation
 
-For detailed documentation, guides, and development information, see our [Documentation](./docs/README.md):
-
-- **[📚 Documentation Index](./docs/README.md)** - Complete documentation overview
-- **[🚀 PM2 Deployment Guide](./docs/PM2_GUIDE.md)** - Production deployment with PM2
-- **[🤝 Contributing Guidelines](./docs/CONTRIBUTING.md)** - How to contribute to the project
+- **[🚀 Deployment Guide](./docs/DEPLOYMENT.md)** - Production deployment instructions
+- **[🤝 Contributing Guidelines](./docs/CONTRIBUTING.md)** - How to contribute
 
 ## 📖 Usage
 
 ### Setting Up Role Reactions
 
-Administrators can create role-reaction messages using the `/setup-roles` command:
+Create role-reaction messages using the `/setup-roles` command:
 
 **Simple format:**
 ```
@@ -79,14 +80,9 @@ Administrators can create role-reaction messages using the `/setup-roles` comman
 /setup-roles title:"Server Roles" description:"Choose your roles by reacting!" roles:"#Gaming\n🎮:Gamer,🎲:Board Games\n#Music\n🎵:Music Lover,🎸:Guitarist"
 ```
 
-**Multiple categories:**
-```
-/setup-roles title:"Server Roles" description:"Choose your roles by reacting!" roles:"#Gaming|#Music\n🎮:Gamer|🎵:Music Lover"
-```
-
 ### Temporary Roles
 
-The bot supports temporary roles that automatically expire after a set time:
+Assign temporary roles that auto-expire:
 
 **Assign a temporary role:**
 ```
@@ -98,55 +94,35 @@ The bot supports temporary roles that automatically expire after a set time:
 - `2h` - 2 hours  
 - `1d` - 1 day
 - `1w` - 1 week
-- `1h30m` - 1 hour 30 minutes
-
-**List temporary roles:**
-```
-/list-temp-roles user:@username  # For specific user
-/list-temp-roles                 # For all users
-```
-
-**Remove temporary role early:**
-```
-/remove-temp-role user:@username role:@EventRole reason:"Early removal"
-```
-
-### Role Categories
-
-The bot supports organizing roles into categories:
-
-- **Use `#CategoryName`** to start a category
-- **Use `|`** to separate different categories  
-- **Roles without categories** go to 'General'
-- **Each category** appears as a separate field in the message
 
 ### Available Commands
 
-| Command | Description | Permissions Required |
-|---------|-------------|-------------------|
+| Command | Description | Permissions |
+|---------|-------------|-------------|
 | `/setup-roles` | Create a role-reaction message | Manage Roles |
-| `/update-roles` | Update an existing role-reaction message | Manage Roles |
+| `/update-roles` | Update an existing message | Manage Roles |
 | `/delete-roles` | Delete a role-reaction message | Manage Roles |
 | `/list-roles` | List all role-reaction messages | Manage Roles |
-| `/assign-temp-role` | Assign a temporary role to a user | Manage Roles |
-| `/list-temp-roles` | List temporary roles for users | Manage Roles |
-| `/remove-temp-role` | Remove a temporary role from a user | Manage Roles |
+| `/assign-temp-role` | Assign a temporary role | Manage Roles |
+| `/list-temp-roles` | List temporary roles | Manage Roles |
+| `/remove-temp-role` | Remove a temporary role | Manage Roles |
+| `/health` | Check bot health status | Administrator |
+| `/performance` | View performance metrics | Administrator |
 | `/help` | Display bot information | None |
-
-### Role-Emoji Format
-
-The bot supports the following emoji formats:
-- **Unicode Emojis**: 🎮 🎨 💻 🎵 📚
-- **Custom Server Emojis**: `<:emoji_name:emoji_id>`
 
 ## 🏗️ Architecture
 
 ```
 src/
 ├── commands/          # Slash command handlers
-│   └── admin/        # Administrative commands
+│   ├── admin/        # Administrative commands
+│   └── general/      # General commands
 ├── events/           # Discord event listeners
 ├── utils/            # Utility functions
+│   ├── logger.js     # Structured logging
+│   ├── healthCheck.js # Health monitoring
+│   ├── databaseManager.js # MongoDB integration
+│   └── ...          # Other utilities
 ├── config/           # Configuration files
 └── index.js          # Bot entry point
 ```
@@ -155,126 +131,100 @@ src/
 
 ### Environment Variables
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `DISCORD_TOKEN` | Discord bot token | Yes |
-| `CLIENT_ID` | Discord application client ID | Yes |
-| `GUILD_ID` | Target guild ID (for development) | No |
-| `DATABASE_TYPE` | Database type (MongoDB only) | No (default: 'mongodb') |
-| `MONGODB_URI` | MongoDB connection URI | No (default: 'mongodb://localhost:27017') |
-| `MONGODB_DB` | MongoDB database name | No (default: 'role-reactor-bot') |
+| Variable | Description | Required | Default |
+|----------|-------------|----------|---------|
+| `DISCORD_TOKEN` | Discord bot token | Yes | - |
+| `CLIENT_ID` | Discord application client ID | Yes | - |
+| `MONGODB_URI` | MongoDB connection URI | No | `mongodb://localhost:27017` |
+| `MONGODB_DB` | MongoDB database name | No | `role-reactor-bot` |
+| `LOG_LEVEL` | Log level (ERROR, WARN, INFO, DEBUG) | No | `INFO` |
+| `LOG_FILE` | Log file path | No | Console only |
+| `LOG_CONSOLE` | Enable console logging | No | `true` |
 
 ### Bot Permissions
 
-The bot requires the following permissions:
-- **Manage Roles**: To assign/remove roles from users
-- **Manage Messages**: To add reactions to messages
+Required Discord bot permissions:
+- **Manage Roles**: To assign/remove roles
+- **Manage Messages**: To add reactions
 - **Add Reactions**: To add emoji reactions
 - **Read Message History**: To access reaction events
 - **View Channel**: To read channel content
 
-## 🗄️ Database & Scaling
+## 🗄️ Database
 
-### Database Type
+The bot uses **MongoDB** for data storage:
 
-The bot now uses **MongoDB** for all data storage:
 - **Document-based storage** perfect for Discord bot data
 - **Horizontal scaling** for many servers and users
-- **Automatic indexing** for fast queries
 - **Cloud-ready** with MongoDB Atlas support
 
-**Environment variables:**
-```
-DATABASE_TYPE=mongodb
-MONGODB_URI=mongodb://localhost:27017
-MONGODB_DB=role-reactor-bot
-```
+**Setup options:**
+- **Local MongoDB**: `mongodb://localhost:27017`
+- **MongoDB Atlas**: `mongodb+srv://username:password@cluster.mongodb.net`
+- **Docker**: `mongodb://mongodb:27017`
 
-### MongoDB Setup
+## 🚀 Production Deployment
 
-#### **Local Development:**
-1. **Install MongoDB Community Server:**
-   - [Download MongoDB](https://www.mongodb.com/try/download/community)
-   - Or use Docker: `docker run -d -p 27017:27017 --name mongodb mongo:latest`
-
-2. **Start MongoDB:**
-   ```bash
-   # macOS with Homebrew
-   brew services start mongodb-community
-   
-   # Or manually
-   mongod --dbpath /usr/local/var/mongodb
-   ```
-
-#### **Production (MongoDB Atlas):**
-1. **Create a free MongoDB Atlas cluster**
-2. **Get your connection string**
-3. **Set environment variables:**
-   ```bash
-   MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net
-   MONGODB_DB=role-reactor-bot
-   ```
-
-### Database Collections
-
-The bot creates two collections:
-- **`role_mappings`** - Stores role-reaction message configurations
-- **`temporary_roles`** - Stores temporary role assignments with expiration
-
-### Docker Deployment
-
-For Docker deployments, you can use MongoDB in a container:
-
-```yaml
-# docker-compose.yml
-services:
-  mongodb:
-    image: mongo:latest
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongodb_data:/data/db
-  
-  role-reactor-bot:
-    build: .
-    depends_on:
-      - mongodb
-    environment:
-      - MONGODB_URI=mongodb://mongodb:27017
-      - MONGODB_DB=role-reactor-bot
-
-volumes:
-  mongodb_data:
-```
-
-## 🧪 Development
-
-### Running in Development Mode
+### Docker Deployment (Recommended)
 
 ```bash
-pnpm run dev
+# Build and start production container
+pnpm docker:build
+pnpm docker:prod
+
+# View logs
+pnpm docker:logs
+
+# Update deployment
+pnpm docker:update
 ```
 
-### Running Tests
+### PM2 Deployment
 
 ```bash
-pnpm test
-pnpm run test:watch
+# Install PM2
+npm install -g pm2
+
+# Start the bot
+pm2 start src/index.js --name role-reactor-bot
+
+# Monitor
+pm2 monit
 ```
 
-### Code Linting
+### Environment Setup
 
-```bash
-pnpm run lint
-pnpm run lint:fix
-```
+1. **Create production `.env` file**
+2. **Set up MongoDB** (local or Atlas)
+3. **Deploy slash commands** globally
+4. **Start the bot** with your preferred method
+5. **Monitor health** with `/health` command
 
-## 📊 Performance
+## 📊 Monitoring
 
-- **Memory Usage**: ~50MB baseline
-- **Response Time**: <100ms for role operations
-- **Scalability**: Tested with 10,000+ users
-- **Uptime**: 99.9% availability target
+### Health Checks
+
+The bot includes comprehensive health monitoring:
+
+- **Database connectivity** checks
+- **Memory usage** monitoring
+- **Performance metrics** tracking
+- **Error rate** monitoring
+- **Uptime** tracking
+
+### Logging
+
+Enterprise-grade structured logging:
+
+- **Multiple log levels**: ERROR, WARN, INFO, DEBUG, SUCCESS
+- **File output** for persistence
+- **Performance tracking** for commands and events
+- **Error context** with stack traces
+
+### Commands
+
+- `/health` - Check bot health status
+- `/performance` - View performance metrics
 
 ## 🤝 Contributing
 
@@ -282,27 +232,30 @@ We welcome contributions! Please see our [Contributing Guidelines](./docs/CONTRI
 
 ### Development Setup
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Install dependencies: `pnpm install`
-4. Commit your changes: `git commit -m 'Add amazing feature'`
-5. Push to the branch: `git push origin feature/amazing-feature`
-6. Open a Pull Request
+```bash
+# Install dependencies
+pnpm install
 
-## 📝 License
+# Start development mode
+pnpm dev
+
+# Run linting
+pnpm lint
+
+# Run tests
+pnpm test
+```
+
+## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🆘 Support
 
-- **Documentation**: [Wiki](https://github.com/rolereactor-bot/role-reactor-bot/wiki)
-- **Issues**: [GitHub Issues](https://github.com/rolereactor-bot/role-reactor-bot/issues)
-- **Discord**: [Support Server](https://discord.gg/rolereactor)
-
-## 🙏 Acknowledgments
-
-- [Discord.js](https://discord.js.org/) - The Discord API library
-- [Discord Developer Portal](https://discord.com/developers) - For API documentation
-- All contributors and users who provide feedback
+- **GitHub Issues**: [Create an issue](https://github.com/tyecode/role-reactor-bot/issues)
+- **Documentation**: [Deployment Guide](./docs/DEPLOYMENT.md)
+- **Contributing**: [Contributing Guidelines](./docs/CONTRIBUTING.md)
 
 ---
+
+**Made with ❤️ by [Tyecode](https://github.com/tyecode)**

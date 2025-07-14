@@ -1,4 +1,5 @@
 import { Events, OAuth2Scopes, ActivityType } from "discord.js";
+
 import {
   requiredPermissions,
   formatPermissionName,
@@ -7,7 +8,6 @@ import {
   createSpinner,
   createInfoBox,
   createSuccessMessage,
-  printBotStats,
   createWelcomeBox,
 } from "../utils/terminal.js";
 import { BOT_VERSION } from "../utils/version.js";
@@ -18,7 +18,7 @@ export const once = true;
 
 export async function execute(client) {
   // Create a beautiful startup spinner
-  const spinner = createSpinner("Initializing RoleReactor Bot...");
+  const spinner = createSpinner("Initializing Role Reactor Bot...");
   spinner.start();
 
   // Simulate a brief loading time for visual effect
@@ -29,13 +29,11 @@ export async function execute(client) {
   spinner.succeed("Bot initialized successfully!");
 
   // Welcome section using terminal.js utility
-  const titleText = `🤖 RoleReactor Bot v${BOT_VERSION} 🤖`;
+  const titleText = `🤖 Role Reactor Bot v${BOT_VERSION} 🤖`;
   const titleBox = createWelcomeBox(titleText, "cristal");
-  console.log("");
   console.log(titleBox);
-  console.log("");
 
-  // Print bot statistics
+  // Print bot statistics (aligned)
   const stats = {
     botName: client.user.tag,
     botId: client.user.id,
@@ -45,7 +43,20 @@ export async function execute(client) {
     memoryUsage: (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2),
   };
 
-  printBotStats(stats);
+  // Format stats for alignment
+  const statLines = [
+    `🟢 Status:        ONLINE`,
+    `🤖 Bot Name:     ${stats.botName}`,
+    `🆔 Bot ID:       ${stats.botId}`,
+    `🌐 Servers:      ${stats.servers}`,
+    `👥 Total Users:  ${stats.users}`,
+    `⏰ Started at:   ${stats.startTime}`,
+    `💾 Memory Usage: ${stats.memoryUsage} MB`,
+  ];
+  const statsBox = createInfoBox("📊 Bot Status", statLines, {
+    borderColor: "cyan",
+  });
+  console.log(statsBox);
 
   // Set bot status
   const activities = [
@@ -74,12 +85,12 @@ export async function execute(client) {
   let inviteLink = "";
   if (client && typeof client.generateInvite === "function") {
     try {
-      inviteLink = client.generateInvite({
+      inviteLink = await client.generateInvite({
         scopes: [OAuth2Scopes.Bot, OAuth2Scopes.ApplicationsCommands],
         permissions: requiredPermissions,
       });
     } catch (error) {
-      console.error("Error generating invite link:", error);
+      console.error("Error generating invite link", error);
       inviteLink = "Error generating invite link";
     }
   } else {
@@ -99,9 +110,7 @@ export async function execute(client) {
     borderColor: "green",
   });
 
-  console.log("");
   console.log(inviteBox);
-  console.log("");
 
   // Final success message
   const successMessage = createSuccessMessage("🚀 Bot is ready to serve!");

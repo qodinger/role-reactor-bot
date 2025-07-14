@@ -342,7 +342,7 @@ export function createWelcomeBox(titleText, gradientType) {
     margin: 0,
     borderStyle: "round",
     borderColor: "cyan",
-    title: "RoleReactor",
+    title: "Role Reactor",
     titleAlignment: "center",
   });
 }

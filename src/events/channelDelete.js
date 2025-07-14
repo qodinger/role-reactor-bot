@@ -1,9 +1,12 @@
 import { Events } from "discord.js";
 import { getAllRoleMappings, removeRoleMapping } from "../utils/roleManager.js";
+import { getLogger } from "../utils/logger.js";
 
 export const name = Events.ChannelDelete;
 
 export async function execute(channel, client) {
+  const logger = getLogger();
+
   if (!channel) throw new Error("Missing channel");
   if (!client) throw new Error("Missing client");
 
@@ -16,7 +19,7 @@ export async function execute(channel, client) {
       if (mapping.channelId === channel.id) {
         const removedMapping = await removeRoleMapping(messageId);
         if (removedMapping) {
-          console.log(
+          logger.info(
             `🗑️ Role mapping removed for deleted channel: ${messageId}`,
           );
           removedCount++;
@@ -25,11 +28,11 @@ export async function execute(channel, client) {
     }
 
     if (removedCount > 0) {
-      console.log(
+      logger.info(
         `📊 Removed ${removedCount} role mappings from deleted channel: ${channel.name}`,
       );
     }
   } catch (error) {
-    console.error("Error handling channel deletion:", error);
+    logger.error("Error handling channel deletion", error);
   }
 }

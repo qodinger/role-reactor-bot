@@ -3,6 +3,7 @@ import {
   PermissionFlagsBits,
   EmbedBuilder,
 } from "discord.js";
+import pLimit from "p-limit";
 import {
   hasAdminPermissions,
   botHasRequiredPermissions,
@@ -15,16 +16,19 @@ import {
   formatDuration,
 } from "../../utils/temporaryRoles.js";
 import { THEME_COLOR } from "../../config/theme.js";
+import { getLogger } from "../../utils/logger.js";
 
 export const data = new SlashCommandBuilder()
   .setName("assign-temp-role")
   .setDescription(
-    "Assign a temporary role to a user that expires after a set time",
+    "Assign a temporary role to multiple users that expires after a set time",
   )
-  .addUserOption(option =>
+  .addStringOption(option =>
     option
-      .setName("user")
-      .setDescription("The user to assign the temporary role to")
+      .setName("users")
+      .setDescription(
+        "Comma-separated list of user IDs or mentions to assign the temporary role to",
+      )
       .setRequired(true),
   )
   .addRoleOption(option =>
@@ -64,6 +68,8 @@ export function validateRole(role) {
 
 // Store temporary role data
 export async function storeTemporaryRole(roleData) {
+  const logger = getLogger();
+
   try {
     await addTemporaryRole(
       roleData.guildId,
@@ -73,7 +79,7 @@ export async function storeTemporaryRole(roleData) {
     );
     return true;
   } catch (error) {
-    console.error("Error storing temporary role:", error);
+    logger.error("Error storing temporary role", error);
     return false;
   }
 }
@@ -103,6 +109,100 @@ export function validateDuration(durationStr) {
   }
 }
 
+function delay(ms) {
+  return new Promise(resolve => {
+    setTimeout(resolve, ms);
+  });
+}
+
+async function assignRoleAndDM({
+  userId,
+  targetRole,
+  expiresAt,
+  reason,
+  interaction,
+  client,
+  durationStr,
+}) {
+  const result = { userId, status: "", error: null };
+  try {
+    const targetMember = await interaction.guild.members.fetch(userId);
+    if (!targetMember) {
+      result.status = "❌ User not found";
+      return result;
+    }
+    if (targetMember.user.bot) {
+      result.status = "❌ Cannot assign roles to bots";
+      return result;
+    }
+    const alreadyHasRole = targetMember.roles.cache.has(targetRole.id);
+    if (alreadyHasRole) {
+      result.status = "⚠️ Already has role";
+      return result;
+    }
+    // Retry logic for Discord API requests
+    let retries = 2;
+    while (retries >= 0) {
+      try {
+        await targetMember.roles.add(
+          targetRole,
+          `Temporary role assigned by ${interaction.user.tag}: ${reason}`,
+        );
+        break;
+      } catch (err) {
+        if (retries === 0) throw err;
+        await delay(1000);
+        retries--;
+      }
+    }
+    // DM user
+    try {
+      const userEmbed = new EmbedBuilder()
+        .setTitle("🎭 Temporary Role Assigned!")
+        .setDescription(
+          `You've been assigned the **${targetRole.name}** role in **${interaction.guild.name}**`,
+        )
+        .setColor(targetRole.color || THEME_COLOR)
+        .setTimestamp()
+        .setFooter({
+          text: "Role Reactor • Temporary Roles",
+          iconURL: client.user.displayAvatarURL(),
+        });
+      userEmbed.addFields(
+        {
+          name: "⏰ Duration",
+          value: formatDuration(durationStr),
+          inline: true,
+        },
+        {
+          name: "🕐 Expires At",
+          value: `<t:${Math.floor(expiresAt.getTime() / 1000)}:F>\n(<t:${Math.floor(expiresAt.getTime() / 1000)}:R>)`,
+          inline: true,
+        },
+        {
+          name: "📝 Reason",
+          value: reason,
+          inline: false,
+        },
+        {
+          name: "👮 Assigned By",
+          value: `${interaction.user} (${interaction.user.tag})`,
+          inline: false,
+        },
+      );
+      await targetMember.user.send({ embeds: [userEmbed] });
+    } catch (_dmError) {
+      // Ignore DM errors
+    }
+    result.status = "✅ Role assigned";
+    return result;
+  } catch (err) {
+    result.status = `❌ ${err.message}`;
+    result.error = err;
+    return result;
+  }
+}
+
 export async function execute(interaction, client) {
   await interaction.deferReply({ flags: 64 });
   try {
@@ -123,17 +223,16 @@ export async function execute(interaction, client) {
         flags: 64,
       });
     }
-    const targetUser = interaction.options.getUser("user");
+    const usersStr = interaction.options.getString("users");
+    const userIds = usersStr
+      .split(",")
+      .map(u => u.trim())
+      .filter(Boolean)
+      .map(u => u.replace(/<@!?([0-9]+)>/, "$1"));
     const targetRole = interaction.options.getRole("role");
     const durationStr = interaction.options.getString("duration");
     const reason =
       interaction.options.getString("reason") || "No reason provided";
-    if (targetUser.bot) {
-      return interaction.editReply({
-        content: "❌ **Invalid Target**\nYou cannot assign roles to bots.",
-        flags: 64,
-      });
-    }
     const botMember = await interaction.guild.members.fetchMe();
     if (targetRole.position >= botMember.roles.highest.position) {
       return interaction.editReply({
@@ -172,130 +271,124 @@ export async function execute(interaction, client) {
         flags: 64,
       });
     }
-    const targetMember = await interaction.guild.members.fetch(targetUser.id);
-    if (!targetMember) {
-      return interaction.editReply({
-        content:
-          "❌ **User Not Found**\nThe specified user is not a member of this server.",
+    const limit = pLimit(3); // 3 concurrent Discord API requests
+    const jobs = userIds.map(userId =>
+      limit(() =>
+        assignRoleAndDM({
+          userId,
+          targetRole,
+          expiresAt,
+          reason,
+          interaction,
+          client,
+          durationStr,
+        }),
+      ),
+    );
+    let results = [];
+    if (userIds.length > 30) {
+      await interaction.editReply({
+        content: `⏳ Processing ${userIds.length} users. This may take a few minutes. You will receive a summary when complete.`,
         flags: 64,
       });
-    }
-    const alreadyHasRole = targetMember.roles.cache.has(targetRole.id);
-    if (alreadyHasRole) {
-      return interaction.editReply({
-        content: `❌ **User Already Has Role**\n${targetUser} already has the **${targetRole.name}** role.`,
+      results = await Promise.all(jobs);
+      await interaction.followUp({
+        content: `✅ Assignment complete! See below for details.`,
+        embeds: [
+          buildResultsEmbed(
+            results,
+            targetRole,
+            durationStr,
+            expiresAt,
+            client,
+          ),
+        ],
         flags: 64,
       });
-    }
-    await targetMember.roles.add(
-      targetRole,
-      `Temporary role assigned by ${interaction.user.tag}: ${reason}`,
-    );
-    // Ensure expiresAt is a Date object before calling toISOString
-    if (!(expiresAt instanceof Date)) {
-      expiresAt = new Date(expiresAt);
-    }
-    await addTemporaryRole(
-      interaction.guild.id,
-      targetUser.id,
-      targetRole.id,
-      expiresAt.toISOString(),
-    );
-    const embed = new EmbedBuilder()
-      .setTitle("✅ Temporary Role Assigned!")
-      .setDescription(
-        `Successfully assigned **${targetRole.name}** to ${targetUser}`,
-      )
-      .setColor(THEME_COLOR)
-      .setTimestamp()
-      .setFooter({
-        text: "RoleReactor • Temporary Roles",
-        iconURL: client.user.displayAvatarURL(),
-      });
-    embed.addFields(
-      {
-        name: "👤 User",
-        value: `${targetUser} (${targetUser.tag})`,
-        inline: true,
-      },
-      {
-        name: "🎭 Role",
-        value: `${targetRole} (${targetRole.name})`,
-        inline: true,
-      },
-      {
-        name: "⏰ Duration",
-        value: formatDuration(durationStr),
-        inline: true,
-      },
-      {
-        name: "🕐 Expires At",
-        value: `<t:${Math.floor(expiresAt.getTime() / 1000)}:F>\n(<t:${Math.floor(expiresAt.getTime() / 1000)}:R>)`,
-        inline: false,
-      },
-      {
-        name: "📝 Reason",
-        value: reason,
-        inline: false,
-      },
-      {
-        name: "👮 Assigned By",
-        value: `${interaction.user} (${interaction.user.tag})`,
-        inline: false,
-      },
-    );
-    await interaction.editReply({
-      embeds: [embed],
-      flags: 64,
-    });
-    try {
-      const userEmbed = new EmbedBuilder()
-        .setTitle("🎭 Temporary Role Assigned!")
-        .setDescription(
-          `You've been assigned the **${targetRole.name}** role in **${interaction.guild.name}**`,
-        )
-        .setColor(targetRole.color || THEME_COLOR)
-        .setTimestamp()
-        .setFooter({
-          text: "RoleReactor • Temporary Roles",
-          iconURL: client.user.displayAvatarURL(),
-        });
-      userEmbed.addFields(
-        {
-          name: "⏰ Duration",
-          value: formatDuration(durationStr),
-          inline: true,
-        },
-        {
-          name: "🕐 Expires At",
-          value: `<t:${Math.floor(expiresAt.getTime() / 1000)}:F>\n(<t:${Math.floor(expiresAt.getTime() / 1000)}:R>)`,
-          inline: true,
-        },
-        {
-          name: "📝 Reason",
-          value: reason,
-          inline: false,
-        },
-        {
-          name: "👮 Assigned By",
-          value: `${interaction.user} (${interaction.user.tag})`,
-          inline: false,
-        },
+      // Bulk insert to DB
+      await bulkAddTemporaryRoles(
+        interaction.guild.id,
+        targetRole.id,
+        expiresAt,
+        results,
       );
-      await targetUser.send({ embeds: [userEmbed] });
-    } catch (error) {
-      // User might have DMs disabled, that's okay
-      console.log(`Could not send DM to ${targetUser.tag}: ${error.message}`);
+      return;
+    } else {
+      results = await Promise.all(jobs);
+      // Bulk insert to DB
+      await bulkAddTemporaryRoles(
+        interaction.guild.id,
+        targetRole.id,
+        expiresAt,
+        results,
+      );
+      const embed = buildResultsEmbed(
+        results,
+        targetRole,
+        durationStr,
+        expiresAt,
+        client,
+      );
+      return interaction.editReply({ embeds: [embed], flags: 64 });
     }
   } catch (error) {
-    console.error("Error assigning temporary role:", error);
-    await interaction.editReply({
-      content:
-        "❌ **Error**\nAn error occurred while assigning the temporary role. Please try again.",
+    const logger = getLogger();
+    logger.error("Error executing assign-temp-role command", error);
+    return interaction.editReply({
+      content: `❌ **Error:** ${error.message}`,
       flags: 64,
     });
   }
 }
 
-// Re-export utility functions for tests
-export { parseDuration, formatDuration, addTemporaryRole };
+function buildResultsEmbed(
+  results,
+  targetRole,
+  durationStr,
+  expiresAt,
+  client,
+) {
+  return new EmbedBuilder()
+    .setTitle("✅ **Temporary Role Assignment Complete!**")
+    .setDescription(
+      `Successfully processed ${results.length} users for the **${targetRole.name}** role.`,
+    )
+    .setColor(THEME_COLOR)
+    .setTimestamp()
+    .setFooter({
+      text: "Role Reactor • Temporary Roles",
+      iconURL: client.user.displayAvatarURL(),
+    })
+    .addFields({
+      name: "📋 Results",
+      value: results.map(r => `<@${r.userId}>: ${r.status}`).join("\n"),
+      inline: false,
+    });
+}
+
+// Bulk insert to DB
+async function bulkAddTemporaryRoles(guildId, roleId, expiresAt, results) {
+  const { getDatabaseManager } = await import("../../utils/databaseManager.js");
+  const dbManager = await getDatabaseManager();
+  const docs = results
+    .filter(r => r.status === "✅ Role assigned")
+    .map(r => ({
+      guildId,
+      userId: r.userId,
+      roleId,
+      expiresAt: expiresAt.toISOString(),
+    }));
+  if (docs.length > 0 && dbManager.bulkAddTemporaryRoles) {
+    await dbManager.bulkAddTemporaryRoles(docs);
+  } else {
+    // fallback to single insert
+    for (const doc of docs) {
+      await dbManager.addTemporaryRole(
+        doc.guildId,
+        doc.userId,
+        doc.roleId,
+        doc.expiresAt,
+      );
+    }
+  }
+}

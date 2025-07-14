@@ -6,6 +6,7 @@ import {
 import { hasAdminPermissions } from "../../utils/permissions.js";
 import { getAllRoleMappings } from "../../utils/roleManager.js";
 import { THEME_COLOR } from "../../config/theme.js";
+import { getLogger } from "../../utils/logger.js";
 
 export const data = new SlashCommandBuilder()
   .setName("list-roles")
@@ -31,15 +32,17 @@ export function filterRoles(roles, searchTerm) {
 }
 
 export async function execute(interaction, client) {
+  const logger = getLogger();
+
   // Debug logging to help diagnose issues
-  console.log("DEBUG: /list-roles called");
-  console.log("guildId:", interaction.guild?.id);
+  logger.debug("DEBUG: /list-roles called");
+  logger.debug("guildId:", { guildId: interaction.guild?.id });
   const start = Date.now();
 
   try {
     // Check if already replied to prevent double responses
     if (interaction.replied || interaction.deferred) {
-      console.log("Interaction already handled, skipping");
+      logger.debug("Interaction already handled, skipping");
       return;
     }
 
@@ -54,13 +57,15 @@ export async function execute(interaction, client) {
     }
 
     const allMappings = await getAllRoleMappings();
-    console.log("Retrieved mappings:", Object.keys(allMappings).length);
+    logger.debug("Retrieved mappings", {
+      count: Object.keys(allMappings).length,
+    });
 
     const guildMappings = Object.entries(allMappings).filter(
       ([, mapping]) => mapping.guildId === interaction.guild.id,
     );
 
-    console.log("Guild mappings found:", guildMappings.length);
+    logger.debug("Guild mappings found", { count: guildMappings.length });
 
     if (guildMappings.length === 0) {
       return interaction.editReply({
@@ -77,7 +82,7 @@ export async function execute(interaction, client) {
       .setColor(THEME_COLOR)
       .setTimestamp()
       .setFooter({
-        text: "RoleReactor • Role Management",
+        text: "Role Reactor • Role Management",
         iconURL: client.user.displayAvatarURL(),
       });
 
@@ -98,9 +103,9 @@ export async function execute(interaction, client) {
       embeds: [embed],
       flags: 64,
     });
-    console.log(`list-roles command completed in ${Date.now() - start}ms`);
+    logger.info(`list-roles command completed in ${Date.now() - start}ms`);
   } catch (error) {
-    console.error("Error listing roles:", error);
+    logger.error("Error listing roles", error);
 
     // Only try to reply if we haven't already
     try {
@@ -131,18 +136,18 @@ export async function execute(interaction, client) {
                 flags: 64,
               });
             } catch (followUpError) {
-              console.error(
-                "Failed to send follow-up error response:",
+              logger.error(
+                "Failed to send follow-up error response",
                 followUpError,
               );
             }
           } else {
-            console.error("Failed to send error response:", editError);
+            logger.error("Failed to send error response", editError);
           }
         }
       }
     } catch (replyError) {
-      console.error("Failed to send error response:", replyError);
+      logger.error("Failed to send error response", replyError);
     }
   }
 }

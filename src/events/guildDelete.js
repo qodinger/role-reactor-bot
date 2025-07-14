@@ -1,9 +1,12 @@
 import { Events } from "discord.js";
 import { getAllRoleMappings, removeRoleMapping } from "../utils/roleManager.js";
+import { getLogger } from "../utils/logger.js";
 
 export const name = Events.GuildDelete;
 
 export async function execute(guild, client) {
+  const logger = getLogger();
+
   if (!guild) throw new Error("Missing guild");
   if (!client) throw new Error("Missing client");
 
@@ -16,18 +19,18 @@ export async function execute(guild, client) {
       if (mapping.guildId === guild.id) {
         const removedMapping = await removeRoleMapping(messageId);
         if (removedMapping) {
-          console.log(`🗑️ Role mapping removed for left guild: ${messageId}`);
+          logger.info(`🗑️ Role mapping removed for left guild: ${messageId}`);
           removedCount++;
         }
       }
     }
 
     if (removedCount > 0) {
-      console.log(
+      logger.info(
         `📊 Removed ${removedCount} role mappings from left guild: ${guild.name}`,
       );
     }
   } catch (error) {
-    console.error("Error handling guild deletion:", error);
+    logger.error("Error handling guild deletion", error);
   }
 }

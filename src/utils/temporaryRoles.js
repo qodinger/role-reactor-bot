@@ -1,27 +1,34 @@
 import { getDatabaseManager } from "./databaseManager.js";
+import { getLogger } from "./logger.js";
 
 // Temporary role functions
 export async function addTemporaryRole(guildId, userId, roleId, expiresAt) {
+  const logger = getLogger();
+
   try {
     const dbManager = await getDatabaseManager();
     return await dbManager.addTemporaryRole(guildId, userId, roleId, expiresAt);
   } catch (error) {
-    console.error("❌ Failed to add temporary role:", error);
+    logger.error("❌ Failed to add temporary role", error);
     return false;
   }
 }
 
 export async function removeTemporaryRole(guildId, userId, roleId) {
+  const logger = getLogger();
+
   try {
     const dbManager = await getDatabaseManager();
     return await dbManager.removeTemporaryRole(guildId, userId, roleId);
   } catch (error) {
-    console.error("❌ Failed to remove temporary role:", error);
+    logger.error("❌ Failed to remove temporary role", error);
     return false;
   }
 }
 
 export async function getUserTemporaryRoles(guildId, userId) {
+  const logger = getLogger();
+
   try {
     const dbManager = await getDatabaseManager();
     const tempRoles = await dbManager.getTemporaryRoles();
@@ -29,18 +36,20 @@ export async function getUserTemporaryRoles(guildId, userId) {
       ? Object.keys(tempRoles[guildId][userId])
       : [];
   } catch (error) {
-    console.error("❌ Failed to get user temporary roles:", error);
+    logger.error("❌ Failed to get user temporary roles", error);
     return [];
   }
 }
 
 export async function getTemporaryRoles(guildId) {
+  const logger = getLogger();
+
   try {
     const dbManager = await getDatabaseManager();
     const tempRoles = await dbManager.getTemporaryRoles();
     return tempRoles[guildId] || {};
   } catch (error) {
-    console.error("❌ Failed to get temporary roles:", error);
+    logger.error("❌ Failed to get temporary roles", error);
     return {};
   }
 }
