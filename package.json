@@ -49,12 +49,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/tyecode/role-reactor-bot.git"
+    "url": "https://github.com/tyecode-bots/role-reactor-bot.git"
   },
   "bugs": {
-    "url": "https://github.com/tyecode/role-reactor-bot/issues"
+    "url": "https://github.com/tyecode-bots/role-reactor-bot/issues"
   },
-  "homepage": "https://github.com/tyecode/role-reactor-bot#readme",
+  "homepage": "https://github.com/tyecode-bots/role-reactor-bot#readme",
   "engines": {
     "node": ">=16.0.0",
     "pnpm": ">=8.0.0"
