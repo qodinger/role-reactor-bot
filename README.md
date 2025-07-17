@@ -204,19 +204,6 @@ pnpm docker:logs
 pnpm docker:update
 ```
 
-### PM2 Deployment
-
-```bash
-# Install PM2
-npm install -g pm2
-
-# Start the bot
-pm2 start src/index.js --name role-reactor-bot
-
-# Monitor
-pm2 monit
-```
-
 ### Environment Setup
 
 1. **Create production `.env` file**
