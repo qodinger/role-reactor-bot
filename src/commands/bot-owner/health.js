@@ -3,14 +3,14 @@ import {
   PermissionFlagsBits,
   EmbedBuilder,
 } from "discord.js";
-import { hasAdminPermissions } from "../../utils/permissions.js";
+import { hasBotManagementPermissions } from "../../utils/permissions.js";
 import { getHealthCheck } from "../../utils/healthCheck.js";
 import { getLogger } from "../../utils/logger.js";
 
 export const data = new SlashCommandBuilder()
   .setName("health")
   .setDescription("Check the bot's health and performance status")
-  .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild);
+  .setDefaultMemberPermissions(PermissionFlagsBits.Administrator);
 
 export async function execute(interaction, client) {
   const logger = getLogger();
@@ -20,7 +20,7 @@ export async function execute(interaction, client) {
 
   try {
     // Check permissions
-    if (!hasAdminPermissions(interaction.member)) {
+    if (!hasBotManagementPermissions(interaction.user.id)) {
       logger.warn("Permission denied for health command", {
         userId: interaction.user.id,
         guildId: interaction.guild.id,
@@ -28,7 +28,7 @@ export async function execute(interaction, client) {
 
       return interaction.editReply({
         content:
-          "❌ **Permission Denied**\nYou need administrator permissions to use this command.",
+          "❌ **Permission Denied**\nYou need bot owner/developer permissions to use this command.",
         flags: 64,
       });
     }
