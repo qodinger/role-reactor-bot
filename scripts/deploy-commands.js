@@ -2,8 +2,8 @@ import { REST, Routes } from "discord.js";
 import fs from "fs";
 import path from "path";
 import process from "process";
-import dotenv from "dotenv";
 import { fileURLToPath } from "url";
+import config from "../src/config/config.js";
 import {
   createErrorMessage,
   createInfoBox,
@@ -12,20 +12,12 @@ import {
   icons,
 } from "../src/utils/terminal.js";
 
-dotenv.config();
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Validate environment variables
-const requiredEnvVars = ["DISCORD_TOKEN", "CLIENT_ID"];
-const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
-
-if (missingEnvVars.length > 0) {
-  console.error(createErrorMessage("Missing required environment variables:"));
-  missingEnvVars.forEach(varName => {
-    console.error(colors.error(`   • ${varName}`));
-  });
+if (!config.validate()) {
+  console.error(createErrorMessage("Configuration validation failed"));
   console.error(
     createInfoBox(
       "Check your .env file",
@@ -240,9 +232,7 @@ async function deployCommands() {
     );
 
     // Initialize REST client
-    const rest = new REST({ version: "10" }).setToken(
-      process.env.DISCORD_TOKEN,
-    );
+    const rest = new REST({ version: "10" }).setToken(config.discord.token);
 
     // Determine deployment type
     const isGlobal = process.argv.includes("--global");
@@ -253,21 +243,21 @@ async function deployCommands() {
     if (isGlobal) {
       console.log(`${icons.server} Global`);
     } else {
-      console.log(`${icons.server} Guild: ${process.env.GUILD_ID}`);
+      console.log(`${icons.server} Guild: ${config.discord.guildId}`);
     }
 
     // Remove all commands first
     const spinner = createSpinner("Removing existing commands...");
     spinner.start();
     if (isGlobal) {
-      await rest.put(Routes.applicationCommands(process.env.CLIENT_ID), {
+      await rest.put(Routes.applicationCommands(config.discord.clientId), {
         body: [],
       });
     } else {
       await rest.put(
         Routes.applicationGuildCommands(
-          process.env.CLIENT_ID,
-          process.env.GUILD_ID,
+          config.discord.clientId,
+          config.discord.guildId,
         ),
         { body: [] },
       );
@@ -278,14 +268,14 @@ async function deployCommands() {
     const deploySpinner = createSpinner("Deploying new commands...");
     deploySpinner.start();
     if (isGlobal) {
-      await rest.put(Routes.applicationCommands(process.env.CLIENT_ID), {
+      await rest.put(Routes.applicationCommands(config.discord.clientId), {
         body: commands,
       });
     } else {
       await rest.put(
         Routes.applicationGuildCommands(
-          process.env.CLIENT_ID,
-          process.env.GUILD_ID,
+          config.discord.clientId,
+          config.discord.guildId,
         ),
         {
           body: commands,
@@ -303,7 +293,7 @@ async function deployCommands() {
           `${icons.info} Deployment Type: ${deploymentType}`,
           isGlobal
             ? `${icons.server} Global`
-            : `${icons.server} Guild: ${process.env.GUILD_ID}`,
+            : `${icons.server} Guild: ${config.discord.guildId}`,
           `${icons.time} ${new Date().toLocaleString()}`,
         ],
         { borderColor: "green" },

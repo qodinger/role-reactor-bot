@@ -1,5 +1,6 @@
 import { MongoClient } from "mongodb";
 import { getLogger } from "./logger.js";
+import config from "../config/config.js";
 
 class DatabaseManager {
   constructor() {
@@ -24,25 +25,10 @@ class DatabaseManager {
 
   async _connect() {
     try {
-      const mongoUri = process.env.MONGODB_URI || "mongodb://localhost:27017";
-      const dbName = process.env.MONGODB_DB || "role-reactor-bot";
+      const { uri, name, options } = config.database;
 
       const isAtlas =
-        mongoUri.includes("mongodb+srv://") ||
-        mongoUri.includes(".mongodb.net");
-
-      // Optimized connection options for faster startup
-      const options = {
-        maxPoolSize: 10,
-        minPoolSize: 2,
-        maxIdleTimeMS: 30000,
-        serverSelectionTimeoutMS: 5000, // Faster timeout
-        connectTimeoutMS: 10000, // Faster connection timeout
-        socketTimeoutMS: 45000,
-        retryWrites: true,
-        retryReads: true,
-        w: "majority",
-      };
+        uri.includes("mongodb+srv://") || uri.includes(".mongodb.net");
 
       if (isAtlas) {
         this.logger.info("🔐 Using MongoDB Atlas connection");
@@ -51,10 +37,10 @@ class DatabaseManager {
       }
 
       // Use optimized options for MongoClient
-      this.client = new MongoClient(mongoUri, options);
+      this.client = new MongoClient(uri, options);
       await this.client.connect();
 
-      this.db = this.client.db(dbName);
+      this.db = this.client.db(name);
       this.isConnected = true;
 
       // Create indexes for better performance (non-blocking)
@@ -64,7 +50,7 @@ class DatabaseManager {
         });
       });
 
-      this.logger.success(`✅ Connected to MongoDB database: ${dbName}`);
+      this.logger.success(`✅ Connected to MongoDB database: ${name}`);
       return true;
     } catch (error) {
       this.logger.error("❌ Failed to connect to MongoDB database", error);

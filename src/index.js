@@ -8,7 +8,7 @@ import {
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import dotenv from "dotenv";
+import config from "./config/config.js";
 import RoleExpirationScheduler from "./utils/scheduler.js";
 import { getCommandHandler } from "./utils/commandHandler.js";
 import { getEventHandler } from "./utils/eventHandler.js";
@@ -17,29 +17,25 @@ import { getDatabaseManager } from "./utils/databaseManager.js";
 import { getLogger } from "./utils/logger.js";
 import { getHealthCheck } from "./utils/healthCheck.js";
 
-dotenv.config();
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Validate environment variables
 const validateEnvironment = () => {
   const logger = getLogger();
-  const requiredEnvVars = ["DISCORD_TOKEN", "CLIENT_ID"];
-  const missingEnvVars = requiredEnvVars.filter(
-    varName => !process.env[varName],
-  );
 
-  if (missingEnvVars.length > 0) {
-    logger.error("❌ Missing required environment variables", {
-      missingVars: missingEnvVars,
-    });
-    throw new Error("Missing required environment variables");
+  if (!config.validate()) {
+    logger.error("❌ Configuration validation failed");
+    throw new Error("Configuration validation failed");
   }
+
+  logger.info("✅ Configuration validated successfully");
 };
 
 // Create a new client instance
 const createClient = () => {
+  const { cacheLimits } = config.getAll();
+
   return new Client({
     intents: [
       GatewayIntentBits.Guilds,
@@ -62,12 +58,7 @@ const createClient = () => {
       },
     },
     // Reduce initial cache size
-    makeCache: Options.cacheWithLimits({
-      MessageManager: 25,
-      ChannelManager: 100,
-      GuildManager: 10,
-      UserManager: 100,
-    }),
+    makeCache: Options.cacheWithLimits(cacheLimits),
   });
 };
 
@@ -153,7 +144,7 @@ const loadEvents = async () => {
 
 // Start the bot
 const startBot = async client => {
-  await client.login(process.env.DISCORD_TOKEN);
+  await client.login(config.discord.token);
 };
 
 // Logging functions
@@ -210,11 +201,7 @@ const setupGracefulShutdown = (client, roleScheduler) => {
 
 // Load configuration
 const loadConfig = () => {
-  return {
-    token: process.env.DISCORD_TOKEN,
-    clientId: process.env.CLIENT_ID,
-    guildId: process.env.GUILD_ID,
-  };
+  return config.discord;
 };
 
 // Validate configuration

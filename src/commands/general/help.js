@@ -73,9 +73,7 @@ export default {
             "The command to get help for (e.g. setup-roles, update-roles, etc.)",
           )
           .setRequired(false)
-          .addChoices(
-
-    ), // Placeholder for deploy-commands.js to auto-insert choices
+          .addChoices(), // Placeholder for deploy-commands.js to auto-insert choices
     ),
 
   async execute(interaction, client) {

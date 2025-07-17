@@ -1,12 +1,12 @@
 import { PermissionFlagsBits } from "discord.js";
+import config from "../config/config.js";
 
 // Check if user is a bot owner/developer
 const isBotOwner = userId => {
-  const botOwners = process.env.BOT_OWNERS;
-  if (!botOwners) return false;
+  const botOwners = config.discord.botOwners;
+  if (!botOwners || botOwners.length === 0) return false;
 
-  const ownerIds = botOwners.split(",").map(id => id.trim());
-  return ownerIds.includes(userId);
+  return botOwners.includes(userId);
 };
 
 // Check if user has admin permissions

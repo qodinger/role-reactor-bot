@@ -28,7 +28,8 @@ export async function execute(interaction, client) {
 
     if (!hasBotManagementPermissions(interaction.user.id)) {
       return interaction.editReply({
-        content: "❌ You need bot owner/developer permissions to use this command!",
+        content:
+          "❌ You need bot owner/developer permissions to use this command!",
         flags: 64,
       });
     }
