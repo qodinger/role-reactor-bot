@@ -66,8 +66,8 @@ A production-ready Discord bot for self-assignable roles through reactions. Buil
 
 ## 📖 Documentation
 
-- **[🚀 Deployment Guide](./docs/DEPLOYMENT.md)** - Production deployment instructions
-- **[🤝 Contributing Guidelines](./docs/CONTRIBUTING.md)** - How to contribute
+- **[🚀 Deployment Guide](./docs/DEPLOYMENT.md)** - Production deployment instructions and monitoring
+- **[🤝 Contributing Guidelines](./docs/CONTRIBUTING.md)** - How to contribute to the project
 
 ## 📖 Usage
 
@@ -297,9 +297,9 @@ Enterprise-grade structured logging:
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guidelines](./docs/CONTRIBUTING.md) for details.
+We welcome contributions! Please see our [Contributing Guidelines](./docs/CONTRIBUTING.md) for detailed information.
 
-### Development Setup
+### Quick Development Setup
 
 ```bash
 # Install dependencies
@@ -324,6 +324,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **GitHub Issues**: [Create an issue](https://github.com/tyecode-bots/role-reactor-bot/issues)
 - **Documentation**: [Deployment Guide](./docs/DEPLOYMENT.md)
 - **Contributing**: [Contributing Guidelines](./docs/CONTRIBUTING.md)
+- **Repository**: [GitHub Repository](https://github.com/tyecode-bots/role-reactor-bot)
 
 ---
 

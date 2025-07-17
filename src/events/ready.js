@@ -1,39 +1,24 @@
-import { Events, OAuth2Scopes, ActivityType } from "discord.js";
+import { ActivityType } from "discord.js";
+import { getLogger } from "../utils/logger.js";
+import { createWelcomeBox, createInfoBox } from "../utils/terminal.js";
 
-import {
-  requiredPermissions,
-  formatPermissionName,
-} from "../utils/permissions.js";
-import {
-  createSpinner,
-  createInfoBox,
-  createSuccessMessage,
-  createWelcomeBox,
-} from "../utils/terminal.js";
-import { BOT_VERSION } from "../utils/version.js";
-
-export const name = Events.ClientReady;
-
+export const name = "ready";
 export const once = true;
 
 export async function execute(client) {
-  // Create a beautiful startup spinner
-  const spinner = createSpinner("Initializing Role Reactor Bot...");
-  spinner.start();
+  const logger = getLogger();
 
-  // Simulate a brief loading time for visual effect
-  await new Promise(resolve => {
-    setTimeout(resolve, 1500).unref();
+  // Log bot startup
+  const titleText = `🤖 Role Reactor Bot 🤖`;
+  const titleBox = createWelcomeBox(titleText, "cristal");
+  logger.info(titleBox);
+
+  // Set bot activity
+  client.user.setActivity("role reactions", {
+    type: ActivityType.Watching,
   });
 
-  spinner.succeed("Bot initialized successfully!");
-
-  // Welcome section using terminal.js utility
-  const titleText = `🤖 Role Reactor Bot v${BOT_VERSION} 🤖`;
-  const titleBox = createWelcomeBox(titleText, "cristal");
-  console.log(titleBox);
-
-  // Print bot statistics (aligned)
+  // Log bot statistics
   const stats = {
     botName: client.user.tag,
     botId: client.user.id,
@@ -56,64 +41,44 @@ export async function execute(client) {
   const statsBox = createInfoBox("📊 Bot Status", statLines, {
     borderColor: "cyan",
   });
-  console.log(statsBox);
+  logger.info(statsBox);
 
-  // Set bot status
-  const activities = [
-    { name: "role reactions", type: ActivityType.Watching },
-    { name: "/help for commands", type: ActivityType.Playing },
-    {
-      name: `${client.guilds.cache.size} servers`,
-      type: ActivityType.Watching,
-    },
-  ];
+  // Generate invite link
+  try {
+    const inviteLink = client.generateInvite({
+      permissions: [
+        "ManageRoles",
+        "ManageMessages",
+        "AddReactions",
+        "ReadMessageHistory",
+        "ViewChannel",
+      ],
+      scopes: ["bot"],
+    });
 
-  let activityIndex = 0;
+    // Create invite link section
+    const inviteSection = [
+      `🔗 Bot Invite Link:`,
+      inviteLink,
+      "",
+      `📋 Required Permissions:`,
+      `   • Manage Roles`,
+      `   • Manage Messages`,
+      `   • Add Reactions`,
+      `   • Read Message History`,
+      `   • View Channel`,
+    ];
 
-  // Check if setActivity method exists before calling
-  if (client.user && typeof client.user.setActivity === "function") {
-    client.user.setActivity(activities[activityIndex]);
-
-    // Rotate status every 30 seconds
-    setInterval(() => {
-      activityIndex = (activityIndex + 1) % activities.length;
-      client.user.setActivity(activities[activityIndex]);
-    }, 30000).unref();
+    const inviteBox = createInfoBox("🔗 Invitation Details", inviteSection, {
+      borderColor: "green",
+    });
+    logger.info(inviteBox);
+  } catch (error) {
+    logger.error("Error generating invite link", error);
   }
 
-  // Generate and log OAuth2 invite link with required permissions
-  let inviteLink = "";
-  if (client && typeof client.generateInvite === "function") {
-    try {
-      inviteLink = await client.generateInvite({
-        scopes: [OAuth2Scopes.Bot, OAuth2Scopes.ApplicationsCommands],
-        permissions: requiredPermissions,
-      });
-    } catch (error) {
-      console.error("Error generating invite link", error);
-      inviteLink = "Error generating invite link";
-    }
-  } else {
-    inviteLink = "Invite link generation not available";
-  }
-
-  // Create invite link section
-  const inviteSection = [
-    `🔗 Bot Invite Link:`,
-    inviteLink,
-    "",
-    `📋 Required Permissions:`,
-    ...requiredPermissions.map(perm => `   • ${formatPermissionName(perm)}`),
-  ];
-
-  const inviteBox = createInfoBox("🔗 Invitation Details", inviteSection, {
-    borderColor: "green",
-  });
-
-  console.log(inviteBox);
-
-  // Final success message
-  const successMessage = createSuccessMessage("🚀 Bot is ready to serve!");
-  console.log(successMessage);
-  console.log("");
+  // Log success message
+  const successMessage = "✅ Bot is ready to handle role reactions!";
+  logger.success(successMessage);
+  logger.info(""); // Empty line for readability
 }

@@ -252,26 +252,44 @@ class HealthCheck {
   }
 
   /**
-   * Get health check summary for commands
+   * Get health check summary for production monitoring
    * @param {Client} client - Discord client
-   * @returns {Promise<Object>} - Health summary
+   * @returns {Promise<Object>} - Health summary for production
    */
   async getHealthSummary(client) {
-    const healthCheck = await this.runHealthChecks(client);
+    try {
+      const checks = await this.runHealthChecks(client);
 
-    const summary = {
-      overall: healthCheck.status,
-      checks: {},
-    };
+      // Production-ready health summary
+      const summary = {
+        status: checks.status,
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        version: process.env.npm_package_version || "1.0.0",
+        environment: process.env.NODE_ENV || "development",
+        checks: {
+          database: checks.checks?.database?.status || "unknown",
+          memory: checks.checks?.memory?.status || "unknown",
+          performance: checks.checks?.performance?.status || "unknown",
+          discord_api: checks.checks?.discord_api?.status || "unknown",
+        },
+        metrics: {
+          guilds: client?.guilds?.cache?.size || 0,
+          users: client?.users?.cache?.size || 0,
+          ping: client?.ws?.ping || 0,
+          memory: process.memoryUsage(),
+        },
+      };
 
-    for (const [name, result] of Object.entries(healthCheck.checks)) {
-      summary.checks[name] = {
-        status: result.status,
-        details: this.formatCheckDetails(name, result),
+      return summary;
+    } catch (error) {
+      this.logger.error("Failed to generate health summary", error);
+      return {
+        status: "error",
+        error: error.message,
+        timestamp: new Date().toISOString(),
       };
     }
-
-    return summary;
   }
 
   /**

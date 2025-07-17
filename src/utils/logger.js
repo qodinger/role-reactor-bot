@@ -1,4 +1,7 @@
 import chalk from "chalk";
+import fs from "fs";
+import path from "path";
+import config from "../config/config.js";
 
 /**
  * Log levels and their configurations
@@ -16,10 +19,11 @@ const LOG_LEVELS = {
  */
 class Logger {
   constructor() {
-    this.logLevel = process.env.LOG_LEVEL || "INFO";
+    const { level, file, console: enableConsole } = config.logging;
+    this.logLevel = level;
     this.maxLogLevel = LOG_LEVELS[this.logLevel]?.level || 2;
-    this.logFile = process.env.LOG_FILE;
-    this.enableConsole = process.env.LOG_CONSOLE !== "false";
+    this.logFile = file;
+    this.enableConsole = enableConsole;
     this.enableFile = !!this.logFile;
   }
 
@@ -60,9 +64,6 @@ class Logger {
     if (!this.enableFile || !this.logFile) return;
 
     try {
-      const fs = require("fs");
-      const path = require("path");
-
       // Ensure log directory exists
       const logDir = path.dirname(this.logFile);
       if (!fs.existsSync(logDir)) {
@@ -233,6 +234,24 @@ class Logger {
    */
   logShutdown(shutdownData) {
     this.info("Bot shutting down", shutdownData);
+  }
+
+  /**
+   * Get logging configuration based on environment
+   * @returns {Object} Logging configuration
+   */
+  getLoggingConfig() {
+    const isProduction = process.env.NODE_ENV === "production";
+
+    return {
+      level: process.env.LOG_LEVEL || (isProduction ? "WARN" : "INFO"),
+      file: process.env.LOG_FILE,
+      console: process.env.LOG_CONSOLE !== "false",
+      // Reduce console output in production
+      consoleLevel: isProduction ? "WARN" : "INFO",
+      // Enable file logging in production
+      fileLevel: isProduction ? "INFO" : "DEBUG",
+    };
   }
 }
 
