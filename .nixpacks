@@ -1,8 +1,0 @@
-[phases.setup]
-nixPkgs = ["nodejs"]
-
-[phases.install]
-cmds = ["npm install -g pnpm", "pnpm install --frozen-lockfile"]
-
-[start]
-cmd = "node src/index.js" 
