@@ -4,7 +4,6 @@ import {
   EmbedBuilder,
 } from "discord.js";
 import { hasBotManagementPermissions } from "../../utils/permissions.js";
-import { getHealthCheck } from "../../utils/healthCheck.js";
 import { getLogger } from "../../utils/logger.js";
 
 export const data = new SlashCommandBuilder()
@@ -33,10 +32,6 @@ export async function execute(interaction, client) {
       });
     }
 
-    // Get health check results
-    const healthCheck = getHealthCheck();
-    const healthSummary = await healthCheck.getHealthSummary(client);
-
     // Create health status embed
     const embed = new EmbedBuilder()
       .setTitle("🏥 Bot Health Status")
@@ -46,61 +41,57 @@ export async function execute(interaction, client) {
         iconURL: client.user.displayAvatarURL(),
       });
 
-    // Set color based on overall status
-    const statusColors = {
-      healthy: "#00FF00",
-      warning: "#FFA500",
-      error: "#FF0000",
+    // Basic health checks
+    const checks = {
+      bot_ready: client.user ? "✅ Ready" : "❌ Not Ready",
+      websocket: client.ws.ping < 200 ? "✅ Good" : "⚠️ High Ping",
+      uptime: client.uptime
+        ? `${Math.floor(client.uptime / 1000 / 60)} minutes`
+        : "Unknown",
+      guilds: `${client.guilds.cache.size} servers`,
+      memory: `${(process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2)} MB`,
     };
 
-    embed.setColor(statusColors[healthSummary.overall] || "#808080");
+    // Determine overall status
+    const hasErrors = checks.bot_ready.includes("❌");
+    const hasWarnings = checks.websocket.includes("⚠️");
+
+    let overallStatus = "healthy";
+    let statusColor = "#00FF00";
+    let statusEmoji = "✅";
+
+    if (hasErrors) {
+      overallStatus = "error";
+      statusColor = "#FF0000";
+      statusEmoji = "❌";
+    } else if (hasWarnings) {
+      overallStatus = "warning";
+      statusColor = "#FFA500";
+      statusEmoji = "⚠️";
+    }
+
+    embed.setColor(statusColor);
 
     // Add overall status
-    const statusEmoji = {
-      healthy: "✅",
-      warning: "⚠️",
-      error: "❌",
-    };
-
     embed.addFields({
       name: "📊 Overall Status",
-      value: `${statusEmoji[healthSummary.overall]} **${healthSummary.overall.toUpperCase()}**`,
+      value: `${statusEmoji} **${overallStatus.toUpperCase()}**`,
       inline: false,
     });
 
     // Add individual check results
-    for (const [checkName, checkResult] of Object.entries(
-      healthSummary.checks,
-    )) {
-      const checkEmoji = {
-        healthy: "✅",
-        warning: "⚠️",
-        error: "❌",
-      };
-
+    for (const [checkName, checkResult] of Object.entries(checks)) {
       embed.addFields({
-        name: `${checkEmoji[checkResult.status]} ${checkName.replace(/_/g, " ").toUpperCase()}`,
-        value: checkResult.details,
+        name: `${checkName.replace(/_/g, " ").toUpperCase()}`,
+        value: checkResult,
         inline: true,
       });
     }
 
-    // Add performance metrics
-    const performanceMonitor = getHealthCheck();
-    const lastCheck = performanceMonitor.getLastHealthCheck();
-
-    if (lastCheck) {
-      embed.addFields({
-        name: "⏱️ Last Check",
-        value: `Duration: ${lastCheck.duration}\nTime: ${new Date(lastCheck.timestamp).toLocaleTimeString()}`,
-        inline: true,
-      });
-    }
-
-    // Add bot info
+    // Add additional info
     embed.addFields({
       name: "🤖 Bot Information",
-      value: `**Uptime:** ${client.uptime ? `${Math.floor(client.uptime / 1000 / 60)} minutes` : "Unknown"}\n**Ping:** ${client.ws.ping}ms\n**Guilds:** ${client.guilds.cache.size}`,
+      value: `**Ping:** ${client.ws.ping}ms\n**Environment:** ${process.env.NODE_ENV || "development"}\n**Node.js:** ${process.version}`,
       inline: true,
     });
 
@@ -111,18 +102,14 @@ export async function execute(interaction, client) {
 
     // Log command execution
     const duration = Date.now() - startTime;
-    logger.logCommand("health", interaction.user.id, duration, true);
-
     logger.info("Health check command executed", {
       userId: interaction.user.id,
       guildId: interaction.guild.id,
-      overallStatus: healthSummary.overall,
+      overallStatus,
       duration: `${duration}ms`,
     });
   } catch (error) {
-    const duration = Date.now() - startTime;
     logger.error("Error executing health command", error);
-    logger.logCommand("health", interaction.user.id, duration, false);
 
     await interaction.editReply({
       content:
