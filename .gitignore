@@ -10,11 +10,6 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# Package managers
-package-lock.json
-yarn.lock
-pnpm-lock.yaml
-
 # =============================================================================
 # ENVIRONMENT & CONFIGURATION
 # =============================================================================
