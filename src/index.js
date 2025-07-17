@@ -16,6 +16,7 @@ import { getPerformanceMonitor } from "./utils/performanceMonitor.js";
 import { getDatabaseManager } from "./utils/databaseManager.js";
 import { getLogger } from "./utils/logger.js";
 import { getHealthCheck } from "./utils/healthCheck.js";
+import HealthServer from "./utils/healthServer.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -254,6 +255,10 @@ const main = async () => {
   try {
     validateEnvironment();
     logStartup();
+
+    // Start health check server for Railway
+    const healthServer = new HealthServer();
+    healthServer.start();
 
     // Initialize all systems
     const systemsInitStart = Date.now();
