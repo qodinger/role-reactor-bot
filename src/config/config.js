@@ -132,8 +132,6 @@ class Config {
   get cacheLimits() {
     return {
       MessageManager: 25,
-      ChannelManager: 100,
-      GuildManager: 10,
       UserManager: 100,
     };
   }
