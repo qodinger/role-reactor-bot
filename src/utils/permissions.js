@@ -1,5 +1,14 @@
 import { PermissionFlagsBits } from "discord.js";
 
+// Check if user is a bot owner/developer
+const isBotOwner = userId => {
+  const botOwners = process.env.BOT_OWNERS;
+  if (!botOwners) return false;
+
+  const ownerIds = botOwners.split(",").map(id => id.trim());
+  return ownerIds.includes(userId);
+};
+
 // Check if user has admin permissions
 const hasAdminPermissions = member => {
   return (
@@ -7,6 +16,11 @@ const hasAdminPermissions = member => {
     member.permissions.has(PermissionFlagsBits.ManageRoles) ||
     member.permissions.has(PermissionFlagsBits.ManageGuild)
   );
+};
+
+// Check if user has bot management permissions (owner/developer)
+const hasBotManagementPermissions = userId => {
+  return isBotOwner(userId);
 };
 
 // Check if user has manage roles permission
@@ -96,6 +110,8 @@ const getRequiredPermissions = commandName => {
 
 export {
   hasAdminPermissions,
+  hasBotManagementPermissions,
+  isBotOwner,
   hasManageRolesPermission,
   hasManageMessagesPermission,
   botHasRequiredPermissions,

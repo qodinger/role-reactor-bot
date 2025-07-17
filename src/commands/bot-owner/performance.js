@@ -3,7 +3,7 @@ import {
   PermissionFlagsBits,
   EmbedBuilder,
 } from "discord.js";
-import { hasAdminPermissions } from "../../utils/permissions.js";
+import { hasBotManagementPermissions } from "../../utils/permissions.js";
 import { getPerformanceMonitor } from "../../utils/performanceMonitor.js";
 import { getCommandHandler } from "../../utils/commandHandler.js";
 import { THEME_COLOR } from "../../config/theme.js";
@@ -26,9 +26,9 @@ export async function execute(interaction, client) {
 
     await interaction.deferReply({ flags: 64 });
 
-    if (!hasAdminPermissions(interaction.member)) {
+    if (!hasBotManagementPermissions(interaction.user.id)) {
       return interaction.editReply({
-        content: "❌ You need administrator permissions to use this command!",
+        content: "❌ You need bot owner/developer permissions to use this command!",
         flags: 64,
       });
     }

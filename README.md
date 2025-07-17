@@ -27,22 +27,26 @@ A production-ready Discord bot for self-assignable roles through reactions. Buil
 ### Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/tyecode-bots/role-reactor-bot.git
    cd role-reactor-bot
    ```
 
 2. **Install dependencies**
+
    ```bash
    pnpm install
    ```
 
 3. **Configure environment variables**
+
    ```bash
    cp env.example .env
    ```
-   
+
    Edit `.env` with your configuration:
+
    ```env
    DISCORD_TOKEN=your_bot_token_here
    CLIENT_ID=your_client_id_here
@@ -50,6 +54,7 @@ A production-ready Discord bot for self-assignable roles through reactions. Buil
    ```
 
 4. **Deploy slash commands**
+
    ```bash
    pnpm run deploy-commands
    ```
@@ -71,11 +76,13 @@ A production-ready Discord bot for self-assignable roles through reactions. Buil
 Create role-reaction messages using the `/setup-roles` command:
 
 **Simple format:**
+
 ```
 /setup-roles title:"Server Roles" description:"Choose your roles by reacting!" roles:"🎮:Gamer,🎨:Artist,💻:Developer"
 ```
 
 **With categories:**
+
 ```
 /setup-roles title:"Server Roles" description:"Choose your roles by reacting!" roles:"#Gaming\n🎮:Gamer,🎲:Board Games\n#Music\n🎵:Music Lover,🎸:Guitarist"
 ```
@@ -85,37 +92,52 @@ Create role-reaction messages using the `/setup-roles` command:
 Assign temporary roles that auto-expire:
 
 **Assign a temporary role:**
+
 ```
 /assign-temp-role user:@username role:@EventRole duration:"2h" reason:"Event participation"
 ```
 
 **Duration formats:**
+
 - `30m` - 30 minutes
-- `2h` - 2 hours  
+- `2h` - 2 hours
 - `1d` - 1 day
 - `1w` - 1 week
 
 ### Available Commands
 
-| Command | Description | Permissions |
-|---------|-------------|-------------|
-| `/setup-roles` | Create a role-reaction message | Manage Roles |
-| `/update-roles` | Update an existing message | Manage Roles |
-| `/delete-roles` | Delete a role-reaction message | Manage Roles |
-| `/list-roles` | List all role-reaction messages | Manage Roles |
-| `/assign-temp-role` | Assign a temporary role | Manage Roles |
-| `/list-temp-roles` | List temporary roles | Manage Roles |
-| `/remove-temp-role` | Remove a temporary role | Manage Roles |
-| `/health` | Check bot health status | Administrator |
-| `/performance` | View performance metrics | Administrator |
-| `/help` | Display bot information | None |
+#### Server Management Commands
+
+| Command             | Description                     | Permissions  |
+| ------------------- | ------------------------------- | ------------ |
+| `/setup-roles`      | Create a role-reaction message  | Manage Roles |
+| `/update-roles`     | Update an existing message      | Manage Roles |
+| `/delete-roles`     | Delete a role-reaction message  | Manage Roles |
+| `/list-roles`       | List all role-reaction messages | Manage Roles |
+| `/assign-temp-role` | Assign a temporary role         | Manage Roles |
+| `/list-temp-roles`  | List temporary roles            | Manage Roles |
+| `/remove-temp-role` | Remove a temporary role         | Manage Roles |
+
+#### Bot Management Commands
+
+| Command        | Description              | Permissions         |
+| -------------- | ------------------------ | ------------------- |
+| `/health`      | Check bot health status  | Bot Owner/Developer |
+| `/performance` | View performance metrics | Bot Owner/Developer |
+
+#### General Commands
+
+| Command | Description             | Permissions |
+| ------- | ----------------------- | ----------- |
+| `/help` | Display bot information | None        |
 
 ## 🏗️ Architecture
 
 ```
 src/
 ├── commands/          # Slash command handlers
-│   ├── admin/        # Administrative commands
+│   ├── admin/        # Server administrative commands
+│   ├── bot-owner/    # Bot management commands
 │   └── general/      # General commands
 ├── events/           # Discord event listeners
 ├── utils/            # Utility functions
@@ -131,19 +153,21 @@ src/
 
 ### Environment Variables
 
-| Variable | Description | Required | Default |
-|----------|-------------|----------|---------|
-| `DISCORD_TOKEN` | Discord bot token | Yes | - |
-| `CLIENT_ID` | Discord application client ID | Yes | - |
-| `MONGODB_URI` | MongoDB connection URI | No | `mongodb://localhost:27017` |
-| `MONGODB_DB` | MongoDB database name | No | `role-reactor-bot` |
-| `LOG_LEVEL` | Log level (ERROR, WARN, INFO, DEBUG) | No | `INFO` |
-| `LOG_FILE` | Log file path | No | Console only |
-| `LOG_CONSOLE` | Enable console logging | No | `true` |
+| Variable        | Description                          | Required | Default                     |
+| --------------- | ------------------------------------ | -------- | --------------------------- |
+| `DISCORD_TOKEN` | Discord bot token                    | Yes      | -                           |
+| `CLIENT_ID`     | Discord application client ID        | Yes      | -                           |
+| `MONGODB_URI`   | MongoDB connection URI               | No       | `mongodb://localhost:27017` |
+| `MONGODB_DB`    | MongoDB database name                | No       | `role-reactor-bot`          |
+| `LOG_LEVEL`     | Log level (ERROR, WARN, INFO, DEBUG) | No       | `INFO`                      |
+| `LOG_FILE`      | Log file path                        | No       | Console only                |
+| `LOG_CONSOLE`   | Enable console logging               | No       | `true`                      |
+| `BOT_OWNERS`    | Bot owner/developer user IDs         | No       | -                           |
 
 ### Bot Permissions
 
 Required Discord bot permissions:
+
 - **Manage Roles**: To assign/remove roles
 - **Manage Messages**: To add reactions
 - **Add Reactions**: To add emoji reactions
@@ -159,6 +183,7 @@ The bot uses **MongoDB** for data storage:
 - **Cloud-ready** with MongoDB Atlas support
 
 **Setup options:**
+
 - **Local MongoDB**: `mongodb://localhost:27017`
 - **MongoDB Atlas**: `mongodb+srv://username:password@cluster.mongodb.net`
 - **Docker**: `mongodb://mongodb:27017`
@@ -196,9 +221,53 @@ pm2 monit
 
 1. **Create production `.env` file**
 2. **Set up MongoDB** (local or Atlas)
-3. **Deploy slash commands** globally
-4. **Start the bot** with your preferred method
-5. **Monitor health** with `/health` command
+3. **Configure bot owners** (see Bot Owner Setup below)
+4. **Deploy slash commands** globally
+5. **Start the bot** with your preferred method
+6. **Monitor health** with `/health` command
+
+### Bot Owner Setup
+
+To use bot management commands (`/health`, `/performance`), you need to configure bot owners:
+
+#### Step 1: Find Your Discord User ID
+
+1. **Open Discord** (desktop app or web)
+2. **Go to User Settings** (gear icon in bottom left)
+3. **Scroll down and click 'Advanced'**
+4. **Enable 'Developer Mode'** (toggle switch)
+5. **Go to any channel or server**
+6. **Right-click your username**
+7. **Select 'Copy ID'** from the context menu
+
+Your User ID will look like: `123456789012345678` (17-19 digits)
+
+#### Step 2: Add to Environment Variables
+
+Add your User ID to your `.env` file:
+
+```env
+BOT_OWNERS=123456789012345678
+```
+
+**For multiple bot owners**, separate with commas:
+
+```env
+BOT_OWNERS=123456789012345678,987654321098765432
+```
+
+#### Step 3: Restart the Bot
+
+After adding the `BOT_OWNERS` variable, restart your bot for the changes to take effect.
+
+#### Troubleshooting
+
+If you can't find your User ID:
+
+- Make sure Developer Mode is enabled
+- Try right-clicking your username in different places
+- Check if you're using the latest Discord version
+- If using Discord web, try the desktop app instead
 
 ## 📊 Monitoring
 
