@@ -257,7 +257,7 @@ const main = async () => {
     validateEnvironment();
     logStartup();
 
-    // Start health check server for Railway
+    // Start health check server
     const healthServer = new HealthServer();
     healthServer.start();
 

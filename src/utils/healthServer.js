@@ -2,7 +2,7 @@ import http from "http";
 import { getLogger } from "./logger.js";
 
 /**
- * Simple HTTP server for Railway health checks
+ * Simple HTTP server for health checks
  */
 class HealthServer {
   constructor() {
