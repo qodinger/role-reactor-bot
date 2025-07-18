@@ -1,13 +1,13 @@
-import { getDatabaseManager } from "./databaseManager.js";
+import { getStorageManager } from "./storageManager.js";
 import { getLogger } from "./logger.js";
 
-// Get expired temporary roles from database
+// Get expired temporary roles from storage
 const getExpiredTemporaryRoles = async () => {
   const logger = getLogger();
 
   try {
-    const dbManager = await getDatabaseManager();
-    const tempRoles = await dbManager.getTemporaryRoles();
+    const storageManager = await getStorageManager();
+    const tempRoles = await storageManager.getTemporaryRoles();
     const expiredRoles = [];
 
     for (const [guildId, guildRoles] of Object.entries(tempRoles)) {
@@ -240,10 +240,10 @@ class RoleExpirationScheduler {
             `✅ Removed expired role "${role.name}" from ${member.user.tag} in ${guild.name}`,
           );
 
-          // Remove the expired role record from the database
+          // Remove the expired role record from storage
           try {
-            const dbManager = await getDatabaseManager();
-            await dbManager.removeTemporaryRole(
+            const storageManager = await getStorageManager();
+            await storageManager.removeTemporaryRole(
               expiredRole.guildId,
               expiredRole.userId,
               expiredRole.roleId,

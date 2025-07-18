@@ -28,7 +28,7 @@ pnpm docker:logs
 
 2. **Deploy slash commands**
    ```bash
-   pnpm run deploy-commands
+   pnpm run deploy:commands
    ```
 
 3. **Start the bot**
@@ -185,6 +185,102 @@ pnpm install
 
 # Start the bot
 pnpm start
+```
+
+## 🖥️ VPS Deployment
+
+### Prerequisites
+- Ubuntu 20.04+ or similar Linux distribution
+- SSH access to your VPS
+- Git installed on your VPS
+
+### VPS Provider Recommendations
+- **DigitalOcean**: $5/month (1GB RAM, 1 CPU, 25GB SSD)
+- **Linode**: $5/month (1GB RAM, 1 CPU, 25GB SSD)
+- **Vultr**: $2.50/month (512MB RAM, 1 CPU, 10GB SSD)
+
+### Recommended Specs
+- **RAM**: 1GB minimum (2GB recommended)
+- **CPU**: 1 core minimum
+- **Storage**: 20GB+ SSD
+- **Bandwidth**: 1TB+ monthly
+
+### Step 1: Server Setup
+```bash
+# Connect to your VPS
+ssh root@your-server-ip
+
+# Update system
+apt update && apt upgrade -y
+
+# Install Docker
+curl -fsSL https://get.docker.com -o get-docker.sh
+sh get-docker.sh
+
+# Install Docker Compose
+apt-get install docker-compose-plugin
+
+# Create non-root user (recommended)
+adduser botuser
+usermod -aG docker botuser
+```
+
+### Step 2: Deploy the Bot
+```bash
+# Clone the repository
+git clone https://github.com/your-username/role-reactor-bot.git
+cd role-reactor-bot
+
+# Set up environment variables
+cp env.example .env
+nano .env
+
+# Run the deployment script
+chmod +x scripts/deploy.sh
+./scripts/deploy.sh
+```
+
+### Step 3: Auto-Start Setup
+```bash
+# Create systemd service
+sudo nano /etc/systemd/system/role-reactor-bot.service
+```
+
+Add the following content:
+```ini
+[Unit]
+Description=Role Reactor Bot
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/home/botuser/role-reactor-bot
+ExecStart=/usr/local/bin/docker-compose up -d
+ExecStop=/usr/local/bin/docker-compose down
+TimeoutStartSec=0
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+# Enable and start service
+systemctl enable role-reactor-bot.service
+systemctl start role-reactor-bot.service
+```
+
+### Step 4: Security Setup
+```bash
+# Firewall setup
+ufw allow ssh
+ufw allow 3000
+ufw enable
+
+# Regular updates (add to crontab)
+crontab -e
+# Add: 0 2 * * 0 /home/botuser/role-reactor-bot/scripts/update.sh
 ```
 
 ## 📈 Performance

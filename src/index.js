@@ -13,7 +13,7 @@ import RoleExpirationScheduler from "./utils/scheduler.js";
 import { getCommandHandler } from "./utils/commandHandler.js";
 import { getEventHandler } from "./utils/eventHandler.js";
 import { getPerformanceMonitor } from "./utils/performanceMonitor.js";
-import { getDatabaseManager } from "./utils/databaseManager.js";
+import { getStorageManager } from "./utils/storageManager.js";
 import { getLogger } from "./utils/logger.js";
 import { getHealthCheck } from "./utils/healthCheck.js";
 import HealthServer from "./utils/healthServer.js";
@@ -173,13 +173,13 @@ const setupGracefulShutdown = (client, roleScheduler) => {
     // Stop the role scheduler
     if (roleScheduler) roleScheduler.stop();
 
-    // Close database connections
+    // Close storage connections
     try {
-      const dbManager = await getDatabaseManager();
-      await dbManager.close();
-      logger.success("Database connections closed");
+      const storageManager = await getStorageManager();
+      await storageManager.close();
+      logger.success("Storage connections closed");
     } catch (error) {
-      logger.error("Error closing database", error);
+      logger.error("Error closing storage", error);
     }
 
     // Log final performance metrics
@@ -217,14 +217,15 @@ const initializeSystems = async () => {
 
   // Initialize all systems in parallel for faster startup
   const [
-    dbManager,
+    storageManager,
     performanceMonitor,
     commandHandler,
     eventHandler,
     healthCheck,
   ] = await Promise.all([
-    getDatabaseManager().catch(error => {
-      logger.error("❌ Failed to initialize database manager", error);
+    getStorageManager().catch(error => {
+      console.error("❌ Storage manager error:", error);
+      logger.error("❌ Failed to initialize storage manager", error);
       throw error;
     }),
     Promise.resolve(getPerformanceMonitor()),
@@ -233,14 +234,14 @@ const initializeSystems = async () => {
     Promise.resolve(getHealthCheck()),
   ]);
 
-  logger.success("✅ Database manager initialized");
+  logger.success("✅ Storage manager initialized");
   logger.success("✅ Performance monitor initialized");
   logger.success("✅ Command handler initialized");
   logger.success("✅ Event handler initialized");
   logger.success("✅ Health check system initialized");
 
   return {
-    dbManager,
+    storageManager,
     performanceMonitor,
     commandHandler,
     eventHandler,
