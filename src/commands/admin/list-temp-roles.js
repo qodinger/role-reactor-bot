@@ -10,7 +10,6 @@ import {
   formatPermissionName,
 } from "../../utils/permissions.js";
 import {
-  getUserTemporaryRoles,
   formatRemainingTime,
   getTemporaryRoles,
   getTemporaryRolesByUser,
@@ -97,6 +96,10 @@ export async function execute(interaction, client) {
 
   await interaction.deferReply({ flags: 64 });
   try {
+    // Force clear cache to get fresh data
+    const { getStorageManager } = await import("../../utils/storageManager.js");
+    const storageManager = await getStorageManager();
+    storageManager._clearCache();
     if (!hasAdminPermissions(interaction.member)) {
       return interaction.editReply({
         content:
@@ -116,10 +119,13 @@ export async function execute(interaction, client) {
     }
     const targetUser = interaction.options.getUser("user");
     if (targetUser) {
-      const tempRoles = await getUserTemporaryRoles(
-        interaction.guild.id,
-        targetUser.id,
-      );
+      const userTempRoles = await getTemporaryRoles(interaction.guild.id);
+      const userRoles = userTempRoles[targetUser.id] || {};
+      const tempRoles = Object.entries(userRoles).map(([roleId, roleData]) => ({
+        roleId,
+        ...roleData,
+      }));
+
       if (tempRoles.length === 0) {
         return interaction.editReply({
           content: `📋 **No Temporary Roles**\n${targetUser} has no temporary roles assigned.`,
@@ -141,12 +147,21 @@ export async function execute(interaction, client) {
         const roleName = role ? role.name : `Unknown Role (${tempRole.roleId})`;
         const expiresAt = new Date(tempRole.expiresAt);
         const remainingTime = formatRemainingTime(tempRole.expiresAt);
-        const addedAt = new Date(tempRole.addedAt);
+
+        // Handle createdAt date safely
+        let addedAtText = "Unknown";
+        if (tempRole.createdAt) {
+          const addedAt = new Date(tempRole.createdAt);
+          if (!isNaN(addedAt.getTime())) {
+            addedAtText = `<t:${Math.floor(addedAt.getTime() / 1000)}:R>`;
+          }
+        }
+
         embed.addFields({
           name: `🎭 ${roleName}`,
           value: [
             `**Role:** ${role || `Unknown (${tempRole.roleId})`}`,
-            `**Added:** <t:${Math.floor(addedAt.getTime() / 1000)}:R>`,
+            `**Added:** ${addedAtText}`,
             `**Expires:** <t:${Math.floor(expiresAt.getTime() / 1000)}:F>`,
             `**Time Left:** ${remainingTime}`,
           ].join("\n"),
@@ -158,12 +173,14 @@ export async function execute(interaction, client) {
         flags: 64,
       });
     } else {
-      const { getExpiredTemporaryRoles } = await import(
-        "../../utils/temporaryRoles.js"
-      );
-      const allTempRoles = await getExpiredTemporaryRoles();
-      const guildTempRoles = allTempRoles.filter(
-        role => role.guildId === interaction.guild.id,
+      const allTempRoles = await getTemporaryRoles(interaction.guild.id);
+      const guildTempRoles = Object.entries(allTempRoles).flatMap(
+        ([userId, roles]) =>
+          Object.entries(roles).map(([roleId, roleData]) => ({
+            userId,
+            roleId,
+            ...roleData,
+          })),
       );
       if (guildTempRoles.length === 0) {
         return interaction.editReply({

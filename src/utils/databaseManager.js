@@ -27,6 +27,12 @@ class DatabaseManager {
     try {
       const { uri, name, options } = config.database;
 
+      this.logger.info("🔌 Attempting to connect to MongoDB...");
+      this.logger.info(
+        `📍 Connection URI: ${uri.replace(/\/\/[^:]+:[^@]+@/, "//***:***@")}`,
+      ); // Hide credentials
+      this.logger.info(`📊 Database name: ${name}`);
+
       const isAtlas =
         uri.includes("mongodb+srv://") || uri.includes(".mongodb.net");
 
@@ -38,12 +44,25 @@ class DatabaseManager {
 
       // Use optimized options for MongoClient
       this.client = new MongoClient(uri, options);
-      await this.client.connect();
+
+      this.logger.info("⏳ Connecting to MongoDB...");
+
+      // Add timeout to prevent hanging
+      const connectionPromise = this.client.connect();
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error("MongoDB connection timeout after 15 seconds"));
+        }, 15000); // 15 second timeout
+      });
+
+      await Promise.race([connectionPromise, timeoutPromise]);
+      this.logger.success("✅ MongoDB connection established");
 
       this.db = this.client.db(name);
       this.isConnected = true;
 
       // Create indexes for better performance (non-blocking)
+      this.logger.info("🔧 Creating database indexes...");
       this._createIndexes().catch(error => {
         this.logger.warn("⚠️ Index creation failed (non-critical)", {
           error: error.message,
@@ -54,8 +73,12 @@ class DatabaseManager {
       return true;
     } catch (error) {
       this.logger.error("❌ Failed to connect to MongoDB database", error);
+      this.logger.warn("⚠️ Continuing without database connection");
+      this.logger.info(
+        "💡 To enable database features, ensure MongoDB is running or set a valid MONGODB_URI",
+      );
       this.isConnected = false;
-      throw error;
+      return true; // Don't throw error, continue without database
     }
   }
 
@@ -63,6 +86,7 @@ class DatabaseManager {
     const roleMappingsCollection = this.db.collection("role_mappings");
     const temporaryRolesCollection = this.db.collection("temporary_roles");
 
+    this.logger.info("📋 Creating role_mappings indexes...");
     // Role mappings indexes
     await roleMappingsCollection.createIndex(
       { messageId: 1 },
@@ -71,6 +95,7 @@ class DatabaseManager {
     await roleMappingsCollection.createIndex({ guildId: 1 });
     await roleMappingsCollection.createIndex({ updatedAt: 1 });
 
+    this.logger.info("📋 Creating temporary_roles indexes...");
     // Temporary roles indexes
     await temporaryRolesCollection.createIndex({ guildId: 1, userId: 1 });
     await temporaryRolesCollection.createIndex({ expiresAt: 1 });
@@ -79,6 +104,8 @@ class DatabaseManager {
       { unique: true },
     );
     await temporaryRolesCollection.createIndex({ createdAt: 1 });
+
+    this.logger.success("✅ Database indexes created successfully");
   }
 
   // Cache management
@@ -111,6 +138,11 @@ class DatabaseManager {
 
   // Role mappings methods
   async getRoleMappings() {
+    if (!this.isConnected) {
+      this.logger.warn("⚠️ Database not connected, returning empty mappings");
+      return {};
+    }
+
     const cacheKey = this._getCacheKey("role_mappings", {});
     const cached = this._getCache(cacheKey);
     if (cached) return cached;
@@ -137,6 +169,11 @@ class DatabaseManager {
   }
 
   async setRoleMapping(messageId, guildId, channelId, roles) {
+    if (!this.isConnected) {
+      this.logger.warn("⚠️ Database not connected, skipping role mapping save");
+      return false;
+    }
+
     try {
       const collection = this.db.collection("role_mappings");
       await collection.updateOne(
@@ -164,6 +201,13 @@ class DatabaseManager {
   }
 
   async deleteRoleMapping(messageId) {
+    if (!this.isConnected) {
+      this.logger.warn(
+        "⚠️ Database not connected, skipping role mapping deletion",
+      );
+      return false;
+    }
+
     try {
       const collection = this.db.collection("role_mappings");
       await collection.deleteOne({ messageId });
@@ -180,6 +224,13 @@ class DatabaseManager {
 
   // Temporary roles methods
   async getTemporaryRoles() {
+    if (!this.isConnected) {
+      this.logger.warn(
+        "⚠️ Database not connected, returning empty temporary roles",
+      );
+      return {};
+    }
+
     const cacheKey = this._getCacheKey("temporary_roles", {});
     const cached = this._getCache(cacheKey);
     if (cached) return cached;
@@ -210,6 +261,13 @@ class DatabaseManager {
   }
 
   async addTemporaryRole(guildId, userId, roleId, expiresAt) {
+    if (!this.isConnected) {
+      this.logger.warn(
+        "⚠️ Database not connected, skipping temporary role addition",
+      );
+      return false;
+    }
+
     try {
       const collection = this.db.collection("temporary_roles");
       await collection.updateOne(
@@ -239,6 +297,13 @@ class DatabaseManager {
   }
 
   async removeTemporaryRole(guildId, userId, roleId) {
+    if (!this.isConnected) {
+      this.logger.warn(
+        "⚠️ Database not connected, skipping temporary role removal",
+      );
+      return false;
+    }
+
     try {
       const collection = this.db.collection("temporary_roles");
       await collection.deleteOne({ guildId, userId, roleId });
@@ -256,6 +321,13 @@ class DatabaseManager {
   }
 
   async cleanupExpiredRoles() {
+    if (!this.isConnected) {
+      this.logger.warn(
+        "⚠️ Database not connected, skipping expired roles cleanup",
+      );
+      return 0;
+    }
+
     try {
       const collection = this.db.collection("temporary_roles");
       const result = await collection.deleteMany({
@@ -288,7 +360,10 @@ class DatabaseManager {
   // Health check
   async healthCheck() {
     try {
-      if (!this.isConnected) return false;
+      if (!this.isConnected) {
+        this.logger.warn("⚠️ Database not connected, health check failed");
+        return false;
+      }
       await this.db.admin().ping();
       return true;
     } catch (error) {

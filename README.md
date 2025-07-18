@@ -27,26 +27,22 @@ A production-ready Discord bot for self-assignable roles through reactions. Buil
 ### Installation
 
 1. **Clone the repository**
-
    ```bash
    git clone https://github.com/tyecode-bots/role-reactor-bot.git
    cd role-reactor-bot
    ```
 
 2. **Install dependencies**
-
    ```bash
    pnpm install
    ```
 
 3. **Configure environment variables**
-
    ```bash
    cp env.example .env
    ```
 
    Edit `.env` with your configuration:
-
    ```env
    DISCORD_TOKEN=your_bot_token_here
    CLIENT_ID=your_client_id_here
@@ -54,20 +50,14 @@ A production-ready Discord bot for self-assignable roles through reactions. Buil
    ```
 
 4. **Deploy slash commands**
-
    ```bash
-   pnpm run deploy-commands
+   pnpm run deploy:commands
    ```
 
 5. **Start the bot**
    ```bash
    pnpm start
    ```
-
-## 📖 Documentation
-
-- **[🚀 Deployment Guide](./docs/DEPLOYMENT.md)** - Production deployment instructions and monitoring
-- **[🤝 Contributing Guidelines](./docs/CONTRIBUTING.md)** - How to contribute to the project
 
 ## 📖 Usage
 
@@ -76,13 +66,11 @@ A production-ready Discord bot for self-assignable roles through reactions. Buil
 Create role-reaction messages using the `/setup-roles` command:
 
 **Simple format:**
-
 ```
 /setup-roles title:"Server Roles" description:"Choose your roles by reacting!" roles:"🎮:Gamer,🎨:Artist,💻:Developer"
 ```
 
 **With categories:**
-
 ```
 /setup-roles title:"Server Roles" description:"Choose your roles by reacting!" roles:"#Gaming\n🎮:Gamer,🎲:Board Games\n#Music\n🎵:Music Lover,🎸:Guitarist"
 ```
@@ -92,13 +80,11 @@ Create role-reaction messages using the `/setup-roles` command:
 Assign temporary roles that auto-expire:
 
 **Assign a temporary role:**
-
 ```
 /assign-temp-role user:@username role:@EventRole duration:"2h" reason:"Event participation"
 ```
 
 **Duration formats:**
-
 - `30m` - 30 minutes
 - `2h` - 2 hours
 - `1d` - 1 day
@@ -131,24 +117,6 @@ Assign temporary roles that auto-expire:
 | ------- | ----------------------- | ----------- |
 | `/help` | Display bot information | None        |
 
-## 🏗️ Architecture
-
-```
-src/
-├── commands/          # Slash command handlers
-│   ├── admin/        # Server administrative commands
-│   ├── bot-owner/    # Bot management commands
-│   └── general/      # General commands
-├── events/           # Discord event listeners
-├── utils/            # Utility functions
-│   ├── logger.js     # Structured logging
-│   ├── healthCheck.js # Health monitoring
-│   ├── databaseManager.js # MongoDB integration
-│   └── ...          # Other utilities
-├── config/           # Configuration files
-└── index.js          # Bot entry point
-```
-
 ## 🔧 Configuration
 
 ### Environment Variables
@@ -174,20 +142,6 @@ Required Discord bot permissions:
 - **Read Message History**: To access reaction events
 - **View Channel**: To read channel content
 
-## 🗄️ Database
-
-The bot uses **MongoDB** for data storage:
-
-- **Document-based storage** perfect for Discord bot data
-- **Horizontal scaling** for many servers and users
-- **Cloud-ready** with MongoDB Atlas support
-
-**Setup options:**
-
-- **Local MongoDB**: `mongodb://localhost:27017`
-- **MongoDB Atlas**: `mongodb+srv://username:password@cluster.mongodb.net`
-- **Docker**: `mongodb://mongodb:27017`
-
 ## 🚀 Production Deployment
 
 ### Docker Deployment (Recommended)
@@ -204,57 +158,16 @@ pnpm docker:logs
 pnpm docker:update
 ```
 
-### Environment Setup
-
-1. **Create production `.env` file**
-2. **Set up MongoDB** (local or Atlas)
-3. **Configure bot owners** (see Bot Owner Setup below)
-4. **Deploy slash commands** globally
-5. **Start the bot** with your preferred method
-6. **Monitor health** with `/health` command
-
 ### Bot Owner Setup
 
-To use bot management commands (`/health`, `/performance`), you need to configure bot owners:
+To use bot management commands (`/health`, `/performance`), configure bot owners:
 
-#### Step 1: Find Your Discord User ID
-
-1. **Open Discord** (desktop app or web)
-2. **Go to User Settings** (gear icon in bottom left)
-3. **Scroll down and click 'Advanced'**
-4. **Enable 'Developer Mode'** (toggle switch)
-5. **Go to any channel or server**
-6. **Right-click your username**
-7. **Select 'Copy ID'** from the context menu
-
-Your User ID will look like: `123456789012345678` (17-19 digits)
-
-#### Step 2: Add to Environment Variables
-
-Add your User ID to your `.env` file:
-
-```env
-BOT_OWNERS=123456789012345678
-```
-
-**For multiple bot owners**, separate with commas:
-
-```env
-BOT_OWNERS=123456789012345678,987654321098765432
-```
-
-#### Step 3: Restart the Bot
-
-After adding the `BOT_OWNERS` variable, restart your bot for the changes to take effect.
-
-#### Troubleshooting
-
-If you can't find your User ID:
-
-- Make sure Developer Mode is enabled
-- Try right-clicking your username in different places
-- Check if you're using the latest Discord version
-- If using Discord web, try the desktop app instead
+1. **Find your Discord User ID** (enable Developer Mode, right-click username, Copy ID)
+2. **Add to `.env` file:**
+   ```env
+   BOT_OWNERS=123456789012345678
+   ```
+3. **Restart the bot**
 
 ## 📊 Monitoring
 
@@ -268,19 +181,15 @@ The bot includes comprehensive health monitoring:
 - **Error rate** monitoring
 - **Uptime** tracking
 
-### Logging
-
-Enterprise-grade structured logging:
-
-- **Multiple log levels**: ERROR, WARN, INFO, DEBUG, SUCCESS
-- **File output** for persistence
-- **Performance tracking** for commands and events
-- **Error context** with stack traces
-
 ### Commands
 
 - `/health` - Check bot health status
 - `/performance` - View performance metrics
+
+## 📖 Documentation
+
+- **[🚀 Deployment Guide](./docs/DEPLOYMENT.md)** - Production deployment instructions
+- **[🤝 Contributing Guidelines](./docs/CONTRIBUTING.md)** - How to contribute to the project
 
 ## 🤝 Contributing
 
@@ -311,7 +220,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **GitHub Issues**: [Create an issue](https://github.com/tyecode-bots/role-reactor-bot/issues)
 - **Documentation**: [Deployment Guide](./docs/DEPLOYMENT.md)
 - **Contributing**: [Contributing Guidelines](./docs/CONTRIBUTING.md)
-- **Repository**: [GitHub Repository](https://github.com/tyecode-bots/role-reactor-bot)
 
 ---
 

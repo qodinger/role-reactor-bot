@@ -1,5 +1,5 @@
 import { PermissionFlagsBits } from "discord.js";
-import { getDatabaseManager } from "./databaseManager.js";
+import { getStorageManager } from "./storageManager.js";
 import { getLogger } from "./logger.js";
 
 // Role mapping functions
@@ -7,8 +7,8 @@ export async function getRoleMapping(messageId) {
   const logger = getLogger();
 
   try {
-    const dbManager = await getDatabaseManager();
-    const mappings = await dbManager.getRoleMappings();
+    const storageManager = await getStorageManager();
+    const mappings = await storageManager.getRoleMappings();
     return mappings[messageId] || null;
   } catch (error) {
     logger.error("❌ Failed to get role mapping", error);
@@ -20,8 +20,8 @@ export async function getAllRoleMappings() {
   const logger = getLogger();
 
   try {
-    const dbManager = await getDatabaseManager();
-    return await dbManager.getRoleMappings();
+    const storageManager = await getStorageManager();
+    return await storageManager.getRoleMappings();
   } catch (error) {
     logger.error("❌ Failed to get all role mappings", error);
     return {};
@@ -32,8 +32,13 @@ export async function setRoleMapping(messageId, guildId, channelId, roles) {
   const logger = getLogger();
 
   try {
-    const dbManager = await getDatabaseManager();
-    return await dbManager.setRoleMapping(messageId, guildId, channelId, roles);
+    const storageManager = await getStorageManager();
+    return await storageManager.setRoleMapping(
+      messageId,
+      guildId,
+      channelId,
+      roles,
+    );
   } catch (error) {
     logger.error("❌ Failed to set role mapping", error);
     return false;
@@ -44,8 +49,8 @@ export async function removeRoleMapping(messageId) {
   const logger = getLogger();
 
   try {
-    const dbManager = await getDatabaseManager();
-    return await dbManager.deleteRoleMapping(messageId);
+    const storageManager = await getStorageManager();
+    return await storageManager.deleteRoleMapping(messageId);
   } catch (error) {
     logger.error("❌ Failed to remove role mapping", error);
     return false;
@@ -54,21 +59,72 @@ export async function removeRoleMapping(messageId) {
 
 // Role parsing and validation functions
 export function parseRoleString(roleString) {
-  const roles = {};
+  const roles = [];
+  const errors = [];
   const lines = roleString.trim().split("\n");
 
   for (const line of lines) {
     const trimmedLine = line.trim();
     if (!trimmedLine) continue;
 
-    const match = trimmedLine.match(/^([^\s]+)\s+(.+)$/);
-    if (match) {
-      const [, emoji, roleName] = match;
-      roles[emoji] = roleName.trim();
+    // Support multiple formats:
+    // 1. "emoji role_name" (basic)
+    // 2. "emoji role_name:limit" (with user limit)
+    // 3. "emoji role_name :limit" (with space before limit)
+    // 4. "emoji :role_name:limit" (with colon prefix)
+    // 5. "emoji :role_name" (with colon prefix, no limit)
+
+    // More flexible regex that handles various formats
+    const basicMatch = trimmedLine.match(
+      /^([^\s]+)\s*:?\s*([^:]+?)(?:\s*:\s*(\d+))?$/,
+    );
+    if (basicMatch) {
+      const [, emoji, roleName, limitStr] = basicMatch;
+      const trimmedRoleName = roleName.trim();
+      const limit = limitStr ? parseInt(limitStr, 10) : null;
+
+      // Validate emoji
+      if (!emoji || emoji.length === 0) {
+        errors.push(`❌ Invalid emoji format in line: "${trimmedLine}"`);
+        continue;
+      }
+
+      // Validate role name
+      if (!trimmedRoleName || trimmedRoleName.length === 0) {
+        errors.push(`❌ Invalid role name in line: "${trimmedLine}"`);
+        continue;
+      }
+
+      // Validate limit if provided
+      if (limit !== null && (isNaN(limit) || limit < 1 || limit > 1000)) {
+        errors.push(
+          `❌ Invalid user limit in line: "${trimmedLine}" (must be 1-1000)`,
+        );
+        continue;
+      }
+
+      // Check for duplicate emojis
+      const existingRole = roles.find(r => r.emoji === emoji);
+      if (existingRole) {
+        errors.push(
+          `❌ Duplicate emoji ${emoji} found for roles: "${existingRole.roleName}" and "${trimmedRoleName}"`,
+        );
+        continue;
+      }
+
+      roles.push({
+        emoji,
+        roleName: trimmedRoleName,
+        limit,
+      });
+    } else {
+      errors.push(
+        `❌ Invalid format in line: "${trimmedLine}" (expected: "emoji role_name", "emoji role_name:limit", or "emoji :role_name:limit")`,
+      );
     }
   }
 
-  return roles;
+  return { roles, errors };
 }
 
 // Role validation functions

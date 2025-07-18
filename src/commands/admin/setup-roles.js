@@ -238,12 +238,13 @@ export async function execute(interaction, client) {
       ),
     );
 
-    // Save role mapping to database
-    const dbSuccess = await setRoleMapping(message.id, {
-      guildId: interaction.guild.id,
-      channelId: interaction.channel.id,
-      roles: roleMapping,
-    });
+    // Save role mapping to storage
+    const dbSuccess = await setRoleMapping(
+      message.id,
+      interaction.guild.id,
+      interaction.channel.id,
+      roleMapping,
+    );
 
     if (!dbSuccess) {
       logger.error("Failed to save role mapping to database", {
