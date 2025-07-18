@@ -1,3 +1,17 @@
+/**
+ * @fileoverview Main entry point for the Role Reactor Bot
+ *
+ * This module initializes and starts the Discord bot with all necessary systems:
+ * - Discord client configuration with proper intents and partials
+ * - Command and event loading from directories
+ * - System initialization (storage, performance monitoring, health checks)
+ * - Graceful shutdown handling
+ *
+ * @author Tyecode
+ * @version 0.1.0
+ * @license MIT
+ */
+
 import {
   Client,
   Collection,
@@ -21,7 +35,17 @@ import HealthServer from "./utils/healthServer.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Validate environment variables
+/**
+ * Validates environment variables and configuration
+ *
+ * Checks that all required environment variables are present and valid.
+ * Throws an error if validation fails, preventing the bot from starting
+ * with invalid configuration.
+ *
+ * @throws {Error} When configuration validation fails
+ * @example
+ * validateEnvironment(); // Validates DISCORD_TOKEN, CLIENT_ID, etc.
+ */
 const validateEnvironment = () => {
   const logger = getLogger();
 
@@ -33,7 +57,18 @@ const validateEnvironment = () => {
   logger.info("✅ Configuration validated successfully");
 };
 
-// Create a new client instance
+/**
+ * Creates and configures a new Discord.js Client instance
+ *
+ * Sets up the client with proper intents, partials, and cache limits
+ * for optimal performance and functionality. Uses cache limits from
+ * configuration to reduce memory usage.
+ *
+ * @returns {Client} Configured Discord.js client instance
+ * @example
+ * const client = createClient();
+ * // Client is ready to connect to Discord
+ */
 const createClient = () => {
   const { cacheLimits } = config.getAll();
 
@@ -63,7 +98,18 @@ const createClient = () => {
   });
 };
 
-// Load commands from directory
+/**
+ * Dynamically loads all command modules from the commands directory
+ *
+ * Scans the commands directory structure and loads all .js files as
+ * command modules. Supports both default exports and named exports.
+ * Handles errors gracefully and logs any loading failures.
+ *
+ * @returns {Promise<Array>} Array of loaded command objects
+ * @example
+ * const commands = await loadCommands();
+ * // commands = [{ data: {...}, execute: function() {...} }, ...]
+ */
 const loadCommands = async () => {
   const commandsPath = path.join(__dirname, "commands");
   const commandFolders = fs.readdirSync(commandsPath);
@@ -93,7 +139,20 @@ const loadCommands = async () => {
   return commands;
 };
 
-// Validate command structure
+/**
+ * Validates that a command object has the required structure
+ *
+ * Checks that the command has the necessary properties (data and execute)
+ * to be properly registered and executed by the bot.
+ *
+ * @param {Object} command - The command object to validate
+ * @param {Object} command.data - Command metadata (name, description, etc.)
+ * @param {Function} command.execute - Command execution function
+ * @returns {boolean} True if command is valid, false otherwise
+ * @example
+ * const isValid = validateCommand({ data: {...}, execute: () => {} });
+ * // isValid = true
+ */
 const validateCommand = command => {
   return (
     command &&
@@ -103,7 +162,21 @@ const validateCommand = command => {
   );
 };
 
-// Register events on client with optimized handler
+/**
+ * Registers event handlers on the Discord client
+ *
+ * Sets up event listeners for all loaded events, using the event handler
+ * for consistent processing and error handling. Supports both once and
+ * regular event listeners.
+ *
+ * @param {Client} client - Discord.js client instance
+ * @param {Array} events - Array of event objects to register
+ * @example
+ * registerEvents(client, [
+ *   { name: 'ready', execute: () => {}, once: true },
+ *   { name: 'messageCreate', execute: () => {} }
+ * ]);
+ */
 const registerEvents = (client, events) => {
   const eventHandler = getEventHandler();
 
@@ -120,7 +193,18 @@ const registerEvents = (client, events) => {
   }
 };
 
-// Load events from directory
+/**
+ * Dynamically loads all event modules from the events directory
+ *
+ * Scans the events directory and loads all .js files as event modules.
+ * Supports both default exports and named exports. Handles errors
+ * gracefully and logs any loading failures.
+ *
+ * @returns {Promise<Array>} Array of loaded event objects
+ * @example
+ * const events = await loadEvents();
+ * // events = [{ name: 'ready', execute: function() {...} }, ...]
+ */
 const loadEvents = async () => {
   const eventsPath = path.join(__dirname, "events");
   const eventFiles = fs
@@ -143,28 +227,72 @@ const loadEvents = async () => {
   return events;
 };
 
-// Start the bot
+/**
+ * Authenticates and connects the bot to Discord
+ *
+ * Uses the bot token from configuration to establish a connection
+ * to the Discord gateway. This is the final step before the bot
+ * becomes operational.
+ *
+ * @param {Client} client - Discord.js client instance to connect
+ * @returns {Promise<void>} Resolves when connection is established
+ * @example
+ * await startBot(client);
+ * // Bot is now connected to Discord
+ */
 const startBot = async client => {
   await client.login(config.discord.token);
 };
 
-// Logging functions
+/**
+ * Logs the bot startup process
+ *
+ * Provides initial logging to indicate the bot is starting up.
+ * Used for monitoring and debugging startup issues.
+ */
 const logStartup = () => {
   const logger = getLogger();
   logger.info("🚀 Starting Role Reactor Bot...");
 };
 
+/**
+ * Logs successful client connection
+ *
+ * Called when the bot successfully connects to Discord and is ready
+ * to handle events and commands.
+ *
+ * @param {Client} client - Connected Discord.js client instance
+ */
 const logClientReady = client => {
   const logger = getLogger();
   logger.success(`✅ ${client.user.tag} is ready!`);
 };
 
+/**
+ * Logs errors during bot operation
+ *
+ * Centralized error logging for debugging and monitoring.
+ *
+ * @param {Error} error - The error object to log
+ */
 const logError = error => {
   const logger = getLogger();
   logger.error("❌ Error:", error);
 };
 
-// Setup graceful shutdown
+/**
+ * Sets up graceful shutdown handlers
+ *
+ * Configures signal handlers (SIGINT, SIGTERM) to ensure the bot
+ * shuts down cleanly by closing connections, stopping schedulers,
+ * and logging final metrics before exiting.
+ *
+ * @param {Client} client - Discord.js client instance
+ * @param {RoleExpirationScheduler} roleScheduler - Role expiration scheduler
+ * @example
+ * setupGracefulShutdown(client, roleScheduler);
+ * // Bot will now shutdown gracefully on Ctrl+C or kill signals
+ */
 const setupGracefulShutdown = (client, roleScheduler) => {
   const shutdown = async () => {
     const logger = getLogger();
