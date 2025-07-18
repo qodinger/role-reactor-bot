@@ -69,7 +69,17 @@ class HealthServer {
     });
 
     this.server.on("error", error => {
-      this.logger.error("Health server error:", error);
+      if (error.code === "EADDRINUSE") {
+        this.logger.warn(
+          `⚠️ Port ${this.port} is already in use. Health server disabled.`,
+        );
+        this.logger.info("💡 To enable health server, either:");
+        this.logger.info("   - Stop other services using port 3000");
+        this.logger.info("   - Set a different PORT in your .env file");
+        this.server = null;
+      } else {
+        this.logger.error("Health server error:", error);
+      }
     });
   }
 

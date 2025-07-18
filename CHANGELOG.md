@@ -7,12 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.1.0] - 2024-07-18
-
 ### Added
-- Hybrid storage system (MongoDB + local files)
-- Comprehensive storage manager with caching
-- Storage status command for bot owners (`/storage`)
+- GitHub Actions release workflow for automated releases
 - Enhanced temporary roles with proper data persistence
 - Improved role management with better validation
 - Update script for automated bot updates
@@ -37,12 +33,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced error handling and logging
 - Improved command response times
 
-## [1.0.0] - 2024-06-01
+## [0.1.0] - 2025-07-10
 
 ### Added
-- Initial release of Role Reactor Bot
+- Initial Discord role reactor bot implementation
 - Self-assignable roles through reactions
 - Temporary role system with auto-expiration
-- Role management commands
-- Health monitoring and performance metrics
-- Structured logging system 
+- Role management commands (`/setup-roles`, `/update-roles`, `/delete-roles`, `/list-roles`)
+- Temporary role commands (`/assign-temp-role`, `/list-temp-roles`, `/remove-temp-role`)
+- Health monitoring and performance metrics (`/health`, `/performance`)
+- Structured logging system with file output
+- Docker deployment support
+- MongoDB integration for data persistence
+- Permission controls and validation
+- Custom emoji support (Unicode and server emojis)
+- Role categories and organization
+- Bot owner management commands
+- Comprehensive error handling and rate limiting 
