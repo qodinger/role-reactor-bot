@@ -59,7 +59,7 @@ class Config {
       token: process.env.DISCORD_TOKEN,
       clientId: process.env.CLIENT_ID,
       guildId: process.env.GUILD_ID,
-      botOwners: this.parseBotOwners(),
+      developers: this.parseDevelopers(),
     };
   }
 
@@ -137,14 +137,14 @@ class Config {
   }
 
   /**
-   * Parse bot owners from environment variable
-   * @returns {string[]} Array of bot owner IDs
+   * Parse developers from environment variable
+   * @returns {string[]} Array of developer IDs
    */
-  parseBotOwners() {
-    const botOwners = process.env.BOT_OWNERS;
-    if (!botOwners) return [];
+  parseDevelopers() {
+    const developers = process.env.DEVELOPERS;
+    if (!developers) return [];
 
-    return botOwners
+    return developers
       .split(",")
       .map(id => id.trim())
       .filter(id => id);

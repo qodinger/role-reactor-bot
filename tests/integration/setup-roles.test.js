@@ -16,6 +16,16 @@ describe("Setup Roles Command Integration", () => {
     jest.clearAllMocks();
   });
 
+  afterAll(() => {
+    // Clear any remaining timers
+    jest.clearAllTimers();
+
+    // Force garbage collection if available
+    if (global.gc) {
+      global.gc();
+    }
+  });
+
   describe("Permission Validation", () => {
     test("should validate admin permissions", () => {
       // Test permission validation logic

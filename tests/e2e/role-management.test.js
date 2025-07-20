@@ -189,4 +189,14 @@ describe("Role Management E2E Workflows", () => {
       ).rejects.toThrow("Storage failed");
     });
   });
+
+  afterAll(() => {
+    // Clear any remaining timers
+    jest.clearAllTimers();
+
+    // Force garbage collection if available
+    if (global.gc) {
+      global.gc();
+    }
+  });
 });

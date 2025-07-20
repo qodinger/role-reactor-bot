@@ -1,12 +1,12 @@
 import { PermissionFlagsBits } from "discord.js";
 import config from "../config/config.js";
 
-// Check if user is a bot owner/developer
-const isBotOwner = userId => {
-  const botOwners = config.discord.botOwners;
-  if (!botOwners || botOwners.length === 0) return false;
+// Check if user is a developer
+const isDeveloper = userId => {
+  const developers = config.discord.developers;
+  if (!developers || developers.length === 0) return false;
 
-  return botOwners.includes(userId);
+  return developers.includes(userId);
 };
 
 // Check if user has admin permissions
@@ -18,9 +18,9 @@ const hasAdminPermissions = member => {
   );
 };
 
-// Check if user has bot management permissions (owner/developer)
+// Check if user has bot management permissions (developer)
 const hasBotManagementPermissions = userId => {
-  return isBotOwner(userId);
+  return isDeveloper(userId);
 };
 
 // Check if user has manage roles permission
@@ -111,7 +111,7 @@ const getRequiredPermissions = commandName => {
 export {
   hasAdminPermissions,
   hasBotManagementPermissions,
-  isBotOwner,
+  isDeveloper,
   hasManageRolesPermission,
   hasManageMessagesPermission,
   botHasRequiredPermissions,

@@ -4,25 +4,27 @@ import { getLogger } from "../../utils/logger.js";
 
 export const data = new SlashCommandBuilder()
   .setName("storage")
-  .setDescription("Show storage status and configuration");
+  .setDescription("🔒 [DEVELOPER ONLY] Show storage status and configuration")
+  .setDefaultMemberPermissions(0n)
+  .setDMPermission(false);
 
 export async function execute(interaction) {
   const logger = getLogger();
 
   try {
-    // Check if user is bot owner
-    const botOwners =
-      process.env.BOT_OWNERS?.split(",").map(id => id.trim()) || [];
-    const isOwner = botOwners.includes(interaction.user.id);
+    // Check if user is developer
+    const developers =
+      process.env.DEVELOPERS?.split(",").map(id => id.trim()) || [];
+    const isDeveloper = developers.includes(interaction.user.id);
 
-    if (!isOwner) {
+    if (!isDeveloper) {
       return interaction.reply({
         content: "❌ You don't have permission to use this command.",
-        ephemeral: true,
+        flags: 64,
       });
     }
 
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: 64 });
 
     const storageManager = await getStorageManager();
     const status = storageManager.getStorageStatus();
@@ -73,7 +75,7 @@ export async function execute(interaction) {
       });
     }
 
-    await interaction.editReply({ embeds: [embed] });
+    await interaction.editReply({ embeds: [embed], flags: 64 });
 
     logger.info("Storage status command executed", {
       userId: interaction.user.id,
@@ -83,7 +85,7 @@ export async function execute(interaction) {
     logger.error("❌ Error in storage command", error);
     await interaction.editReply({
       content: "❌ An error occurred while getting storage status.",
-      ephemeral: true,
+      flags: 64,
     });
   }
 }

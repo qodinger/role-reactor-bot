@@ -118,16 +118,29 @@ const loadCommands = async () => {
   for (const folder of commandFolders) {
     const folderPath = path.join(commandsPath, folder);
     if (!fs.statSync(folderPath).isDirectory()) continue;
+
     const commandFiles = fs
       .readdirSync(folderPath)
-      .filter(file => file.endsWith(".js"));
+      .filter(
+        file =>
+          file.endsWith(".js") &&
+          !fs.statSync(path.join(folderPath, file)).isDirectory(),
+      );
+
     for (const file of commandFiles) {
       const filePath = path.join(folderPath, file);
       try {
         const commandModule = await import(filePath);
         // Handle both named exports and default exports
         const command = commandModule.default || commandModule;
-        if (command && command.data && command.data.name) {
+
+        // Only load files that are actual commands (have both data and execute)
+        if (
+          command &&
+          command.data &&
+          command.data.name &&
+          typeof command.execute === "function"
+        ) {
           commands.push(command);
         }
       } catch (error) {

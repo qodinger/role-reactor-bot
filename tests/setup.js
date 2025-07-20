@@ -96,7 +96,8 @@ global.testUtils = {
 
   wait: ms =>
     new Promise(resolve => {
-      setTimeout(resolve, ms);
+      const timer = setTimeout(resolve, ms);
+      timer.unref(); // Prevent timer from keeping process alive
     }),
 
   createMockClient: (options = {}) => ({
@@ -119,8 +120,26 @@ beforeAll(() => {
   process.env.NODE_ENV = "test";
 });
 
-afterAll(() => {
+afterAll(async () => {
   jest.clearAllMocks();
+  // Clear any remaining timers
+  jest.clearAllTimers();
+
+  // Close any database connections
+  try {
+    const { getDatabaseManager } = await import(
+      "../src/utils/databaseManager.js"
+    );
+    const dbManager = await getDatabaseManager();
+    await dbManager.close();
+  } catch (_error) {
+    // Ignore cleanup errors
+  }
+
+  // Force cleanup of any remaining handles
+  if (global.gc) {
+    global.gc();
+  }
 });
 
 beforeEach(() => {
