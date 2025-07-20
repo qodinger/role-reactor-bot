@@ -16,6 +16,16 @@ describe("Database Integration Tests", () => {
     jest.clearAllMocks();
   });
 
+  afterAll(() => {
+    // Clear any remaining timers
+    jest.clearAllTimers();
+
+    // Force garbage collection if available
+    if (global.gc) {
+      global.gc();
+    }
+  });
+
   describe("Database Connection", () => {
     test("should handle successful database connection", () => {
       // Test database connection logic

@@ -76,7 +76,7 @@ pnpm start
 
 ### **Check Storage Status**
 ```bash
-/storage  # Bot owner command
+/storage  # 🔒 [DEVELOPER ONLY] Developer command
 ```
 
 ## 📊 Performance Comparison

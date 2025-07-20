@@ -150,7 +150,7 @@ class StorageManager {
         });
       },
       5 * 60 * 1000,
-    );
+    ).unref();
 
     this.logger.info("🔄 Started data sync interval");
   }

@@ -1,8 +1,4 @@
-import {
-  SlashCommandBuilder,
-  PermissionFlagsBits,
-  EmbedBuilder,
-} from "discord.js";
+import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
 import { hasBotManagementPermissions } from "../../utils/permissions.js";
 import { getPerformanceMonitor } from "../../utils/performanceMonitor.js";
 import { getCommandHandler } from "../../utils/commandHandler.js";
@@ -11,8 +7,11 @@ import { getLogger } from "../../utils/logger.js";
 
 export const data = new SlashCommandBuilder()
   .setName("performance")
-  .setDescription("View bot performance metrics and statistics")
-  .setDefaultMemberPermissions(PermissionFlagsBits.Administrator);
+  .setDescription(
+    "🔒 [DEVELOPER ONLY] View bot performance metrics and statistics",
+  )
+  .setDefaultMemberPermissions(0n)
+  .setDMPermission(false);
 
 export async function execute(interaction, client) {
   const logger = getLogger();
@@ -28,8 +27,7 @@ export async function execute(interaction, client) {
 
     if (!hasBotManagementPermissions(interaction.user.id)) {
       return interaction.editReply({
-        content:
-          "❌ You need bot owner/developer permissions to use this command!",
+        content: "❌ You need developer permissions to use this command!",
         flags: 64,
       });
     }

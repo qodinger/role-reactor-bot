@@ -1,15 +1,14 @@
-import {
-  SlashCommandBuilder,
-  PermissionFlagsBits,
-  EmbedBuilder,
-} from "discord.js";
+import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
 import { hasBotManagementPermissions } from "../../utils/permissions.js";
 import { getLogger } from "../../utils/logger.js";
 
 export const data = new SlashCommandBuilder()
   .setName("health")
-  .setDescription("Check the bot's health and performance status")
-  .setDefaultMemberPermissions(PermissionFlagsBits.Administrator);
+  .setDescription(
+    "🔒 [DEVELOPER ONLY] Check the bot's health and performance status",
+  )
+  .setDefaultMemberPermissions(0n)
+  .setDMPermission(false);
 
 export async function execute(interaction, client) {
   const logger = getLogger();
@@ -27,7 +26,7 @@ export async function execute(interaction, client) {
 
       return interaction.editReply({
         content:
-          "❌ **Permission Denied**\nYou need bot owner/developer permissions to use this command.",
+          "❌ **Permission Denied**\nYou need developer permissions to use this command.",
         flags: 64,
       });
     }

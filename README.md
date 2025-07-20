@@ -27,22 +27,26 @@ A production-ready Discord bot for self-assignable roles through reactions. Buil
 ### Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/tyecode-bots/role-reactor-bot.git
    cd role-reactor-bot
    ```
 
 2. **Install dependencies**
+
    ```bash
    pnpm install
    ```
 
 3. **Configure environment variables**
+
    ```bash
    cp env.example .env
    ```
 
    Edit `.env` with your configuration:
+
    ```env
    DISCORD_TOKEN=your_bot_token_here
    CLIENT_ID=your_client_id_here
@@ -50,8 +54,13 @@ A production-ready Discord bot for self-assignable roles through reactions. Buil
    ```
 
 4. **Deploy slash commands**
+
    ```bash
-   pnpm run deploy:commands
+   # Development (includes developer commands)
+   pnpm run deploy:dev
+
+   # Production (excludes developer commands)
+   pnpm run deploy:prod
    ```
 
 5. **Start the bot**
@@ -66,11 +75,13 @@ A production-ready Discord bot for self-assignable roles through reactions. Buil
 Create role-reaction messages using the `/setup-roles` command:
 
 **Simple format:**
+
 ```
 /setup-roles title:"Server Roles" description:"Choose your roles by reacting!" roles:"🎮:Gamer,🎨:Artist,💻:Developer"
 ```
 
 **With categories:**
+
 ```
 /setup-roles title:"Server Roles" description:"Choose your roles by reacting!" roles:"#Gaming\n🎮:Gamer,🎲:Board Games\n#Music\n🎵:Music Lover,🎸:Guitarist"
 ```
@@ -80,11 +91,13 @@ Create role-reaction messages using the `/setup-roles` command:
 Assign temporary roles that auto-expire:
 
 **Assign a temporary role:**
+
 ```
 /assign-temp-role user:@username role:@EventRole duration:"2h" reason:"Event participation"
 ```
 
 **Duration formats:**
+
 - `30m` - 30 minutes
 - `2h` - 2 hours
 - `1d` - 1 day
@@ -104,12 +117,13 @@ Assign temporary roles that auto-expire:
 | `/list-temp-roles`  | List temporary roles            | Manage Roles |
 | `/remove-temp-role` | Remove a temporary role         | Manage Roles |
 
-#### Bot Management Commands
+#### Developer Commands
 
-| Command        | Description              | Permissions         |
-| -------------- | ------------------------ | ------------------- |
-| `/health`      | Check bot health status  | Bot Owner/Developer |
-| `/performance` | View performance metrics | Bot Owner/Developer |
+| Command        | Description                                  | Permissions |
+| -------------- | -------------------------------------------- | ----------- |
+| `/health`      | 🔒 [DEVELOPER ONLY] Check bot health status  | Developer   |
+| `/performance` | 🔒 [DEVELOPER ONLY] View performance metrics | Developer   |
+| `/storage`     | 🔒 [DEVELOPER ONLY] Show storage status      | Developer   |
 
 #### General Commands
 
@@ -130,7 +144,7 @@ Assign temporary roles that auto-expire:
 | `LOG_LEVEL`     | Log level (ERROR, WARN, INFO, DEBUG) | No       | `INFO`                      |
 | `LOG_FILE`      | Log file path                        | No       | Console only                |
 | `LOG_CONSOLE`   | Enable console logging               | No       | `true`                      |
-| `BOT_OWNERS`    | Bot owner/developer user IDs         | No       | -                           |
+| `DEVELOPERS`    | Developer user IDs                   | No       | -                           |
 
 ### Bot Permissions
 
@@ -158,16 +172,18 @@ pnpm docker:logs
 pnpm docker:update
 ```
 
-### Bot Owner Setup
+### Developer Setup
 
-To use bot management commands (`/health`, `/performance`), configure bot owners:
+To use developer commands (`/health`, `/performance`, `/storage`), configure developers:
 
 1. **Find your Discord User ID** (enable Developer Mode, right-click username, Copy ID)
 2. **Add to `.env` file:**
    ```env
-   BOT_OWNERS=123456789012345678
+   DEVELOPERS=123456789012345678
    ```
 3. **Restart the bot**
+
+**Note:** Developer commands are hidden from Discord UI but accessible to authorized developers via runtime permission checks.
 
 ## 📊 Monitoring
 
@@ -183,8 +199,9 @@ The bot includes comprehensive health monitoring:
 
 ### Commands
 
-- `/health` - Check bot health status
-- `/performance` - View performance metrics
+- `/health` - 🔒 [DEVELOPER ONLY] Check bot health status
+- `/performance` - 🔒 [DEVELOPER ONLY] View performance metrics
+- `/storage` - 🔒 [DEVELOPER ONLY] Show storage status
 
 ## 📖 Documentation
 

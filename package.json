@@ -7,7 +7,9 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
-    "deploy:commands": "node scripts/deploy-commands.js",
+    "deploy:dev": "NODE_ENV=development node scripts/deploy-commands.js",
+    "deploy:prod": "NODE_ENV=production node scripts/deploy-commands.js",
+    "deploy:global": "NODE_ENV=production node scripts/deploy-commands.js --global",
     "delete:commands": "node scripts/delete-commands.js",
     "lint": "eslint src/ scripts/",
     "lint:fix": "eslint src/ scripts/ --fix",

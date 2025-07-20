@@ -96,25 +96,49 @@ async function updateHelpCommandChoices() {
     );
     let helpContent = fs.readFileSync(helpCommandPath, "utf8");
 
-    // Find and replace the choices in the help command
-    const choicesRegex = /\.addChoices\([\s\S]*?\)/;
-    const newChoices = `.addChoices(\n${choices
-      .map(
-        choice => `      { name: "${choice.name}", value: "${choice.value}" }`,
-      )
-      .join(",\n")}\n    )`;
+    // Check if help command uses autocomplete or choices
+    const hasAutocomplete = helpContent.includes(".setAutocomplete(true)");
+    const hasChoices = helpContent.includes(".addChoices(");
 
-    if (choicesRegex.test(helpContent)) {
-      helpContent = helpContent.replace(choicesRegex, newChoices);
-      fs.writeFileSync(helpCommandPath, helpContent, "utf8");
+    if (hasAutocomplete) {
       console.log(
-        colors.success(
-          `✅ Updated help command with ${choices.length} dynamic choices`,
+        colors.info(
+          `ℹ️  Help command uses autocomplete - no need to update choices`,
         ),
       );
+      console.log(
+        colors.info(
+          `   Autocomplete will dynamically generate suggestions from available commands`,
+        ),
+      );
+    } else if (hasChoices) {
+      // Find and replace the choices in the help command
+      const choicesRegex = /\.addChoices\([\s\S]*?\)/;
+      const newChoices = `.addChoices(\n${choices
+        .map(
+          choice =>
+            `      { name: "${choice.name}", value: "${choice.value}" }`,
+        )
+        .join(",\n")}\n    )`;
+
+      if (choicesRegex.test(helpContent)) {
+        helpContent = helpContent.replace(choicesRegex, newChoices);
+        fs.writeFileSync(helpCommandPath, helpContent, "utf8");
+        console.log(
+          colors.success(
+            `✅ Updated help command with ${choices.length} dynamic choices`,
+          ),
+        );
+      } else {
+        console.log(
+          colors.warning(`⚠️  Could not find choices section in help command`),
+        );
+      }
     } else {
       console.log(
-        colors.warning(`⚠️  Could not find choices section in help command`),
+        colors.warning(
+          `⚠️  Help command has no autocomplete or choices - using autocomplete is recommended`,
+        ),
       );
     }
   } catch (error) {
@@ -124,6 +148,51 @@ async function updateHelpCommandChoices() {
       ),
     );
   }
+}
+
+// Validate command structure according to Discord requirements
+function validateCommandStructure(command, _fileName) {
+  const errors = [];
+
+  // Check required properties
+  if (!command.data) {
+    errors.push("Missing 'data' property");
+  }
+
+  if (!command.execute) {
+    errors.push("Missing 'execute' property");
+  }
+
+  if (!command.data?.name) {
+    errors.push("Missing command name");
+  }
+
+  if (!command.data?.description) {
+    errors.push("Missing command description");
+  }
+
+  // Check command name format (Discord requirements)
+  if (command.data?.name && !/^[a-z0-9-]+$/.test(command.data.name)) {
+    errors.push("Command name must be lowercase, numbers, and hyphens only");
+  }
+
+  // Check description length (Discord limit: 100 characters)
+  if (command.data?.description && command.data.description.length > 100) {
+    errors.push("Command description must be 100 characters or less");
+  }
+
+  // Check for potentially problematic command names (only warn, don't block)
+  const problematicNames = ["ping", "test", "debug"];
+  if (command.data?.name && problematicNames.includes(command.data.name)) {
+    console.warn(
+      colors.warning(
+        `      ⚠️  Command name '${command.data.name}' might conflict with common commands`,
+      ),
+    );
+    // Don't add to errors - just warn
+  }
+
+  return errors;
 }
 
 // Command collection with validation
@@ -166,34 +235,44 @@ async function collectCommands() {
         const command =
           (await import(filePath)).default || (await import(filePath));
 
-        if (!command.data) {
-          console.warn(
-            colors.warning(`      ⚠️  Command ${file} missing 'data' property`),
-          );
-          continue;
-        }
+        // Include developer commands only in development
+        const isDeveloperCommand = folder === "developer";
+        const isProduction = process.env.NODE_ENV === "production";
 
-        if (!command.execute) {
-          console.warn(
-            colors.warning(
-              `      ⚠️  Command ${file} missing 'execute' property`,
+        if (isDeveloperCommand && isProduction) {
+          console.log(
+            colors.info(
+              `      ⏭️  Skipping developer command: ${command.data.name} (production mode)`,
             ),
           );
           continue;
         }
 
-        // Validate command structure
-        if (!command.data.name) {
-          console.warn(
-            colors.warning(`      ⚠️  Command ${file} missing name`),
+        if (isDeveloperCommand && !isProduction) {
+          console.log(
+            colors.info(
+              `      🔒 Including developer command: ${command.data.name} (development mode)`,
+            ),
           );
+        }
+
+        // Validate command structure using the validation function
+        const validationErrors = validateCommandStructure(command, file);
+        if (validationErrors.length > 0) {
+          console.warn(
+            colors.warning(`      ⚠️  Command ${file} validation failed:`),
+          );
+          validationErrors.forEach(error => {
+            console.warn(colors.warning(`         - ${error}`));
+          });
           continue;
         }
 
-        if (!command.data.description) {
+        // Check for duplicate command names
+        if (commands.some(cmd => cmd.name === command.data.name)) {
           console.warn(
             colors.warning(
-              `      ⚠️  Command ${command.data.name} missing description`,
+              `      ⚠️  Duplicate command name: ${command.data.name}`,
             ),
           );
           continue;
@@ -236,6 +315,7 @@ async function deployCommands() {
 
     // Determine deployment type
     const isGlobal = process.argv.includes("--global");
+    const isProduction = process.env.NODE_ENV === "production";
     const deploymentType = isGlobal ? "Global" : "Guild";
     console.log(
       `${icons.info} Deployment Type: ${colors.cyan(deploymentType)}`,
@@ -246,45 +326,59 @@ async function deployCommands() {
       console.log(`${icons.server} Guild: ${config.discord.guildId}`);
     }
 
-    // Remove all commands first
-    const spinner = createSpinner("Removing existing commands...");
-    spinner.start();
-    if (isGlobal) {
-      await rest.put(Routes.applicationCommands(config.discord.clientId), {
-        body: [],
-      });
+    if (isProduction) {
+      console.log(`${icons.info} Production mode: Developer commands excluded`);
     } else {
-      await rest.put(
-        Routes.applicationGuildCommands(
-          config.discord.clientId,
-          config.discord.guildId,
-        ),
-        { body: [] },
+      console.log(
+        `${icons.info} Development mode: Developer commands included`,
       );
     }
-    spinner.succeed(colors.success("Existing commands removed"));
 
-    // Deploy new commands
-    const deploySpinner = createSpinner("Deploying new commands...");
+    // Deploy commands (overwrites existing ones, no need to clear first)
+    // This approach avoids Discord's rate limits by not making separate delete requests
+    const deploySpinner = createSpinner("Deploying commands...");
     deploySpinner.start();
-    if (isGlobal) {
-      await rest.put(Routes.applicationCommands(config.discord.clientId), {
-        body: commands,
-      });
-    } else {
-      await rest.put(
-        Routes.applicationGuildCommands(
-          config.discord.clientId,
-          config.discord.guildId,
-        ),
-        {
+
+    try {
+      // Use PUT to replace all commands at once (Discord best practice)
+      if (isGlobal) {
+        await rest.put(Routes.applicationCommands(config.discord.clientId), {
           body: commands,
-        },
+        });
+      } else {
+        await rest.put(
+          Routes.applicationGuildCommands(
+            config.discord.clientId,
+            config.discord.guildId,
+          ),
+          {
+            body: commands,
+          },
+        );
+      }
+      deploySpinner.succeed(
+        colors.success("Command deployment completed successfully!"),
       );
+    } catch (error) {
+      deploySpinner.fail(colors.error("Command deployment failed"));
+
+      // Handle specific Discord API errors
+      if (error.code === 50035) {
+        console.error(
+          createErrorMessage("Invalid application commands format"),
+        );
+      } else if (error.code === 50001) {
+        console.error(createErrorMessage("Missing access to application"));
+      } else if (error.code === 50013) {
+        console.error(createErrorMessage("Missing permissions"));
+      } else if (error.code === 429) {
+        console.error(
+          createErrorMessage("Rate limited - wait a few minutes and try again"),
+        );
+      }
+
+      throw error;
     }
-    deploySpinner.succeed(
-      colors.success("Command deployment completed successfully!"),
-    );
     console.log(
       createInfoBox(
         "Deployment Summary",
@@ -311,7 +405,22 @@ async function deployCommands() {
     console.log(
       colors.info("🕒 Note: Global commands may take up to 1 hour to appear."),
     );
-    console.log(colors.info("   Guild commands appear immediately.\n"));
+    console.log(colors.info("   Guild commands appear immediately."));
+    console.log(
+      colors.info(
+        "   Commands are automatically overwritten (no need to delete old ones).",
+      ),
+    );
+
+    // Best practices reminder
+    console.log(colors.info("💡 Best Practices:"));
+    console.log(colors.info("   • Use guild commands for development/testing"));
+    console.log(colors.info("   • Use global commands for production"));
+    console.log(colors.info("   • Keep command names lowercase with hyphens"));
+    console.log(
+      colors.info("   • Provide clear descriptions for all commands"),
+    );
+    console.log("");
 
     // Update help command choices after successful deployment
     await updateHelpCommandChoices();
@@ -327,6 +436,7 @@ async function deployCommands() {
           'Ensure the bot has the "applications.commands" scope',
           "Check that CLIENT_ID matches your application",
           "For guild deployment, verify GUILD_ID is correct",
+          "If you get rate limited, wait a few minutes and try again",
         ],
         { borderColor: "red" },
       ),

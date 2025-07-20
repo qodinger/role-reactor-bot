@@ -16,6 +16,16 @@ describe("CommandHandler", () => {
     jest.clearAllMocks();
   });
 
+  afterAll(() => {
+    // Clear any remaining timers
+    jest.clearAllTimers();
+
+    // Force garbage collection if available
+    if (global.gc) {
+      global.gc();
+    }
+  });
+
   describe("Command Registration", () => {
     test("should validate command structure", () => {
       // Test command validation logic

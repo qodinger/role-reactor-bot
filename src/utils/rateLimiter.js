@@ -17,7 +17,7 @@ class RateLimiter {
     this.defaultGlobalLimit = 100; // commands per minute globally
 
     // Cleanup old entries every 5 minutes
-    setInterval(() => this.cleanup(), 5 * 60 * 1000);
+    setInterval(() => this.cleanup(), 5 * 60 * 1000).unref();
   }
 
   /**

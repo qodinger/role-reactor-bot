@@ -49,13 +49,21 @@ class DatabaseManager {
 
       // Add timeout to prevent hanging
       const connectionPromise = this.client.connect();
+      let timeoutId;
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => {
+        timeoutId = setTimeout(() => {
           reject(new Error("MongoDB connection timeout after 15 seconds"));
         }, 15000); // 15 second timeout
       });
 
-      await Promise.race([connectionPromise, timeoutPromise]);
+      try {
+        await Promise.race([connectionPromise, timeoutPromise]);
+      } finally {
+        // Clear the timeout to prevent memory leaks
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+      }
       this.logger.success("✅ MongoDB connection established");
 
       this.db = this.client.db(name);
