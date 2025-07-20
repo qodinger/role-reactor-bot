@@ -4,6 +4,7 @@
     "adduser",
     "AUTOINCREMENT",
     "autorestart",
+    "bitfield",
     "bitfields",
     "blurple",
     "botuser",

@@ -1,5 +1,6 @@
 import { PermissionFlagsBits } from "discord.js";
 import config from "../config/config.js";
+import { COMMAND_CATEGORIES } from "../commands/general/help/helpData.js";
 
 // Check if user is a developer
 const isDeveloper = userId => {
@@ -95,17 +96,12 @@ const checkUserPermissions = (interaction, requiredPermissions) => {
 
 // Get required permissions for different command types
 const getRequiredPermissions = commandName => {
-  const permissionMap = {
-    "setup-roles": ["ADMINISTRATOR"],
-    "update-roles": ["ADMINISTRATOR"],
-    "delete-roles": ["ADMINISTRATOR"],
-    "assign-temp-role": ["MANAGE_ROLES"],
-    "remove-temp-role": ["MANAGE_ROLES"],
-    "list-temp-roles": ["MANAGE_ROLES"],
-    "list-roles": ["MANAGE_ROLES"],
-    help: [],
-  };
-  return permissionMap[commandName] || [];
+  for (const category of Object.values(COMMAND_CATEGORIES)) {
+    if (category.commands.includes(commandName)) {
+      return category.requiredPermissions || [];
+    }
+  }
+  return [];
 };
 
 export {

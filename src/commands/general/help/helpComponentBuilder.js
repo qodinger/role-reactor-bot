@@ -8,6 +8,7 @@ import {
 import { COMMAND_CATEGORIES } from "./helpData.js";
 import { EMOJIS } from "../../../config/theme.js";
 import config from "../../../config/config.js";
+import { getDefaultInviteLink } from "../../../utils/invite.js";
 
 /**
  * Builder class for creating help UI components
@@ -45,14 +46,15 @@ export class HelpComponentBuilder {
   /**
    * Create main components for the help interface
    * @param {import('discord.js').GuildMember} member
-   * @returns {import('discord.js').ActionRowBuilder[]}
+   * @param {import('discord.js').Client} [client]
+   * @returns {Promise<import('discord.js').ActionRowBuilder[]>}
    */
-  static createMainComponents(member = null) {
+  static async createMainComponents(member = null, client = null) {
     const categoryMenu = this.createCategoryMenu(member);
-    const buttons = this.createCommandButtons();
+    const buttons = await this.createCommandButtons(null, client);
 
     const menuRow = new ActionRowBuilder().addComponents(categoryMenu);
-    return [menuRow, buttons];
+    return [menuRow, buttons].filter(Boolean);
   }
 
   /**
@@ -88,31 +90,68 @@ export class HelpComponentBuilder {
   /**
    * Create command-specific navigation buttons
    * @param {string|null} category
-   * @returns {import('discord.js').ActionRowBuilder}
+   * @param {import('discord.js').Client} [client]
+   * @returns {Promise<import('discord.js').ActionRowBuilder>}
    */
-  static createCommandButtons(_category = null) {
+  static async createCommandButtons(_category = null, client = null) {
     const row = new ActionRowBuilder();
 
+    // Determine invite link
+    let inviteURL = config.discord?.inviteURL;
+    if (!inviteURL && client) {
+      inviteURL = client.inviteLink;
+      if (!inviteURL) {
+        try {
+          inviteURL = await getDefaultInviteLink(client);
+        } catch {
+          inviteURL = null;
+        }
+      }
+    }
+
     // External links
-    row.addComponents(
-      new ButtonBuilder()
-        .setLabel("Guide")
-        .setURL(
-          "https://github.com/tyecode-bots/role-reactor-bot/blob/main/README.md",
-        )
-        .setEmoji(EMOJIS.CATEGORIES.GENERAL)
-        .setStyle(ButtonStyle.Link),
-      new ButtonBuilder()
-        .setLabel("GitHub")
-        .setURL("https://github.com/tyecode-bots/role-reactor-bot")
-        .setEmoji(EMOJIS.ACTIONS.LINK)
-        .setStyle(ButtonStyle.Link),
-      new ButtonBuilder()
-        .setLabel("Support")
-        .setURL("https://discord.gg/rolereactor")
-        .setEmoji(EMOJIS.STATUS.INFO)
-        .setStyle(ButtonStyle.Link),
-    );
+    const buttons = [];
+    const links = config.externalLinks;
+    if (links.guide) {
+      buttons.push(
+        new ButtonBuilder()
+          .setLabel("Guide")
+          .setURL(links.guide)
+          .setEmoji(EMOJIS.CATEGORIES.GENERAL)
+          .setStyle(ButtonStyle.Link),
+      );
+    }
+    if (links.github) {
+      buttons.push(
+        new ButtonBuilder()
+          .setLabel("GitHub")
+          .setURL(links.github)
+          .setEmoji(EMOJIS.ACTIONS.LINK)
+          .setStyle(ButtonStyle.Link),
+      );
+    }
+    if (links.support) {
+      buttons.push(
+        new ButtonBuilder()
+          .setLabel("Support")
+          .setURL(links.support)
+          .setEmoji(EMOJIS.STATUS.INFO)
+          .setStyle(ButtonStyle.Link),
+      );
+    }
+    if (inviteURL || links.invite) {
+      buttons.push(
+        new ButtonBuilder()
+          .setLabel("Invite")
+          .setURL(inviteURL || links.invite)
+          .setEmoji(EMOJIS.ACTIONS.LINK)
+          .setStyle(ButtonStyle.Link),
+      );
+    }
+    if (buttons.length === 0) {
+      return undefined;
+    }
+    row.addComponents(...buttons);
 
     return row;
   }
@@ -137,13 +176,18 @@ export class HelpComponentBuilder {
    * Create components for category view
    * @param {string} categoryKey
    * @param {import('discord.js').GuildMember} member
-   * @returns {import('discord.js').ActionRowBuilder[]}
+   * @param {import('discord.js').Client} [client]
+   * @returns {Promise<import('discord.js').ActionRowBuilder[]>}
    */
-  static createCategoryComponents(categoryKey, member = null) {
+  static async createCategoryComponents(
+    categoryKey,
+    member = null,
+    client = null,
+  ) {
     const categoryMenu = this.createCategoryMenu(member);
-    const buttons = this.createCommandButtons(categoryKey);
+    const buttons = await this.createCommandButtons(categoryKey, client);
 
     const menuRow = new ActionRowBuilder().addComponents(categoryMenu);
-    return [menuRow, buttons];
+    return [menuRow, buttons].filter(Boolean);
   }
 }

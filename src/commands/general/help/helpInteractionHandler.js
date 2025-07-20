@@ -46,9 +46,10 @@ export class HelpInteractionHandler {
     );
 
     if (categoryEmbed) {
-      const components = HelpComponentBuilder.createCategoryComponents(
+      const components = await HelpComponentBuilder.createCategoryComponents(
         categoryKey,
         interaction.member,
+        this.client,
       );
       await interaction.update({
         embeds: [categoryEmbed],
@@ -93,10 +94,10 @@ export class HelpInteractionHandler {
       this.client,
       interaction.member,
     );
-    const components = HelpComponentBuilder.createMainComponents(
+    const components = await HelpComponentBuilder.createMainComponents(
       interaction.member,
+      this.client,
     );
-
     await interaction.update({
       embeds: [mainEmbed],
       components,
