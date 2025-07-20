@@ -5,16 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.2.0] - 2025-07-20
 
 ### Added
 
+- Developer command system with runtime permission checks
+- `/storage` command for storage status monitoring
+- Runtime permission checks for developer commands using `DEVELOPERS` environment variable
+- Discord command visibility controls with `setDefaultMemberPermissions(0n)` and `setDMPermission(false)`
+- Enhanced help system with component-based architecture
+- Improved command deployment with environment-based filtering
 - GitHub Actions release workflow for automated releases
 - Enhanced temporary roles with proper data persistence
 - Improved role management with better validation
 - Update script for automated bot updates
-- Developer command system with runtime permission checks
-- `/storage` command for storage status monitoring
+
+### Changed
+
+- Renamed "bot owner" references to "developer" throughout codebase
+- Updated developer commands with clear "🔒 [DEVELOPER ONLY]" descriptions
+- Simplified deployment scripts to 4 essential commands (`deploy:dev`, `deploy:prod`, `deploy:global`, `delete:commands`)
+- Updated ephemeral usage from `ephemeral: true` to `flags: 64` to avoid Discord deprecation warnings
+- Enhanced documentation with developer command system details
+- Improved command visibility and permission handling
+
+### Fixed
+
+- Fixed Discord deprecation warnings by updating ephemeral usage
+- Fixed developer command visibility issues in Discord UI
+- Fixed deployment script logic to properly filter commands by environment
+- Enhanced permission checking and feedback for developer commands
+
+### Performance
+
+- Optimized command deployment with environment-based filtering
+- Reduced deployment script complexity from 8 to 4 essential commands
+- Improved command response times with better error handling
 
 ### Changed
 
@@ -23,9 +49,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced database manager with better error handling
 - Improved scheduler with proper cleanup
 - Better error messages and validation
-- Updated developer commands with clear "🔒 [DEVELOPER ONLY]" descriptions
-- Simplified deployment scripts to 4 essential commands
-- Renamed "bot owner" references to "developer" throughout codebase
 
 ### Fixed
 
@@ -58,5 +81,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Permission controls and validation
 - Custom emoji support (Unicode and server emojis)
 - Role categories and organization
-- Developer management commands
+- Developer management commands (`/health`, `/performance`)
 - Comprehensive error handling and rate limiting
