@@ -28,22 +28,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated ephemeral usage from `ephemeral: true` to `flags: 64` to avoid Discord deprecation warnings
 - Enhanced documentation with developer command system details
 - Improved command visibility and permission handling
-
-### Fixed
-
-- Fixed Discord deprecation warnings by updating ephemeral usage
-- Fixed developer command visibility issues in Discord UI
-- Fixed deployment script logic to properly filter commands by environment
-- Enhanced permission checking and feedback for developer commands
-
-### Performance
-
-- Optimized command deployment with environment-based filtering
-- Reduced deployment script complexity from 8 to 4 essential commands
-- Improved command response times with better error handling
-
-### Changed
-
 - Streamlined README.md with better organization
 - Consolidated deployment guides (merged VPS_DEPLOYMENT.md)
 - Enhanced database manager with better error handling
@@ -52,18 +36,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed Discord deprecation warnings by updating ephemeral usage
+- Fixed developer command visibility issues in Discord UI
+- Fixed deployment script logic to properly filter commands by environment
+- Enhanced permission checking and feedback for developer commands
 - Fixed list-temp-roles command (getExpiredTemporaryRoles error)
 - Fixed date parsing issues in temporary role display
 - Added cache clearing to prevent stale data
 - Fixed data structure handling for temporary roles
-- Enhanced permission checking and feedback
 
 ### Performance
 
+- Optimized command deployment with environment-based filtering
+- Reduced deployment script complexity from 8 to 4 essential commands
+- Improved command response times with better error handling
 - Implemented 5-minute cache timeout
 - Added automatic data sync between storage methods
 - Enhanced error handling and logging
-- Improved command response times
 
 ## [0.1.0] - 2025-07-10
 
