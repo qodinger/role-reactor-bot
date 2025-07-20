@@ -1,6 +1,11 @@
 import { ActivityType } from "discord.js";
 import { getLogger } from "../utils/logger.js";
 import { createWelcomeBox, createInfoBox } from "../utils/terminal.js";
+import {
+  getDefaultInviteLink,
+  DEFAULT_INVITE_PERMISSIONS,
+  getInvitePermissionName,
+} from "../utils/invite.js";
 
 export const name = "ready";
 export const once = true;
@@ -47,28 +52,19 @@ export async function execute(client) {
 
   // Generate invite link
   try {
-    const inviteLink = client.generateInvite({
-      permissions: [
-        "ManageRoles",
-        "ManageMessages",
-        "AddReactions",
-        "ReadMessageHistory",
-        "ViewChannel",
-      ],
-      scopes: ["bot"],
-    });
+    const inviteLink = await getDefaultInviteLink(client);
+    client.inviteLink = inviteLink;
 
     // Create invite link section
+    const permissionNames = DEFAULT_INVITE_PERMISSIONS.map(
+      bit => `   • ${getInvitePermissionName(bit)}`,
+    );
     const inviteSection = [
       `🔗 Bot Invite Link:`,
       inviteLink,
       "",
       `📋 Required Permissions:`,
-      `   • Manage Roles`,
-      `   • Manage Messages`,
-      `   • Add Reactions`,
-      `   • Read Message History`,
-      `   • View Channel`,
+      ...permissionNames,
     ];
 
     const inviteBox = createInfoBox("🔗 Invitation Details", inviteSection, {
@@ -78,11 +74,9 @@ export async function execute(client) {
     console.log(inviteBox);
     console.log("");
   } catch (error) {
-    logger.error("Error generating invite link", error);
+    logger.error("Failed to generate invite link:", error);
+    console.log(
+      "Failed to generate invite link. Please check your bot token and permissions.",
+    );
   }
-
-  // Log success message
-  const successMessage = "✅ Bot is ready to handle role reactions!";
-  logger.success(successMessage);
-  logger.info(""); // Empty line for readability
 }

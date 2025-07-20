@@ -168,9 +168,11 @@ export default {
       client,
       interaction.member,
     );
-    const components = HelpComponentBuilder.createMainComponents(
-      interaction.member,
-    );
+    const components =
+      (await HelpComponentBuilder.createMainComponents(
+        interaction.member,
+        client,
+      )) || [];
 
     const response = await interaction.reply({
       embeds: [embed],

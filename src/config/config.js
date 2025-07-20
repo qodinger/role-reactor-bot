@@ -151,6 +151,20 @@ class Config {
   }
 
   /**
+   * Get external links for help UI
+   * @returns {Object} External links object
+   */
+  get externalLinks() {
+    return {
+      guide:
+        "https://github.com/tyecode-bots/role-reactor-bot/blob/main/README.md",
+      github: "https://github.com/tyecode-bots/role-reactor-bot",
+      support: "https://discord.gg/D8tYkU75Ry",
+      invite: this.discord.inviteURL,
+    };
+  }
+
+  /**
    * Get all configuration as a single object
    * @returns {Object} Complete configuration object
    */
