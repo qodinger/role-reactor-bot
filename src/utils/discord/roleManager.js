@@ -1,6 +1,6 @@
 import { PermissionFlagsBits } from "discord.js";
-import { getStorageManager } from "./storageManager.js";
-import { getLogger } from "./logger.js";
+import { getStorageManager } from "../storage/storageManager.js";
+import { getLogger } from "../logger.js";
 
 // Role mapping functions
 export async function getRoleMapping(messageId) {
@@ -58,72 +58,92 @@ export async function removeRoleMapping(messageId) {
 }
 
 // Role parsing and validation functions
+function unescapeHtml(str) {
+  return str.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+}
+
 export function parseRoleString(roleString) {
   const roles = [];
   const errors = [];
-  const lines = roleString.trim().split("\n");
+  const input = unescapeHtml(roleString.trim());
+  console.log("Original input:", JSON.stringify(input));
 
-  for (const line of lines) {
-    const trimmedLine = line.trim();
-    if (!trimmedLine) continue;
+  // Split on commas, semicolons, or newlines
+  const parts = input.split(/\s*(?:,|;|\n)\s*/).filter(Boolean);
+  for (const part of parts) {
+    console.log("Parsing part:", JSON.stringify(part));
+    let str = part.trim();
 
-    // Support multiple formats:
-    // 1. "emoji role_name" (basic)
-    // 2. "emoji role_name:limit" (with user limit)
-    // 3. "emoji role_name :limit" (with space before limit)
-    // 4. "emoji :role_name:limit" (with colon prefix)
-    // 5. "emoji :role_name" (with colon prefix, no limit)
-
-    // More flexible regex that handles various formats
-    const basicMatch = trimmedLine.match(
-      /^([^\s]+)\s*:?\s*([^:]+?)(?:\s*:\s*(\d+))?$/,
+    // 1. Extract emoji (Unicode or custom)
+    const emojiMatch = str.match(
+      /^(<a?:.+?:\d+>|[\p{Emoji_Presentation}\p{Emoji}\uFE0F])/u,
     );
-    if (basicMatch) {
-      const [, emoji, roleName, limitStr] = basicMatch;
-      const trimmedRoleName = roleName.trim();
-      const limit = limitStr ? parseInt(limitStr, 10) : null;
-
-      // Validate emoji
-      if (!emoji || emoji.length === 0) {
-        errors.push(`❌ Invalid emoji format in line: "${trimmedLine}"`);
-        continue;
-      }
-
-      // Validate role name
-      if (!trimmedRoleName || trimmedRoleName.length === 0) {
-        errors.push(`❌ Invalid role name in line: "${trimmedLine}"`);
-        continue;
-      }
-
-      // Validate limit if provided
-      if (limit !== null && (isNaN(limit) || limit < 1 || limit > 1000)) {
-        errors.push(
-          `❌ Invalid user limit in line: "${trimmedLine}" (must be 1-1000)`,
-        );
-        continue;
-      }
-
-      // Check for duplicate emojis
-      const existingRole = roles.find(r => r.emoji === emoji);
-      if (existingRole) {
-        errors.push(
-          `❌ Duplicate emoji ${emoji} found for roles: "${existingRole.roleName}" and "${trimmedRoleName}"`,
-        );
-        continue;
-      }
-
-      roles.push({
-        emoji,
-        roleName: trimmedRoleName,
-        limit,
-      });
-    } else {
-      errors.push(
-        `❌ Invalid format in line: "${trimmedLine}" (expected: "emoji role_name", "emoji role_name:limit", or "emoji :role_name:limit")`,
-      );
+    if (!emojiMatch) {
+      errors.push(`❌ Invalid or missing emoji in part: "${part}"`);
+      continue;
     }
-  }
+    const emoji = emojiMatch[0];
+    str = str.slice(emoji.length).trim();
 
+    // 2. Remove optional colon after emoji
+    if (str.startsWith(":")) str = str.slice(1).trim();
+
+    // 3. Extract limit (if present at end, after colon or space)
+    let limit = null;
+    const limitMatch = str.match(/(?::|\s)(\d+)$/);
+    if (limitMatch) {
+      limit = parseInt(limitMatch[1], 10);
+      str = str.slice(0, limitMatch.index).trim();
+    }
+
+    // 4. Extract role name (quoted, mention, or plain)
+    let roleName = null;
+    let roleId = null;
+    if (str.startsWith('"')) {
+      // Quoted role name
+      const quoteMatch = str.match(/^"([^"]+)"$/);
+      if (quoteMatch) {
+        roleName = quoteMatch[1];
+      } else {
+        errors.push(`❌ Invalid quoted role name in part: "${part}"`);
+        continue;
+      }
+    } else if (str.match(/^<@&\d+>$/)) {
+      // Standard role mention
+      roleName = str;
+      roleId = str.match(/^<@&(\d+)>$/)[1];
+    } else if (str.match(/^@&\d+$/)) {
+      // Role mention without angle brackets
+      roleName = `<${str}>`;
+      roleId = str.match(/^@&(\d+)$/)[1];
+    } else {
+      // Plain role name
+      roleName = str;
+    }
+
+    if (!roleName) {
+      errors.push(`❌ Invalid role name in part: "${part}"`);
+      continue;
+    }
+
+    // Validate limit
+    if (limit !== null && (isNaN(limit) || limit < 1 || limit > 1000)) {
+      errors.push(`❌ Invalid user limit in part: "${part}" (must be 1-1000)`);
+      continue;
+    }
+
+    // Check for duplicate emoji
+    const existingRole = roles.find(r => r.emoji === emoji);
+    if (existingRole) {
+      errors.push(
+        `❌ Duplicate emoji ${emoji} found for roles: "${existingRole.roleName || existingRole.roleId}" and "${roleName || roleId}"`,
+      );
+      continue;
+    }
+
+    roles.push({ emoji, roleName, roleId, limit });
+    console.log("Extracted:", { emoji, roleName, roleId, limit });
+  }
   return { roles, errors };
 }
 
@@ -336,4 +356,64 @@ export function formatRolePermissions(permissions) {
     USE_EXTERNAL_STICKERS: "Use External Stickers",
   };
   return permissions.map(perm => permissionNames[perm] || perm).join(", ");
+}
+
+export async function processRoles(interaction, rolesString) {
+  const { roles, errors: parseErrors } = parseRoleString(rolesString);
+  const validationErrors = [...parseErrors];
+  const validRoles = [];
+  const roleMapping = {};
+
+  if (roles.length === 0 && parseErrors.length === 0) {
+    return {
+      success: false,
+      errors: ["No roles were provided in the string."],
+    };
+  }
+
+  const guild = interaction.guild;
+  const botMember = await guild.members.fetchMe();
+  const roleNameMap = new Map(
+    guild.roles.cache.map(role => [role.name.toLowerCase(), role]),
+  );
+
+  for (const roleConfig of roles) {
+    let role = null;
+    if (roleConfig.roleId) {
+      role = guild.roles.cache.get(roleConfig.roleId);
+    } else {
+      role = roleNameMap.get(roleConfig.roleName.toLowerCase());
+    }
+
+    if (!role) {
+      validationErrors.push(`Role "${roleConfig.roleName}" not found`);
+      continue;
+    }
+
+    if (role.position >= botMember.roles.highest.position) {
+      validationErrors.push(
+        `Cannot manage role "${role.name}" - it's higher than my highest role`,
+      );
+      continue;
+    }
+
+    validRoles.push({
+      emoji: roleConfig.emoji,
+      roleId: role.id,
+      roleName: role.name, // Store the actual name for display
+      limit: roleConfig.limit || null,
+    });
+
+    roleMapping[roleConfig.emoji] = {
+      emoji: roleConfig.emoji,
+      roleId: role.id,
+      limit: roleConfig.limit || null,
+    };
+  }
+
+  if (validationErrors.length > 0) {
+    return { success: false, errors: validationErrors };
+  }
+
+  return { success: true, validRoles, roleMapping, errors: [] };
 }

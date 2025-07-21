@@ -12,7 +12,7 @@
 
 import { Collection } from "discord.js";
 import { getEventHandler } from "./eventHandler.js";
-import { getLogger } from "./logger.js";
+import { getLogger } from "../logger.js";
 
 /**
  * Command Handler Class

@@ -1,4 +1,4 @@
-import { getStorageManager } from "./storageManager.js";
+import { getStorageManager } from "./storage/storageManager.js";
 import { getLogger } from "./logger.js";
 
 // Get expired temporary roles from storage
@@ -331,3 +331,12 @@ export {
   getTaskInfo,
   clearAllTasks,
 };
+
+let scheduler = null;
+
+export function getScheduler() {
+  if (!scheduler) {
+    scheduler = new RoleExpirationScheduler();
+  }
+  return scheduler;
+}

@@ -1,6 +1,6 @@
 import { PermissionFlagsBits } from "discord.js";
-import config from "../config/config.js";
-import { COMMAND_CATEGORIES } from "../commands/general/help/helpData.js";
+import config from "../../config/config.js";
+import { COMMAND_CATEGORIES } from "../../commands/general/help/helpData.js";
 
 // Check if user is a developer
 const isDeveloper = userId => {

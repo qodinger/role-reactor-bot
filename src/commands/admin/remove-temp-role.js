@@ -8,11 +8,11 @@ import {
   botHasRequiredPermissions,
   getMissingBotPermissions,
   formatPermissionName,
-} from "../../utils/permissions.js";
+} from "../../utils/discord/permissions.js";
 import {
   removeTemporaryRole,
   getUserTemporaryRoles,
-} from "../../utils/temporaryRoles.js";
+} from "../../utils/discord/temporaryRoles.js";
 import { THEME_COLOR } from "../../config/theme.js";
 import { getLogger } from "../../utils/logger.js";
 

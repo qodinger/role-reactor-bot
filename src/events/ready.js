@@ -5,7 +5,7 @@ import {
   getDefaultInviteLink,
   DEFAULT_INVITE_PERMISSIONS,
   getInvitePermissionName,
-} from "../utils/invite.js";
+} from "../utils/discord/invite.js";
 
 export const name = "ready";
 export const once = true;

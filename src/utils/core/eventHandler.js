@@ -1,5 +1,5 @@
 import { Collection } from "discord.js";
-import { getLogger } from "./logger.js";
+import { getLogger } from "../logger.js";
 
 class EventHandler {
   constructor() {

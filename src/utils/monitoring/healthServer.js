@@ -1,5 +1,5 @@
 import http from "http";
-import { getLogger } from "./logger.js";
+import { getLogger } from "../logger.js";
 
 /**
  * Simple HTTP server for health checks

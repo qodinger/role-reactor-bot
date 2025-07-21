@@ -1,6 +1,6 @@
-import { getLogger } from "./logger.js";
-import { getDatabaseManager } from "./databaseManager.js";
+import { getLogger } from "../logger.js";
 import { getPerformanceMonitor } from "./performanceMonitor.js";
+import { getDatabaseManager } from "../storage/databaseManager.js";
 
 /**
  * Health Check System

@@ -3,8 +3,8 @@ import {
   PermissionFlagsBits,
   EmbedBuilder,
 } from "discord.js";
-import { hasAdminPermissions } from "../../utils/permissions.js";
-import { getAllRoleMappings } from "../../utils/roleManager.js";
+import { hasAdminPermissions } from "../../utils/discord/permissions.js";
+import { getAllRoleMappings } from "../../utils/discord/roleManager.js";
 import { THEME_COLOR } from "../../config/theme.js";
 import { getLogger } from "../../utils/logger.js";
 
@@ -88,8 +88,20 @@ export async function execute(interaction, client) {
 
     const roleList = guildMappings
       .map(([messageId, mapping]) => {
-        const roleCount = Object.keys(mapping.roles || {}).length;
-        return `**Message ID:** ${messageId}\n**Roles:** ${roleCount} role(s)`;
+        const rolesObj = mapping.roles || {};
+        const rolesArr = Array.isArray(rolesObj)
+          ? rolesObj
+          : Object.values(rolesObj);
+        const roleMentions = rolesArr
+          .map(role =>
+            role.roleId ? `<@&${role.roleId}>` : role.roleName || "Unknown",
+          )
+          .join(", ");
+        // Channel mention (if available)
+        const channelMention = mapping.channelId
+          ? `<#${mapping.channelId}>`
+          : "Unknown channel";
+        return `**Message ID:** ${messageId}\n**Channel:** ${channelMention}\n**Roles:** ${rolesArr.length} role(s)\n${roleMentions}`;
       })
       .join("\n\n");
 

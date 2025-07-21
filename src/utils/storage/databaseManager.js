@@ -1,6 +1,6 @@
 import { MongoClient } from "mongodb";
-import { getLogger } from "./logger.js";
-import config from "../config/config.js";
+import { getLogger } from "../logger.js";
+import config from "../../config/config.js";
 
 class DatabaseManager {
   constructor() {

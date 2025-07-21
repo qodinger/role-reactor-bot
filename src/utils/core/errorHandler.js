@@ -10,7 +10,7 @@
  * @license MIT
  */
 
-import { getLogger } from "./logger.js";
+import { getLogger } from "../logger.js";
 
 /**
  * Centralized Error Handler Class

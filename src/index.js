@@ -23,14 +23,15 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import config from "./config/config.js";
-import RoleExpirationScheduler from "./utils/scheduler.js";
-import { getCommandHandler } from "./utils/commandHandler.js";
-import { getEventHandler } from "./utils/eventHandler.js";
-import { getPerformanceMonitor } from "./utils/performanceMonitor.js";
-import { getStorageManager } from "./utils/storageManager.js";
+import { getStorageManager } from "./utils/storage/storageManager.js";
+import { getPerformanceMonitor } from "./utils/monitoring/performanceMonitor.js";
 import { getLogger } from "./utils/logger.js";
-import { getHealthCheck } from "./utils/healthCheck.js";
-import HealthServer from "./utils/healthServer.js";
+import { getScheduler } from "./utils/scheduler.js";
+import { getHealthCheck } from "./utils/monitoring/healthCheck.js";
+import HealthServer from "./utils/monitoring/healthServer.js";
+// import { registerGracefulShutdown } from "./utils/terminal.js";
+import { getCommandHandler } from "./utils/core/commandHandler.js";
+import { getEventHandler } from "./utils/core/eventHandler.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -409,7 +410,7 @@ const main = async () => {
     logger.info(`⚡ Systems initialized in ${Date.now() - systemsInitStart}ms`);
 
     const client = createClient();
-    const roleScheduler = new RoleExpirationScheduler(client);
+    const roleScheduler = getScheduler();
 
     // Register commands collection
     client.commands = new Collection();

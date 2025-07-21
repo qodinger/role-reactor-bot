@@ -1,5 +1,5 @@
-import { getLogger } from "./logger.js";
-import { errorHandler } from "./errorHandler.js";
+import { getLogger } from "../logger.js";
+import { errorHandler } from "../core/errorHandler.js";
 
 /**
  * Rate limiting utility following Discord API best practices

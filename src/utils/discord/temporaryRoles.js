@@ -1,5 +1,5 @@
-import { getStorageManager } from "./storageManager.js";
-import { getLogger } from "./logger.js";
+import { getStorageManager } from "../storage/storageManager.js";
+import { getLogger } from "../logger.js";
 
 // Temporary role functions
 export async function addTemporaryRole(guildId, userId, roleId, expiresAt) {
