@@ -1,4 +1,5 @@
 import chalk from "chalk";
+import boxen from "boxen";
 import ora from "ora";
 
 /**
@@ -11,6 +12,10 @@ export const colors = {
   info: chalk.blue,
   muted: chalk.gray,
   highlight: chalk.cyan,
+  cyan: chalk.cyan,
+  magenta: chalk.magenta,
+  bold: chalk.bold,
+  dim: chalk.dim,
 };
 
 /**
@@ -24,7 +29,59 @@ export const icons = {
   info: "📖",
   rocket: "🚀",
   lightning: "⚡",
+  party: "🎉",
+  link: "🔗",
+  server: "🌐",
+  folder: "📁",
 };
+
+/**
+ * Creates a beautiful info box.
+ * @param {string} title - Box title.
+ * @param {string|string[]} content - Box content.
+ * @param {object} options - Boxen options.
+ * @returns {string} The formatted box.
+ */
+export function createInfoBox(title, content, options = {}) {
+  const boxOptions = {
+    title,
+    titleAlignment: "center",
+    padding: 1,
+    margin: 1,
+    borderStyle: "round",
+    borderColor: "cyan",
+    ...options,
+  };
+  const contentText = Array.isArray(content) ? content.join("\n") : content;
+  return boxen(contentText, boxOptions);
+}
+
+/**
+ * Creates a success message.
+ * @param {string} message - The success message.
+ * @returns {string} The formatted message.
+ */
+export function createSuccessMessage(message) {
+  return `${icons.success} ${colors.success.bold(message)}`;
+}
+
+/**
+ * Creates an error message.
+ * @param {string} message - The error message.
+ * @returns {string} The formatted message.
+ */
+export function createErrorMessage(message) {
+  return `${icons.error} ${colors.error.bold(message)}`;
+}
+
+/**
+ * Creates a warning message.
+ * @param {string} message - The warning message.
+ * @returns {string} The formatted message.
+ */
+export function createWarningMessage(message) {
+  return `${icons.warning} ${colors.warning.bold(message)}`;
+}
 
 /**
  * Creates a simple header for terminal output.

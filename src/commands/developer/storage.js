@@ -1,6 +1,10 @@
-import { SlashCommandBuilder } from "discord.js";
+import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
+import fs from "fs";
+import path from "path";
 import { getStorageManager } from "../../utils/storage/storageManager.js";
 import { getLogger } from "../../utils/logger.js";
+import { isDeveloper } from "../../utils/discord/permissions.js";
+import { THEME_COLOR } from "../../config/theme.js";
 
 export const data = new SlashCommandBuilder()
   .setName("storage")
@@ -8,16 +12,11 @@ export const data = new SlashCommandBuilder()
   .setDefaultMemberPermissions(0n)
   .setDMPermission(false);
 
-export async function execute(interaction) {
+export async function execute(interaction, client) {
   const logger = getLogger();
 
   try {
-    // Check if user is developer
-    const developers =
-      process.env.DEVELOPERS?.split(",").map(id => id.trim()) || [];
-    const isDeveloper = developers.includes(interaction.user.id);
-
-    if (!isDeveloper) {
+    if (!isDeveloper(interaction.user.id)) {
       return interaction.reply({
         content: "❌ You don't have permission to use this command.",
         flags: 64,
@@ -27,59 +26,101 @@ export async function execute(interaction) {
     await interaction.deferReply({ flags: 64 });
 
     const storageManager = await getStorageManager();
-    const status = storageManager.getStorageStatus();
+    const providerName = storageManager.provider.constructor.name;
+    const isDbConnected = providerName === "DatabaseProvider";
 
-    const embed = {
-      color: 0x00ff00,
-      title: "💾 Storage Status",
-      fields: [
-        {
-          name: "🗄️ Database",
-          value: status.database.connected
-            ? `✅ Connected (${status.database.type})`
-            : "❌ Not connected",
-          inline: true,
-        },
-        {
-          name: "📁 Local Storage",
-          value: status.local.enabled
-            ? `✅ Enabled (${status.local.path})`
-            : "❌ Disabled",
-          inline: true,
-        },
-        {
-          name: "🔄 Sync",
-          value: status.sync.enabled
-            ? `✅ Active (${status.sync.interval})`
-            : "❌ Inactive",
-          inline: true,
-        },
-        {
-          name: "💾 Cache",
-          value: `${status.cache.size} items (${status.cache.timeout / 1000}s timeout)`,
-          inline: true,
-        },
-      ],
-      timestamp: new Date().toISOString(),
-      footer: {
+    const embed = new EmbedBuilder()
+      .setTitle("💾 Storage Status")
+      .setColor(isDbConnected ? THEME_COLOR : 0xffa500)
+      .setTimestamp()
+      .setFooter({
         text: "Role Reactor • Storage Status",
-      },
-    };
-
-    // Add storage path info
-    if (status.local.enabled) {
-      embed.fields.push({
-        name: "📂 Data Files",
-        value: "`role_mappings.json`\n`temporary_roles.json`",
-        inline: false,
+        iconURL: client.user.displayAvatarURL(),
       });
+
+    if (isDbConnected) {
+      const dbManager = storageManager.provider.dbManager;
+      const isHealthy = await dbManager.healthCheck();
+      const roleMappingsCount =
+        await dbManager.roleMappings.collection.countDocuments();
+      const tempRolesCount =
+        await dbManager.temporaryRoles.collection.countDocuments();
+
+      embed.addFields(
+        {
+          name: "Provider",
+          value: "✅ Database",
+          inline: true,
+        },
+        {
+          name: "DB Status",
+          value: isHealthy ? "Healthy" : "Unhealthy",
+          inline: true,
+        },
+        {
+          name: "DB Name",
+          value: dbManager.connectionManager.config.name,
+          inline: true,
+        },
+        {
+          name: "Role Mappings",
+          value: `${roleMappingsCount} documents`,
+          inline: true,
+        },
+        {
+          name: "Temp Roles",
+          value: `${tempRolesCount} documents`,
+          inline: true,
+        },
+        {
+          name: "Cache Size",
+          value: `${dbManager.cacheManager.cache.size} items`,
+          inline: true,
+        },
+      );
+    } else {
+      const { storagePath } = storageManager.provider;
+      const mappingsPath = path.join(storagePath, "role_mappings.json");
+      const tempRolesPath = path.join(storagePath, "temporary_roles.json");
+
+      const getFileInfo = filePath => {
+        if (fs.existsSync(filePath)) {
+          const stats = fs.statSync(filePath);
+          return `Exists (${(stats.size / 1024).toFixed(2)} KB)`;
+        }
+        return "Not found";
+      };
+
+      embed.addFields(
+        {
+          name: "Provider",
+          value: "⚠️ Local File System",
+          inline: true,
+        },
+        {
+          name: "Storage Path",
+          value: `\`${storagePath}\``,
+          inline: true,
+        },
+        { name: "\u200B", value: "\u200B", inline: true }, // Spacer
+        {
+          name: "Role Mappings File",
+          value: getFileInfo(mappingsPath),
+          inline: true,
+        },
+        {
+          name: "Temp Roles File",
+          value: getFileInfo(tempRolesPath),
+          inline: true,
+        },
+      );
     }
 
-    await interaction.editReply({ embeds: [embed], flags: 64 });
+    await interaction.editReply({ embeds: [embed] });
 
     logger.info("Storage status command executed", {
       userId: interaction.user.id,
-      status,
+      provider: providerName,
     });
   } catch (error) {
     logger.error("❌ Error in storage command", error);

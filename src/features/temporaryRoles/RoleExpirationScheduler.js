@@ -1,6 +1,7 @@
-import { getStorageManager } from "../../utils/storage/storageManager.js";
-import { getLogger } from "../../utils/logger.js";
 import { EmbedBuilder } from "discord.js";
+
+import { getDatabaseManager } from "../../utils/storage/databaseManager.js";
+import { getLogger } from "../../utils/logger.js";
 
 class RoleExpirationScheduler {
   constructor(client) {
@@ -40,47 +41,57 @@ class RoleExpirationScheduler {
   }
 
   async cleanupExpiredRoles() {
-    const storageManager = await getStorageManager();
-    const tempRoles = await storageManager.getTemporaryRoles();
-    const expiredRoles = [];
-
-    for (const [guildId, guildRoles] of Object.entries(tempRoles)) {
-      for (const [userId, userRoles] of Object.entries(guildRoles)) {
-        for (const [roleId, roleData] of Object.entries(userRoles)) {
-          if (new Date(roleData.expiresAt) <= new Date()) {
-            expiredRoles.push({ guildId, userId, roleId });
-          }
-        }
-      }
+    const databaseManager = await getDatabaseManager();
+    if (!databaseManager.temporaryRoles) {
+      this.logger.debug("Database not ready, skipping temporary role cleanup.");
+      return;
     }
 
+    const expiredRoles = await databaseManager.temporaryRoles.findExpired();
     if (expiredRoles.length === 0) return;
 
-    this.logger.info(
-      `⏰ Found ${expiredRoles.length} expired temporary role(s) to clean up`,
-    );
+    this.logger.info(`Found ${expiredRoles.length} expired temporary role(s).`);
 
-    for (const { guildId, userId, roleId } of expiredRoles) {
+    for (const expiredRole of expiredRoles) {
+      const { guildId, userId, roleId } = expiredRole;
       try {
         const guild = this.client.guilds.cache.get(guildId);
-        if (!guild) continue;
+        if (!guild) {
+          this.logger.warn(`Guild ${guildId} not found, cleaning up role.`);
+          await databaseManager.temporaryRoles.delete(guildId, userId, roleId);
+          continue;
+        }
 
-        const member = await guild.members.fetch(userId);
-        if (!member) continue;
+        const member = await guild.members.fetch(userId).catch(() => null);
+        if (!member) {
+          this.logger.warn(
+            `Member ${userId} not found in guild ${guild.name}, cleaning up role.`,
+          );
+          await databaseManager.temporaryRoles.delete(guildId, userId, roleId);
+          continue;
+        }
 
         const role = guild.roles.cache.get(roleId);
-        if (!role || !member.roles.cache.has(role.id)) continue;
+        if (!role) {
+          this.logger.warn(
+            `Role ${roleId} not found in guild ${guild.name}, cleaning up role.`,
+          );
+          await databaseManager.temporaryRoles.delete(guildId, userId, roleId);
+          continue;
+        }
 
-        await member.roles.remove(role, "Temporary role expired");
-        await storageManager.removeTemporaryRole(guildId, userId, roleId);
-        this.logger.success(
-          `✅ Removed expired role "${role.name}" from ${member.user.tag}`,
-        );
+        if (member.roles.cache.has(role.id)) {
+          await member.roles.remove(role, "Temporary role expired");
+          this.logger.success(
+            `Removed expired role "${role.name}" from ${member.user.tag}.`,
+          );
+          await this.sendExpirationNotification(member, role, guild);
+        }
 
-        await this.sendExpirationNotification(member, role, guild);
+        await databaseManager.temporaryRoles.delete(guildId, userId, roleId);
       } catch (error) {
         this.logger.error(
-          `❌ Error removing expired role for user ${userId}`,
+          `Error processing expired role for user ${userId}`,
           error,
         );
       }

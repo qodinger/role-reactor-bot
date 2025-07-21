@@ -1,4 +1,5 @@
 import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
+
 import { isDeveloper } from "../../utils/discord/permissions.js";
 import { getLogger } from "../../utils/logger.js";
 
@@ -17,7 +18,6 @@ export async function execute(interaction, client) {
   await interaction.deferReply({ flags: 64 });
 
   try {
-    // Check permissions
     if (!isDeveloper(interaction.user.id)) {
       logger.warn("Permission denied for health command", {
         userId: interaction.user.id,
@@ -31,7 +31,6 @@ export async function execute(interaction, client) {
       });
     }
 
-    // Create health status embed
     const embed = new EmbedBuilder()
       .setTitle("🏥 Bot Health Status")
       .setTimestamp()
@@ -40,7 +39,6 @@ export async function execute(interaction, client) {
         iconURL: client.user.displayAvatarURL(),
       });
 
-    // Basic health checks
     const checks = {
       bot_ready: client.user ? "✅ Ready" : "❌ Not Ready",
       websocket: client.ws.ping < 200 ? "✅ Good" : "⚠️ High Ping",
@@ -51,7 +49,6 @@ export async function execute(interaction, client) {
       memory: `${(process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2)} MB`,
     };
 
-    // Determine overall status
     const hasErrors = checks.bot_ready.includes("❌");
     const hasWarnings = checks.websocket.includes("⚠️");
 
@@ -70,15 +67,12 @@ export async function execute(interaction, client) {
     }
 
     embed.setColor(statusColor);
-
-    // Add overall status
     embed.addFields({
       name: "📊 Overall Status",
       value: `${statusEmoji} **${overallStatus.toUpperCase()}**`,
       inline: false,
     });
 
-    // Add individual check results
     for (const [checkName, checkResult] of Object.entries(checks)) {
       embed.addFields({
         name: `${checkName.replace(/_/g, " ").toUpperCase()}`,
@@ -87,7 +81,6 @@ export async function execute(interaction, client) {
       });
     }
 
-    // Add additional info
     embed.addFields({
       name: "🤖 Bot Information",
       value: `**Ping:** ${client.ws.ping}ms\n**Environment:** ${process.env.NODE_ENV || "development"}\n**Node.js:** ${process.version}`,
@@ -99,7 +92,6 @@ export async function execute(interaction, client) {
       flags: 64,
     });
 
-    // Log command execution
     const duration = Date.now() - startTime;
     logger.info("Health check command executed", {
       userId: interaction.user.id,

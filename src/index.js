@@ -101,13 +101,13 @@ async function main() {
     for (const file of eventFiles) {
       const filePath = path.join(eventsPath, file);
       const event = await import(filePath);
-      const eventExecutor = (...args) => event.execute(...args, client);
+      const eventExecutor = (...args) =>
+        eventHandler.processEvent(event.name, event.execute, ...args, client);
       if (event.once) {
         client.once(event.name, eventExecutor);
       } else {
         client.on(event.name, eventExecutor);
       }
-      eventHandler.registerEvent(event.name);
     }
 
     client.login(config.discord.token);
