@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from "discord.js";
-import { getStorageManager } from "../../utils/storageManager.js";
+import { getStorageManager } from "../../utils/storage/storageManager.js";
 import { getLogger } from "../../utils/logger.js";
 
 export const data = new SlashCommandBuilder()

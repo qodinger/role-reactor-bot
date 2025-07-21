@@ -1,17 +1,23 @@
 import { SlashCommandBuilder, PermissionFlagsBits } from "discord.js";
-import { hasAdminPermissions } from "../../utils/permissions.js";
+import { hasAdminPermissions } from "../../utils/discord/permissions.js";
 import {
   getRoleMapping,
   setRoleMapping,
-  parseRoleString,
-} from "../../utils/roleManager.js";
+  processRoles,
+} from "../../utils/discord/roleManager.js";
 import {
   rolesOption,
   titleOption,
   descriptionOption,
   colorOption,
-} from "../../utils/roleMessageOptions.js";
+} from "../../utils/discord/roleMessageOptions.js";
 import { getLogger } from "../../utils/logger.js";
+import {
+  roleUpdatedEmbed,
+  permissionErrorEmbed,
+  validationErrorEmbed,
+  errorEmbed,
+} from "../../utils/discord/responseMessages.js";
 
 export const data = new SlashCommandBuilder()
   .setName("update-roles")
@@ -28,82 +34,15 @@ export const data = new SlashCommandBuilder()
   .addStringOption(colorOption())
   .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles);
 
-// Validate that a message exists in a channel
-export async function validateMessage(channel, messageId) {
-  try {
-    const message = await channel.messages.fetch(messageId);
-    return message;
-  } catch {
-    return null;
-  }
-}
-
-// Validate that roles exist in a guild
-export function validateRoles(guild, roleIds) {
-  const valid = [];
-  const invalid = [];
-
-  for (const roleId of roleIds) {
-    const role = guild.roles.cache.get(roleId);
-    if (role) {
-      valid.push(role);
-    } else {
-      invalid.push(roleId);
-    }
-  }
-
-  return { valid, invalid };
-}
-
-// Generate message content from roles
-export function generateMessageContent(roles) {
-  if (roles.length === 0) {
-    return "No roles available";
-  }
-
-  if (roles.length === 1) {
-    return `**${roles[0].name}**`;
-  }
-
-  const roleNames = roles.map(role => `**${role.name}**`).join("\n");
-  return `**Roles:**\n${roleNames}`;
-}
-
-// Update message content with roles
-export async function updateMessageContent(message, roles) {
-  try {
-    const content = generateMessageContent(roles);
-    await message.edit(content);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-// Get role information from guild
-export function getRoleInfo(guild, roleIds) {
-  const roles = [];
-
-  for (const roleId of roleIds) {
-    const role = guild.roles.cache.get(roleId);
-    if (role) {
-      roles.push(role);
-    }
-  }
-
-  return roles;
-}
-
 export async function execute(interaction) {
   const logger = getLogger();
 
   await interaction.deferReply({ flags: 64 });
   try {
     if (!hasAdminPermissions(interaction.member)) {
-      return interaction.editReply({
-        content: "❌ You need administrator permissions to use this command!",
-        flags: 64,
-      });
+      return interaction.editReply(
+        permissionErrorEmbed({ requiredPermissions: ["Administrator"] }),
+      );
     }
     const messageId = interaction.options.getString("message_id");
     const title = interaction.options.getString("title");
@@ -112,47 +51,99 @@ export async function execute(interaction) {
     const colorHex = interaction.options.getString("color");
     const existingMapping = await getRoleMapping(messageId);
     if (!existingMapping) {
-      return interaction.editReply({
-        content: "❌ No role-reaction message found with that ID.",
-        flags: 64,
-      });
+      return interaction.editReply(
+        errorEmbed({
+          title: "Message Not Found",
+          description: "No role-reaction message found with that ID.",
+          solution: "Use `/list-roles` to find the correct message ID.",
+        }),
+      );
     }
     const updates = {};
     if (title) updates.title = title;
     if (description) updates.description = description;
+
+    let roleMapping = existingMapping.roles;
     if (rolesString) {
-      const { roles, errors } = parseRoleString(rolesString);
-      if (errors.length > 0) {
-        return interaction.editReply({
-          content: `❌ **Parse Errors**\n\n${errors.join("\n")}`,
-          flags: 64,
-        });
+      const roleProcessingResult = await processRoles(interaction, rolesString);
+      if (!roleProcessingResult.success) {
+        return interaction.editReply(
+          validationErrorEmbed({ errors: roleProcessingResult.errors }),
+        );
       }
-      updates.roles = roles;
+      roleMapping = roleProcessingResult.roleMapping;
+      updates.roles = roleMapping;
     }
+
     if (colorHex) {
       const hex = colorHex.startsWith("#") ? colorHex : `#${colorHex}`;
       if (!/^#[0-9A-F]{6}$/i.test(hex)) {
-        return interaction.editReply({
-          content:
-            "❌ **Invalid Color Format**\nPlease provide a valid hex color code (e.g., #0099ff or 0099ff)",
-          flags: 64,
-        });
+        return interaction.editReply(
+          validationErrorEmbed({
+            errors: ["Invalid color format."],
+            helpText:
+              "Please provide a valid hex color code (e.g., #0099ff or 0099ff).",
+          }),
+        );
       }
       updates.color = hex;
     }
+    // Merge updates into existing mapping
     const updatedMapping = { ...existingMapping, ...updates };
-    await setRoleMapping(messageId, updatedMapping);
-    await interaction.editReply({
-      content: `✅ **Role-Reaction Message Updated!**\n\n**Message ID:** ${messageId}\n**Updates:** ${Object.keys(updates).join(", ")}`,
-      flags: 64,
+
+    // Update the original message if possible
+    const channel = await interaction.guild.channels.fetch(
+      existingMapping.channelId,
+    );
+    const message = await channel.messages.fetch(messageId);
+    // Build embed
+    const { EmbedBuilder } = await import("discord.js");
+    const embed = new EmbedBuilder()
+      .setTitle(updatedMapping.title || "Role Selection")
+      .setDescription(updatedMapping.description || "React to get a role!")
+      .setColor(updatedMapping.color || "#0099ff")
+      .setTimestamp()
+      .setFooter({
+        text: "Role Reactor • Self-Assignable Roles",
+        iconURL: interaction.client.user.displayAvatarURL(),
+      });
+    // Prepare role list
+    const rolesToShow = Object.values(roleMapping || {});
+    const roleList = rolesToShow
+      .map(pair => {
+        const limitText = pair.limit ? ` (${pair.limit} users max)` : "";
+        return `${pair.emoji} <@&${pair.roleId}>${limitText}`;
+      })
+      .join("\n");
+
+    embed.addFields({
+      name: "🎭 Available Roles",
+      value: roleList || "No roles available",
+      inline: false,
     });
+    await message.edit({ embeds: [embed] });
+    // Save the updated mapping using the correct signature
+    await setRoleMapping(
+      messageId,
+      updatedMapping.guildId,
+      updatedMapping.channelId,
+      roleMapping,
+    );
+    await interaction.editReply(
+      roleUpdatedEmbed({
+        messageId,
+        updates: Object.keys(updates).join(", "),
+        changeCount: Object.keys(updates).length,
+      }),
+    );
   } catch (error) {
     logger.error("Error updating roles", error);
-    await interaction.editReply({
-      content:
-        "❌ **Error**\nAn error occurred while updating the role-reaction message. Please try again.",
-      flags: 64,
-    });
+    await interaction.editReply(
+      errorEmbed({
+        title: "Error",
+        description:
+          "An error occurred while updating the role-reaction message. Please try again.",
+      }),
+    );
   }
 }

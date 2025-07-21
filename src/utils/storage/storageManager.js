@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { getLogger } from "./logger.js";
+import { getLogger } from "../logger.js";
 import { getDatabaseManager } from "./databaseManager.js";
 
 /**

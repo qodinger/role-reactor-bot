@@ -1,5 +1,5 @@
 import { Events } from "discord.js";
-import { removeRoleMapping } from "../utils/roleManager.js";
+import { removeRoleMapping } from "../utils/discord/roleManager.js";
 import { getLogger } from "../utils/logger.js";
 
 export const name = Events.MessageDelete;

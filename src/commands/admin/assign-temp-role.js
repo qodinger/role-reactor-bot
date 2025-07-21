@@ -1,7 +1,7 @@
 import {
   SlashCommandBuilder,
-  PermissionFlagsBits,
   EmbedBuilder,
+  PermissionFlagsBits,
 } from "discord.js";
 import pLimit from "p-limit";
 import {
@@ -9,12 +9,12 @@ import {
   botHasRequiredPermissions,
   getMissingBotPermissions,
   formatPermissionName,
-} from "../../utils/permissions.js";
+} from "../../utils/discord/permissions.js";
 import {
   addTemporaryRole,
   parseDuration,
   formatDuration,
-} from "../../utils/temporaryRoles.js";
+} from "../../utils/discord/temporaryRoles.js";
 import { THEME_COLOR } from "../../config/theme.js";
 import { getLogger } from "../../utils/logger.js";
 
@@ -368,7 +368,9 @@ function buildResultsEmbed(
 
 // Bulk insert to DB
 async function bulkAddTemporaryRoles(guildId, roleId, expiresAt, results) {
-  const { getDatabaseManager } = await import("../../utils/databaseManager.js");
+  const { getDatabaseManager } = await import(
+    "../../utils/storage/databaseManager.js"
+  );
   const dbManager = await getDatabaseManager();
   const docs = results
     .filter(r => r.status === "✅ Role assigned")

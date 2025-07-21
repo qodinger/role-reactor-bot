@@ -8,7 +8,7 @@ import {
 import { COMMAND_CATEGORIES } from "./helpData.js";
 import { EMOJIS } from "../../../config/theme.js";
 import config from "../../../config/config.js";
-import { getDefaultInviteLink } from "../../../utils/invite.js";
+import { getDefaultInviteLink } from "../../../utils/discord/invite.js";
 
 /**
  * Builder class for creating help UI components

@@ -1,7 +1,15 @@
 import { SlashCommandBuilder, PermissionFlagsBits } from "discord.js";
-import { hasAdminPermissions } from "../../utils/permissions.js";
-import { removeRoleMapping, getRoleMapping } from "../../utils/roleManager.js";
+import { hasAdminPermissions } from "../../utils/discord/permissions.js";
+import {
+  removeRoleMapping,
+  getRoleMapping,
+} from "../../utils/discord/roleManager.js";
 import { getLogger } from "../../utils/logger.js";
+import {
+  roleDeletedEmbed,
+  permissionErrorEmbed,
+  errorEmbed,
+} from "../../utils/discord/responseMessages.js";
 
 export const data = new SlashCommandBuilder()
   .setName("delete-roles")
@@ -88,7 +96,6 @@ export async function execute(interaction) {
   const logger = getLogger();
 
   try {
-    // Check if already replied to prevent double responses
     if (interaction.replied || interaction.deferred) {
       logger.debug("Interaction already handled, skipping");
       return;
@@ -97,45 +104,52 @@ export async function execute(interaction) {
     await interaction.deferReply({ flags: 64 });
 
     if (!hasAdminPermissions(interaction.member)) {
-      return interaction.editReply({
-        content: "❌ You need administrator permissions to use this command!",
-        flags: 64,
-      });
+      return interaction.editReply(
+        permissionErrorEmbed({ requiredPermissions: ["Administrator"] }),
+      );
     }
 
     const messageId = interaction.options.getString("message_id");
     const roleMapping = await getRoleMapping(messageId);
 
     if (!roleMapping) {
-      return interaction.editReply({
-        content: "❌ No role-reaction message found with that ID.",
-        flags: 64,
-      });
+      return interaction.editReply(
+        errorEmbed({
+          title: "Message Not Found",
+          description: "No role-reaction message found with that ID.",
+          solution: "Use `/list-roles` to find the correct message ID.",
+        }),
+      );
     }
 
     await removeRoleMapping(messageId);
 
-    await interaction.editReply({
-      content: `✅ **Role-Reaction Message Deleted!**\n\n**Message ID:** ${messageId}\n\nThe role-reaction message has been removed from the database.`,
-      flags: 64,
-    });
+    await interaction.editReply(
+      roleDeletedEmbed({
+        messageId,
+        rolesRemoved: Object.keys(roleMapping.roles || {}).length,
+      }),
+    );
   } catch (error) {
     logger.error("Error deleting roles", error);
 
-    // Only try to reply if we haven't already
     try {
       if (!interaction.replied && !interaction.deferred) {
-        await interaction.reply({
-          content:
-            "❌ **Error**\nAn error occurred while deleting the role-reaction message. Please try again.",
-          flags: 64,
-        });
+        await interaction.reply(
+          errorEmbed({
+            title: "Error",
+            description:
+              "An error occurred while deleting the role-reaction message. Please try again.",
+          }),
+        );
       } else if (interaction.deferred) {
-        await interaction.editReply({
-          content:
-            "❌ **Error**\nAn error occurred while deleting the role-reaction message. Please try again.",
-          flags: 64,
-        });
+        await interaction.editReply(
+          errorEmbed({
+            title: "Error",
+            description:
+              "An error occurred while deleting the role-reaction message. Please try again.",
+          }),
+        );
       }
     } catch (replyError) {
       logger.error("Failed to send error response", replyError);

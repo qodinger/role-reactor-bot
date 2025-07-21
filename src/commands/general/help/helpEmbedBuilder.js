@@ -491,6 +491,27 @@ export class HelpEmbedBuilder {
           },
         );
         break;
+
+      case "invite":
+        embed.addFields(
+          {
+            name: `${EMOJIS.ACTIONS.LINK} How to Use`,
+            value: "```/invite```",
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.UI.MENU} 📝 What You Need`,
+            value: "No parameters needed - just run the command!",
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
+            value:
+              "An invite link to add Role Reactor Bot to your server. The link is sent as an ephemeral message, so only you can see it. Share it with others to invite the bot!",
+            inline: false,
+          },
+        );
+        break;
     }
   }
 }

@@ -7,25 +7,31 @@ This directory contains all utility modules for the Role Reactor Bot, providing 
 ```
 src/utils/
 ├── README.md                    # This documentation file
-├── commandHandler.js            # Command registration and execution
-├── databaseManager.js           # MongoDB connection and operations
-├── errorHandler.js              # Centralized error handling
-├── eventHandler.js              # Event processing and management
-├── healthCheck.js               # System health monitoring
-├── healthServer.js              # HTTP health check server
-├── logger.js                    # Structured logging system
-├── performanceMonitor.js        # Performance metrics and monitoring
-├── permissions.js               # Permission validation utilities
-├── rateLimiter.js               # Rate limiting implementation
-├── roleManager.js               # Role assignment and management
-├── roleMessageOptions.js        # Role message configuration
-├── scheduler.js                 # Task scheduling and cleanup
-├── security.js                  # Security and validation utilities
-├── storageManager.js            # Hybrid storage system
-├── temporaryRoles.js            # Temporary role management
-├── terminal.js                  # Terminal UI and display
-├── validation.js                # Input validation utilities
-└── version.js                   # Version management and updates
+├── core/
+│   ├── commandHandler.js
+│   ├── eventHandler.js
+│   └── errorHandler.js
+├── discord/
+│   ├── invite.js
+│   ├── permissions.js
+│   ├── rateLimiter.js
+│   ├── responseMessages.js
+│   ├── roleManager.js
+│   ├── roleMessageOptions.js
+│   ├── security.js
+│   ├── temporaryRoles.js
+│   ├── validation.js
+│   └── version.js
+├── monitoring/
+│   ├── healthCheck.js
+│   ├── healthServer.js
+│   └── performanceMonitor.js
+├── storage/
+│   ├── databaseManager.js
+│   └── storageManager.js
+├── logger.js                    # Generic logger
+├── scheduler.js                 # Generic task scheduler
+└── terminal.js                  # Generic terminal utilities
 ```
 
 ## 🏗️ Architecture Overview
@@ -34,99 +40,78 @@ The utils directory follows a modular architecture where each module has a speci
 
 ### **Core System Modules**
 
-- **commandHandler.js** - Manages all command operations
-- **eventHandler.js** - Handles Discord event processing
-- **errorHandler.js** - Centralized error management
-- **logger.js** - Structured logging system
+- **core/** - Manages all command operations, event processing, and error handling.
 
 ### **Storage & Data Modules**
 
-- **databaseManager.js** - MongoDB operations
-- **storageManager.js** - Hybrid storage system (MongoDB + local files)
-- **temporaryRoles.js** - Temporary role management
+- **storage/** - Handles MongoDB operations and the hybrid storage system.
+- **discord/temporaryRoles.js** - Manages temporary roles.
 
 ### **Performance & Monitoring**
 
-- **performanceMonitor.js** - System performance tracking
-- **healthCheck.js** - Health monitoring
-- **healthServer.js** - HTTP health endpoints
+- **monitoring/** - Health and performance monitoring.
 
 ### **Security & Validation**
 
-- **security.js** - Security utilities
-- **validation.js** - Input validation
-- **permissions.js** - Permission checking
-- **rateLimiter.js** - Rate limiting
+- **discord/security.js** - Security utilities
+- **discord/validation.js** - Input validation
+- **discord/permissions.js** - Permission checking
+- **discord/rateLimiter.js** - Rate limiting
 
 ### **Role Management**
 
-- **roleManager.js** - Role assignment logic
-- **roleMessageOptions.js** - Role message configuration
+- **discord/roleManager.js** - Role assignment logic
+- **discord/roleMessageOptions.js** - Role message configuration
 - **scheduler.js** - Task scheduling
 
 ### **UI & Utilities**
 
 - **terminal.js** - Terminal interface
-- **version.js** - Version management
+- **discord/version.js** - Version management
+- **discord/responseMessages.js** - Reusable response embeds
 
 ## 🔧 Module Dependencies
 
 ```mermaid
 graph TD
-    A[commandHandler.js] --> B[logger.js]
-    A --> C[eventHandler.js]
-    D[errorHandler.js] --> B
-    E[storageManager.js] --> F[databaseManager.js]
+    A[core/commandHandler.js] --> B[logger.js]
+    A --> C[core/eventHandler.js]
+    D[core/errorHandler.js] --> B
+    E[storage/storageManager.js] --> F[storage/databaseManager.js]
     E --> B
-    G[performanceMonitor.js] --> B
-    H[healthCheck.js] --> B
+    G[monitoring/performanceMonitor.js] --> B
+    H[monitoring/healthCheck.js] --> B
     H --> G
-    I[roleManager.js] --> B
-    I --> J[permissions.js]
-    K[rateLimiter.js] --> B
+    I[discord/roleManager.js] --> B
+    I --> J[discord/permissions.js]
+    K[discord/rateLimiter.js] --> B
     K --> D
 ```
 
 ## 📋 Module Documentation
 
-### **commandHandler.js**
+### **core/commandHandler.js**
 
 Handles all command-related operations including registration, execution, caching, and statistics.
-
-**Key Features:**
-
-- Command registration and validation
-- Permission caching for performance
-- Command execution with error handling
-- Usage statistics tracking
-- Automatic cache cleanup
 
 **Usage:**
 
 ```javascript
-import { getCommandHandler } from "./utils/commandHandler.js";
+import { getCommandHandler } from "./utils/core/commandHandler.js";
 
 const handler = getCommandHandler();
 handler.registerCommand(myCommand);
 await handler.executeCommand(interaction, client);
 ```
 
-### **errorHandler.js**
+### **core/errorHandler.js**
 
 Provides comprehensive error handling for all types of errors that can occur in a Discord bot.
-
-**Key Features:**
-
-- Discord API error handling
-- Database error management
-- Command execution error handling
-- User-friendly error messages
-- Retry mechanism for transient errors
 
 **Usage:**
 
 ```javascript
-import { errorHandler } from "./utils/errorHandler.js";
+import { errorHandler } from "./utils/core/errorHandler.js";
 
 try {
   await interaction.reply("Hello!");
@@ -135,44 +120,48 @@ try {
 }
 ```
 
-### **storageManager.js**
+### **storage/storageManager.js**
 
 Manages the hybrid storage system that combines MongoDB with local file backup.
-
-**Key Features:**
-
-- Automatic fallback to local files
-- Data synchronization between storage methods
-- Caching for performance
-- Graceful error handling
 
 **Usage:**
 
 ```javascript
-import { getStorageManager } from "./utils/storageManager.js";
+import { getStorageManager } from "./utils/storage/storageManager.js";
 
 const storage = await getStorageManager();
 const mappings = await storage.getRoleMappings();
 ```
 
-### **performanceMonitor.js**
+### **monitoring/performanceMonitor.js**
 
-Tracks system performance metrics for monitoring and optimization.
+- **Description:** System performance tracking
+- **Dependencies:** `logger.js`
+- **Example Usage:**
+  ```javascript
+  import { getPerformanceMonitor } from "./utils/monitoring/performanceMonitor.js";
+  const monitor = getPerformanceMonitor();
+  monitor.trackCommand("ping", 50);
+  ```
+
+### **monitoring/healthCheck.js**
+
+Provides comprehensive health monitoring for the bot.
 
 **Key Features:**
 
-- Memory usage monitoring
-- Command execution timing
-- Database query tracking
-- Performance trend analysis
+- Discord API status monitoring
+- Database connectivity checks
+- Performance threshold alerts
+- Detailed error reporting
 
 **Usage:**
 
 ```javascript
-import { getPerformanceMonitor } from "./utils/performanceMonitor.js";
+import { getHealthCheck } from "./utils/monitoring/healthCheck.js";
 
-const monitor = getPerformanceMonitor();
-const summary = monitor.getPerformanceSummary();
+const health = getHealthCheck();
+health.startMonitoring();
 ```
 
 ## 🚀 Best Practices

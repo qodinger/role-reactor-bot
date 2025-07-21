@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
-import { hasBotManagementPermissions } from "../../utils/permissions.js";
+import { hasBotManagementPermissions } from "../../utils/discord/permissions.js";
 import { getLogger } from "../../utils/logger.js";
 
 export const data = new SlashCommandBuilder()

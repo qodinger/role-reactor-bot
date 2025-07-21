@@ -25,7 +25,7 @@ export const COMMAND_CATEGORIES = {
     name: "General",
     description: "Basic bot information and help",
     color: THEME.GENERAL,
-    commands: ["help"],
+    commands: ["help", "invite", "support"],
     requiredPermissions: [], // General commands available to everyone
   },
   developer: {
@@ -118,6 +118,20 @@ export const COMMAND_METADATA = {
     usage: "Low",
     shortDesc: "View storage configuration status",
     tags: ["storage", "database", "config"],
+  },
+  invite: {
+    emoji: EMOJIS.ACTIONS.LINK,
+    complexity: "Easy",
+    usage: "High",
+    shortDesc: "Get the bot's invite link",
+    tags: ["invite", "link", "bot"],
+  },
+  support: {
+    emoji: EMOJIS.ACTIONS.LINK,
+    complexity: "Easy",
+    usage: "High",
+    shortDesc: "Get the support server link",
+    tags: ["support", "help", "community"],
   },
 };
 

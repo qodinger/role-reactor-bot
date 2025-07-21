@@ -2,6 +2,7 @@ import chalk from "chalk";
 import boxen from "boxen";
 import gradient from "gradient-string";
 import ora from "ora";
+import { getLogger } from "./logger.js";
 
 /**
  * Terminal beautification utilities for the Discord bot
@@ -430,6 +431,29 @@ export function promptWithValidation(message, validator) {
   });
 }
 
+export function registerGracefulShutdown(client, healthServer) {
+  const logger = getLogger();
+  const signals = {
+    SIGHUP: 1,
+    SIGINT: 2,
+    SIGTERM: 15,
+  };
+
+  Object.keys(signals).forEach(signal => {
+    process.on(signal, () => {
+      logger.info(`${signal} received. Shutting down gracefully.`);
+      healthServer.close(err => {
+        if (err) {
+          logger.error("Failed to close health server:", err);
+          process.exit(1);
+        }
+        client.destroy();
+        process.exit(0);
+      });
+    });
+  });
+}
+
 export default {
   colors,
   icons,
@@ -454,4 +478,5 @@ export default {
   createProgressBar,
   prompt,
   promptWithValidation,
+  registerGracefulShutdown,
 };

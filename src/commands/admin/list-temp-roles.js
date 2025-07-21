@@ -8,13 +8,11 @@ import {
   botHasRequiredPermissions,
   getMissingBotPermissions,
   formatPermissionName,
-} from "../../utils/permissions.js";
+} from "../../utils/discord/permissions.js";
 import {
   formatRemainingTime,
   getTemporaryRoles,
-  getTemporaryRolesByUser,
-  formatTemporaryRole,
-} from "../../utils/temporaryRoles.js";
+} from "../../utils/discord/temporaryRoles.js";
 import { THEME_COLOR } from "../../config/theme.js";
 import { getLogger } from "../../utils/logger.js";
 
@@ -89,15 +87,17 @@ export async function getRoleInfo(guild, roleId) {
 }
 
 // Re-export utility functions for tests
-export { getTemporaryRoles, getTemporaryRolesByUser, formatTemporaryRole };
+export { getTemporaryRoles };
 
 export async function execute(interaction, client) {
   const logger = getLogger();
 
   await interaction.deferReply({ flags: 64 });
   try {
-    // Force clear cache to get fresh data
-    const { getStorageManager } = await import("../../utils/storageManager.js");
+    // Lazy load storage manager to avoid circular dependencies
+    const { getStorageManager } = await import(
+      "../../utils/storage/storageManager.js"
+    );
     const storageManager = await getStorageManager();
     storageManager._clearCache();
     if (!hasAdminPermissions(interaction.member)) {

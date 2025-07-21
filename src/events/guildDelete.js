@@ -1,5 +1,8 @@
 import { Events } from "discord.js";
-import { getAllRoleMappings, removeRoleMapping } from "../utils/roleManager.js";
+import {
+  getAllRoleMappings,
+  removeRoleMapping,
+} from "../utils/discord/roleManager.js";
 import { getLogger } from "../utils/logger.js";
 
 export const name = Events.GuildDelete;

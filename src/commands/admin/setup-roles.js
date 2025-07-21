@@ -9,22 +9,30 @@ import {
   botHasRequiredPermissions,
   getMissingBotPermissions,
   formatPermissionName,
-} from "../../utils/permissions.js";
-import { setRoleMapping, parseRoleString } from "../../utils/roleManager.js";
+} from "../../utils/discord/permissions.js";
+import {
+  setRoleMapping,
+  processRoles,
+} from "../../utils/discord/roleManager.js";
 import {
   titleOption,
   descriptionOption,
   rolesOption,
   colorOption,
-} from "../../utils/roleMessageOptions.js";
+} from "../../utils/discord/roleMessageOptions.js";
 import { THEME_COLOR } from "../../config/theme.js";
 import {
   sanitizeInput,
   isValidHexColor,
   validateCommandInputs,
-  createValidationErrorEmbed,
-} from "../../utils/validation.js";
+} from "../../utils/discord/validation.js";
 import { getLogger } from "../../utils/logger.js";
+import {
+  roleCreatedEmbed,
+  permissionErrorEmbed,
+  validationErrorEmbed,
+  errorEmbed,
+} from "../../utils/discord/responseMessages.js";
 
 export const data = new SlashCommandBuilder()
   .setName("setup-roles")
@@ -44,16 +52,9 @@ export async function execute(interaction, client) {
   try {
     // Validate user permissions
     if (!hasAdminPermissions(interaction.member)) {
-      logger.warn("Permission denied for setup-roles command", {
-        userId: interaction.user.id,
-        guildId: interaction.guild.id,
-      });
-
-      return interaction.editReply({
-        content:
-          "❌ **Permission Denied**\nYou need administrator permissions to use this command.",
-        flags: 64,
-      });
+      return interaction.editReply(
+        permissionErrorEmbed({ requiredPermissions: ["Administrator"] }),
+      );
     }
 
     // Validate bot permissions
@@ -63,15 +64,14 @@ export async function execute(interaction, client) {
         .map(formatPermissionName)
         .join(", ");
 
-      logger.warn("Bot missing permissions for setup-roles command", {
-        guildId: interaction.guild.id,
-        missingPermissions,
-      });
-
-      return interaction.editReply({
-        content: `❌ **Missing Bot Permissions**\nI need the following permissions: **${permissionNames}**\n\nPlease ensure I have the required permissions and try again.`,
-        flags: 64,
-      });
+      return interaction.editReply(
+        errorEmbed({
+          title: "Missing Bot Permissions",
+          description: `I need the following permissions: **${permissionNames}**`,
+          solution:
+            "Please ensure I have the required permissions and try again.",
+        }),
+      );
     }
 
     // Sanitize and validate inputs
@@ -91,20 +91,9 @@ export async function execute(interaction, client) {
     });
 
     if (!validation.isValid) {
-      logger.warn("Validation failed for setup-roles command", {
-        userId: interaction.user.id,
-        errors: validation.errors,
-      });
-
-      const errorEmbed = createValidationErrorEmbed(
-        "Input Validation",
-        validation.errors.join("\n"),
+      return interaction.editReply(
+        validationErrorEmbed({ errors: validation.errors }),
       );
-
-      return interaction.editReply({
-        embeds: [errorEmbed],
-        flags: 64,
-      });
     }
 
     // Process color
@@ -112,78 +101,41 @@ export async function execute(interaction, client) {
     if (colorHex) {
       const hex = colorHex.startsWith("#") ? colorHex : `#${colorHex}`;
       if (!isValidHexColor(hex)) {
-        logger.warn("Invalid color format provided", {
-          userId: interaction.user.id,
-          color: colorHex,
-        });
-
-        return interaction.editReply({
-          content:
-            "❌ **Invalid Color Format**\nPlease provide a valid hex color code (e.g., #0099ff or 0099ff)",
-          flags: 64,
-        });
+        return interaction.editReply(
+          validationErrorEmbed({
+            errors: ["Invalid hex color code provided."],
+            helpText:
+              "Please provide a valid hex color code (e.g., #0099ff or 0099ff)",
+          }),
+        );
       }
       color = hex;
     }
 
-    // Parse role string
-    const { roles, errors: parseErrors } = parseRoleString(rolesString);
-    const roleMapping = {};
-    const validPairs = [];
-    const errors = [...parseErrors];
-    const botMember = await interaction.guild.members.fetchMe();
+    // Process and validate roles using the new utility function
+    const roleProcessingResult = await processRoles(interaction, rolesString);
 
-    // Build a map of role names to roles for fast lookup
-    const roleNameMap = new Map(
-      interaction.guild.roles.cache.map(role => [
-        role.name.toLowerCase(),
-        role,
-      ]),
-    );
-
-    for (const roleConfig of roles) {
-      const role = roleNameMap.get(roleConfig.roleName.toLowerCase());
-      if (!role) {
-        errors.push(`❌ Role "${roleConfig.roleName}" not found`);
-        continue;
-      }
-      if (role.position >= botMember.roles.highest.position) {
-        errors.push(
-          `❌ Cannot manage role "${roleConfig.roleName}" - it's higher than my highest role`,
-        );
-        continue;
-      }
-      roleMapping[roleConfig.emoji] = roleConfig;
-      validPairs.push({
-        emoji: roleConfig.emoji,
-        role: roleConfig.roleName,
-        limit: roleConfig.limit,
-      });
+    if (!roleProcessingResult.success) {
+      const helpText = `**Accepted formats:**\n- emoji role_name\n- emoji:role_name\n- emoji "role name"\n- emoji <@&role_id>\n(And combinations with limits like \`:10\`)`;
+      return interaction.editReply(
+        validationErrorEmbed({
+          errors: roleProcessingResult.errors,
+          helpText,
+        }),
+      );
     }
 
-    if (errors.length > 0) {
-      logger.warn("Role setup errors", {
-        userId: interaction.user.id,
-        guildId: interaction.guild.id,
-        errors,
-      });
+    const { validRoles, roleMapping } = roleProcessingResult;
 
-      return interaction.editReply({
-        content: `❌ **Setup Errors**\n\n${errors.join("\n")}`,
-        flags: 64,
-      });
-    }
-
-    if (validPairs.length === 0) {
-      logger.warn("No valid roles found for setup", {
-        userId: interaction.user.id,
-        guildId: interaction.guild.id,
-      });
-
-      return interaction.editReply({
-        content: "❌ **No Valid Roles**\nNo valid roles were found to set up.",
-        flags: 64,
-      });
+    if (validRoles.length === 0) {
+      return interaction.editReply(
+        errorEmbed({
+          title: "No Valid Roles",
+          description: "No valid roles were found to set up.",
+          solution:
+            "Check if the roles exist and if the bot has permission to manage them.",
+        }),
+      );
     }
 
     // Create embed
@@ -197,10 +149,10 @@ export async function execute(interaction, client) {
         iconURL: client.user.displayAvatarURL(),
       });
 
-    const roleList = validPairs
-      .map(pair => {
-        const limitText = pair.limit ? ` (${pair.limit} users max)` : "";
-        return `${pair.emoji} **${pair.role}**${limitText}`;
+    const roleList = validRoles
+      .map(role => {
+        const limitText = role.limit ? ` (${role.limit} users max)` : "";
+        return `${role.emoji} <@&${role.roleId}>${limitText}`;
       })
       .join("\n");
 
@@ -217,19 +169,15 @@ export async function execute(interaction, client) {
 
     // Add reactions for each role in parallel (limit 3 at a time)
     const limit = pLimit(3);
-    const reactionErrors = [];
 
     await Promise.all(
-      validPairs.map(pair =>
+      validRoles.map(role =>
         limit(async () => {
           try {
-            await message.react(pair.emoji);
+            await message.react(role.emoji);
           } catch (error) {
-            reactionErrors.push(
-              `Failed to add reaction ${pair.emoji}: ${error.message}`,
-            );
             logger.error("Failed to add reaction", {
-              emoji: pair.emoji,
+              emoji: role.emoji,
               messageId: message.id,
               error: error.message,
             });
@@ -239,56 +187,36 @@ export async function execute(interaction, client) {
     );
 
     // Save role mapping to storage
-    const dbSuccess = await setRoleMapping(
+    await setRoleMapping(
       message.id,
       interaction.guild.id,
       interaction.channel.id,
       roleMapping,
     );
 
-    if (!dbSuccess) {
-      logger.error("Failed to save role mapping to database", {
-        messageId: message.id,
-        guildId: interaction.guild.id,
-      });
-    }
-
     // Prepare response
-    let replyContent = `✅ **Role-Reaction Message Created!**\n\n**Message:** ${message.url}\n**Roles:** ${validPairs.length} role(s) set up\n\nUsers can now react with the emojis to assign/remove roles.`;
-
-    if (reactionErrors.length > 0) {
-      replyContent += `\n\n⚠️ Some reactions failed to add:\n${reactionErrors.join("\n")}`;
-    }
-
-    if (!dbSuccess) {
-      replyContent += `\n\n⚠️ **Warning:** Role mapping may not be saved properly.`;
-    }
-
-    await interaction.editReply({
-      content: replyContent,
-      flags: 64,
-    });
+    await interaction.editReply(
+      roleCreatedEmbed({
+        messageUrl: message.url,
+        roleCount: validRoles.length,
+        channelId: interaction.channel.id,
+      }),
+    );
 
     // Log successful command execution
     const duration = Date.now() - startTime;
     logger.logCommand("setup-roles", interaction.user.id, duration, true);
-
-    logger.info("Role-reaction message created successfully", {
-      userId: interaction.user.id,
-      guildId: interaction.guild.id,
-      messageId: message.id,
-      roleCount: validPairs.length,
-      duration: `${duration}ms`,
-    });
   } catch (error) {
     const duration = Date.now() - startTime;
     logger.error("Error setting up roles", error);
     logger.logCommand("setup-roles", interaction.user.id, duration, false);
 
-    await interaction.editReply({
-      content:
-        "❌ **Error**\nAn error occurred while setting up the role-reaction message. Please try again.",
-      flags: 64,
-    });
+    await interaction.editReply(
+      errorEmbed({
+        title: "Error",
+        description:
+          "An error occurred while setting up the role-reaction message. Please try again.",
+      }),
+    );
   }
 }

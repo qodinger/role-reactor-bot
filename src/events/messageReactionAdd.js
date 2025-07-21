@@ -1,5 +1,5 @@
 import { Events } from "discord.js";
-import { getRoleMapping } from "../utils/roleManager.js";
+import { getRoleMapping } from "../utils/discord/roleManager.js";
 import { getLogger } from "../utils/logger.js";
 
 export const name = Events.MessageReactionAdd;

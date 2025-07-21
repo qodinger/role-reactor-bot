@@ -1,7 +1,7 @@
 import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
-import { hasBotManagementPermissions } from "../../utils/permissions.js";
-import { getPerformanceMonitor } from "../../utils/performanceMonitor.js";
-import { getCommandHandler } from "../../utils/commandHandler.js";
+import { hasBotManagementPermissions } from "../../utils/discord/permissions.js";
+import { getPerformanceMonitor } from "../../utils/monitoring/performanceMonitor.js";
+import { getCommandHandler } from "../../utils/core/commandHandler.js";
 import { THEME_COLOR } from "../../config/theme.js";
 import { getLogger } from "../../utils/logger.js";
 

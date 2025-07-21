@@ -1,4 +1,4 @@
-import { getLogger } from "./logger.js";
+import { getLogger } from "../logger.js";
 
 /**
  * Security utility for input validation and sanitization
