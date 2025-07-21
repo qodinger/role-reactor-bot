@@ -6,32 +6,40 @@ This directory contains all utility modules for the Role Reactor Bot, providing 
 
 ```
 src/utils/
-├── README.md                    # This documentation file
+├── README.md
 ├── core/
 │   ├── commandHandler.js
-│   ├── eventHandler.js
-│   └── errorHandler.js
+│   ├── errorHandler.js
+│   └── eventHandler.js
 ├── discord/
+│   ├── commandValidation.js
+│   ├── inputUtils.js
 │   ├── invite.js
 │   ├── permissions.js
 │   ├── rateLimiter.js
-│   ├── responseMessages.js
-│   ├── roleManager.js
-│   ├── roleMessageOptions.js
+│   ├── roleMappingManager.js
+│   ├── roleMessageComponents.js
+│   ├── roleParser.js
+│   ├── roleValidator.js
 │   ├── security.js
+│   ├── slashCommandOptions.js
 │   ├── temporaryRoles.js
-│   ├── validation.js
 │   └── version.js
+├── logger.js
 ├── monitoring/
+│   ├── checkers/
+│   │   ├── database.js
+│   │   ├── discordApi.js
+│   │   ├── memory.js
+│   │   └── performance.js
 │   ├── healthCheck.js
 │   ├── healthServer.js
-│   └── performanceMonitor.js
+│   ├── performanceMonitor.js
+│   └── requestHandler.js
 ├── storage/
 │   ├── databaseManager.js
 │   └── storageManager.js
-├── logger.js                    # Generic logger
-├── scheduler.js                 # Generic task scheduler
-└── terminal.js                  # Generic terminal utilities
+└── terminal.js
 ```
 
 ## 🏗️ Architecture Overview
@@ -40,59 +48,82 @@ The utils directory follows a modular architecture where each module has a speci
 
 ### **Core System Modules**
 
-- **core/** - Manages all command operations, event processing, and error handling.
+- **core/** - Manages command operations, event processing, and centralized error handling.
+
+### **Discord-Specific Utilities**
+
+- **discord/** - A collection of modules for interacting with the Discord API, validating inputs, managing permissions, and creating message components. This directory now contains highly specialized modules for role management, separating parsing, validation, and storage interaction.
 
 ### **Storage & Data Modules**
 
-- **storage/** - Handles MongoDB operations and the hybrid storage system.
-- **discord/temporaryRoles.js** - Manages temporary roles.
+- **storage/** - Handles the database connection (MongoDB), data repositories, caching, and a provider-based storage system that can fall back to local files, ensuring data persistence even if the database is unavailable.
 
 ### **Performance & Monitoring**
 
-- **monitoring/** - Health and performance monitoring.
+- **monitoring/** - Provides system health checks, performance monitoring, and an HTTP server for exposing health endpoints. It includes individual checker modules for different services (Database, Discord API, etc.).
 
-### **Security & Validation**
+### **Generic Utilities**
 
-- **discord/security.js** - Security utilities
-- **discord/validation.js** - Input validation
-- **discord/permissions.js** - Permission checking
-- **discord/rateLimiter.js** - Rate limiting
-
-### **Role Management**
-
-- **discord/roleManager.js** - Role assignment logic
-- **discord/roleMessageOptions.js** - Role message configuration
-- **scheduler.js** - Task scheduling
-
-### **UI & Utilities**
-
-- **terminal.js** - Terminal interface
-- **discord/version.js** - Version management
-- **discord/responseMessages.js** - Reusable response embeds
+- **logger.js** - A comprehensive, structured logger for the entire application.
+- **terminal.js** - A collection of simple utilities for styling terminal output.
 
 ## 🔧 Module Dependencies
 
 ```mermaid
 graph TD
-    A[core/commandHandler.js] --> B[logger.js]
-    A --> C[core/eventHandler.js]
-    D[core/errorHandler.js] --> B
-    E[storage/storageManager.js] --> F[storage/databaseManager.js]
-    E --> B
-    G[monitoring/performanceMonitor.js] --> B
-    H[monitoring/healthCheck.js] --> B
-    H --> G
-    I[discord/roleManager.js] --> B
-    I --> J[discord/permissions.js]
-    K[discord/rateLimiter.js] --> B
-    K --> D
+    subgraph Core
+        CommandHandler[core/commandHandler.js]
+        EventHandler[core/eventHandler.js]
+        ErrorHandler[core/errorHandler.js]
+    end
+
+    subgraph Storage
+        StorageManager[storage/storageManager.js]
+        DatabaseManager[storage/databaseManager.js]
+    end
+
+    subgraph Monitoring
+        HealthCheck[monitoring/healthCheck.js]
+        PerformanceMonitor[monitoring/performanceMonitor.js]
+        HealthServer[monitoring/healthServer.js]
+    end
+
+    subgraph Discord
+        Permissions[discord/permissions.js]
+        RateLimiter[discord/rateLimiter.js]
+        RoleMappingManager[discord/roleMappingManager.js]
+        RoleValidator[discord/roleValidator.js]
+    end
+
+    Logger[logger.js]
+
+    %% Dependencies
+    CommandHandler --> Logger
+    EventHandler --> Logger
+    ErrorHandler --> Logger
+
+    StorageManager --> DatabaseManager
+    StorageManager --> Logger
+    DatabaseManager --> Logger
+
+    HealthCheck --> Logger
+    HealthCheck --> PerformanceMonitor
+    HealthCheck --> DatabaseManager
+    HealthServer --> HealthCheck
+
+    RoleMappingManager --> StorageManager
+
+    %% Top-level commands and events will use these utils
+    Permissions --> Logger
+    RateLimiter --> Logger
+    RoleValidator --> Logger
 ```
 
 ## 📋 Module Documentation
 
 ### **core/commandHandler.js**
 
-Handles all command-related operations including registration, execution, caching, and statistics.
+Handles all command-related operations including registration, execution, and logging. It ensures that commands are processed efficiently and consistently.
 
 **Usage:**
 
@@ -101,12 +132,12 @@ import { getCommandHandler } from "./utils/core/commandHandler.js";
 
 const handler = getCommandHandler();
 handler.registerCommand(myCommand);
-await handler.executeCommand(interaction, client);
+await handler.executeCommand(interaction);
 ```
 
 ### **core/errorHandler.js**
 
-Provides comprehensive error handling for all types of errors that can occur in a Discord bot.
+Provides centralized error handling. It standardizes how errors are caught, logged, and reported, preventing crashes and improving debuggability.
 
 **Usage:**
 
@@ -114,15 +145,15 @@ Provides comprehensive error handling for all types of errors that can occur in 
 import { errorHandler } from "./utils/core/errorHandler.js";
 
 try {
-  await interaction.reply("Hello!");
+  // Risky operation
 } catch (error) {
-  errorHandler.handleDiscordError(error, "reply to interaction");
+  errorHandler.handle(error, "context for the error");
 }
 ```
 
 ### **storage/storageManager.js**
 
-Manages the hybrid storage system that combines MongoDB with local file backup.
+Manages a hybrid storage system. It uses a provider pattern to select between a database provider (MongoDB) and a local file provider, ensuring data persistence even if the database is unavailable.
 
 **Usage:**
 
@@ -133,122 +164,81 @@ const storage = await getStorageManager();
 const mappings = await storage.getRoleMappings();
 ```
 
-### **monitoring/performanceMonitor.js**
+### **discord/roleMappingManager.js**
 
-- **Description:** System performance tracking
-- **Dependencies:** `logger.js`
-- **Example Usage:**
-  ```javascript
-  import { getPerformanceMonitor } from "./utils/monitoring/performanceMonitor.js";
-  const monitor = getPerformanceMonitor();
-  monitor.trackCommand("ping", 50);
-  ```
+Handles all CRUD (Create, Read, Update, Delete) operations for role mappings by interacting with the storage layer. It abstracts the data source from the commands.
+
+### **discord/roleValidator.js**
+
+Contains functions to validate role-related data, such as color hex codes, role names, and permissions, ensuring data integrity before it's used or stored.
 
 ### **monitoring/healthCheck.js**
 
-Provides comprehensive health monitoring for the bot.
-
-**Key Features:**
-
-- Discord API status monitoring
-- Database connectivity checks
-- Performance threshold alerts
-- Detailed error reporting
+Contains the `HealthCheckRunner`, which orchestrates various health checks for different parts of the system (Discord API, database, memory). Individual checks are located in the `monitoring/checkers/` directory.
 
 **Usage:**
 
 ```javascript
-import { getHealthCheck } from "./utils/monitoring/healthCheck.js";
+import { getHealthCheckRunner } from "./utils/monitoring/healthCheck.js";
 
-const health = getHealthCheck();
-health.startMonitoring();
+const runner = getHealthCheckRunner();
+runner.run(client);
 ```
 
 ## 🚀 Best Practices
 
 ### **Error Handling**
 
-- Always use the centralized error handler
-- Provide context for better debugging
-- Use user-friendly error messages
-- Implement retry logic for transient errors
+- Always use the centralized `errorHandler` for consistency.
+- Provide meaningful context when handling errors.
+- Send user-friendly error messages through `commandValidation.js` embeds.
 
 ### **Performance**
 
-- Use caching for frequently accessed data
-- Monitor performance metrics
-- Clean up resources properly
-- Implement rate limiting
+- Leverage the caching implemented in `DatabaseManager` for frequently accessed data.
+- Use the `performanceMonitor` to track command and event execution times.
+- Ensure resources like database connections are managed properly.
 
 ### **Security**
 
-- Validate all user input
-- Check permissions before operations
-- Use environment variables for secrets
-- Implement proper error handling
+- Sanitize and validate all user inputs using utilities from `inputUtils.js` and `commandValidation.js`.
+- Check permissions with `permissions.js` before executing sensitive operations.
+- Use environment variables for all secrets.
 
 ### **Logging**
 
-- Use structured logging
-- Include relevant context
-- Log at appropriate levels
-- Monitor log output
+- Use the singleton `logger` for structured, leveled logging.
+- Include relevant context in log data to simplify debugging.
 
 ## 🔍 Debugging
 
 ### **Common Issues**
 
-1. **Permission Errors** - Check bot permissions and user roles
-2. **Database Connection** - Verify MongoDB connection string
-3. **Rate Limiting** - Monitor rate limit usage
-4. **Memory Issues** - Check performance metrics
+1.  **Permission Errors** - Check bot permissions in the Discord Developer Portal and server settings. The `permissions.js` module is the source of truth for required permissions.
+2.  **Database Connection** - Verify your MongoDB connection string in the environment variables. The `databaseManager.js` logs connection attempts.
+3.  **Invalid Input** - Check the validation logic in `commandValidation.js` and `roleValidator.js`.
 
 ### **Debugging Tools**
 
-- `/health` command for system status
-- `/performance` command for metrics
-- `/storage` command for storage status
-- Health server endpoints
+- `/health` command for a snapshot of system status.
+- `/performance` command for real-time performance metrics.
+- `/storage` command for storage provider status.
+- The HTTP health server at the configured port provides raw health data.
 
 ## 📈 Monitoring
 
 ### **Key Metrics**
 
-- Command execution times
-- Memory usage trends
-- Database query performance
-- Error rates and types
-- Rate limit usage
+- Command execution times and error rates (from `performanceMonitor`).
+- Memory usage trends (`performanceMonitor`).
+- Database query performance (can be inferred from logs).
 
 ### **Health Checks**
 
-- Database connectivity
-- Discord API status
-- Storage system health
-- Performance thresholds
-
-## 🔄 Maintenance
-
-### **Regular Tasks**
-
-- Clean up expired cache entries
-- Monitor performance metrics
-- Check error logs
-- Update rate limit settings
-- Verify storage integrity
-
-### **Updates**
-
-- Keep dependencies updated
-- Monitor Discord API changes
-- Update error handling as needed
-- Optimize performance bottlenecks
-
-## 📚 Additional Resources
-
-- [Discord.js Documentation](https://discord.js.org/)
-- [MongoDB Node.js Driver](https://docs.mongodb.com/drivers/node/)
-- [Node.js Best Practices](https://github.com/goldbergyoni/nodebestpractices)
+- Database connectivity (`checkers/database.js`).
+- Discord API latency (`checkers/discordApi.js`).
+- System memory (`checkers/memory.js`).
+- Performance thresholds (`checkers/performance.js`).
 
 ---
 

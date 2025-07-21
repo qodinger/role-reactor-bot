@@ -1,6 +1,7 @@
 import { ActivityType } from "discord.js";
 import { getLogger } from "../utils/logger.js";
-import { createWelcomeBox, createInfoBox } from "../utils/terminal.js";
+import boxen from "boxen";
+import gradient from "gradient-string";
 import {
   getDefaultInviteLink,
   DEFAULT_INVITE_PERMISSIONS,
@@ -9,6 +10,37 @@ import {
 
 export const name = "ready";
 export const once = true;
+
+function createWelcomeBox(titleText, gradientType) {
+  const content =
+    gradientType && gradient[gradientType]
+      ? gradient[gradientType](titleText)
+      : titleText;
+  return boxen(content, {
+    padding: 1,
+    margin: 0,
+    borderStyle: "round",
+    borderColor: "cyan",
+    title: "Role Reactor",
+    titleAlignment: "center",
+  });
+}
+
+function createInfoBox(title, content, options = {}) {
+  const defaultOptions = {
+    title,
+    titleAlignment: "center",
+    padding: 1,
+    margin: 0,
+    borderStyle: "round",
+    borderColor: "cyan",
+  };
+
+  const boxOptions = { ...defaultOptions, ...options };
+  const contentText = Array.isArray(content) ? content.join("\n") : content;
+
+  return boxen(contentText, boxOptions);
+}
 
 export async function execute(client) {
   const logger = getLogger();
