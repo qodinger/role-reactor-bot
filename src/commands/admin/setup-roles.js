@@ -10,22 +10,20 @@ import {
   getMissingBotPermissions,
   formatPermissionName,
 } from "../../utils/discord/permissions.js";
-import {
-  setRoleMapping,
-  processRoles,
-} from "../../utils/discord/roleManager.js";
+import { setRoleMapping } from "../../utils/discord/roleMappingManager.js";
+import { processRoles } from "../../utils/discord/roleManager.js";
 import {
   titleOption,
   descriptionOption,
   rolesOption,
   colorOption,
-} from "../../utils/discord/roleMessageOptions.js";
+} from "../../utils/discord/slashCommandOptions.js";
 import { THEME_COLOR } from "../../config/theme.js";
+import { sanitizeInput } from "../../utils/discord/inputUtils.js";
 import {
-  sanitizeInput,
-  isValidHexColor,
   validateCommandInputs,
-} from "../../utils/discord/validation.js";
+  createValidationErrorEmbed,
+} from "../../utils/discord/commandValidation.js";
 import { getLogger } from "../../utils/logger.js";
 import {
   roleCreatedEmbed,
@@ -80,7 +78,7 @@ export async function execute(interaction, client) {
       interaction.options.getString("description"),
     );
     const rolesString = sanitizeInput(interaction.options.getString("roles"));
-    const colorHex = sanitizeInput(interaction.options.getString("color"));
+    let colorHex = sanitizeInput(interaction.options.getString("color"));
 
     // Validate all inputs
     const validation = validateCommandInputs({
@@ -92,15 +90,17 @@ export async function execute(interaction, client) {
 
     if (!validation.isValid) {
       return interaction.editReply(
-        validationErrorEmbed({ errors: validation.errors }),
+        createValidationErrorEmbed({ errors: validation.errors }),
       );
     }
 
     // Process color
     let color = THEME_COLOR;
     if (colorHex) {
-      const hex = colorHex.startsWith("#") ? colorHex : `#${colorHex}`;
-      if (!isValidHexColor(hex)) {
+      if (!colorHex.startsWith("#")) {
+        colorHex = `#${colorHex}`;
+      }
+      if (!/^#[0-9a-f]{6}$/i.test(colorHex)) {
         return interaction.editReply(
           validationErrorEmbed({
             errors: ["Invalid hex color code provided."],
@@ -109,7 +109,7 @@ export async function execute(interaction, client) {
           }),
         );
       }
-      color = hex;
+      color = colorHex;
     }
 
     // Process and validate roles using the new utility function
@@ -118,7 +118,7 @@ export async function execute(interaction, client) {
     if (!roleProcessingResult.success) {
       const helpText = `**Accepted formats:**\n- emoji role_name\n- emoji:role_name\n- emoji "role name"\n- emoji <@&role_id>\n(And combinations with limits like \`:10\`)`;
       return interaction.editReply(
-        validationErrorEmbed({
+        createValidationErrorEmbed({
           errors: roleProcessingResult.errors,
           helpText,
         }),

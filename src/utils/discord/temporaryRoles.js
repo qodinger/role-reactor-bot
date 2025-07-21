@@ -1,10 +1,16 @@
 import { getStorageManager } from "../storage/storageManager.js";
 import { getLogger } from "../logger.js";
 
-// Temporary role functions
+/**
+ * Adds a temporary role to a user.
+ * @param {string} guildId
+ * @param {string} userId
+ * @param {string} roleId
+ * @param {Date} expiresAt
+ * @returns {Promise<boolean>}
+ */
 export async function addTemporaryRole(guildId, userId, roleId, expiresAt) {
   const logger = getLogger();
-
   try {
     const storageManager = await getStorageManager();
     return await storageManager.addTemporaryRole(
@@ -14,198 +20,138 @@ export async function addTemporaryRole(guildId, userId, roleId, expiresAt) {
       expiresAt,
     );
   } catch (error) {
-    logger.error("❌ Failed to add temporary role", error);
+    logger.error("Failed to add temporary role", error);
     return false;
   }
 }
 
+/**
+ * Removes a temporary role from a user.
+ * @param {string} guildId
+ * @param {string} userId
+ * @param {string} roleId
+ * @returns {Promise<boolean>}
+ */
 export async function removeTemporaryRole(guildId, userId, roleId) {
   const logger = getLogger();
-
   try {
     const storageManager = await getStorageManager();
     return await storageManager.removeTemporaryRole(guildId, userId, roleId);
   } catch (error) {
-    logger.error("❌ Failed to remove temporary role", error);
+    logger.error("Failed to remove temporary role", error);
     return false;
   }
 }
 
+/**
+ * Gets all temporary roles for a user.
+ * @param {string} guildId
+ * @param {string} userId
+ * @returns {Promise<Array>}
+ */
 export async function getUserTemporaryRoles(guildId, userId) {
   const logger = getLogger();
-
   try {
     const storageManager = await getStorageManager();
     const tempRoles = await storageManager.getTemporaryRoles();
     return tempRoles[guildId]?.[userId]
-      ? Object.keys(tempRoles[guildId][userId])
+      ? Object.entries(tempRoles[guildId][userId]).map(([roleId, data]) => ({
+          roleId,
+          ...data,
+        }))
       : [];
   } catch (error) {
-    logger.error("❌ Failed to get user temporary roles", error);
+    logger.error("Failed to get user temporary roles", error);
     return [];
   }
 }
 
+/**
+ * Gets all temporary roles for a guild.
+ * @param {string} guildId
+ * @returns {Promise<Object>}
+ */
 export async function getTemporaryRoles(guildId) {
   const logger = getLogger();
-
   try {
     const storageManager = await getStorageManager();
     const tempRoles = await storageManager.getTemporaryRoles();
     return tempRoles[guildId] || {};
   } catch (error) {
-    logger.error("❌ Failed to get temporary roles", error);
+    logger.error("Failed to get temporary roles for guild", error);
     return {};
   }
 }
 
-// Duration parsing and formatting
-export function parseDuration(str) {
-  if (!str || typeof str !== "string") return 0;
-  const regex = /([0-9]+)([smhdw])/g;
+/**
+ * Parses a duration string (e.g., "1h30m") into milliseconds.
+ * @param {string} durationStr
+ * @returns {number|null}
+ */
+export function parseDuration(durationStr) {
+  const regex = /(\d+)\s*(w|d|h|m)/g;
+  let totalMs = 0;
   let match;
-  let ms = 0;
-  const unitToMs = {
-    s: 1000,
-    m: 60 * 1000,
-    h: 60 * 60 * 1000,
-    d: 24 * 60 * 60 * 1000,
-    w: 7 * 24 * 60 * 60 * 1000,
-  };
-  while ((match = regex.exec(str)) !== null) {
+  while ((match = regex.exec(durationStr)) !== null) {
     const value = parseInt(match[1], 10);
     const unit = match[2];
-    if (unitToMs[unit]) {
-      ms += value * unitToMs[unit];
+    switch (unit) {
+      case "w":
+        totalMs += value * 7 * 24 * 60 * 60 * 1000;
+        break;
+      case "d":
+        totalMs += value * 24 * 60 * 60 * 1000;
+        break;
+      case "h":
+        totalMs += value * 60 * 60 * 1000;
+        break;
+      case "m":
+        totalMs += value * 60 * 1000;
+        break;
     }
   }
-  return ms;
+  return totalMs > 0 ? totalMs : null;
 }
 
-export function formatRemainingTime(isoString) {
-  const now = Date.now();
-  const end = new Date(isoString).getTime();
-  let diff = end - now;
-  if (diff <= 0) return "Expired";
-  const units = [
-    { label: "day", ms: 24 * 60 * 60 * 1000 },
-    { label: "hour", ms: 60 * 60 * 1000 },
-    { label: "minute", ms: 60 * 1000 },
-    { label: "second", ms: 1000 },
-  ];
-  for (const { label, ms } of units) {
-    const value = Math.floor(diff / ms);
-    if (value > 0) {
-      return value === 1 ? `1 ${label}` : `${value} ${label}s`;
-    }
-    diff %= ms;
-  }
-  return "<1 second";
-}
-
-export function validateDuration(durationStr) {
-  if (!durationStr || typeof durationStr !== "string") {
-    return { isValid: false, error: "Duration must be a string" };
-  }
-
-  const duration = parseDuration(durationStr);
-  if (duration <= 0) {
-    return { isValid: false, error: "Invalid duration format" };
-  }
-
-  if (duration > 30 * 24 * 60 * 60 * 1000) {
-    // 30 days
-    return { isValid: false, error: "Duration cannot exceed 30 days" };
-  }
-
-  return { isValid: true, duration };
-}
-
+/**
+ * Formats a duration string into a human-readable format.
+ * @param {string} durationStr
+ * @returns {string}
+ */
 export function formatDuration(durationStr) {
-  const durationMs = parseDuration(durationStr);
-  if (durationMs === 0) return "Invalid duration";
+  const ms = parseDuration(durationStr);
+  if (!ms) return "Invalid duration";
 
-  const units = [
-    { label: "day", ms: 24 * 60 * 60 * 1000 },
-    { label: "hour", ms: 60 * 60 * 1000 },
-    { label: "minute", ms: 60 * 1000 },
-    { label: "second", ms: 1000 },
-  ];
+  const days = Math.floor(ms / (24 * 60 * 60 * 1000));
+  const hours = Math.floor((ms % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+  const minutes = Math.floor((ms % (60 * 60 * 1000)) / (60 * 1000));
 
   const parts = [];
-  let remaining = durationMs;
-  for (const { label, ms } of units) {
-    const value = Math.floor(remaining / ms);
-    if (value > 0) {
-      parts.push(value === 1 ? `1 ${label}` : `${value} ${label}s`);
-      break;
-    }
-    remaining %= ms;
-  }
-
-  return parts.join(", ") || "0 seconds";
+  if (days > 0) parts.push(`${days} day${days > 1 ? "s" : ""}`);
+  if (hours > 0) parts.push(`${hours} hour${hours > 1 ? "s" : ""}`);
+  if (minutes > 0) parts.push(`${minutes} minute${minutes > 1 ? "s" : ""}`);
+  return parts.join(", ");
 }
 
-// Utility functions
-export async function getTemporaryRolesByUser(guildId, userId) {
-  return await getUserTemporaryRoles(guildId, userId);
-}
+/**
+ * Formats the remaining time until a date.
+ * @param {Date|string} expiresAt
+ * @returns {string}
+ */
+export function formatRemainingTime(expiresAt) {
+  const now = new Date();
+  const expiry = new Date(expiresAt);
+  const diff = expiry - now;
 
-export async function formatTemporaryRole(tempRole, userInfo, roleInfo) {
-  return {
-    user: userInfo,
-    role: roleInfo,
-    expiresAt: tempRole.expiresAt,
-    remainingTime: formatRemainingTime(tempRole.expiresAt),
-  };
-}
+  if (diff <= 0) return "Expired";
 
-export async function calculateTimeRemaining(expiresAt) {
-  return formatRemainingTime(expiresAt);
-}
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+  const minutes = Math.floor((diff / 1000 / 60) % 60);
 
-export async function getUserInfo(guild, userId) {
-  try {
-    const member = await guild.members.fetch(userId);
-    return {
-      id: member.user.id,
-      tag: member.user.tag,
-      displayName: member.displayName,
-      avatarURL: member.user.displayAvatarURL(),
-    };
-  } catch (_error) {
-    return {
-      id: userId,
-      tag: "Unknown User",
-      displayName: "Unknown User",
-      avatarURL: null,
-    };
-  }
-}
-
-export async function getRoleInfo(guild, roleId) {
-  try {
-    const role = guild.roles.cache.get(roleId);
-    if (!role) {
-      return {
-        id: roleId,
-        name: "Unknown Role",
-        color: "#000000",
-        position: 0,
-      };
-    }
-    return {
-      id: role.id,
-      name: role.name,
-      color: `#${role.color.toString(16).padStart(6, "0")}`,
-      position: role.position,
-    };
-  } catch (_error) {
-    return {
-      id: roleId,
-      name: "Unknown Role",
-      color: "#000000",
-      position: 0,
-    };
-  }
+  let remaining = "";
+  if (days > 0) remaining += `${days}d `;
+  if (hours > 0) remaining += `${hours}h `;
+  if (minutes > 0) remaining += `${minutes}m`;
+  return remaining.trim() || "Less than a minute";
 }

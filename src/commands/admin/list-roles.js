@@ -4,7 +4,7 @@ import {
   EmbedBuilder,
 } from "discord.js";
 import { hasAdminPermissions } from "../../utils/discord/permissions.js";
-import { getAllRoleMappings } from "../../utils/discord/roleManager.js";
+import { getAllRoleMappings } from "../../utils/discord/roleMappingManager.js";
 import { THEME_COLOR } from "../../config/theme.js";
 import { getLogger } from "../../utils/logger.js";
 

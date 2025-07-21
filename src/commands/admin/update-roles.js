@@ -3,14 +3,14 @@ import { hasAdminPermissions } from "../../utils/discord/permissions.js";
 import {
   getRoleMapping,
   setRoleMapping,
-  processRoles,
-} from "../../utils/discord/roleManager.js";
+} from "../../utils/discord/roleMappingManager.js";
+import { processRoles } from "../../utils/discord/roleManager.js";
 import {
   rolesOption,
   titleOption,
   descriptionOption,
   colorOption,
-} from "../../utils/discord/roleMessageOptions.js";
+} from "../../utils/discord/slashCommandOptions.js";
 import { getLogger } from "../../utils/logger.js";
 import {
   roleUpdatedEmbed,
