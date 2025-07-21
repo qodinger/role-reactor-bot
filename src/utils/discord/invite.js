@@ -1,6 +1,14 @@
 import { PermissionFlagsBits } from "discord.js";
 import { formatPermissionName } from "./permissions.js";
 
+export const DEFAULT_INVITE_PERMISSIONS = [
+  PermissionFlagsBits.ManageRoles,
+  PermissionFlagsBits.ManageMessages,
+  PermissionFlagsBits.AddReactions,
+  PermissionFlagsBits.ReadMessageHistory,
+  PermissionFlagsBits.ViewChannel,
+];
+
 /**
  * Generates a Discord bot invite link for the given client and options.
  * @param {import('discord.js').Client} client - The Discord client instance.
@@ -22,12 +30,14 @@ export async function generateInviteLink(client, options = {}) {
 }
 
 /**
- * Returns a default invite link for the bot, if client is ready.
- * @param {import('discord.js').Client} client
- * @returns {Promise<string>} The invite link
+ * Gets the default invite link for the bot.
+ * @param {import('discord.js').Client} client - The Discord client instance.
+ * @returns {Promise<string>} The default invite link.
  */
 export async function getDefaultInviteLink(client) {
-  return generateInviteLink(client);
+  return generateInviteLink(client, {
+    permissions: DEFAULT_INVITE_PERMISSIONS,
+  });
 }
 
 /**
@@ -38,11 +48,3 @@ export async function getDefaultInviteLink(client) {
 export function getInvitePermissionName(permissionBit) {
   return formatPermissionName(permissionBit);
 }
-
-export const DEFAULT_INVITE_PERMISSIONS = [
-  PermissionFlagsBits.ManageRoles,
-  PermissionFlagsBits.ManageMessages,
-  PermissionFlagsBits.AddReactions,
-  PermissionFlagsBits.ReadMessageHistory,
-  PermissionFlagsBits.ViewChannel,
-];

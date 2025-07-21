@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
-import { hasBotManagementPermissions } from "../../utils/discord/permissions.js";
+import { isDeveloper } from "../../utils/discord/permissions.js";
 import { getLogger } from "../../utils/logger.js";
 
 export const data = new SlashCommandBuilder()
@@ -18,7 +18,7 @@ export async function execute(interaction, client) {
 
   try {
     // Check permissions
-    if (!hasBotManagementPermissions(interaction.user.id)) {
+    if (!isDeveloper(interaction.user.id)) {
       logger.warn("Permission denied for health command", {
         userId: interaction.user.id,
         guildId: interaction.guild.id,

@@ -8,17 +8,72 @@ import {
 import { THEME, EMOJIS } from "../../config/theme.js";
 
 /**
- * Creates a beautiful embed for successful role-reaction message creation
+ * A factory for creating standardized embeds.
  */
+class EmbedFactory {
+  constructor(theme, emojis) {
+    this.theme = theme;
+    this.emojis = emojis;
+  }
+
+  /**
+   * Creates a base embed with a specified type.
+   * @param {('SUCCESS'|'ERROR'|'WARNING'|'INFO'|'PRIMARY')} type - The type of embed.
+   * @param {object} options - The options for the embed.
+   * @param {string} options.title - The title of the embed.
+   * @param {string} options.description - The description of the embed.
+   * @param {Array<object>} [options.fields=[]] - The fields to add to the embed.
+   * @param {string} [options.footer=null] - The footer text.
+   * @returns {EmbedBuilder}
+   */
+  create(type, { title, description, fields = [], footer = null }) {
+    const embed = new EmbedBuilder().setTimestamp();
+    const statusEmoji = this.emojis.STATUS[type] || "";
+
+    switch (type) {
+      case "SUCCESS":
+        embed.setColor(this.theme.SUCCESS);
+        break;
+      case "ERROR":
+        embed.setColor(this.theme.ERROR);
+        break;
+      case "WARNING":
+        embed.setColor(this.theme.WARNING);
+        break;
+      case "INFO":
+        embed.setColor(this.theme.INFO);
+        break;
+      default:
+        embed.setColor(this.theme.PRIMARY);
+        break;
+    }
+
+    embed.setTitle(`${statusEmoji} ${title}`.trim());
+    embed.setDescription(description);
+
+    if (fields.length > 0) {
+      embed.addFields(fields);
+    }
+
+    if (footer) {
+      embed.setFooter({ text: footer });
+    }
+
+    return embed;
+  }
+}
+
+const embedFactory = new EmbedFactory(THEME, EMOJIS);
+
+// --- Role Setup Responses ---
+
 export function roleCreatedEmbed({ messageUrl, roleCount, channelId }) {
-  const embed = new EmbedBuilder()
-    .setColor(THEME.SUCCESS)
-    .setTitle(`${EMOJIS.STATUS.SUCCESS} Role Setup Complete!`)
-    .setDescription(
+  const embed = embedFactory.create("SUCCESS", {
+    title: "Role Setup Complete!",
+    description:
       `${EMOJIS.FEATURES.AUTOMATION} Your role-reaction message has been created successfully!\n\n` +
-        `${EMOJIS.UI.STAR} Members can now self-assign roles by reacting to the message.`,
-    )
-    .addFields(
+      `${EMOJIS.UI.STAR} Members can now self-assign roles by reacting to the message.`,
+    fields: [
       {
         name: `${EMOJIS.UI.MENU} Message Location`,
         value: `${EMOJIS.ACTIONS.LINK} [Click here to view](${messageUrl})\n${EMOJIS.ACTIONS.VIEW} Channel: <#${channelId}>`,
@@ -26,7 +81,9 @@ export function roleCreatedEmbed({ messageUrl, roleCount, channelId }) {
       },
       {
         name: `${EMOJIS.FEATURES.ROLES} Roles Configured`,
-        value: `\`${roleCount}\` role${roleCount !== 1 ? "s" : ""} available for self-assignment`,
+        value: `\`${roleCount}\` role${
+          roleCount !== 1 ? "s" : ""
+        } available for self-assignment`,
         inline: true,
       },
       {
@@ -34,17 +91,10 @@ export function roleCreatedEmbed({ messageUrl, roleCount, channelId }) {
         value: `<t:${Math.floor(Date.now() / 1000)}:R>`,
         inline: true,
       },
-    )
-    .setThumbnail(
-      "https://cdn.discordapp.com/attachments/1234567890/1234567890/success.png",
-    )
-    .setFooter({
-      text: "💡 Tip: Members can click reactions to get roles instantly!",
-      iconURL: null,
-    })
-    .setTimestamp();
+    ],
+    footer: "💡 Tip: Members can click reactions to get roles instantly!",
+  });
 
-  // Add helpful button for quick access
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setLabel("View Message")
@@ -65,9 +115,6 @@ export function roleCreatedEmbed({ messageUrl, roleCount, channelId }) {
   };
 }
 
-/**
- * Creates an enhanced embed for role-reaction message updates
- */
 export function roleUpdatedEmbed({ messageId, updates, changeCount = 0 }) {
   const updatesList = updates.split(", ");
   const formattedUpdates = updatesList
@@ -82,40 +129,36 @@ export function roleUpdatedEmbed({ messageId, updates, changeCount = 0 }) {
     })
     .join("\n");
 
-  const embed = new EmbedBuilder()
-    .setColor(THEME.INFO)
-    .setTitle(`${EMOJIS.ACTIONS.REFRESH} Configuration Updated Successfully!`)
-    .setDescription(
-      `${EMOJIS.STATUS.SUCCESS} Your role-reaction message has been updated with the latest changes.\n\n` +
-        `**What changed:**\n${formattedUpdates}`,
-    )
-    .addFields(
-      {
-        name: `${EMOJIS.ACTIONS.LINK} Message Reference`,
-        value: `ID: \`${messageId}\``,
-        inline: true,
-      },
-      {
-        name: `${EMOJIS.TIME.CLOCK} Updated`,
-        value: `<t:${Math.floor(Date.now() / 1000)}:R>`,
-        inline: true,
-      },
-    );
+  const fields = [
+    {
+      name: `${EMOJIS.ACTIONS.LINK} Message Reference`,
+      value: `ID: \`${messageId}\``,
+      inline: true,
+    },
+    {
+      name: `${EMOJIS.TIME.CLOCK} Updated`,
+      value: `<t:${Math.floor(Date.now() / 1000)}:R>`,
+      inline: true,
+    },
+  ];
 
   if (changeCount > 0) {
-    embed.addFields({
+    fields.push({
       name: `${EMOJIS.FEATURES.SYNC} Changes Applied`,
       value: `\`${changeCount}\` modification${changeCount !== 1 ? "s" : ""}`,
       inline: true,
     });
   }
 
-  embed
-    .setFooter({
-      text: "✨ Changes are now live • Members can use the updated configuration",
-      iconURL: null,
-    })
-    .setTimestamp();
+  const embed = embedFactory.create("INFO", {
+    title: "Configuration Updated Successfully!",
+    description:
+      `${EMOJIS.STATUS.SUCCESS} Your role-reaction message has been updated with the latest changes.\n\n` +
+      `**What changed:**\n${formattedUpdates}`,
+    fields,
+    footer:
+      "✨ Changes are now live • Members can use the updated configuration",
+  });
 
   return {
     embeds: [embed],
@@ -123,44 +166,39 @@ export function roleUpdatedEmbed({ messageId, updates, changeCount = 0 }) {
   };
 }
 
-/**
- * Creates a clean embed for role-reaction message deletion
- */
 export function roleDeletedEmbed({ messageId, rolesRemoved = 0 }) {
-  const embed = new EmbedBuilder()
-    .setColor(THEME.WARNING)
-    .setTitle(`${EMOJIS.ACTIONS.DELETE} Role Configuration Removed`)
-    .setDescription(
-      `${EMOJIS.STATUS.WARNING} The role-reaction message has been successfully removed from the system.\n\n` +
-        `${EMOJIS.UI.CROSS} Members can no longer self-assign roles from this message.`,
-    )
-    .addFields(
-      {
-        name: `${EMOJIS.ACTIONS.DELETE} Deleted Message`,
-        value: `ID: \`${messageId}\``,
-        inline: true,
-      },
-      {
-        name: `${EMOJIS.TIME.CLOCK} Removed`,
-        value: `<t:${Math.floor(Date.now() / 1000)}:R>`,
-        inline: true,
-      },
-    );
+  const fields = [
+    {
+      name: `${EMOJIS.ACTIONS.DELETE} Deleted Message`,
+      value: `ID: \`${messageId}\``,
+      inline: true,
+    },
+    {
+      name: `${EMOJIS.TIME.CLOCK} Removed`,
+      value: `<t:${Math.floor(Date.now() / 1000)}:R>`,
+      inline: true,
+    },
+  ];
 
   if (rolesRemoved > 0) {
-    embed.addFields({
+    fields.push({
       name: `${EMOJIS.FEATURES.ROLES} Roles Affected`,
-      value: `\`${rolesRemoved}\` role${rolesRemoved !== 1 ? "s" : ""} no longer self-assignable`,
+      value: `\`${rolesRemoved}\` role${
+        rolesRemoved !== 1 ? "s" : ""
+      } no longer self-assignable`,
       inline: false,
     });
   }
 
-  embed
-    .setFooter({
-      text: "🔒 Configuration permanently removed • Create a new setup if needed",
-      iconURL: null,
-    })
-    .setTimestamp();
+  const embed = embedFactory.create("WARNING", {
+    title: "Role Configuration Removed",
+    description:
+      `${EMOJIS.STATUS.WARNING} The role-reaction message has been successfully removed from the system.\n\n` +
+      `${EMOJIS.UI.CROSS} Members can no longer self-assign roles from this message.`,
+    fields,
+    footer:
+      "🔒 Configuration permanently removed • Create a new setup if needed",
+  });
 
   return {
     embeds: [embed],
@@ -168,38 +206,29 @@ export function roleDeletedEmbed({ messageId, rolesRemoved = 0 }) {
   };
 }
 
-/**
- * Creates an error embed with helpful troubleshooting info
- */
+// --- Error and Status Responses ---
+
 export function errorEmbed({
   title,
   description,
   fields = [],
   solution = null,
 }) {
-  const embed = new EmbedBuilder()
-    .setColor(THEME.ERROR)
-    .setTitle(`${EMOJIS.STATUS.ERROR} ${title}`)
-    .setDescription(description);
-
-  if (fields.length > 0) {
-    embed.addFields(fields);
-  }
-
+  const allFields = [...fields];
   if (solution) {
-    embed.addFields({
+    allFields.push({
       name: `${EMOJIS.UI.STAR} Suggested Solution`,
       value: solution,
       inline: false,
     });
   }
 
-  embed
-    .setFooter({
-      text: "Need help? Contact support or check the documentation",
-      iconURL: null,
-    })
-    .setTimestamp();
+  const embed = embedFactory.create("ERROR", {
+    title,
+    description,
+    fields: allFields,
+    footer: "Need help? Contact support or check the documentation",
+  });
 
   return {
     embeds: [embed],
@@ -207,9 +236,6 @@ export function errorEmbed({
   };
 }
 
-/**
- * Creates a permission error embed
- */
 export function permissionErrorEmbed({
   requiredPermissions,
   userPermissions = [],
@@ -222,35 +248,32 @@ export function permissionErrorEmbed({
     title: "Insufficient Permissions",
     description:
       `${EMOJIS.FEATURES.SECURITY} You don't have the required permissions to use this command.\n\n` +
-      `**Missing permissions:**\n${missingPerms.map(perm => `${EMOJIS.UI.CROSS} \`${perm}\``).join("\n")}`,
+      `**Missing permissions:**\n${missingPerms
+        .map(perm => `${EMOJIS.UI.CROSS} \`${perm}\``)
+        .join("\n")}`,
     solution:
       "Ask a server administrator to grant you the necessary permissions.",
   });
 }
 
-/**
- * Creates a loading/processing embed
- */
 export function processingEmbed({ action, estimatedTime = null }) {
-  const embed = new EmbedBuilder()
-    .setColor(THEME.INFO)
-    .setTitle(`${EMOJIS.STATUS.LOADING} Processing ${action}...`)
-    .setDescription(
+  const fields = estimatedTime
+    ? [
+        {
+          name: `${EMOJIS.TIME.TIMER} Estimated Time`,
+          value: estimatedTime,
+          inline: true,
+        },
+      ]
+    : [];
+
+  const embed = embedFactory.create("INFO", {
+    title: `Processing ${action}...`,
+    description:
       `${EMOJIS.TIME.HOURGLASS} Please wait while I ${action.toLowerCase()}.\n\n` +
-        `${EMOJIS.FEATURES.AUTOMATION} This may take a moment.`,
-    );
-
-  if (estimatedTime) {
-    embed.addFields({
-      name: `${EMOJIS.TIME.TIMER} Estimated Time`,
-      value: estimatedTime,
-      inline: true,
-    });
-  }
-
-  embed.setFooter({
-    text: "⚡ Working on it...",
-    iconURL: null,
+      `${EMOJIS.FEATURES.AUTOMATION} This may take a moment.`,
+    fields,
+    footer: "⚡ Working on it...",
   });
 
   return {
@@ -259,38 +282,32 @@ export function processingEmbed({ action, estimatedTime = null }) {
   };
 }
 
-/**
- * Creates a validation error embed with detailed feedback
- */
 export function validationErrorEmbed({ errors, helpText = null }) {
   const errorList = errors
     .map(
       (error, index) =>
-        `${EMOJIS.NUMBERS[Object.keys(EMOJIS.NUMBERS)[index]] || EMOJIS.UI.CROSS} ${error}`,
+        `${
+          EMOJIS.NUMBERS[Object.keys(EMOJIS.NUMBERS)[index]] || EMOJIS.UI.CROSS
+        } ${error}`,
     )
     .join("\n\n");
 
-  const embed = new EmbedBuilder()
-    .setColor(THEME.ERROR)
-    .setTitle(`${EMOJIS.STATUS.WARNING} Validation Failed`)
-    .setDescription(
-      `${EMOJIS.UI.CROSS} Please fix the following issues:\n\n${errorList}`,
-    );
+  const fields = helpText
+    ? [
+        {
+          name: `${EMOJIS.ACTIONS.HELP} How to fix`,
+          value: helpText,
+          inline: false,
+        },
+      ]
+    : [];
 
-  if (helpText) {
-    embed.addFields({
-      name: `${EMOJIS.ACTIONS.HELP} How to fix`,
-      value: helpText,
-      inline: false,
-    });
-  }
-
-  embed
-    .setFooter({
-      text: "💡 Check the command syntax and try again",
-      iconURL: null,
-    })
-    .setTimestamp();
+  const embed = embedFactory.create("ERROR", {
+    title: "Validation Failed",
+    description: `${EMOJIS.UI.CROSS} Please fix the following issues:\n\n${errorList}`,
+    fields,
+    footer: "💡 Check the command syntax and try again",
+  });
 
   return {
     embeds: [embed],
@@ -298,37 +315,35 @@ export function validationErrorEmbed({ errors, helpText = null }) {
   };
 }
 
-/**
- * Creates a success embed for role assignment
- */
+// --- General Responses ---
+
 export function roleAssignedEmbed({
   roleName,
   userName,
   isTemporary = false,
   duration = null,
 }) {
-  const embed = new EmbedBuilder()
-    .setColor(THEME.SUCCESS)
-    .setTitle(`${EMOJIS.STATUS.SUCCESS} Role Assigned!`)
-    .setDescription(
+  const fields =
+    isTemporary && duration
+      ? [
+          {
+            name: `${EMOJIS.TIME.TIMER} Duration`,
+            value: `Expires in \`${duration}\``,
+            inline: true,
+          },
+        ]
+      : [];
+
+  const embed = embedFactory.create("SUCCESS", {
+    title: "Role Assigned!",
+    description:
       `${EMOJIS.FEATURES.ROLES} **${userName}** has been given the **${roleName}** role!\n\n` +
-        `${isTemporary ? EMOJIS.FEATURES.TEMPORARY : EMOJIS.FEATURES.PERMANENT} This role is **${isTemporary ? "temporary" : "permanent"}**.`,
-    );
-
-  if (isTemporary && duration) {
-    embed.addFields({
-      name: `${EMOJIS.TIME.TIMER} Duration`,
-      value: `Expires in \`${duration}\``,
-      inline: true,
-    });
-  }
-
-  embed
-    .setFooter({
-      text: "✨ Role successfully assigned",
-      iconURL: null,
-    })
-    .setTimestamp();
+      `${
+        isTemporary ? EMOJIS.FEATURES.TEMPORARY : EMOJIS.FEATURES.PERMANENT
+      } This role is **${isTemporary ? "temporary" : "permanent"}**.`,
+    fields,
+    footer: "✨ Role successfully assigned",
+  });
 
   return {
     embeds: [embed],
@@ -336,70 +351,62 @@ export function roleAssignedEmbed({
   };
 }
 
-/**
- * Creates an info embed for displaying role statistics
- */
 export function roleStatsEmbed({
   guildName,
   totalRoles,
   selfAssignable,
   mostUsed = [],
 }) {
-  const embed = new EmbedBuilder()
-    .setColor(THEME.PRIMARY)
-    .setTitle(`${EMOJIS.FEATURES.MONITORING} Role Statistics for ${guildName}`)
-    .setDescription(
-      `${EMOJIS.UI.MENU} Here's an overview of role usage in your server.`,
-    )
-    .addFields(
-      {
-        name: `${EMOJIS.FEATURES.ROLES} Total Roles`,
-        value: `\`${totalRoles}\``,
-        inline: true,
-      },
-      {
-        name: `${EMOJIS.FEATURES.REACTIONS} Self-Assignable`,
-        value: `\`${selfAssignable}\``,
-        inline: true,
-      },
-      {
-        name: `${EMOJIS.USAGE.HIGH} Activity`,
-        value: `\`${Math.round((selfAssignable / totalRoles) * 100)}%\` usage rate`,
-        inline: true,
-      },
-    );
+  const fields = [
+    {
+      name: `${EMOJIS.FEATURES.ROLES} Total Roles`,
+      value: `\`${totalRoles}\``,
+      inline: true,
+    },
+    {
+      name: `${EMOJIS.FEATURES.REACTIONS} Self-Assignable`,
+      value: `\`${selfAssignable}\``,
+      inline: true,
+    },
+    {
+      name: `${EMOJIS.USAGE.HIGH} Activity`,
+      value: `\`${Math.round(
+        (selfAssignable / totalRoles) * 100,
+      )}%\` usage rate`,
+      inline: true,
+    },
+  ];
 
   if (mostUsed.length > 0) {
     const topRoles = mostUsed
       .slice(0, 5)
       .map(
         (role, index) =>
-          `${EMOJIS.NUMBERS[Object.keys(EMOJIS.NUMBERS)[index]]} **${role.name}** - \`${role.count}\` members`,
+          `${
+            EMOJIS.NUMBERS[Object.keys(EMOJIS.NUMBERS)[index]]
+          } **${role.name}** - \`${role.count}\` members`,
       )
       .join("\n");
 
-    embed.addFields({
+    fields.push({
       name: `${EMOJIS.UI.STAR} Most Popular Roles`,
       value: topRoles,
       inline: false,
     });
   }
 
-  embed
-    .setFooter({
-      text: "📊 Stats updated live • Refresh for latest data",
-      iconURL: null,
-    })
-    .setTimestamp();
+  const embed = embedFactory.create("PRIMARY", {
+    title: `Role Statistics for ${guildName}`,
+    description: `${EMOJIS.UI.MENU} Here's an overview of role usage in your server.`,
+    fields,
+    footer: "📊 Stats updated live • Refresh for latest data",
+  });
 
   return {
     embeds: [embed],
   };
 }
 
-/**
- * Creates a help embed with beautiful formatting
- */
 export function helpEmbed({
   commandName,
   description,
@@ -407,18 +414,16 @@ export function helpEmbed({
   examples = [],
   tips = [],
 }) {
-  const embed = new EmbedBuilder()
-    .setColor(THEME.PRIMARY)
-    .setTitle(`${EMOJIS.ACTIONS.HELP} Help: ${commandName}`)
-    .setDescription(`${EMOJIS.UI.MENU} ${description}`)
-    .addFields({
+  const fields = [
+    {
       name: `${EMOJIS.ACTIONS.QUICK} Usage`,
       value: `\`\`\`${usage}\`\`\``,
       inline: false,
-    });
+    },
+  ];
 
   if (examples.length > 0) {
-    embed.addFields({
+    fields.push({
       name: `${EMOJIS.UI.MENU} Examples`,
       value: examples.map(ex => `\`${ex}\``).join("\n"),
       inline: false,
@@ -426,19 +431,19 @@ export function helpEmbed({
   }
 
   if (tips.length > 0) {
-    embed.addFields({
+    fields.push({
       name: `${EMOJIS.UI.STAR} Pro Tips`,
       value: tips.map(tip => `${EMOJIS.UI.CHECKMARK} ${tip}`).join("\n"),
       inline: false,
     });
   }
 
-  embed
-    .setFooter({
-      text: "💡 Need more help? Check our documentation or ask in support",
-      iconURL: null,
-    })
-    .setTimestamp();
+  const embed = embedFactory.create("PRIMARY", {
+    title: `Help: ${commandName}`,
+    description: `${EMOJIS.UI.MENU} ${description}`,
+    fields,
+    footer: "💡 Need more help? Check our documentation or ask in support",
+  });
 
   return {
     embeds: [embed],

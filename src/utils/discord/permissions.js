@@ -1,41 +1,9 @@
 import { PermissionFlagsBits } from "discord.js";
 import config from "../../config/config.js";
-import { COMMAND_CATEGORIES } from "../../commands/general/help/helpData.js";
 
-// Check if user is a developer
-const isDeveloper = userId => {
-  const developers = config.discord.developers;
-  if (!developers || developers.length === 0) return false;
+const DEVELOPER_IDS = config.discord.developers || [];
 
-  return developers.includes(userId);
-};
-
-// Check if user has admin permissions
-const hasAdminPermissions = member => {
-  return (
-    member.permissions.has(PermissionFlagsBits.Administrator) ||
-    member.permissions.has(PermissionFlagsBits.ManageRoles) ||
-    member.permissions.has(PermissionFlagsBits.ManageGuild)
-  );
-};
-
-// Check if user has bot management permissions (developer)
-const hasBotManagementPermissions = userId => {
-  return isDeveloper(userId);
-};
-
-// Check if user has manage roles permission
-const hasManageRolesPermission = member => {
-  return member.permissions.has(PermissionFlagsBits.ManageRoles);
-};
-
-// Check if user has manage messages permission
-const hasManageMessagesPermission = member => {
-  return member.permissions.has(PermissionFlagsBits.ManageMessages);
-};
-
-// Updated required permissions for the bot
-const requiredPermissions = [
+const BOT_PERMISSIONS = [
   PermissionFlagsBits.ManageRoles,
   PermissionFlagsBits.ManageMessages,
   PermissionFlagsBits.AddReactions,
@@ -45,76 +13,72 @@ const requiredPermissions = [
   PermissionFlagsBits.EmbedLinks,
 ];
 
-// Check if bot has required permissions
-const botHasRequiredPermissions = guild => {
+/**
+ * Checks if a user is a developer.
+ * @param {string} userId The user's ID.
+ * @returns {boolean}
+ */
+export function isDeveloper(userId) {
+  return DEVELOPER_IDS.includes(userId);
+}
+
+/**
+ * Checks if a member has administrator-level permissions.
+ * @param {import("discord.js").GuildMember} member The guild member.
+ * @returns {boolean}
+ */
+export function hasAdminPermissions(member) {
+  if (!member) return false;
+  return member.permissions.has(PermissionFlagsBits.Administrator);
+}
+
+/**
+ * Checks if a member has permission to manage roles.
+ * @param {import("discord.js").GuildMember} member The guild member.
+ * @returns {boolean}
+ */
+export function hasManageRolesPermission(member) {
+  if (!member) return false;
+  return member.permissions.has(PermissionFlagsBits.ManageRoles);
+}
+
+/**
+ * Checks if the bot has all required permissions in a guild.
+ * @param {import("discord.js").Guild} guild The guild to check.
+ * @returns {boolean}
+ */
+export function botHasRequiredPermissions(guild) {
+  if (!guild || !guild.members.me) return false;
   const botMember = guild.members.me;
-  if (!botMember) return false;
-  return requiredPermissions.every(perm => botMember.permissions.has(perm));
-};
+  return BOT_PERMISSIONS.every(perm => botMember.permissions.has(perm));
+}
 
-// Get missing bot permissions
-const getMissingBotPermissions = guild => {
+/**
+ * Gets a list of missing permissions for the bot in a guild.
+ * @param {import("discord.js").Guild} guild The guild to check.
+ * @returns {string[]} An array of missing permission names.
+ */
+export function getMissingBotPermissions(guild) {
+  if (!guild || !guild.members.me) return [];
   const botMember = guild.members.me;
-  const missingPermissions = [];
-  for (const permission of requiredPermissions) {
-    if (!botMember.permissions.has(permission)) {
-      missingPermissions.push(permission);
-    }
-  }
-  return missingPermissions;
-};
-
-// Format permission names for display
-const formatPermissionName = permission => {
-  const permissionNames = {
-    [PermissionFlagsBits.ManageRoles]: "Manage Roles",
-    [PermissionFlagsBits.ManageMessages]: "Manage Messages",
-    [PermissionFlagsBits.AddReactions]: "Add Reactions",
-    [PermissionFlagsBits.ReadMessageHistory]: "Read Message History",
-    [PermissionFlagsBits.ViewChannel]: "View Channel",
-    [PermissionFlagsBits.SendMessages]: "Send Messages",
-    [PermissionFlagsBits.EmbedLinks]: "Embed Links",
-    [PermissionFlagsBits.Administrator]: "Administrator",
-    [PermissionFlagsBits.ManageGuild]: "Manage Server",
-  };
-  return permissionNames[permission] || permission;
-};
-
-// Check if user has a specific permission
-const hasPermission = (member, permission) => {
-  if (!member || !member.permissions) return false;
-  return member.permissions.has(permission);
-};
-
-// Check if user has required permissions for an interaction
-const checkUserPermissions = (interaction, requiredPermissions) => {
-  if (!interaction || !interaction.member) return false;
-  return requiredPermissions.every(permission =>
-    interaction.member.permissions.has(permission),
+  return BOT_PERMISSIONS.filter(perm => !botMember.permissions.has(perm)).map(
+    formatPermissionName,
   );
-};
+}
 
-// Get required permissions for different command types
-const getRequiredPermissions = commandName => {
-  for (const category of Object.values(COMMAND_CATEGORIES)) {
-    if (category.commands.includes(commandName)) {
-      return category.requiredPermissions || [];
-    }
+/**
+ * Formats a permission flag into a human-readable string.
+ * @param {import("discord.js").PermissionFlagsBits} permission The permission flag.
+ * @returns {string} The formatted permission name.
+ */
+export function formatPermissionName(permission) {
+  const permissionName = Object.keys(PermissionFlagsBits).find(
+    key => PermissionFlagsBits[key] === permission,
+  );
+
+  if (!permissionName) {
+    return "Unknown Permission";
   }
-  return [];
-};
 
-export {
-  hasAdminPermissions,
-  hasBotManagementPermissions,
-  isDeveloper,
-  hasManageRolesPermission,
-  hasManageMessagesPermission,
-  botHasRequiredPermissions,
-  getMissingBotPermissions,
-  formatPermissionName,
-  requiredPermissions,
-  hasPermission,
-  checkUserPermissions,
-  getRequiredPermissions,
-};
+  return permissionName.replace(/([A-Z])/g, " $1").trim();
+}

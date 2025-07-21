@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
-import { hasBotManagementPermissions } from "../../utils/discord/permissions.js";
+import { isDeveloper } from "../../utils/discord/permissions.js";
 import { getPerformanceMonitor } from "../../utils/monitoring/performanceMonitor.js";
 import { getCommandHandler } from "../../utils/core/commandHandler.js";
 import { THEME_COLOR } from "../../config/theme.js";
@@ -25,7 +25,7 @@ export async function execute(interaction, client) {
 
     await interaction.deferReply({ flags: 64 });
 
-    if (!hasBotManagementPermissions(interaction.user.id)) {
+    if (!isDeveloper(interaction.user.id)) {
       return interaction.editReply({
         content: "❌ You need developer permissions to use this command!",
         flags: 64,

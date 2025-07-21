@@ -3,7 +3,7 @@ import { hasAdminPermissions } from "../../utils/discord/permissions.js";
 import {
   removeRoleMapping,
   getRoleMapping,
-} from "../../utils/discord/roleManager.js";
+} from "../../utils/discord/roleMappingManager.js";
 import { getLogger } from "../../utils/logger.js";
 import {
   roleDeletedEmbed,
