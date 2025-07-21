@@ -1,5 +1,5 @@
 import { describe, test, expect } from "@jest/globals";
-import { parseRoleString } from "../../src/utils/roleManager.js";
+import { parseRoleString } from "../../src/utils/discord/roleParser";
 
 describe("parseRoleString", () => {
   const cases = [
