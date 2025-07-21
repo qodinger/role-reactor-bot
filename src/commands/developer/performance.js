@@ -1,9 +1,10 @@
 import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
 import { isDeveloper } from "../../utils/discord/permissions.js";
 import { getPerformanceMonitor } from "../../utils/monitoring/performanceMonitor.js";
-import { getCommandHandler } from "../../utils/core/commandHandler.js";
 import { THEME_COLOR } from "../../config/theme.js";
 import { getLogger } from "../../utils/logger.js";
+
+const SLOW_OPERATION_THRESHOLD = 500; // ms
 
 export const data = new SlashCommandBuilder()
   .setName("performance")
@@ -17,7 +18,6 @@ export async function execute(interaction, client) {
   const logger = getLogger();
 
   try {
-    // Check if already replied to prevent double responses
     if (interaction.replied || interaction.deferred) {
       logger.debug("Interaction already handled, skipping");
       return;
@@ -32,15 +32,34 @@ export async function execute(interaction, client) {
       });
     }
 
-    // Get performance data
     const performanceMonitor = getPerformanceMonitor();
-    const commandHandler = getCommandHandler();
-
     const performanceSummary = performanceMonitor.getPerformanceSummary();
-    const commandStats = commandHandler.getCommandStats();
-    const slowOperations = performanceMonitor.getSlowOperations(500); // 500ms threshold
 
-    // Create main embed
+    const slowCommands = [];
+    for (const [
+      name,
+      metric,
+    ] of performanceMonitor.commands.metrics.entries()) {
+      if (metric.averageDuration > SLOW_OPERATION_THRESHOLD) {
+        slowCommands.push({
+          name,
+          avgDuration: `${metric.averageDuration.toFixed(2)}ms`,
+          count: metric.count,
+        });
+      }
+    }
+
+    const slowEvents = [];
+    for (const [name, metric] of performanceMonitor.events.metrics.entries()) {
+      if (metric.averageDuration > SLOW_OPERATION_THRESHOLD) {
+        slowEvents.push({
+          name,
+          avgDuration: `${metric.averageDuration.toFixed(2)}ms`,
+          count: metric.count,
+        });
+      }
+    }
+
     const embed = new EmbedBuilder()
       .setTitle("📊 Bot Performance Metrics")
       .setColor(THEME_COLOR)
@@ -50,13 +69,8 @@ export async function execute(interaction, client) {
         iconURL: client.user.displayAvatarURL(),
       });
 
-    // Uptime and basic stats
     embed.addFields(
-      {
-        name: "⏱️ Uptime",
-        value: performanceSummary.uptime.formatted,
-        inline: true,
-      },
+      { name: "⏱️ Uptime", value: performanceSummary.uptime, inline: true },
       {
         name: "🎯 Total Events",
         value: performanceSummary.events.total.toString(),
@@ -69,7 +83,6 @@ export async function execute(interaction, client) {
       },
     );
 
-    // Performance metrics
     embed.addFields(
       {
         name: "🚀 Event Performance",
@@ -83,12 +96,13 @@ export async function execute(interaction, client) {
       },
       {
         name: "💾 Memory Usage",
-        value: performanceSummary.memory.current.heapUsed,
+        value: `${(process.memoryUsage().heapUsed / 1024 / 1024).toFixed(
+          2,
+        )} MB`,
         inline: true,
       },
     );
 
-    // Database stats
     embed.addFields(
       {
         name: "🗄️ Database",
@@ -96,53 +110,29 @@ export async function execute(interaction, client) {
         inline: true,
       },
       {
-        name: "📈 Memory Trend",
-        value: `${performanceSummary.memory.trend.trend} (${performanceSummary.memory.trend.change})`,
-        inline: true,
-      },
-      {
         name: "🐌 Slow Operations",
-        value: `${slowOperations.slowEvents.length + slowOperations.slowCommands.length} found`,
+        value: `${slowEvents.length + slowCommands.length} found`,
         inline: true,
       },
     );
 
-    // Top commands by usage
-    const topCommands = Object.entries(commandStats)
-      .sort(([, a], [, b]) => b.count - a.count)
-      .slice(0, 5)
-      .map(([name, stats]) => `${name}: ${stats.count} uses`)
-      .join("\n");
-
-    if (topCommands) {
-      embed.addFields({
-        name: "🏆 Top Commands",
-        value: topCommands,
-        inline: false,
-      });
-    }
-
-    // Slow operations details
-    if (
-      slowOperations.slowEvents.length > 0 ||
-      slowOperations.slowCommands.length > 0
-    ) {
+    if (slowEvents.length > 0 || slowCommands.length > 0) {
       const slowDetails = [];
 
-      if (slowOperations.slowCommands.length > 0) {
+      if (slowCommands.length > 0) {
         slowDetails.push("**Slow Commands:**");
-        slowOperations.slowCommands.forEach(cmd => {
+        slowCommands.forEach(cmd => {
           slowDetails.push(
-            `• ${cmd.command}: ${cmd.avgDuration} (${cmd.count} uses)`,
+            `• ${cmd.name}: ${cmd.avgDuration} (${cmd.count} uses)`,
           );
         });
       }
 
-      if (slowOperations.slowEvents.length > 0) {
+      if (slowEvents.length > 0) {
         slowDetails.push("**Slow Events:**");
-        slowOperations.slowEvents.forEach(event => {
+        slowEvents.forEach(event => {
           slowDetails.push(
-            `• ${event.event}: ${event.avgDuration} (${event.count} times)`,
+            `• ${event.name}: ${event.avgDuration} (${event.count} times)`,
           );
         });
       }

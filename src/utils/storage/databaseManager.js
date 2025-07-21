@@ -139,16 +139,16 @@ class TemporaryRoleRepository extends BaseRepository {
     super(db, "temporary_roles", cache, logger);
   }
 
-  async cleanupExpired() {
-    const result = await this.collection.deleteMany({
-      expiresAt: { $lte: new Date() },
-    });
+  async findExpired() {
+    return this.collection.find({ expiresAt: { $lte: new Date() } }).toArray();
+  }
+
+  async delete(guildId, userId, roleId) {
+    const result = await this.collection.deleteOne({ guildId, userId, roleId });
     if (result.deletedCount > 0) {
-      this.logger.info(
-        `🧹 Cleaned up ${result.deletedCount} expired temporary roles`,
-      );
       this.cache.clear();
     }
+    return result.deletedCount > 0;
   }
 }
 

@@ -1,20 +1,30 @@
 import { REST, Routes } from "discord.js";
 import fs from "fs";
 import path from "path";
-import process from "process";
 import { fileURLToPath } from "url";
 import config from "../src/config/config.js";
-import { getLogger } from "../src/utils/logger.js";
-import { createSpinner } from "../src/utils/terminal.js";
+import {
+  createSpinner,
+  createInfoBox,
+  createSuccessMessage,
+  createErrorMessage,
+  colors,
+  icons,
+} from "../src/utils/terminal.js";
 
-const logger = getLogger();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 async function loadCommands() {
-  const commands = [];
+  const categories = {};
   const commandsPath = path.join(__dirname, "../src/commands");
   const commandFolders = fs.readdirSync(commandsPath);
+
+  console.log(
+    `${icons.folder} ${colors.cyan(
+      `Found ${commandFolders.length} command categories.`,
+    )}`,
+  );
 
   for (const folder of commandFolders) {
     const folderPath = path.join(commandsPath, folder);
@@ -24,41 +34,87 @@ async function loadCommands() {
       .readdirSync(folderPath)
       .filter(file => file.endsWith(".js"));
 
+    categories[folder] = [];
     for (const file of commandFiles) {
-      const filePath = path.join(folderPath, file);
-      const command = await import(filePath);
-      if (command.data) {
-        commands.push(command.data.toJSON());
+      try {
+        const filePath = path.join(folderPath, file);
+        const commandModule = await import(filePath);
+        const commandData = commandModule.data || commandModule.default?.data;
+
+        if (commandData) {
+          categories[folder].push(commandData.toJSON());
+        } else {
+          console.warn(
+            colors.warning(`  [!] No command data found in ${file}`),
+          );
+        }
+      } catch (error) {
+        console.error(
+          createErrorMessage(`  [X] Error loading ${file}: ${error.message}`),
+        );
       }
     }
   }
-  return commands;
+  return categories;
 }
 
 async function deployCommands() {
-  const spinner = createSpinner("Deploying commands...").start();
+  const spinner = createSpinner("Starting command deployment...").start();
   try {
-    const commands = await loadCommands();
+    const categories = await loadCommands();
+    const allCommands = Object.values(categories).flat();
+    spinner.text = `Deploying ${allCommands.length} commands...`;
+
     const rest = new REST({ version: "10" }).setToken(config.discord.token);
 
     if (process.env.NODE_ENV === "production") {
       await rest.put(Routes.applicationCommands(config.discord.clientId), {
-        body: commands,
+        body: allCommands,
       });
-      spinner.succeed("Global commands deployed.");
+      spinner.succeed(
+        createSuccessMessage("Successfully deployed global commands."),
+      );
     } else {
       await rest.put(
         Routes.applicationGuildCommands(
           config.discord.clientId,
           config.discord.guildId,
         ),
-        { body: commands },
+        { body: allCommands },
       );
-      spinner.succeed(`Guild commands deployed to ${config.discord.guildId}.`);
+      spinner.succeed(
+        createSuccessMessage(
+          `Successfully deployed guild commands to ${config.discord.guildId}.`,
+        ),
+      );
     }
+
+    console.log(
+      createInfoBox(
+        "Deployment Summary",
+        [
+          `${icons.rocket} Deployed ${allCommands.length} command(s)`,
+          `${
+            process.env.NODE_ENV === "production"
+              ? `${icons.server} Global`
+              : `${icons.server} Guild: ${config.discord.guildId}`
+          }`,
+        ],
+        { borderColor: "green" },
+      ),
+    );
+
+    console.log(colors.bold("\nDeployed Commands:"));
+    for (const [category, commands] of Object.entries(categories)) {
+      console.log(colors.highlight(`\n  ${category.toUpperCase()}`));
+      for (const command of commands) {
+        console.log(`    /${command.name}`);
+      }
+    }
+    console.log("");
   } catch (error) {
-    spinner.fail("Failed to deploy commands.");
-    logger.error("Error deploying commands", error);
+    spinner.fail(createErrorMessage("Failed to deploy commands."));
+    console.error(error);
   }
 }
 

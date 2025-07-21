@@ -1,28 +1,37 @@
 import { getPerformanceMonitor } from "../performanceMonitor.js";
 import { getLogger } from "../../logger.js";
 
-/**
- * Checks the performance of the application.
- * @returns {{status: string, uptime: string, totalEvents: number, totalCommands: number, slowEvents: number, slowCommands: number, timestamp: string, error?: string}}
- */
+const SLOW_OPERATION_THRESHOLD = 2000; // ms
+
 export function checkPerformance() {
   const logger = getLogger();
   try {
     const performanceMonitor = getPerformanceMonitor();
     const summary = performanceMonitor.getPerformanceSummary();
-    const slowOperations = performanceMonitor.getSlowOperations(2000);
+    let slowCommands = 0;
+    let slowEvents = 0;
 
-    const isHealthy =
-      slowOperations.slowEvents.length === 0 &&
-      slowOperations.slowCommands.length === 0;
+    for (const metric of performanceMonitor.commands.metrics.values()) {
+      if (metric.averageDuration > SLOW_OPERATION_THRESHOLD) {
+        slowCommands++;
+      }
+    }
+
+    for (const metric of performanceMonitor.events.metrics.values()) {
+      if (metric.averageDuration > SLOW_OPERATION_THRESHOLD) {
+        slowEvents++;
+      }
+    }
+
+    const isHealthy = slowCommands === 0 && slowEvents === 0;
 
     return {
       status: isHealthy ? "healthy" : "warning",
-      uptime: summary.uptime.formatted,
+      uptime: summary.uptime,
       totalEvents: summary.events.total,
       totalCommands: summary.commands.total,
-      slowEvents: slowOperations.slowEvents.length,
-      slowCommands: slowOperations.slowCommands.length,
+      slowEvents,
+      slowCommands,
       timestamp: new Date().toISOString(),
     };
   } catch (error) {
