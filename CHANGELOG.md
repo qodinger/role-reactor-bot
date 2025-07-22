@@ -8,10 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Health check server configuration with configurable port settings
+- Global error handlers for unhandled promise rejections and uncaught exceptions
+
 ### Changed
+- Enhanced Discord API integration tests with updated imports and better test coverage
+- Improved error handling in health monitoring systems
+
 ### Fixed
-### Security
-### Performance
+- Resolved issues with health check server port conflicts
+- Fixed test imports after utility reorganization
 
 ## [0.2.1] - 2025-01-22
 
