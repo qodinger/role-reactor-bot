@@ -33,6 +33,11 @@ jobs:
 
       - name: Run tests
         run: pnpm test:ci
+        env:
+          CLIENT_ID: "123456789012345678"
+          DISCORD_TOKEN: "test_token_for_ci"
+          MONGODB_URI: ""
+          NODE_ENV: "test"
 
       - name: Check formatting
         run: pnpm format:check
