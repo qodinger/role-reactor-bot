@@ -13,6 +13,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 ### Performance
 
+## [0.2.1] - 2025-01-22
+
+### Added
+- Dynamic external links in help command
+- Improved component handling for help system
+
+### Changed
+- Modularized monitoring, storage, and global utilities
+- Organized utilities into subdirectories for better structure
+- Improved GitHub Actions release workflow with modern practices
+- Enhanced release workflow with better error handling and validation
+
+### Fixed
+- Resolved post-refactor bugs in developer commands
+- Fixed imports after utility reorganization
+
 ## [0.2.0] - 2025-07-20
 
 ### Added
@@ -87,6 +103,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Developer management commands (`/health`, `/performance`)
 - Comprehensive error handling and rate limiting
 
-[Unreleased]: https://github.com/tyecode-bots/role-reactor-bot/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/tyecode-bots/role-reactor-bot/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/tyecode-bots/role-reactor-bot/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/tyecode-bots/role-reactor-bot/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/tyecode-bots/role-reactor-bot/releases/tag/v0.1.0
