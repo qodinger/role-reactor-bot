@@ -5,45 +5,59 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+### Changed
+### Fixed
+### Security
+### Performance
+
 ## [0.2.0] - 2025-07-20
 
 ### Added
 
 - Developer command system with runtime permission checks
 - `/storage` command for storage status monitoring
-- Runtime permission checks for developer commands using `DEVELOPERS` environment variable
-- Discord command visibility controls with `setDefaultMemberPermissions(0n)` and `setDMPermission(false)`
-- Enhanced help system with component-based architecture
-- Improved command deployment with environment-based filtering
-- GitHub Actions release workflow for automated releases
-- Enhanced temporary roles with proper data persistence
-- Improved role management with better validation
-- Update script for automated bot updates
+- Runtime permission checks using `DEVELOPERS` environment variable
+- Discord command visibility controls (`setDefaultMemberPermissions(0n)`, `setDMPermission(false)`)
+- Component-based help system architecture
+- Environment-based command deployment filtering
+- GitHub Actions automated release workflow
+- Persistent data storage for temporary roles
+- Enhanced role management validation
+- Automated bot update script
 
 ### Changed
 
-- Renamed "bot owner" references to "developer" throughout codebase
-- Updated developer commands with clear "🔒 [DEVELOPER ONLY]" descriptions
-- Simplified deployment scripts to 4 essential commands (`deploy:dev`, `deploy:prod`, `deploy:global`, `delete:commands`)
-- Updated ephemeral usage from `ephemeral: true` to `flags: 64` to avoid Discord deprecation warnings
+- Renamed "bot owner" to "developer" throughout codebase
+- Added "🔒 [DEVELOPER ONLY]" descriptions to developer commands
+- Simplified deployment scripts (reduced from 8 to 4 commands: `deploy:dev`, `deploy:prod`, `deploy:global`, `delete:commands`)
+- Updated ephemeral usage from `ephemeral: true` to `flags: 64` (Discord deprecation fix)
 - Enhanced documentation with developer command system details
 - Improved command visibility and permission handling
-- Streamlined README.md with better organization
+- Streamlined README.md organization
 - Consolidated deployment guides (merged VPS_DEPLOYMENT.md)
-- Enhanced database manager with better error handling
-- Improved scheduler with proper cleanup
+- Enhanced database manager error handling
+- Improved scheduler cleanup process
 - Better error messages and validation
 
 ### Fixed
 
 - Fixed Discord deprecation warnings by updating ephemeral usage
 - Fixed developer command visibility issues in Discord UI
-- Fixed deployment script logic to properly filter commands by environment
+- Fixed deployment script logic for proper environment-based command filtering
 - Enhanced permission checking and feedback for developer commands
-- Fixed list-temp-roles command (getExpiredTemporaryRoles error)
+- Fixed `list-temp-roles` command (`getExpiredTemporaryRoles` error)
 - Fixed date parsing issues in temporary role display
 - Added cache clearing to prevent stale data
 - Fixed data structure handling for temporary roles
+
+### Security
+
+- Added runtime permission checks for developer commands
+- Implemented environment-based command filtering
+- Enhanced command visibility controls to prevent unauthorized access
 
 ### Performance
 
@@ -72,3 +86,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Role categories and organization
 - Developer management commands (`/health`, `/performance`)
 - Comprehensive error handling and rate limiting
+
+[Unreleased]: https://github.com/tyecode-bots/role-reactor-bot/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/tyecode-bots/role-reactor-bot/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/tyecode-bots/role-reactor-bot/releases/tag/v0.1.0

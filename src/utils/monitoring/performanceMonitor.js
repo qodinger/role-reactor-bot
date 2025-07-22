@@ -145,7 +145,7 @@ class PerformanceMonitor {
     setInterval(
       () => {
         const summary = this.getPerformanceSummary();
-        this.logger.logPerformance({
+        this.logger.info("Performance Snapshot", {
           uptime: summary.uptime,
           events: summary.events.total,
           commands: summary.commands.total,
