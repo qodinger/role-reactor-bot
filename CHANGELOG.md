@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Resolved issues with health check server port conflicts
 - Fixed test imports after utility reorganization
 - Fixed CI workflow pnpm executable error by reordering setup steps
+- Fixed pnpm lockfile compatibility by updating to pnpm v9 in workflows
 
 ## [0.2.1] - 2025-01-22
 

@@ -42,6 +42,11 @@ jobs:
             echo "❌ Tests failed - stopping release process"
             exit 1
           fi
+        env:
+          CLIENT_ID: "123456789012345678"
+          DISCORD_TOKEN: "test_token_for_release"
+          MONGODB_URI: ""
+          NODE_ENV: "test"
 
       - name: Validate package.json version
         run: |
