@@ -1,5 +1,5 @@
 # Multi-stage build for better security
-FROM node:20-alpine3.19 AS base
+FROM node:22-alpine AS base
 
 # Install security updates and pnpm
 RUN apk add --no-cache --update \
@@ -18,7 +18,7 @@ COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile --prod
 
 # Production stage
-FROM node:20-alpine3.19 AS production
+FROM node:22-alpine AS production
 
 # Install security updates
 RUN apk add --no-cache --update ca-certificates \

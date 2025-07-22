@@ -3,13 +3,16 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
-      - '0.*'
-      - '1.*'
+      - "v*.*.*" # v1.2.3
+      - "v*.*.*-*" # v1.2.3-alpha, v1.2.3-beta.1
+      - "[0-9]+.[0-9]+.*" # 0.2.0, 1.0.0
 
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -17,8 +20,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
-          cache: 'pnpm'
+          node-version: "18"
+          cache: "pnpm"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
@@ -31,60 +34,128 @@ jobs:
       - name: Lint code
         run: pnpm lint
 
+      - name: Run tests
+        run: |
+          if pnpm test; then
+            echo "✅ All tests passed"
+          else
+            echo "❌ Tests failed - stopping release process"
+            exit 1
+          fi
+
+      - name: Validate package.json version
+        run: |
+          # Extract version from tag and package.json
+          TAG_VERSION=${GITHUB_REF#refs/tags/}
+          TAG_VERSION_CLEAN=${TAG_VERSION#v}
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+
+          echo "Tag version: $TAG_VERSION_CLEAN"
+          echo "Package.json version: $PACKAGE_VERSION"
+
+          if [[ "$TAG_VERSION_CLEAN" != "$PACKAGE_VERSION" ]]; then
+            echo "❌ Version mismatch: tag ($TAG_VERSION_CLEAN) != package.json ($PACKAGE_VERSION)"
+            exit 1
+          else
+            echo "✅ Version match confirmed"
+          fi
+
       - name: Generate Release Notes
         id: release_notes
         run: |
-          # Extract version from tag
+          # Extract version from tag (remove 'v' prefix if present)
           VERSION=${GITHUB_REF#refs/tags/}
-          
+          VERSION_CLEAN=${VERSION#v}
+
+          echo "Extracting release notes for version: $VERSION_CLEAN"
+
           # Generate release notes from changelog
           if [[ -f "CHANGELOG.md" ]]; then
-            # Find the section for this version
-            awk -v version="$VERSION" '
-            BEGIN { in_section = 0; found = 0 }
-            /^## \['"$VERSION"'\]/ { in_section = 1; found = 1; next }
-            /^## \[/ && in_section { in_section = 0; next }
-            in_section { print }
-            END { if (!found) print "See CHANGELOG.md for detailed changes." }
-            ' CHANGELOG.md > release_notes.txt
+            # Try multiple version formats
+            RELEASE_NOTES=$(awk -v version="$VERSION_CLEAN" -v vtag="$VERSION" '
+            BEGIN { 
+              in_section = 0
+              found = 0
+              content = ""
+            }
+            # Match version with or without brackets, with or without v prefix
+            /^## \['"$VERSION_CLEAN"'\]/ || /^## \['"$VERSION"'\]/ || /^## '"$VERSION_CLEAN"' / || /^## '"$VERSION"' / {
+              in_section = 1
+              found = 1
+              next
+            }
+            # Stop when we hit the next version section
+            /^## / && in_section && found {
+              in_section = 0
+              exit
+            }
+            # Collect content in our section
+            in_section {
+              if (length(content) > 0) {
+                content = content "\n" $0
+              } else {
+                content = $0
+              }
+            }
+            END { 
+              if (found && length(content) > 0) {
+                print content
+              } else {
+                print "## Changes\n\nSee [CHANGELOG.md](https://github.com/tyecode-bots/role-reactor-bot/blob/main/CHANGELOG.md) for detailed changes."
+              }
+            }
+            ' CHANGELOG.md)
           else
-            echo "See CHANGELOG.md for detailed changes." > release_notes.txt
+            RELEASE_NOTES="## Changes\n\nSee [CHANGELOG.md](https://github.com/tyecode-bots/role-reactor-bot/blob/main/CHANGELOG.md) for detailed changes."
           fi
-          
-          # Read the generated notes
-          RELEASE_NOTES=$(cat release_notes.txt)
-          echo "release_notes<<EOF" >> $GITHUB_OUTPUT
-          echo "$RELEASE_NOTES" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+
+          # Set output with proper escaping
+          {
+            echo "release_notes<<EOF"
+            echo "$RELEASE_NOTES"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
 
       - name: Create Release
-        uses: actions/create-release@v1
+        id: create_release
+        uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
+          name: Release ${{ github.ref_name }}
           body: |
             ## What's Changed
-            
+
             ${{ steps.release_notes.outputs.release_notes }}
-            
+
             ---
-            
+
             ## Key Features
-            
+
             - Self-assignable roles through reactions
             - Temporary roles with auto-expiration
             - MongoDB integration with local file backup
             - Docker deployment support
             - Health monitoring and performance metrics
-            
-            ---
-            
-            **[View Full Changelog →](./CHANGELOG.md)**
-          draft: false
-          prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
 
-      - name: Build Complete
+            ---
+
+            **[View Full Changelog](https://github.com/tyecode-bots/role-reactor-bot/blob/main/CHANGELOG.md)**
+          draft: false
+          prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
+          generate_release_notes: true
+
+      - name: Release Summary
         run: |
-          echo "Release build completed successfully!" 
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "## 🚀 Release Complete!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** $VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "**Release URL:** ${{ steps.create_release.outputs.html_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps:" >> $GITHUB_STEP_SUMMARY
+          echo "- [ ] Update deployment environments" >> $GITHUB_STEP_SUMMARY
+          echo "- [ ] Notify team of new release" >> $GITHUB_STEP_SUMMARY
+          echo "- [ ] Monitor for any issues" >> $GITHUB_STEP_SUMMARY
+
+          echo "Release $VERSION created successfully! 🎉"

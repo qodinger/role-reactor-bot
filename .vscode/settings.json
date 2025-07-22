@@ -28,5 +28,6 @@
     "smhdw",
     "testuser",
     "usermod"
-  ]
+  ],
+  "docker.languageserver.diagnostics.vulnerabilities": "ignore"
 }
