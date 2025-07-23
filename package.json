@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "role-reactor-bot",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "A Discord bot for self-assignable roles through reactions. Features role management, permission controls, and customizable role-emoji mappings.",
   "main": "src/index.js",
   "scripts": {
