@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed test imports after utility reorganization
 - Fixed CI workflow pnpm executable error by reordering setup steps
 - Fixed pnpm lockfile compatibility by updating to pnpm v9 in workflows
+- Fixed CI test failures by adding required environment variables for config validation
+- Fixed release workflow pnpm executable error by reordering setup steps
 
 ## [0.2.1] - 2025-01-22
 
@@ -40,7 +42,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.2.0] - 2025-07-20
 
 ### Added
-
 - Developer command system with runtime permission checks
 - `/storage` command for storage status monitoring
 - Runtime permission checks using `DEVELOPERS` environment variable
@@ -53,7 +54,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Automated bot update script
 
 ### Changed
-
 - Renamed "bot owner" to "developer" throughout codebase
 - Added "🔒 [DEVELOPER ONLY]" descriptions to developer commands
 - Simplified deployment scripts (reduced from 8 to 4 commands: `deploy:dev`, `deploy:prod`, `deploy:global`, `delete:commands`)
@@ -67,7 +67,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Better error messages and validation
 
 ### Fixed
-
 - Fixed Discord deprecation warnings by updating ephemeral usage
 - Fixed developer command visibility issues in Discord UI
 - Fixed deployment script logic for proper environment-based command filtering
@@ -78,13 +77,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed data structure handling for temporary roles
 
 ### Security
-
 - Added runtime permission checks for developer commands
 - Implemented environment-based command filtering
 - Enhanced command visibility controls to prevent unauthorized access
 
 ### Performance
-
 - Optimized command deployment with environment-based filtering
 - Reduced deployment script complexity from 8 to 4 essential commands
 - Improved command response times with better error handling
@@ -95,7 +92,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2025-07-10
 
 ### Added
-
 - Initial Discord role reactor bot implementation
 - Self-assignable roles through reactions
 - Temporary role system with auto-expiration
