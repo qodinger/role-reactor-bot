@@ -1,6 +1,10 @@
 # Role Reactor Bot - User Guide
 
-![Role Reactor Bot](/.gitbook/assets/role-reactor-hero.png)
+<div align="center">
+  <img src="/.gitbook/assets/role-reactor-hero.png" alt="Role Reactor Bot - React for Roles!" width="600">
+</div>
+
+---
 
 > **Make role assignment fun and automatic in your Discord server!**
 

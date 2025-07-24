@@ -1,6 +1,14 @@
-# Role Reactor Bot 🤖
+<div align="center">
+  <img src="./assets/banner.png" alt="Role Reactor Bot - React for Roles!" width="600">
+</div>
 
-[![Node.js](https://img.shields.io/badge/Node.js-16+-green.svg)](https://nodejs.org/) [![Discord.js](https://img.shields.io/badge/Discord.js-14.14.1-blue.svg)](https://discord.js.org/) [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+<div align="center">
+
+[![Node.js](https://img.shields.io/badge/Node.js-16+-green.svg)](https://nodejs.org/) [![Discord.js](https://img.shields.io/badge/Discord.js-14.14.1-blue.svg)](https://discord.js.org/) [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE) [![GitBook](https://img.shields.io/static/v1?message=Documented%20on%20GitBook&logo=gitbook&logoColor=ffffff&label=%20&labelColor=5c5c5c&color=3F89A1)](https://www.gitbook.com/preview?utm_source=gitbook_readme_badge&utm_medium=organic&utm_campaign=preview_documentation&utm_content=link)
+
+</div>
+
+---
 
 A production-ready Discord bot for self-assignable roles through reactions. Built with Discord.js v14, featuring enterprise-grade logging, health monitoring, and scalable MongoDB integration.
 
