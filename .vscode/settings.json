@@ -14,9 +14,13 @@
     "dont",
     "dotenv",
     "ehthumbs",
+    "endcontent",
+    "endhint",
     "eslintcache",
+    "Fortnite",
     "Gamified",
     "healthcheck",
+    "hexcode",
     "jspm",
     "NIXPACKS",
     "nodemon",
@@ -30,6 +34,7 @@
     "softprops",
     "testuser",
     "usermod",
+    "Valorant",
     "vtag"
   ],
   "docker.languageserver.diagnostics.vulnerabilities": "ignore"

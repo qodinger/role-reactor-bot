@@ -205,12 +205,12 @@ The bot includes comprehensive health monitoring:
 
 ## 📖 Documentation
 
-- **[🚀 Deployment Guide](./docs/DEPLOYMENT.md)** - Production deployment instructions
-- **[🤝 Contributing Guidelines](./docs/CONTRIBUTING.md)** - How to contribute to the project
+- **[🚀 Deployment Guide](./DEPLOYMENT.md)** - Production deployment instructions
+- **[🤝 Contributing Guidelines](./CONTRIBUTING.md)** - How to contribute to the project
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guidelines](./docs/CONTRIBUTING.md) for detailed information.
+We welcome contributions! Please see our [Contributing Guidelines](./CONTRIBUTING.md) for detailed information.
 
 ### Quick Development Setup
 
@@ -235,8 +235,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🆘 Support
 
 - **GitHub Issues**: [Create an issue](https://github.com/tyecode-bots/role-reactor-bot/issues)
-- **Documentation**: [Deployment Guide](./docs/DEPLOYMENT.md)
-- **Contributing**: [Contributing Guidelines](./docs/CONTRIBUTING.md)
+- **Documentation**: [Deployment Guide](./DEPLOYMENT.md)
+- **Contributing**: [Contributing Guidelines](./CONTRIBUTING.md)
 
 ---
 
