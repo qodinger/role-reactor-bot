@@ -240,6 +240,11 @@ pnpm test
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
+## 📜 Legal Information
+
+- **Terms of Use**: [docs/legal/terms-of-use.md](docs/legal/terms-of-use.md)
+- **Privacy Policy**: [docs/legal/privacy-policy.md](docs/legal/privacy-policy.md)
+
 ## 🆘 Support
 
 - **GitHub Issues**: [Create an issue](https://github.com/tyecode-bots/role-reactor-bot/issues)

@@ -43,3 +43,9 @@
 * [Getting Help](support/getting-help.md)
 * [Feature Requests](support/feature-requests.md)
 * [Reporting Bugs](support/reporting-bugs.md)
+
+## Legal Information
+* [Legal Overview](legal/README.md)
+* [Terms of Use](legal/terms-of-use.md)
+* [Privacy Policy](legal/privacy-policy.md)
+* [Compliance Guide](legal/compliance-guide.md)

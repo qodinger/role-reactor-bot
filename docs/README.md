@@ -144,6 +144,18 @@ Check out our server setup examples:
 [getting-help.md](support/getting-help.md)
 {% endcontent-ref %}
 
+## 📜 Legal Information
+
+By using Role Reactor Bot, you agree to our legal terms:
+
+{% content-ref url="legal/terms-of-use.md" %}
+[terms-of-use.md](legal/terms-of-use.md)
+{% endcontent-ref %}
+
+{% content-ref url="legal/privacy-policy.md" %}
+[privacy-policy.md](legal/privacy-policy.md)
+{% endcontent-ref %}
+
 ---
 
 **Ready to transform your Discord server's role management?** Let's get started! 🎉
