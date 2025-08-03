@@ -60,7 +60,7 @@ We do not collect:
 ### 3.2 Data Processing
 
 - **Automated Processing**: Role assignments are processed automatically
-- **Manual Review**: Technical issues may be reviewed by developers
+- **Manual Review**: Technical issues may be reviewed when necessary
 - **No Profiling**: We do not create user profiles or behavioral analysis
 - **Controlled Deletion**: Data deletion is handled through admin commands for safety
 
@@ -75,7 +75,7 @@ We do not collect:
 
 ### 4.1 Storage Location
 
-- **Primary Storage**: MongoDB database (self-hosted or cloud)
+- **Primary Storage**: Secure database storage
 - **Backup Storage**: Local backups for data protection
 - **Log Storage**: Application logs for debugging
 - **Geographic Location**: Data may be stored in multiple regions for redundancy
@@ -83,7 +83,7 @@ We do not collect:
 ### 4.2 Security Measures
 
 - **Encryption**: Data transmitted over secure connections (TLS 1.3)
-- **Access Control**: Limited developer access to production data
+- **Access Control**: Limited access to production data
 - **Regular Updates**: Security patches applied promptly
 - **Monitoring**: System monitoring for suspicious activity
 - **Data Minimization**: Only necessary data is collected and stored
@@ -119,7 +119,7 @@ We do not sell, trade, or share your data with third parties except:
 
 ### 5.3 Service Providers
 
-- **MongoDB Atlas**: Database hosting (if cloud storage is used)
+- **Database Hosting**: Secure cloud database services
 - **Discord API**: Essential service integration
 - **GitHub**: Issue tracking and support (anonymized data only)
 - **All providers have appropriate data protection agreements**
@@ -144,7 +144,7 @@ We do not sell, trade, or share your data with third parties except:
 
 ### 6.3 Data Portability
 
-- **Export Data**: Use `/storage` command (developer only) to export all data
+- **Export Data**: Contact us to export your data
 - **Data Transfer**: We can transfer your data to another service if requested
 - **Format**: Data will be provided in JSON or CSV format as appropriate
 - **Contact Method**: Create an issue on GitHub or join our support server
@@ -155,7 +155,7 @@ We do not sell, trade, or share your data with third parties except:
 
 - **Export Format**: JSON or CSV format available
 - **Export Scope**: All user data, role assignments, and server configurations
-- **Export Method**: `/storage` command (developer access) or manual request
+- **Export Method**: Contact us for data export
 - **Response Time**: Within 30 days of request
 - **No Cost**: Data export is provided free of charge
 
@@ -252,7 +252,7 @@ For privacy-related questions or requests:
 
 ### 13.1 Third-Party Processors
 
-- **MongoDB Atlas**: Database hosting (if used)
+- **Database Services**: Secure cloud database hosting
 - **Discord API**: Essential service integration
 - **GitHub**: Issue tracking and support
 - **All processors have appropriate data protection agreements**
@@ -277,10 +277,10 @@ For privacy-related questions or requests:
 - **Compliance Monitoring**: Regular privacy compliance assessments
 - **User Rights**: Oversight of data subject rights processing
 - **Breach Response**: Coordination of data breach response
-- **Training**: Privacy awareness training for team members
+- **Privacy Awareness**: Maintaining privacy best practices
 
 ---
 
-**Last Updated**: August 2, 2025  
-**Version**: 1.0  
+**Last Updated**: August 3, 2025  
+**Version**: 1.1  
 **Effective Date**: Upon bot release (TBD)

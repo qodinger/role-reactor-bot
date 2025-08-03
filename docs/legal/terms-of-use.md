@@ -2,7 +2,7 @@
 
 ## 1. Acceptance of Terms
 
-By using Role Reactor Bot ("the Bot"), you agree to be bound by these Terms of Use. If you do not agree to these terms, please do not use the Bot. These terms constitute a legally binding agreement between you and the Bot's operators.
+By using Role Reactor Bot ("the Bot"), you agree to be bound by these Terms of Use. If you do not agree to these terms, please do not use the Bot. These terms constitute a legally binding agreement between you and the Bot's operator.
 
 ## 2. Description of Service
 
@@ -100,10 +100,10 @@ Role Reactor Bot is a Discord bot that provides role management functionality th
 
 ### 6.1 Bot Code
 
-- The Bot's source code is licensed under MIT License
-- You may modify and distribute the code according to the license
-- Attribution to the original authors is required
-- Contributions are welcome and subject to review
+- The Bot's source code is open source and licensed under MIT License
+- The code is available for review and modification
+- Attribution to the original authors is required for any modifications
+- Community contributions are welcome and subject to review
 
 ### 6.2 Discord Content
 
@@ -114,7 +114,7 @@ Role Reactor Bot is a Discord bot that provides role management functionality th
 
 ### 6.3 Trademarks and Branding
 
-- **Role Reactor Bot**: Trademark owned by the service operators
+- **Role Reactor Bot**: Trademark owned by the service operator
 - **Discord**: Trademark owned by Discord Inc.
 - **Proper Attribution**: Required when referencing the service
 
@@ -286,6 +286,6 @@ These terms are governed by applicable laws. Any disputes will be resolved throu
 
 ---
 
-**Last Updated**: August 2, 2025  
-**Version**: 1.0  
+**Last Updated**: August 3, 2025  
+**Version**: 1.1  
 **Effective Date**: Upon bot release (TBD)
