@@ -5,38 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-### Added
-
-- **User-Friendly UI Improvements**: Clean, concise messaging across all commands
-- **Centralized External Links**: Consistent link management through config system
-- **Dynamic Invite Generation**: Automatic invite link creation with proper permissions
-- **Streamlined Help System**: Focused help content with essential information only
-- **Enhanced Error Messages**: Clear, actionable error messages with troubleshooting tips
-- **Mobile-Optimized Interface**: Better experience for mobile Discord clients
-
-### Changed
-
-- **Simplified Command Messages**: Removed redundant text and verbose descriptions
-- **Consistent Link Management**: All external links now use centralized configuration
-- **Improved Error Handling**: More concise and helpful error messages
-- **Cleaner Help Interface**: Streamlined help embeds and component descriptions
-- **Better Performance Feedback**: Simplified ping command with focused information
-- **Updated Documentation**: Enhanced README with recent improvements
-
-### Fixed
-
-- **External Link Consistency**: Fixed hardcoded URLs in support and invite commands
-- **Invite Link Generation**: Fixed non-existent config property references
-- **Help System Cleanup**: Removed redundant information and improved readability
-- **Error Message Clarity**: Simplified error descriptions for better user experience
-
 ## [0.3.1] - 2025-08-03
 
 ### Added
 
-- **Automatic MongoDB Reconnection**: Bot now automatically reconnects to MongoDB when internet connection is restored
+- Enhanced Role Parser: Improved parsing for role mentions with spaces and flexible formatting
+- Comprehensive Test Coverage: Added 48 test cases for role parsing edge cases
+- Timeout Protection: Added 10-second timeout for reaction adding process
+- Automatic MongoDB Reconnection: Bot now automatically reconnects to MongoDB when internet connection is restored
 - Enhanced connection monitoring with periodic health checks every 30 seconds
 - Intelligent retry logic with exponential backoff (up to 5 attempts)
 - Connection state tracking and logging for better debugging
@@ -44,12 +20,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Simplified Setup-Roles Response: Removed setup guide button for cleaner UI
+- Reduced Minimum Duration: Changed temporary role minimum from 5 minutes to 1 minute
+- Improved Role Parser Logic: Better handling of spaces around colons and role mentions
+- Enhanced Error Response: Role parser now returns empty array when errors exist
 - Updated MongoDB connection configuration with enhanced reconnection options
 - Improved connection timeout and heartbeat settings for better reliability
 - Enhanced error handling for database connection failures
-- **Fixed timer leaks** in database connection management to prevent Jest warnings
-- **Standardized unit test file naming** to consistent camelCase convention
-- **Improved test reliability** with proper timeout configurations and cleanup
+- Standardized unit test file naming to consistent camelCase convention
+- Improved test reliability with proper timeout configurations and cleanup
+
+### Fixed
+
+- Role Parser Edge Cases: Fixed parsing issues with spaces around colons
+- Setup-Roles Interaction: Added timeout protection to prevent hanging
+- Temporary Role Duration: Fixed minimum duration validation logic
 
 ## [0.3.0] - 2025-08-03
 
@@ -194,9 +179,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Role categories and organization
 - Developer management commands (`/health`, `/performance`)
 - Comprehensive error handling and rate limiting
-
-[Unreleased]: https://github.com/tyecode-bots/role-reactor-bot/compare/v0.2.2...HEAD
-[0.2.2]: https://github.com/tyecode-bots/role-reactor-bot/compare/v0.2.1...v0.2.2
-[0.2.1]: https://github.com/tyecode-bots/role-reactor-bot/compare/v0.2.0...v0.2.1
-[0.2.0]: https://github.com/tyecode-bots/role-reactor-bot/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/tyecode-bots/role-reactor-bot/releases/tag/v0.1.0
