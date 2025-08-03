@@ -55,9 +55,9 @@ export class HelpEmbedBuilder {
         ),
       )
       .setDescription(
-        `${EMOJIS.FEATURES.ROLES} **The ultimate Discord bot for easy role management through reactions!**\n\n` +
+        `${EMOJIS.FEATURES.ROLES} **Easy role management through reactions!**\n\n` +
           `🎯 **Simple Setup** • 🎨 **Beautiful UI** • ⚡ **Instant Roles**\n\n` +
-          `Use the **dropdown menu** below to explore commands by category!`,
+          `Use the **dropdown menu** below to explore commands!`,
       )
       .setColor(THEME_COLOR)
       .setThumbnail(client.user.displayAvatarURL())
@@ -69,28 +69,26 @@ export class HelpEmbedBuilder {
         ),
       );
 
-    // Enhanced Quick Start with progress indicators
+    // Quick Start Guide
     embed.addFields({
-      name: `${EMOJIS.ACTIONS.QUICK} Quick Start Guide`,
+      name: `${EMOJIS.ACTIONS.QUICK} Quick Start`,
       value: [
-        `${EMOJIS.NUMBERS.ONE} **Create Role Message:** Use \`/setup-roles\` to build your first role selection`,
-        `${EMOJIS.NUMBERS.TWO} **Members Join:** Users click reactions to instantly get their roles`,
-        `${EMOJIS.NUMBERS.THREE} **Easy Management:** Remove reactions to lose roles automatically`,
-        `${EMOJIS.NUMBERS.FOUR} **Special Events:** Use \`/assign-temp-role\` for time-limited access`,
-        `${EMOJIS.NUMBERS.FIVE} **Stay Organized:** Track everything with \`/list-roles\` and manage your community`,
+        `${EMOJIS.NUMBERS.ONE} Use \`/setup-roles\` to create role selections`,
+        `${EMOJIS.NUMBERS.TWO} Members click reactions to get roles instantly`,
+        `${EMOJIS.NUMBERS.THREE} Use \`/assign-temp-role\` for time-limited access`,
+        `${EMOJIS.NUMBERS.FOUR} Track everything with \`/list-roles\``,
       ].join("\n"),
       inline: false,
     });
 
-    // Feature highlights
+    // Key Features
     embed.addFields({
-      name: `${EMOJIS.STATUS.SUCCESS} ✨ Key Features`,
+      name: `${EMOJIS.STATUS.SUCCESS} Key Features`,
       value: [
-        `${EMOJIS.FEATURES.ROLES} **One-Click Roles** - Instant role assignment with just a reaction`,
-        `${EMOJIS.FEATURES.TEMPORARY} **Event Roles** - Perfect for tournaments, giveaways, and special access`,
-        `${EMOJIS.FEATURES.SECURITY} **Safe & Secure** - Admin-only management keeps your server organized`,
-        `${EMOJIS.FEATURES.BACKUP} **Reliable Storage** - Your data is safely backed up and never lost`,
-        `${EMOJIS.FEATURES.MONITORING} **Always Online** - Built-in monitoring ensures smooth operation`,
+        `${EMOJIS.FEATURES.ROLES} **One-Click Roles** - Instant role assignment`,
+        `${EMOJIS.FEATURES.TEMPORARY} **Event Roles** - Perfect for tournaments and giveaways`,
+        `${EMOJIS.FEATURES.SECURITY} **Safe & Secure** - Admin-only management`,
+        `${EMOJIS.FEATURES.MONITORING} **Always Online** - Built-in monitoring`,
       ].join("\n"),
       inline: false,
     });
@@ -119,7 +117,7 @@ export class HelpEmbedBuilder {
       .setTimestamp()
       .setFooter(
         UI_COMPONENTS.createFooter(
-          "Use the dropdown to switch categories • Role Reactor",
+          "Use the dropdown to switch categories",
           client.user.displayAvatarURL(),
         ),
       );
@@ -154,7 +152,7 @@ export class HelpEmbedBuilder {
       .setTimestamp()
       .setFooter(
         UI_COMPONENTS.createFooter(
-          "Role Reactor Help • Requested",
+          "Role Reactor Help",
           client.user.displayAvatarURL(),
         ),
       );
@@ -188,29 +186,29 @@ export class HelpEmbedBuilder {
       case "setup-roles":
         embed.addFields(
           {
-            name: `${EMOJIS.ACTIONS.EDIT} 🎯 How to Use`,
+            name: `${EMOJIS.ACTIONS.EDIT} Usage`,
             value:
               '```/setup-roles title:"Choose Your Roles!" description:"Pick the roles that interest you!" roles:"🎮:Gamer,🎨:Artist,💻:Developer" color:"#0099ff"```',
             inline: false,
           },
           {
-            name: `${EMOJIS.UI.MENU} 📝 What You Need`,
+            name: `${EMOJIS.UI.MENU} Parameters`,
             value: [
-              "**title** - A catchy title for your role selection message",
-              "**description** - Friendly text explaining what members should do",
-              "**roles** - Your roles with emojis (format: `emoji:role,emoji:role`)",
-              "**color** *(optional)* - A nice color for the message (like `#0099ff`)",
+              "**title** - Title for your role selection message",
+              "**description** - Text explaining what members should do",
+              "**roles** - Roles with emojis (format: `emoji:role,emoji:role`)",
+              "**color** *(optional)* - Color for the message (like `#0099ff`)",
             ].join("\n"),
             inline: false,
           },
           {
-            name: `${EMOJIS.FEATURES.SECURITY} 🔐 Permissions`,
+            name: `${EMOJIS.FEATURES.SECURITY} Permissions`,
             value:
               "• **Manage Roles** permission (for you)\n• **Manage Messages** permission (for the bot)\n• **Add Reactions** permission (for the bot)",
             inline: false,
           },
           {
-            name: `${EMOJIS.STATUS.INFO} 💡 Great Examples`,
+            name: `${EMOJIS.STATUS.INFO} Examples`,
             value: [
               "`🎮:Gamer,🎨:Artist,💻:Developer` - Gaming community roles",
               "`<:verified:123456789>:Verified,<:moderator:987654321>:Moderator` - Custom emoji roles",
@@ -224,24 +222,24 @@ export class HelpEmbedBuilder {
       case "update-roles":
         embed.addFields(
           {
-            name: `${EMOJIS.ACTIONS.EDIT} How to Use`,
+            name: `${EMOJIS.ACTIONS.EDIT} Usage`,
             value:
               '```/update-roles message_id:123456789012345678 title:"Updated Roles!" roles:"🎮:Gamer,🎨:Artist" color:"#ff0000"```',
             inline: false,
           },
           {
-            name: `${EMOJIS.UI.MENU} What You Need`,
+            name: `${EMOJIS.UI.MENU} Parameters`,
             value: [
-              "**message_id** - The ID of the role message you want to change (get this from `/list-roles`)",
-              "**title** *(optional)* - A new title for your role message",
+              "**message_id** - ID of the role message to change (get from `/list-roles`)",
+              "**title** *(optional)* - New title for your role message",
               "**description** *(optional)* - Updated description text",
               "**roles** *(optional)* - New roles with emojis",
-              "**color** *(optional)* - A new color for the message (like `#ff0000`)",
+              "**color** *(optional)* - New color for the message",
             ].join("\n"),
             inline: false,
           },
           {
-            name: `${EMOJIS.FEATURES.SECURITY} What You Need`,
+            name: `${EMOJIS.FEATURES.SECURITY} Permissions`,
             value:
               "• **Manage Roles** permission (for you)\n• **Manage Messages** permission (for the bot)",
             inline: false,
@@ -252,26 +250,20 @@ export class HelpEmbedBuilder {
       case "delete-roles":
         embed.addFields(
           {
-            name: `${EMOJIS.ACTIONS.DELETE} 🗑️ How to Use`,
+            name: `${EMOJIS.ACTIONS.DELETE} Usage`,
             value: "```/delete-roles message_id:123456789012345678```",
             inline: false,
           },
           {
-            name: `${EMOJIS.UI.MENU} 📝 What You Need`,
+            name: `${EMOJIS.UI.MENU} Parameters`,
             value:
-              "**message_id** - The ID of the role message you want to remove (get this from `/list-roles`)",
+              "**message_id** - ID of the role message to remove (get from `/list-roles`)",
             inline: false,
           },
           {
-            name: `${EMOJIS.FEATURES.SECURITY} 🔐 Permissions`,
+            name: `${EMOJIS.FEATURES.SECURITY} Permissions`,
             value:
               "• **Manage Roles** permission (for you)\n• **Manage Messages** permission (for the bot)",
-            inline: false,
-          },
-          {
-            name: `${EMOJIS.STATUS.INFO} ⚠️ What Happens`,
-            value:
-              "This will remove the role selection message and all its reactions. Members will keep their roles until they remove them manually.",
             inline: false,
           },
         );

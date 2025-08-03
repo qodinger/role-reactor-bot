@@ -15,6 +15,10 @@ import {
 } from "../../utils/discord/temporaryRoles.js";
 import { THEME_COLOR } from "../../config/theme.js";
 import { getLogger } from "../../utils/logger.js";
+import {
+  permissionErrorEmbed,
+  errorEmbed,
+} from "../../utils/discord/responseMessages.js";
 
 export const data = new SlashCommandBuilder()
   .setName("remove-temp-role")
@@ -108,152 +112,228 @@ export async function removeTemporaryRoleData(roleData) {
 }
 
 export async function execute(interaction, client) {
+  const logger = getLogger();
+  const startTime = Date.now();
+
   await interaction.deferReply({ flags: 64 });
+
   try {
+    // Validate user permissions
     if (!hasAdminPermissions(interaction.member)) {
-      return interaction.editReply({
-        content:
-          "❌ **Permission Denied**\nYou need administrator permissions to use this command.",
-        flags: 64,
-      });
+      return interaction.editReply(
+        permissionErrorEmbed({
+          requiredPermissions: ["Administrator"],
+          userPermissions: interaction.member.permissions.toArray(),
+          tip: "You need Administrator permissions to remove temporary roles.",
+        }),
+      );
     }
+
+    // Validate bot permissions
     if (!botHasRequiredPermissions(interaction.guild)) {
       const missingPermissions = getMissingBotPermissions(interaction.guild);
       const permissionNames = missingPermissions
         .map(formatPermissionName)
         .join(", ");
-      return interaction.editReply({
-        content: `❌ **Missing Bot Permissions**\nI need the following permissions: **${permissionNames}**\n\nPlease ensure I have the required permissions and try again.`,
-        flags: 64,
-      });
+
+      return interaction.editReply(
+        errorEmbed({
+          title: "Missing Bot Permissions",
+          description: `I need the following permissions to remove temporary roles: **${permissionNames}**`,
+          solution:
+            "Please ask a server administrator to grant me these permissions and try again.",
+          fields: [
+            {
+              name: "🔧 How to Fix",
+              value:
+                "Go to Server Settings → Roles → Find my role → Enable the missing permissions",
+              inline: false,
+            },
+            {
+              name: "📋 Required Permissions",
+              value:
+                "• Manage Roles (to remove roles from members)\n• Send Messages (to notify users about role removal)",
+              inline: false,
+            },
+          ],
+        }),
+      );
     }
+
+    // Get inputs
     const targetUser = interaction.options.getUser("user");
     const targetRole = interaction.options.getRole("role");
     const reason =
       interaction.options.getString("reason") || "No reason provided";
-    const botMember = await interaction.guild.members.fetchMe();
-    if (targetRole.position >= botMember.roles.highest.position) {
-      return interaction.editReply({
-        content: `❌ **Role Too High**\nI cannot manage the **${targetRole.name}** role because it's higher than my highest role.\n\n**How to fix:** Move my highest role above the target role in your server's role settings (Server Settings > Roles).`,
-        flags: 64,
+
+    // Validate user exists in server
+    const member = await interaction.guild.members
+      .fetch(targetUser.id)
+      .catch(() => null);
+    if (!member) {
+      return interaction.editReply(
+        errorEmbed({
+          title: "User Not Found",
+          description: "The specified user is not a member of this server.",
+          solution: "Please check the username and try again.",
+          fields: [
+            {
+              name: "🔍 Troubleshooting",
+              value:
+                "• Make sure the user is still in your server\n• Check that you typed the username correctly\n• Try using the user's ID instead of username",
+              inline: false,
+            },
+          ],
+        }),
+      );
+    }
+
+    // Check if user has the role
+    if (!member.roles.cache.has(targetRole.id)) {
+      return interaction.editReply(
+        errorEmbed({
+          title: "User Doesn't Have Role",
+          description: `The user ${targetUser.username} doesn't have the ${targetRole.name} role.`,
+          solution:
+            "Please check that the user has the role you want to remove.",
+          fields: [
+            {
+              name: "💡 Tip",
+              value:
+                "You can use `/list-temp-roles` to see all active temporary roles and their users.",
+              inline: false,
+            },
+          ],
+        }),
+      );
+    }
+
+    // Validate that it's a temporary role
+    const roleData = {
+      guildId: interaction.guild.id,
+      userId: targetUser.id,
+      roleId: targetRole.id,
+    };
+
+    const isValidTempRole = await validateTemporaryRole(roleData);
+    if (!isValidTempRole) {
+      return interaction.editReply(
+        errorEmbed({
+          title: "Not a Temporary Role",
+          description: `The ${targetRole.name} role is not a temporary role for ${targetUser.username}.`,
+          solution:
+            "You can only remove temporary roles that were assigned using `/assign-temp-role`.",
+          fields: [
+            {
+              name: "🔍 What's a Temporary Role?",
+              value:
+                "• Temporary roles are assigned with `/assign-temp-role`\n• They have an expiration time\n• They're different from regular server roles",
+              inline: false,
+            },
+            {
+              name: "💡 Tip",
+              value:
+                "Use `/list-temp-roles` to see all active temporary roles in your server.",
+              inline: false,
+            },
+          ],
+        }),
+      );
+    }
+
+    // Remove the role
+    const roleRemoved = await removeRoleFromUser(member, targetRole.id);
+    if (!roleRemoved) {
+      return interaction.editReply(
+        errorEmbed({
+          title: "Failed to Remove Role",
+          description:
+            "I couldn't remove the role from the user. This might be due to permission issues.",
+          solution:
+            "Please check that I have permission to manage this role and try again.",
+          fields: [
+            {
+              name: "🔧 Quick Fix",
+              value:
+                "• Make sure my role is above the target role in the role hierarchy\n• Check that I have 'Manage Roles' permission\n• Verify the role still exists",
+              inline: false,
+            },
+          ],
+        }),
+      );
+    }
+
+    // Remove temporary role data
+    const dataRemoved = await removeTemporaryRoleData(roleData);
+    if (!dataRemoved) {
+      logger.warn("Failed to remove temporary role data", {
+        guildId: interaction.guild.id,
+        userId: targetUser.id,
+        roleId: targetRole.id,
       });
     }
-    if (targetRole.position >= interaction.member.roles.highest.position) {
-      return interaction.editReply({
-        content: `❌ **Role Too High**\nYou cannot manage the **${targetRole.name}** role because it's higher than your highest role.`,
-        flags: 64,
-      });
-    }
-    const targetMember = await interaction.guild.members.fetch(targetUser.id);
-    if (!targetMember) {
-      return interaction.editReply({
-        content:
-          "❌ **User Not Found**\nThe specified user is not a member of this server.",
-        flags: 64,
-      });
-    }
-    const hasRole = targetMember.roles.cache.has(targetRole.id);
-    if (!hasRole) {
-      return interaction.editReply({
-        content: `❌ **User Doesn't Have Role**\n${targetUser} doesn't have the **${targetRole.name}** role.`,
-        flags: 64,
-      });
-    }
-    const tempRoles = await getUserTemporaryRoles(
-      interaction.guild.id,
-      targetUser.id,
-    );
-    const tempRole = tempRoles.find(tr => tr.roleId === targetRole.id);
-    if (!tempRole) {
-      return interaction.editReply({
-        content: `❌ **Not a Temporary Role**\nThe **${targetRole.name}** role is not a temporary role for ${targetUser}.`,
-        flags: 64,
-      });
-    }
-    await targetMember.roles.remove(
-      targetRole,
-      `Temporary role removed by ${interaction.user.tag}: ${reason}`,
-    );
-    await removeTemporaryRole(
-      interaction.guild.id,
-      targetUser.id,
-      targetRole.id,
-    );
+
+    // Send success message
     const embed = new EmbedBuilder()
-      .setTitle("✅ Temporary Role Removed!")
+      .setTitle("✅ Temporary Role Removed")
       .setDescription(
-        `Successfully removed **${targetRole.name}** from ${targetUser}`,
+        `Successfully removed the **${targetRole.name}** role from **${targetUser.username}**.`,
       )
       .setColor(THEME_COLOR)
-      .setTimestamp()
-      .setFooter({
-        text: "Role Reactor • Temporary Roles",
-        iconURL: client.user.displayAvatarURL(),
-      });
-    embed.addFields(
-      {
-        name: "👤 User",
-        value: `${targetUser} (${targetUser.tag})`,
-        inline: true,
-      },
-      {
-        name: "🎭 Role",
-        value: `${targetRole} (${targetRole.name})`,
-        inline: true,
-      },
-      {
-        name: "📝 Reason",
-        value: reason,
-        inline: false,
-      },
-      {
-        name: "👮 Removed By",
-        value: `${interaction.user} (${interaction.user.tag})`,
-        inline: false,
-      },
-    );
-    await interaction.editReply({
-      embeds: [embed],
-      flags: 64,
-    });
-    try {
-      const userEmbed = new EmbedBuilder()
-        .setTitle("🎭 Temporary Role Removed!")
-        .setDescription(
-          `Your **${targetRole.name}** role has been removed from **${interaction.guild.name}**`,
-        )
-        .setColor(THEME_COLOR)
-        .setTimestamp()
-        .setFooter({
-          text: "Role Reactor • Temporary Roles",
-          iconURL: client.user.displayAvatarURL(),
-        });
-      userEmbed.addFields(
+      .addFields(
+        {
+          name: "👤 User",
+          value: `${targetUser.username} (${targetUser.id})`,
+          inline: true,
+        },
+        {
+          name: "🎭 Role",
+          value: `${targetRole.name} (${targetRole.id})`,
+          inline: true,
+        },
         {
           name: "📝 Reason",
           value: reason,
-          inline: false,
+          inline: true,
         },
         {
-          name: "👮 Removed By",
-          value: `${interaction.user} (${interaction.user.tag})`,
-          inline: false,
+          name: "⏰ Removed At",
+          value: `<t:${Math.floor(Date.now() / 1000)}:F>`,
+          inline: true,
         },
-      );
-      await targetUser.send({ embeds: [userEmbed] });
-    } catch (error) {
-      const logger = getLogger();
-      logger.warn(`Could not send DM to ${targetUser.tag}`, {
-        error: error.message,
-      });
-    }
+      )
+      .setFooter({
+        text: "Role Reactor • Temporary Roles",
+        iconURL: client.user.displayAvatarURL(),
+      })
+      .setTimestamp();
+
+    await interaction.editReply({ embeds: [embed] });
+
+    // Log successful command execution
+    const duration = Date.now() - startTime;
+    logger.logCommand("remove-temp-role", interaction.user.id, duration, true);
   } catch (error) {
-    const logger = getLogger();
+    const duration = Date.now() - startTime;
     logger.error("Error removing temporary role", error);
-    await interaction.editReply({
-      content:
-        "❌ **Error**\nAn error occurred while removing the temporary role. Please try again.",
-      flags: 64,
-    });
+    logger.logCommand("remove-temp-role", interaction.user.id, duration, false);
+
+    await interaction.editReply(
+      errorEmbed({
+        title: "Removal Failed",
+        description:
+          "Something went wrong while removing the temporary role. This might be due to a temporary issue.",
+        solution:
+          "Please try again in a moment. If the problem persists, check that I have the necessary permissions.",
+        fields: [
+          {
+            name: "🔧 Quick Fix",
+            value:
+              "• Make sure I have 'Manage Roles' permission\n• Check that the role and user still exist\n• Verify your internet connection is stable",
+            inline: false,
+          },
+        ],
+      }),
+    );
   }
 }

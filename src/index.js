@@ -218,18 +218,17 @@ async function main() {
     const commandsPath = path.join(__dirname, "commands");
     const eventsPath = path.join(__dirname, "events");
 
-    await Promise.all([
-      loadCommands(client, commandsPath),
-      loadEvents(client, eventsPath),
-    ]);
+    // Initialize core components
+    await loadCommands(client, commandsPath);
+    await loadEvents(client, eventsPath);
+
+    // Start the bot
+    await client.login(config.discord.token);
 
     // Setup shutdown handlers
     const shutdown = () => gracefulShutdown(client, healthServer);
     process.on("SIGTERM", shutdown);
     process.on("SIGINT", shutdown);
-
-    // Login to Discord
-    await client.login(config.discord.token);
 
     client.once("ready", () => {
       logger.success(`✅ ${client.user.tag} v${getVersion()} is ready!`);

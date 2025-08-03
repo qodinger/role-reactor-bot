@@ -28,7 +28,6 @@ import { getLogger } from "../../utils/logger.js";
 import {
   roleCreatedEmbed,
   permissionErrorEmbed,
-  validationErrorEmbed,
   errorEmbed,
 } from "../../utils/discord/responseMessages.js";
 
@@ -51,7 +50,11 @@ export async function execute(interaction, client) {
     // Validate user permissions
     if (!hasAdminPermissions(interaction.member)) {
       return interaction.editReply(
-        permissionErrorEmbed({ requiredPermissions: ["Administrator"] }),
+        permissionErrorEmbed({
+          requiredPermissions: ["Administrator"],
+          userPermissions: interaction.member.permissions.toArray(),
+          tip: "You need Administrator permissions to create role-reaction messages.",
+        }),
       );
     }
 
@@ -65,9 +68,23 @@ export async function execute(interaction, client) {
       return interaction.editReply(
         errorEmbed({
           title: "Missing Bot Permissions",
-          description: `I need the following permissions: **${permissionNames}**`,
+          description: `I need the following permissions to create role-reaction messages: **${permissionNames}**`,
           solution:
-            "Please ensure I have the required permissions and try again.",
+            "Please ask a server administrator to grant me these permissions and try again.",
+          fields: [
+            {
+              name: "🔧 How to Fix",
+              value:
+                "Go to Server Settings → Roles → Find my role → Enable the missing permissions",
+              inline: false,
+            },
+            {
+              name: "📋 Required Permissions",
+              value:
+                "• Manage Messages (to create the role message)\n• Add Reactions (to add role reactions)\n• Manage Roles (to assign roles to members)",
+              inline: false,
+            },
+          ],
         }),
       );
     }
@@ -90,7 +107,11 @@ export async function execute(interaction, client) {
 
     if (!validation.isValid) {
       return interaction.editReply(
-        createValidationErrorEmbed({ errors: validation.errors }),
+        createValidationErrorEmbed({
+          errors: validation.errors,
+          helpText:
+            "💡 **Tip**: Use the format `emoji:role,emoji:role` for roles. Example: `🎮:Gamer,🎨:Artist,💻:Developer`",
+        }),
       );
     }
 
@@ -100,27 +121,38 @@ export async function execute(interaction, client) {
       if (!colorHex.startsWith("#")) {
         colorHex = `#${colorHex}`;
       }
-      if (!/^#[0-9a-f]{6}$/i.test(colorHex)) {
-        return interaction.editReply(
-          validationErrorEmbed({
-            errors: ["Invalid hex color code provided."],
-            helpText:
-              "Please provide a valid hex color code (e.g., #0099ff or 0099ff)",
-          }),
-        );
-      }
       color = colorHex;
     }
 
-    // Process and validate roles using the new utility function
+    // Process roles
     const roleProcessingResult = await processRoles(interaction, rolesString);
 
     if (!roleProcessingResult.success) {
-      const helpText = `**Accepted formats:**\n- emoji role_name\n- emoji:role_name\n- emoji "role name"\n- emoji <@&role_id>\n(And combinations with limits like \`:10\`)`;
       return interaction.editReply(
-        createValidationErrorEmbed({
-          errors: roleProcessingResult.errors,
-          helpText,
+        errorEmbed({
+          title: "Role Processing Error",
+          description: roleProcessingResult.errors.join("\n"),
+          solution: "Please check your role format and try again.",
+          fields: [
+            {
+              name: "📝 Correct Format",
+              value:
+                "`emoji:role` or `emoji:role:limit`\nExample: `🎮:Gamer` or `🎮:Gamer:10`",
+              inline: false,
+            },
+            {
+              name: "🔍 Common Issues",
+              value:
+                "• Make sure roles exist in your server\n• Use valid emojis (🎮, 🎨, etc.)\n• Separate roles with commas\n• Don't use spaces around the colon\n• Use `@Role` to mention roles",
+              inline: false,
+            },
+            {
+              name: "💡 Examples",
+              value:
+                "• `💻:Developer` - Basic role\n• `💻:@Developer` - With mention\n• `💻:Developer:10` - With user limit\n• `🎮:Gamer,🎨:Artist` - Multiple roles",
+              inline: false,
+            },
+          ],
         }),
       );
     }
@@ -130,10 +162,25 @@ export async function execute(interaction, client) {
     if (validRoles.length === 0) {
       return interaction.editReply(
         errorEmbed({
-          title: "No Valid Roles",
-          description: "No valid roles were found to set up.",
+          title: "No Valid Roles Found",
+          description:
+            "I couldn't find any valid roles to set up. This usually happens when roles don't exist or I don't have permission to manage them.",
           solution:
-            "Check if the roles exist and if the bot has permission to manage them.",
+            "Please check that the roles exist and that I have permission to manage them.",
+          fields: [
+            {
+              name: "🔍 Troubleshooting",
+              value:
+                "• Verify roles exist in Server Settings → Roles\n• Make sure my role is above the roles I need to manage\n• Check that I have 'Manage Roles' permission",
+              inline: false,
+            },
+            {
+              name: "📝 Example",
+              value:
+                "If you have roles named 'Gamer', 'Artist', 'Developer', use:\n`🎮:Gamer,🎨:Artist,💻:Developer`",
+              inline: false,
+            },
+          ],
         }),
       );
     }
@@ -145,7 +192,7 @@ export async function execute(interaction, client) {
       .setColor(color)
       .setTimestamp()
       .setFooter({
-        text: "Role Reactor • Self-Assignable Roles",
+        text: "Role Reactor • Click reactions to get roles!",
         iconURL: client.user.displayAvatarURL(),
       });
 
@@ -162,37 +209,64 @@ export async function execute(interaction, client) {
       inline: false,
     });
 
+    // Add helpful tip
+    embed.addFields({
+      name: "💡 How to Use",
+      value:
+        "Members can click the reactions below to get or remove roles instantly!",
+      inline: false,
+    });
+
     // Send the message without buttons
+    logger.debug("Creating role-reaction message...");
     const message = await interaction.channel.send({
       embeds: [embed],
     });
+    logger.debug(`Message created with ID: ${message.id}`);
 
     // Add reactions for each role in parallel (limit 3 at a time)
     const limit = pLimit(3);
+    logger.debug(`Adding ${validRoles.length} reactions to message...`);
 
-    await Promise.all(
-      validRoles.map(role =>
-        limit(async () => {
-          try {
-            await message.react(role.emoji);
-          } catch (error) {
-            logger.error("Failed to add reaction", {
-              emoji: role.emoji,
-              messageId: message.id,
-              error: error.message,
-            });
-          }
-        }),
-      ),
-    );
+    // Add timeout to prevent hanging
+    const reactionTimeout = setTimeout(() => {
+      logger.warn("Reaction adding is taking longer than expected");
+    }, 10000); // 10 second timeout
+
+    try {
+      await Promise.all(
+        validRoles.map(role =>
+          limit(async () => {
+            try {
+              logger.debug(
+                `Adding reaction: ${role.emoji} for role: ${role.name}`,
+              );
+              await message.react(role.emoji);
+              logger.debug(`Successfully added reaction: ${role.emoji}`);
+            } catch (error) {
+              logger.error("Failed to add reaction", {
+                emoji: role.emoji,
+                messageId: message.id,
+                error: error.message,
+              });
+              throw error; // Re-throw to be caught by the main try-catch
+            }
+          }),
+        ),
+      );
+    } finally {
+      clearTimeout(reactionTimeout);
+    }
 
     // Save role mapping to storage
+    logger.debug("Saving role mapping to storage...");
     await setRoleMapping(
       message.id,
       interaction.guild.id,
       interaction.channel.id,
       roleMapping,
     );
+    logger.debug("Role mapping saved successfully");
 
     // Prepare response
     await interaction.editReply(
@@ -211,11 +285,105 @@ export async function execute(interaction, client) {
     logger.error("Error setting up roles", error);
     logger.logCommand("setup-roles", interaction.user.id, duration, false);
 
+    // Determine the specific error type
+    let errorTitle = "Setup Failed";
+    let errorDescription =
+      "Something went wrong while creating your role-reaction message.";
+    let solution =
+      "Please try again in a moment. If the problem persists, check that I have the necessary permissions.";
+    let fields = [
+      {
+        name: "🔧 Quick Fix",
+        value:
+          "• Make sure I have 'Manage Messages' and 'Add Reactions' permissions\n• Check that the channel allows me to send messages\n• Verify your internet connection is stable",
+        inline: false,
+      },
+    ];
+
+    // Check for specific error types
+    if (error.code === 50013) {
+      errorTitle = "Missing Permissions";
+      errorDescription =
+        "I don't have the required permissions to create role-reaction messages.";
+      solution =
+        "Please ask a server administrator to grant me the necessary permissions.";
+      fields = [
+        {
+          name: "📋 Required Permissions",
+          value:
+            "• Manage Messages (to create the role message)\n• Add Reactions (to add role reactions)\n• Manage Roles (to assign roles to members)",
+          inline: false,
+        },
+        {
+          name: "🔧 How to Fix",
+          value:
+            "Go to Server Settings → Roles → Find my role → Enable the missing permissions",
+          inline: false,
+        },
+      ];
+    } else if (error.code === 50001) {
+      errorTitle = "Channel Access Denied";
+      errorDescription = "I can't send messages in this channel.";
+      solution =
+        "Please check the channel permissions or try a different channel.";
+      fields = [
+        {
+          name: "🔧 How to Fix",
+          value:
+            "• Check channel permissions\n• Make sure I can send messages here\n• Try using a different channel",
+          inline: false,
+        },
+      ];
+    } else if (error.code === 50005) {
+      errorTitle = "Cannot Send Messages";
+      errorDescription =
+        "I don't have permission to send messages in this channel.";
+      solution =
+        "Please check the channel permissions or try a different channel.";
+      fields = [
+        {
+          name: "🔧 How to Fix",
+          value:
+            "• Check channel permissions\n• Make sure I can send messages here\n• Try using a different channel",
+          inline: false,
+        },
+      ];
+    } else if (error.message && error.message.includes("reaction")) {
+      errorTitle = "Reaction Error";
+      errorDescription =
+        "I couldn't add reactions to the message. This might be due to invalid emojis or permission issues.";
+      solution =
+        "Please check that the emojis are valid and that I have permission to add reactions.";
+      fields = [
+        {
+          name: "🔧 How to Fix",
+          value:
+            "• Use valid Discord emojis (🎮, 🎨, etc.)\n• Make sure I have 'Add Reactions' permission\n• Check that the emojis aren't custom server emojis I can't access",
+          inline: false,
+        },
+      ];
+    } else if (error.message && error.message.includes("role")) {
+      errorTitle = "Role Management Error";
+      errorDescription =
+        "I couldn't process the roles. This might be because the roles don't exist or I don't have permission to manage them.";
+      solution =
+        "Please check that the roles exist and that I have permission to manage them.";
+      fields = [
+        {
+          name: "🔧 How to Fix",
+          value:
+            "• Verify roles exist in Server Settings → Roles\n• Make sure my role is above the roles I need to manage\n• Check that I have 'Manage Roles' permission",
+          inline: false,
+        },
+      ];
+    }
+
     await interaction.editReply(
       errorEmbed({
-        title: "Error",
-        description:
-          "An error occurred while setting up the role-reaction message. Please try again.",
+        title: errorTitle,
+        description: errorDescription,
+        solution,
+        fields,
       }),
     );
   }

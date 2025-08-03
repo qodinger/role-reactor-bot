@@ -55,37 +55,88 @@ export async function execute(interaction, client) {
     let overallStatus = "healthy";
     let statusColor = "#00FF00";
     let statusEmoji = "✅";
+    let statusDescription = "All systems are operating normally! 🚀";
 
     if (hasErrors) {
       overallStatus = "error";
       statusColor = "#FF0000";
       statusEmoji = "❌";
+      statusDescription =
+        "Critical issues detected. Immediate attention required! 🔴";
     } else if (hasWarnings) {
       overallStatus = "warning";
       statusColor = "#FFA500";
       statusEmoji = "⚠️";
+      statusDescription = "Minor issues detected. Monitor closely. 🟡";
     }
 
     embed.setColor(statusColor);
+    embed.setDescription(statusDescription);
+
     embed.addFields({
       name: "📊 Overall Status",
       value: `${statusEmoji} **${overallStatus.toUpperCase()}**`,
       inline: false,
     });
 
-    for (const [checkName, checkResult] of Object.entries(checks)) {
-      embed.addFields({
-        name: `${checkName.replace(/_/g, " ").toUpperCase()}`,
-        value: checkResult,
-        inline: true,
-      });
-    }
+    // System Health Checks
+    embed.addFields({
+      name: "🔧 System Health",
+      value: [
+        `**Bot Status**: ${checks.bot_ready}`,
+        `**WebSocket**: ${checks.websocket}`,
+        `**Uptime**: ${checks.uptime}`,
+        `**Memory Usage**: ${checks.memory}`,
+        `**Servers**: ${checks.guilds}`,
+      ].join("\n"),
+      inline: false,
+    });
+
+    // Performance Metrics
+    const ping = client.ws.ping;
+    const memoryUsage = process.memoryUsage();
+    const cpuUsage = process.cpuUsage();
 
     embed.addFields({
-      name: "🤖 Bot Information",
-      value: `**Ping:** ${client.ws.ping}ms\n**Environment:** ${process.env.NODE_ENV || "development"}\n**Node.js:** ${process.version}`,
-      inline: true,
+      name: "📈 Performance Metrics",
+      value: [
+        `**API Latency**: ${ping}ms ${ping < 100 ? "🚀" : ping < 200 ? "✅" : "⚠️"}`,
+        `**Memory (Heap)**: ${(memoryUsage.heapUsed / 1024 / 1024).toFixed(2)} MB`,
+        `**Memory (Total)**: ${(memoryUsage.heapTotal / 1024 / 1024).toFixed(2)} MB`,
+        `**CPU Usage**: ${(cpuUsage.user / 1000000).toFixed(2)}s user, ${(cpuUsage.system / 1000000).toFixed(2)}s system`,
+        `**Environment**: ${process.env.NODE_ENV || "development"}`,
+      ].join("\n"),
+      inline: false,
     });
+
+    // Recommendations
+    if (hasErrors) {
+      embed.addFields({
+        name: "🚨 Critical Issues",
+        value: [
+          "• **Bot not ready**: Check if the bot is properly connected to Discord",
+          "• **High memory usage**: Consider restarting the bot",
+          "• **High ping**: Check network connectivity",
+        ].join("\n"),
+        inline: false,
+      });
+    } else if (hasWarnings) {
+      embed.addFields({
+        name: "⚠️ Recommendations",
+        value: [
+          "• **High ping detected**: Monitor network performance",
+          "• **Memory usage**: Consider optimization if it continues to increase",
+          "• **Uptime**: Bot has been running for a while, consider scheduled restarts",
+        ].join("\n"),
+        inline: false,
+      });
+    } else {
+      embed.addFields({
+        name: "✅ All Systems Normal",
+        value: "Everything is running smoothly! No action needed. 🎉",
+        inline: false,
+      });
+    }
 
     await interaction.editReply({
       embeds: [embed],

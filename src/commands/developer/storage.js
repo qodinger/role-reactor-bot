@@ -18,7 +18,7 @@ export async function execute(interaction, _client) {
   const developers = config.discord.developers || [];
   if (!developers.includes(interaction.user.id)) {
     await interaction.reply({
-      content: `${EMOJIS.STATUS.ERROR} You don't have permission to use this command.`,
+      content: `${EMOJIS.STATUS.ERROR} **Permission Denied**\nYou need developer permissions to use this command.`,
       flags: 64,
     });
     return;
@@ -33,6 +33,20 @@ export async function execute(interaction, _client) {
     // Get storage statistics
     const roleMappings = await storageManager.getRoleMappings();
     const mappingCount = Object.keys(roleMappings).length;
+
+    // Get temporary roles statistics
+    const tempRoles = await storageManager.getTemporaryRoles();
+    const tempRoleCount = Object.values(tempRoles).reduce(
+      (total, guildRoles) => {
+        return (
+          total +
+          Object.values(guildRoles).reduce((guildTotal, userRoles) => {
+            return guildTotal + Object.keys(userRoles).length;
+          }, 0)
+        );
+      },
+      0,
+    );
 
     // Database health check
     const dbHealth = await databaseManager.healthCheck();
@@ -65,15 +79,14 @@ export async function execute(interaction, _client) {
           inline: true,
         },
         {
+          name: `${EMOJIS.FEATURES.TEMPORARY} Temporary Roles`,
+          value: `${tempRoleCount} active temporary roles`,
+          inline: true,
+        },
+        {
           name: `${EMOJIS.FEATURES.BACKUP} Data Retention`,
           value:
             "• Role mappings: Until manually removed\n• Temporary roles: Auto-expire\n• Logs: 30 days\n• Cache: 5 minutes",
-          inline: false,
-        },
-        {
-          name: `${EMOJIS.ACTIONS.LINK} Privacy Compliance`,
-          value:
-            "✅ GDPR/CCPA compliant\n✅ Data portability available\n✅ Automatic cleanup enabled\n✅ No personal data stored\n💡 Use /delete-roles and /remove-temp-role for data deletion",
           inline: false,
         },
       )
@@ -83,6 +96,25 @@ export async function execute(interaction, _client) {
       })
       .setTimestamp();
 
+    // Add storage recommendations
+    if (storageType === "FileProvider") {
+      embed.addFields({
+        name: "⚠️ Storage Recommendation",
+        value:
+          "You're using local file storage. For production use, consider setting up a MongoDB database for better reliability and performance.",
+        inline: false,
+      });
+    }
+
+    if (!dbHealth) {
+      embed.addFields({
+        name: "🔧 Database Issue",
+        value:
+          "Database connection failed. The bot is using local file storage as a fallback. Check your MongoDB connection settings.",
+        inline: false,
+      });
+    }
+
     // Add export functionality
     const exportButton = {
       type: 1,
@@ -90,9 +122,20 @@ export async function execute(interaction, _client) {
         {
           type: 2,
           style: 2,
-          label: "Export All Data",
+          label: "Export Data",
           custom_id: "export_data",
-          emoji: { name: "📤" },
+        },
+        {
+          type: 2,
+          style: 3,
+          label: "Cleanup Expired Roles",
+          custom_id: "cleanup_temp_roles",
+        },
+        {
+          type: 2,
+          style: 1,
+          label: "Test Auto Cleanup",
+          custom_id: "test_auto_cleanup",
         },
       ],
     };
@@ -175,6 +218,125 @@ export async function handleExportData(interaction) {
     logger.error("Error exporting user data", error);
     await interaction.editReply({
       content: `${EMOJIS.STATUS.ERROR} Failed to export data. Please try again later.`,
+    });
+  }
+}
+
+// Handle cleanup expired roles button
+export async function handleCleanupTempRoles(interaction) {
+  const logger = getLogger();
+
+  try {
+    await interaction.deferReply({ ephemeral: true });
+
+    const databaseManager = await getDatabaseManager();
+    const expiredRoles = await databaseManager.temporaryRoles.findExpired();
+
+    if (expiredRoles.length === 0) {
+      await interaction.editReply({
+        content: `${EMOJIS.STATUS.SUCCESS} No expired temporary roles found.`,
+      });
+      return;
+    }
+
+    let removedCount = 0;
+    let errorCount = 0;
+
+    for (const expiredRole of expiredRoles) {
+      const { guildId, userId, roleId } = expiredRole;
+      try {
+        const guild = interaction.client.guilds.cache.get(guildId);
+        if (!guild) {
+          await databaseManager.temporaryRoles.delete(guildId, userId, roleId);
+          removedCount++;
+          continue;
+        }
+
+        const member = await guild.members.fetch(userId).catch(() => null);
+        if (!member) {
+          await databaseManager.temporaryRoles.delete(guildId, userId, roleId);
+          removedCount++;
+          continue;
+        }
+
+        const role = guild.roles.cache.get(roleId);
+        if (!role) {
+          await databaseManager.temporaryRoles.delete(guildId, userId, roleId);
+          removedCount++;
+          continue;
+        }
+
+        if (member.roles.cache.has(role.id)) {
+          await member.roles.remove(
+            role,
+            "Manual cleanup of expired temporary role",
+          );
+          logger.success(
+            `Removed expired role "${role.name}" from ${member.user.tag}`,
+          );
+        }
+
+        await databaseManager.temporaryRoles.delete(guildId, userId, roleId);
+        removedCount++;
+      } catch (error) {
+        logger.error(
+          `Error cleaning up expired role for user ${userId}`,
+          error,
+        );
+        errorCount++;
+      }
+    }
+
+    await interaction.editReply({
+      content: `${EMOJIS.STATUS.SUCCESS} Cleanup complete! Removed ${removedCount} expired roles${errorCount > 0 ? `, ${errorCount} errors` : ""}.`,
+    });
+
+    logger.info(`Manual cleanup completed by ${interaction.user.tag}`, {
+      userId: interaction.user.id,
+      guildId: interaction.guild?.id,
+      removedCount,
+      errorCount,
+    });
+  } catch (error) {
+    logger.error("Error in cleanup command", error);
+    await interaction.editReply({
+      content: `${EMOJIS.STATUS.ERROR} Failed to cleanup expired roles.`,
+    });
+  }
+}
+
+// Handle test auto cleanup button
+export async function handleTestAutoCleanup(interaction) {
+  const logger = getLogger();
+
+  try {
+    await interaction.deferReply({ ephemeral: true });
+
+    const { getScheduler } = await import(
+      "../../features/temporaryRoles/RoleExpirationScheduler.js"
+    );
+    const scheduler = getScheduler(interaction.client);
+
+    logger.info(
+      `Manual auto cleanup test triggered by ${interaction.user.tag}`,
+    );
+
+    await interaction.editReply({
+      content: `${EMOJIS.STATUS.INFO} Testing automatic cleanup system...`,
+    });
+
+    // Trigger the automatic cleanup
+    await scheduler.cleanupExpiredRoles();
+
+    await interaction.editReply({
+      content: `${EMOJIS.STATUS.SUCCESS} Automatic cleanup test completed! Check the logs for details.`,
+    });
+
+    logger.info(`Auto cleanup test completed by ${interaction.user.tag}`);
+  } catch (error) {
+    logger.error("Error in test auto cleanup", error);
+    await interaction.editReply({
+      content: `${EMOJIS.STATUS.ERROR} Failed to test automatic cleanup.`,
     });
   }
 }

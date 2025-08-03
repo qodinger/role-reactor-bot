@@ -9,12 +9,13 @@ import {
   getMissingBotPermissions,
   formatPermissionName,
 } from "../../utils/discord/permissions.js";
-import {
-  formatRemainingTime,
-  getTemporaryRoles,
-} from "../../utils/discord/temporaryRoles.js";
+import { getTemporaryRoles } from "../../utils/discord/temporaryRoles.js";
 import { THEME_COLOR } from "../../config/theme.js";
 import { getLogger } from "../../utils/logger.js";
+import {
+  permissionErrorEmbed,
+  errorEmbed,
+} from "../../utils/discord/responseMessages.js";
 
 export const data = new SlashCommandBuilder()
   .setName("list-temp-roles")
@@ -94,173 +95,266 @@ export async function execute(interaction, client) {
 
   await interaction.deferReply({ flags: 64 });
   try {
-    // Lazy load storage manager to avoid circular dependencies
-    const { getStorageManager } = await import(
-      "../../utils/storage/storageManager.js"
-    );
-    const storageManager = await getStorageManager();
-    storageManager._clearCache();
+    // Check permissions
     if (!hasAdminPermissions(interaction.member)) {
-      return interaction.editReply({
-        content:
-          "❌ **Permission Denied**\nYou need administrator permissions to use this command.",
-        flags: 64,
-      });
+      return interaction.editReply(
+        permissionErrorEmbed({
+          requiredPermissions: ["Administrator"],
+          userPermissions: interaction.member.permissions.toArray(),
+          tip: "You need Administrator permissions to view temporary roles.",
+        }),
+      );
     }
+
+    // Check bot permissions
     if (!botHasRequiredPermissions(interaction.guild)) {
       const missingPermissions = getMissingBotPermissions(interaction.guild);
       const permissionNames = missingPermissions
         .map(formatPermissionName)
         .join(", ");
-      return interaction.editReply({
-        content: `❌ **Missing Bot Permissions**\nI need the following permissions: **${permissionNames}**\n\nPlease ensure I have the required permissions and try again.`,
-        flags: 64,
-      });
-    }
-    const targetUser = interaction.options.getUser("user");
-    if (targetUser) {
-      const userTempRoles = await getTemporaryRoles(interaction.guild.id);
-      const userRoles = userTempRoles[targetUser.id] || {};
-      const tempRoles = Object.entries(userRoles).map(([roleId, roleData]) => ({
-        roleId,
-        ...roleData,
-      }));
 
-      if (tempRoles.length === 0) {
-        return interaction.editReply({
-          content: `📋 **No Temporary Roles**\n${targetUser} has no temporary roles assigned.`,
-          flags: 64,
-        });
-      }
-      const embed = new EmbedBuilder()
-        .setTitle(`⏰ Temporary Roles for ${targetUser.username}`)
-        .setDescription(`Showing ${tempRoles.length} temporary role(s)`)
-        .setColor(THEME_COLOR)
-        .setTimestamp()
-        .setFooter({
-          text: "Role Reactor • Temporary Roles",
-          iconURL: client.user.displayAvatarURL(),
-        })
-        .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }));
-      for (const tempRole of tempRoles) {
-        const role = interaction.guild.roles.cache.get(tempRole.roleId);
-        const roleName = role ? role.name : `Unknown Role (${tempRole.roleId})`;
-        const expiresAt = new Date(tempRole.expiresAt);
-        const remainingTime = formatRemainingTime(tempRole.expiresAt);
-
-        // Handle createdAt date safely
-        let addedAtText = "Unknown";
-        if (tempRole.createdAt) {
-          const addedAt = new Date(tempRole.createdAt);
-          if (!isNaN(addedAt.getTime())) {
-            addedAtText = `<t:${Math.floor(addedAt.getTime() / 1000)}:R>`;
-          }
-        }
-
-        embed.addFields({
-          name: `🎭 ${roleName}`,
-          value: [
-            `**Role:** ${role || `Unknown (${tempRole.roleId})`}`,
-            `**Added:** ${addedAtText}`,
-            `**Expires:** <t:${Math.floor(expiresAt.getTime() / 1000)}:F>`,
-            `**Time Left:** ${remainingTime}`,
-          ].join("\n"),
-          inline: true,
-        });
-      }
-      await interaction.editReply({
-        embeds: [embed],
-        flags: 64,
-      });
-    } else {
-      const allTempRoles = await getTemporaryRoles(interaction.guild.id);
-      const guildTempRoles = Object.entries(allTempRoles).flatMap(
-        ([userId, roles]) =>
-          Object.entries(roles).map(([roleId, roleData]) => ({
-            userId,
-            roleId,
-            ...roleData,
-          })),
+      return interaction.editReply(
+        errorEmbed({
+          title: "Missing Bot Permissions",
+          description: `I need the following permissions to view temporary roles: **${permissionNames}**`,
+          solution:
+            "Please ask a server administrator to grant me these permissions and try again.",
+          fields: [
+            {
+              name: "🔧 How to Fix",
+              value:
+                "Go to Server Settings → Roles → Find my role → Enable the missing permissions",
+              inline: false,
+            },
+            {
+              name: "📋 Required Permissions",
+              value:
+                "• View Channels (to access server information)\n• Read Message History (to view role information)",
+              inline: false,
+            },
+          ],
+        }),
       );
-      if (guildTempRoles.length === 0) {
-        return interaction.editReply({
-          content:
-            "📋 **No Temporary Roles**\nThere are no temporary roles assigned in this server.",
-          flags: 64,
+    }
+
+    const targetUser = interaction.options.getUser("user");
+
+    let tempRoles;
+    if (targetUser) {
+      // Get temporary roles for specific user
+      tempRoles = await getTemporaryRoles(interaction.guild.id, targetUser.id);
+
+      if (!tempRoles || tempRoles.length === 0) {
+        return interaction.editReply(
+          errorEmbed({
+            title: "No Temporary Roles Found",
+            description: `${targetUser.username} doesn't have any active temporary roles.`,
+            solution:
+              "Temporary roles are assigned using `/assign-temp-role` and automatically expire after their set duration.",
+            fields: [
+              {
+                name: "💡 How to Assign",
+                value:
+                  "Use `/assign-temp-role` to give users temporary roles with automatic expiration.",
+                inline: false,
+              },
+              {
+                name: "📝 Example",
+                value:
+                  "`/assign-temp-role users:@user role:Event Role duration:2h reason:Event access`",
+                inline: false,
+              },
+            ],
+          }),
+        );
+      }
+    } else {
+      // Get all temporary roles
+      tempRoles = await getTemporaryRoles(interaction.guild.id);
+
+      if (!tempRoles || tempRoles.length === 0) {
+        return interaction.editReply(
+          errorEmbed({
+            title: "No Temporary Roles Found",
+            description: "There are no active temporary roles in this server.",
+            solution:
+              "Temporary roles are assigned using `/assign-temp-role` and automatically expire after their set duration.",
+            fields: [
+              {
+                name: "🎯 Getting Started",
+                value:
+                  "Create temporary roles to give users time-limited access to channels or permissions!",
+                inline: false,
+              },
+              {
+                name: "📝 Quick Setup",
+                value:
+                  "`/assign-temp-role users:@user role:Event Role duration:2h reason:Event access`",
+                inline: false,
+              },
+              {
+                name: "⏰ Duration Examples",
+                value:
+                  "• `30m` - 30 minutes\n• `2h` - 2 hours\n• `1d` - 1 day\n• `1w` - 1 week",
+                inline: false,
+              },
+            ],
+          }),
+        );
+      }
+    }
+
+    // Ensure tempRoles is an array
+    if (!Array.isArray(tempRoles)) {
+      tempRoles = [];
+    }
+
+    // Process temporary roles
+    const processedRoles = [];
+    const now = new Date();
+
+    for (const tempRole of tempRoles) {
+      const expiresAt = new Date(tempRole.expiresAt);
+
+      // Skip expired roles
+      if (expiresAt <= now) {
+        continue;
+      }
+
+      const userInfo = await getUserInfo(interaction.guild, tempRole.userId);
+      const roleInfo = await getRoleInfo(interaction.guild, tempRole.roleId);
+
+      if (userInfo && roleInfo) {
+        const timeRemaining = calculateTimeRemaining(tempRole.expiresAt);
+        processedRoles.push({
+          ...tempRole,
+          userInfo,
+          roleInfo,
+          timeRemaining,
         });
       }
-      const userRoles = {};
-      for (const tempRole of guildTempRoles) {
-        if (!userRoles[tempRole.userId]) {
-          userRoles[tempRole.userId] = [];
+    }
+
+    if (processedRoles.length === 0) {
+      return interaction.editReply(
+        errorEmbed({
+          title: "No Active Temporary Roles",
+          description: targetUser
+            ? `${targetUser.username} has no active temporary roles.`
+            : "There are no active temporary roles in this server.",
+          solution: "All temporary roles may have expired or been removed.",
+          fields: [
+            {
+              name: "💡 Tip",
+              value:
+                "Temporary roles automatically expire after their set duration. Use `/assign-temp-role` to create new ones.",
+              inline: false,
+            },
+          ],
+        }),
+      );
+    }
+
+    // Create embed
+    const embed = new EmbedBuilder()
+      .setTitle("🎭 Temporary Roles")
+      .setDescription(
+        targetUser
+          ? `Active temporary roles for **${targetUser.username}**`
+          : `Found **${processedRoles.length}** active temporary role${processedRoles.length !== 1 ? "s" : ""} in this server.`,
+      )
+      .setColor(THEME_COLOR)
+      .setTimestamp()
+      .setFooter({
+        text: "Role Reactor • Temporary Roles",
+        iconURL: client.user.displayAvatarURL(),
+      });
+
+    // Group by user if showing all roles
+    if (!targetUser) {
+      const userGroups = {};
+      processedRoles.forEach(role => {
+        if (!userGroups[role.userId]) {
+          userGroups[role.userId] = [];
         }
-        userRoles[tempRole.userId].push(tempRole);
-      }
-      const embed = new EmbedBuilder()
-        .setTitle(`⏰ Temporary Roles in ${interaction.guild.name}`)
-        .setDescription(
-          `Showing ${guildTempRoles.length} temporary role(s) across ${Object.keys(userRoles).length} user(s)`,
-        )
-        .setColor(THEME_COLOR)
-        .setTimestamp()
-        .setFooter({
-          text: "Role Reactor • Temporary Roles",
-          iconURL: client.user.displayAvatarURL(),
-        });
-      const userEntries = Object.entries(userRoles).slice(0, 10);
-      for (const [userId, roles] of userEntries) {
-        try {
-          const user = await client.users.fetch(userId);
-          const roleList = roles
-            .map(tempRole => {
-              const role = interaction.guild.roles.cache.get(tempRole.roleId);
-              const roleName = role
-                ? role.name
-                : `Unknown Role (${tempRole.roleId})`;
-              const remainingTime = formatRemainingTime(tempRole.expiresAt);
-              return `• **${roleName}** - ${remainingTime}`;
-            })
-            .join("\n");
-          embed.addFields({
-            name: `👤 ${user.username}`,
-            value: roleList,
-            inline: false,
-          });
-        } catch {
-          embed.addFields({
-            name: `👤 Unknown User (${userId})`,
-            value: roles
-              .map(tempRole => {
-                const role = interaction.guild.roles.cache.get(tempRole.roleId);
-                const roleName = role
-                  ? role.name
-                  : `Unknown Role (${tempRole.roleId})`;
-                const remainingTime = formatRemainingTime(tempRole.expiresAt);
-                return `• **${roleName}** - ${remainingTime}`;
-              })
-              .join("\n"),
-            inline: false,
-          });
-        }
-      }
-      if (Object.keys(userRoles).length > 10) {
+        userGroups[role.userId].push(role);
+      });
+
+      for (const [, roles] of Object.entries(userGroups)) {
+        const user = roles[0].userInfo;
+        const roleList = roles
+          .map(role => {
+            const color = role.roleInfo.color
+              ? `#${role.roleInfo.color.toString(16).padStart(6, "0")}`
+              : "No color";
+            return `• **${role.roleInfo.name}** - Expires in ${role.timeRemaining} (${color})`;
+          })
+          .join("\n");
+
         embed.addFields({
-          name: "📝 Note",
-          value: `Showing first 10 users. There are ${Object.keys(userRoles).length - 10} more users with temporary roles.`,
+          name: `👤 ${user.username}`,
+          value: roleList,
           inline: false,
         });
       }
-      await interaction.editReply({
-        embeds: [embed],
-        flags: 64,
+    } else {
+      // Show roles for specific user
+      const roleList = processedRoles
+        .map(role => {
+          const color = role.roleInfo.color
+            ? `#${role.roleInfo.color.toString(16).padStart(6, "0")}`
+            : "No color";
+          return `• **${role.roleInfo.name}** - Expires in ${role.timeRemaining} (${color})`;
+        })
+        .join("\n");
+
+      embed.addFields({
+        name: "🎭 Active Roles",
+        value: roleList,
+        inline: false,
       });
     }
+
+    // Add helpful information
+    embed.addFields({
+      name: "💡 Management",
+      value: [
+        "• Use `/remove-temp-role` to remove roles early",
+        "• Roles automatically expire after their set duration",
+        "• Use `/assign-temp-role` to create new temporary roles",
+      ].join("\n"),
+      inline: false,
+    });
+
+    await interaction.editReply({ embeds: [embed] });
+
+    // Log successful command execution
+    logger.logCommand("list-temp-roles", interaction.user.id, Date.now(), true);
   } catch (error) {
     logger.error("Error listing temporary roles", error);
-    await interaction.editReply({
-      content:
-        "❌ **Error**\nAn error occurred while listing temporary roles. Please try again.",
-      flags: 64,
-    });
+    logger.logCommand(
+      "list-temp-roles",
+      interaction.user.id,
+      Date.now(),
+      false,
+    );
+
+    await interaction.editReply(
+      errorEmbed({
+        title: "Listing Failed",
+        description:
+          "Something went wrong while retrieving temporary roles. This might be due to a temporary issue.",
+        solution:
+          "Please try again in a moment. If the problem persists, check that I have the necessary permissions.",
+        fields: [
+          {
+            name: "🔧 Quick Fix",
+            value:
+              "• Make sure I have permission to view server members\n• Check that the database connection is working\n• Verify your internet connection is stable",
+            inline: false,
+          },
+        ],
+      }),
+    );
   }
 }

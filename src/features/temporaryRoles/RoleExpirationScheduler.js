@@ -22,12 +22,16 @@ class RoleExpirationScheduler {
 
     this.interval = setInterval(async () => {
       try {
+        this.logger.debug("🕐 Scheduled cleanup triggered");
         await this.cleanupExpiredRoles();
       } catch (error) {
         this.logger.error("❌ Error in role expiration scheduler", error);
       }
     }, 60000).unref();
 
+    this.logger.success(
+      "✅ Role expiration scheduler started (runs every 60 seconds)",
+    );
     this.cleanupExpiredRoles();
   }
 
@@ -47,13 +51,26 @@ class RoleExpirationScheduler {
       return;
     }
 
+    this.logger.debug("🕐 Running automatic temporary role cleanup...");
+
     const expiredRoles = await databaseManager.temporaryRoles.findExpired();
-    if (expiredRoles.length === 0) return;
+    this.logger.debug(
+      `Found ${expiredRoles.length} expired temporary role(s) in database.`,
+    );
+
+    if (expiredRoles.length === 0) {
+      this.logger.debug("No expired roles found, cleanup complete.");
+      return;
+    }
 
     this.logger.info(`Found ${expiredRoles.length} expired temporary role(s).`);
 
     for (const expiredRole of expiredRoles) {
       const { guildId, userId, roleId } = expiredRole;
+      this.logger.debug(
+        `Processing expired role: Guild=${guildId}, User=${userId}, Role=${roleId}`,
+      );
+
       try {
         const guild = this.client.guilds.cache.get(guildId);
         if (!guild) {
@@ -81,14 +98,22 @@ class RoleExpirationScheduler {
         }
 
         if (member.roles.cache.has(role.id)) {
+          this.logger.info(
+            `Removing expired role "${role.name}" from ${member.user.tag}...`,
+          );
           await member.roles.remove(role, "Temporary role expired");
           this.logger.success(
             `Removed expired role "${role.name}" from ${member.user.tag}.`,
           );
           await this.sendExpirationNotification(member, role, guild);
+        } else {
+          this.logger.debug(
+            `User ${member.user.tag} no longer has role "${role.name}", cleaning up database entry.`,
+          );
         }
 
         await databaseManager.temporaryRoles.delete(guildId, userId, roleId);
+        this.logger.debug(`Cleaned up database entry for expired role.`);
       } catch (error) {
         this.logger.error(
           `Error processing expired role for user ${userId}`,
@@ -96,6 +121,8 @@ class RoleExpirationScheduler {
         );
       }
     }
+
+    this.logger.debug("🕐 Automatic temporary role cleanup completed.");
   }
 
   async sendExpirationNotification(member, role, guild) {

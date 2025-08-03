@@ -7,6 +7,10 @@ import { hasAdminPermissions } from "../../utils/discord/permissions.js";
 import { getAllRoleMappings } from "../../utils/discord/roleMappingManager.js";
 import { THEME_COLOR } from "../../config/theme.js";
 import { getLogger } from "../../utils/logger.js";
+import {
+  errorEmbed,
+  permissionErrorEmbed,
+} from "../../utils/discord/responseMessages.js";
 
 export const data = new SlashCommandBuilder()
   .setName("list-roles")
@@ -50,10 +54,13 @@ export async function execute(interaction, client) {
     await interaction.deferReply({ flags: 64 }); // 64 = ephemeral flag
 
     if (!hasAdminPermissions(interaction.member)) {
-      return interaction.editReply({
-        content: "❌ You need administrator permissions to use this command!",
-        flags: 64,
-      });
+      return interaction.editReply(
+        permissionErrorEmbed({
+          requiredPermissions: ["Administrator"],
+          userPermissions: interaction.member.permissions.toArray(),
+          tip: "You need Administrator permissions to view role-reaction messages.",
+        }),
+      );
     }
 
     const allMappings = await getAllRoleMappings();
@@ -68,21 +75,40 @@ export async function execute(interaction, client) {
     logger.debug("Guild mappings found", { count: guildMappings.length });
 
     if (guildMappings.length === 0) {
-      return interaction.editReply({
-        content: "❌ No role-reaction messages found in this server.",
-        flags: 64,
-      });
+      return interaction.editReply(
+        errorEmbed({
+          title: "No Role-Reaction Messages Found",
+          description:
+            "There are no role-reaction messages set up in this server yet.",
+          solution:
+            "Use `/setup-roles` to create your first role-reaction message!",
+          fields: [
+            {
+              name: "🎯 Getting Started",
+              value:
+                "Create role-reaction messages to let members self-assign roles with just a click!",
+              inline: false,
+            },
+            {
+              name: "📝 Quick Setup",
+              value:
+                '`/setup-roles title:"Choose Your Roles!" description:"Pick your roles!" roles:"🎮:Gamer,🎨:Artist"`',
+              inline: false,
+            },
+          ],
+        }),
+      );
     }
 
     const embed = new EmbedBuilder()
       .setTitle("🎭 Role-Reaction Messages")
       .setDescription(
-        `Found **${guildMappings.length}** role-reaction message(s) in this server.`,
+        `Found **${guildMappings.length}** role-reaction message${guildMappings.length !== 1 ? "s" : ""} in this server.`,
       )
       .setColor(THEME_COLOR)
       .setTimestamp()
       .setFooter({
-        text: "Role Reactor • Role Management",
+        text: "Role Reactor • Click reactions to get roles!",
         iconURL: client.user.displayAvatarURL(),
       });
 

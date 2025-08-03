@@ -739,7 +739,7 @@ describe("Discord API Integration Tests", () => {
         TEST_USER_ID,
       );
       expect(Array.isArray(userTempRoles)).toBe(true);
-    });
+    }, 15000); // Increase timeout for database operations
 
     test("should validate user permissions", async () => {
       // Test permission checking

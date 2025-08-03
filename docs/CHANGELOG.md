@@ -7,6 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **User-Friendly UI Improvements**: Clean, concise messaging across all commands
+- **Centralized External Links**: Consistent link management through config system
+- **Dynamic Invite Generation**: Automatic invite link creation with proper permissions
+- **Streamlined Help System**: Focused help content with essential information only
+- **Enhanced Error Messages**: Clear, actionable error messages with troubleshooting tips
+- **Mobile-Optimized Interface**: Better experience for mobile Discord clients
+
+### Changed
+
+- **Simplified Command Messages**: Removed redundant text and verbose descriptions
+- **Consistent Link Management**: All external links now use centralized configuration
+- **Improved Error Handling**: More concise and helpful error messages
+- **Cleaner Help Interface**: Streamlined help embeds and component descriptions
+- **Better Performance Feedback**: Simplified ping command with focused information
+- **Updated Documentation**: Enhanced README with recent improvements
+
+### Fixed
+
+- **External Link Consistency**: Fixed hardcoded URLs in support and invite commands
+- **Invite Link Generation**: Fixed non-existent config property references
+- **Help System Cleanup**: Removed redundant information and improved readability
+- **Error Message Clarity**: Simplified error descriptions for better user experience
+
+## [0.3.1] - 2025-08-03
+
+### Added
+
+- **Automatic MongoDB Reconnection**: Bot now automatically reconnects to MongoDB when internet connection is restored
+- Enhanced connection monitoring with periodic health checks every 30 seconds
+- Intelligent retry logic with exponential backoff (up to 5 attempts)
+- Connection state tracking and logging for better debugging
+- Graceful handling of network interruptions without requiring manual restart
+
+### Changed
+
+- Updated MongoDB connection configuration with enhanced reconnection options
+- Improved connection timeout and heartbeat settings for better reliability
+- Enhanced error handling for database connection failures
+- **Fixed timer leaks** in database connection management to prevent Jest warnings
+- **Standardized unit test file naming** to consistent camelCase convention
+- **Improved test reliability** with proper timeout configurations and cleanup
+
 ## [0.3.0] - 2025-08-03
 
 ### Added

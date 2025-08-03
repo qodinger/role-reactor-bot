@@ -27,7 +27,8 @@ export async function execute(interaction, client) {
 
     if (!isDeveloper(interaction.user.id)) {
       return interaction.editReply({
-        content: "❌ You need developer permissions to use this command!",
+        content:
+          "❌ **Permission Denied**\nYou need developer permissions to use this command.",
         flags: 64,
       });
     }
@@ -69,8 +70,13 @@ export async function execute(interaction, client) {
         iconURL: client.user.displayAvatarURL(),
       });
 
+    // Overall Performance Summary
     embed.addFields(
-      { name: "⏱️ Uptime", value: performanceSummary.uptime, inline: true },
+      {
+        name: "⏱️ Uptime",
+        value: performanceSummary.uptime,
+        inline: true,
+      },
       {
         name: "🎯 Total Events",
         value: performanceSummary.events.total.toString(),
@@ -83,6 +89,7 @@ export async function execute(interaction, client) {
       },
     );
 
+    // Performance Metrics
     embed.addFields(
       {
         name: "🚀 Event Performance",
@@ -103,43 +110,53 @@ export async function execute(interaction, client) {
       },
     );
 
-    embed.addFields(
-      {
-        name: "🗄️ Database",
-        value: `Queries: ${performanceSummary.database.queries}\nErrors: ${performanceSummary.database.errors}\nError Rate: ${performanceSummary.database.errorRate}`,
-        inline: true,
-      },
-      {
-        name: "🐌 Slow Operations",
-        value: `${slowEvents.length + slowCommands.length} found`,
-        inline: true,
-      },
-    );
-
-    if (slowEvents.length > 0 || slowCommands.length > 0) {
-      const slowDetails = [];
-
-      if (slowCommands.length > 0) {
-        slowDetails.push("**Slow Commands:**");
-        slowCommands.forEach(cmd => {
-          slowDetails.push(
-            `• ${cmd.name}: ${cmd.avgDuration} (${cmd.count} uses)`,
-          );
-        });
-      }
-
-      if (slowEvents.length > 0) {
-        slowDetails.push("**Slow Events:**");
-        slowEvents.forEach(event => {
-          slowDetails.push(
-            `• ${event.name}: ${event.avgDuration} (${event.count} times)`,
-          );
-        });
-      }
-
+    // Performance Analysis
+    if (slowCommands.length > 0 || slowEvents.length > 0) {
       embed.addFields({
-        name: "🐌 Slow Operations Details",
-        value: slowDetails.join("\n"),
+        name: "⚠️ Performance Issues Detected",
+        value: [
+          slowCommands.length > 0
+            ? `**Slow Commands (${slowCommands.length}):**\n${slowCommands.map(cmd => `• \`${cmd.name}\`: ${cmd.avgDuration} (${cmd.count} calls)`).join("\n")}`
+            : "",
+          slowEvents.length > 0
+            ? `**Slow Events (${slowEvents.length}):**\n${slowEvents.map(evt => `• \`${evt.name}\`: ${evt.avgDuration} (${evt.count} calls)`).join("\n")}`
+            : "",
+        ]
+          .filter(Boolean)
+          .join("\n\n"),
+        inline: false,
+      });
+    } else {
+      embed.addFields({
+        name: "✅ Performance Status",
+        value:
+          "All operations are running within acceptable performance thresholds! 🚀",
+        inline: false,
+      });
+    }
+
+    // Recommendations
+    const recommendations = [];
+    if (slowCommands.length > 0) {
+      recommendations.push(
+        "• **Optimize slow commands** - Consider caching or reducing database queries",
+      );
+    }
+    if (slowEvents.length > 0) {
+      recommendations.push(
+        "• **Review event handlers** - Some events are taking longer than expected",
+      );
+    }
+    if (process.memoryUsage().heapUsed / 1024 / 1024 > 100) {
+      recommendations.push(
+        "• **Monitor memory usage** - Consider implementing garbage collection",
+      );
+    }
+
+    if (recommendations.length > 0) {
+      embed.addFields({
+        name: "🔧 Recommendations",
+        value: recommendations.join("\n"),
         inline: false,
       });
     }
@@ -148,25 +165,20 @@ export async function execute(interaction, client) {
       embeds: [embed],
       flags: 64,
     });
-  } catch (error) {
-    logger.error("Error getting performance metrics", error);
 
-    try {
-      if (!interaction.replied && !interaction.deferred) {
-        await interaction.reply({
-          content:
-            "❌ **Error**\nAn error occurred while getting performance metrics. Please try again.",
-          flags: 64,
-        });
-      } else if (interaction.deferred) {
-        await interaction.editReply({
-          content:
-            "❌ **Error**\nAn error occurred while getting performance metrics. Please try again.",
-          flags: 64,
-        });
-      }
-    } catch (replyError) {
-      logger.error("Failed to send error response", replyError);
-    }
+    logger.info("Performance command executed", {
+      userId: interaction.user.id,
+      guildId: interaction.guild.id,
+      slowCommands: slowCommands.length,
+      slowEvents: slowEvents.length,
+    });
+  } catch (error) {
+    logger.error("Error executing performance command", error);
+
+    await interaction.editReply({
+      content:
+        "❌ **Error**\nAn error occurred while retrieving performance metrics. Please try again.",
+      flags: 64,
+    });
   }
 }

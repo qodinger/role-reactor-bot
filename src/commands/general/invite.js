@@ -17,11 +17,8 @@ export const data = new SlashCommandBuilder()
 
 export async function execute(interaction, client) {
   try {
-    // Prefer config, fallback to generated link
-    let inviteLink = config.discord.inviteURL;
-    if (!inviteLink) {
-      inviteLink = client.inviteLink;
-    }
+    // Generate invite link dynamically
+    let inviteLink = client.inviteLink;
     if (!inviteLink) {
       inviteLink = await getDefaultInviteLink(client);
     }
@@ -29,6 +26,7 @@ export async function execute(interaction, client) {
       throw new Error("Unable to generate invite link.");
     }
 
+    const supportLink = config.externalLinks.support;
     const botName = client.user?.username || "Role Reactor";
     const botAvatar = client.user?.displayAvatarURL() || null;
     const userName = interaction.user.displayName || interaction.user.username;
@@ -39,20 +37,35 @@ export async function execute(interaction, client) {
         UI_COMPONENTS.createAuthor(`${botName} - Invite me!`, botAvatar),
       )
       .setDescription(
-        `Hey ${userName},\n` +
-          `Thank you for your interest in **${botName}**!\n\n`,
+        `Hey ${userName}! 👋\n\n` +
+          `**${botName}** is the ultimate Discord bot for easy role management through reactions!\n\n` +
+          `🎯 **Simple Setup** • 🎨 **Beautiful UI** • ⚡ **Instant Roles**`,
       )
-      .addFields({
-        name: "**Invite the bot to your server:**",
-        value: `[Click here to add ${botName}](${inviteLink})`,
-        inline: false,
-      })
+      .addFields(
+        {
+          name: "🚀 Key Features",
+          value: [
+            "• **One-Click Roles** - Members get roles instantly with reactions",
+            "• **Event Roles** - Perfect for tournaments, giveaways, and special access",
+            "• **Safe & Secure** - Admin-only management keeps your server organized",
+            "• **Always Online** - Built-in monitoring ensures smooth operation",
+            "• **Privacy First** - No personal data collection beyond Discord IDs",
+          ].join("\n"),
+          inline: false,
+        },
+        {
+          name: "🔗 Invite Link",
+          value: `[Click here to add ${botName} to your server](${inviteLink})`,
+          inline: false,
+        },
+      )
       .setFooter(
         UI_COMPONENTS.createFooter(
-          "Thank you for inviting Role Reactor!",
+          "Thank you for choosing Role Reactor! 🎉",
           botAvatar,
         ),
-      );
+      )
+      .setTimestamp();
 
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
@@ -60,6 +73,11 @@ export async function execute(interaction, client) {
         .setEmoji(EMOJIS.ACTIONS.LINK)
         .setStyle(ButtonStyle.Link)
         .setURL(inviteLink),
+      new ButtonBuilder()
+        .setLabel("Support Server")
+        .setEmoji("🆘")
+        .setStyle(ButtonStyle.Link)
+        .setURL(supportLink),
     );
 
     await interaction.reply({
