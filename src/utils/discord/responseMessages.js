@@ -101,11 +101,6 @@ export function roleCreatedEmbed({ messageUrl, roleCount, channelId }) {
       .setStyle(ButtonStyle.Link)
       .setURL(messageUrl)
       .setEmoji(EMOJIS.ACTIONS.VIEW),
-    new ButtonBuilder()
-      .setCustomId("setup_help")
-      .setLabel("Setup Guide")
-      .setStyle(ButtonStyle.Secondary)
-      .setEmoji(EMOJIS.ACTIONS.HELP),
   );
 
   return {

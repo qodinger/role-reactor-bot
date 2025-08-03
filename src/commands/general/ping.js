@@ -36,8 +36,7 @@ export async function execute(interaction, client) {
       status = "Good";
       statusEmoji = EMOJIS.STATUS.INFO;
       statusColor = THEME.INFO;
-      statusDescription =
-        "Connection is working well. Everything looks good! ✅";
+      statusDescription = "Connection is working well. ✅";
     } else if (apiLatency < 400) {
       status = "Fair";
       statusEmoji = EMOJIS.STATUS.WARNING;
@@ -47,8 +46,7 @@ export async function execute(interaction, client) {
       status = "Poor";
       statusEmoji = EMOJIS.STATUS.ERROR;
       statusColor = THEME.ERROR;
-      statusDescription =
-        "Connection is experiencing issues. You might want to check your internet. 🔴";
+      statusDescription = "Connection is experiencing issues. 🔴";
     }
 
     // Get bot uptime
@@ -79,7 +77,7 @@ export async function execute(interaction, client) {
       )
       .setFooter(
         UI_COMPONENTS.createFooter(
-          `Requested by ${interaction.user.username} • ${new Date().toLocaleTimeString()}`,
+          `Requested by ${interaction.user.username}`,
           interaction.user.displayAvatarURL(),
         ),
       )
@@ -89,11 +87,43 @@ export async function execute(interaction, client) {
     if (apiLatency >= 400) {
       embed.addFields({
         name: `${EMOJIS.STATUS.WARNING} Tips for Better Performance`,
+        value: [
+          "• **Check your internet connection** - Try refreshing Discord",
+          "• **Use a wired connection** - Wi-Fi can cause delays",
+          "• **Close other applications** - High CPU usage affects performance",
+          "• **Try a different server** - Sometimes switching servers helps",
+        ].join("\n"),
+        inline: false,
+      });
+    } else if (apiLatency >= 200) {
+      embed.addFields({
+        name: `${EMOJIS.STATUS.INFO} Performance Tips`,
+        value: [
+          "• Your connection is working fine",
+          "• Consider using a wired connection for better performance",
+          "• Close unnecessary browser tabs or applications",
+        ].join("\n"),
+        inline: false,
+      });
+    } else {
+      embed.addFields({
+        name: `${EMOJIS.STATUS.SUCCESS} Great Performance!`,
         value:
-          "• Check your internet connection\n• Try refreshing Discord\n• Consider using a wired connection",
+          "Your connection is excellent! Everything should be working smoothly. 🎉",
         inline: false,
       });
     }
+
+    // Add server information
+    embed.addFields({
+      name: `${EMOJIS.FEATURES.ROLES} Server Info`,
+      value: [
+        `**Servers**: ${client.guilds.cache.size} servers`,
+        `**Users**: ${client.users.cache.size} users`,
+        `**Channels**: ${client.channels.cache.size} channels`,
+      ].join("\n"),
+      inline: false,
+    });
 
     // Log the ping request
     logger.info(`Ping command executed by ${interaction.user.tag}`, {
@@ -112,7 +142,12 @@ export async function execute(interaction, client) {
       .setColor(THEME.ERROR)
       .setTitle(`${EMOJIS.STATUS.ERROR} Connection Check Failed`)
       .setDescription(
-        "Sorry! I couldn't check the connection status right now. This might be due to:\n\n• Temporary Discord API issues\n• Network connectivity problems\n• Bot maintenance\n\nPlease try again in a few moments!",
+        "Sorry! I couldn't check the connection status right now.\n\n" +
+          "This might be due to:\n" +
+          "• Temporary Discord API issues\n" +
+          "• Network connectivity problems\n" +
+          "• Bot maintenance\n\n" +
+          "Please try again in a few moments!",
       )
       .setFooter(
         UI_COMPONENTS.createFooter(

@@ -44,7 +44,7 @@ export async function removeTemporaryRole(guildId, userId, roleId) {
 }
 
 /**
- * Gets all temporary roles for a user.
+ * Gets temporary roles for a specific user in a guild.
  * @param {string} guildId
  * @param {string} userId
  * @returns {Promise<Array>}
@@ -54,12 +54,20 @@ export async function getUserTemporaryRoles(guildId, userId) {
   try {
     const storageManager = await getStorageManager();
     const tempRoles = await storageManager.getTemporaryRoles();
-    return tempRoles[guildId]?.[userId]
-      ? Object.entries(tempRoles[guildId][userId]).map(([roleId, data]) => ({
-          roleId,
-          ...data,
-        }))
-      : [];
+    const userRoles = tempRoles[guildId]?.[userId] || {};
+
+    // Convert to array format
+    const rolesArray = [];
+    for (const [roleId, roleData] of Object.entries(userRoles)) {
+      rolesArray.push({
+        guildId,
+        userId,
+        roleId,
+        expiresAt: roleData.expiresAt,
+      });
+    }
+
+    return rolesArray;
   } catch (error) {
     logger.error("Failed to get user temporary roles", error);
     return [];
@@ -69,17 +77,32 @@ export async function getUserTemporaryRoles(guildId, userId) {
 /**
  * Gets all temporary roles for a guild.
  * @param {string} guildId
- * @returns {Promise<Object>}
+ * @returns {Promise<Array>}
  */
 export async function getTemporaryRoles(guildId) {
   const logger = getLogger();
   try {
     const storageManager = await getStorageManager();
     const tempRoles = await storageManager.getTemporaryRoles();
-    return tempRoles[guildId] || {};
+    const guildRoles = tempRoles[guildId] || {};
+
+    // Convert to array format expected by the command
+    const rolesArray = [];
+    for (const [userId, userRoles] of Object.entries(guildRoles)) {
+      for (const [roleId, roleData] of Object.entries(userRoles)) {
+        rolesArray.push({
+          guildId,
+          userId,
+          roleId,
+          expiresAt: roleData.expiresAt,
+        });
+      }
+    }
+
+    return rolesArray;
   } catch (error) {
     logger.error("Failed to get temporary roles for guild", error);
-    return {};
+    return [];
   }
 }
 

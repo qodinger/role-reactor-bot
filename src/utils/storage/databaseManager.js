@@ -33,22 +33,36 @@ class ConnectionManager {
     this.client = null;
     this.db = null;
     this.connectionPromise = null;
+    this.isConnected = false;
+    this.reconnectAttempts = 0;
+    this.maxReconnectAttempts = 5;
+    this.reconnectDelay = 2000;
+    this.healthCheckInterval = null;
   }
 
   async connect() {
-    if (this.connectionPromise) return this.connectionPromise;
+    if (this.connectionPromise && this.isConnected)
+      return this.connectionPromise;
     this.connectionPromise = this._connect();
     return this.connectionPromise;
   }
 
   async _connect() {
+    let timeoutId = null;
     try {
       this.logger.info("🔌 Attempting to connect to MongoDB...");
-      this.client = new MongoClient(this.config.uri, this.config.options);
+      this.client = new MongoClient(this.config.uri, {
+        ...this.config.options,
+        // Add automatic reconnection options
+        serverSelectionTimeoutMS: 10000,
+        heartbeatFrequencyMS: 10000,
+        retryWrites: true,
+        retryReads: true,
+      });
 
       const connection = this.client.connect();
       const timeout = new Promise((_, reject) => {
-        setTimeout(
+        timeoutId = setTimeout(
           () =>
             reject(new Error("MongoDB connection timeout after 15 seconds")),
           15000,
@@ -58,12 +72,94 @@ class ConnectionManager {
       await Promise.race([connection, timeout]);
       this.logger.success("✅ MongoDB connection established");
       this.db = this.client.db(this.config.name);
+      this.isConnected = true;
+      this.reconnectAttempts = 0;
+
+      // Set up connection monitoring
+      this._setupConnectionMonitoring();
+
       await this._createIndexes();
       return this.db;
     } catch (error) {
       this.logger.error("❌ Failed to connect to MongoDB", error);
+      this.isConnected = false;
+
+      // Attempt reconnection if we haven't exceeded max attempts
+      if (this.reconnectAttempts < this.maxReconnectAttempts) {
+        this.reconnectAttempts++;
+        this.logger.info(
+          `🔄 Attempting reconnection ${this.reconnectAttempts}/${this.maxReconnectAttempts}...`,
+        );
+
+        setTimeout(() => {
+          this.connectionPromise = null; // Reset promise to allow retry
+          this.connect();
+        }, this.reconnectDelay * this.reconnectAttempts);
+      } else {
+        this.logger.error(
+          "❌ Max reconnection attempts reached. Manual restart required.",
+        );
+      }
+
       return null;
+    } finally {
+      // Clean up timeout to prevent memory leaks
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
     }
+  }
+
+  _setupConnectionMonitoring() {
+    // Clear any existing interval
+    if (this.healthCheckInterval) {
+      clearInterval(this.healthCheckInterval);
+    }
+
+    // Set up periodic health checks
+    this.healthCheckInterval = setInterval(async () => {
+      try {
+        if (this.client && this.db) {
+          await this.db.admin().ping();
+          if (!this.isConnected) {
+            this.logger.success("✅ MongoDB connection restored");
+            this.isConnected = true;
+            this.reconnectAttempts = 0;
+          }
+        }
+      } catch (_error) {
+        if (this.isConnected) {
+          this.logger.warn(
+            "⚠️ MongoDB connection lost, attempting to reconnect...",
+          );
+          this.isConnected = false;
+          this._attemptReconnect();
+        }
+      }
+    }, 30000).unref(); // Check every 30 seconds and prevent keeping process alive
+  }
+
+  async _attemptReconnect() {
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      this.logger.error(
+        "❌ Max reconnection attempts reached. Manual restart required.",
+      );
+      return;
+    }
+
+    this.reconnectAttempts++;
+    this.logger.info(
+      `🔄 Attempting reconnection ${this.reconnectAttempts}/${this.maxReconnectAttempts}...`,
+    );
+
+    setTimeout(async () => {
+      try {
+        this.connectionPromise = null; // Reset promise
+        await this._connect();
+      } catch (error) {
+        this.logger.error("❌ Reconnection attempt failed", error);
+      }
+    }, this.reconnectDelay * this.reconnectAttempts);
   }
 
   async _createIndexes() {
@@ -73,6 +169,9 @@ class ConnectionManager {
         .collection("role_mappings")
         .createIndex({ messageId: 1 }, { unique: true });
       await this.db.collection("temporary_roles").createIndex({ expiresAt: 1 });
+      await this.db
+        .collection("temporary_roles")
+        .createIndex({ guildId: 1, userId: 1, roleId: 1 }, { unique: true });
       this.logger.success("✅ Database indexes created successfully");
     } catch (error) {
       this.logger.warn("⚠️ Index creation failed (non-critical)", error);
@@ -80,10 +179,20 @@ class ConnectionManager {
   }
 
   async close() {
+    if (this.healthCheckInterval) {
+      clearInterval(this.healthCheckInterval);
+      this.healthCheckInterval = null;
+    }
+
     if (this.client) {
       await this.client.close();
       this.logger.info("🔌 MongoDB connection closed");
+      this.isConnected = false;
     }
+  }
+
+  isConnectionHealthy() {
+    return this.isConnected && this.client && this.db;
   }
 }
 
@@ -139,6 +248,34 @@ class TemporaryRoleRepository extends BaseRepository {
     super(db, "temporary_roles", cache, logger);
   }
 
+  async getAll() {
+    const cacheKey = "temporary_roles_all";
+    const cached = this.cache.get(cacheKey);
+    if (cached) return cached;
+
+    const documents = await this.collection.find({}).toArray();
+    const tempRoles = {};
+    for (const doc of documents) {
+      if (!tempRoles[doc.guildId]) tempRoles[doc.guildId] = {};
+      if (!tempRoles[doc.guildId][doc.userId])
+        tempRoles[doc.guildId][doc.userId] = {};
+      tempRoles[doc.guildId][doc.userId][doc.roleId] = {
+        expiresAt: doc.expiresAt,
+      };
+    }
+    this.cache.set(cacheKey, tempRoles);
+    return tempRoles;
+  }
+
+  async add(guildId, userId, roleId, expiresAt) {
+    await this.collection.updateOne(
+      { guildId, userId, roleId },
+      { $set: { expiresAt, updatedAt: new Date() } },
+      { upsert: true },
+    );
+    this.cache.clear();
+  }
+
   async findExpired() {
     return this.collection.find({ expiresAt: { $lte: new Date() } }).toArray();
   }
@@ -185,7 +322,7 @@ class DatabaseManager {
   }
 
   async healthCheck() {
-    if (!this.connectionManager.db) return false;
+    if (!this.connectionManager.isConnectionHealthy()) return false;
     try {
       await this.connectionManager.db.admin().ping();
       return true;

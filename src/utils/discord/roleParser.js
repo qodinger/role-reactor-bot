@@ -21,6 +21,9 @@ export function parseRoleString(roleString) {
   for (const part of parts) {
     let str = part.trim();
 
+    // Skip empty parts
+    if (!str) continue;
+
     const emojiMatch = str.match(
       /^(<a?:.+?:\d+>|[\p{Emoji_Presentation}\p{Emoji}\uFE0F])/u,
     );
@@ -31,17 +34,28 @@ export function parseRoleString(roleString) {
     const emoji = emojiMatch[0];
     str = str.slice(emoji.length).trim();
 
-    if (str.startsWith(":")) str = str.slice(1).trim();
+    // Remove any leading colons with spaces
+    str = str.replace(/^:\s*/, "").trim();
 
     let limit = null;
-    const limitMatch = str.match(/(?::|\s)(\d+)$/);
+    let roleName = null;
+    let roleId = null;
+
+    // Try to extract limit from the end (format: role:limit or role : limit)
+    const limitMatch = str.match(/(?:\s*:\s*|\s+)(\d+)$/);
     if (limitMatch) {
       limit = parseInt(limitMatch[1], 10);
       str = str.slice(0, limitMatch.index).trim();
+    } else {
+      // Try alternative pattern for role mentions with spaces
+      const altLimitMatch = str.match(/^(.+?)\s*:\s*(\d+)$/);
+      if (altLimitMatch) {
+        limit = parseInt(altLimitMatch[2], 10);
+        str = altLimitMatch[1].trim();
+      }
     }
 
-    let roleName = null;
-    let roleId = null;
+    // Handle quoted role names
     if (str.startsWith('"')) {
       const quoteMatch = str.match(/^"([^"]+)"$/);
       if (quoteMatch) {
@@ -50,26 +64,34 @@ export function parseRoleString(roleString) {
         errors.push(`Invalid quoted role name in part: "${part}"`);
         continue;
       }
-    } else if (str.match(/^<@&\d+>$/)) {
+    }
+    // Handle role mentions with @&
+    else if (str.match(/^<@&\d+>$/)) {
       roleName = str;
       roleId = str.match(/^<@&(\d+)>$/)[1];
-    } else if (str.match(/^@&\d+$/)) {
+    }
+    // Handle role mentions without <>
+    else if (str.match(/^@&\d+$/)) {
       roleName = `<${str}>`;
       roleId = str.match(/^@&(\d+)$/)[1];
-    } else {
+    }
+    // Handle regular role names
+    else {
       roleName = str;
     }
 
-    if (!roleName) {
+    if (!roleName || roleName.trim() === "") {
       errors.push(`Invalid role name in part: "${part}"`);
       continue;
     }
 
+    // Validate limit if present
     if (limit !== null && (isNaN(limit) || limit < 1 || limit > 1000)) {
       errors.push(`Invalid user limit in part: "${part}" (must be 1-1000)`);
       continue;
     }
 
+    // Check for duplicate emojis
     const existingRole = roles.find(r => r.emoji === emoji);
     if (existingRole) {
       errors.push(
@@ -82,5 +104,11 @@ export function parseRoleString(roleString) {
 
     roles.push({ emoji, roleName, roleId, limit });
   }
+
+  // If there are any errors, return empty roles array
+  if (errors.length > 0) {
+    return { roles: [], errors };
+  }
+
   return { roles, errors };
 }

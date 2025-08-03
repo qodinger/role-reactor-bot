@@ -75,12 +75,19 @@ class Config {
         maxPoolSize: 10,
         minPoolSize: 2,
         maxIdleTimeMS: 30000,
-        serverSelectionTimeoutMS: 5000,
+        serverSelectionTimeoutMS: 10000,
         connectTimeoutMS: 10000,
         socketTimeoutMS: 45000,
         retryWrites: true,
         retryReads: true,
         w: "majority",
+        // Enhanced reconnection options
+        heartbeatFrequencyMS: 10000,
+        serverApi: {
+          version: "1",
+          strict: false,
+          deprecationErrors: false,
+        },
       },
     };
   }
@@ -156,11 +163,10 @@ class Config {
    */
   get externalLinks() {
     return {
-      guide:
-        "https://github.com/tyecode-bots/role-reactor-bot/blob/main/README.md",
+      guide: "https://rolereactor.app/docs",
       github: "https://github.com/tyecode-bots/role-reactor-bot",
       support: "https://discord.gg/D8tYkU75Ry",
-      invite: this.discord.inviteURL,
+      invite: null, // Will be generated dynamically by the bot
     };
   }
 

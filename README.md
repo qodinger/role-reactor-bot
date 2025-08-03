@@ -1,3 +1,5 @@
+# Role Reactor Bot
+
 <div align="center">
   <img src="./assets/banner.png" alt="Role Reactor Bot - React for Roles!" width="600">
 </div>
@@ -22,6 +24,8 @@ A production-ready Discord bot for self-assignable roles through reactions. Buil
 - **🔧 Easy Setup**: Simple slash commands for configuration
 - **📈 Health Monitoring**: Built-in health checks and performance metrics
 - **📝 Structured Logging**: Enterprise-grade logging with file output
+- **🎨 User-Friendly UI**: Clean, concise, and helpful messaging
+- **🔗 Centralized Links**: Consistent external links and invite generation
 
 ## 🚀 Quick Start
 
@@ -214,14 +218,33 @@ The bot includes comprehensive health monitoring:
 - `/performance` - 🔒 [DEVELOPER ONLY] View performance metrics
 - `/storage` - 🔒 [DEVELOPER ONLY] Show storage status
 
+## 🎨 User Experience
+
+### Recent Improvements
+
+- **📝 Cleaner Messages**: All commands now provide concise, user-friendly messaging
+- **🔗 Consistent Links**: Centralized external links configuration
+- **⚡ Dynamic Invites**: Automatic invite link generation with proper permissions
+- **🎯 Focused Help**: Streamlined help system with essential information only
+- **🛡️ Better Error Handling**: Clear, actionable error messages with troubleshooting tips
+- **📱 Mobile-Friendly**: Optimized for both desktop and mobile Discord clients
+
+### Command Features
+
+- **Interactive Help**: Dropdown menus and buttons for easy navigation
+- **Autocomplete**: Smart command suggestions with filtering
+- **Permission Checks**: Automatic permission validation with helpful feedback
+- **Error Recovery**: Graceful error handling with retry mechanisms
+- **Performance Tips**: Contextual advice based on connection status
+
 ## 📖 Documentation
 
-- **[🚀 Deployment Guide](./DEPLOYMENT.md)** - Production deployment instructions
-- **[🤝 Contributing Guidelines](./CONTRIBUTING.md)** - How to contribute to the project
+- **[🚀 Deployment Guide](./docs/DEPLOYMENT.md)** - Production deployment instructions
+- **[🤝 Contributing Guidelines](./docs/CONTRIBUTING.md)** - How to contribute to the project
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guidelines](./CONTRIBUTING.md) for detailed information.
+We welcome contributions! Please see our [Contributing Guidelines](./docs/CONTRIBUTING.md) for detailed information.
 
 ### Quick Development Setup
 
@@ -242,17 +265,6 @@ pnpm test
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 📜 Legal Information
-
-- **Terms of Use**: [docs/legal/terms-of-use.md](docs/legal/terms-of-use.md)
-- **Privacy Policy**: [docs/legal/privacy-policy.md](docs/legal/privacy-policy.md)
-
-## 🆘 Support
-
-- **GitHub Issues**: [Create an issue](https://github.com/tyecode-bots/role-reactor-bot/issues)
-- **Documentation**: [Deployment Guide](./DEPLOYMENT.md)
-- **Contributing**: [Contributing Guidelines](./CONTRIBUTING.md)
 
 ---
 

@@ -1,6 +1,10 @@
 import { Events, InteractionType } from "discord.js";
 import { getLogger } from "../utils/logger.js";
-import { handleExportData } from "../commands/developer/storage.js";
+import {
+  handleExportData,
+  handleCleanupTempRoles,
+  handleTestAutoCleanup,
+} from "../commands/developer/storage.js";
 
 export const name = Events.InteractionCreate;
 
@@ -131,6 +135,12 @@ const handleButtonInteraction = async (interaction, _client) => {
       // Storage command buttons (developer only)
       case "export_data":
         await handleExportData(interaction);
+        break;
+      case "cleanup_temp_roles":
+        await handleCleanupTempRoles(interaction);
+        break;
+      case "test_auto_cleanup":
+        await handleTestAutoCleanup(interaction);
         break;
 
       default:

@@ -67,6 +67,20 @@ class DatabaseProvider {
   async cleanupExpiredRoles() {
     await this.dbManager.temporaryRoles.cleanupExpired();
   }
+
+  async getTemporaryRoles() {
+    return this.dbManager.temporaryRoles.getAll();
+  }
+
+  async addTemporaryRole(guildId, userId, roleId, expiresAt) {
+    await this.dbManager.temporaryRoles.add(guildId, userId, roleId, expiresAt);
+    return true;
+  }
+
+  async removeTemporaryRole(guildId, userId, roleId) {
+    await this.dbManager.temporaryRoles.delete(guildId, userId, roleId);
+    return true;
+  }
 }
 
 class StorageManager {
@@ -123,6 +137,42 @@ class StorageManager {
       return this.provider.cleanupExpiredRoles();
     }
     // File-based cleanup would be more complex and is omitted for this refactoring
+  }
+
+  async getTemporaryRoles() {
+    if (this.provider instanceof DatabaseProvider) {
+      return this.provider.getTemporaryRoles();
+    }
+    return this.provider.read("temporary_roles");
+  }
+
+  async addTemporaryRole(guildId, userId, roleId, expiresAt) {
+    if (this.provider instanceof DatabaseProvider) {
+      return this.provider.addTemporaryRole(guildId, userId, roleId, expiresAt);
+    }
+    const tempRoles = this.provider.read("temporary_roles");
+    if (!tempRoles[guildId]) tempRoles[guildId] = {};
+    if (!tempRoles[guildId][userId]) tempRoles[guildId][userId] = {};
+    tempRoles[guildId][userId][roleId] = { expiresAt };
+    return this.provider.write("temporary_roles", tempRoles);
+  }
+
+  async removeTemporaryRole(guildId, userId, roleId) {
+    if (this.provider instanceof DatabaseProvider) {
+      return this.provider.removeTemporaryRole(guildId, userId, roleId);
+    }
+    const tempRoles = this.provider.read("temporary_roles");
+    if (tempRoles[guildId]?.[userId]?.[roleId]) {
+      delete tempRoles[guildId][userId][roleId];
+      if (Object.keys(tempRoles[guildId][userId]).length === 0) {
+        delete tempRoles[guildId][userId];
+      }
+      if (Object.keys(tempRoles[guildId]).length === 0) {
+        delete tempRoles[guildId];
+      }
+      return this.provider.write("temporary_roles", tempRoles);
+    }
+    return false;
   }
 }
 

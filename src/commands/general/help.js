@@ -117,9 +117,7 @@ async function handleError(interaction) {
   const errorEmbed = new EmbedBuilder()
     .setColor(THEME.ERROR)
     .setTitle(`${EMOJIS.STATUS.ERROR} Error`)
-    .setDescription(
-      "An error occurred while loading the help menu. Please try again.",
-    )
+    .setDescription("An error occurred. Please try again.")
     .setTimestamp();
 
   if (!interaction.replied && !interaction.deferred) {
@@ -132,7 +130,7 @@ async function handleError(interaction) {
 export const data = new SlashCommandBuilder()
   .setName("help")
   .setDescription(
-    `${EMOJIS.ACTIONS.HELP} Get interactive help and information about Role Reactor Bot`,
+    `${EMOJIS.ACTIONS.HELP} Get interactive help and information about commands`,
   )
   .addStringOption(option =>
     option

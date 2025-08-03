@@ -88,17 +88,17 @@ export class HelpComponentBuilder {
   }
 
   /**
-   * Create command-specific navigation buttons
-   * @param {string|null} category
-   * @param {import('discord.js').Client} [client]
+   * Create command buttons for help UI
+   * @param {string} category
+   * @param {import('discord.js').Client} client
    * @returns {Promise<import('discord.js').ActionRowBuilder>}
    */
   static async createCommandButtons(_category = null, client = null) {
     const row = new ActionRowBuilder();
 
     // Determine invite link
-    let inviteURL = config.discord?.inviteURL;
-    if (!inviteURL && client) {
+    let inviteURL = null;
+    if (client) {
       inviteURL = client.inviteLink;
       if (!inviteURL) {
         try {
@@ -139,11 +139,11 @@ export class HelpComponentBuilder {
           .setStyle(ButtonStyle.Link),
       );
     }
-    if (inviteURL || links.invite) {
+    if (inviteURL) {
       buttons.push(
         new ButtonBuilder()
           .setLabel("Invite")
-          .setURL(inviteURL || links.invite)
+          .setURL(inviteURL)
           .setEmoji(EMOJIS.ACTIONS.LINK)
           .setStyle(ButtonStyle.Link),
       );
