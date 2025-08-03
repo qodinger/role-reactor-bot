@@ -75,7 +75,7 @@ jobs:
           echo "Extracting release notes for version: $VERSION_CLEAN"
 
           # Generate release notes from changelog
-          if [[ -f "CHANGELOG.md" ]]; then
+          if [[ -f "docs/CHANGELOG.md" ]]; then
             # Try multiple version formats
             RELEASE_NOTES=$(awk -v version="$VERSION_CLEAN" -v vtag="$VERSION" '
             BEGIN { 
@@ -106,12 +106,12 @@ jobs:
               if (found && length(content) > 0) {
                 print content
               } else {
-                print "## Changes\n\nSee [CHANGELOG.md](https://github.com/tyecode-bots/role-reactor-bot/blob/main/CHANGELOG.md) for detailed changes."
+                print "## Changes\n\nSee [CHANGELOG.md](https://github.com/tyecode-bots/role-reactor-bot/blob/main/docs/CHANGELOG.md) for detailed changes."
               }
             }
-            ' CHANGELOG.md)
+            ' docs/CHANGELOG.md)
           else
-            RELEASE_NOTES="## Changes\n\nSee [CHANGELOG.md](https://github.com/tyecode-bots/role-reactor-bot/blob/main/CHANGELOG.md) for detailed changes."
+            RELEASE_NOTES="## Changes\n\nSee [CHANGELOG.md](https://github.com/tyecode-bots/role-reactor-bot/blob/main/docs/CHANGELOG.md) for detailed changes."
           fi
 
           # Set output with proper escaping
@@ -145,7 +145,7 @@ jobs:
 
             ---
 
-            **[View Full Changelog](https://github.com/tyecode-bots/role-reactor-bot/blob/main/CHANGELOG.md)**
+            **[View Full Changelog](https://github.com/tyecode-bots/role-reactor-bot/blob/main/docs/CHANGELOG.md)**
           draft: false
           prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
           generate_release_notes: true
