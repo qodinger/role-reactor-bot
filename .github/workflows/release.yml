@@ -75,7 +75,16 @@ jobs:
           echo "Extracting release notes for version: $VERSION_CLEAN"
 
           # Generate release notes from changelog
+          CHANGELOG_PATH=""
           if [[ -f "docs/CHANGELOG.md" ]]; then
+            CHANGELOG_PATH="docs/CHANGELOG.md"
+            echo "Found changelog at: docs/CHANGELOG.md"
+          elif [[ -f "CHANGELOG.md" ]]; then
+            CHANGELOG_PATH="CHANGELOG.md"
+            echo "Found changelog at: CHANGELOG.md"
+          fi
+
+          if [[ -n "$CHANGELOG_PATH" ]]; then
             # Try multiple version formats
             RELEASE_NOTES=$(awk -v version="$VERSION_CLEAN" -v vtag="$VERSION" '
             BEGIN { 
@@ -109,10 +118,20 @@ jobs:
                 print "## Changes\n\nSee [CHANGELOG.md](https://github.com/tyecode-bots/role-reactor-bot/blob/main/docs/CHANGELOG.md) for detailed changes."
               }
             }
-            ' docs/CHANGELOG.md)
+            ' "$CHANGELOG_PATH")
           else
             RELEASE_NOTES="## Changes\n\nSee [CHANGELOG.md](https://github.com/tyecode-bots/role-reactor-bot/blob/main/docs/CHANGELOG.md) for detailed changes."
           fi
+
+          # Set the changelog link based on which path was found
+          if [[ "$CHANGELOG_PATH" == "docs/CHANGELOG.md" ]]; then
+            CHANGELOG_LINK="https://github.com/tyecode-bots/role-reactor-bot/blob/main/docs/CHANGELOG.md"
+          else
+            CHANGELOG_LINK="https://github.com/tyecode-bots/role-reactor-bot/blob/main/CHANGELOG.md"
+          fi
+
+          # Set environment variable for the release step
+          echo "CHANGELOG_LINK=$CHANGELOG_LINK" >> $GITHUB_ENV
 
           # Set output with proper escaping
           {
@@ -145,7 +164,7 @@ jobs:
 
             ---
 
-            **[View Full Changelog](https://github.com/tyecode-bots/role-reactor-bot/blob/main/docs/CHANGELOG.md)**
+            **[View Full Changelog](${{ env.CHANGELOG_LINK }})**
           draft: false
           prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
           generate_release_notes: true
