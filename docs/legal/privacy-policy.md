@@ -1,240 +1,192 @@
 # Privacy Policy
 
-**Effective Date:** January 1, 2025  
-**Last Updated:** January 1, 2025
-
 ## 1. Introduction
 
-This Privacy Policy explains how Role Reactor Bot ("we", "us", "our", "the Bot") collects, uses, processes, and protects your information when you use our Discord bot service. We are committed to protecting your privacy and being transparent about our data practices.
+This Privacy Policy explains how Role Reactor Bot ("the Bot", "we", "our") collects, uses, and protects your information when you use our Discord bot service.
 
 ## 2. Information We Collect
 
-### 2.1 Discord-Provided Information
-When you interact with the Bot, we automatically receive certain information from Discord:
+### 2.1 Discord Data
 
-**User Information:**
-- Discord User ID (numerical identifier)
-- Username and discriminator (when needed for functionality)
-- Server nickname (if set)
+We collect the following information from Discord:
 
-**Server Information:**
-- Discord Server (Guild) ID
-- Channel IDs where the Bot operates
-- Role IDs and role names
-- Message IDs for role assignment messages
+- **User IDs**: To identify users for role assignments
+- **Server IDs**: To manage bot functionality per server
+- **Role IDs**: To track role assignments and permissions
+- **Message IDs**: To manage reaction-based role assignments
+- **Channel IDs**: To identify where role messages are posted
+- **Guild Member Data**: Basic member information for role management
+- **Permission Data**: Role permissions for validation
 
-**Interaction Data:**
-- Emoji reactions and timestamps
-- Command usage and parameters
-- Role assignment/removal events
+### 2.2 Bot Usage Data
 
-### 2.2 Data We Store
+We collect:
 
-**Role Configuration Data:**
-- Role assignment message configurations
-- Emoji-to-role mappings
-- Server-specific Bot settings
-- Custom colors and formatting preferences
+- **Command usage**: Which commands are used and when
+- **Role assignments**: Temporary and permanent role assignments
+- **Server configurations**: Role-reaction message settings
+- **Error logs**: Technical information for debugging (no personal data)
 
-**Temporary Role Data:**
-- User ID, Role ID, and Server ID combinations
-- Assignment timestamps
-- Expiration timestamps
-- Assignment reasons (if provided)
+### 2.3 What We Don't Collect
 
-**Error Logs (For Debugging):**
-- Command execution errors and timestamps
-- System performance issues
-- Basic operational logs for troubleshooting
-- No personal information beyond Discord IDs
+We do not collect:
 
-### 2.3 Data We Do NOT Collect
-We explicitly do not collect:
-- Message content (except commands directed to the Bot)
-- Private conversations or DMs
-- Voice chat data
-- Personal information like real names, emails, or addresses
-- Payment or financial information
-- Location data
-- Browsing history or external activity
+- Personal messages or conversations
+- User profile information beyond Discord IDs
+- Voice or video data
+- Payment information (service is free)
 
 ## 3. How We Use Your Information
 
-### 3.1 Primary Functions
-We use collected data to:
-- Provide role assignment functionality
-- Maintain role configurations and settings
-- Process temporary role assignments and expirations
-- Respond to Bot commands
-- Ensure proper permissions and access control
+### 3.1 Service Provision
 
-### 3.2 Service Improvement
-We use operational data to:
-- Monitor Bot performance and reliability
-- Identify and fix bugs or issues
-- Improve existing features
-- Develop new functionality
-- Maintain system stability and security
+- **Role Management**: Process role assignments and removals
+- **Temporary Roles**: Track and expire temporary role assignments
+- **Bot Functionality**: Provide reaction-based role assignment features
+- **Error Resolution**: Debug and fix technical issues
+- **Data Export**: Provide data export functionality for GDPR compliance
 
-### 3.3 Legal and Safety
-We may use data to:
-- Comply with legal obligations
-- Enforce our Terms of Use
-- Prevent abuse or misuse of the Bot
-- Protect our rights and interests
+### 3.2 Data Processing
 
-## 4. Data Sharing and Disclosure
+- **Automated Processing**: Role assignments are processed automatically
+- **Manual Review**: Technical issues may be reviewed by developers
+- **No Profiling**: We do not create user profiles or behavioral analysis
+- **Controlled Deletion**: Data deletion is handled through admin commands for safety
 
-### 4.1 No Sale of Data
-We do not sell, rent, or trade your personal information to third parties for commercial purposes.
+## 4. Data Storage and Security
 
-### 4.2 Limited Sharing
-We may share data only in these circumstances:
+### 4.1 Storage Location
 
-**Discord Platform:**
-- Data is processed through Discord's API as necessary for Bot functionality
-- Discord's own Privacy Policy applies to their handling of data
+- **Primary Storage**: MongoDB database (self-hosted or cloud)
+- **Backup Storage**: Local backups for data protection
+- **Log Storage**: Application logs for debugging
 
-**Service Providers:**
-- Database hosting providers (with appropriate data protection agreements)
-- Infrastructure providers necessary for Bot operation
+### 4.2 Security Measures
 
-**Legal Requirements:**
-- When required by law, court order, or legal process
-- To protect rights, property, or safety of users or others
-- To prevent fraud or abuse
+- **Encryption**: Data transmitted over secure connections
+- **Access Control**: Limited developer access to production data
+- **Regular Updates**: Security patches applied promptly
+- **Monitoring**: System monitoring for suspicious activity
 
-### 4.3 Server Administrators
-Server administrators can view:
-- Role configurations they have created
-- Basic usage statistics for their server
-- Temporary role assignments in their server
-- Error logs related to their server's Bot usage
+### 4.3 Data Retention
 
-Note: Server admins cannot access data from other servers or personal user data beyond what's visible in their Discord server.
+- **Role Assignments**: Retained until manually removed via admin commands or bot is removed
+- **Temporary Roles**: Automatically deleted upon expiration
+- **Server Configurations**: Retained until server removes the bot
+- **Logs**: Retained for 30 days for debugging purposes
+- **User Preferences**: Retained until user requests deletion
+- **Analytics Data**: Aggregated data retained for 90 days
 
-## 5. Data Storage and Security
+## 5. Data Sharing and Disclosure
 
-### 5.1 Storage Location
-Your data is stored on secure servers with industry-standard protection measures.
+### 5.1 No Third-Party Sharing
 
-### 5.2 Security Measures
-We implement:
-- Encryption of data in transit and at rest
-- Regular security audits and updates
-- Access controls and authentication
-- Monitoring for unauthorized access
-- Regular backups with secure storage
+We do not sell, trade, or share your data with third parties except:
 
-### 5.3 Data Retention
-We retain data for the following periods:
+- **Legal Requirements**: When required by law
+- **Service Providers**: Essential technical services (hosting, monitoring)
+- **Discord**: As required by Discord's Terms of Service
 
-**Active Role Configuration Data:** Retained while the Bot is active in your server
-**Temporary Role Data:** Automatically deleted after role expiration + 30 days
-**Error and Debug Logs:** Retained for up to 90 days for troubleshooting
-**Deleted Server Data:** Automatically removed when Bot is removed from server
+### 5.2 Discord Integration
+
+- Data is shared with Discord as necessary for bot functionality
+- Discord's privacy policy applies to their handling of your data
+- We cannot control how Discord uses your information
 
 ## 6. Your Rights and Choices
 
 ### 6.1 Access and Control
-You have the right to:
-- Request information about what data we have about you
-- Request correction of inaccurate data
-- Request deletion of your data (subject to legal and operational requirements)
-- Withdraw consent where applicable
 
-### 6.2 Server Administrator Rights
-If you're a server administrator, you can:
-- View and modify all Bot configurations in your server
-- Delete role assignment messages (removing associated data)
-- Remove the Bot from your server (triggering data deletion)
-- Request export of your server's configuration data
+- **Remove Bot**: Remove the bot from your server to stop data collection
+- **Delete Data**: Use admin commands to delete specific data or contact us for bulk deletion
+- **View Data**: Request a copy of your stored data
+- **Contact Method**: Create an issue on GitHub or join our support server
 
-### 6.3 Individual User Rights
-As an individual user, you can:
-- Stop interacting with the Bot at any time
-- Request removal from temporary role assignments
-- Contact us about data concerns
-- Report privacy issues
+### 6.2 Opt-Out Options
 
-### 6.4 Exercising Your Rights
-To exercise these rights, contact us through:
-- GitHub Issues: [Repository Link]
-- Support Server: [Discord Link]
-- Email: privacy@yourdomain.com
+- **Disable Features**: Turn off specific bot features in your server
+- **Remove Roles**: Manually remove role assignments using admin commands
+- **Contact Support**: Reach out for assistance with data concerns
+- **Data Deletion**: Use `/delete-roles` and `/remove-temp-role` commands for specific deletion
+- **Bulk Deletion**: Contact us for complete data removal across all servers
+
+### 6.3 Data Portability
+
+- **Export Data**: Use `/storage` command (developer only) to export all data
+- **Data Transfer**: We can transfer your data to another service if requested
+- **Format**: Data will be provided in JSON or CSV format as appropriate
+- **Contact Method**: Create an issue on GitHub or join our support server
+- **Comprehensive Export**: Includes role mappings, usage logs, and retention info
 
 ## 7. Children's Privacy
 
-The Bot is not intended for children under 13 years of age. We do not knowingly collect personal information from children under 13. If we become aware that we have collected data from a child under 13, we will take steps to delete such information.
+### 7.1 Age Requirements
 
-Note: Discord's Terms of Service require users to be at least 13 years old (or older in some jurisdictions).
+- Discord requires users to be 13+ years old
+- We do not knowingly collect data from users under 13
+- If we discover underage users, we will delete their data
 
-## 8. International Users
+## 8. International Data Transfers
 
-### 8.1 Data Transfers
-Your data may be transferred to and processed in countries other than your own. We ensure appropriate safeguards are in place for international data transfers.
+### 8.1 Data Location
 
-### 8.2 Legal Basis for Processing (GDPR)
-For users in the European Economic Area, our legal basis for processing personal data includes:
-- **Contract performance:** Processing necessary to provide the Bot service
-- **Legitimate interests:** Improving the service and preventing abuse
-- **Consent:** Where explicitly provided for specific features
+- Data may be stored in different countries
+- We ensure appropriate data protection measures
+- Compliance with applicable data protection laws
 
-## 9. Changes to This Privacy Policy
+## 9. Changes to This Policy
 
-We may update this Privacy Policy from time to time. When we do:
-- We will update the "Last Updated" date at the top
-- Significant changes will be announced in our support server
-- We will provide notice of material changes affecting your rights
-- Continued use after changes constitutes acceptance
+### 9.1 Updates
 
-## 10. Third-Party Services
+- This policy may be updated periodically
+- Changes will be posted in the bot's documentation
+- Significant changes will be announced via Discord
 
-### 10.1 Discord
-The Bot operates on Discord's platform. Discord's Privacy Policy governs their data practices: https://discord.com/privacy
+### 9.2 Notification
 
-### 10.2 Other Services
-We may integrate with other services in the future. Any such integrations will be clearly disclosed and subject to additional privacy notices if needed.
+- Users will be notified of major policy changes
+- Continued use constitutes acceptance of updated policy
+- Previous versions will be archived
 
-## 11. Data Breach Notification
+## 10. Contact Information
 
-In the unlikely event of a data breach that may affect your personal information, we will:
-- Investigate and contain the breach promptly
-- Notify affected users within 72 hours when possible
-- Provide clear information about what happened and what we're doing
-- Take steps to prevent future breaches
+For privacy-related questions or requests:
 
-## 12. Contact Information
+- **GitHub Issues**: [Create an issue](https://github.com/tyecode-bots/role-reactor-bot/issues)
+- **Support Server**: Join our Discord server for assistance
+- **Email**: privacy@tyecode.com
+- **Data Requests**: privacy@tyecode.com
 
-For privacy-related questions, concerns, or requests:
+## 11. Legal Basis
 
-**Primary Contact:**
-- Email: privacy@yourdomain.com
-- Response time: Within 7 business days
+### 11.1 GDPR Compliance
 
-**Alternative Contact:**
-- GitHub Issues: [Repository Link]
-- Support Server: [Discord Link]
+- **Legitimate Interest**: Providing bot functionality
+- **Consent**: Implied through bot usage
+- **Contract**: Service provision agreement
 
-**Data Protection Officer:**
-- Email: dpo@yourdomain.com (if applicable)
+### 11.2 CCPA Compliance
 
-## 13. Compliance and Certifications
+- **Service Provider**: We act as a service provider
+- **Data Categories**: Identifiers and usage data
+- **Rights**: California residents have specific rights
 
-We strive to comply with applicable privacy laws including:
-- General Data Protection Regulation (GDPR)
-- California Consumer Privacy Act (CCPA)
-- Other applicable data protection laws
+## 12. Data Breach Procedures
 
-## 14. Automated Decision Making
+### 12.1 Incident Response
 
-The Bot uses automated systems for:
-- Role assignment and removal
-- Temporary role expiration
-- Basic security and abuse prevention
+- **Detection**: Automated and manual monitoring
+- **Assessment**: Immediate impact evaluation
+- **Notification**: Prompt user notification if required
+- **Remediation**: Swift security improvements
 
-These automated processes do not involve profiling or decisions that would significantly affect users beyond the intended Bot functionality.
+### 12.2 User Notification
+
+- **Timeline**: Within 72 hours of discovery
+- **Method**: Discord message and documentation update
+- **Information**: Nature of breach and protective measures
 
 ---
 
-**By using Role Reactor Bot, you acknowledge that you have read and understood this Privacy Policy and consent to the collection and use of your information as described herein.**
+**Last Updated**: January 2025  
+**Version**: 1.1

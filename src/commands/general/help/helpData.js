@@ -25,7 +25,7 @@ export const COMMAND_CATEGORIES = {
     name: "General",
     description: "Basic bot information and help",
     color: THEME.GENERAL,
-    commands: ["help", "invite", "support"],
+    commands: ["help", "ping", "invite", "support"],
     requiredPermissions: [], // General commands available to everyone
   },
   developer: {
@@ -125,6 +125,13 @@ export const COMMAND_METADATA = {
     usage: "High",
     shortDesc: "Get the bot's invite link",
     tags: ["invite", "link", "bot"],
+  },
+  ping: {
+    emoji: EMOJIS.STATUS.LOADING,
+    complexity: "Easy",
+    usage: "High",
+    shortDesc: "Check bot latency and connection status",
+    tags: ["ping", "latency", "status"],
   },
   support: {
     emoji: EMOJIS.ACTIONS.LINK,

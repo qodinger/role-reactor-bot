@@ -7,17 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2025-01-23
+
+### Added
+
+- Enhanced help system with interactive components
+- Improved command categorization and metadata
+- Added ping command for latency checking
+- Automated update script with backup functionality
+- Data export functionality for GDPR compliance (developer only)
+- Enhanced storage command with privacy features
+- Manual data management through admin commands
+- Legal documentation (Terms of Use and Privacy Policy)
+- Improved logging with command and rate limit tracking
+
+### Changed
+
+- Updated documentation structure and organization
+- Enhanced command descriptions and usage examples
+- Improved error handling and user feedback
+- Simplified storage command to export-only (removed dangerous delete functionality)
+- Updated privacy policy to reflect admin command-based data deletion
+- Enhanced command permissions and safety measures
+
+### Fixed
+
+- Updated help data to include all available commands
+- Fixed command categorization in help system
+- Fixed missing logger methods (logCommand, logRateLimit)
+- Removed unused imports and functions after code cleanup
+
 ## [0.2.2] - 2025-07-23
 
 ### Added
+
 - Health check server configuration with configurable port settings
 - Global error handlers for unhandled promise rejections and uncaught exceptions
 
 ### Changed
+
 - Enhanced Discord API integration tests with updated imports and better test coverage
 - Improved error handling in health monitoring systems
 
 ### Fixed
+
 - Resolved issues with health check server port conflicts
 - Fixed test imports after utility reorganization
 - Fixed CI workflow pnpm executable error by reordering setup steps
@@ -28,22 +61,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.2.1] - 2025-01-22
 
 ### Added
+
 - Dynamic external links in help command
 - Improved component handling for help system
 
 ### Changed
+
 - Modularized monitoring, storage, and global utilities
 - Organized utilities into subdirectories for better structure
 - Improved GitHub Actions release workflow with modern practices
 - Enhanced release workflow with better error handling and validation
 
 ### Fixed
+
 - Resolved post-refactor bugs in developer commands
 - Fixed imports after utility reorganization
 
 ## [0.2.0] - 2025-07-20
 
 ### Added
+
 - Developer command system with runtime permission checks
 - `/storage` command for storage status monitoring
 - Runtime permission checks using `DEVELOPERS` environment variable
@@ -56,6 +93,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Automated bot update script
 
 ### Changed
+
 - Renamed "bot owner" to "developer" throughout codebase
 - Added "🔒 [DEVELOPER ONLY]" descriptions to developer commands
 - Simplified deployment scripts (reduced from 8 to 4 commands: `deploy:dev`, `deploy:prod`, `deploy:global`, `delete:commands`)
@@ -69,6 +107,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Better error messages and validation
 
 ### Fixed
+
 - Fixed Discord deprecation warnings by updating ephemeral usage
 - Fixed developer command visibility issues in Discord UI
 - Fixed deployment script logic for proper environment-based command filtering
@@ -79,11 +118,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed data structure handling for temporary roles
 
 ### Security
+
 - Added runtime permission checks for developer commands
 - Implemented environment-based command filtering
 - Enhanced command visibility controls to prevent unauthorized access
 
 ### Performance
+
 - Optimized command deployment with environment-based filtering
 - Reduced deployment script complexity from 8 to 4 essential commands
 - Improved command response times with better error handling
@@ -94,6 +135,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2025-07-10
 
 ### Added
+
 - Initial Discord role reactor bot implementation
 - Self-assignable roles through reactions
 - Temporary role system with auto-expiration

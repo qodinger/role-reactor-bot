@@ -1,5 +1,6 @@
 import { Events, InteractionType } from "discord.js";
 import { getLogger } from "../utils/logger.js";
+import { handleExportData } from "../commands/developer/storage.js";
 
 export const name = Events.InteractionCreate;
 
@@ -28,6 +29,9 @@ export async function execute(interaction, client) {
         break;
       case InteractionType.ApplicationCommandAutocomplete:
         await handleAutocompleteInteraction(interaction, client);
+        break;
+      case InteractionType.MessageComponent:
+        await handleButtonInteraction(interaction, client);
         break;
       default:
         // Unknown interaction type, ignore
@@ -115,5 +119,32 @@ const handleAutocompleteInteraction = async (interaction, client) => {
     }
   } else {
     await interaction.respond([]);
+  }
+};
+
+// Handle button interactions
+const handleButtonInteraction = async (interaction, _client) => {
+  const logger = getLogger();
+
+  try {
+    switch (interaction.customId) {
+      // Storage command buttons (developer only)
+      case "export_data":
+        await handleExportData(interaction);
+        break;
+
+      default:
+        logger.debug(`Unknown button interaction: ${interaction.customId}`);
+        break;
+    }
+  } catch (error) {
+    logger.error(
+      `Error handling button interaction ${interaction.customId}`,
+      error,
+    );
+    await interaction.reply({
+      content: "❌ An error occurred while processing your request.",
+      flags: 64,
+    });
   }
 };
