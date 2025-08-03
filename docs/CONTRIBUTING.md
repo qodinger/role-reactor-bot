@@ -95,9 +95,17 @@ pnpm format:check
 ### File Organization
 
 - **Commands**: Place in `src/commands/` with appropriate subdirectories
+  - `admin/` - Server management commands
+  - `developer/` - Developer-only commands
+  - `general/` - General user commands
 - **Events**: Place in `src/events/`
-- **Utilities**: Place in `src/utils/`
+- **Utilities**: Place in `src/utils/` with subdirectories
+  - `core/` - Core utility functions
+  - `discord/` - Discord-specific utilities
+  - `monitoring/` - Health and performance monitoring
+  - `storage/` - Database and storage management
 - **Configuration**: Place in `src/config/`
+- **Features**: Place in `src/features/` for complex features
 
 ### Naming Conventions
 
@@ -136,20 +144,24 @@ pnpm format:check
 
 ```markdown
 ## Description
+
 Brief description of changes
 
 ## Type of Change
+
 - [ ] Bug fix
 - [ ] New feature
 - [ ] Documentation update
 - [ ] Code refactoring
 
 ## Testing
+
 - [ ] Manual testing completed
 - [ ] Linting passes
 - [ ] No console.log statements added
 
 ## Checklist
+
 - [ ] Code follows project style guidelines
 - [ ] Self-review completed
 - [ ] Documentation updated
@@ -167,18 +179,21 @@ Brief description of changes
 ## 🎯 Areas for Contribution
 
 ### High Priority
+
 - **Bug fixes** and error handling improvements
 - **Performance optimizations**
 - **Security enhancements**
 - **Documentation improvements**
 
 ### Medium Priority
+
 - **New features** (discuss in issues first)
 - **Code refactoring**
 - **Test coverage improvements**
 - **Logging enhancements**
 
 ### Low Priority
+
 - **Cosmetic changes**
 - **Minor UI improvements**
 - **Additional examples**
@@ -192,8 +207,9 @@ Brief description of changes
 ## 🙏 Recognition
 
 Contributors will be recognized in:
+
 - **README.md** contributors section
 - **GitHub** contributors page
 - **Release notes** for significant contributions
 
-Thank you for contributing to Role Reactor Bot! 🎉 
+Thank you for contributing to Role Reactor Bot! 🎉

@@ -135,9 +135,12 @@ Assign temporary roles that auto-expire:
 
 #### General Commands
 
-| Command | Description             | Permissions |
-| ------- | ----------------------- | ----------- |
-| `/help` | Display bot information | None        |
+| Command    | Description                  | Permissions |
+| ---------- | ---------------------------- | ----------- |
+| `/help`    | Display bot information      | None        |
+| `/ping`    | Check bot latency and status | None        |
+| `/invite`  | Get bot invite link          | None        |
+| `/support` | Get support server link      | None        |
 
 ## 🔧 Configuration
 

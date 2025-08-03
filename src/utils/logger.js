@@ -94,6 +94,37 @@ class Logger {
   }
 
   /**
+   * Logs command execution with user tracking.
+   * @param {string} commandName - Name of the command.
+   * @param {string} userId - ID of the user who executed the command.
+   * @param {number} duration - Execution time in milliseconds.
+   * @param {boolean} success - Whether the command succeeded.
+   */
+  logCommand(commandName, userId, duration, success) {
+    this.log("INFO", `Command executed: ${commandName}`, {
+      userId,
+      duration,
+      success,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  /**
+   * Logs rate limit events.
+   * @param {string} userId - ID of the user who was rate limited.
+   * @param {string} eventType - Type of event that was rate limited.
+   * @param {object} rateLimitInfo - Rate limit information.
+   */
+  logRateLimit(userId, eventType, rateLimitInfo) {
+    this.log("WARN", `Rate limit exceeded: ${eventType}`, {
+      userId,
+      eventType,
+      rateLimitInfo,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  /**
    * Formats a log message.
    * @param {string} level - The log level.
    * @param {string} message - The log message.

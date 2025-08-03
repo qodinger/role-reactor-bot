@@ -1,151 +1,128 @@
 # Terms of Use
 
-**Effective Date:** January 1, 2025  
-**Last Updated:** January 1, 2025
-
 ## 1. Acceptance of Terms
 
-By inviting, installing, or using Role Reactor Bot ("the Bot", "our Bot", "we", "us") in your Discord server, you agree to be bound by these Terms of Use ("Terms"). If you do not agree to these Terms, do not use the Bot.
+By using Role Reactor Bot ("the Bot"), you agree to be bound by these Terms of Use. If you do not agree to these terms, please do not use the Bot.
 
 ## 2. Description of Service
 
-Role Reactor Bot is a Discord bot that provides automated role assignment functionality through emoji reactions. The Bot allows Discord server administrators to create interactive messages where users can assign themselves roles by clicking emoji reactions.
-
-### Core Features:
-- Self-assignable roles through emoji reactions
-- Temporary roles with automatic expiration
-- Role categorization and organization
-- Custom embed message creation
-- Permission-based access control
+Role Reactor Bot is a Discord bot that provides role management functionality through reaction-based interactions. The Bot allows users to self-assign roles and manage temporary roles within Discord servers. The service is provided free of charge and is designed for community management and user engagement.
 
 ## 3. User Responsibilities
 
-### 3.1 Server Administrators
-As a server administrator using the Bot, you agree to:
-- Ensure your server complies with Discord's Terms of Service and Community Guidelines
-- Use the Bot only for legitimate role management purposes
-- Not attempt to exploit, hack, or reverse engineer the Bot
-- Respect rate limits and not abuse the Bot's functionality
-- Take responsibility for how the Bot is configured in your server
+### 3.1 Proper Use
 
-### 3.2 End Users
-As a Discord user interacting with the Bot, you agree to:
-- Use emoji reactions responsibly and not spam
-- Respect the intended purpose of roles in each server
-- Report any bugs or issues through appropriate channels
-- Not attempt to circumvent role restrictions or permissions
+- Use the Bot only for its intended purpose
+- Respect Discord's Terms of Service and Community Guidelines
+- Do not attempt to abuse or exploit the Bot's features
+- Do not use the Bot for any illegal or harmful activities
 
-## 4. Prohibited Uses
+### 3.2 Server Management
 
-You may NOT use the Bot for:
-- Violating Discord's Terms of Service or Community Guidelines
-- Creating roles that promote hate speech, harassment, or discrimination
-- Circumventing server moderation or security measures
-- Distributing spam, malware, or harmful content
-- Impersonating other users or entities
-- Any illegal activities under applicable law
+- Ensure you have proper permissions to manage roles in your server
+- Use role management features responsibly
+- Do not create roles that violate Discord's policies
+- Respect other users' privacy and rights
+- Do not use the bot for harassment or discrimination
+- Comply with Discord's Community Guidelines
 
-## 5. Data Collection and Privacy
+## 4. Bot Limitations
 
-Our data practices are governed by our Privacy Policy. By using the Bot, you consent to our data collection and processing as described in that document.
+### 4.1 Availability
 
-### Data We Collect:
-- Discord user IDs and server IDs (for functionality)
-- Role assignment information and timestamps
-- Temporary role expiration data
-- Basic error logs (for debugging and support)
+- The Bot is provided "as is" without warranties
+- Service may be interrupted for maintenance or updates
+- We are not responsible for data loss or service interruptions
 
-## 6. Service Availability
+### 4.2 Rate Limits
 
-### 6.1 Uptime
-We strive to maintain high availability but do not guarantee 100% uptime. The Bot may be temporarily unavailable due to:
-- Scheduled maintenance
-- Technical issues
-- Discord API limitations
-- Infrastructure problems
+- The Bot respects Discord's rate limits
+- Excessive use may result in temporary restrictions
+- Follow Discord's API guidelines for optimal performance
 
-### 6.2 Feature Changes
-We reserve the right to:
-- Add, modify, or remove Bot features
-- Update commands and functionality
-- Change rate limits or usage restrictions
-- Discontinue the service with reasonable notice
+## 5. Privacy and Data
 
-## 7. Limitations of Liability
+### 5.1 Data Collection
 
-### 7.1 Disclaimer
-THE BOT IS PROVIDED "AS IS" WITHOUT WARRANTIES OF ANY KIND. WE DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.
+- The Bot stores role assignments and temporary role data
+- Server configuration data is stored for functionality
+- No personal user data is collected beyond what's necessary
 
-### 7.2 Limitation of Damages
-TO THE MAXIMUM EXTENT PERMITTED BY LAW, WE SHALL NOT BE LIABLE FOR:
-- Any indirect, incidental, special, or consequential damages
-- Loss of data, revenue, or profits
-- Service interruptions or downtime
-- Actions taken by Discord or third parties
+### 5.2 Data Retention
 
-### 7.3 Maximum Liability
-Our total liability shall not exceed $100 USD for any claim arising from your use of the Bot.
+- Role assignment data is retained for bot functionality
+- Temporary role data is automatically cleaned up
+- Server configuration data is retained until manually removed
 
-## 8. Intellectual Property
+## 6. Intellectual Property
 
-### 8.1 Our Rights
-The Bot, its code, documentation, and related materials are owned by Tyecode and protected by intellectual property laws. You may not copy, modify, distribute, or create derivative works without permission.
+### 6.1 Bot Code
 
-### 8.2 Your Content
-You retain ownership of content you create using the Bot (role names, descriptions, etc.), but grant us a license to process this content to provide the service.
+- The Bot's source code is licensed under MIT License
+- You may modify and distribute the code according to the license
+- Attribution to the original authors is required
 
-## 9. Termination
+### 6.2 Discord Content
 
-### 9.1 By You
-You may stop using the Bot at any time by removing it from your Discord server.
+- Discord's content remains subject to Discord's terms
+- We do not claim ownership of Discord content
+- Users retain rights to their Discord content
 
-### 9.2 By Us
-We may terminate or suspend your access to the Bot if you:
-- Violate these Terms
-- Abuse the service or cause technical issues
-- Engage in prohibited activities
-- Request termination
+## 7. Disclaimers
 
-### 9.3 Effect of Termination
-Upon termination:
-- Your access to the Bot will cease
-- Stored data may be deleted according to our Privacy Policy
-- These Terms will remain in effect for applicable provisions
+### 7.1 No Warranty
 
-## 10. Discord's Role
+- The Bot is provided without any warranties
+- We disclaim all warranties, express or implied
+- Use at your own risk
 
-### 10.1 Third-Party Service
-The Bot operates on Discord's platform. Discord's Terms of Service and Privacy Policy also apply to your use of the Bot.
+### 7.2 Limitation of Liability
 
-### 10.2 No Affiliation
-We are not affiliated with, endorsed by, or sponsored by Discord Inc. Discord is a trademark of Discord Inc.
+- We are not liable for any damages from Bot use
+- This includes direct, indirect, incidental, or consequential damages
+- Maximum liability is limited to the amount paid for the service (if any)
 
-## 11. Changes to Terms
+## 8. Termination
 
-We may update these Terms from time to time. When we do:
-- We will update the "Last Updated" date
-- Significant changes will be announced in our support server
-- Continued use of the Bot constitutes acceptance of new Terms
+### 8.1 User Termination
 
-## 12. Governing Law
+- You may stop using the Bot at any time
+- Remove the Bot from your server to discontinue use
+- Data will be retained according to our retention policy
 
-These Terms are governed by the laws of [Your Jurisdiction] without regard to conflict of law principles. Any disputes will be resolved in [Your Jurisdiction].
+### 8.2 Service Termination
 
-## 13. Contact Information
+- We may discontinue the Bot service with notice
+- Emergency termination may occur without notice
+- Users will be notified of service changes when possible
 
-For questions about these Terms:
-- **GitHub Issues**: [https://github.com/tyecode-bots/role-reactor-bot/issues](https://github.com/tyecode-bots/role-reactor-bot/issues)
-- **Support Server**: [Discord Invite Link]
-- **Email**: legal@yourdomain.com
+## 9. Changes to Terms
 
-## 14. Severability
+### 9.1 Updates
 
-If any provision of these Terms is found to be unenforceable, the remaining provisions will remain in full force and effect.
+- These terms may be updated periodically
+- Changes will be posted in the Bot's documentation
+- Continued use constitutes acceptance of new terms
 
-## 15. Entire Agreement
+### 9.2 Notification
 
-These Terms, together with our Privacy Policy, constitute the entire agreement between you and us regarding the Bot.
+- Major changes will be announced in the Bot's support server
+- Users are responsible for checking for updates
+- Significant changes will be communicated via Discord
+
+## 10. Contact Information
+
+For questions about these Terms of Use:
+
+- **GitHub Issues**: [Create an issue](https://github.com/tyecode-bots/role-reactor-bot/issues)
+- **Support Server**: Join our Discord server for assistance
+- **Email**: support@tyecode.com
+
+## 11. Governing Law
+
+These terms are governed by applicable laws. Any disputes will be resolved through appropriate legal channels. For users in the European Union, these terms are governed by EU law. For users in the United States, these terms are governed by the laws of the state where the service is provided.
 
 ---
 
-**By using Role Reactor Bot, you acknowledge that you have read, understood, and agree to be bound by these Terms of Use.**
+**Last Updated**: January 2025  
+**Version**: 1.0
