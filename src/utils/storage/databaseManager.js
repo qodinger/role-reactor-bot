@@ -172,6 +172,12 @@ class ConnectionManager {
       await this.db
         .collection("temporary_roles")
         .createIndex({ guildId: 1, userId: 1, roleId: 1 }, { unique: true });
+      await this.db
+        .collection("welcome_settings")
+        .createIndex({ guildId: 1 }, { unique: true });
+      await this.db
+        .collection("user_experience")
+        .createIndex({ guildId: 1, userId: 1 }, { unique: true });
       this.logger.success("✅ Database indexes created successfully");
     } catch (error) {
       this.logger.warn("⚠️ Index creation failed (non-critical)", error);
@@ -295,59 +301,163 @@ class UserExperienceRepository extends BaseRepository {
   }
 
   async getAll() {
-    const cacheKey = "user_experience_all";
-    const cached = this.cache.get(cacheKey);
-    if (cached) return cached;
-
-    const documents = await this.collection.find({}).toArray();
-    const experienceData = {};
-    for (const doc of documents) {
-      const key = `${doc.guildId}_${doc.userId}`;
-      experienceData[key] = {
-        guildId: doc.guildId,
-        userId: doc.userId,
-        totalXP: doc.totalXP || 0,
-        level: doc.level || 1,
-        messagesSent: doc.messagesSent || 0,
-        rolesEarned: doc.rolesEarned || 0,
-        commandsUsed: doc.commandsUsed || 0,
-        lastUpdated: doc.lastUpdated || new Date(),
-        lastEarned: doc.lastEarned || null,
-        lastCommandEarned: doc.lastCommandEarned || null,
-      };
+    try {
+      const documents = await this.collection.find({}).toArray();
+      this.cache.set("user_experience_all", documents);
+      return documents;
+    } catch (error) {
+      this.logger.error("Failed to get all user experience data", error);
+      throw error;
     }
-    this.cache.set(cacheKey, experienceData);
-    return experienceData;
+  }
+
+  async getByGuild(guildId) {
+    try {
+      const documents = await this.collection.find({ guildId }).toArray();
+      return documents;
+    } catch (error) {
+      this.logger.error(
+        `Failed to get user experience data for guild ${guildId}`,
+        error,
+      );
+      throw error;
+    }
   }
 
   async getByUser(guildId, userId) {
-    const doc = await this.collection.findOne({ guildId, userId });
-    return doc || null;
+    try {
+      const userData = await this.collection.findOne({ guildId, userId });
+      return (
+        userData || { guildId, userId, xp: 0, level: 1, lastMessageAt: null }
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to get user experience for ${userId} in ${guildId}`,
+        error,
+      );
+      throw error;
+    }
   }
 
   async set(guildId, userId, userData) {
-    await this.collection.updateOne(
-      { guildId, userId },
-      { $set: { ...userData, guildId, userId, updatedAt: new Date() } },
-      { upsert: true },
-    );
-    this.cache.clear();
+    try {
+      await this.collection.updateOne(
+        { guildId, userId },
+        { $set: { ...userData, guildId, userId, updatedAt: new Date() } },
+        { upsert: true },
+      );
+      this.cache.clear();
+    } catch (error) {
+      this.logger.error(
+        `Failed to set user experience for ${userId} in ${guildId}`,
+        error,
+      );
+      throw error;
+    }
   }
 
   async delete(guildId, userId) {
-    const result = await this.collection.deleteOne({ guildId, userId });
-    if (result.deletedCount > 0) {
+    try {
+      await this.collection.deleteOne({ guildId, userId });
       this.cache.clear();
+    } catch (error) {
+      this.logger.error(
+        `Failed to delete user experience for ${userId} in ${guildId}`,
+        error,
+      );
+      throw error;
     }
-    return result.deletedCount > 0;
   }
 
   async getLeaderboard(guildId, limit = 10) {
-    return this.collection
-      .find({ guildId })
-      .sort({ totalXP: -1, level: -1 })
-      .limit(limit)
-      .toArray();
+    try {
+      const leaderboard = await this.collection
+        .find({ guildId })
+        .sort({ xp: -1, level: -1 })
+        .limit(limit)
+        .toArray();
+      return leaderboard;
+    } catch (error) {
+      this.logger.error(
+        `Failed to get leaderboard for guild ${guildId}`,
+        error,
+      );
+      throw error;
+    }
+  }
+}
+
+class WelcomeSettingsRepository extends BaseRepository {
+  constructor(db, cache, logger) {
+    super(db, "welcome_settings", cache, logger);
+  }
+
+  async getByGuild(guildId) {
+    try {
+      const settings = await this.collection.findOne({ guildId });
+      return (
+        settings || {
+          guildId,
+          enabled: false,
+          channelId: null,
+          message: "Welcome {user} to {server}! 🎉",
+          autoRoleId: null,
+          embedEnabled: true,
+          embedColor: 0x7f7bf5,
+          embedTitle: "Welcome to {server}!",
+          embedDescription: "We're excited to have you join our community!",
+          embedThumbnail: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to get welcome settings for guild ${guildId}`,
+        error,
+      );
+      throw error;
+    }
+  }
+
+  async set(guildId, settings) {
+    try {
+      await this.collection.updateOne(
+        { guildId },
+        { $set: { ...settings, guildId, updatedAt: new Date() } },
+        { upsert: true },
+      );
+      this.cache.clear();
+    } catch (error) {
+      this.logger.error(
+        `Failed to set welcome settings for guild ${guildId}`,
+        error,
+      );
+      throw error;
+    }
+  }
+
+  async delete(guildId) {
+    try {
+      await this.collection.deleteOne({ guildId });
+      this.cache.clear();
+    } catch (error) {
+      this.logger.error(
+        `Failed to delete welcome settings for guild ${guildId}`,
+        error,
+      );
+      throw error;
+    }
+  }
+
+  async getAllEnabled() {
+    try {
+      const settings = await this.collection.find({ enabled: true }).toArray();
+      return settings;
+    } catch (error) {
+      this.logger.error("Failed to get all enabled welcome settings", error);
+      throw error;
+    }
   }
 }
 
@@ -362,26 +472,43 @@ class DatabaseManager {
     this.roleMappings = null;
     this.temporaryRoles = null;
     this.userExperience = null;
+    this.welcomeSettings = null;
   }
 
   async connect() {
-    const db = await this.connectionManager.connect();
-    if (db) {
-      this.roleMappings = new RoleMappingRepository(
-        db,
-        this.cacheManager,
-        this.logger,
-      );
-      this.temporaryRoles = new TemporaryRoleRepository(
-        db,
-        this.cacheManager,
-        this.logger,
-      );
-      this.userExperience = new UserExperienceRepository(
-        db,
-        this.cacheManager,
-        this.logger,
-      );
+    try {
+      const db = await this.connectionManager.connect();
+      if (db) {
+        this.roleMappings = new RoleMappingRepository(
+          db,
+          this.cacheManager,
+          this.logger,
+        );
+        this.temporaryRoles = new TemporaryRoleRepository(
+          db,
+          this.cacheManager,
+          this.logger,
+        );
+        this.userExperience = new UserExperienceRepository(
+          db,
+          this.cacheManager,
+          this.logger,
+        );
+        this.welcomeSettings = new WelcomeSettingsRepository(
+          db,
+          this.cacheManager,
+          this.logger,
+        );
+        this.logger.info(
+          "✅ All database repositories initialized successfully",
+        );
+      } else {
+        this.logger.error("❌ Failed to connect to database");
+        throw new Error("Database connection failed");
+      }
+    } catch (error) {
+      this.logger.error("❌ Failed to initialize database repositories", error);
+      throw error;
     }
   }
 
@@ -408,5 +535,21 @@ export async function getDatabaseManager() {
     databaseManager = new DatabaseManager();
     await databaseManager.connect();
   }
+
+  // Check if repositories are properly initialized
+  if (!databaseManager.welcomeSettings) {
+    // Try to reconnect if repositories are not initialized
+    try {
+      await databaseManager.connect();
+    } catch (_error) {
+      throw new Error("Database repositories not properly initialized");
+    }
+
+    // Check again after reconnection attempt
+    if (!databaseManager.welcomeSettings) {
+      throw new Error("Database repositories not properly initialized");
+    }
+  }
+
   return databaseManager;
 }
