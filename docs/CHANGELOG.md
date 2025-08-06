@@ -5,17 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.3.2] - 2025-01-22
+## [0.3.2] - 2025-08-06
+
+### Added
+
+- Enhanced Avatar Command: Added direct download buttons for PNG, JPG, and WebP formats
+- Experience (XP) System: Complete XP system with leveling, leaderboards, and user profiles
+- New General Commands: Added `/8ball`, `/avatar`, `/leaderboard`, `/level`, `/serverinfo` for member engagement
+- Interactive Leaderboard: Added time filters (All Time, Daily, Weekly, Monthly) with interactive buttons
+- Message XP: Users earn 15-25 XP for messages with 60-second cooldown
+- Command XP: Users earn 3-15 XP for command usage with 30-second cooldown
+- Role XP: Users earn 50 XP for role assignments
+- Database Integration: XP data stored in MongoDB with UserExperienceRepository
+- Server Rank Display: Level command now shows actual server rank instead of "Coming soon..."
 
 ### Changed
 
-- Simplified Storage Command: Removed cleanup buttons for better security and user experience
-- Streamlined Legal Documentation: Removed end-user legal documents to focus on developer documentation
+- Avatar Command UI: Replaced interactive buttons with direct URL download buttons for better UX
+- Avatar Command Colors: Changed embed color from SUCCESS to PRIMARY theme
+- Avatar Command Information: Removed misleading image size claims and unnecessary download text
+- Experience System Storage: Migrated XP data from file storage to MongoDB database
+- Leaderboard UI: Enhanced with time filters and cleaner presentation
+- Theme Consistency: Fixed all hardcoded emojis to use centralized theme.js exports
+
+### Fixed
+
+- Avatar Download Formats: Fixed Discord CDN format parameters for proper PNG/JPG/WebP downloads
+- Experience System Integration: Fixed storage manager to use database for XP data
+- Command Handler: Fixed interactionCreate to use commandHandler for proper XP awarding
+- Theme Emojis: Resolved "undefined" emoji issues by using proper theme.js references
+- Leaderboard Linter Errors: Fixed string concatenation and variable usage issues
+- Database Migration: Successfully migrated existing XP data from files to MongoDB
 
 ### Removed
 
 - Legal Documentation: Removed `docs/legal/privacy-policy.md` and `docs/legal/terms-of-use.md` as they were intended for end users rather than developers
 - Storage Command Cleanup Features: Removed "Cleanup Expired Roles" and "Test Auto Cleanup" buttons from developer storage command for improved security
+- Avatar Command Redundancy: Removed unnecessary download options text and misleading image size information
 
 ## [0.3.1] - 2025-08-03
 
