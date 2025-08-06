@@ -13,6 +13,7 @@
 import { Collection } from "discord.js";
 import { getEventHandler } from "./eventHandler.js";
 import { getLogger } from "../logger.js";
+import { getExperienceManager } from "../../features/experience/ExperienceManager.js";
 
 /**
  * Command Handler Class
@@ -233,6 +234,39 @@ class CommandHandler {
 
       const duration = Date.now() - startTime;
       this.recordCommand(commandName, interaction.user.id, duration);
+
+      // Award XP for command usage (only for successful commands)
+      try {
+        const experienceManager = await getExperienceManager();
+        this.logger.info(
+          `🎯 Attempting to award XP for command: ${commandName} by user: ${interaction.user.id} in guild: ${interaction.guild.id}`,
+        );
+
+        const xpData = await experienceManager.awardCommandXP(
+          interaction.guild.id,
+          interaction.user.id,
+          commandName,
+        );
+
+        if (xpData) {
+          this.logger.info(
+            `✅ Awarded ${xpData.xp} XP to user ${interaction.user.tag} (${interaction.user.id})`,
+          );
+          if (xpData.leveledUp) {
+            this.logger.info(
+              `🎉 User ${interaction.user.tag} leveled up to level ${xpData.newLevel} from command usage`,
+            );
+          }
+        } else {
+          this.logger.info(
+            `⏰ User ${interaction.user.tag} is on cooldown for command XP`,
+          );
+        }
+        // Note: If xpData is null, it means the user is on cooldown (normal behavior)
+      } catch (xpError) {
+        // Don't let XP errors break the command
+        this.logger.error("Failed to award command XP", xpError);
+      }
 
       this.logger.logCommand(commandName, interaction.user.id, duration, true);
     } catch (error) {

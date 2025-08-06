@@ -81,6 +81,23 @@ class DatabaseProvider {
     await this.dbManager.temporaryRoles.delete(guildId, userId, roleId);
     return true;
   }
+
+  async getUserExperience(guildId, userId) {
+    return this.dbManager.userExperience.getByUser(guildId, userId);
+  }
+
+  async setUserExperience(guildId, userId, userData) {
+    await this.dbManager.userExperience.set(guildId, userId, userData);
+    return true;
+  }
+
+  async getAllUserExperience() {
+    return this.dbManager.userExperience.getAll();
+  }
+
+  async getUserExperienceLeaderboard(guildId, limit) {
+    return this.dbManager.userExperience.getLeaderboard(guildId, limit);
+  }
 }
 
 class StorageManager {
@@ -173,6 +190,40 @@ class StorageManager {
       return this.provider.write("temporary_roles", tempRoles);
     }
     return false;
+  }
+
+  // Generic storage methods for other features
+  async read(collection) {
+    if (this.provider instanceof DatabaseProvider) {
+      // Use database for user_experience collection
+      if (collection === "user_experience") {
+        return this.provider.getAllUserExperience();
+      }
+      // For other collections, use file-based storage
+      const fileProvider = new FileProvider(this.logger);
+      return fileProvider.read(collection);
+    }
+    return this.provider.read(collection);
+  }
+
+  async write(collection, data) {
+    if (this.provider instanceof DatabaseProvider) {
+      // Use database for user_experience collection
+      if (collection === "user_experience") {
+        // Update all user experience data in database
+        for (const [key, userData] of Object.entries(data)) {
+          const [guildId, userId] = key.split("_");
+          if (guildId && userId) {
+            await this.provider.setUserExperience(guildId, userId, userData);
+          }
+        }
+        return true;
+      }
+      // For other collections, use file-based storage
+      const fileProvider = new FileProvider(this.logger);
+      return fileProvider.write(collection, data);
+    }
+    return this.provider.write(collection, data);
   }
 }
 

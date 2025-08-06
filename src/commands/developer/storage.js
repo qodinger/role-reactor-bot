@@ -125,18 +125,6 @@ export async function execute(interaction, _client) {
           label: "Export Data",
           custom_id: "export_data",
         },
-        {
-          type: 2,
-          style: 3,
-          label: "Cleanup Expired Roles",
-          custom_id: "cleanup_temp_roles",
-        },
-        {
-          type: 2,
-          style: 1,
-          label: "Test Auto Cleanup",
-          custom_id: "test_auto_cleanup",
-        },
       ],
     };
 

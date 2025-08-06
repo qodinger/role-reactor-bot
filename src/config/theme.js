@@ -214,6 +214,13 @@ export const EMOJIS = {
     HEART: "❤️",
     THUMBS_UP: "👍",
     THUMBS_DOWN: "👎",
+    OWNER: "👑",
+    IMAGE: "🖼️",
+    QUESTION: "❓",
+    ANSWER: "💬",
+    USERS: "👥",
+    CHANNELS: "📺",
+    INFO: "ℹ️",
   },
 
   // Time and scheduling
