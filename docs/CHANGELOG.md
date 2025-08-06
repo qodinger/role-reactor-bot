@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.3] - 2025-08-07
+
+### Added
+
+- Welcome System: Complete welcome system with auto-welcome messages and auto-role assignment
+- Auto-Welcome Messages: Automatically send welcome messages when new members join
+- Custom Welcome Messages: Support for customizable welcome messages with placeholders
+- Auto-Role Assignment: Automatically assign roles to new members upon joining
+- Welcome System Commands: Added `/setup-welcome` and `/welcome-settings` for configuration
+- Welcome Message Placeholders: Support for {user}, {user.name}, {user.tag}, {user.id}, {server}, {server.id}, {memberCount}, {memberCount.ordinal}
+- Welcome Embed Support: Rich embed format for welcome messages with member information
+- Welcome System Database: MongoDB integration for storing welcome settings per guild
+- Welcome System Validation: Comprehensive permission and configuration validation
+- Welcome System Utilities: Dedicated utility functions for message processing and embed creation
+
 ## [0.3.2] - 2025-08-06
 
 ### Added

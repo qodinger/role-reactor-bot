@@ -18,6 +18,7 @@ A production-ready Discord bot for self-assignable roles through reactions. Buil
 
 - **🎯 Self-Assignable Roles**: Users can assign/remove roles by reacting to messages
 - **⏰ Temporary Roles**: Auto-expire roles after a set time
+- **🎉 Welcome System**: Auto-welcome new members with customizable messages and auto-role assignment
 - **🛡️ Permission Controls**: Comprehensive permission checking
 - **🎨 Custom Emojis**: Support for Unicode and custom server emojis
 - **📊 Role Categories**: Organize roles into logical groups
@@ -115,6 +116,37 @@ Assign temporary roles that auto-expire:
 - `1d` - 1 day
 - `1w` - 1 week
 
+### Welcome System
+
+Automatically welcome new members with customizable messages and auto-role assignment:
+
+**Setup welcome system:**
+
+```
+/setup-welcome channel:#welcome message:"Welcome {user} to {server}! You are member #{memberCount.ordinal}!" auto-role:@Member enabled:true embed:true
+```
+
+**View settings:**
+
+```
+/welcome-settings
+```
+
+**Test welcome message:**
+
+```
+/test-welcome
+```
+
+**Available placeholders:**
+
+- `{user}` - User mention
+- `{user.name}` - Username
+- `{user.tag}` - User tag
+- `{server}` - Server name
+- `{memberCount}` - Member count
+- `{memberCount.ordinal}` - Ordinal member count
+
 ### Available Commands
 
 #### Server Management Commands
@@ -128,6 +160,9 @@ Assign temporary roles that auto-expire:
 | `/assign-temp-role` | Assign a temporary role         | Manage Roles |
 | `/list-temp-roles`  | List temporary roles            | Manage Roles |
 | `/remove-temp-role` | Remove a temporary role         | Manage Roles |
+| `/setup-welcome`    | Configure welcome system        | Manage Guild |
+| `/welcome-settings` | View welcome system settings    | Manage Guild |
+| `/test-welcome`     | Test welcome system             | Manage Guild |
 
 #### Developer Commands
 
@@ -165,11 +200,12 @@ Assign temporary roles that auto-expire:
 
 Required Discord bot permissions:
 
-- **Manage Roles**: To assign/remove roles
+- **Manage Roles**: To assign/remove roles and auto-roles
 - **Manage Messages**: To add reactions
 - **Add Reactions**: To add emoji reactions
 - **Read Message History**: To access reaction events
 - **View Channel**: To read channel content
+- **Send Messages**: To send welcome messages
 
 ## 🚀 Production Deployment
 
