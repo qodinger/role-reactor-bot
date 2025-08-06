@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.2] - 2025-01-22
+
+### Changed
+
+- Simplified Storage Command: Removed cleanup buttons for better security and user experience
+- Streamlined Legal Documentation: Removed end-user legal documents to focus on developer documentation
+
+### Removed
+
+- Legal Documentation: Removed `docs/legal/privacy-policy.md` and `docs/legal/terms-of-use.md` as they were intended for end users rather than developers
+- Storage Command Cleanup Features: Removed "Cleanup Expired Roles" and "Test Auto Cleanup" buttons from developer storage command for improved security
+
 ## [0.3.1] - 2025-08-03
 
 ### Added

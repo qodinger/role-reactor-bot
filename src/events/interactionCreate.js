@@ -1,5 +1,6 @@
 import { Events, InteractionType } from "discord.js";
 import { getLogger } from "../utils/logger.js";
+import { getCommandHandler } from "../utils/core/commandHandler.js";
 import {
   handleExportData,
   handleCleanupTempRoles,
@@ -66,21 +67,10 @@ export async function execute(interaction, client) {
 // Handle command interactions
 const handleCommandInteraction = async (interaction, client) => {
   const logger = getLogger();
-  const command = client.commands.get(interaction.commandName);
-
-  if (!command) {
-    // Check if already replied to prevent double responses
-    if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({
-        content: "❌ Unknown command.",
-        flags: 64,
-      });
-    }
-    return;
-  }
+  const commandHandler = getCommandHandler();
 
   try {
-    await command.execute(interaction, client);
+    await commandHandler.executeCommand(interaction, client);
     logger.info(
       `Command executed: ${interaction.commandName} by ${interaction.user.tag}`,
     );
@@ -131,6 +121,12 @@ const handleButtonInteraction = async (interaction, _client) => {
   const logger = getLogger();
 
   try {
+    // Handle leaderboard time filter buttons
+    if (interaction.customId.startsWith("leaderboard_")) {
+      await handleLeaderboardButton(interaction);
+      return;
+    }
+
     switch (interaction.customId) {
       // Storage command buttons (developer only)
       case "export_data":
@@ -154,6 +150,50 @@ const handleButtonInteraction = async (interaction, _client) => {
     );
     await interaction.reply({
       content: "❌ An error occurred while processing your request.",
+      flags: 64,
+    });
+  }
+};
+
+// Handle leaderboard button interactions
+const handleLeaderboardButton = async interaction => {
+  const logger = getLogger();
+
+  try {
+    // Parse the button customId: leaderboard_timeframe_userId
+    const parts = interaction.customId.split("_");
+    if (parts.length !== 3) {
+      logger.error(
+        `Invalid leaderboard button format: ${interaction.customId}`,
+      );
+      return;
+    }
+
+    const timeframe = parts[1];
+    const userId = parts[2];
+
+    // Check if the button was clicked by the same user
+    if (interaction.user.id !== userId) {
+      await interaction.reply({
+        content: "❌ You can only use your own leaderboard buttons.",
+        flags: 64,
+      });
+      return;
+    }
+
+    // Import the leaderboard command and execute it with the new timeframe
+    const { execute } = await import("../commands/general/leaderboard.js");
+
+    // Temporarily set the timeframe option
+    interaction.options = {
+      getString: () => timeframe,
+    };
+
+    await execute(interaction, null);
+  } catch (error) {
+    logger.error("Error handling leaderboard button", error);
+    await interaction.reply({
+      content: "❌ An error occurred while updating the leaderboard.",
       flags: 64,
     });
   }

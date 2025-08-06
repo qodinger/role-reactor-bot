@@ -25,7 +25,19 @@ export const COMMAND_CATEGORIES = {
     name: "General",
     description: "Basic bot information and help",
     color: THEME.GENERAL,
-    commands: ["help", "ping", "invite", "support"],
+    commands: [
+      "help",
+      "ping",
+      "invite",
+      "support",
+      "roles",
+      "serverinfo",
+      "userinfo",
+      "avatar",
+      "8ball",
+      "level",
+      "leaderboard",
+    ],
     requiredPermissions: [], // General commands available to everyone
   },
   developer: {

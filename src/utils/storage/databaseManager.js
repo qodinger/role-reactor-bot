@@ -289,6 +289,68 @@ class TemporaryRoleRepository extends BaseRepository {
   }
 }
 
+class UserExperienceRepository extends BaseRepository {
+  constructor(db, cache, logger) {
+    super(db, "user_experience", cache, logger);
+  }
+
+  async getAll() {
+    const cacheKey = "user_experience_all";
+    const cached = this.cache.get(cacheKey);
+    if (cached) return cached;
+
+    const documents = await this.collection.find({}).toArray();
+    const experienceData = {};
+    for (const doc of documents) {
+      const key = `${doc.guildId}_${doc.userId}`;
+      experienceData[key] = {
+        guildId: doc.guildId,
+        userId: doc.userId,
+        totalXP: doc.totalXP || 0,
+        level: doc.level || 1,
+        messagesSent: doc.messagesSent || 0,
+        rolesEarned: doc.rolesEarned || 0,
+        commandsUsed: doc.commandsUsed || 0,
+        lastUpdated: doc.lastUpdated || new Date(),
+        lastEarned: doc.lastEarned || null,
+        lastCommandEarned: doc.lastCommandEarned || null,
+      };
+    }
+    this.cache.set(cacheKey, experienceData);
+    return experienceData;
+  }
+
+  async getByUser(guildId, userId) {
+    const doc = await this.collection.findOne({ guildId, userId });
+    return doc || null;
+  }
+
+  async set(guildId, userId, userData) {
+    await this.collection.updateOne(
+      { guildId, userId },
+      { $set: { ...userData, guildId, userId, updatedAt: new Date() } },
+      { upsert: true },
+    );
+    this.cache.clear();
+  }
+
+  async delete(guildId, userId) {
+    const result = await this.collection.deleteOne({ guildId, userId });
+    if (result.deletedCount > 0) {
+      this.cache.clear();
+    }
+    return result.deletedCount > 0;
+  }
+
+  async getLeaderboard(guildId, limit = 10) {
+    return this.collection
+      .find({ guildId })
+      .sort({ totalXP: -1, level: -1 })
+      .limit(limit)
+      .toArray();
+  }
+}
+
 class DatabaseManager {
   constructor() {
     this.logger = getLogger();
@@ -299,6 +361,7 @@ class DatabaseManager {
     this.cacheManager = new CacheManager();
     this.roleMappings = null;
     this.temporaryRoles = null;
+    this.userExperience = null;
   }
 
   async connect() {
@@ -310,6 +373,11 @@ class DatabaseManager {
         this.logger,
       );
       this.temporaryRoles = new TemporaryRoleRepository(
+        db,
+        this.cacheManager,
+        this.logger,
+      );
+      this.userExperience = new UserExperienceRepository(
         db,
         this.cacheManager,
         this.logger,
