@@ -151,10 +151,25 @@ class ExperienceManager {
 
     // If using database provider, use optimized database query
     if (this.storageManager.provider.constructor.name === "DatabaseProvider") {
-      return this.storageManager.provider.getUserExperienceLeaderboard(
-        guildId,
-        limit,
-      );
+      const docs =
+        await this.storageManager.provider.getUserExperienceLeaderboard(
+          guildId,
+          limit,
+        );
+      // Normalize fields to match file-provider shape
+      return docs
+        .map(doc => ({
+          ...doc,
+          totalXP: typeof doc.totalXP === "number" ? doc.totalXP : doc.xp || 0,
+          level:
+            typeof doc.level === "number"
+              ? doc.level
+              : this.calculateLevel(
+                  typeof doc.totalXP === "number" ? doc.totalXP : doc.xp || 0,
+                ),
+        }))
+        .sort((a, b) => b.totalXP - a.totalXP)
+        .slice(0, limit);
     }
 
     // Fallback to file-based query
