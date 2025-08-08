@@ -373,7 +373,8 @@ class UserExperienceRepository extends BaseRepository {
     try {
       const leaderboard = await this.collection
         .find({ guildId })
-        .sort({ xp: -1, level: -1 })
+        // Sort by totalXP (primary) then level (secondary)
+        .sort({ totalXP: -1, level: -1 })
         .limit(limit)
         .toArray();
       return leaderboard;
