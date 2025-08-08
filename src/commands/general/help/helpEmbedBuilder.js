@@ -1,8 +1,7 @@
 import { EmbedBuilder, PermissionFlagsBits } from "discord.js";
 import { THEME_COLOR, EMOJIS, UI_COMPONENTS } from "../../../config/theme.js";
 import {
-  COMMAND_CATEGORIES,
-  COMMAND_METADATA,
+  getDynamicHelpData,
   getComplexityIndicator,
   getUsageIndicator,
 } from "./helpData.js";
@@ -107,34 +106,41 @@ export class HelpEmbedBuilder {
       return this.createMainHelpEmbed(client);
     }
 
-    const category = COMMAND_CATEGORIES[categoryKey];
-    if (!category) return null;
+    try {
+      const { COMMAND_CATEGORIES } = getDynamicHelpData(client);
+      const category = COMMAND_CATEGORIES[categoryKey];
+      if (!category) return null;
 
-    const embed = new EmbedBuilder()
-      .setTitle(`${category.emoji} ${category.name} Commands`)
-      .setDescription(category.description)
-      .setColor(category.color)
-      .setTimestamp()
-      .setFooter(
-        UI_COMPONENTS.createFooter(
-          "Use the dropdown to switch categories",
-          client.user.displayAvatarURL(),
-        ),
-      );
+      const embed = new EmbedBuilder()
+        .setTitle(`${category.emoji} ${category.name} Commands`)
+        .setDescription(category.description)
+        .setColor(category.color)
+        .setTimestamp()
+        .setFooter(
+          UI_COMPONENTS.createFooter(
+            "Use the dropdown to switch categories",
+            client.user.displayAvatarURL(),
+          ),
+        );
 
-    // Add commands as fields
-    category.commands.forEach(cmdName => {
-      const meta = COMMAND_METADATA[cmdName];
-      if (meta) {
-        embed.addFields({
-          name: `${meta.emoji} \`/${cmdName}\``,
-          value: `${meta.shortDesc}\n${getComplexityIndicator(meta.complexity)} ${meta.complexity} • ${getUsageIndicator(meta.usage)} ${meta.usage}`,
-          inline: true,
-        });
-      }
-    });
+      // Add commands as fields
+      const { COMMAND_METADATA } = getDynamicHelpData(client);
+      category.commands.forEach(cmdName => {
+        const meta = COMMAND_METADATA[cmdName];
+        if (meta) {
+          embed.addFields({
+            name: `${meta.emoji} \`/${cmdName}\``,
+            value: `${meta.shortDesc}\n${getComplexityIndicator(meta.complexity)} ${meta.complexity} • ${getUsageIndicator(meta.usage)} ${meta.usage}`,
+            inline: true,
+          });
+        }
+      });
 
-    return embed;
+      return embed;
+    } catch (error) {
+      console.error("Error creating category embed:", error);
+      return null;
+    }
   }
 
   /**
@@ -144,36 +150,47 @@ export class HelpEmbedBuilder {
    * @returns {import('discord.js').EmbedBuilder}
    */
   static createCommandDetailEmbed(command, client) {
-    const meta = COMMAND_METADATA[command.data.name];
-    const embed = new EmbedBuilder()
-      .setTitle(`${meta?.emoji || EMOJIS.ACTIONS.HELP} /${command.data.name}`)
-      .setDescription(command.data.description || "No description available.")
-      .setColor(THEME_COLOR)
-      .setTimestamp()
-      .setFooter(
-        UI_COMPONENTS.createFooter(
-          "Role Reactor Help",
-          client.user.displayAvatarURL(),
-        ),
-      );
+    try {
+      const { COMMAND_METADATA } = getDynamicHelpData(client);
+      const meta = COMMAND_METADATA[command.data.name];
+      const embed = new EmbedBuilder()
+        .setTitle(`${meta?.emoji || EMOJIS.ACTIONS.HELP} /${command.data.name}`)
+        .setDescription(command.data.description || "No description available.")
+        .setColor(THEME_COLOR)
+        .setTimestamp()
+        .setFooter(
+          UI_COMPONENTS.createFooter(
+            "Role Reactor Help",
+            client.user.displayAvatarURL(),
+          ),
+        );
 
-    // Add command metadata
-    if (meta) {
-      embed.addFields({
-        name: `${EMOJIS.FEATURES.MONITORING} 📊 Command Info`,
-        value: [
-          `**Complexity:** ${getComplexityIndicator(meta.complexity)} ${meta.complexity}`,
-          `**Usage:** ${getUsageIndicator(meta.usage)} ${meta.usage}`,
-          `**Tags:** ${meta.tags?.map(tag => `\`${tag}\``).join(", ") || "None"}`,
-        ].join("\n"),
-        inline: false,
-      });
+      // Add command metadata
+      if (meta) {
+        embed.addFields({
+          name: `${EMOJIS.FEATURES.MONITORING} 📊 Command Info`,
+          value: [
+            `**Complexity:** ${getComplexityIndicator(meta.complexity)} ${meta.complexity}`,
+            `**Usage:** ${getUsageIndicator(meta.usage)} ${meta.usage}`,
+            `**Tags:** ${meta.tags?.map(tag => `\`${tag}\``).join(", ") || "None"}`,
+          ].join("\n"),
+          inline: false,
+        });
+      }
+
+      // Add command-specific help based on command name
+      this.addCommandSpecificHelp(embed, command.data.name);
+
+      return embed;
+    } catch (error) {
+      console.error("Error creating command detail embed:", error);
+      // Return a basic embed as fallback
+      return new EmbedBuilder()
+        .setTitle(`${EMOJIS.ACTIONS.HELP} /${command.data.name}`)
+        .setDescription(command.data.description || "No description available.")
+        .setColor(THEME_COLOR)
+        .setTimestamp();
     }
-
-    // Add command-specific help based on command name
-    this.addCommandSpecificHelp(embed, command.data.name);
-
-    return embed;
   }
 
   /**
