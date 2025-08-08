@@ -45,7 +45,7 @@ export class HelpEmbedBuilder {
    * @param {import('discord.js').Client} client
    * @returns {import('discord.js').EmbedBuilder}
    */
-  static createMainHelpEmbed(client) {
+  static createMainHelpEmbed(client, _member = null) {
     const embed = new EmbedBuilder()
       .setAuthor(
         UI_COMPONENTS.createAuthor(
@@ -54,9 +54,12 @@ export class HelpEmbedBuilder {
         ),
       )
       .setDescription(
-        `${EMOJIS.FEATURES.ROLES} **Easy role management through reactions!**\n\n` +
-          `🎯 **Simple Setup** • 🎨 **Beautiful UI** • ⚡ **Instant Roles**\n\n` +
-          `Use the **dropdown menu** below to explore commands!`,
+        [
+          `${EMOJIS.FEATURES.ROLES} **Easy role management through reactions!**`,
+          `🎯 **Simple Setup** • 🎨 **Beautiful UI** • ⚡ **Instant Roles**`,
+          ``,
+          `Use the dropdown to browse categories or the buttons to switch views.`,
+        ].join("\n"),
       )
       .setColor(THEME_COLOR)
       .setThumbnail(client.user.displayAvatarURL())
@@ -68,31 +71,127 @@ export class HelpEmbedBuilder {
         ),
       );
 
-    // Quick Start Guide
-    embed.addFields({
-      name: `${EMOJIS.ACTIONS.QUICK} Quick Start`,
-      value: [
-        `${EMOJIS.NUMBERS.ONE} Use \`/setup-roles\` to create role selections`,
-        `${EMOJIS.NUMBERS.TWO} Members click reactions to get roles instantly`,
-        `${EMOJIS.NUMBERS.THREE} Use \`/assign-temp-role\` for time-limited access`,
-        `${EMOJIS.NUMBERS.FOUR} Track everything with \`/list-roles\``,
-      ].join("\n"),
-      inline: false,
-    });
+    // Overview stats and quick start
+    try {
+      const { COMMAND_METADATA, COMMAND_CATEGORIES } =
+        getDynamicHelpData(client);
+      const totalCommands = Object.keys(COMMAND_METADATA).length;
+      const totalCategories = Object.keys(COMMAND_CATEGORIES).length;
+      const topCommands = HelpEmbedBuilder.getTopCommandsSummary(
+        COMMAND_METADATA,
+        6,
+      );
 
-    // Key Features
-    embed.addFields({
-      name: `${EMOJIS.STATUS.SUCCESS} Key Features`,
-      value: [
-        `${EMOJIS.FEATURES.ROLES} **One-Click Roles** - Instant role assignment`,
-        `${EMOJIS.FEATURES.TEMPORARY} **Event Roles** - Perfect for tournaments and giveaways`,
-        `${EMOJIS.FEATURES.SECURITY} **Safe & Secure** - Admin-only management`,
-        `${EMOJIS.FEATURES.MONITORING} **Always Online** - Built-in monitoring`,
-      ].join("\n"),
-      inline: false,
-    });
+      embed.addFields(
+        {
+          name: `${EMOJIS.STATUS.INFO} Overview`,
+          value: [
+            `Commands: **${totalCommands}** • Categories: **${totalCategories}**`,
+            `Popular: ${topCommands || "N/A"}`,
+          ].join("\n"),
+          inline: false,
+        },
+        {
+          name: `${EMOJIS.UI.MENU} Legend`,
+          value: [
+            `${EMOJIS.COMPLEXITY.EASY} Easy  ${EMOJIS.COMPLEXITY.MEDIUM} Medium  ${EMOJIS.COMPLEXITY.HARD} Hard`,
+            `${EMOJIS.USAGE.HIGH} High usage  ${EMOJIS.USAGE.MEDIUM} Medium  ${EMOJIS.USAGE.LOW} Low`,
+          ].join("\n"),
+          inline: false,
+        },
+        {
+          name: `${EMOJIS.ACTIONS.QUICK} Quick Start`,
+          value: [
+            `${EMOJIS.NUMBERS.ONE} Use \`/setup-roles\` to create role selections`,
+            `${EMOJIS.NUMBERS.TWO} Members click reactions to get roles instantly`,
+            `${EMOJIS.NUMBERS.THREE} Use \`/assign-temp-role\` for time-limited access`,
+            `${EMOJIS.NUMBERS.FOUR} Track everything with \`/list-roles\``,
+          ].join("\n"),
+          inline: false,
+        },
+      );
+    } catch {
+      // Fall back silently if dynamic data unavailable
+    }
 
     return embed;
+  }
+
+  /**
+   * Create an embed showing all commands (first 25 due to Discord limits)
+   * @param {import('discord.js').Client} client
+   * @returns {import('discord.js').EmbedBuilder}
+   */
+  static createAllCommandsEmbed(client) {
+    const embed = new EmbedBuilder()
+      .setTitle(`${EMOJIS.ACTIONS.SEARCH} All Commands`)
+      .setColor(THEME_COLOR)
+      .setTimestamp();
+
+    try {
+      const { COMMAND_METADATA } = getDynamicHelpData(client);
+      const all = Object.entries(COMMAND_METADATA).sort((a, b) =>
+        a[0].localeCompare(b[0]),
+      );
+
+      const shown = all.slice(0, 25);
+
+      // Group into 5 fields with 5 commands each for readability
+      const chunks = [];
+      for (let i = 0; i < shown.length; i += 5) {
+        chunks.push(shown.slice(i, i + 5));
+      }
+
+      chunks.forEach(chunk => {
+        if (chunk.length === 0) return;
+        const first = chunk[0][0];
+        const last = chunk[chunk.length - 1][0];
+        const label = `${first.substring(0, 1).toUpperCase()}–${last.substring(0, 1).toUpperCase()}`;
+        const value = chunk
+          .map(([cmdName, meta]) => {
+            const lineMeta = meta || {};
+            const complexity = lineMeta?.complexity || "";
+            const usage = lineMeta?.usage || "";
+            return `${lineMeta?.emoji || EMOJIS.ACTIONS.HELP} \`/${cmdName}\` — ${lineMeta?.shortDesc || "No description available"}\n${getComplexityIndicator(complexity)} ${complexity} • ${getUsageIndicator(usage)} ${usage}`;
+          })
+          .join("\n\n");
+        embed.addFields({ name: `Commands ${label}`, value, inline: true });
+      });
+
+      const total = all.length;
+      embed.setFooter(
+        UI_COMPONENTS.createFooter(
+          `Showing ${Math.min(25, total)} of ${total} commands`,
+          client.user.displayAvatarURL(),
+        ),
+      );
+    } catch {
+      // ignore
+    }
+
+    return embed;
+  }
+
+  /**
+   * Build a summary string of top commands by usage
+   * @param {Record<string, any>} metadata
+   * @param {number} limit
+   */
+  static getTopCommandsSummary(metadata, limit = 5) {
+    if (!metadata) return "";
+    const weight = v =>
+      v?.toLowerCase?.() === "high"
+        ? 3
+        : v?.toLowerCase?.() === "medium"
+          ? 2
+          : 1;
+    const sorted = Object.entries(metadata)
+      .sort((a, b) => weight(b[1]?.usage) - weight(a[1]?.usage))
+      .slice(0, limit)
+      .map(
+        ([name, meta]) => `${meta?.emoji || EMOJIS.ACTIONS.HELP} \`/${name}\``,
+      );
+    return sorted.join(" • ");
   }
 
   /**
@@ -113,7 +212,13 @@ export class HelpEmbedBuilder {
 
       const embed = new EmbedBuilder()
         .setTitle(`${category.emoji} ${category.name} Commands`)
-        .setDescription(category.description)
+        .setDescription(
+          [
+            category.description,
+            "",
+            `Showing **${category.commands.length}** command(s) in this category`,
+          ].join("\n"),
+        )
         .setColor(category.color)
         .setTimestamp()
         .setFooter(

@@ -25,6 +25,10 @@ export class HelpInteractionHandler {
         await this.handleCategorySelect(interaction);
       } else if (interaction.customId.startsWith("help_cmd_")) {
         await this.handleCommandButton(interaction);
+      } else if (interaction.customId === "help_view_all") {
+        await this.handleViewAll(interaction);
+      } else if (interaction.customId === "help_view_overview") {
+        await this.handleBackToMain(interaction);
       } else if (interaction.customId === "help_back_main") {
         await this.handleBackToMain(interaction);
       }
@@ -100,6 +104,22 @@ export class HelpInteractionHandler {
     );
     await interaction.update({
       embeds: [mainEmbed],
+      components,
+    });
+  }
+
+  /**
+   * Show All Commands view
+   * @param {import('discord.js').MessageComponentInteraction} interaction
+   */
+  async handleViewAll(interaction) {
+    const embed = HelpEmbedBuilder.createAllCommandsEmbed(this.client);
+    const components = await HelpComponentBuilder.createMainComponents(
+      interaction.member,
+      this.client,
+    );
+    await interaction.update({
+      embeds: [embed],
       components,
     });
   }

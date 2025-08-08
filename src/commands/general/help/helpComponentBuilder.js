@@ -50,11 +50,15 @@ export class HelpComponentBuilder {
    * @returns {Promise<import('discord.js').ActionRowBuilder[]>}
    */
   static async createMainComponents(member = null, client = null) {
-    const categoryMenu = this.createCategoryMenu(member);
+    const categoryMenu = this.createCategoryMenu(member, client);
     const buttons = await this.createCommandButtons(null, client);
+    const viewToggles = this.createViewToggleButtons();
 
-    const menuRow = new ActionRowBuilder().addComponents(categoryMenu);
-    return [menuRow, buttons].filter(Boolean);
+    const rows = [];
+    rows.push(new ActionRowBuilder().addComponents(categoryMenu));
+    if (viewToggles) rows.push(viewToggles);
+    if (buttons) rows.push(buttons);
+    return rows;
   }
 
   /**
@@ -102,6 +106,27 @@ export class HelpComponentBuilder {
           },
         ]);
     }
+  }
+
+  /**
+   * Create view toggle buttons (Overview / All Commands)
+   * @returns {import('discord.js').ActionRowBuilder}
+   */
+  static createViewToggleButtons() {
+    const row = new ActionRowBuilder();
+    row.addComponents(
+      new ButtonBuilder()
+        .setCustomId("help_view_overview")
+        .setLabel("Overview")
+        .setEmoji(EMOJIS.STATUS.INFO)
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId("help_view_all")
+        .setLabel("All Commands")
+        .setEmoji(EMOJIS.ACTIONS.SEARCH)
+        .setStyle(ButtonStyle.Secondary),
+    );
+    return row;
   }
 
   /**
@@ -201,10 +226,14 @@ export class HelpComponentBuilder {
     member = null,
     client = null,
   ) {
-    const categoryMenu = this.createCategoryMenu(member);
+    const categoryMenu = this.createCategoryMenu(member, client);
     const buttons = await this.createCommandButtons(categoryKey, client);
+    const viewToggles = this.createViewToggleButtons();
 
-    const menuRow = new ActionRowBuilder().addComponents(categoryMenu);
-    return [menuRow, buttons].filter(Boolean);
+    const rows = [];
+    rows.push(new ActionRowBuilder().addComponents(categoryMenu));
+    if (viewToggles) rows.push(viewToggles);
+    if (buttons) rows.push(buttons);
+    return rows;
   }
 }
