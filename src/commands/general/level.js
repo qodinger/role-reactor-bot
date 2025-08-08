@@ -13,6 +13,9 @@ export const data = new SlashCommandBuilder()
       .setRequired(false),
   );
 
+// Award XP before executing so the latest XP is reflected in the embed
+export const preAwardXP = true;
+
 export async function execute(interaction, _client) {
   const logger = getLogger();
 

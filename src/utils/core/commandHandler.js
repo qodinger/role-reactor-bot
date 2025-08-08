@@ -222,6 +222,24 @@ class CommandHandler {
         return;
       }
 
+      // Optionally pre-award XP for commands that need fresh XP shown (e.g., /level)
+      // Pre-award XP if requested by the command so the UI shows fresh totals
+      try {
+        if (command.preAwardXP) {
+          const experienceManager = await getExperienceManager();
+          await experienceManager.awardCommandXP(
+            interaction.guild.id,
+            interaction.user.id,
+            commandName,
+          );
+          this.logger.info(
+            `✅ Pre-awarded command XP for ${interaction.user.tag} running ${commandName}`,
+          );
+        }
+      } catch (preXpError) {
+        this.logger.error("Failed to pre-award command XP", preXpError);
+      }
+
       // Process command with event handler
       await eventHandler.processEvent(
         `command:${commandName}`,
@@ -235,37 +253,39 @@ class CommandHandler {
       const duration = Date.now() - startTime;
       this.recordCommand(commandName, interaction.user.id, duration);
 
-      // Award XP for command usage (only for successful commands)
-      try {
-        const experienceManager = await getExperienceManager();
-        this.logger.info(
-          `🎯 Attempting to award XP for command: ${commandName} by user: ${interaction.user.id} in guild: ${interaction.guild.id}`,
-        );
-
-        const xpData = await experienceManager.awardCommandXP(
-          interaction.guild.id,
-          interaction.user.id,
-          commandName,
-        );
-
-        if (xpData) {
+      // Award XP for command usage (only for successful commands), unless pre-awarded
+      if (!command.preAwardXP) {
+        try {
+          const experienceManager = await getExperienceManager();
           this.logger.info(
-            `✅ Awarded ${xpData.xp} XP to user ${interaction.user.tag} (${interaction.user.id})`,
+            `🎯 Attempting to award XP for command: ${commandName} by user: ${interaction.user.id} in guild: ${interaction.guild.id}`,
           );
-          if (xpData.leveledUp) {
+
+          const xpData = await experienceManager.awardCommandXP(
+            interaction.guild.id,
+            interaction.user.id,
+            commandName,
+          );
+
+          if (xpData) {
             this.logger.info(
-              `🎉 User ${interaction.user.tag} leveled up to level ${xpData.newLevel} from command usage`,
+              `✅ Awarded ${xpData.xp} XP to user ${interaction.user.tag} (${interaction.user.id})`,
+            );
+            if (xpData.leveledUp) {
+              this.logger.info(
+                `🎉 User ${interaction.user.tag} leveled up to level ${xpData.newLevel} from command usage`,
+              );
+            }
+          } else {
+            this.logger.info(
+              `⏰ User ${interaction.user.tag} is on cooldown for command XP`,
             );
           }
-        } else {
-          this.logger.info(
-            `⏰ User ${interaction.user.tag} is on cooldown for command XP`,
-          );
+          // Note: If xpData is null, it means the user is on cooldown (normal behavior)
+        } catch (xpError) {
+          // Don't let XP errors break the command
+          this.logger.error("Failed to award command XP", xpError);
         }
-        // Note: If xpData is null, it means the user is on cooldown (normal behavior)
-      } catch (xpError) {
-        // Don't let XP errors break the command
-        this.logger.error("Failed to award command XP", xpError);
       }
 
       this.logger.logCommand(commandName, interaction.user.id, duration, true);
