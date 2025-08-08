@@ -197,7 +197,13 @@ class StorageManager {
     if (this.provider instanceof DatabaseProvider) {
       // Use database for user_experience collection
       if (collection === "user_experience") {
-        return this.provider.getAllUserExperience();
+        // Normalize to a key-value map like the file provider returns
+        const documents = await this.provider.getAllUserExperience();
+        const map = {};
+        for (const doc of documents) {
+          map[`${doc.guildId}_${doc.userId}`] = doc;
+        }
+        return map;
       }
       // For other collections, use file-based storage
       const fileProvider = new FileProvider(this.logger);

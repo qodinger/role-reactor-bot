@@ -125,7 +125,18 @@ class ExperienceManager {
     };
 
     // Calculate current level
-    userData.level = this.calculateLevel(userData.totalXP);
+    // Normalize potential DB field names (xp vs totalXP) and level
+    if (
+      typeof userData.totalXP !== "number" &&
+      typeof userData.xp === "number"
+    ) {
+      userData.totalXP = userData.xp;
+    }
+    if (typeof userData.level !== "number") {
+      userData.level = this.calculateLevel(userData.totalXP || 0);
+    } else {
+      userData.level = this.calculateLevel(userData.totalXP || 0);
+    }
     return userData;
   }
 
