@@ -205,14 +205,25 @@ export async function testWelcomeSystem(
     }
 
     // Check bot permissions in welcome channel
-    if (
-      !welcomeChannel.permissionsFor(member.client.user).has("SendMessages")
-    ) {
+    const botMember = member.guild.members.me;
+    const channelPermissions = welcomeChannel.permissionsFor(botMember);
+
+    if (!channelPermissions.has("SendMessages")) {
       return {
         success: false,
         error: "No permission to send messages in welcome channel",
         solution:
           "Please grant me Send Messages permission in the welcome channel.",
+      };
+    }
+
+    // If using embeds, also check for EmbedLinks permission
+    if (settings.embedEnabled && !channelPermissions.has("EmbedLinks")) {
+      return {
+        success: false,
+        error: "No permission to embed links in welcome channel",
+        solution:
+          "Please grant me Embed Links permission in the welcome channel.",
       };
     }
 
@@ -225,7 +236,6 @@ export async function testWelcomeSystem(
 
       if (autoRole) {
         // Check bot permissions for role assignment
-        const botMember = member.guild.members.me;
         const hasManageRoles = botMember.permissions.has("ManageRoles");
         const botHighestRole = botMember.roles.highest;
         const canAssignRole = autoRole.position < botHighestRole.position;
@@ -270,6 +280,17 @@ export async function testWelcomeSystem(
     };
   } catch (error) {
     logger.error("Error testing welcome system", error);
+
+    // Handle specific Discord API errors
+    if (error.code === 50013) {
+      return {
+        success: false,
+        error: "Missing permissions to send messages in the welcome channel",
+        solution:
+          "Please ensure the bot has Send Messages and Embed Links permissions in the welcome channel.",
+      };
+    }
+
     return {
       success: false,
       error: "An error occurred while testing the welcome system",

@@ -7,14 +7,15 @@ import {
   PermissionFlagsBits,
 } from "discord.js";
 import { getLogger } from "../../utils/logger.js";
-import { COMMAND_METADATA, COMMAND_CATEGORIES } from "./help/helpData.js";
+import { getDynamicHelpData } from "./help/helpData.js";
 import { HelpEmbedBuilder } from "./help/helpEmbedBuilder.js";
 import { HelpComponentBuilder } from "./help/helpComponentBuilder.js";
 import { HelpInteractionHandler } from "./help/helpInteractionHandler.js";
 import { EMOJIS, THEME } from "../../config/theme.js";
 import config from "../../config/config.js";
 
-function findCommandCategory(commandName) {
+function findCommandCategory(commandName, client) {
+  const { COMMAND_CATEGORIES } = getDynamicHelpData(client);
   for (const [, category] of Object.entries(COMMAND_CATEGORIES)) {
     if (category.commands.includes(commandName)) {
       return category;
@@ -142,10 +143,11 @@ export const data = new SlashCommandBuilder()
 
 export async function autocomplete(interaction) {
   const focusedValue = interaction.options.getFocused().toLowerCase();
+  const { COMMAND_METADATA } = getDynamicHelpData(interaction.client);
   const commands = Object.keys(COMMAND_METADATA);
 
   const accessibleCommands = commands.filter(cmd => {
-    const category = findCommandCategory(cmd);
+    const category = findCommandCategory(cmd, interaction.client);
     if (!category) return true;
     return hasCategoryPermissions(
       interaction.member,
@@ -163,10 +165,14 @@ export async function autocomplete(interaction) {
       );
     })
     .slice(0, 25)
-    .map(cmd => ({
-      name: `${COMMAND_METADATA[cmd].emoji} ${cmd} - ${COMMAND_METADATA[cmd].shortDesc}`,
-      value: cmd,
-    }));
+    .map(cmd => {
+      const meta = COMMAND_METADATA[cmd];
+      const emoji = meta?.emoji || EMOJIS.ACTIONS.HELP;
+      return {
+        name: `${emoji} ${cmd} - ${meta?.shortDesc || "No description available"}`,
+        value: cmd,
+      };
+    });
 
   await interaction.respond(filtered);
 }

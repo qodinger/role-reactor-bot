@@ -197,6 +197,7 @@ export const EMOJIS = {
     SECURITY: "🛡️",
     BACKUP: "💾",
     SYNC: "🔄",
+    EXPERIENCE: "⭐",
   },
 
   // Navigation and UI
@@ -221,6 +222,8 @@ export const EMOJIS = {
     USERS: "👥",
     CHANNELS: "📺",
     INFO: "ℹ️",
+    SERVER: "🏠",
+    USER: "👤",
   },
 
   // Time and scheduling

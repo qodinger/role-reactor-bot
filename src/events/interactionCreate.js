@@ -141,6 +141,7 @@ const handleButtonInteraction = async (interaction, _client) => {
 
       // Welcome system buttons
       case "welcome_configure":
+      case "welcome_edit":
         await handleWelcomeConfigure(interaction);
         break;
       case "welcome_test":

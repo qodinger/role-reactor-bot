@@ -5,7 +5,7 @@ import {
   StringSelectMenuBuilder,
   PermissionFlagsBits,
 } from "discord.js";
-import { COMMAND_CATEGORIES } from "./helpData.js";
+import { getDynamicHelpData } from "./helpData.js";
 import { EMOJIS } from "../../../config/theme.js";
 import config from "../../../config/config.js";
 import { getDefaultInviteLink } from "../../../utils/discord/invite.js";
@@ -62,29 +62,46 @@ export class HelpComponentBuilder {
    * @param {import('discord.js').GuildMember} member
    * @returns {import('discord.js').StringSelectMenuBuilder}
    */
-  static createCategoryMenu(member = null) {
-    const options = Object.entries(COMMAND_CATEGORIES)
-      .filter(([_key, category]) => {
-        // If no member provided, show all categories (for backward compatibility)
-        if (!member) return true;
+  static createCategoryMenu(member = null, client = null) {
+    try {
+      const { COMMAND_CATEGORIES } = getDynamicHelpData(client);
+      const options = Object.entries(COMMAND_CATEGORIES)
+        .filter(([_key, category]) => {
+          // If no member provided, show all categories (for backward compatibility)
+          if (!member) return true;
 
-        // Check if user has permissions for this category
-        return this.hasCategoryPermissions(
-          member,
-          category.requiredPermissions,
-        );
-      })
-      .map(([key, category]) => ({
-        label: category.name,
-        description: category.description,
-        value: `category_${key}`,
-        emoji: category.emoji,
-      }));
+          // Check if user has permissions for this category
+          return this.hasCategoryPermissions(
+            member,
+            category.requiredPermissions,
+          );
+        })
+        .map(([key, category]) => ({
+          label: category.name,
+          description: category.description,
+          value: `category_${key}`,
+          emoji: category.emoji,
+        }));
 
-    return new StringSelectMenuBuilder()
-      .setCustomId("help_category_select")
-      .setPlaceholder(`${EMOJIS.ACTIONS.SEARCH} Choose a command category...`)
-      .addOptions(options);
+      return new StringSelectMenuBuilder()
+        .setCustomId("help_category_select")
+        .setPlaceholder(`${EMOJIS.ACTIONS.SEARCH} Choose a command category...`)
+        .addOptions(options);
+    } catch (error) {
+      console.error("Error creating category menu:", error);
+      // Fallback to basic menu
+      return new StringSelectMenuBuilder()
+        .setCustomId("help_category_select")
+        .setPlaceholder(`${EMOJIS.ACTIONS.SEARCH} Choose a command category...`)
+        .addOptions([
+          {
+            label: "General",
+            description: "Basic bot information and help",
+            value: "category_general",
+            emoji: EMOJIS.CATEGORIES.GENERAL,
+          },
+        ]);
+    }
   }
 
   /**
