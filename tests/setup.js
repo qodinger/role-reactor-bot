@@ -125,17 +125,6 @@ afterAll(async () => {
   // Clear any remaining timers
   jest.clearAllTimers();
 
-  // Close any database connections
-  try {
-    const { getDatabaseManager } = await import(
-      "../src/utils/databaseManager.js"
-    );
-    const dbManager = await getDatabaseManager();
-    await dbManager.close();
-  } catch (_error) {
-    // Ignore cleanup errors
-  }
-
   // Force cleanup of any remaining handles
   if (global.gc) {
     global.gc();
