@@ -12,6 +12,9 @@
  * @license MIT
  */
 
+// Load environment variables first
+import "../scripts/load-env.js";
+
 import {
   Client,
   Collection,

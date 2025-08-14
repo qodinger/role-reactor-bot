@@ -1,3 +1,6 @@
+// Load environment variables first
+import "./load-env.js";
+
 import { REST, Routes } from "discord.js";
 import fs from "fs";
 import path from "path";

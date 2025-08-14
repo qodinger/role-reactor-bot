@@ -1,3 +1,6 @@
+// Load environment variables first
+import "./load-env.js";
+
 import { REST, Routes } from "discord.js";
 import config from "../src/config/config.js";
 import { createSpinner } from "../src/utils/terminal.js";
