@@ -3,13 +3,15 @@ services:
     build: .
     container_name: role-reactor-bot-dev
     restart: unless-stopped
+    environment:
+      - NODE_ENV=development
     env_file:
-      - .env
+      - .env.development
     volumes:
       # Mount source code for live development
       - ./src:/usr/src/app/src
       - ./scripts:/usr/src/app/scripts
       - ./package.json:/usr/src/app/package.json
       - ./pnpm-lock.yaml:/usr/src/app/pnpm-lock.yaml
-    # Use nodemon for development
-    command: ["pnpm", "dev"] 
+    # Use node directly for development
+    command: ["node", "src/index.js"] 
