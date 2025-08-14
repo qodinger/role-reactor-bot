@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  role-reactor-bot:
+    build: .
+    container_name: role-reactor-bot-prod
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    volumes:
+      # Mount data directory for persistent storage
+      - ./data:/usr/src/app/data
+      # Mount logs directory
+      - ./logs:/usr/src/app/logs
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    # Use production CMD from Dockerfile
+    # No need to override command for production
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s 
