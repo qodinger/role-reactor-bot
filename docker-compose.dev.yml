@@ -1,7 +1,7 @@
 services:
   role-reactor-bot:
     build: .
-    container_name: role-reactor-bot-dev
+    container_name: role-reactor-bot
     restart: unless-stopped
     environment:
       - NODE_ENV=development

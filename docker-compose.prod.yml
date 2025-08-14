@@ -3,7 +3,7 @@ version: '3.8'
 services:
   role-reactor-bot:
     build: .
-    container_name: role-reactor-bot-prod
+    container_name: role-reactor-bot
     restart: unless-stopped
     env_file:
       - .env.production
