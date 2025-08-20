@@ -24,12 +24,10 @@ export async function execute(interaction) {
   const logger = getLogger();
   const startTime = Date.now();
 
-  await interaction.deferReply({ flags: 64 });
-
   try {
-    // Validate user permissions
+    // Validate user permissions first
     if (!hasAdminPermissions(interaction.member)) {
-      return interaction.editReply(
+      return interaction.reply(
         permissionErrorEmbed({
           requiredPermissions: ["ManageGuild"],
           userPermissions: interaction.member.permissions.toArray(),
@@ -38,12 +36,12 @@ export async function execute(interaction) {
       );
     }
 
-    // Get database manager and settings
+    // Get database manager and settings BEFORE deferring reply
     const dbManager = await getDatabaseManager();
 
     // Check if guild settings repository is available
     if (!dbManager.guildSettings) {
-      return interaction.editReply(
+      return interaction.reply(
         errorEmbed({
           title: "Database Error",
           description: "Guild settings repository is not available.",
@@ -55,11 +53,11 @@ export async function execute(interaction) {
 
     let settings;
     try {
-      // Add timeout for database operations
+      // Add timeout for database operations - reduced to 3 seconds to stay within Discord limits
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(
           () => reject(new Error("Database operation timed out")),
-          5000,
+          3000,
         );
       });
 
@@ -72,7 +70,7 @@ export async function execute(interaction) {
         `Failed to retrieve guild settings for guild ${interaction.guild.id}`,
         error,
       );
-      return interaction.editReply(
+      return interaction.reply(
         errorEmbed({
           title: "Database Error",
           description: "Failed to retrieve guild settings from database.",
@@ -81,6 +79,9 @@ export async function execute(interaction) {
         }),
       );
     }
+
+    // Now defer the reply after we have the data
+    await interaction.deferReply({ flags: 64 });
 
     const xpSettings = settings.experienceSystem;
 
