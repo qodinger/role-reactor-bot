@@ -13,6 +13,7 @@ global.console = {
 
 process.env.NODE_ENV = "test";
 process.env.DISCORD_TOKEN = "test-token";
+process.env.CLIENT_ID = "test-client-id";
 process.env.MONGODB_URI = "mongodb://localhost:27017/test";
 process.env.PORT = "3001";
 

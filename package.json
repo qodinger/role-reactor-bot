@@ -1,12 +1,16 @@
 {
   "type": "module",
   "name": "role-reactor-bot",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "A Discord bot for self-assignable roles through reactions. Features role management, permission controls, and customizable role-emoji mappings.",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
+    "build": "echo 'No build step required for Node.js bot'",
+    "prebuild": "pnpm run lint && pnpm test",
+    "type-check": "node -c src/index.js",
+    "health": "node -c src/index.js && echo '✅ Syntax check passed'",
     "deploy:dev": "NODE_ENV=development node scripts/deploy-commands.js",
     "deploy:prod": "NODE_ENV=production node scripts/deploy-commands.js",
     "deploy:global": "NODE_ENV=production node scripts/deploy-commands.js --global",
