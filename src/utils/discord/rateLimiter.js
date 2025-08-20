@@ -30,10 +30,32 @@ export class RateLimitManager {
   constructor(options = {}) {
     this.logger = getLogger();
     this.limits = new Map();
+
+    // Environment-based rate limit configuration
+    const isProduction = process.env.NODE_ENV === "production";
+
     this.config = {
-      user: { limit: 5, windowMs: 60000 },
-      command: { limit: 3, windowMs: 60000 },
-      global: { limit: 100, windowMs: 60000 },
+      user: {
+        limit: isProduction ? 10 : 5, // Higher limits for production
+        windowMs: 60000,
+      },
+      command: {
+        limit: isProduction ? 8 : 3, // Higher command limits for production
+        windowMs: 60000,
+      },
+      global: {
+        limit: isProduction ? 200 : 100, // Higher global limits for production
+        windowMs: 60000,
+      },
+      // Add new rate limit types
+      interaction: {
+        limit: isProduction ? 15 : 10, // Interaction rate limits
+        windowMs: 60000,
+      },
+      api: {
+        limit: isProduction ? 50 : 25, // API call rate limits
+        windowMs: 30000,
+      },
       ...options,
     };
 
@@ -79,6 +101,34 @@ export function isRateLimited(userId, commandName) {
 
   userLimit.record();
   commandLimit.record();
+  globalLimit.record();
+
+  return false;
+}
+
+export function isInteractionRateLimited(userId) {
+  const interactionLimit = rateLimiter.get(`interaction:${userId}`);
+  const globalLimit = rateLimiter.get("global:all");
+
+  if (interactionLimit.isExceeded() || globalLimit.isExceeded()) {
+    return true;
+  }
+
+  interactionLimit.record();
+  globalLimit.record();
+
+  return false;
+}
+
+export function isApiRateLimited(endpoint) {
+  const apiLimit = rateLimiter.get(`api:${endpoint}`);
+  const globalLimit = rateLimiter.get("global:all");
+
+  if (apiLimit.isExceeded() || globalLimit.isExceeded()) {
+    return true;
+  }
+
+  apiLimit.record();
   globalLimit.record();
 
   return false;
