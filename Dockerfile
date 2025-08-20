@@ -38,6 +38,9 @@ COPY --from=base /usr/src/app/node_modules ./node_modules
 # Copy application code
 COPY --chown=botuser:botuser . .
 
+# Create logs directory with proper permissions
+RUN mkdir -p logs && chown -R botuser:botuser logs
+
 # Set environment
 ENV NODE_ENV=production
 

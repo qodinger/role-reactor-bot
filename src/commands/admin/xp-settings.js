@@ -22,6 +22,7 @@ export const data = new SlashCommandBuilder()
 
 export async function execute(interaction) {
   const logger = getLogger();
+  const startTime = Date.now();
 
   await interaction.deferReply({ flags: 64 });
 
@@ -54,7 +55,18 @@ export async function execute(interaction) {
 
     let settings;
     try {
-      settings = await dbManager.guildSettings.getByGuild(interaction.guild.id);
+      // Add timeout for database operations
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(
+          () => reject(new Error("Database operation timed out")),
+          5000,
+        );
+      });
+
+      settings = await Promise.race([
+        dbManager.guildSettings.getByGuild(interaction.guild.id),
+        timeoutPromise,
+      ]);
     } catch (error) {
       logger.error(
         `Failed to retrieve guild settings for guild ${interaction.guild.id}`,
@@ -180,11 +192,13 @@ export async function execute(interaction) {
       components: [buttons],
     });
 
+    const duration = Date.now() - startTime;
     logger.info(
-      `XP settings displayed for guild ${interaction.guild.name} by user ${interaction.user.tag}`,
+      `XP settings displayed for guild ${interaction.guild.name} by user ${interaction.user.tag} in ${duration}ms`,
     );
   } catch (error) {
-    logger.error("Error displaying XP settings", error);
+    const duration = Date.now() - startTime;
+    logger.error(`Error displaying XP settings after ${duration}ms`, error);
     await interaction.editReply(
       errorEmbed({
         title: "Error",

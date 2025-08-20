@@ -5,13 +5,15 @@ services:
     build: .
     container_name: role-reactor-bot
     restart: unless-stopped
+    # Ensure proper permissions for mounted volumes
+    user: "1001:1001"
     env_file:
       - .env.production
     volumes:
       # Mount data directory for persistent storage
       - ./data:/usr/src/app/data
-      # Mount logs directory
-      - ./logs:/usr/src/app/logs
+      # Mount logs directory with proper permissions
+      - ./logs:/usr/src/app/logs:rw
     ports:
       - "3000:3000"
     environment:

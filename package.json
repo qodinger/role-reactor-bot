@@ -40,7 +40,8 @@
     "docker:dev:logs": "docker compose -f docker-compose.dev.yml logs -f",
     "docker:dev:down": "docker compose -f docker-compose.dev.yml down",
     "docker:prod:logs": "docker compose -f docker-compose.prod.yml logs -f",
-    "docker:prod:down": "docker compose -f docker-compose.prod.yml down"
+    "docker:prod:down": "docker compose -f docker-compose.prod.yml down",
+    "fix:permissions": "./scripts/fix-permissions.sh"
   },
   "keywords": [
     "discord",
