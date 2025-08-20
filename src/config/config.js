@@ -72,17 +72,19 @@ class Config {
       uri: process.env.MONGODB_URI || "mongodb://localhost:27017",
       name: process.env.MONGODB_DB || "role-reactor-bot",
       options: {
-        maxPoolSize: 10,
-        minPoolSize: 2,
-        maxIdleTimeMS: 30000,
-        serverSelectionTimeoutMS: 10000,
-        connectTimeoutMS: 10000,
-        socketTimeoutMS: 45000,
+        maxPoolSize: 20, // Increased from 10
+        minPoolSize: 5, // Increased from 2
+        maxIdleTimeMS: 60000, // Increased from 30000
+        serverSelectionTimeoutMS: 15000, // Increased from 10000
+        connectTimeoutMS: 15000, // Increased from 10000
+        socketTimeoutMS: 60000, // Increased from 45000
         retryWrites: true,
         retryReads: true,
         w: "majority",
         // Enhanced reconnection options
         heartbeatFrequencyMS: 10000,
+        // Add connection optimization
+        maxConnecting: 5, // Limit concurrent connection attempts
         serverApi: {
           version: "1",
           strict: false,
@@ -138,9 +140,48 @@ class Config {
    */
   get cacheLimits() {
     return {
-      MessageManager: 25,
-      UserManager: 100,
+      MessageManager: 100, // Increased from 25
+      UserManager: 500, // Increased from 100
+      GuildManager: 50, // Added for guild caching
+      ChannelManager: 100, // Added for channel caching
+      GuildMemberManager: 200, // Added for member caching
+      RoleManager: 100, // Added for role caching
+      EmojiManager: 50, // Added for emoji caching
     };
+  }
+
+  /**
+   * Get rate limit configuration
+   * @returns {Object} Rate limit configuration object
+   */
+  get rateLimits() {
+    const baseConfig = {
+      rest: {
+        timeout: 15000,
+        retries: 3,
+        offset: 750,
+      },
+      ws: {
+        properties: {
+          browser: "Discord iOS",
+        },
+      },
+    };
+
+    // Environment-specific adjustments
+    if (this.isProduction) {
+      return {
+        ...baseConfig,
+        rest: {
+          ...baseConfig.rest,
+          timeout: 20000, // Longer timeout for production
+          retries: 5, // More retries for production
+          offset: 1000, // Larger offset for production
+        },
+      };
+    }
+
+    return baseConfig;
   }
 
   /**
@@ -182,6 +223,7 @@ class Config {
       intents: this.intents,
       partials: this.partials,
       cacheLimits: this.cacheLimits,
+      rateLimits: this.rateLimits,
     };
   }
 

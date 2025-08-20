@@ -35,13 +35,25 @@ class CommandHandler {
    * and command statistics. Sets up cache timeout for performance.
    *
    * @constructor
+   * @param {Client} client - Discord.js client instance (optional)
    */
-  constructor() {
+  constructor(client = null) {
     this.logger = getLogger();
     this.commands = new Collection();
     this.permissionCache = new Collection();
     this.commandStats = new Map();
     this.cacheTimeout = 5 * 60 * 1000; // 5 minutes
+    this.client = client;
+  }
+
+  /**
+   * Sets the Discord client reference
+   *
+   * @param {Client} client - Discord.js client instance
+   */
+  setClient(client) {
+    this.client = client;
+    this.logger.debug("✅ Client reference set in command handler");
   }
 
   /**
@@ -80,7 +92,29 @@ class CommandHandler {
    * if (command) { /* command exists *\/ }
    */
   getCommand(commandName) {
-    return this.commands.get(commandName);
+    // First try to get from command handler collection
+    let command = this.commands.get(commandName);
+
+    // If not found, log a warning for debugging
+    if (!command) {
+      this.logger.warn(
+        `⚠️ Command '${commandName}' not found in command handler collection`,
+      );
+
+      // Try to get from client commands as fallback (if available)
+      if (this.client && this.client.commands) {
+        command = this.client.commands.get(commandName);
+        if (command) {
+          this.logger.info(
+            `✅ Found command '${commandName}' in client collection (fallback)`,
+          );
+          // Register it in the command handler for future use
+          this.registerCommand(command);
+        }
+      }
+    }
+
+    return command;
   }
 
   /**
@@ -378,6 +412,32 @@ class CommandHandler {
    */
   getAllCommands() {
     return Array.from(this.commands.keys());
+  }
+
+  /**
+   * Gets all commands from both collections for debugging
+   *
+   * @returns {Object} Object with commands from both collections
+   * @example
+   * const allCommands = handler.getAllCommandsDebug();
+   * // { handler: ['ping', 'help'], client: ['ping', 'help', 'xp-settings'] }
+   */
+  getAllCommandsDebug() {
+    const handlerCommands = Array.from(this.commands.keys()).sort();
+    const clientCommands =
+      this.client && this.client.commands
+        ? Array.from(this.client.commands.keys()).sort()
+        : [];
+
+    return {
+      handler: handlerCommands,
+      client: clientCommands,
+      handlerCount: handlerCommands.length,
+      clientCount: clientCommands.length,
+      synchronized:
+        handlerCommands.length === clientCommands.length &&
+        handlerCommands.every(cmd => clientCommands.includes(cmd)),
+    };
   }
 
   /**

@@ -21,7 +21,7 @@ RUN pnpm install --frozen-lockfile --prod
 FROM node:22-alpine AS production
 
 # Install security updates
-RUN apk add --no-cache --update ca-certificates \
+RUN apk add --no-cache --update ca-certificates bash \
     && apk del --purge \
     && apk cache clean
 
@@ -54,5 +54,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD node -e "require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
 
-# Start the bot
-CMD ["node", "src/index.js"] 
+# Start the bot using the startup script
+CMD ["./scripts/docker-startup.sh"] 

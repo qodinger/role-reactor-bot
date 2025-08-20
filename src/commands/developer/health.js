@@ -100,14 +100,82 @@ export async function execute(interaction, client) {
     embed.addFields({
       name: "📈 Performance Metrics",
       value: [
-        `**API Latency**: ${ping}ms ${ping < 100 ? "🚀" : ping < 200 ? "✅" : "⚠️"}`,
-        `**Memory (Heap)**: ${(memoryUsage.heapUsed / 1024 / 1024).toFixed(2)} MB`,
-        `**Memory (Total)**: ${(memoryUsage.heapTotal / 1024 / 1024).toFixed(2)} MB`,
-        `**CPU Usage**: ${(cpuUsage.user / 1000000).toFixed(2)}s user, ${(cpuUsage.system / 1000000).toFixed(2)}s system`,
-        `**Environment**: ${process.env.NODE_ENV || "development"}`,
+        `**WebSocket Ping**: ${ping}ms`,
+        `**Memory Usage**: ${(memoryUsage.heapUsed / 1024 / 1024).toFixed(2)} MB`,
+        `**Memory Total**: ${(memoryUsage.heapTotal / 1024 / 1024).toFixed(2)} MB`,
+        `**CPU Usage**: ${(cpuUsage.user / 1000).toFixed(2)}s user, ${(cpuUsage.system / 1000).toFixed(2)}s system`,
       ].join("\n"),
       inline: false,
     });
+
+    // Command Status Check
+    try {
+      const { getCommandHandler } = await import(
+        "../../utils/core/commandHandler.js"
+      );
+      const commandHandler = getCommandHandler();
+      const commandDebug = commandHandler.getAllCommandsDebug();
+
+      embed.addFields({
+        name: "⚡ Command Status",
+        value: [
+          `**Total Commands**: ${commandDebug.handlerCount}`,
+          `**Synchronized**: ${commandDebug.synchronized ? "✅ Yes" : "❌ No"}`,
+          `**Handler Collection**: ${commandDebug.handlerCount} commands`,
+          `**Client Collection**: ${commandDebug.clientCount} commands`,
+        ].join("\n"),
+        inline: false,
+      });
+
+      if (!commandDebug.synchronized) {
+        const missingInClient = commandDebug.handler.filter(
+          cmd => !commandDebug.client.includes(cmd),
+        );
+        const missingInHandler = commandDebug.client.filter(
+          cmd => !commandDebug.handler.includes(cmd),
+        );
+
+        if (missingInClient.length > 0 || missingInHandler.length > 0) {
+          embed.addFields({
+            name: "⚠️ Command Mismatches",
+            value: [
+              missingInClient.length > 0
+                ? `**Missing in Client**: ${missingInClient.join(", ")}`
+                : null,
+              missingInHandler.length > 0
+                ? `**Missing in Handler**: ${missingInHandler.join(", ")}`
+                : null,
+            ]
+              .filter(Boolean)
+              .join("\n"),
+            inline: false,
+          });
+        }
+      }
+
+      // Show all available commands for debugging
+      if (commandDebug.handler.length > 0) {
+        const commandList = commandDebug.handler.slice(0, 20); // Limit to first 20 to avoid embed overflow
+        const remaining = commandDebug.handler.length - commandList.length;
+
+        embed.addFields({
+          name: `📋 Available Commands (${commandDebug.handler.length})`,
+          value: [
+            commandList.join(", "),
+            remaining > 0 ? `... and ${remaining} more` : null,
+          ]
+            .filter(Boolean)
+            .join("\n"),
+          inline: false,
+        });
+      }
+    } catch (error) {
+      embed.addFields({
+        name: "❌ Command Status Error",
+        value: `Failed to check command status: ${error.message}`,
+        inline: false,
+      });
+    }
 
     // Recommendations
     if (hasErrors) {
