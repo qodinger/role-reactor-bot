@@ -260,6 +260,22 @@ class ExperienceManager {
    * @returns {object|null} Awarded XP data or null if cooldown active
    */
   async awardMessageXP(guildId, userId) {
+    // Check if XP system is enabled for this guild
+    const { getDatabaseManager } = await import(
+      "../../utils/storage/databaseManager.js"
+    );
+    const dbManager = await getDatabaseManager();
+
+    if (dbManager.guildSettings) {
+      const guildSettings = await dbManager.guildSettings.getByGuild(guildId);
+      if (
+        !guildSettings.experienceSystem.enabled ||
+        !guildSettings.experienceSystem.messageXP
+      ) {
+        return null;
+      }
+    }
+
     if (!(await this.canEarnXP(guildId, userId))) {
       return null;
     }
@@ -291,9 +307,25 @@ class ExperienceManager {
    * Award XP for role activity
    * @param {string} guildId - Discord guild ID
    * @param {string} userId - Discord user ID
-   * @returns {object} Awarded XP data
+   * @returns {object|null} Awarded XP data or null if XP system disabled
    */
   async awardRoleXP(guildId, userId) {
+    // Check if XP system is enabled for this guild
+    const { getDatabaseManager } = await import(
+      "../../utils/storage/databaseManager.js"
+    );
+    const dbManager = await getDatabaseManager();
+
+    if (dbManager.guildSettings) {
+      const guildSettings = await dbManager.guildSettings.getByGuild(guildId);
+      if (
+        !guildSettings.experienceSystem.enabled ||
+        !guildSettings.experienceSystem.roleXP
+      ) {
+        return null;
+      }
+    }
+
     // 50 XP for role activity
     const xp = 50;
     const userData = await this.addXP(guildId, userId, xp);
@@ -352,6 +384,22 @@ class ExperienceManager {
     this.logger.info(
       `🎯 ExperienceManager: Awarding command XP for user ${userId} in guild ${guildId} for command ${commandName}`,
     );
+
+    // Check if XP system is enabled for this guild
+    const { getDatabaseManager } = await import(
+      "../../utils/storage/databaseManager.js"
+    );
+    const dbManager = await getDatabaseManager();
+
+    if (dbManager.guildSettings) {
+      const guildSettings = await dbManager.guildSettings.getByGuild(guildId);
+      if (
+        !guildSettings.experienceSystem.enabled ||
+        !guildSettings.experienceSystem.commandXP
+      ) {
+        return null;
+      }
+    }
 
     // Check cooldown first
     if (!(await this.canEarnCommandXP(guildId, userId))) {

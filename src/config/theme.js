@@ -224,6 +224,9 @@ export const EMOJIS = {
     INFO: "ℹ️",
     SERVER: "🏠",
     USER: "👤",
+    MESSAGE: "💬",
+    COMMAND: "⚡",
+    TIME: "⏰",
   },
 
   // Time and scheduling

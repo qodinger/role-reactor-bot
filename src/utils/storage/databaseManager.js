@@ -462,6 +462,100 @@ class WelcomeSettingsRepository extends BaseRepository {
   }
 }
 
+class GuildSettingsRepository extends BaseRepository {
+  constructor(db, cache, logger) {
+    super(db, "guild_settings", cache, logger);
+  }
+
+  async getByGuild(guildId) {
+    try {
+      const settings = await this.collection.findOne({ guildId });
+      return (
+        settings || {
+          guildId,
+          experienceSystem: {
+            enabled: false,
+            messageXP: true,
+            commandXP: true,
+            roleXP: true,
+            messageXPAmount: { min: 15, max: 25 },
+            commandXPAmount: {
+              base: 8,
+              bonus: {
+                "8ball": 15,
+                level: 5,
+                avatar: 10,
+                serverinfo: 12,
+                roles: 12,
+                help: 3,
+                ping: 3,
+                invite: 3,
+                support: 3,
+              },
+            },
+            roleXPAmount: 50,
+            messageCooldown: 60,
+            commandCooldown: 30,
+          },
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to get guild settings for guild ${guildId}`,
+        error,
+      );
+      throw error;
+    }
+  }
+
+  async set(guildId, settings) {
+    try {
+      await this.collection.updateOne(
+        { guildId },
+        { $set: { ...settings, guildId, updatedAt: new Date() } },
+        { upsert: true },
+      );
+      this.cache.clear();
+    } catch (error) {
+      this.logger.error(
+        `Failed to set guild settings for guild ${guildId}`,
+        error,
+      );
+      throw error;
+    }
+  }
+
+  async delete(guildId) {
+    try {
+      await this.collection.deleteOne({ guildId });
+      this.cache.clear();
+    } catch (error) {
+      this.logger.error(
+        `Failed to delete guild settings for guild ${guildId}`,
+        error,
+      );
+      throw error;
+    }
+  }
+
+  async getAllWithExperienceEnabled() {
+    try {
+      const settings = await this.collection
+        .find({ "experienceSystem.enabled": true })
+        .toArray();
+      return settings;
+    } catch (error) {
+      this.logger.error(
+        "Failed to get all guilds with experience enabled",
+        error,
+      );
+      throw error;
+    }
+  }
+}
+
 class DatabaseManager {
   constructor() {
     this.logger = getLogger();
@@ -474,6 +568,7 @@ class DatabaseManager {
     this.temporaryRoles = null;
     this.userExperience = null;
     this.welcomeSettings = null;
+    this.guildSettings = null;
   }
 
   async connect() {
@@ -496,6 +591,11 @@ class DatabaseManager {
           this.logger,
         );
         this.welcomeSettings = new WelcomeSettingsRepository(
+          db,
+          this.cacheManager,
+          this.logger,
+        );
+        this.guildSettings = new GuildSettingsRepository(
           db,
           this.cacheManager,
           this.logger,

@@ -109,6 +109,19 @@ export class HelpEmbedBuilder {
           ].join("\n"),
           inline: false,
         },
+        {
+          name: `${EMOJIS.FEATURES.EXPERIENCE} XP System Configuration`,
+          value: [
+            `${EMOJIS.STATUS.INFO} **XP system is disabled by default** and requires admin activation`,
+            `${EMOJIS.NUMBERS.ONE} Use \`/xp-settings\` to view current XP system status`,
+            `${EMOJIS.NUMBERS.TWO} Use the toggle buttons to enable/disable the XP system`,
+            `${EMOJIS.NUMBERS.THREE} Toggle individual features: message XP, command XP, and role XP`,
+            `${EMOJIS.NUMBERS.FOUR} All settings use default values optimized for most servers`,
+            ``,
+            `${EMOJIS.UI.INFO} **Default Settings:** Message XP (15-25), Command XP (8 base), Role XP (50), Cooldowns (60s/30s)`,
+          ].join("\n"),
+          inline: false,
+        },
       );
     } catch {
       // Fall back silently if dynamic data unavailable
@@ -622,6 +635,46 @@ export class HelpEmbedBuilder {
             name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
             value:
               "An invite link to add Role Reactor Bot to your server. The link is sent as an ephemeral message, so only you can see it. Share it with others to invite the bot!",
+            inline: false,
+          },
+        );
+        break;
+
+      case "xp-settings":
+        embed.addFields(
+          {
+            name: `${EMOJIS.FEATURES.EXPERIENCE} 📊 How to Use`,
+            value: "```/xp-settings```",
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.UI.MENU} 📝 What You Need`,
+            value: "No parameters needed - just run the command!",
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.FEATURES.SECURITY} 🔐 Permissions`,
+            value: "• **Manage Guild** permission required",
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
+            value: [
+              "Current XP system status with interactive buttons to:",
+              "• Toggle the entire XP system on/off",
+              "• Enable/disable message XP, command XP, and role XP individually",
+              "• View current XP amounts, cooldowns, and settings",
+              "• Access configuration help",
+            ].join("\n"),
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.STATUS.INFO} 💡 Quick Actions`,
+            value: [
+              "Use the buttons to quickly toggle features on/off",
+              "All changes are applied immediately",
+              "Settings use optimized default values",
+            ].join("\n"),
             inline: false,
           },
         );
