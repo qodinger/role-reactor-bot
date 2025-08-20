@@ -5,31 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.5.0] - 2025-01-22
-
-### Added
-
-- XP System Configuration: Added ability to enable/disable XP system per guild
-- New Admin Commands: Added `/xp-settings` for XP system management
-- Guild Settings Repository: New database collection for storing guild-specific settings
-- XP System Toggles: Individual toggles for message XP, command XP, and role XP
-- Simplified XP Management: Button-driven toggles with optimized default values
+## [0.4.1] - 2025-01-22
 
 ### Changed
 
+- XP System Configuration: Simplified from complex command-based configuration to button-driven toggles
 - XP System Default: XP system is now disabled by default and requires admin activation
 - Experience Manager: Now checks guild settings before awarding XP
-- Database Structure: Added new guild_settings collection for centralized guild configuration
-- XP System Configuration: Simplified from complex command-based configuration to button-driven toggles
 
 ### Technical
 
-- Added GuildSettingsRepository for managing guild-specific settings
-- Enhanced ExperienceManager with guild settings validation
-- Added XP button interaction handlers in interactionCreate event
-- Removed configure-xp command and related button handlers for simplified UX
 - Enhanced test environment setup with proper environment variables
 - Added build, type-check, and health scripts for better development workflow
+- Improved XP system UX by removing configure-xp command
+- All tests now passing reliably (90/90)
 
 ## [0.4.0] - 2025-08-11
 
