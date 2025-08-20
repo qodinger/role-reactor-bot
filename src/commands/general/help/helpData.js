@@ -244,6 +244,7 @@ export const COMMAND_CATEGORIES = {
       "temp",
       "manage",
       "admin",
+      "xp",
     ],
   },
   general: {
