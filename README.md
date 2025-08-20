@@ -42,7 +42,7 @@ A production-ready Discord bot for self-assignable roles through reactions. Buil
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/tyecode-bots/role-reactor-bot.git
+   git clone https://github.com/qodinger/role-reactor-bot.git
    cd role-reactor-bot
    ```
 
@@ -147,6 +147,27 @@ Automatically welcome new members with customizable messages and auto-role assig
 - `{memberCount}` - Member count
 - `{memberCount.ordinal}` - Ordinal member count
 
+### XP System Configuration
+
+The XP system is **disabled by default** and must be enabled by server administrators. When enabled, users can earn XP through:
+
+- **Messages**: 15-25 XP every 60 seconds
+- **Commands**: 3-15 XP every 30 seconds (varies by command)
+- **Role Assignments**: 50 XP per role
+
+**Admin Commands:**
+
+- `/xp-settings` - View current XP system status and toggle features
+
+**Default Settings:**
+
+- System: Disabled
+- Message XP: 15-25 XP (60s cooldown)
+- Command XP: 8 XP base + bonuses (30s cooldown)
+- Role XP: 50 XP per role
+
+**Note:** XP system configuration is now simplified with button-driven toggles. All settings use optimized default values that work well for most servers.
+
 ### Available Commands
 
 #### Server Management Commands
@@ -163,6 +184,7 @@ Automatically welcome new members with customizable messages and auto-role assig
 | `/setup-welcome`    | Configure welcome system        | Manage Guild |
 | `/welcome-settings` | View welcome system settings    | Manage Guild |
 | `/test-welcome`     | Test welcome system             | Manage Guild |
+| `/xp-settings`      | View XP system settings         | Manage Guild |
 
 #### Developer Commands
 

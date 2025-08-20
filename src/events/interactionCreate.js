@@ -154,6 +154,20 @@ const handleButtonInteraction = async (interaction, _client) => {
         await handleWelcomeReset(interaction);
         break;
 
+      // XP system buttons
+      case "xp_toggle_system":
+        await handleXPToggleSystem(interaction);
+        break;
+      case "xp_toggle_message":
+        await handleXPToggleMessage(interaction);
+        break;
+      case "xp_toggle_command":
+        await handleXPToggleCommand(interaction);
+        break;
+      case "xp_toggle_role":
+        await handleXPToggleRole(interaction);
+        break;
+
       default:
         logger.debug(`Unknown button interaction: ${interaction.customId}`);
         break;
@@ -896,5 +910,255 @@ const handleWelcomeReset = async interaction => {
         logger.error("Error sending error edit reply", editError);
       }
     }
+  }
+};
+
+// XP System Button Handlers
+const handleXPToggleSystem = async interaction => {
+  const logger = getLogger();
+
+  try {
+    await interaction.deferReply({ flags: 64 });
+
+    // Import required modules
+    const { EmbedBuilder } = await import("discord.js");
+    const { THEME_COLOR, EMOJIS } = await import("../config/theme.js");
+    const { getDatabaseManager } = await import(
+      "../utils/storage/databaseManager.js"
+    );
+
+    const dbManager = await getDatabaseManager();
+    const settings = await dbManager.guildSettings.getByGuild(
+      interaction.guild.id,
+    );
+
+    // Toggle the enabled status
+    const newSettings = {
+      ...settings,
+      experienceSystem: {
+        ...settings.experienceSystem,
+        enabled: !settings.experienceSystem.enabled,
+      },
+    };
+
+    await dbManager.guildSettings.set(interaction.guild.id, newSettings);
+
+    const embed = new EmbedBuilder()
+      .setColor(THEME_COLOR)
+      .setTitle(
+        `${EMOJIS.STATUS.SUCCESS} XP System ${newSettings.experienceSystem.enabled ? "Enabled" : "Disabled"}`,
+      )
+      .setDescription(
+        newSettings.experienceSystem.enabled
+          ? "🎉 The XP system is now active! Users can earn XP for messages, commands, and role assignments."
+          : "🔴 The XP system is now disabled. Users will no longer earn XP.",
+      )
+      .addFields([
+        {
+          name: `${EMOJIS.UI.MESSAGE} Message XP`,
+          value: newSettings.experienceSystem.messageXP
+            ? "✅ Enabled"
+            : "❌ Disabled",
+          inline: true,
+        },
+        {
+          name: `${EMOJIS.UI.COMMAND} Command XP`,
+          value: newSettings.experienceSystem.commandXP
+            ? "✅ Enabled"
+            : "❌ Disabled",
+          inline: true,
+        },
+        {
+          name: `${EMOJIS.FEATURES.ROLES} Role XP`,
+          value: newSettings.experienceSystem.roleXP
+            ? "✅ Enabled"
+            : "❌ Disabled",
+          inline: true,
+        },
+      ])
+      .setFooter({
+        text: `${EMOJIS.FEATURES.ROLES} XP System • ${interaction.guild.name}`,
+        iconURL: interaction.guild.iconURL(),
+      })
+      .setTimestamp();
+
+    await interaction.editReply({ embeds: [embed] });
+
+    logger.info(
+      `XP system ${newSettings.experienceSystem.enabled ? "enabled" : "disabled"} for guild ${interaction.guild.name} by user ${interaction.user.tag}`,
+    );
+  } catch (error) {
+    logger.error("Error handling XP system toggle", error);
+    await interaction.editReply({
+      content: "❌ An error occurred while toggling the XP system.",
+    });
+  }
+};
+
+const handleXPToggleMessage = async interaction => {
+  const logger = getLogger();
+
+  try {
+    await interaction.deferReply({ flags: 64 });
+
+    const { EmbedBuilder } = await import("discord.js");
+    const { THEME_COLOR, EMOJIS } = await import("../config/theme.js");
+    const { getDatabaseManager } = await import(
+      "../utils/storage/databaseManager.js"
+    );
+
+    const dbManager = await getDatabaseManager();
+    const settings = await dbManager.guildSettings.getByGuild(
+      interaction.guild.id,
+    );
+
+    const newSettings = {
+      ...settings,
+      experienceSystem: {
+        ...settings.experienceSystem,
+        messageXP: !settings.experienceSystem.messageXP,
+      },
+    };
+
+    await dbManager.guildSettings.set(interaction.guild.id, newSettings);
+
+    const embed = new EmbedBuilder()
+      .setColor(THEME_COLOR)
+      .setTitle(
+        `${EMOJIS.UI.MESSAGE} Message XP ${newSettings.experienceSystem.messageXP ? "Enabled" : "Disabled"}`,
+      )
+      .setDescription(
+        newSettings.experienceSystem.messageXP
+          ? "✅ Users will now earn XP for sending messages."
+          : "❌ Users will no longer earn XP for sending messages.",
+      )
+      .setFooter({
+        text: `${EMOJIS.FEATURES.ROLES} XP System • ${interaction.guild.name}`,
+        iconURL: interaction.guild.iconURL(),
+      })
+      .setTimestamp();
+
+    await interaction.editReply({ embeds: [embed] });
+
+    logger.info(
+      `Message XP ${newSettings.experienceSystem.messageXP ? "enabled" : "disabled"} for guild ${interaction.guild.name} by user ${interaction.user.tag}`,
+    );
+  } catch (error) {
+    logger.error("Error handling message XP toggle", error);
+    await interaction.editReply({
+      content: "❌ An error occurred while toggling message XP.",
+    });
+  }
+};
+
+const handleXPToggleCommand = async interaction => {
+  const logger = getLogger();
+
+  try {
+    await interaction.deferReply({ flags: 64 });
+
+    const { EmbedBuilder } = await import("discord.js");
+    const { THEME_COLOR, EMOJIS } = await import("../config/theme.js");
+    const { getDatabaseManager } = await import(
+      "../utils/storage/databaseManager.js"
+    );
+
+    const dbManager = await getDatabaseManager();
+    const settings = await dbManager.guildSettings.getByGuild(
+      interaction.guild.id,
+    );
+
+    const newSettings = {
+      ...settings,
+      experienceSystem: {
+        ...settings.experienceSystem,
+        commandXP: !settings.experienceSystem.commandXP,
+      },
+    };
+
+    await dbManager.guildSettings.set(interaction.guild.id, newSettings);
+
+    const embed = new EmbedBuilder()
+      .setColor(THEME_COLOR)
+      .setTitle(
+        `${EMOJIS.UI.COMMAND} Command XP ${newSettings.experienceSystem.commandXP ? "Enabled" : "Disabled"}`,
+      )
+      .setDescription(
+        newSettings.experienceSystem.commandXP
+          ? "✅ Users will now earn XP for using commands."
+          : "❌ Users will no longer earn XP for using commands.",
+      )
+      .setFooter({
+        text: `${EMOJIS.FEATURES.ROLES} XP System • ${interaction.guild.name}`,
+        iconURL: interaction.guild.iconURL(),
+      })
+      .setTimestamp();
+
+    await interaction.editReply({ embeds: [embed] });
+
+    logger.info(
+      `Command XP ${newSettings.experienceSystem.commandXP ? "enabled" : "disabled"} for guild ${interaction.guild.name} by user ${interaction.user.tag}`,
+    );
+  } catch (error) {
+    logger.error("Error handling command XP toggle", error);
+    await interaction.editReply({
+      content: "❌ An error occurred while toggling command XP.",
+    });
+  }
+};
+
+const handleXPToggleRole = async interaction => {
+  const logger = getLogger();
+
+  try {
+    await interaction.deferReply({ flags: 64 });
+
+    const { EmbedBuilder } = await import("discord.js");
+    const { THEME_COLOR, EMOJIS } = await import("../config/theme.js");
+    const { getDatabaseManager } = await import(
+      "../utils/storage/databaseManager.js"
+    );
+
+    const dbManager = await getDatabaseManager();
+    const settings = await dbManager.guildSettings.getByGuild(
+      interaction.guild.id,
+    );
+
+    const newSettings = {
+      ...settings,
+      experienceSystem: {
+        ...settings.experienceSystem,
+        roleXP: !settings.experienceSystem.roleXP,
+      },
+    };
+
+    await dbManager.guildSettings.set(interaction.guild.id, newSettings);
+
+    const embed = new EmbedBuilder()
+      .setColor(THEME_COLOR)
+      .setTitle(
+        `${EMOJIS.FEATURES.ROLES} Role XP ${newSettings.experienceSystem.roleXP ? "Enabled" : "Disabled"}`,
+      )
+      .setDescription(
+        newSettings.experienceSystem.roleXP
+          ? "✅ Users will now earn XP for role assignments."
+          : "❌ Users will no longer earn XP for role assignments.",
+      )
+      .setFooter({
+        text: `${EMOJIS.FEATURES.ROLES} XP System • ${interaction.guild.name}`,
+        iconURL: interaction.guild.iconURL(),
+      })
+      .setTimestamp();
+
+    await interaction.editReply({ embeds: [embed] });
+
+    logger.info(
+      `Role XP ${newSettings.experienceSystem.roleXP ? "enabled" : "disabled"} for guild ${interaction.guild.name} by user ${interaction.user.tag}`,
+    );
+  } catch (error) {
+    logger.error("Error handling role XP toggle", error);
+    await interaction.editReply({
+      content: "❌ An error occurred while toggling role XP.",
+    });
   }
 };

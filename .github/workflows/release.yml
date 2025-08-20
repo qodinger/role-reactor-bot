@@ -115,19 +115,19 @@ jobs:
               if (found && length(content) > 0) {
                 print content
               } else {
-                print "## Changes\n\nSee [CHANGELOG.md](https://github.com/tyecode-bots/role-reactor-bot/blob/main/docs/CHANGELOG.md) for detailed changes."
+                print "## Changes\n\nSee [CHANGELOG.md](https://github.com/qodinger/role-reactor-bot/blob/main/docs/CHANGELOG.md) for detailed changes."
               }
             }
             ' "$CHANGELOG_PATH")
           else
-            RELEASE_NOTES="## Changes\n\nSee [CHANGELOG.md](https://github.com/tyecode-bots/role-reactor-bot/blob/main/docs/CHANGELOG.md) for detailed changes."
+            RELEASE_NOTES="## Changes\n\nSee [CHANGELOG.md](https://github.com/qodinger/role-reactor-bot/blob/main/docs/CHANGELOG.md) for detailed changes."
           fi
 
           # Set the changelog link based on which path was found
           if [[ "$CHANGELOG_PATH" == "docs/CHANGELOG.md" ]]; then
-            CHANGELOG_LINK="https://github.com/tyecode-bots/role-reactor-bot/blob/main/docs/CHANGELOG.md"
+            CHANGELOG_LINK="https://github.com/qodinger/role-reactor-bot/blob/main/docs/CHANGELOG.md"
           else
-            CHANGELOG_LINK="https://github.com/tyecode-bots/role-reactor-bot/blob/main/CHANGELOG.md"
+            CHANGELOG_LINK="https://github.com/qodinger/role-reactor-bot/blob/main/CHANGELOG.md"
           fi
 
           # Set environment variable for the release step

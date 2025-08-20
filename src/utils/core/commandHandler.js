@@ -6,7 +6,7 @@
  * rate limiting, and performance monitoring.
  *
  * @author Tyecode
- * @version 0.1.0
+ * @version Dynamic (see package.json)
  * @license MIT
  */
 

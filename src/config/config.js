@@ -164,7 +164,7 @@ class Config {
   get externalLinks() {
     return {
       guide: "https://rolereactor.app/docs",
-      github: "https://github.com/tyecode-bots/role-reactor-bot",
+      github: "https://github.com/qodinger/role-reactor-bot",
       support: "https://discord.gg/D8tYkU75Ry",
       invite: null, // Will be generated dynamically by the bot
     };
