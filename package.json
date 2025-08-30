@@ -7,6 +7,8 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
+    "dev:stable": "nodemon --config nodemon.json src/index.js",
+    "dev:no-restart": "node src/index.js",
     "build": "echo 'No build step required for Node.js bot'",
     "prebuild": "pnpm run lint && pnpm test",
     "type-check": "node -c src/index.js",
@@ -82,7 +84,8 @@
     "gradient-string": "^3.0.0",
     "mongodb": "^6.17.0",
     "ora": "^8.2.0",
-    "p-limit": "6.2.0"
+    "p-limit": "6.2.0",
+    "uuid": "11.1.0"
   },
   "devDependencies": {
     "@babel/core": "^7.28.0",

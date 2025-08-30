@@ -18,6 +18,7 @@ A production-ready Discord bot for self-assignable roles through reactions. Buil
 
 - **🎯 Self-Assignable Roles**: Users can assign/remove roles by reacting to messages
 - **⏰ Temporary Roles**: Auto-expire roles after a set time
+- **🚀 Enhanced Temporary Roles**: Schedule future role assignments, create recurring schedules, and advanced role management
 - **🎉 Welcome System**: Auto-welcome new members with customizable messages and auto-role assignment
 - **🛡️ Permission Controls**: Comprehensive permission checking
 - **🎨 Custom Emojis**: Support for Unicode and custom server emojis
@@ -175,9 +176,13 @@ The XP system is **disabled by default** and must be enabled by server administr
 | `/assign-temp-role` | Assign a temporary role         | Manage Roles |
 | `/list-temp-roles`  | List temporary roles            | Manage Roles |
 | `/remove-temp-role` | Remove a temporary role         | Manage Roles |
-| `/setup-welcome`    | Configure welcome system        | Manage Guild |
-| `/welcome-settings` | View welcome system settings    | Manage Guild |
-| `/xp-settings`      | View XP system settings         | Manage Guild |
+| `/schedule-role`    | Schedule future role assignment | Manage Roles |
+| `/recurring-roles`  | Manage recurring role schedules | Manage Roles |
+
+| `/scheduled-roles` | View and manage scheduled roles | Manage Roles |
+| `/setup-welcome` | Configure welcome system | Manage Guild |
+| `/welcome-settings` | View welcome system settings | Manage Guild |
+| `/xp-settings` | View XP system settings | Manage Guild |
 
 #### Developer Commands
 
