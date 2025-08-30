@@ -2,6 +2,10 @@ import { EmbedBuilder } from "discord.js";
 
 import { getDatabaseManager } from "../../utils/storage/databaseManager.js";
 import { getLogger } from "../../utils/logger.js";
+import {
+  bulkRemoveRoles,
+  getCachedMember,
+} from "../../utils/discord/roleManager.js";
 
 class RoleExpirationScheduler {
   constructor(client) {
@@ -9,6 +13,8 @@ class RoleExpirationScheduler {
     this.logger = getLogger();
     this.interval = null;
     this.isRunning = false;
+    this.lastCleanupTime = 0;
+    this.cleanupCooldown = 30000; // 30 seconds between cleanups
   }
 
   start() {
@@ -45,6 +51,16 @@ class RoleExpirationScheduler {
   }
 
   async cleanupExpiredRoles() {
+    const now = Date.now();
+
+    // Prevent multiple cleanups from running simultaneously
+    if (now - this.lastCleanupTime < this.cleanupCooldown) {
+      this.logger.debug("Cleanup skipped - too soon since last run");
+      return;
+    }
+
+    this.lastCleanupTime = now;
+
     const databaseManager = await getDatabaseManager();
     if (!databaseManager.temporaryRoles) {
       this.logger.debug("Database not ready, skipping temporary role cleanup.");
@@ -65,64 +81,126 @@ class RoleExpirationScheduler {
 
     this.logger.info(`Found ${expiredRoles.length} expired temporary role(s).`);
 
+    // Group expired roles by guild for efficient processing
+    const guildGroups = new Map();
     for (const expiredRole of expiredRoles) {
-      const { guildId, userId, roleId } = expiredRole;
-      this.logger.debug(
-        `Processing expired role: Guild=${guildId}, User=${userId}, Role=${roleId}`,
-      );
+      const { guildId } = expiredRole;
+      if (!guildGroups.has(guildId)) {
+        guildGroups.set(guildId, []);
+      }
+      guildGroups.get(guildId).push(expiredRole);
+    }
+
+    // Process each guild's expired roles in bulk
+    for (const [guildId, guildExpiredRoles] of guildGroups) {
+      await this.processGuildExpiredRoles(guildId, guildExpiredRoles);
+    }
+  }
+
+  async processGuildExpiredRoles(guildId, expiredRoles) {
+    const guild = this.client.guilds.cache.get(guildId);
+    if (!guild) {
+      this.logger.warn(`Guild ${guildId} not found, cleaning up all roles.`);
+      await this.cleanupExpiredRolesFromDB(expiredRoles);
+      return;
+    }
+
+    // Prepare bulk role removal operations
+    const roleRemovals = [];
+    const rolesToCleanup = [];
+
+    for (const expiredRole of expiredRoles) {
+      const { userId, roleId } = expiredRole;
 
       try {
-        const guild = this.client.guilds.cache.get(guildId);
-        if (!guild) {
-          this.logger.warn(`Guild ${guildId} not found, cleaning up role.`);
-          await databaseManager.temporaryRoles.delete(guildId, userId, roleId);
-          continue;
-        }
+        const member = await getCachedMember(guild, userId);
+        const role = guild.roles.cache.get(roleId);
 
-        const member = await guild.members.fetch(userId).catch(() => null);
         if (!member) {
           this.logger.warn(
-            `Member ${userId} not found in guild ${guild.name}, cleaning up role.`,
+            `Member ${userId} not found in guild ${guild.name}, marking for cleanup.`,
           );
-          await databaseManager.temporaryRoles.delete(guildId, userId, roleId);
+          rolesToCleanup.push(expiredRole);
           continue;
         }
 
-        const role = guild.roles.cache.get(roleId);
         if (!role) {
           this.logger.warn(
-            `Role ${roleId} not found in guild ${guild.name}, cleaning up role.`,
+            `Role ${roleId} not found in guild ${guild.name}, marking for cleanup.`,
           );
-          await databaseManager.temporaryRoles.delete(guildId, userId, roleId);
+          rolesToCleanup.push(expiredRole);
           continue;
         }
 
         if (member.roles.cache.has(role.id)) {
-          this.logger.info(
-            `Removing expired role "${role.name}" from ${member.user.tag}...`,
-          );
-          await member.roles.remove(role, "Temporary role expired");
-          this.logger.success(
-            `Removed expired role "${role.name}" from ${member.user.tag}.`,
-          );
-          await this.sendExpirationNotification(member, role, guild);
+          roleRemovals.push({ member, role });
         } else {
-          this.logger.debug(
-            `User ${member.user.tag} no longer has role "${role.name}", cleaning up database entry.`,
-          );
+          // Role already removed, just clean up database
+          rolesToCleanup.push(expiredRole);
         }
-
-        await databaseManager.temporaryRoles.delete(guildId, userId, roleId);
-        this.logger.debug(`Cleaned up database entry for expired role.`);
       } catch (error) {
         this.logger.error(
-          `Error processing expired role for user ${userId}`,
+          `Error processing expired role ${roleId} for user ${userId}:`,
           error,
+        );
+        rolesToCleanup.push(expiredRole);
+      }
+    }
+
+    // Bulk remove roles if any exist
+    if (roleRemovals.length > 0) {
+      this.logger.info(
+        `Bulk removing ${roleRemovals.length} expired roles from guild ${guild.name}`,
+      );
+      const results = await bulkRemoveRoles(
+        roleRemovals,
+        "Temporary role expired",
+      );
+
+      // Log results
+      const successCount = results.filter(r => r.success).length;
+      const failureCount = results.filter(r => !r.success).length;
+
+      if (successCount > 0) {
+        this.logger.success(
+          `✅ Successfully removed ${successCount} expired roles from guild ${guild.name}`,
+        );
+      }
+
+      if (failureCount > 0) {
+        this.logger.warn(
+          `⚠️ Failed to remove ${failureCount} expired roles from guild ${guild.name}`,
         );
       }
     }
 
-    this.logger.debug("🕐 Automatic temporary role cleanup completed.");
+    // Clean up all expired roles from database
+    await this.cleanupExpiredRolesFromDB([...rolesToCleanup, ...expiredRoles]);
+  }
+
+  async cleanupExpiredRolesFromDB(expiredRoles) {
+    const databaseManager = await getDatabaseManager();
+
+    // Bulk delete from database
+    const deletePromises = expiredRoles.map(expiredRole =>
+      databaseManager.temporaryRoles.delete(
+        expiredRole.guildId,
+        expiredRole.userId,
+        expiredRole.roleId,
+      ),
+    );
+
+    try {
+      await Promise.all(deletePromises);
+      this.logger.info(
+        `✅ Cleaned up ${expiredRoles.length} expired temporary roles from database`,
+      );
+    } catch (error) {
+      this.logger.error(
+        "❌ Error cleaning up expired roles from database:",
+        error,
+      );
+    }
   }
 
   async sendExpirationNotification(member, role, guild) {

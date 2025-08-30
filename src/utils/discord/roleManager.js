@@ -2,6 +2,171 @@ import { PermissionFlagsBits } from "discord.js";
 import { getLogger } from "../logger.js";
 import { parseRoleString } from "./roleParser.js";
 
+// Member cache for reducing API calls
+class MemberCache {
+  constructor() {
+    this.cache = new Map();
+    this.ttl = 5 * 60 * 1000; // 5 minutes
+  }
+
+  get(guildId, userId) {
+    const key = `${guildId}:${userId}`;
+    const cached = this.cache.get(key);
+    if (cached && Date.now() - cached.timestamp < this.ttl) {
+      return cached.member;
+    }
+    this.cache.delete(key);
+    return null;
+  }
+
+  set(guildId, userId, member) {
+    const key = `${guildId}:${userId}`;
+    this.cache.set(key, { member, timestamp: Date.now() });
+  }
+
+  clear() {
+    this.cache.clear();
+  }
+
+  // Cleanup expired entries
+  cleanup() {
+    const now = Date.now();
+    for (const [key, cached] of this.cache.entries()) {
+      if (now - cached.timestamp > this.ttl) {
+        this.cache.delete(key);
+      }
+    }
+  }
+}
+
+const memberCache = new MemberCache();
+
+// Cleanup cache every 5 minutes
+setInterval(() => memberCache.cleanup(), 5 * 60 * 1000).unref();
+
+/**
+ * Gets a member with caching to reduce API calls
+ * @param {import("discord.js").Guild} guild The guild to search in
+ * @param {string} userId The user ID to fetch
+ * @returns {Promise<import("discord.js").GuildMember|null>} The member, or null if not found
+ */
+export async function getCachedMember(guild, userId) {
+  // Check cache first
+  const cached = memberCache.get(guild.id, userId);
+  if (cached) {
+    return cached;
+  }
+
+  try {
+    const member = await guild.members.fetch(userId);
+    memberCache.set(guild.id, userId, member);
+    return member;
+  } catch (error) {
+    getLogger().debug(`Failed to fetch member ${userId}: ${error.message}`);
+    return null;
+  }
+}
+
+/**
+ * Bulk add roles to multiple users to reduce API calls
+ * @param {Array<{member: import("discord.js").GuildMember, role: import("discord.js").Role}>} assignments Array of member-role pairs
+ * @param {string} reason Reason for adding roles
+ * @returns {Promise<Array<{success: boolean, memberId: string, roleId: string, error?: string}>>} Results of each assignment
+ */
+export async function bulkAddRoles(
+  assignments,
+  reason = "Bulk role assignment",
+) {
+  const logger = getLogger();
+  const results = [];
+
+  // Process in batches of 5 to avoid rate limits
+  const batchSize = 5;
+  for (let i = 0; i < assignments.length; i += batchSize) {
+    const batch = assignments.slice(i, i + batchSize);
+
+    const batchPromises = batch.map(async ({ member, role }) => {
+      try {
+        await member.roles.add(role, reason);
+        return { success: true, memberId: member.id, roleId: role.id };
+      } catch (error) {
+        logger.error(
+          `Failed to add role ${role.name} to ${member.user.tag}`,
+          error,
+        );
+        return {
+          success: false,
+          memberId: member.id,
+          roleId: role.id,
+          error: error.message,
+        };
+      }
+    });
+
+    const batchResults = await Promise.all(batchPromises);
+    results.push(...batchResults);
+
+    // Small delay between batches to avoid rate limits
+    if (i + batchSize < assignments.length) {
+      await new Promise(resolve => {
+        setTimeout(resolve, 100);
+      });
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Bulk remove roles from multiple users to reduce API calls
+ * @param {Array<{member: import("discord.js").GuildMember, role: import("discord.js").Role}>} assignments Array of member-role pairs
+ * @param {string} reason Reason for removing roles
+ * @returns {Promise<Array<{success: boolean, memberId: string, roleId: string, error?: string}>>} Results of each removal
+ */
+export async function bulkRemoveRoles(
+  assignments,
+  reason = "Bulk role removal",
+) {
+  const logger = getLogger();
+  const results = [];
+
+  // Process in batches of 5 to avoid rate limits
+  const batchSize = 5;
+  for (let i = 0; i < assignments.length; i += batchSize) {
+    const batch = assignments.slice(i, i + batchSize);
+
+    const batchPromises = batch.map(async ({ member, role }) => {
+      try {
+        await member.roles.remove(role, reason);
+        return { success: true, memberId: member.id, roleId: role.id };
+      } catch (error) {
+        logger.error(
+          `Failed to remove role ${role.name} from ${member.user.tag}`,
+          error,
+        );
+        return {
+          success: false,
+          memberId: member.id,
+          roleId: role.id,
+          error: error.message,
+        };
+      }
+    });
+
+    const batchResults = await Promise.all(batchPromises);
+    results.push(...batchResults);
+
+    // Small delay between batches to avoid rate limits
+    if (i + batchSize < assignments.length) {
+      await new Promise(resolve => {
+        setTimeout(resolve, 100);
+      });
+    }
+  }
+
+  return results;
+}
+
 /**
  * Gets a role by its name from a guild.
  * @param {import("discord.js").Guild} guild The guild to search in.
