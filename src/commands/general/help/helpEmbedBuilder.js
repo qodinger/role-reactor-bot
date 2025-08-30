@@ -106,6 +106,8 @@ export class HelpEmbedBuilder {
             `${EMOJIS.NUMBERS.TWO} Members click reactions to get roles instantly`,
             `${EMOJIS.NUMBERS.THREE} Use \`/assign-temp-role\` for time-limited access`,
             `${EMOJIS.NUMBERS.FOUR} Track everything with \`/list-roles\``,
+            `${EMOJIS.NUMBERS.FIVE} Schedule roles with \`/schedule-role\` for future events`,
+            `${EMOJIS.NUMBERS.SIX} Create recurring schedules with \`/recurring-roles\``,
           ].join("\n"),
           inline: false,
         },
@@ -635,6 +637,140 @@ export class HelpEmbedBuilder {
             name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
             value:
               "An invite link to add Role Reactor Bot to your server. The link is sent as an ephemeral message, so only you can see it. Share it with others to invite the bot!",
+            inline: false,
+          },
+        );
+        break;
+
+      case "schedule-role":
+        embed.addFields(
+          {
+            name: `${EMOJIS.ACTIONS.ADD} ⏰ How to Use`,
+            value:
+              '```/schedule-role users:"@user1,@user2" role:@EventRole schedule_time:"tomorrow 9am" duration:"2h" reason:"Morning event"```',
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.UI.MENU} 📝 What You Need`,
+            value: [
+              "**users** - The members to assign the role to (can be multiple)",
+              "**role** - The role to assign temporarily",
+              "**schedule_time** - When to assign the role (e.g., 'tomorrow 9am', 'next friday 6pm', 'in 2 hours')",
+              "**duration** - How long the role should last (like 30m, 2h, 1d, 1w)",
+              "**reason** *(optional)* - Why you're scheduling this role",
+            ].join("\n"),
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.FEATURES.SECURITY} 🔐 Permissions`,
+            value:
+              "• **Manage Roles** permission (for you)\n• **Manage Roles** permission (for the bot)",
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.TIME.TIMER} ⏱️ Schedule Examples`,
+            value: [
+              "`tomorrow 9am` - Next day at 9 AM",
+              "`next friday 6pm` - Next Friday at 6 PM",
+              "`in 2 hours` - 2 hours from now",
+              "`2024-01-15 14:30` - Specific date and time",
+              "`9am` - Today at 9 AM (if not passed)",
+            ].join("\n"),
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.STATUS.INFO} 🎉 Perfect For`,
+            value:
+              "Events, tournaments, meetings, scheduled maintenance, or any future role assignments!",
+            inline: false,
+          },
+        );
+        break;
+
+      case "recurring-roles":
+        embed.addFields(
+          {
+            name: `${EMOJIS.ACTIONS.ADD} 🔄 How to Use`,
+            value:
+              '```/recurring-roles create users:"@user1,@user2" role:@WeeklyRole schedule_type:weekly schedule_details:"monday 9am" duration:"1d" reason:"Weekly meeting"```',
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.UI.MENU} 📝 What You Need`,
+            value: [
+              "**users** - The members to assign the role to (can be multiple)",
+              "**role** - The role to assign on schedule",
+              "**schedule_type** - Daily, weekly, monthly, or custom interval",
+              "**schedule_details** - Specific schedule details (e.g., '9am', 'monday 6pm', '15 2pm', '120')",
+              "**duration** - How long each role assignment should last",
+              "**reason** *(optional)* - Why you're creating this recurring schedule",
+            ].join("\n"),
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.FEATURES.SECURITY} 🔐 Permissions`,
+            value:
+              "• **Manage Roles** permission (for you)\n• **Manage Roles** permission (for the bot)",
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.TIME.TIMER} ⏱️ Schedule Examples`,
+            value: [
+              "**Daily:** `9am` - Every day at 9 AM",
+              "**Weekly:** `monday 6pm` - Every Monday at 6 PM",
+              "**Monthly:** `15 2pm` - 15th of each month at 2 PM",
+              "**Custom:** `120` - Every 120 minutes (2 hours)",
+            ].join("\n"),
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.STATUS.INFO} 🎉 Perfect For`,
+            value:
+              "Weekly meetings, daily check-ins, monthly events, or any recurring role assignments!",
+            inline: false,
+          },
+        );
+        break;
+
+      case "scheduled-roles":
+        embed.addFields(
+          {
+            name: `${EMOJIS.ACTIONS.VIEW} 📋 How to Use`,
+            value: "```/scheduled-roles list```",
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.UI.MENU} 📝 What You Need`,
+            value: [
+              "**list** - View all scheduled and recurring roles",
+              "**view** - Get detailed information about a specific schedule",
+              "**cancel** - Cancel a scheduled or recurring role",
+            ].join("\n"),
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.FEATURES.SECURITY} 🔐 Permissions`,
+            value: "• **Manage Roles** permission required",
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
+            value: [
+              "Overview of all scheduled and recurring role assignments with:",
+              "• Schedule IDs, roles, and timing information",
+              "• Status updates (pending, completed, failed)",
+              "• Next run times for recurring schedules",
+              "• Ability to view details or cancel schedules",
+            ].join("\n"),
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.STATUS.INFO} 💡 Quick Actions`,
+            value: [
+              "Use `/scheduled-roles view <id>` to see detailed information",
+              "Use `/scheduled-roles cancel <id>` to cancel unwanted schedules",
+              "Monitor the status of all your scheduled role assignments",
+            ].join("\n"),
             inline: false,
           },
         );

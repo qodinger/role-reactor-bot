@@ -32,6 +32,14 @@ class HealthServer {
       return;
     }
 
+    // Validate port number
+    if (port < 1024 || port > 65535) {
+      // If port is invalid, try a safe fallback port
+      this.logger.debug(`Port ${port} is invalid, trying fallback port 8080`);
+      this.tryStartServer(8080, maxAttempts - 1);
+      return;
+    }
+
     this.server = http.createServer(requestHandler);
 
     this.server.listen(port, () => {
@@ -40,13 +48,38 @@ class HealthServer {
 
     this.server.on("error", error => {
       if (error.code === "EADDRINUSE") {
-        this.logger.debug(`Port ${port} is busy, trying port ${port + 1}`);
+        // Use a smarter port selection strategy
+        const nextPort = this.getNextPort(port);
+        this.logger.debug(`Port ${port} is busy, trying port ${nextPort}`);
         this.server = null;
-        this.tryStartServer(port + 1, maxAttempts - 1);
+        this.tryStartServer(nextPort, maxAttempts - 1);
       } else {
         this.logger.error("Health server error:", error);
       }
     });
+  }
+
+  /**
+   * Get the next port to try using a smart strategy
+   * @param {number} currentPort - Current port that failed
+   * @returns {number} Next port to try
+   */
+  getNextPort(currentPort) {
+    // Try common development ports first
+    const commonPorts = [
+      3001, 3002, 3003, 3004, 3005, 8080, 8081, 8082, 8083, 8084,
+    ];
+
+    // Find the next available common port
+    for (const port of commonPorts) {
+      if (port > currentPort) {
+        return port;
+      }
+    }
+
+    // If we've exhausted common ports, use a safe range
+    const safePort = Math.max(8080, currentPort + 1);
+    return Math.min(safePort, 65535); // Ensure we don't exceed max port
   }
 
   /**

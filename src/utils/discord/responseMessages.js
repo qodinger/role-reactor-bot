@@ -49,7 +49,9 @@ class EmbedFactory {
     }
 
     embed.setTitle(`${statusEmoji} ${title}`.trim());
-    embed.setDescription(description);
+    if (description) {
+      embed.setDescription(description);
+    }
 
     if (fields.length > 0) {
       embed.addFields(fields);
@@ -205,7 +207,7 @@ export function roleDeletedEmbed({ messageId, rolesRemoved = 0 }) {
 
 export function errorEmbed({
   title,
-  description,
+  description = "An error occurred. Please try again.",
   fields = [],
   solution = null,
 }) {

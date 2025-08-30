@@ -1,0 +1,32 @@
+# Ignore temporary files and logs to prevent unnecessary restarts
+logs/
+data/
+*.log
+.env*
+node_modules/
+coverage/
+.git/
+.vscode/
+*.tmp
+*.temp
+*.cache
+.DS_Store
+Thumbs.db
+
+# Ignore specific directories that change frequently
+src/utils/storage/
+src/utils/monitoring/
+src/features/enhancedTemporaryRoles/
+
+# Only watch essential files for development - exclude commands to prevent restarts during execution
+src/index.js
+src/config/
+src/utils/core/
+src/events/
+src/features/
+
+# Explicitly ignore command files to prevent restarts during execution
+src/commands/
+src/commands/admin/
+src/commands/general/
+src/commands/developer/

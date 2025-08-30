@@ -9,8 +9,34 @@ import {
 
 export const name = Events.InteractionCreate;
 
+// Global interaction tracking to prevent multiple responses
+const activeInteractions = new Set();
+
+// Cleanup old interactions every 5 minutes to prevent memory leaks
+setInterval(
+  () => {
+    if (activeInteractions.size > 1000) {
+      activeInteractions.clear();
+      getLogger().warn("Cleared interaction tracking cache due to size limit");
+    }
+  },
+  5 * 60 * 1000,
+);
+
 export async function execute(interaction, client) {
   const logger = getLogger();
+  const interactionId = `${interaction.id}_${interaction.type}`;
+
+  // Check if this interaction is already being processed
+  if (activeInteractions.has(interactionId)) {
+    logger.warn(
+      `Interaction ${interactionId} is already being processed, skipping`,
+    );
+    return;
+  }
+
+  // Mark this interaction as being processed
+  activeInteractions.add(interactionId);
 
   try {
     // Diagnostic: log interaction age
@@ -45,22 +71,11 @@ export async function execute(interaction, client) {
   } catch (error) {
     logger.error("Error handling interaction", error);
 
-    // Try to reply with error message only if not already handled
-    try {
-      if (!interaction.replied && !interaction.deferred) {
-        await interaction.reply({
-          content: "❌ An error occurred while processing your request.",
-          flags: 64, // ephemeral flag
-        });
-      } else if (interaction.deferred) {
-        await interaction.editReply({
-          content: "❌ An error occurred while processing your request.",
-          flags: 64,
-        });
-      }
-    } catch (replyError) {
-      logger.error("Error sending error reply", replyError);
-    }
+    // Don't try to reply here - let individual handlers manage their own responses
+    // Commands now have robust error handling with fallbacks
+  } finally {
+    // Always remove the interaction from tracking
+    activeInteractions.delete(interactionId);
   }
 }
 
@@ -77,22 +92,8 @@ const handleCommandInteraction = async (interaction, client) => {
   } catch (error) {
     logger.error(`Error executing command ${interaction.commandName}`, error);
 
-    // Only try to reply if we haven't already and the command didn't handle it
-    try {
-      if (!interaction.replied && !interaction.deferred) {
-        await interaction.reply({
-          content: "❌ Error executing command.",
-          flags: 64,
-        });
-      } else if (interaction.deferred) {
-        await interaction.editReply({
-          content: "❌ Error executing command.",
-          flags: 64,
-        });
-      }
-    } catch (replyError) {
-      logger.error("Failed to send error response", replyError);
-    }
+    // Don't try to reply here - let the command handle its own errors
+    // The command now has robust error handling with fallbacks
   }
 };
 
@@ -124,6 +125,22 @@ const handleButtonInteraction = async (interaction, _client) => {
     // Handle leaderboard time filter buttons
     if (interaction.customId.startsWith("leaderboard_")) {
       await handleLeaderboardButton(interaction);
+      return;
+    }
+
+    // Handle scheduled role button interactions
+    if (interaction.customId.startsWith("cancel_schedule_")) {
+      await handleCancelSchedule(interaction);
+      return;
+    }
+
+    if (interaction.customId.startsWith("view_schedule_")) {
+      await handleViewSchedule(interaction);
+      return;
+    }
+
+    if (interaction.customId.startsWith("modify_schedule_")) {
+      await handleModifySchedule(interaction);
       return;
     }
 
@@ -1222,6 +1239,291 @@ const handleSponsorPerks = async interaction => {
     logger.error("Error handling sponsor perks", error);
     await interaction.editReply({
       content: "❌ An error occurred while loading sponsor perks.",
+    });
+  }
+};
+
+// Helper function to format display IDs consistently
+const formatDisplayId = id => {
+  if (id.length <= 12) {
+    return id;
+  }
+  return `${id.substring(0, 8)}...${id.substring(id.length - 4)}`;
+};
+
+// Handle scheduled role button interactions
+const handleCancelSchedule = async interaction => {
+  const logger = getLogger();
+
+  try {
+    await interaction.deferReply({ flags: 64 });
+
+    // Extract schedule ID from button customId
+    const scheduleId = interaction.customId.replace("cancel_schedule_", "");
+
+    // Import required modules
+    const { EmbedBuilder } = await import("discord.js");
+    const { cancelScheduledRole } = await import(
+      "../utils/discord/enhancedTemporaryRoles.js"
+    );
+
+    // Cancel the scheduled role
+    const cancelled = await cancelScheduledRole(scheduleId);
+
+    if (!cancelled) {
+      return await interaction.editReply({
+        embeds: [
+          new EmbedBuilder()
+            .setColor(0xff4444)
+            .setTitle("❌ Schedule Not Found")
+            .setDescription(
+              "The scheduled role could not be found or has already been cancelled.",
+            )
+            .setTimestamp(),
+        ],
+      });
+    }
+
+    // Create success embed
+    const embed = new EmbedBuilder()
+      .setColor(0x00ff88)
+      .setTitle("✅ Schedule Cancelled")
+      .setDescription("The scheduled role has been cancelled successfully.")
+      .addFields({
+        name: "🆔 Schedule ID",
+        value: `\`${formatDisplayId(scheduleId)}\``,
+        inline: true,
+      })
+      .setTimestamp();
+
+    await interaction.editReply({
+      embeds: [embed],
+    });
+
+    logger.info(
+      `Scheduled role ${scheduleId} cancelled by ${interaction.user.tag}`,
+    );
+  } catch (error) {
+    logger.error("Error handling cancel schedule button", error);
+    await interaction.editReply({
+      content: "❌ An error occurred while cancelling the schedule.",
+    });
+  }
+};
+
+const handleViewSchedule = async interaction => {
+  const logger = getLogger();
+
+  try {
+    await interaction.deferReply({ flags: 64 });
+
+    // Extract schedule ID from button customId
+    const scheduleId = interaction.customId.replace("view_schedule_", "");
+
+    // Import required modules
+    const { EmbedBuilder } = await import("discord.js");
+    const { getScheduledRoles, getRecurringSchedules } = await import(
+      "../utils/discord/enhancedTemporaryRoles.js"
+    );
+
+    // Get schedule details
+    const [scheduledRoles, recurringSchedules] = await Promise.all([
+      getScheduledRoles(interaction.guild.id),
+      getRecurringSchedules(interaction.guild.id),
+    ]);
+
+    const scheduledRole = scheduledRoles.find(r => r.scheduleId === scheduleId);
+    const recurringSchedule = recurringSchedules.find(
+      r => r.scheduleId === scheduleId,
+    );
+
+    if (!scheduledRole && !recurringSchedule) {
+      return await interaction.editReply({
+        embeds: [
+          new EmbedBuilder()
+            .setColor(0xff4444)
+            .setTitle("❌ Schedule Not Found")
+            .setDescription("The scheduled role could not be found.")
+            .setTimestamp(),
+        ],
+      });
+    }
+
+    let embed;
+    if (scheduledRole) {
+      // Create scheduled role detail embed
+      const role = interaction.guild.roles.cache.get(scheduledRole.roleId);
+      const roleName = role ? role.name : "Unknown Role";
+      const scheduledBy = interaction.guild.members.cache.get(
+        scheduledRole.scheduledBy,
+      );
+      const scheduledByName = scheduledBy
+        ? scheduledBy.displayName
+        : "Unknown User";
+
+      embed = new EmbedBuilder()
+        .setTitle("⏰ Scheduled Role Details")
+        .setDescription(`Details for scheduled role assignment **${roleName}**`)
+        .setColor(0x00aaff)
+        .addFields(
+          {
+            name: "🆔 Schedule ID",
+            value: `\`${formatDisplayId(scheduledRole.scheduleId)}\``,
+            inline: true,
+          },
+          {
+            name: "🎯 Role",
+            value: roleName,
+            inline: true,
+          },
+          {
+            name: "📅 Schedule Time",
+            value: new Date(scheduledRole.scheduleTime).toLocaleString(),
+            inline: true,
+          },
+          {
+            name: "⏱️ Duration",
+            value: scheduledRole.duration,
+            inline: true,
+          },
+          {
+            name: "👥 Users",
+            value: `${scheduledRole.userIds.length} user(s)`,
+            inline: true,
+          },
+          {
+            name: "📝 Reason",
+            value: scheduledRole.reason || "No reason specified",
+            inline: true,
+          },
+          {
+            name: "👤 Scheduled By",
+            value: scheduledByName,
+            inline: true,
+          },
+          {
+            name: "📊 Status",
+            value: scheduledRole.status,
+            inline: true,
+          },
+        )
+        .setTimestamp();
+    } else {
+      // Create recurring schedule detail embed
+      const role = interaction.guild.roles.cache.get(recurringSchedule.roleId);
+      const roleName = role ? role.name : "Unknown Role";
+      const createdBy = interaction.guild.members.cache.get(
+        recurringSchedule.createdBy,
+      );
+      const createdByName = createdBy ? createdBy.displayName : "Unknown User";
+
+      embed = new EmbedBuilder()
+        .setTitle("🔄 Recurring Schedule Details")
+        .setDescription(`Details for recurring role schedule **${roleName}**`)
+        .setColor(0x00aaff)
+        .addFields(
+          {
+            name: "🆔 Schedule ID",
+            value: `\`${formatDisplayId(recurringSchedule.scheduleId)}\``,
+            inline: true,
+          },
+          {
+            name: "🎯 Role",
+            value: roleName,
+            inline: true,
+          },
+          {
+            name: "📅 Schedule Type",
+            value: recurringSchedule.schedule.type,
+            inline: true,
+          },
+          {
+            name: "⏱️ Duration",
+            value: recurringSchedule.duration,
+            inline: true,
+          },
+          {
+            name: "👥 Users",
+            value: `${recurringSchedule.userIds.length} user(s)`,
+            inline: true,
+          },
+          {
+            name: "📝 Reason",
+            value: recurringSchedule.reason || "No reason specified",
+            inline: true,
+          },
+          {
+            name: "👤 Created By",
+            value: createdByName,
+            inline: true,
+          },
+          {
+            name: "📊 Status",
+            value: recurringSchedule.status,
+            inline: true,
+          },
+        )
+        .setTimestamp();
+    }
+
+    await interaction.editReply({
+      embeds: [embed],
+    });
+
+    logger.info(
+      `Schedule details viewed for ${scheduleId} by ${interaction.user.tag}`,
+    );
+  } catch (error) {
+    logger.error("Error handling view schedule button", error);
+    await interaction.editReply({
+      content: "❌ An error occurred while loading schedule details.",
+    });
+  }
+};
+
+const handleModifySchedule = async interaction => {
+  const logger = getLogger();
+
+  try {
+    await interaction.deferReply({ flags: 64 });
+
+    // Extract schedule ID from button customId
+    const scheduleId = interaction.customId.replace("modify_schedule_", "");
+
+    // Import required modules
+    const { EmbedBuilder } = await import("discord.js");
+
+    // For now, show a message that modification is not yet implemented
+    // This can be expanded later to allow editing schedule parameters
+    const embed = new EmbedBuilder()
+      .setColor(0xff8800)
+      .setTitle("⚠️ Modification Not Available")
+      .setDescription("Schedule modification is not yet implemented.")
+      .addFields({
+        name: "🆔 Schedule ID",
+        value: `\`${formatDisplayId(scheduleId)}\``,
+        inline: true,
+      })
+      .addFields({
+        name: "💡 Alternative",
+        value:
+          "You can cancel this schedule and create a new one with the desired parameters.",
+        inline: false,
+      })
+      .setTimestamp();
+
+    await interaction.editReply({
+      embeds: [embed],
+    });
+
+    logger.info(
+      `Schedule modification requested for ${scheduleId} by ${interaction.user.tag}`,
+    );
+  } catch (error) {
+    logger.error("Error handling modify schedule button", error);
+    await interaction.editReply({
+      content:
+        "❌ An error occurred while processing the modification request.",
     });
   }
 };

@@ -29,7 +29,7 @@ import config from "./config/config.js";
 import { getStorageManager } from "./utils/storage/storageManager.js";
 import { getPerformanceMonitor } from "./utils/monitoring/performanceMonitor.js";
 import { getLogger } from "./utils/logger.js";
-import { getScheduler } from "./features/temporaryRoles/RoleExpirationScheduler.js";
+import { EnhancedRoleScheduler } from "./features/enhancedTemporaryRoles/EnhancedRoleScheduler.js";
 import { getHealthCheckRunner } from "./utils/monitoring/healthCheck.js";
 import HealthServer from "./utils/monitoring/healthServer.js";
 import { getCommandHandler } from "./utils/core/commandHandler.js";
@@ -185,9 +185,8 @@ async function gracefulShutdown(client, healthServer) {
     }
 
     // Stop scheduler
-    const scheduler = getScheduler(client);
-    if (scheduler) {
-      scheduler.stop();
+    if (global.enhancedScheduler) {
+      global.enhancedScheduler.stop();
     }
 
     // Close Discord connection
@@ -419,19 +418,59 @@ async function main() {
       }
     }
 
-    // Start the bot
-    await client.login(config.discord.token);
+    // Start the bot with retry logic
+    let loginAttempts = 0;
+    const maxLoginAttempts = 3;
+
+    while (loginAttempts < maxLoginAttempts) {
+      try {
+        logger.info(
+          `🔌 Attempting to connect to Discord (attempt ${loginAttempts + 1}/${maxLoginAttempts})...`,
+        );
+        await client.login(config.discord.token);
+        break; // Success, exit the retry loop
+      } catch (error) {
+        loginAttempts++;
+        logger.warn(`⚠️ Login attempt ${loginAttempts} failed:`, error.message);
+
+        if (loginAttempts >= maxLoginAttempts) {
+          throw new Error(
+            `Failed to connect to Discord after ${maxLoginAttempts} attempts: ${error.message}`,
+          );
+        }
+
+        // Wait before retrying
+        logger.info(`⏳ Waiting 5 seconds before retry...`);
+        await new Promise(resolve => {
+          setTimeout(resolve, 5000);
+        });
+      }
+    }
 
     // Setup shutdown handlers
     const shutdown = () => gracefulShutdown(client, healthServer);
     process.on("SIGTERM", shutdown);
     process.on("SIGINT", shutdown);
 
+    // Add error handling for Discord connection issues
+    client.on("error", error => {
+      logger.error("❌ Discord client error:", error);
+    });
+
+    client.on("disconnect", () => {
+      logger.warn("⚠️ Discord client disconnected");
+    });
+
+    client.on("reconnecting", () => {
+      logger.info("🔄 Discord client reconnecting...");
+    });
+
     client.once("ready", () => {
       logger.success(`✅ ${client.user.tag} v${getVersion()} is ready!`);
 
       // Start background services
-      const scheduler = getScheduler(client);
+      const scheduler = new EnhancedRoleScheduler(client);
+      global.enhancedScheduler = scheduler; // Store globally for shutdown
       scheduler.start();
       healthCheckRunner.run(client);
       performanceMonitor.startMonitoring();
