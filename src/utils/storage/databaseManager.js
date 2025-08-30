@@ -2,29 +2,125 @@ import { MongoClient } from "mongodb";
 import { getLogger } from "../logger.js";
 import config from "../../config/config.js";
 
+// Enhanced cache manager with TTL and size limits
 class CacheManager {
-  constructor(timeout = 5 * 60 * 1000) {
+  constructor(timeout = 5 * 60 * 1000, maxSize = 1000) {
     this.cache = new Map();
     this.timeout = timeout;
+    this.maxSize = maxSize;
+    this.accessOrder = []; // Track access order for LRU eviction
   }
 
   get(key) {
     const cached = this.cache.get(key);
     if (!cached || Date.now() - cached.timestamp > this.timeout) {
       this.cache.delete(key);
+      this.removeFromAccessOrder(key);
+      return null;
+    }
+
+    // Update access order
+    this.updateAccessOrder(key);
+    return cached.data;
+  }
+
+  set(key, data) {
+    // Evict oldest entries if cache is full
+    if (this.cache.size >= this.maxSize) {
+      this.evictOldest();
+    }
+
+    this.cache.set(key, { data, timestamp: Date.now() });
+    this.updateAccessOrder(key);
+  }
+
+  clear() {
+    this.cache.clear();
+    this.accessOrder = [];
+  }
+
+  updateAccessOrder(key) {
+    // Remove from current position
+    this.removeFromAccessOrder(key);
+    // Add to end (most recently used)
+    this.accessOrder.push(key);
+  }
+
+  removeFromAccessOrder(key) {
+    const index = this.accessOrder.indexOf(key);
+    if (index > -1) {
+      this.accessOrder.splice(index, 1);
+    }
+  }
+
+  evictOldest() {
+    if (this.accessOrder.length > 0) {
+      const oldestKey = this.accessOrder.shift();
+      this.cache.delete(oldestKey);
+    }
+  }
+
+  // Cleanup expired entries
+  cleanup() {
+    const now = Date.now();
+    for (const [key, cached] of this.cache.entries()) {
+      if (now - cached.timestamp > this.timeout) {
+        this.cache.delete(key);
+        this.removeFromAccessOrder(key);
+      }
+    }
+  }
+}
+
+// Query cache for frequently accessed data
+class QueryCache {
+  constructor() {
+    this.cache = new Map();
+    this.ttl = 2 * 60 * 1000; // 2 minutes for query results
+    this.maxSize = 500;
+  }
+
+  get(queryKey) {
+    const cached = this.cache.get(queryKey);
+    if (!cached || Date.now() - cached.timestamp > this.ttl) {
+      this.cache.delete(queryKey);
       return null;
     }
     return cached.data;
   }
 
-  set(key, data) {
-    this.cache.set(key, { data, timestamp: Date.now() });
+  set(queryKey, data) {
+    if (this.cache.size >= this.maxSize) {
+      // Remove oldest entry
+      const firstKey = this.cache.keys().next().value;
+      if (firstKey) this.cache.delete(firstKey);
+    }
+    this.cache.set(queryKey, { data, timestamp: Date.now() });
   }
 
   clear() {
     this.cache.clear();
   }
+
+  // Invalidate cache for specific collection
+  invalidateCollection(collectionName) {
+    for (const [key] of this.cache.entries()) {
+      if (key.startsWith(collectionName)) {
+        this.cache.delete(key);
+      }
+    }
+  }
 }
+
+const queryCache = new QueryCache();
+
+// Cleanup caches every 5 minutes
+setInterval(
+  () => {
+    queryCache.clear();
+  },
+  5 * 60 * 1000,
+).unref();
 
 class ConnectionManager {
   constructor(logger, dbConfig) {
@@ -38,6 +134,7 @@ class ConnectionManager {
     this.maxReconnectAttempts = 5;
     this.reconnectDelay = 2000;
     this.healthCheckInterval = null;
+    this.connectionPool = new Map(); // Connection pool for different operations
   }
 
   async connect() {
@@ -53,11 +150,39 @@ class ConnectionManager {
       this.logger.info("🔌 Attempting to connect to MongoDB...");
       this.client = new MongoClient(this.config.uri, {
         ...this.config.options,
-        // Add automatic reconnection options
-        serverSelectionTimeoutMS: 10000,
-        heartbeatFrequencyMS: 10000,
+        // Enhanced connection pooling
+        maxPoolSize: Math.max(20, this.config.options.maxPoolSize || 20),
+        minPoolSize: Math.max(5, this.config.options.minPoolSize || 5),
+        maxIdleTimeMS: Math.max(
+          60000,
+          this.config.options.maxIdleTimeMS || 60000,
+        ),
+        serverSelectionTimeoutMS: Math.max(
+          15000,
+          this.config.options.serverSelectionTimeoutMS || 15000,
+        ),
+        connectTimeoutMS: Math.max(
+          15000,
+          this.config.options.connectTimeoutMS || 15000,
+        ),
+        socketTimeoutMS: Math.max(
+          60000,
+          this.config.options.socketTimeoutMS || 60000,
+        ),
         retryWrites: true,
         retryReads: true,
+        w: "majority",
+        // Enhanced reconnection options
+        heartbeatFrequencyMS: 10000,
+        // Add connection optimization
+        maxConnecting: Math.max(5, this.config.options.maxConnecting || 5),
+        // Connection pool monitoring
+        monitorCommands: true,
+        serverApi: {
+          version: "1",
+          strict: false,
+          deprecationErrors: false,
+        },
       });
 
       const connection = this.client.connect();
@@ -99,14 +224,10 @@ class ConnectionManager {
         this.logger.error(
           "❌ Max reconnection attempts reached. Manual restart required.",
         );
+        throw error;
       }
-
-      return null;
     } finally {
-      // Clean up timeout to prevent memory leaks
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
+      if (timeoutId) clearTimeout(timeoutId);
     }
   }
 

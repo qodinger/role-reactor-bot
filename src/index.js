@@ -114,22 +114,61 @@ function createClient() {
     ],
     partials: [Partials.Message, Partials.Channel, Partials.Reaction],
     makeCache: Options.cacheWithLimits(config.cacheLimits),
-    // Use rate limit configuration from config
-    rest: config.rateLimits.rest,
-    ws: config.rateLimits.ws,
+    // Use optimized rate limit configuration from config
+    rest: {
+      ...config.rateLimits.rest,
+      // Enhanced rate limiting
+      globalLimit: config.rateLimits.rest.globalLimit || 50,
+      userLimit: config.rateLimits.rest.userLimit || 10,
+      guildLimit: config.rateLimits.rest.guildLimit || 20,
+    },
+    ws: {
+      ...config.rateLimits.ws,
+      // Optimized WebSocket settings
+      heartbeatInterval: config.rateLimits.ws.heartbeatInterval || 41250,
+      maxReconnectAttempts: config.rateLimits.ws.maxReconnectAttempts || 5,
+      reconnectDelay: config.rateLimits.ws.reconnectDelay || 1000,
+    },
   });
 
-  // Add rate limit event handlers
+  // Add enhanced rate limit event handlers
   client.rest.on("rateLimited", rateLimitInfo => {
     const logger = getLogger();
     logger.warn(
       `🚫 Rate limited: ${rateLimitInfo.method} ${rateLimitInfo.path} - Retry after ${rateLimitInfo.timeout}ms`,
     );
+
+    // Log rate limit statistics for monitoring
+    logger.debug(`Rate limit details:`, {
+      method: rateLimitInfo.method,
+      path: rateLimitInfo.path,
+      timeout: rateLimitInfo.timeout,
+      limit: rateLimitInfo.limit,
+      remaining: rateLimitInfo.remaining,
+      resetAfter: rateLimitInfo.resetAfter,
+    });
   });
 
   client.rest.on("invalidated", () => {
     const logger = getLogger();
     logger.error("❌ REST connection invalidated - attempting reconnection...");
+  });
+
+  // Add connection monitoring
+  client.on("ready", () => {
+    const logger = getLogger();
+    logger.info(`🚀 Bot connected with ${client.guilds.cache.size} guilds`);
+
+    // Log cache statistics
+    logger.debug("Cache statistics:", {
+      guilds: client.guilds.cache.size,
+      users: client.users.cache.size,
+      channels: client.channels.cache.size,
+      roles: client.guilds.cache.reduce(
+        (total, guild) => total + guild.roles.cache.size,
+        0,
+      ),
+    });
   });
 
   return client;

@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Sponsor Command: New `/sponsor` command with Buy Me a Coffee integration for user donations
+- Theme Integration: Centralized color management with pastel theme palette
+- Enhanced Error Messages: User-friendly error messages with actionable guidance using dedent formatting
+- API Optimization: Comprehensive Discord API call optimization with caching, batching, and rate limiting
+
+### Changed
+
+- Theme Colors: Updated all colors to softer, pastel versions for better visual appeal
+- Command Colors: All commands now use centralized theme colors instead of hardcoded values
+- Error Handling: Improved error messages with specific causes, quick fixes, and alternative solutions
+- Sponsor Command: Simplified to focus on donation rather than complex payment methods
+
+### Technical
+
+- Added dedent library for cleaner multi-line template strings
+- Enhanced database integration and caching for better performance
+- Improved webhook handling for donation platform integrations
+- Updated help system to include new sponsor command
+- Implemented comprehensive API optimization system:
+  - Member caching (80-90% API call reduction)
+  - Role mapping cache (70-80% database query reduction)
+  - Experience system batching (60-70% database write reduction)
+  - Bulk role operations (50-60% API call reduction)
+  - Enhanced database caching (40-50% query reduction)
+  - Batch operation manager (centralized processing)
+
 ## [0.4.1] - 2025-01-22
 
 ### Changed

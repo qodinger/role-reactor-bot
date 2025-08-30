@@ -47,6 +47,12 @@ export function generateCommandTags(commandName, description) {
     text.includes("question")
   )
     tags.push("fun");
+  if (
+    text.includes("sponsor") ||
+    text.includes("donate") ||
+    text.includes("support")
+  )
+    tags.push("support");
 
   // Remove duplicates and return
   return [...new Set(tags)];
@@ -207,6 +213,9 @@ export function getCommandEmoji(commandName) {
 
     // Storage commands
     storage: EMOJIS.FEATURES.BACKUP,
+
+    // Sponsor command
+    sponsor: EMOJIS.ACTIONS.HEART,
 
     // Default fallback
     default: EMOJIS.ACTIONS.HELP,
