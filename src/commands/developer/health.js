@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
-
+import { THEME } from "../../config/theme.js";
 import { isDeveloper } from "../../utils/discord/permissions.js";
 import { getLogger } from "../../utils/logger.js";
 
@@ -53,19 +53,19 @@ export async function execute(interaction, client) {
     const hasWarnings = checks.websocket.includes("⚠️");
 
     let overallStatus = "healthy";
-    let statusColor = "#00FF00";
+    let statusColor = THEME.SUCCESS;
     let statusEmoji = "✅";
     let statusDescription = "All systems are operating normally! 🚀";
 
     if (hasErrors) {
       overallStatus = "error";
-      statusColor = "#FF0000";
+      statusColor = THEME.ERROR;
       statusEmoji = "❌";
       statusDescription =
         "Critical issues detected. Immediate attention required! 🔴";
     } else if (hasWarnings) {
       overallStatus = "warning";
-      statusColor = "#FFA500";
+      statusColor = THEME.WARNING;
       statusEmoji = "⚠️";
       statusDescription = "Minor issues detected. Monitor closely. 🟡";
     }

@@ -293,6 +293,61 @@ class TemporaryRoleRepository extends BaseRepository {
     }
     return result.deletedCount > 0;
   }
+
+  // Supporter management methods
+  async addSupporter(guildId, userId, roleId, assignedAt, reason) {
+    try {
+      await this.collection.updateOne(
+        { guildId, userId, roleId, type: "supporter" },
+        {
+          $set: {
+            assignedAt,
+            reason,
+            isActive: true,
+            updatedAt: new Date(),
+          },
+        },
+        { upsert: true },
+      );
+      this.cache.clear();
+      return true;
+    } catch (error) {
+      this.logger.error("Failed to add supporter role", error);
+      return false;
+    }
+  }
+
+  async removeSupporter(guildId, userId) {
+    try {
+      const result = await this.collection.deleteOne({
+        guildId,
+        userId,
+        type: "supporter",
+      });
+      if (result.deletedCount > 0) {
+        this.cache.clear();
+      }
+      return result.deletedCount > 0;
+    } catch (error) {
+      this.logger.error("Failed to remove supporter role", error);
+      return false;
+    }
+  }
+
+  async getSupporters(guildId) {
+    try {
+      const documents = await this.collection
+        .find({
+          guildId,
+          type: "supporter",
+        })
+        .toArray();
+      return documents;
+    } catch (error) {
+      this.logger.error("Failed to get supporters", error);
+      return [];
+    }
+  }
 }
 
 class UserExperienceRepository extends BaseRepository {
@@ -552,6 +607,45 @@ class GuildSettingsRepository extends BaseRepository {
         error,
       );
       throw error;
+    }
+  }
+
+  // Supporter management methods
+  async getSupporters() {
+    try {
+      const supporters = await this.collection
+        .find({}, { projection: { supporters: 1 } })
+        .toArray();
+
+      const allSupporters = {};
+      supporters.forEach(guild => {
+        if (guild.supporters) {
+          allSupporters[guild.guildId] = guild.supporters;
+        }
+      });
+
+      return allSupporters;
+    } catch (error) {
+      this.logger.error("Failed to get supporters", error);
+      return {};
+    }
+  }
+
+  async setSupporters(supporters) {
+    try {
+      // Update each guild's supporters
+      for (const [guildId, guildSupporters] of Object.entries(supporters)) {
+        await this.collection.updateOne(
+          { guildId },
+          { $set: { supporters: guildSupporters, updatedAt: new Date() } },
+          { upsert: true },
+        );
+      }
+      this.cache.clear();
+      return true;
+    } catch (error) {
+      this.logger.error("Failed to set supporters", error);
+      return false;
     }
   }
 }

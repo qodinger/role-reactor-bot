@@ -98,6 +98,26 @@ class DatabaseProvider {
   async getUserExperienceLeaderboard(guildId, limit) {
     return this.dbManager.userExperience.getLeaderboard(guildId, limit);
   }
+
+  // Supporter management methods
+  async getSupporters() {
+    try {
+      return this.dbManager.guildSettings.getSupporters() || {};
+    } catch (error) {
+      this.logger.error("Failed to get supporters from database", error);
+      return {};
+    }
+  }
+
+  async setSupporters(supporters) {
+    try {
+      await this.dbManager.guildSettings.setSupporters(supporters);
+      return true;
+    } catch (error) {
+      this.logger.error("Failed to set supporters in database", error);
+      return false;
+    }
+  }
 }
 
 class StorageManager {

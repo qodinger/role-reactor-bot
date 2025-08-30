@@ -26,6 +26,100 @@ export async function addTemporaryRole(guildId, userId, roleId, expiresAt) {
 }
 
 /**
+ * Adds a supporter role to a user (permanent supporter role).
+ * @param {string} guildId
+ * @param {string} userId
+ * @param {string} roleId
+ * @param {Date} assignedAt
+ * @param {string} reason
+ * @returns {Promise<boolean>}
+ */
+export async function addSupporter(
+  guildId,
+  userId,
+  roleId,
+  assignedAt,
+  reason,
+) {
+  const logger = getLogger();
+  try {
+    const storageManager = await getStorageManager();
+    const supporters = await storageManager.getSupporters();
+
+    if (!supporters[guildId]) {
+      supporters[guildId] = {};
+    }
+
+    supporters[guildId][userId] = {
+      roleId,
+      assignedAt: assignedAt.toISOString(),
+      reason,
+      isActive: true,
+    };
+
+    await storageManager.setSupporters(supporters);
+    logger.info(`Added supporter role for user ${userId} in guild ${guildId}`);
+    return true;
+  } catch (error) {
+    logger.error("Failed to add supporter role", error);
+    return false;
+  }
+}
+
+/**
+ * Removes a supporter role from a user.
+ * @param {string} guildId
+ * @param {string} userId
+ * @returns {Promise<boolean>}
+ */
+export async function removeSupporter(guildId, userId) {
+  const logger = getLogger();
+  try {
+    const storageManager = await getStorageManager();
+    const supporters = await storageManager.getSupporters();
+
+    if (supporters[guildId]?.[userId]) {
+      delete supporters[guildId][userId];
+      await storageManager.setSupporters(supporters);
+      logger.info(
+        `Removed supporter role for user ${userId} in guild ${guildId}`,
+      );
+      return true;
+    }
+
+    return false;
+  } catch (error) {
+    logger.error("Failed to remove supporter role", error);
+    return false;
+  }
+}
+
+/**
+ * Gets all supporters for a guild.
+ * @param {string} guildId
+ * @returns {Promise<Array>}
+ */
+export async function getSupporters(guildId) {
+  const logger = getLogger();
+  try {
+    const storageManager = await getStorageManager();
+    const supporters = await storageManager.getSupporters();
+    const guildSupporters = supporters[guildId] || {};
+
+    return Object.entries(guildSupporters).map(([userId, data]) => ({
+      userId,
+      roleId: data.roleId,
+      assignedAt: new Date(data.assignedAt),
+      reason: data.reason,
+      isActive: data.isActive,
+    }));
+  } catch (error) {
+    logger.error("Failed to get supporters", error);
+    return [];
+  }
+}
+
+/**
  * Removes a temporary role from a user.
  * @param {string} guildId
  * @param {string} userId
