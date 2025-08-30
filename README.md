@@ -132,12 +132,6 @@ Automatically welcome new members with customizable messages and auto-role assig
 /welcome-settings
 ```
 
-**Test welcome message:**
-
-```
-/test-welcome
-```
-
 **Available placeholders:**
 
 - `{user}` - User mention
@@ -183,7 +177,6 @@ The XP system is **disabled by default** and must be enabled by server administr
 | `/remove-temp-role` | Remove a temporary role         | Manage Roles |
 | `/setup-welcome`    | Configure welcome system        | Manage Guild |
 | `/welcome-settings` | View welcome system settings    | Manage Guild |
-| `/test-welcome`     | Test welcome system             | Manage Guild |
 | `/xp-settings`      | View XP system settings         | Manage Guild |
 
 #### Developer Commands
@@ -196,12 +189,13 @@ The XP system is **disabled by default** and must be enabled by server administr
 
 #### General Commands
 
-| Command    | Description                  | Permissions |
-| ---------- | ---------------------------- | ----------- |
-| `/help`    | Display bot information      | None        |
-| `/ping`    | Check bot latency and status | None        |
-| `/invite`  | Get bot invite link          | None        |
-| `/support` | Get support server link      | None        |
+| Command    | Description                         | Permissions |
+| ---------- | ----------------------------------- | ----------- |
+| `/help`    | Display bot information             | None        |
+| `/ping`    | Check bot latency and status        | None        |
+| `/invite`  | Get bot invite link                 | None        |
+| `/support` | Get support server link             | None        |
+| `/sponsor` | Support bot development (donations) | None        |
 
 ## 🔧 Configuration
 

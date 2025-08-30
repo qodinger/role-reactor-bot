@@ -12,6 +12,7 @@ import {
   colorOption,
 } from "../../utils/discord/slashCommandOptions.js";
 import { getLogger } from "../../utils/logger.js";
+import { THEME } from "../../config/theme.js";
 import {
   roleUpdatedEmbed,
   permissionErrorEmbed,
@@ -188,7 +189,7 @@ export async function execute(interaction) {
     const embed = new EmbedBuilder()
       .setTitle(updatedMapping.title || "Role Selection")
       .setDescription(updatedMapping.description || "React to get a role!")
-      .setColor(updatedMapping.color || "#0099ff")
+      .setColor(updatedMapping.color || THEME.INFO)
       .setTimestamp()
       .setFooter({
         text: "Role Reactor • Self-Assignable Roles",

@@ -258,6 +258,7 @@ export const COMMAND_CATEGORIES = {
       "ping",
       "invite",
       "support",
+      "sponsor",
       "serverinfo",
       "userinfo",
       "avatar",

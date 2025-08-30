@@ -71,14 +71,14 @@ export async function execute(interaction, _client) {
     // Determine rank color based on level
     let rankColor = THEME.SUCCESS;
     if (userData.level >= 50)
-      rankColor = 0xffd700; // Gold for Legend
+      rankColor = THEME.WARNING; // Gold for Legend
     else if (userData.level >= 30)
-      rankColor = 0xff6b35; // Orange for Veteran
+      rankColor = THEME.WARNING; // Orange for Veteran
     else if (userData.level >= 20)
-      rankColor = 0x9b59b6; // Purple for Experienced
+      rankColor = THEME.ACCENT; // Purple for Experienced
     else if (userData.level >= 10)
-      rankColor = 0x3498db; // Blue for Regular
-    else if (userData.level >= 5) rankColor = 0xe74c3c; // Red for Active
+      rankColor = THEME.INFO; // Blue for Regular
+    else if (userData.level >= 5) rankColor = THEME.ERROR; // Red for Active
 
     const embed = new EmbedBuilder()
       .setColor(rankColor)
