@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Theme Integration: Centralized color management with pastel theme palette
 - Enhanced Error Messages: User-friendly error messages with actionable guidance using dedent formatting
 - API Optimization: Comprehensive Discord API call optimization with caching, batching, and rate limiting
+- Schedule Parser Utility: New comprehensive time parsing system supporting shorthand formats (`2m`, `5h`, `1d`, `2w`) and natural language
+- Enhanced Command Loading: Support for modular command structures with subfolder index.js files
 
 ### Changed
 
@@ -20,6 +22,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Command Colors: All commands now use centralized theme colors instead of hardcoded values
 - Error Handling: Improved error messages with specific causes, quick fixes, and alternative solutions
 - Sponsor Command: Simplified to focus on donation rather than complex payment methods
+- Schedule Command Structure: Refactored `/schedule-role` command into modular folder structure with subcommands (`create`, `list`, `view`, `cancel`)
+- Role Assignment Logic: Reversed order to assign Discord role first, then store in database for better consistency
+- Command Loading: Enhanced to support subfolder index.js files for modular command structures
+
+### Fixed
+
+- Orphaned Temporary Roles: Critical bug where users saw temporary roles in bot lists but didn't actually have them assigned on Discord
+- Database Synchronization: Ensured bot's internal state stays consistent with actual Discord role assignments
+- Schedule Command Deployment: Fixed command loading issues with new modular folder structure
+- Interaction Handling: Resolved `InteractionNotReplied` errors in schedule commands
+- Status Synchronization: Fixed recurring role status updates and expiration handling
+- Time Display: Corrected misleading "Expired ago" timestamps in schedule details
 
 ### Technical
 
@@ -34,6 +48,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Bulk role operations (50-60% API call reduction)
   - Enhanced database caching (40-50% query reduction)
   - Batch operation manager (centralized processing)
+- Refactored schedule-role command into modular components:
+  - `handlers.js` - Core logic for subcommands
+  - `embeds.js` - All embed creation functions
+  - `utils.js` - Utility functions and formatting
+  - `list.js` - List subcommand logic
+  - `index.js` - Main command entry point
+- Enhanced role scheduler with improved status management and error handling
+- Enhanced error handling with fail-safe cleanup mechanisms
+- Improved database connection management and schema handling
 
 ## [0.4.1] - 2025-01-22
 
