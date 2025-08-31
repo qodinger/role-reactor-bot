@@ -177,12 +177,10 @@ The XP system is **disabled by default** and must be enabled by server administr
 | `/list-temp-roles`  | List temporary roles            | Manage Roles |
 | `/remove-temp-role` | Remove a temporary role         | Manage Roles |
 | `/schedule-role`    | Schedule future role assignment | Manage Roles |
-| `/recurring-roles`  | Manage recurring role schedules | Manage Roles |
-
-| `/scheduled-roles` | View and manage scheduled roles | Manage Roles |
-| `/setup-welcome` | Configure welcome system | Manage Guild |
-| `/welcome-settings` | View welcome system settings | Manage Guild |
-| `/xp-settings` | View XP system settings | Manage Guild |
+| `/schedule-role`    | Schedule roles (create/list)    | Manage Roles |
+| `/setup-welcome`    | Configure welcome system        | Manage Guild |
+| `/welcome-settings` | View welcome system settings    | Manage Guild |
+| `/xp-settings`      | View XP system settings         | Manage Guild |
 
 #### Developer Commands
 

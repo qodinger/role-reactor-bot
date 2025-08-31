@@ -37,6 +37,14 @@ export class EnhancedRoleScheduler {
         this.logger.debug("🕐 Enhanced scheduler cleanup triggered");
         await this.processScheduledRoles();
         await this.processRecurringSchedules();
+        await this.processExpiredTemporaryRoles();
+
+        // Clean up old schedules every 30 minutes to keep database clean
+        const now = Date.now();
+        if (!this.lastCleanupTime || now - this.lastCleanupTime >= 1800000) {
+          await this.cleanupOldSchedules();
+          this.lastCleanupTime = now;
+        }
       } catch (error) {
         this.logger.error("❌ Error in enhanced role scheduler", error);
       }
@@ -49,6 +57,9 @@ export class EnhancedRoleScheduler {
     // Run initial cleanup
     this.processScheduledRoles();
     this.processRecurringSchedules();
+
+    // Immediately clean up old data on startup
+    this.cleanupOldSchedules();
   }
 
   /**
@@ -101,6 +112,232 @@ export class EnhancedRoleScheduler {
   }
 
   /**
+   * Process expired temporary roles and clean them up
+   */
+  async processExpiredTemporaryRoles() {
+    try {
+      // First, check for expired scheduled roles and mark them as expired
+      await this.processExpiredScheduledRoles();
+
+      // Then clean up expired temporary roles
+      const storageManager = await getStorageManager();
+      const temporaryRoles = await storageManager.getTemporaryRoles();
+      const now = new Date();
+      let expiredCount = 0;
+
+      for (const [guildId, guildRoles] of Object.entries(temporaryRoles)) {
+        for (const [userId, userRoles] of Object.entries(guildRoles)) {
+          for (const [roleId, roleData] of Object.entries(userRoles)) {
+            const expiresAt = new Date(roleData.expiresAt);
+
+            if (expiresAt <= now) {
+              this.logger.info(
+                `🕐 Removing expired temporary role ${roleId} from user ${userId} in guild ${guildId}`,
+              );
+
+              try {
+                // Remove the Discord role
+                const guild = this.client.guilds.cache.get(guildId);
+                if (guild) {
+                  const member = await guild.members.fetch(userId);
+                  const role = guild.roles.cache.get(roleId);
+
+                  if (member && role && member.roles.cache.has(roleId)) {
+                    await member.roles.remove(role, "Temporary role expired");
+                    this.logger.info(
+                      `✅ Removed expired role ${role.name} from user ${userId}`,
+                    );
+                  }
+                }
+
+                // Remove from storage
+                await storageManager.removeTemporaryRole(
+                  guildId,
+                  userId,
+                  roleId,
+                );
+                expiredCount++;
+              } catch (error) {
+                this.logger.error(
+                  `❌ Failed to remove expired role ${roleId} from user ${userId}:`,
+                  error.message,
+                );
+              }
+            }
+          }
+        }
+      }
+
+      if (expiredCount > 0) {
+        this.logger.info(
+          `🧹 Cleaned up ${expiredCount} expired temporary roles`,
+        );
+      }
+    } catch (error) {
+      this.logger.error("Error processing expired temporary roles:", error);
+    }
+  }
+
+  /**
+   * Process expired scheduled roles and mark them as expired
+   */
+  async processExpiredScheduledRoles() {
+    try {
+      const storageManager = await getStorageManager();
+      const scheduledRoles =
+        (await storageManager.read("scheduled_roles")) || {};
+      const now = new Date();
+      let expiredCount = 0;
+
+      for (const [scheduleId, roleData] of Object.entries(scheduledRoles)) {
+        // Only process active roles (roles that have been assigned and are running)
+        if (roleData.status === "active" && roleData.actualExpiresAt) {
+          const expiresAt = new Date(roleData.actualExpiresAt);
+
+          if (expiresAt <= now) {
+            this.logger.info(
+              `🕐 Marking scheduled role ${scheduleId} as expired`,
+            );
+
+            // Mark as expired
+            await this.markScheduledRoleComplete(
+              scheduleId,
+              "expired",
+              "Role duration expired",
+            );
+
+            expiredCount++;
+          }
+        }
+      }
+
+      if (expiredCount > 0) {
+        this.logger.info(
+          `📝 Marked ${expiredCount} scheduled roles as expired`,
+        );
+      }
+    } catch (error) {
+      this.logger.error("Error processing expired scheduled roles:", error);
+    }
+  }
+
+  /**
+   * Clean up old completed, cancelled, and expired schedules to keep the database clean
+   */
+  async cleanupOldSchedules() {
+    try {
+      const storageManager = await getStorageManager();
+      const scheduledRoles =
+        (await storageManager.read("scheduled_roles")) || {};
+      const recurringSchedules =
+        (await storageManager.read("recurring_schedules")) || {};
+      const now = new Date();
+      let scheduledCleanedCount = 0;
+      let recurringCleanedCount = 0;
+
+      // Clean up scheduled roles
+      for (const [scheduleId, roleData] of Object.entries(scheduledRoles)) {
+        let shouldCleanup = false;
+        let cleanupReason = "";
+
+        // Clean up completed schedules after 1 hour
+        if (roleData.status === "completed" && roleData.completedAt) {
+          const completedAt = new Date(roleData.completedAt);
+          const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+          if (completedAt <= oneHourAgo) {
+            shouldCleanup = true;
+            cleanupReason = "completed (older than 1 hour)";
+          }
+        }
+
+        // Clean up cancelled schedules after 30 minutes
+        if (roleData.status === "cancelled" && roleData.createdAt) {
+          const createdAt = new Date(roleData.createdAt);
+          const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000);
+          if (createdAt <= thirtyMinutesAgo) {
+            shouldCleanup = true;
+            cleanupReason = "cancelled (older than 30 minutes)";
+          }
+        }
+
+        // Clean up expired schedules after 1 hour
+        if (roleData.status === "expired" && roleData.expiredAt) {
+          const expiredAt = new Date(roleData.expiredAt);
+          const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+          if (expiredAt <= oneHourAgo) {
+            shouldCleanup = true;
+            cleanupReason = "expired (older than 1 hour)";
+          }
+        }
+
+        // Clean up failed schedules after 2 hours
+        if (roleData.status === "failed" && roleData.completedAt) {
+          const failedAt = new Date(roleData.completedAt);
+          const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
+          if (failedAt <= twoHoursAgo) {
+            shouldCleanup = true;
+            cleanupReason = "failed (older than 2 hours)";
+          }
+        }
+
+        if (shouldCleanup) {
+          this.logger.info(
+            `🧹 Cleaning up ${cleanupReason} scheduled role ${scheduleId}`,
+          );
+
+          // Remove the old schedule
+          delete scheduledRoles[scheduleId];
+          scheduledCleanedCount++;
+        }
+      }
+
+      // Clean up recurring schedules
+      for (const [scheduleId, scheduleData] of Object.entries(
+        recurringSchedules,
+      )) {
+        // Clean up cancelled recurring schedules after 30 minutes
+        if (scheduleData.status === "cancelled" && scheduleData.createdAt) {
+          const createdAt = new Date(scheduleData.createdAt);
+          const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000);
+
+          if (createdAt <= thirtyMinutesAgo) {
+            this.logger.info(
+              `🧹 Cleaning up cancelled recurring schedule ${scheduleId}`,
+            );
+
+            // Remove the old recurring schedule
+            delete recurringSchedules[scheduleId];
+            recurringCleanedCount++;
+          }
+        }
+      }
+
+      // Save changes if any cleanup was performed
+      if (scheduledCleanedCount > 0) {
+        await storageManager.write("scheduled_roles", scheduledRoles);
+        this.logger.info(
+          `🧹 Cleaned up ${scheduledCleanedCount} old scheduled roles`,
+        );
+      }
+
+      if (recurringCleanedCount > 0) {
+        await storageManager.write("recurring_schedules", recurringSchedules);
+        this.logger.info(
+          `🧹 Cleaned up ${recurringCleanedCount} old recurring schedules`,
+        );
+      }
+
+      if (scheduledCleanedCount > 0 || recurringCleanedCount > 0) {
+        this.logger.info(
+          `🧹 Total cleanup: ${scheduledCleanedCount + recurringCleanedCount} schedules removed`,
+        );
+      }
+    } catch (error) {
+      this.logger.error("Error cleaning up old schedules:", error);
+    }
+  }
+
+  /**
    * Execute a scheduled role assignment
    * @param {Object} scheduledRole
    */
@@ -137,10 +374,32 @@ export class EnhancedRoleScheduler {
       const expiresAt = new Date(Date.now() + durationMs);
 
       // Assign roles to all users
+      this.logger.info(
+        `🔄 Assigning role ${roleId} to ${userIds.length} users...`,
+      );
+
       const results = await Promise.allSettled(
-        userIds.map(userId =>
-          addTemporaryRole(guildId, userId, roleId, expiresAt),
-        ),
+        userIds.map(async userId => {
+          try {
+            const result = await addTemporaryRole(
+              guildId,
+              userId,
+              roleId,
+              expiresAt,
+              this.client,
+            );
+            this.logger.info(
+              `✅ Role assigned to user ${userId}: ${result ? "Success" : "Failed"}`,
+            );
+            return result;
+          } catch (error) {
+            this.logger.error(
+              `❌ Failed to assign role to user ${userId}:`,
+              error.message,
+            );
+            return false;
+          }
+        }),
       );
 
       // Process results
@@ -150,13 +409,13 @@ export class EnhancedRoleScheduler {
       const failed = results.length - successful;
 
       this.logger.info(
-        `Scheduled role ${scheduleId} completed: ${successful}/${userIds.length} successful`,
+        `🎯 Scheduled role ${scheduleId} completed: ${successful}/${userIds.length} successful`,
       );
 
-      // Mark as completed
+      // Mark as active (role is now assigned and running)
       await this.markScheduledRoleComplete(
         scheduleId,
-        "completed",
+        "active",
         `Assigned to ${successful}/${userIds.length} users`,
       );
 
@@ -242,7 +501,7 @@ export class EnhancedRoleScheduler {
       // Assign roles to all users
       const results = await Promise.allSettled(
         userIds.map(userId =>
-          addTemporaryRole(guildId, userId, roleId, expiresAt),
+          addTemporaryRole(guildId, userId, roleId, expiresAt, this.client),
         ),
       );
 
@@ -277,9 +536,9 @@ export class EnhancedRoleScheduler {
   }
 
   /**
-   * Mark a scheduled role as completed
+   * Mark a scheduled role with a new status
    * @param {string} scheduleId
-   * @param {string} status
+   * @param {string} status - "pending", "active", "completed", "failed", "expired"
    * @param {string} result
    */
   async markScheduledRoleComplete(scheduleId, status, result) {
@@ -290,14 +549,36 @@ export class EnhancedRoleScheduler {
 
       if (scheduledRoles[scheduleId]) {
         scheduledRoles[scheduleId].status = status;
-        scheduledRoles[scheduleId].completedAt = new Date().toISOString();
+
+        if (status === "active") {
+          // When role becomes active, set the actual expiration time
+          const roleData = scheduledRoles[scheduleId];
+          const durationMs = this.parseDuration(roleData.duration);
+          if (durationMs) {
+            scheduledRoles[scheduleId].actualExpiresAt = new Date(
+              Date.now() + durationMs,
+            ).toISOString();
+          }
+        }
+
+        if (status === "completed" || status === "failed") {
+          scheduledRoles[scheduleId].completedAt = new Date().toISOString();
+        }
+
+        if (status === "expired") {
+          scheduledRoles[scheduleId].expiredAt = new Date().toISOString();
+        }
+
         scheduledRoles[scheduleId].result = result;
 
         await storageManager.write("scheduled_roles", scheduledRoles);
+        this.logger.info(
+          `📝 Updated scheduled role ${scheduleId} status to: ${status}`,
+        );
       }
     } catch (error) {
       this.logger.error(
-        `Error marking scheduled role ${scheduleId} as complete:`,
+        `Error marking scheduled role ${scheduleId} as ${status}:`,
         error,
       );
     }
@@ -350,16 +631,30 @@ export class EnhancedRoleScheduler {
       const guild = this.client.guilds.cache.get(guildId);
       if (!guild) return;
 
-      // Try to find a log channel or general channel
-      const logChannel =
-        guild.channels.cache.find(
-          ch =>
-            ch.name.includes("log") ||
-            ch.name.includes("admin") ||
-            ch.name.includes("mod"),
-        ) || guild.channels.cache.find(ch => ch.type === 0); // Text channel
+      // Try to find a log channel or general channel with proper permissions
+      let logChannel = null;
 
-      if (!logChannel) return;
+      // First try to find a channel where the bot has permission to send messages
+      const channels = guild.channels.cache.filter(
+        ch =>
+          ch.type === 0 && // Text channel
+          ch.permissionsFor(guild.members.me).has("SendMessages"),
+      );
+
+      // Priority order: log > admin > mod > general > first available
+      logChannel =
+        channels.find(ch => ch.name.includes("log")) ||
+        channels.find(ch => ch.name.includes("admin")) ||
+        channels.find(ch => ch.name.includes("mod")) ||
+        channels.find(ch => ch.name.includes("general")) ||
+        channels.first();
+
+      if (!logChannel) {
+        this.logger.warn(
+          `No suitable notification channel found in guild ${guildId}`,
+        );
+        return;
+      }
 
       const role = guild.roles.cache.get(roleId);
       const roleName = role ? role.name : "Unknown Role";
@@ -399,8 +694,12 @@ export class EnhancedRoleScheduler {
       };
 
       await logChannel.send({ embeds: [embed] });
+      this.logger.info(
+        `✅ Scheduled role notification sent to #${logChannel.name}`,
+      );
     } catch (error) {
       this.logger.error("Error sending scheduled role notification:", error);
+      // Don't let notification errors affect the main functionality
     }
   }
 
@@ -425,16 +724,30 @@ export class EnhancedRoleScheduler {
       const guild = this.client.guilds.cache.get(guildId);
       if (!guild) return;
 
-      // Try to find a log channel or general channel
-      const logChannel =
-        guild.channels.cache.find(
-          ch =>
-            ch.name.includes("log") ||
-            ch.name.includes("admin") ||
-            ch.name.includes("mod"),
-        ) || guild.channels.cache.find(ch => ch.type === 0); // Text channel
+      // Try to find a log channel or general channel with proper permissions
+      let logChannel = null;
 
-      if (!logChannel) return;
+      // First try to find a channel where the bot has permission to send messages
+      const channels = guild.channels.cache.filter(
+        ch =>
+          ch.type === 0 && // Text channel
+          ch.permissionsFor(guild.members.me).has("SendMessages"),
+      );
+
+      // Priority order: log > admin > mod > general > first available
+      logChannel =
+        channels.find(ch => ch.name.includes("log")) ||
+        channels.find(ch => ch.name.includes("admin")) ||
+        channels.find(ch => ch.name.includes("mod")) ||
+        channels.find(ch => ch.name.includes("general")) ||
+        channels.first();
+
+      if (!logChannel) {
+        this.logger.warn(
+          `No suitable notification channel found in guild ${guildId}`,
+        );
+        return;
+      }
 
       const role = guild.roles.cache.get(roleId);
       const roleName = role ? role.name : "Unknown Role";

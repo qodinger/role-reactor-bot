@@ -367,7 +367,7 @@ export async function getScheduledRoles(guildId) {
     const scheduledRoles = (await storageManager.read("scheduled_roles")) || {};
 
     return Object.values(scheduledRoles).filter(
-      role => role.guildId === guildId && role.status === "scheduled",
+      role => role.guildId === guildId,
     );
   } catch (error) {
     const logger = getLogger();
@@ -388,7 +388,7 @@ export async function getRecurringSchedules(guildId) {
       (await storageManager.read("recurring_schedules")) || {};
 
     return Object.values(recurringSchedules).filter(
-      schedule => schedule.guildId === guildId && schedule.status === "active",
+      schedule => schedule.guildId === guildId,
     );
   } catch (error) {
     const logger = getLogger();

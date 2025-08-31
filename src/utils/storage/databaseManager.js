@@ -849,7 +849,16 @@ let databaseManager = null;
 export async function getDatabaseManager() {
   if (!databaseManager) {
     databaseManager = new DatabaseManager();
-    await databaseManager.connect();
+    try {
+      await databaseManager.connect();
+    } catch (error) {
+      // Log the error but don't throw - let the storage manager fall back to files
+      databaseManager.logger.warn(
+        "⚠️ Database connection failed, storage manager will use file fallback:",
+        error.message,
+      );
+      return null;
+    }
   }
 
   // Check if repositories are properly initialized
@@ -857,13 +866,20 @@ export async function getDatabaseManager() {
     // Try to reconnect if repositories are not initialized
     try {
       await databaseManager.connect();
-    } catch (_error) {
-      throw new Error("Database repositories not properly initialized");
+    } catch (error) {
+      databaseManager.logger.warn(
+        "⚠️ Database reconnection failed:",
+        error.message,
+      );
+      return null;
     }
 
     // Check again after reconnection attempt
     if (!databaseManager.welcomeSettings) {
-      throw new Error("Database repositories not properly initialized");
+      databaseManager.logger.warn(
+        "⚠️ Database repositories not properly initialized",
+      );
+      return null;
     }
   }
 
