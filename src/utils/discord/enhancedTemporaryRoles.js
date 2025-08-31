@@ -93,7 +93,7 @@ export async function createRecurringRoleSchedule(
       duration,
       reason,
       createdBy,
-      status: "active",
+      status: "pending",
       createdAt: new Date().toISOString(),
       lastRun: null,
       nextRun: calculateNextRun(schedule),
@@ -459,8 +459,27 @@ export async function processScheduledRoles() {
     const dueRoles = [];
 
     for (const [scheduleId, role] of Object.entries(scheduledRoles)) {
-      if (role.status === "scheduled" && new Date(role.scheduleTime) <= now) {
-        dueRoles.push({ scheduleId, ...role });
+      // Only process roles that are scheduled and actually due
+      if (role.status === "scheduled") {
+        const scheduleTime = new Date(role.scheduleTime);
+        const timeUntil = scheduleTime - now;
+
+        // Only process if it's actually time (within 1 minute tolerance)
+        if (timeUntil <= 60000 && timeUntil > -60000) {
+          // ±1 minute tolerance
+          logger.debug(
+            `Role ${scheduleId} is due for assignment (${Math.round(timeUntil / 1000)}s)`,
+          );
+          dueRoles.push({ scheduleId, ...role });
+        } else if (timeUntil > 60000) {
+          logger.debug(
+            `Role ${scheduleId} is not yet due (${Math.round(timeUntil / 1000)}s until due)`,
+          );
+        } else {
+          logger.debug(
+            `Role ${scheduleId} is overdue (${Math.round(timeUntil / 1000)}s overdue)`,
+          );
+        }
       }
     }
 
@@ -485,7 +504,13 @@ export async function processRecurringSchedules() {
     const dueSchedules = [];
 
     for (const [scheduleId, schedule] of Object.entries(recurringSchedules)) {
-      if (schedule.status === "active" && new Date(schedule.nextRun) <= now) {
+      // Process pending schedules that are due, or active schedules that need to run again
+      if (
+        (schedule.status === "pending" || schedule.status === "active") &&
+        schedule.nextRun &&
+        new Date(schedule.nextRun) <= now
+      ) {
+        logger.debug(`Recurring schedule ${scheduleId} is due for execution`);
         dueSchedules.push({ scheduleId, ...schedule });
       }
     }
@@ -494,5 +519,77 @@ export async function processRecurringSchedules() {
   } catch (error) {
     logger.error("Failed to process recurring schedules", error);
     return [];
+  }
+}
+
+/**
+ * Find a schedule by ID (supports both full and shortened formats)
+ * @param {string} scheduleId - Full ID or shortened format like "2802a998...7f7a"
+ * @returns {Promise<Object|null>}
+ */
+export async function findScheduleById(scheduleId) {
+  try {
+    const storageManager = await getStorageManager();
+    const scheduledRoles = (await storageManager.read("scheduled_roles")) || {};
+    const recurringSchedules =
+      (await storageManager.read("recurring_schedules")) || {};
+
+    // First try exact match
+    if (scheduledRoles[scheduleId]) {
+      return { ...scheduledRoles[scheduleId], type: "scheduled" };
+    }
+    if (recurringSchedules[scheduleId]) {
+      return { ...recurringSchedules[scheduleId], type: "recurring" };
+    }
+
+    // If no exact match, try shortened format
+    const shortenedId = scheduleId.replace(/\.\.\./g, "");
+
+    // Search in scheduled roles
+    for (const [id, role] of Object.entries(scheduledRoles)) {
+      if (id.includes(shortenedId)) {
+        return { ...role, type: "scheduled" };
+      }
+    }
+
+    // Search in recurring schedules
+    for (const [id, schedule] of Object.entries(recurringSchedules)) {
+      if (id.includes(shortenedId)) {
+        return { ...schedule, type: "recurring" };
+      }
+    }
+
+    return null;
+  } catch (error) {
+    const logger = getLogger();
+    logger.error("Failed to find schedule by ID", error);
+    return null;
+  }
+}
+
+/**
+ * Cancel any type of schedule (scheduled or recurring)
+ * @param {string} scheduleId
+ * @returns {Promise<boolean>}
+ */
+export async function cancelSchedule(scheduleId) {
+  try {
+    const schedule = await findScheduleById(scheduleId);
+
+    if (!schedule) {
+      return false;
+    }
+
+    if (schedule.type === "scheduled") {
+      return await cancelScheduledRole(scheduleId);
+    } else if (schedule.type === "recurring") {
+      return await cancelRecurringSchedule(scheduleId);
+    }
+
+    return false;
+  } catch (error) {
+    const logger = getLogger();
+    logger.error("Failed to cancel schedule", error);
+    return false;
   }
 }

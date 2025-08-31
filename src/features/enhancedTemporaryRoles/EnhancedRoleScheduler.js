@@ -119,6 +119,9 @@ export class EnhancedRoleScheduler {
       // First, check for expired scheduled roles and mark them as expired
       await this.processExpiredScheduledRoles();
 
+      // Then check for expired recurring schedule roles and update their status
+      await this.processExpiredRecurringScheduleRoles();
+
       // Then clean up expired temporary roles
       const storageManager = await getStorageManager();
       const temporaryRoles = await storageManager.getTemporaryRoles();
@@ -218,6 +221,65 @@ export class EnhancedRoleScheduler {
       }
     } catch (error) {
       this.logger.error("Error processing expired scheduled roles:", error);
+    }
+  }
+
+  /**
+   * Process expired recurring schedule roles and update their status back to pending
+   */
+  async processExpiredRecurringScheduleRoles() {
+    try {
+      const storageManager = await getStorageManager();
+      const recurringSchedules =
+        (await storageManager.read("recurring_schedules")) || {};
+      const temporaryRoles = await storageManager.getTemporaryRoles();
+      const now = new Date();
+      let updatedCount = 0;
+
+      for (const [scheduleId, scheduleData] of Object.entries(
+        recurringSchedules,
+      )) {
+        // Only process active recurring schedules
+        if (scheduleData.status === "active") {
+          const guildId = scheduleData.guildId;
+          const roleId = scheduleData.roleId;
+          const userIds = scheduleData.userIds;
+
+          // Check if any of the temporary roles for this schedule have expired
+          let hasExpiredRoles = false;
+          for (const userId of userIds) {
+            const userRoles = temporaryRoles[guildId]?.[userId];
+            if (userRoles && userRoles[roleId]) {
+              const expiresAt = new Date(userRoles[roleId].expiresAt);
+              if (expiresAt <= now) {
+                hasExpiredRoles = true;
+                break;
+              }
+            }
+          }
+
+          // If roles have expired, update status back to pending for next run
+          if (hasExpiredRoles) {
+            this.logger.info(
+              `🔄 Recurring schedule ${scheduleId} roles expired, updating status to pending for next run`,
+            );
+
+            await this.updateRecurringScheduleStatus(scheduleId, "pending");
+            updatedCount++;
+          }
+        }
+      }
+
+      if (updatedCount > 0) {
+        this.logger.info(
+          `🔄 Updated ${updatedCount} recurring schedules from active to pending`,
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        "Error processing expired recurring schedule roles:",
+        error,
+      );
     }
   }
 
@@ -343,15 +405,7 @@ export class EnhancedRoleScheduler {
    */
   async executeScheduledRole(scheduledRole) {
     try {
-      const {
-        scheduleId,
-        guildId,
-        userIds,
-        roleId,
-        duration,
-        reason,
-        scheduledBy,
-      } = scheduledRole;
+      const { scheduleId, guildId, userIds, roleId, duration } = scheduledRole;
 
       this.logger.info(
         `Executing scheduled role ${scheduleId} for ${userIds.length} users`,
@@ -412,22 +466,21 @@ export class EnhancedRoleScheduler {
         `🎯 Scheduled role ${scheduleId} completed: ${successful}/${userIds.length} successful`,
       );
 
-      // Mark as active (role is now assigned and running)
-      await this.markScheduledRoleComplete(
-        scheduleId,
-        "active",
-        `Assigned to ${successful}/${userIds.length} users`,
-      );
-
-      // Send notification if configured
-      await this.sendScheduledRoleNotification(
-        guildId,
-        roleId,
-        successful,
-        failed,
-        reason,
-        scheduledBy,
-      );
+      // Only mark as active if at least one role was successfully assigned
+      if (successful > 0) {
+        await this.markScheduledRoleComplete(
+          scheduleId,
+          "active",
+          `Assigned to ${successful}/${userIds.length} users`,
+        );
+      } else {
+        // If all assignments failed, mark as failed
+        await this.markScheduledRoleComplete(
+          scheduleId,
+          "failed",
+          `Failed to assign to any users (${failed}/${userIds.length} failed)`,
+        );
+      }
     } catch (error) {
       this.logger.error(
         `Error executing scheduled role ${scheduledRole.scheduleId}:`,
@@ -472,16 +525,8 @@ export class EnhancedRoleScheduler {
    */
   async executeRecurringSchedule(recurringSchedule) {
     try {
-      const {
-        scheduleId,
-        guildId,
-        userIds,
-        roleId,
-        duration,
-        reason,
-        createdBy,
-        schedule,
-      } = recurringSchedule;
+      const { scheduleId, guildId, userIds, roleId, duration, schedule } =
+        recurringSchedule;
 
       this.logger.info(
         `Executing recurring schedule ${scheduleId} for ${userIds.length} users`,
@@ -509,24 +554,24 @@ export class EnhancedRoleScheduler {
       const successful = results.filter(
         r => r.status === "fulfilled" && r.value,
       ).length;
-      const failed = results.length - successful;
 
       this.logger.info(
         `Recurring schedule ${scheduleId} completed: ${successful}/${userIds.length} successful`,
       );
 
-      // Update next run time
-      await this.updateRecurringScheduleNextRun(scheduleId, schedule);
+      if (successful > 0) {
+        // Update next run time and status for successful execution
+        await this.updateRecurringScheduleNextRun(scheduleId, schedule);
 
-      // Send notification if configured
-      await this.sendRecurringScheduleNotification(
-        guildId,
-        roleId,
-        successful,
-        failed,
-        reason,
-        createdBy,
-      );
+        // Update status to "active" after successful execution
+        await this.updateRecurringScheduleStatus(scheduleId, "active");
+      } else {
+        // All assignments failed, mark as failed
+        await this.updateRecurringScheduleStatus(scheduleId, "failed");
+        this.logger.error(
+          `Recurring schedule ${scheduleId} failed: all role assignments failed`,
+        );
+      }
     } catch (error) {
       this.logger.error(
         `Error executing recurring schedule ${recurringSchedule.scheduleId}:`,
@@ -611,185 +656,27 @@ export class EnhancedRoleScheduler {
   }
 
   /**
-   * Send notification for scheduled role completion
-   * @param {string} guildId
-   * @param {string} roleId
-   * @param {number} successful
-   * @param {number} failed
-   * @param {string} reason
-   * @param {string} scheduledBy
+   * Update status for a recurring schedule
+   * @param {string} scheduleId
+   * @param {string} status - "pending", "active", "failed", "cancelled"
    */
-  async sendScheduledRoleNotification(
-    guildId,
-    roleId,
-    successful,
-    failed,
-    reason,
-    scheduledBy,
-  ) {
+  async updateRecurringScheduleStatus(scheduleId, status) {
     try {
-      const guild = this.client.guilds.cache.get(guildId);
-      if (!guild) return;
+      const storageManager = await getStorageManager();
+      const recurringSchedules =
+        (await storageManager.read("recurring_schedules")) || {};
 
-      // Try to find a log channel or general channel with proper permissions
-      let logChannel = null;
+      if (recurringSchedules[scheduleId]) {
+        recurringSchedules[scheduleId].status = status;
+        await storageManager.write("recurring_schedules", recurringSchedules);
 
-      // First try to find a channel where the bot has permission to send messages
-      const channels = guild.channels.cache.filter(
-        ch =>
-          ch.type === 0 && // Text channel
-          ch.permissionsFor(guild.members.me).has("SendMessages"),
-      );
-
-      // Priority order: log > admin > mod > general > first available
-      logChannel =
-        channels.find(ch => ch.name.includes("log")) ||
-        channels.find(ch => ch.name.includes("admin")) ||
-        channels.find(ch => ch.name.includes("mod")) ||
-        channels.find(ch => ch.name.includes("general")) ||
-        channels.first();
-
-      if (!logChannel) {
-        this.logger.warn(
-          `No suitable notification channel found in guild ${guildId}`,
+        this.logger.debug(
+          `Updated recurring schedule ${scheduleId} status to: ${status}`,
         );
-        return;
       }
-
-      const role = guild.roles.cache.get(roleId);
-      const roleName = role ? role.name : "Unknown Role";
-
-      const embed = {
-        title: "⏰ Scheduled Role Assignment Complete",
-        description: `A scheduled temporary role assignment has been completed.`,
-        color: 0x00ff00,
-        fields: [
-          {
-            name: "✅ Successful",
-            value: `${successful} user(s)`,
-            inline: true,
-          },
-          {
-            name: "❌ Failed",
-            value: `${failed} user(s)`,
-            inline: true,
-          },
-          {
-            name: "🎯 Role",
-            value: roleName,
-            inline: true,
-          },
-          {
-            name: "📝 Reason",
-            value: reason || "No reason specified",
-            inline: true,
-          },
-          {
-            name: "👤 Scheduled By",
-            value: `<@${scheduledBy}>`,
-            inline: true,
-          },
-        ],
-        timestamp: new Date().toISOString(),
-      };
-
-      await logChannel.send({ embeds: [embed] });
-      this.logger.info(
-        `✅ Scheduled role notification sent to #${logChannel.name}`,
-      );
-    } catch (error) {
-      this.logger.error("Error sending scheduled role notification:", error);
-      // Don't let notification errors affect the main functionality
-    }
-  }
-
-  /**
-   * Send notification for recurring schedule execution
-   * @param {string} guildId
-   * @param {string} roleId
-   * @param {number} successful
-   * @param {number} failed
-   * @param {string} reason
-   * @param {string} createdBy
-   */
-  async sendRecurringScheduleNotification(
-    guildId,
-    roleId,
-    successful,
-    failed,
-    reason,
-    createdBy,
-  ) {
-    try {
-      const guild = this.client.guilds.cache.get(guildId);
-      if (!guild) return;
-
-      // Try to find a log channel or general channel with proper permissions
-      let logChannel = null;
-
-      // First try to find a channel where the bot has permission to send messages
-      const channels = guild.channels.cache.filter(
-        ch =>
-          ch.type === 0 && // Text channel
-          ch.permissionsFor(guild.members.me).has("SendMessages"),
-      );
-
-      // Priority order: log > admin > mod > general > first available
-      logChannel =
-        channels.find(ch => ch.name.includes("log")) ||
-        channels.find(ch => ch.name.includes("admin")) ||
-        channels.find(ch => ch.name.includes("mod")) ||
-        channels.find(ch => ch.name.includes("general")) ||
-        channels.first();
-
-      if (!logChannel) {
-        this.logger.warn(
-          `No suitable notification channel found in guild ${guildId}`,
-        );
-        return;
-      }
-
-      const role = guild.roles.cache.get(roleId);
-      const roleName = role ? role.name : "Unknown Role";
-
-      const embed = {
-        title: "🔄 Recurring Role Assignment Executed",
-        description: `A recurring temporary role assignment has been executed.`,
-        color: 0x0099ff,
-        fields: [
-          {
-            name: "✅ Successful",
-            value: `${successful} user(s)`,
-            inline: true,
-          },
-          {
-            name: "❌ Failed",
-            value: `${failed} user(s)`,
-            inline: true,
-          },
-          {
-            name: "🎯 Role",
-            value: roleName,
-            inline: true,
-          },
-          {
-            name: "📝 Reason",
-            value: reason || "No reason specified",
-            inline: true,
-          },
-          {
-            name: "👤 Created By",
-            value: `<@${createdBy}>`,
-            inline: true,
-          },
-        ],
-        timestamp: new Date().toISOString(),
-      };
-
-      await logChannel.send({ embeds: [embed] });
     } catch (error) {
       this.logger.error(
-        "Error sending recurring schedule notification:",
+        `Error updating recurring schedule ${scheduleId} status:`,
         error,
       );
     }

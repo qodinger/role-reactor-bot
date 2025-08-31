@@ -226,10 +226,31 @@ async function loadCommands(client, commandsPath) {
 
       if (!stats.isDirectory()) continue;
 
+      // Check for direct .js files (old style)
       const commandFiles = (await fs.promises.readdir(folderPath)).filter(
         file => file.endsWith(".js"),
       );
 
+      // Check for subfolders with index.js (new style)
+      const subfolders = [];
+      for (const item of await fs.promises.readdir(folderPath)) {
+        const itemPath = path.join(folderPath, item);
+        try {
+          const itemStats = await fs.promises.stat(itemPath);
+          if (itemStats.isDirectory()) {
+            try {
+              await fs.promises.access(path.join(itemPath, "index.js"));
+              subfolders.push(item);
+            } catch {
+              // index.js doesn't exist, skip this subfolder
+            }
+          }
+        } catch {
+          // Can't stat item, skip
+        }
+      }
+
+      // Load direct .js files
       for (const file of commandFiles) {
         try {
           const filePath = path.join(folderPath, file);
@@ -258,6 +279,41 @@ async function loadCommands(client, commandsPath) {
         } catch (error) {
           errorCount++;
           logger.error(`❌ Failed to load command from ${file}:`, error);
+        }
+      }
+
+      // Load subfolder index.js files
+      for (const subfolder of subfolders) {
+        try {
+          const indexPath = path.join(folderPath, subfolder, "index.js");
+          const command = await import(indexPath);
+
+          if (command.data && command.execute) {
+            // Load into both collections to ensure synchronization
+            client.commands.set(command.data.name, command);
+            const registered = commandHandler.registerCommand(command);
+
+            if (registered) {
+              loadedCount++;
+              logger.debug(`✅ Loaded command: ${command.data.name}`);
+            } else {
+              errorCount++;
+              logger.error(
+                `❌ Failed to register command: ${command.data.name}`,
+              );
+            }
+          } else {
+            errorCount++;
+            logger.warn(
+              `⚠️ Command file ${subfolder}/index.js is missing data or execute function`,
+            );
+          }
+        } catch (error) {
+          errorCount++;
+          logger.error(
+            `❌ Failed to load command from ${subfolder}/index.js:`,
+            error,
+          );
         }
       }
     }
