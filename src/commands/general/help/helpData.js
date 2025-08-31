@@ -255,9 +255,7 @@ export const COMMAND_CATEGORIES = {
       "admin",
       "xp",
       "schedule-",
-      "recurring-",
       "bulk-",
-      "scheduled-",
     ],
   },
   general: {
