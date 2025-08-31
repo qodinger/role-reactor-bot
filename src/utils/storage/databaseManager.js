@@ -673,6 +673,7 @@ class GuildSettingsRepository extends BaseRepository {
             messageCooldown: 60,
             commandCooldown: 30,
           },
+
           createdAt: new Date(),
           updatedAt: new Date(),
         }

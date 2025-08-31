@@ -19,23 +19,7 @@ export async function addTemporaryRole(
 ) {
   const logger = getLogger();
   try {
-    // First, store the temporary role in the database
-    const storageManager = await getStorageManager();
-    const storageResult = await storageManager.addTemporaryRole(
-      guildId,
-      userId,
-      roleId,
-      expiresAt,
-    );
-
-    if (!storageResult) {
-      logger.error(
-        `Failed to store temporary role in database for user ${userId}`,
-      );
-      return false;
-    }
-
-    // Now actually assign the Discord role to the user
+    // First, try to assign the Discord role to the user
     try {
       // Get the guild and member
       const guild = client?.guilds?.cache?.get(guildId);
@@ -72,17 +56,54 @@ export async function addTemporaryRole(
       logger.info(
         `✅ Successfully assigned temporary role ${role.name} to user ${userId}`,
       );
-
-      return true;
     } catch (discordError) {
       logger.error(
         `Failed to assign Discord role to user ${userId}:`,
         discordError,
       );
-      // Even if Discord assignment fails, we still have it stored in the database
-      // The cleanup system will handle it later
+      // If Discord assignment fails, don't store in database
       return false;
     }
+
+    // Only store in database if Discord assignment succeeded
+    const storageManager = await getStorageManager();
+    const storageResult = await storageManager.addTemporaryRole(
+      guildId,
+      userId,
+      roleId,
+      expiresAt,
+    );
+
+    if (!storageResult) {
+      logger.error(
+        `Failed to store temporary role in database for user ${userId}`,
+      );
+      // If storage fails, we should remove the Discord role we just assigned
+      try {
+        const guild = client?.guilds?.cache?.get(guildId);
+        if (guild) {
+          const member = await guild.members.fetch(userId);
+          const role = guild.roles.cache.get(roleId);
+          if (member && role) {
+            await member.roles.remove(
+              role,
+              "Failed to store temporary role in database",
+            );
+            logger.info(
+              `Removed Discord role ${role.name} from user ${userId} due to storage failure`,
+            );
+          }
+        }
+      } catch (cleanupError) {
+        logger.error(
+          "Failed to cleanup Discord role after storage failure:",
+          cleanupError,
+        );
+      }
+      return false;
+    }
+
+    return true;
   } catch (error) {
     logger.error("Failed to add temporary role", error);
     return false;

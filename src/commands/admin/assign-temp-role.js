@@ -15,7 +15,7 @@ import {
   parseDuration,
   formatDuration,
 } from "../../utils/discord/temporaryRoles.js";
-import { THEME_COLOR } from "../../config/theme.js";
+import { THEME, THEME_COLOR } from "../../config/theme.js";
 import { getLogger } from "../../utils/logger.js";
 import {
   permissionErrorEmbed,
@@ -521,7 +521,7 @@ function buildResultsEmbed(
     .setDescription(
       `Processed ${totalProcessed} users for the **${targetRole.name}** role.`,
     )
-    .setColor(THEME_COLOR)
+    .setColor(THEME.SUCCESS)
     .setTimestamp()
     .setFooter({
       text: "Role Reactor • Temporary Roles",
