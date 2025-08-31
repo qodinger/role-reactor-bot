@@ -7,18 +7,82 @@ import { getLogger } from "../logger.js";
  * @param {string} userId
  * @param {string} roleId
  * @param {Date} expiresAt
+ * @param {import("discord.js").Client} [client] Discord client for role assignment
  * @returns {Promise<boolean>}
  */
-export async function addTemporaryRole(guildId, userId, roleId, expiresAt) {
+export async function addTemporaryRole(
+  guildId,
+  userId,
+  roleId,
+  expiresAt,
+  client = null,
+) {
   const logger = getLogger();
   try {
+    // First, store the temporary role in the database
     const storageManager = await getStorageManager();
-    return await storageManager.addTemporaryRole(
+    const storageResult = await storageManager.addTemporaryRole(
       guildId,
       userId,
       roleId,
       expiresAt,
     );
+
+    if (!storageResult) {
+      logger.error(
+        `Failed to store temporary role in database for user ${userId}`,
+      );
+      return false;
+    }
+
+    // Now actually assign the Discord role to the user
+    try {
+      // Get the guild and member
+      const guild = client?.guilds?.cache?.get(guildId);
+      if (!guild) {
+        logger.error(
+          `Guild ${guildId} not found for temporary role assignment`,
+        );
+        return false;
+      }
+
+      const member = await guild.members.fetch(userId);
+      if (!member) {
+        logger.error(`Member ${userId} not found in guild ${guildId}`);
+        return false;
+      }
+
+      const role = guild.roles.cache.get(roleId);
+      if (!role) {
+        logger.error(`Role ${roleId} not found in guild ${guildId}`);
+        return false;
+      }
+
+      // Check if user already has the role
+      if (member.roles.cache.has(roleId)) {
+        logger.info(`User ${userId} already has role ${role.name}`);
+        return true;
+      }
+
+      // Assign the role
+      await member.roles.add(
+        role,
+        `Temporary role assignment - expires at ${expiresAt.toISOString()}`,
+      );
+      logger.info(
+        `✅ Successfully assigned temporary role ${role.name} to user ${userId}`,
+      );
+
+      return true;
+    } catch (discordError) {
+      logger.error(
+        `Failed to assign Discord role to user ${userId}:`,
+        discordError,
+      );
+      // Even if Discord assignment fails, we still have it stored in the database
+      // The cleanup system will handle it later
+      return false;
+    }
   } catch (error) {
     logger.error("Failed to add temporary role", error);
     return false;

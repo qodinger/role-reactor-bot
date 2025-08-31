@@ -6,6 +6,7 @@ import {
   handleCleanupTempRoles,
   handleTestAutoCleanup,
 } from "../commands/developer/storage.js";
+import { THEME_COLOR } from "../config/theme.js";
 
 export const name = Events.InteractionCreate;
 
@@ -1364,7 +1365,7 @@ const handleViewSchedule = async interaction => {
       embed = new EmbedBuilder()
         .setTitle("⏰ Scheduled Role Details")
         .setDescription(`Details for scheduled role assignment **${roleName}**`)
-        .setColor(0x00aaff)
+        .setColor(THEME_COLOR)
         .addFields(
           {
             name: "🆔 Schedule ID",

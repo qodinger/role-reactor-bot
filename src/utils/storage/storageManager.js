@@ -131,13 +131,24 @@ class StorageManager {
     if (this.isInitialized) return;
     this.logger.info("🔧 Initializing storage manager...");
 
-    const dbManager = await getDatabaseManager();
-    if (dbManager && dbManager.connectionManager.db) {
-      this.provider = new DatabaseProvider(dbManager, this.logger);
-      this.logger.success("✅ Database storage enabled");
-    } else {
+    try {
+      const dbManager = await getDatabaseManager();
+      if (dbManager && dbManager.connectionManager.db) {
+        this.provider = new DatabaseProvider(dbManager, this.logger);
+        this.logger.success("✅ Database storage enabled");
+      } else {
+        this.provider = new FileProvider(this.logger);
+        this.logger.warn(
+          "⚠️ Database storage disabled, using local files only",
+        );
+      }
+    } catch (error) {
+      this.logger.warn(
+        "⚠️ Failed to connect to database, falling back to local files:",
+        error.message,
+      );
       this.provider = new FileProvider(this.logger);
-      this.logger.warn("⚠️ Database storage disabled, using local files only");
+      this.logger.info("📁 Using local file storage as fallback");
     }
 
     this.isInitialized = true;
