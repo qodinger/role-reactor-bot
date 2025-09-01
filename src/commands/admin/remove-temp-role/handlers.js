@@ -1,133 +1,28 @@
+import { getLogger } from "../../../utils/logger.js";
 import {
-  SlashCommandBuilder,
-  PermissionFlagsBits,
-  EmbedBuilder,
-} from "discord.js";
-import {
-  hasAdminPermissions,
   botHasRequiredPermissions,
   getMissingBotPermissions,
   formatPermissionName,
-} from "../../utils/discord/permissions.js";
+} from "../../../utils/discord/permissions.js";
+// Note: direct removal and retrieval are handled via utils methods used below
+import { errorEmbed } from "../../../utils/discord/responseMessages.js";
+import { createTempRoleRemovedEmbed } from "./embeds.js";
 import {
-  removeTemporaryRole,
-  getUserTemporaryRoles,
-} from "../../utils/discord/temporaryRoles.js";
-import { THEME_COLOR } from "../../config/theme.js";
-import { getLogger } from "../../utils/logger.js";
-import {
-  permissionErrorEmbed,
-  errorEmbed,
-} from "../../utils/discord/responseMessages.js";
+  validateTemporaryRole,
+  removeRoleFromUser,
+  removeTemporaryRoleData,
+} from "./utils.js";
 
-export const data = new SlashCommandBuilder()
-  .setName("remove-temp-role")
-  .setDescription("Remove a temporary role from a user before it expires")
-  .addUserOption(option =>
-    option
-      .setName("user")
-      .setDescription("The user to remove the temporary role from")
-      .setRequired(true),
-  )
-  .addRoleOption(option =>
-    option
-      .setName("role")
-      .setDescription("The temporary role to remove")
-      .setRequired(true),
-  )
-  .addStringOption(option =>
-    option
-      .setName("reason")
-      .setDescription("Reason for removing the temporary role")
-      .setRequired(false),
-  )
-  .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles);
-
-// Validate if a role is a temporary role for a user
-export async function validateTemporaryRole(roleData) {
-  const logger = getLogger();
-
-  try {
-    const tempRoles = await getUserTemporaryRoles(
-      roleData.guildId,
-      roleData.userId,
-    );
-    const tempRole = tempRoles.find(tr => tr.roleId === roleData.roleId);
-
-    if (!tempRole) {
-      return false;
-    }
-
-    // Check if the role has expired
-    const now = new Date();
-    const expiresAt = new Date(tempRole.expiresAt);
-    if (expiresAt < now) {
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    logger.error("Error validating temporary role", error);
-    return false;
-  }
-}
-
-// Remove role from user
-export async function removeRoleFromUser(member, roleId) {
-  const logger = getLogger();
-
-  try {
-    const role = member.guild.roles.cache.get(roleId);
-    if (!role) {
-      return false;
-    }
-
-    if (!member.roles.cache.has(roleId)) {
-      return false;
-    }
-
-    await member.roles.remove(role);
-    return true;
-  } catch (error) {
-    logger.error("Error removing role from user", error);
-    return false;
-  }
-}
-
-// Remove temporary role data
-export async function removeTemporaryRoleData(roleData) {
-  const logger = getLogger();
-
-  try {
-    await removeTemporaryRole(
-      roleData.guildId,
-      roleData.userId,
-      roleData.roleId,
-    );
-    return true;
-  } catch (error) {
-    logger.error("Error removing temporary role data", error);
-    return false;
-  }
-}
-
-export async function execute(interaction, client) {
+/**
+ * Handle the main remove temp role logic
+ * @param {import('discord.js').CommandInteraction} interaction
+ */
+export async function handleRemoveTempRole(interaction) {
   const logger = getLogger();
   const startTime = Date.now();
 
-  await interaction.deferReply({ flags: 64 });
-
   try {
-    // Validate user permissions
-    if (!hasAdminPermissions(interaction.member)) {
-      return interaction.editReply(
-        permissionErrorEmbed({
-          requiredPermissions: ["Administrator"],
-          userPermissions: interaction.member.permissions.toArray(),
-          tip: "You need Administrator permissions to remove temporary roles.",
-        }),
-      );
-    }
+    await interaction.deferReply({ flags: 64 });
 
     // Validate bot permissions
     if (!botHasRequiredPermissions(interaction.guild)) {
@@ -274,39 +169,12 @@ export async function execute(interaction, client) {
     }
 
     // Send success message
-    const embed = new EmbedBuilder()
-      .setTitle("✅ Temporary Role Removed")
-      .setDescription(
-        `Successfully removed the **${targetRole.name}** role from **${targetUser.username}**.`,
-      )
-      .setColor(THEME_COLOR)
-      .addFields(
-        {
-          name: "👤 User",
-          value: `${targetUser.username} (${targetUser.id})`,
-          inline: true,
-        },
-        {
-          name: "🎭 Role",
-          value: `${targetRole.name} (${targetRole.id})`,
-          inline: true,
-        },
-        {
-          name: "📝 Reason",
-          value: reason,
-          inline: true,
-        },
-        {
-          name: "⏰ Removed At",
-          value: `<t:${Math.floor(Date.now() / 1000)}:F>`,
-          inline: true,
-        },
-      )
-      .setFooter({
-        text: "Role Reactor • Temporary Roles",
-        iconURL: client.user.displayAvatarURL(),
-      })
-      .setTimestamp();
+    const embed = createTempRoleRemovedEmbed(
+      interaction,
+      targetUser,
+      targetRole,
+      reason,
+    );
 
     await interaction.editReply({ embeds: [embed] });
 
