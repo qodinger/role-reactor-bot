@@ -1,11 +1,7 @@
 import { Events, InteractionType } from "discord.js";
 import { getLogger } from "../utils/logger.js";
 import { getCommandHandler } from "../utils/core/commandHandler.js";
-import {
-  handleExportData,
-  handleCleanupTempRoles,
-  handleTestAutoCleanup,
-} from "../commands/developer/storage.js";
+
 import { THEME_COLOR } from "../config/theme.js";
 
 export const name = Events.InteractionCreate;
@@ -147,15 +143,6 @@ const handleButtonInteraction = async (interaction, _client) => {
 
     switch (interaction.customId) {
       // Storage command buttons (developer only)
-      case "export_data":
-        await handleExportData(interaction);
-        break;
-      case "cleanup_temp_roles":
-        await handleCleanupTempRoles(interaction);
-        break;
-      case "test_auto_cleanup":
-        await handleTestAutoCleanup(interaction);
-        break;
 
       // Welcome system buttons
       case "welcome_configure":
