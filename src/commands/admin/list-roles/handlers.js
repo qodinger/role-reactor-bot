@@ -1,67 +1,20 @@
-import {
-  SlashCommandBuilder,
-  PermissionFlagsBits,
-  EmbedBuilder,
-} from "discord.js";
-import { hasAdminPermissions } from "../../utils/discord/permissions.js";
-import { getAllRoleMappings } from "../../utils/discord/roleMappingManager.js";
-import { THEME_COLOR } from "../../config/theme.js";
-import { getLogger } from "../../utils/logger.js";
-import {
-  errorEmbed,
-  permissionErrorEmbed,
-} from "../../utils/discord/responseMessages.js";
+import { getLogger } from "../../../utils/logger.js";
+import { getAllRoleMappings } from "../../../utils/discord/roleMappingManager.js";
+import { errorEmbed } from "../../../utils/discord/responseMessages.js";
+import { createListRolesEmbed } from "./embeds.js";
 
-export const data = new SlashCommandBuilder()
-  .setName("list-roles")
-  .setDescription("List all role-reaction messages in this server")
-  .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles);
-
-// Format role information for display
-export function formatRoleInfo(role) {
-  const color = role.color
-    ? `#${role.color.toString(16).padStart(6, "0")}`
-    : "No color";
-  return `${role.name} (${color})`;
-}
-
-// Filter roles by name
-export function filterRoles(roles, searchTerm) {
-  if (!searchTerm) {
-    return roles;
-  }
-
-  const term = searchTerm.toLowerCase();
-  return roles.filter(role => role.name.toLowerCase().includes(term));
-}
-
-export async function execute(interaction, client) {
+/**
+ * Handle the main list roles logic
+ * @param {import('discord.js').CommandInteraction} interaction
+ * @param {import('discord.js').Client} client
+ */
+export async function handleListRoles(interaction, client) {
   const logger = getLogger();
-
-  // Debug logging to help diagnose issues
-  logger.debug("DEBUG: /list-roles called");
-  logger.debug("guildId:", { guildId: interaction.guild?.id });
   const start = Date.now();
 
   try {
-    // Check if already replied to prevent double responses
-    if (interaction.replied || interaction.deferred) {
-      logger.debug("Interaction already handled, skipping");
-      return;
-    }
-
     // Defer the reply first
     await interaction.deferReply({ flags: 64 }); // 64 = ephemeral flag
-
-    if (!hasAdminPermissions(interaction.member)) {
-      return interaction.editReply(
-        permissionErrorEmbed({
-          requiredPermissions: ["Administrator"],
-          userPermissions: interaction.member.permissions.toArray(),
-          tip: "You need Administrator permissions to view role-reaction messages.",
-        }),
-      );
-    }
 
     const allMappings = await getAllRoleMappings();
     logger.debug("Retrieved mappings", {
@@ -100,47 +53,14 @@ export async function execute(interaction, client) {
       );
     }
 
-    const embed = new EmbedBuilder()
-      .setTitle("🎭 Role-Reaction Messages")
-      .setDescription(
-        `Found **${guildMappings.length}** role-reaction message${guildMappings.length !== 1 ? "s" : ""} in this server.`,
-      )
-      .setColor(THEME_COLOR)
-      .setTimestamp()
-      .setFooter({
-        text: "Role Reactor • Click reactions to get roles!",
-        iconURL: client.user.displayAvatarURL(),
-      });
-
-    const roleList = guildMappings
-      .map(([messageId, mapping]) => {
-        const rolesObj = mapping.roles || {};
-        const rolesArr = Array.isArray(rolesObj)
-          ? rolesObj
-          : Object.values(rolesObj);
-        const roleMentions = rolesArr
-          .map(role =>
-            role.roleId ? `<@&${role.roleId}>` : role.roleName || "Unknown",
-          )
-          .join(", ");
-        // Channel mention (if available)
-        const channelMention = mapping.channelId
-          ? `<#${mapping.channelId}>`
-          : "Unknown channel";
-        return `**Message ID:** ${messageId}\n**Channel:** ${channelMention}\n**Roles:** ${rolesArr.length} role(s)\n${roleMentions}`;
-      })
-      .join("\n\n");
-
-    embed.addFields({
-      name: "📋 Messages",
-      value: roleList,
-      inline: false,
-    });
+    // Create the embed
+    const embed = createListRolesEmbed(guildMappings, client);
 
     await interaction.editReply({
       embeds: [embed],
       flags: 64,
     });
+
     logger.info(`list-roles command completed in ${Date.now() - start}ms`);
   } catch (error) {
     logger.error("Error listing roles", error);

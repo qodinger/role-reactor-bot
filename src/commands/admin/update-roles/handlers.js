@@ -1,53 +1,25 @@
-import { SlashCommandBuilder, PermissionFlagsBits } from "discord.js";
-import { hasAdminPermissions } from "../../utils/discord/permissions.js";
+import { getLogger } from "../../../utils/logger.js";
 import {
   getRoleMapping,
   setRoleMapping,
-} from "../../utils/discord/roleMappingManager.js";
-import { processRoles } from "../../utils/discord/roleManager.js";
-import {
-  rolesOption,
-  titleOption,
-  descriptionOption,
-  colorOption,
-} from "../../utils/discord/slashCommandOptions.js";
-import { getLogger } from "../../utils/logger.js";
-import { THEME } from "../../config/theme.js";
+} from "../../../utils/discord/roleMappingManager.js";
+import { processRoles } from "../../../utils/discord/roleManager.js";
 import {
   roleUpdatedEmbed,
-  permissionErrorEmbed,
   errorEmbed,
-} from "../../utils/discord/responseMessages.js";
+} from "../../../utils/discord/responseMessages.js";
+import { validateMessageId, validateColor, processUpdates } from "./utils.js";
+import { createUpdatedRolesEmbed } from "./embeds.js";
 
-export const data = new SlashCommandBuilder()
-  .setName("update-roles")
-  .setDescription("Update an existing role-reaction message")
-  .addStringOption(option =>
-    option
-      .setName("message_id")
-      .setDescription("The ID of the message to update")
-      .setRequired(true),
-  )
-  .addStringOption(titleOption())
-  .addStringOption(descriptionOption())
-  .addStringOption(rolesOption(false))
-  .addStringOption(colorOption())
-  .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles);
-
-export async function execute(interaction) {
+/**
+ * Handle the main update roles logic
+ * @param {import('discord.js').CommandInteraction} interaction
+ */
+export async function handleUpdateRoles(interaction) {
   const logger = getLogger();
 
-  await interaction.deferReply({ flags: 64 });
   try {
-    if (!hasAdminPermissions(interaction.member)) {
-      return interaction.editReply(
-        permissionErrorEmbed({
-          requiredPermissions: ["Administrator"],
-          userPermissions: interaction.member.permissions.toArray(),
-          tip: "You need Administrator permissions to update role-reaction messages.",
-        }),
-      );
-    }
+    await interaction.deferReply({ flags: 64 });
 
     const messageId = interaction.options.getString("message_id");
     const title = interaction.options.getString("title");
@@ -56,7 +28,7 @@ export async function execute(interaction) {
     const colorHex = interaction.options.getString("color");
 
     // Validate message ID format
-    if (!/^\d{17,19}$/.test(messageId)) {
+    if (!validateMessageId(messageId)) {
       return interaction.editReply(
         errorEmbed({
           title: "Invalid Message ID",
@@ -149,8 +121,7 @@ export async function execute(interaction) {
     }
 
     if (colorHex) {
-      const hex = colorHex.startsWith("#") ? colorHex : `#${colorHex}`;
-      if (!/^#[0-9A-F]{6}$/i.test(hex)) {
+      if (!validateColor(colorHex)) {
         return interaction.editReply(
           errorEmbed({
             title: "Invalid Color Format",
@@ -173,7 +144,7 @@ export async function execute(interaction) {
           }),
         );
       }
-      updates.color = hex;
+      updates.color = processUpdates.formatColor(colorHex);
     }
 
     // Merge updates into existing mapping
@@ -184,32 +155,16 @@ export async function execute(interaction) {
       existingMapping.channelId,
     );
     const message = await channel.messages.fetch(messageId);
-    // Build embed
-    const { EmbedBuilder } = await import("discord.js");
-    const embed = new EmbedBuilder()
-      .setTitle(updatedMapping.title || "Role Selection")
-      .setDescription(updatedMapping.description || "React to get a role!")
-      .setColor(updatedMapping.color || THEME.INFO)
-      .setTimestamp()
-      .setFooter({
-        text: "Role Reactor • Self-Assignable Roles",
-        iconURL: interaction.client.user.displayAvatarURL(),
-      });
-    // Prepare role list
-    const rolesToShow = Object.values(roleMapping || {});
-    const roleList = rolesToShow
-      .map(pair => {
-        const limitText = pair.limit ? ` (${pair.limit} users max)` : "";
-        return `${pair.emoji} <@&${pair.roleId}>${limitText}`;
-      })
-      .join("\n");
 
-    embed.addFields({
-      name: "🎭 Available Roles",
-      value: roleList || "No roles available",
-      inline: false,
-    });
+    // Create updated embed
+    const embed = createUpdatedRolesEmbed(
+      updatedMapping,
+      roleMapping,
+      interaction.client,
+    );
+
     await message.edit({ embeds: [embed] });
+
     // Save the updated mapping using the correct signature
     await setRoleMapping(
       messageId,
@@ -217,6 +172,7 @@ export async function execute(interaction) {
       updatedMapping.channelId,
       roleMapping,
     );
+
     await interaction.editReply(
       roleUpdatedEmbed({
         messageId,
