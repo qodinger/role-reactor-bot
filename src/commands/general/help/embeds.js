@@ -274,37 +274,45 @@ export class HelpEmbedBuilder {
    */
   static addCommandSpecificHelp(embed, commandName) {
     switch (commandName) {
-      case "setup-roles":
+      case "8ball":
         embed.addFields(
           {
-            name: `${EMOJIS.ACTIONS.EDIT} Usage`,
+            name: `${EMOJIS.FEATURES.FUN} 🎱 How to Use`,
+            value: '```/8ball question:"Will I win the tournament?"```',
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.UI.MENU} 📝 What You Need`,
             value:
-              '```/setup-roles title:"Choose Your Roles!" description:"Pick the roles that interest you!" roles:"🎮:Gamer,🎨:Artist,💻:Developer" color:"#0099ff"```',
+              "**question** - Ask the magic 8-ball anything you want to know!",
             inline: false,
           },
           {
-            name: `${EMOJIS.UI.MENU} Parameters`,
-            value: [
-              "**title** - Title for your role selection message",
-              "**description** - Text explaining what members should do",
-              "**roles** - Roles with emojis (format: `emoji:role,emoji:role`)",
-              "**color** *(optional)* - Color for the message (like `#0099ff`)",
-            ].join("\n"),
-            inline: false,
-          },
-          {
-            name: `${EMOJIS.FEATURES.SECURITY} Permissions`,
+            name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
             value:
-              "• **Manage Roles** permission (for you)\n• **Manage Messages** permission (for the bot)\n• **Add Reactions** permission (for the bot)",
+              "A mysterious response from the magic 8-ball with various categories: positive, negative, neutral, and uncertain answers. Perfect for fun decision-making!",
+            inline: false,
+          },
+        );
+        break;
+
+      case "avatar":
+        embed.addFields(
+          {
+            name: `${EMOJIS.FEATURES.USER} 🖼️ How to Use`,
+            value: "```/avatar [user:@username]```",
             inline: false,
           },
           {
-            name: `${EMOJIS.STATUS.INFO} Examples`,
-            value: [
-              "`🎮:Gamer,🎨:Artist,💻:Developer` - Gaming community roles",
-              "`<:verified:123456789>:Verified,<:moderator:987654321>:Moderator` - Custom emoji roles",
-              "`🎵:Music Lover,📚:Book Club,🏃:Fitness` - Interest-based roles",
-            ].join("\n"),
+            name: `${EMOJIS.UI.MENU} 📝 What You Need`,
+            value:
+              "**user** *(optional)* - Check a specific member's avatar (leave empty to see your own)",
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
+            value:
+              "High-quality avatar images with download buttons for both regular and animated versions. Great for sharing profile pictures!",
             inline: false,
           },
         );
@@ -463,9 +471,9 @@ export class HelpEmbedBuilder {
           {
             name: `${EMOJIS.FEATURES.ROLES} ⏰ How to Use`,
             value: [
-              "```/temp-roles assign user:@username role:@EventRole duration:2h reason:\"Tournament access\" notify:true```",
+              '```/temp-roles assign user:@username role:@EventRole duration:2h reason:"Tournament access" notify:true```',
               "```/temp-roles list [user:@username]```",
-              "```/temp-roles remove user:@username role:@EventRole reason:\"Event ended early\"```",
+              '```/temp-roles remove user:@username role:@EventRole reason:"Event ended early"```',
             ].join("\n"),
             inline: false,
           },
@@ -480,12 +488,14 @@ export class HelpEmbedBuilder {
           },
           {
             name: `${EMOJIS.FEATURES.SECURITY} 🔐 Permissions`,
-            value: "• **Manage Roles** permission (for you)\n• **Manage Roles** permission (for the bot)",
+            value:
+              "• **Manage Roles** permission (for you)\n• **Manage Roles** permission (for the bot)",
             inline: false,
           },
           {
             name: `${EMOJIS.STATUS.INFO} ⏱️ Duration Examples`,
-            value: "`30m`, `2h`, `1d`, `1w` - Perfect for events, tournaments, and temporary access!",
+            value:
+              "`30m`, `2h`, `1d`, `1w` - Perfect for events, tournaments, and temporary access!",
             inline: false,
           },
         );
@@ -634,10 +644,10 @@ export class HelpEmbedBuilder {
           {
             name: `${EMOJIS.FEATURES.ROLES} 🎭 How to Use`,
             value: [
-              "```/role-reactions setup title:\"Choose Your Roles\" description:\"React to get roles!\" roles:\"🎮 @Gamer, 🎨 @Artist, 📚 @Reader\" color:\"Pastel Blue\"```",
+              '```/role-reactions setup title:"Choose Your Roles" description:"React to get roles!" roles:"🎮 @Gamer, 🎨 @Artist, 📚 @Reader" color:"Pastel Blue"```',
               "```/role-reactions list```",
-              "```/role-reactions update message_id:\"1234567890\" title:\"Updated Title\" color:\"Pastel Green\"```",
-              "```/role-reactions delete message_id:\"1234567890\"```",
+              '```/role-reactions update message_id:"1234567890" title:"Updated Title" color:"Pastel Green"```',
+              '```/role-reactions delete message_id:"1234567890"```',
             ].join("\n"),
             inline: false,
           },
@@ -653,12 +663,14 @@ export class HelpEmbedBuilder {
           },
           {
             name: `${EMOJIS.FEATURES.SECURITY} 🔐 Permissions`,
-            value: "• **Manage Roles** permission (for you)\n• **Manage Messages** permission (for the bot)\n• **Add Reactions** permission (for the bot)",
+            value:
+              "• **Manage Roles** permission (for you)\n• **Manage Messages** permission (for the bot)\n• **Add Reactions** permission (for the bot)",
             inline: false,
           },
           {
             name: `${EMOJIS.STATUS.INFO} 🎨 Color Options`,
-            value: "Pastel Blue, Pastel Green, Pastel Pink, Pastel Purple, Pastel Yellow, Pastel Orange, Pastel Red, Pastel Teal",
+            value:
+              "Pastel Blue, Pastel Green, Pastel Pink, Pastel Purple, Pastel Yellow, Pastel Orange, Pastel Red, Pastel Teal",
             inline: false,
           },
         );
@@ -750,6 +762,193 @@ export class HelpEmbedBuilder {
               "All changes are applied immediately",
               "Settings use optimized default values",
             ].join("\n"),
+            inline: false,
+          },
+        );
+        break;
+
+      case "leaderboard":
+        embed.addFields(
+          {
+            name: `${EMOJIS.FEATURES.EXPERIENCE} 🏆 How to Use`,
+            value: "```/leaderboard [timeframe:weekly] [user:@username]```",
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.UI.MENU} 📝 What You Need`,
+            value: [
+              "**timeframe** *(optional)* - Choose from: all-time, weekly, monthly (default: weekly)",
+              "**user** *(optional)* - Check a specific member's ranking (leave empty to see top users)",
+            ].join("\n"),
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
+            value:
+              "A beautiful leaderboard showing top users by XP, with interactive buttons to switch between timeframes and view different rankings!",
+            inline: false,
+          },
+        );
+        break;
+
+      case "level":
+        embed.addFields(
+          {
+            name: `${EMOJIS.FEATURES.EXPERIENCE} 📊 How to Use`,
+            value: "```/level [user:@username]```",
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.UI.MENU} 📝 What You Need`,
+            value:
+              "**user** *(optional)* - Check a specific member's level (leave empty to see your own)",
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
+            value:
+              "Detailed level information including current XP, progress to next level, rank on server, and a visual progress bar. Perfect for tracking your growth!",
+            inline: false,
+          },
+        );
+        break;
+
+      case "ping":
+        embed.addFields(
+          {
+            name: `${EMOJIS.STATUS.SUCCESS} 🏓 How to Use`,
+            value: "```/ping```",
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.UI.MENU} 📝 What You Need`,
+            value: "No parameters needed - just run the command!",
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
+            value:
+              "Bot latency information including API latency, heartbeat, and overall connection status. Great for checking if the bot is running smoothly!",
+            inline: false,
+          },
+        );
+        break;
+
+      case "serverinfo":
+        embed.addFields(
+          {
+            name: `${EMOJIS.FEATURES.SERVER} 🏠 How to Use`,
+            value: "```/serverinfo```",
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.UI.MENU} 📝 What You Need`,
+            value: "No parameters needed - just run the command!",
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
+            value:
+              "Comprehensive server information including member count, creation date, owner details, channel counts, role information, and server features!",
+            inline: false,
+          },
+        );
+        break;
+
+      case "sponsor":
+        embed.addFields(
+          {
+            name: `${EMOJIS.FEATURES.SUPPORT} 💝 How to Use`,
+            value: "```/sponsor```",
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.UI.MENU} 📝 What You Need`,
+            value: "No parameters needed - just run the command!",
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
+            value:
+              "Information about supporting the bot's development, including ways to contribute and help keep the bot running for everyone!",
+            inline: false,
+          },
+        );
+        break;
+
+      case "support":
+        embed.addFields(
+          {
+            name: `${EMOJIS.FEATURES.SUPPORT} 🆘 How to Use`,
+            value: "```/support```",
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.UI.MENU} 📝 What You Need`,
+            value: "No parameters needed - just run the command!",
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
+            value:
+              "Support information including how to get help, report issues, suggest features, and contact the development team!",
+            inline: false,
+          },
+        );
+        break;
+
+      case "welcome-settings":
+        embed.addFields(
+          {
+            name: `${EMOJIS.FEATURES.WELCOME} 🎉 How to Use`,
+            value: "```/welcome-settings```",
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.UI.MENU} 📝 What You Need`,
+            value: "No parameters needed - just run the command!",
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.FEATURES.SECURITY} 🔐 Permissions`,
+            value: "• **Manage Guild** permission required",
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
+            value:
+              "Interactive welcome system configuration with buttons to toggle features, customize messages, and set up automatic welcome responses for new members!",
+            inline: false,
+          },
+        );
+        break;
+
+      case "setup-welcome":
+        embed.addFields(
+          {
+            name: `${EMOJIS.FEATURES.WELCOME} 🎉 How to Use`,
+            value:
+              '```/setup-welcome channel:#welcome message:"Welcome to our server!" enabled:true```',
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.UI.MENU} 📝 What You Need`,
+            value: [
+              "**channel** - The channel where welcome messages will be sent",
+              "**message** - Custom welcome message (supports placeholders)",
+              "**enabled** - Whether the welcome system is active",
+            ].join("\n"),
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.FEATURES.SECURITY} 🔐 Permissions`,
+            value: "• **Manage Guild** permission required",
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
+            value:
+              "Confirmation that your welcome system has been configured, with options to test the setup and customize further settings!",
             inline: false,
           },
         );
