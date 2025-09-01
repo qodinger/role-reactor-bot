@@ -10,9 +10,7 @@ import { getLogger } from "../../utils/logger.js";
 
 export const data = new SlashCommandBuilder()
   .setName("avatar")
-  .setDescription(
-    `${EMOJIS.UI.IMAGE} Get a user's avatar with interactive features`,
-  )
+  .setDescription(`Get a user's avatar with interactive features`)
   .addUserOption(option =>
     option
       .setName("user")

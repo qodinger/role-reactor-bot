@@ -59,102 +59,6 @@ export function generateCommandTags(commandName, description) {
 }
 
 /**
- * Automatically determine command complexity based on name and patterns
- * @param {string} commandName - The command name
- * @param {string} description - The command description
- * @returns {string} - Complexity level
- */
-export function getCommandComplexity(commandName, description) {
-  const complexity = description?.toLowerCase() || "";
-
-  // Check for complexity indicators in description
-  if (
-    complexity.includes("complex") ||
-    complexity.includes("advanced") ||
-    complexity.includes("expert")
-  ) {
-    return "Hard";
-  }
-
-  if (complexity.includes("medium") || complexity.includes("moderate")) {
-    return "Medium";
-  }
-
-  // Check command name patterns
-  if (
-    commandName.includes("setup") ||
-    commandName.includes("configure") ||
-    commandName.includes("manage")
-  ) {
-    return "Medium";
-  }
-
-  if (
-    commandName.includes("list") ||
-    commandName.includes("view") ||
-    commandName.includes("info")
-  ) {
-    return "Easy";
-  }
-
-  return "Easy"; // Default to easy
-}
-
-/**
- * Automatically determine command usage frequency based on name and patterns
- * @param {string} commandName - The command name
- * @param {string} description - The command description
- * @returns {string} - Usage frequency
- */
-export function getCommandUsage(commandName, description) {
-  const usage = description?.toLowerCase() || "";
-
-  // Check for usage indicators in description
-  if (
-    usage.includes("frequently") ||
-    usage.includes("often") ||
-    usage.includes("daily")
-  ) {
-    return "High";
-  }
-
-  if (usage.includes("occasionally") || usage.includes("sometimes")) {
-    return "Medium";
-  }
-
-  if (usage.includes("rarely") || usage.includes("seldom")) {
-    return "Low";
-  }
-
-  // Check command name patterns
-  if (
-    commandName.includes("help") ||
-    commandName.includes("ping") ||
-    commandName.includes("info")
-  ) {
-    return "High";
-  }
-
-  if (
-    commandName.includes("setup") ||
-    commandName.includes("configure") ||
-    commandName.includes("admin")
-  ) {
-    return "Medium";
-  }
-
-  if (
-    commandName.includes("debug") ||
-    commandName.includes("dev") ||
-    commandName.includes("health")
-  ) {
-    return "Low";
-  }
-
-  return "Medium"; // Default to medium
-}
-
-/**
  * Get appropriate emoji for a command based on its name
  * @param {string} commandName - The command name
  * @returns {string} - Appropriate emoji for the command
@@ -326,8 +230,6 @@ export function generateCommandMetadata(client) {
     // Start with dynamic metadata
     metadata[commandName] = {
       emoji: getCommandEmoji(commandName),
-      complexity: getCommandComplexity(commandName, description),
-      usage: getCommandUsage(commandName, description),
       shortDesc,
       tags,
     };
@@ -436,40 +338,4 @@ export function getDynamicHelpData(client) {
     COMMAND_METADATA: generateCommandMetadata(client),
     COMMAND_CATEGORIES: generateCommandCategories(client),
   };
-}
-
-/**
- * Get complexity indicator emoji
- * @param {string} complexity
- * @returns {string}
- */
-export function getComplexityIndicator(complexity) {
-  switch (complexity?.toLowerCase()) {
-    case "easy":
-      return EMOJIS.COMPLEXITY.EASY;
-    case "medium":
-      return EMOJIS.COMPLEXITY.MEDIUM;
-    case "hard":
-      return EMOJIS.COMPLEXITY.HARD;
-    default:
-      return "⚪";
-  }
-}
-
-/**
- * Get usage frequency indicator
- * @param {string} usage
- * @returns {string}
- */
-export function getUsageIndicator(usage) {
-  switch (usage?.toLowerCase()) {
-    case "high":
-      return EMOJIS.USAGE.HIGH;
-    case "medium":
-      return EMOJIS.USAGE.MEDIUM;
-    case "low":
-      return EMOJIS.USAGE.LOW;
-    default:
-      return EMOJIS.USAGE.NONE;
-  }
 }

@@ -186,13 +186,28 @@ const handleButtonInteraction = async (interaction, _client) => {
         await handleXPToggleRole(interaction);
         break;
 
+      // Help command buttons and interactions
+      case "help_back_main":
+      case "help_view_overview":
+      case "help_view_all":
+        await handleHelpInteraction(interaction);
+        break;
+
       // Sponsor command buttons
       case "sponsor_perks":
         await handleSponsorPerks(interaction);
         break;
 
       default:
-        logger.debug(`Unknown button interaction: ${interaction.customId}`);
+        // Check if it's a help interaction that wasn't caught above
+        if (
+          interaction.customId === "help_category_select" ||
+          interaction.customId.startsWith("help_cmd_")
+        ) {
+          await handleHelpInteraction(interaction);
+        } else {
+          logger.debug(`Unknown button interaction: ${interaction.customId}`);
+        }
         break;
     }
   } catch (error) {
@@ -210,6 +225,34 @@ const handleButtonInteraction = async (interaction, _client) => {
         });
       } catch (replyError) {
         logger.error("Error sending error reply", replyError);
+      }
+    }
+  }
+};
+
+// Handle help command interactions
+const handleHelpInteraction = async interaction => {
+  const logger = getLogger();
+
+  try {
+    // Import the help interaction handler dynamically to avoid circular dependencies
+    const { InteractionHandler } = await import(
+      "../commands/general/help/interactionHandler.js"
+    );
+    const helpHandler = new InteractionHandler(interaction.client);
+    await helpHandler.handleInteraction(interaction);
+  } catch (error) {
+    logger.error("Error handling help interaction", error);
+
+    // Send error response if possible
+    if (!interaction.replied && !interaction.deferred) {
+      try {
+        await interaction.reply({
+          content: "❌ An error occurred while processing your help request.",
+          flags: 64,
+        });
+      } catch (replyError) {
+        logger.error("Error sending help error reply", replyError);
       }
     }
   }

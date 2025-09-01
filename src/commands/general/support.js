@@ -11,9 +11,7 @@ import { getDefaultInviteLink } from "../../utils/discord/invite.js";
 
 export const data = new SlashCommandBuilder()
   .setName("support")
-  .setDescription(
-    `${EMOJIS.STATUS.INFO} Get the support server link for help and community.`,
-  );
+  .setDescription(`Get the support server link for help and community.`);
 
 export async function execute(interaction, client) {
   try {
