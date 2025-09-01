@@ -38,6 +38,7 @@ class RoleExpirationScheduler {
     this.logger.success(
       "✅ Role expiration scheduler started (runs every 60 seconds)",
     );
+    this.logger.info("🕐 Running initial temporary role cleanup...");
     this.cleanupExpiredRoles();
   }
 
@@ -67,10 +68,10 @@ class RoleExpirationScheduler {
       return;
     }
 
-    this.logger.debug("🕐 Running automatic temporary role cleanup...");
+    this.logger.info("🕐 Running automatic temporary role cleanup...");
 
     const expiredRoles = await databaseManager.temporaryRoles.findExpired();
-    this.logger.debug(
+    this.logger.info(
       `Found ${expiredRoles.length} expired temporary role(s) in database.`,
     );
 
