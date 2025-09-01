@@ -4,7 +4,7 @@ import { getLogger } from "../../utils/logger.js";
 
 export const data = new SlashCommandBuilder()
   .setName("8ball")
-  .setDescription(`${EMOJIS.UI.QUESTION} Ask the magic 8-ball a question`)
+  .setDescription(`Ask the magic 8-ball a question`)
   .addStringOption(option =>
     option
       .setName("question")

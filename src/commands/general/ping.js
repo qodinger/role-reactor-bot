@@ -4,9 +4,7 @@ import { getLogger } from "../../utils/logger.js";
 
 export const data = new SlashCommandBuilder()
   .setName("ping")
-  .setDescription(
-    `${EMOJIS.STATUS.LOADING} Check the bot's latency and connection status`,
-  );
+  .setDescription(`Check the bot's latency and connection status`);
 
 export async function execute(interaction, client) {
   const logger = getLogger();

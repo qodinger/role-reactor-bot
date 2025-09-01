@@ -10,9 +10,7 @@ import { getLogger } from "../../utils/logger.js";
 
 export const data = new SlashCommandBuilder()
   .setName("sponsor")
-  .setDescription(
-    `${EMOJIS.ACTIONS.HEART} Support the bot development at your own pace`,
-  );
+  .setDescription(`Support the bot development at your own pace`);
 
 export async function execute(interaction, client) {
   const logger = getLogger();

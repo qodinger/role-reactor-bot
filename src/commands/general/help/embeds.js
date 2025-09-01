@@ -1,10 +1,6 @@
 import { EmbedBuilder, PermissionFlagsBits } from "discord.js";
 import { THEME_COLOR, EMOJIS, UI_COMPONENTS } from "../../../config/theme.js";
-import {
-  getDynamicHelpData,
-  getComplexityIndicator,
-  getUsageIndicator,
-} from "./helpData.js";
+import { getDynamicHelpData } from "./data.js";
 import config from "../../../config/config.js";
 
 /**
@@ -91,14 +87,7 @@ export class HelpEmbedBuilder {
           ].join("\n"),
           inline: false,
         },
-        {
-          name: `${EMOJIS.UI.MENU} Legend`,
-          value: [
-            `${EMOJIS.COMPLEXITY.EASY} Easy  ${EMOJIS.COMPLEXITY.MEDIUM} Medium  ${EMOJIS.COMPLEXITY.HARD} Hard`,
-            `${EMOJIS.USAGE.HIGH} High usage  ${EMOJIS.USAGE.MEDIUM} Medium  ${EMOJIS.USAGE.LOW} Low`,
-          ].join("\n"),
-          inline: false,
-        },
+
         {
           name: `${EMOJIS.ACTIONS.QUICK} Quick Start`,
           value: [
@@ -108,19 +97,6 @@ export class HelpEmbedBuilder {
             `${EMOJIS.NUMBERS.FOUR} Track everything with \`/list-roles\``,
             `${EMOJIS.NUMBERS.FIVE} Schedule roles with \`/schedule-role\` for future events`,
             `${EMOJIS.NUMBERS.SIX} Create schedules with \`/schedule-role\` (one-time or recurring)`,
-          ].join("\n"),
-          inline: false,
-        },
-        {
-          name: `${EMOJIS.FEATURES.EXPERIENCE} XP System Configuration`,
-          value: [
-            `${EMOJIS.STATUS.INFO} **XP system is disabled by default** and requires admin activation`,
-            `${EMOJIS.NUMBERS.ONE} Use \`/xp-settings\` to view current XP system status`,
-            `${EMOJIS.NUMBERS.TWO} Use the toggle buttons to enable/disable the XP system`,
-            `${EMOJIS.NUMBERS.THREE} Toggle individual features: message XP, command XP, and role XP`,
-            `${EMOJIS.NUMBERS.FOUR} All settings use default values optimized for most servers`,
-            ``,
-            `${EMOJIS.UI.INFO} **Default Settings:** Message XP (15-25), Command XP (8 base), Role XP (50), Cooldowns (60s/30s)`,
           ].join("\n"),
           inline: false,
         },
@@ -165,12 +141,10 @@ export class HelpEmbedBuilder {
         const value = chunk
           .map(([cmdName, meta]) => {
             const lineMeta = meta || {};
-            const complexity = lineMeta?.complexity || "";
-            const usage = lineMeta?.usage || "";
-            return `${lineMeta?.emoji || EMOJIS.ACTIONS.HELP} \`/${cmdName}\` — ${lineMeta?.shortDesc || "No description available"}\n${getComplexityIndicator(complexity)} ${complexity} • ${getUsageIndicator(usage)} ${usage}`;
+            return `${lineMeta?.emoji || EMOJIS.ACTIONS.HELP} \`/${cmdName}\` — ${lineMeta?.shortDesc || "No description available"}`;
           })
           .join("\n\n");
-        embed.addFields({ name: `Commands ${label}`, value, inline: true });
+        embed.addFields({ name: `Commands ${label}`, value, inline: false });
       });
 
       const total = all.length;
@@ -188,25 +162,18 @@ export class HelpEmbedBuilder {
   }
 
   /**
-   * Build a summary string of top commands by usage
+   * Build a summary string of popular commands
    * @param {Record<string, any>} metadata
    * @param {number} limit
    */
   static getTopCommandsSummary(metadata, limit = 5) {
     if (!metadata) return "";
-    const weight = v =>
-      v?.toLowerCase?.() === "high"
-        ? 3
-        : v?.toLowerCase?.() === "medium"
-          ? 2
-          : 1;
-    const sorted = Object.entries(metadata)
-      .sort((a, b) => weight(b[1]?.usage) - weight(a[1]?.usage))
+    const commands = Object.entries(metadata)
       .slice(0, limit)
       .map(
         ([name, meta]) => `${meta?.emoji || EMOJIS.ACTIONS.HELP} \`/${name}\``,
       );
-    return sorted.join(" • ");
+    return commands.join(" • ");
   }
 
   /**
@@ -250,8 +217,8 @@ export class HelpEmbedBuilder {
         if (meta) {
           embed.addFields({
             name: `${meta.emoji} \`/${cmdName}\``,
-            value: `${meta.shortDesc}\n${getComplexityIndicator(meta.complexity)} ${meta.complexity} • ${getUsageIndicator(meta.usage)} ${meta.usage}`,
-            inline: true,
+            value: meta.shortDesc,
+            inline: false,
           });
         }
       });
@@ -284,19 +251,6 @@ export class HelpEmbedBuilder {
             client.user.displayAvatarURL(),
           ),
         );
-
-      // Add command metadata
-      if (meta) {
-        embed.addFields({
-          name: `${EMOJIS.FEATURES.MONITORING} 📊 Command Info`,
-          value: [
-            `**Complexity:** ${getComplexityIndicator(meta.complexity)} ${meta.complexity}`,
-            `**Usage:** ${getUsageIndicator(meta.usage)} ${meta.usage}`,
-            `**Tags:** ${meta.tags?.map(tag => `\`${tag}\``).join(", ") || "None"}`,
-          ].join("\n"),
-          inline: false,
-        });
-      }
 
       // Add command-specific help based on command name
       this.addCommandSpecificHelp(embed, command.data.name);

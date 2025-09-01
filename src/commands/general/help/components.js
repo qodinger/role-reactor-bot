@@ -5,7 +5,7 @@ import {
   StringSelectMenuBuilder,
   PermissionFlagsBits,
 } from "discord.js";
-import { getDynamicHelpData } from "./helpData.js";
+import { getDynamicHelpData } from "./data.js";
 import { EMOJIS } from "../../../config/theme.js";
 import config from "../../../config/config.js";
 import { getDefaultInviteLink } from "../../../utils/discord/invite.js";
@@ -13,7 +13,7 @@ import { getDefaultInviteLink } from "../../../utils/discord/invite.js";
 /**
  * Builder class for creating help UI components
  */
-export class HelpComponentBuilder {
+export class ComponentBuilder {
   /**
    * Check if user has required permissions for a category
    * @param {import('discord.js').GuildMember} member

@@ -5,7 +5,7 @@ import { getExperienceManager } from "../../features/experience/ExperienceManage
 
 export const data = new SlashCommandBuilder()
   .setName("level")
-  .setDescription(`${EMOJIS.FEATURES.ROLES} Check your level and experience`)
+  .setDescription(`Check your level and experience`)
   .addUserOption(option =>
     option
       .setName("user")

@@ -11,9 +11,7 @@ import config from "../../config/config.js";
 
 export const data = new SlashCommandBuilder()
   .setName("invite")
-  .setDescription(
-    `${EMOJIS.ACTIONS.LINK} Get the bot's invite link for your server`,
-  );
+  .setDescription(`Get the bot's invite link for your server`);
 
 export async function execute(interaction, client) {
   try {

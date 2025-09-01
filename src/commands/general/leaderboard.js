@@ -25,9 +25,7 @@ function getTimeframeDisplay(timeframe) {
 
 export const data = new SlashCommandBuilder()
   .setName("leaderboard")
-  .setDescription(
-    `${EMOJIS.UI.PROGRESS} View the server experience leaderboard with time filters`,
-  )
+  .setDescription(`View the server experience leaderboard with time filters`)
   .addStringOption(option =>
     option
       .setName("timeframe")

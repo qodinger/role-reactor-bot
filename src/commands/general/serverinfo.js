@@ -4,7 +4,7 @@ import { getLogger } from "../../utils/logger.js";
 
 export const data = new SlashCommandBuilder()
   .setName("serverinfo")
-  .setDescription(`${EMOJIS.UI.INFO} Get information about this server`);
+  .setDescription(`Get information about this server`);
 
 export async function execute(interaction, _client) {
   const logger = getLogger();
