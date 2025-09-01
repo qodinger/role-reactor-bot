@@ -1,16 +1,5 @@
-import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
-import { EMOJIS, THEME, UI_COMPONENTS } from "../../config/theme.js";
-import { getLogger } from "../../utils/logger.js";
-
-export const data = new SlashCommandBuilder()
-  .setName("8ball")
-  .setDescription(`Ask the magic 8-ball a question`)
-  .addStringOption(option =>
-    option
-      .setName("question")
-      .setDescription("Your question for the magic 8-ball")
-      .setRequired(true),
-  );
+import { getLogger } from "../../../utils/logger.js";
+import { create8BallEmbed, createErrorEmbed } from "./embeds.js";
 
 export async function execute(interaction, _client) {
   const logger = getLogger();
@@ -54,63 +43,21 @@ export async function execute(interaction, _client) {
       categories[Math.floor(Math.random() * categories.length)];
     const categoryResponses = responseCategories[randomCategory];
     const selectedResponse =
-      categoryResponses[Math.floor(Math.random() * categoryResponses.length)];
+      categoryResponses[Math.floor(Math.random() * categories.length)];
 
-    // Determine color based on response category
-    let embedColor;
-    let categoryEmoji;
-    switch (randomCategory) {
-      case "positive":
-        embedColor = THEME.SUCCESS;
-        categoryEmoji = "✨";
-        break;
-      case "neutral":
-        embedColor = THEME.INFO;
-        categoryEmoji = "🤔";
-        break;
-      case "negative":
-        embedColor = THEME.WARNING;
-        categoryEmoji = "💭";
-        break;
-      default:
-        embedColor = THEME.INFO;
-        categoryEmoji = "🎱";
-    }
-
-    const embed = new EmbedBuilder()
-      .setColor(embedColor)
-      .setTitle(`${EMOJIS.UI.QUESTION} Magic 8-Ball`)
-      .addFields(
-        {
-          name: `${EMOJIS.UI.QUESTION} Question`,
-          value: `*"${question}"*`,
-          inline: false,
-        },
-        {
-          name: `${categoryEmoji} Answer`,
-          value: `**${selectedResponse.emoji} ${selectedResponse.text}**`,
-          inline: false,
-        },
-      )
-      .setFooter(
-        UI_COMPONENTS.createFooter(
-          `Asked by ${interaction.user.username}`,
-          interaction.user.displayAvatarURL(),
-        ),
-      )
-      .setTimestamp();
+    const embed = create8BallEmbed(
+      question,
+      selectedResponse,
+      randomCategory,
+      interaction.user,
+    );
 
     await interaction.reply({ embeds: [embed] });
     logger.logCommand("8ball", interaction.user.id, Date.now(), true);
   } catch (error) {
     logger.error("Error in 8ball command", error);
     await interaction.reply({
-      embeds: [
-        new EmbedBuilder()
-          .setColor(THEME.ERROR)
-          .setTitle(`${EMOJIS.STATUS.ERROR} Error`)
-          .setDescription("Sorry, the magic 8-ball is broken right now."),
-      ],
+      embeds: [createErrorEmbed()],
     });
   }
 }
