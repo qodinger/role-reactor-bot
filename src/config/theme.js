@@ -200,6 +200,11 @@ export const EMOJIS = {
     SYNC: "🔄",
     EXPERIENCE: "⭐",
     PREMIUM: "💎",
+    WELCOME: "🎉",
+    USER: "👤",
+    SERVER: "🏠",
+    SUPPORT: "💝",
+    FUN: "🎮",
   },
 
   // Navigation and UI
