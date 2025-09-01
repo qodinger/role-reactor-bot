@@ -285,7 +285,9 @@ const handleLeaderboardButton = async interaction => {
     }
 
     // Import the leaderboard command and execute it with the new timeframe
-    const { execute } = await import("../commands/general/leaderboard.js");
+    const { execute } = await import(
+      "../commands/general/leaderboard/index.js"
+    );
 
     // Temporarily set the timeframe option
     interaction.options = {
