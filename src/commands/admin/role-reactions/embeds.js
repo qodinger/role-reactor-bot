@@ -67,10 +67,16 @@ export function createListRolesEmbed(guildMappings, client) {
           role.roleId ? `<@&${role.roleId}>` : role.roleName || "Unknown",
         )
         .join(", ");
-      const channelMention = mapping.channelId
-        ? `<#${mapping.channelId}>`
-        : "Unknown channel";
-      return `**Message ID:** ${messageId}\n**Channel:** ${channelMention}\n**Roles:** ${rolesArr.length} role(s)\n${roleMentions}`;
+      const messageLink =
+        mapping.channelId && mapping.guildId
+          ? `https://discord.com/channels/${mapping.guildId}/${mapping.channelId}/${messageId}`
+          : null;
+      const channelInfo = messageLink
+        ? `<#${mapping.channelId}> • [Jump to Message](${messageLink})`
+        : mapping.channelId
+          ? `<#${mapping.channelId}>`
+          : "Unknown channel";
+      return `**Message ID:** ${messageId}\n**Channel:** ${channelInfo}\n**Roles:** ${rolesArr.length} role(s)\n${roleMentions}`;
     })
     .join("\n\n");
 
