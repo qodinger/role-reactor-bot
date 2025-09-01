@@ -55,6 +55,12 @@ export async function handleSpecificCommandHelp(
   const logger = getLogger();
 
   try {
+    // Debug: Log available commands and what we're looking for
+    logger.debug(`Looking for command: ${commandName}`);
+    logger.debug(
+      `Available commands: ${Array.from(interaction.client.commands.keys()).join(", ")}`,
+    );
+
     // Validate command name
     if (!isValidCommandName(commandName)) {
       await handleCommandNotFound(interaction, commandName, deferred);
@@ -64,6 +70,7 @@ export async function handleSpecificCommandHelp(
     const command = interaction.client.commands.get(commandName);
 
     if (!command) {
+      logger.warn(`Command not found in client.commands: ${commandName}`);
       await handleCommandNotFound(interaction, commandName, deferred);
       return;
     }
