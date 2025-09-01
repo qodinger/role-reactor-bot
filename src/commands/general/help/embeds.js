@@ -458,6 +458,39 @@ export class HelpEmbedBuilder {
         );
         break;
 
+      case "temp-roles":
+        embed.addFields(
+          {
+            name: `${EMOJIS.FEATURES.ROLES} ⏰ How to Use`,
+            value: [
+              "```/temp-roles assign user:@username role:@EventRole duration:2h reason:\"Tournament access\" notify:true```",
+              "```/temp-roles list [user:@username]```",
+              "```/temp-roles remove user:@username role:@EventRole reason:\"Event ended early\"```",
+            ].join("\n"),
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.UI.MENU} 📝 Subcommands`,
+            value: [
+              "**assign** - Give a temporary role to a user with custom duration and optional DM notification",
+              "**list** - View all temporary roles or check a specific user's temporary roles",
+              "**remove** - Remove a temporary role early with optional reason",
+            ].join("\n"),
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.FEATURES.SECURITY} 🔐 Permissions`,
+            value: "• **Manage Roles** permission (for you)\n• **Manage Roles** permission (for the bot)",
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.STATUS.INFO} ⏱️ Duration Examples`,
+            value: "`30m`, `2h`, `1d`, `1w` - Perfect for events, tournaments, and temporary access!",
+            inline: false,
+          },
+        );
+        break;
+
       case "remove-temp-role":
         embed.addFields(
           {
@@ -591,6 +624,41 @@ export class HelpEmbedBuilder {
             name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
             value:
               "An invite link to add Role Reactor Bot to your server. The link is sent as an ephemeral message, so only you can see it. Share it with others to invite the bot!",
+            inline: false,
+          },
+        );
+        break;
+
+      case "role-reactions":
+        embed.addFields(
+          {
+            name: `${EMOJIS.FEATURES.ROLES} 🎭 How to Use`,
+            value: [
+              "```/role-reactions setup title:\"Choose Your Roles\" description:\"React to get roles!\" roles:\"🎮 @Gamer, 🎨 @Artist, 📚 @Reader\" color:\"Pastel Blue\"```",
+              "```/role-reactions list```",
+              "```/role-reactions update message_id:\"1234567890\" title:\"Updated Title\" color:\"Pastel Green\"```",
+              "```/role-reactions delete message_id:\"1234567890\"```",
+            ].join("\n"),
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.UI.MENU} 📝 Subcommands`,
+            value: [
+              "**setup** - Create a new role-reaction message with custom title, description, roles, and color",
+              "**list** - View all role-reaction messages in your server with their details",
+              "**update** - Modify an existing role-reaction message (title, description, roles, or color)",
+              "**delete** - Remove a role-reaction message by its ID",
+            ].join("\n"),
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.FEATURES.SECURITY} 🔐 Permissions`,
+            value: "• **Manage Roles** permission (for you)\n• **Manage Messages** permission (for the bot)\n• **Add Reactions** permission (for the bot)",
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.STATUS.INFO} 🎨 Color Options`,
+            value: "Pastel Blue, Pastel Green, Pastel Pink, Pastel Purple, Pastel Yellow, Pastel Orange, Pastel Red, Pastel Teal",
             inline: false,
           },
         );
