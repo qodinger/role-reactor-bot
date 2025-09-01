@@ -30,6 +30,7 @@ import { getStorageManager } from "./utils/storage/storageManager.js";
 import { getPerformanceMonitor } from "./utils/monitoring/performanceMonitor.js";
 import { getLogger } from "./utils/logger.js";
 import { EnhancedRoleScheduler } from "./features/enhancedTemporaryRoles/EnhancedRoleScheduler.js";
+import { getScheduler as getRoleExpirationScheduler } from "./features/temporaryRoles/RoleExpirationScheduler.js";
 import { getHealthCheckRunner } from "./utils/monitoring/healthCheck.js";
 import HealthServer from "./utils/monitoring/healthServer.js";
 import { getCommandHandler } from "./utils/core/commandHandler.js";
@@ -184,9 +185,13 @@ async function gracefulShutdown(client, healthServer) {
       healthServer.stop();
     }
 
-    // Stop scheduler
+    // Stop schedulers
     if (global.enhancedScheduler) {
       global.enhancedScheduler.stop();
+    }
+
+    if (global.tempRoleScheduler) {
+      global.tempRoleScheduler.stop();
     }
 
     // Close Discord connection
@@ -528,6 +533,12 @@ async function main() {
       const scheduler = new EnhancedRoleScheduler(client);
       global.enhancedScheduler = scheduler; // Store globally for shutdown
       scheduler.start();
+
+      // Start temporary role expiration scheduler
+      const tempRoleScheduler = getRoleExpirationScheduler(client);
+      global.tempRoleScheduler = tempRoleScheduler; // Store globally for shutdown
+      tempRoleScheduler.start();
+
       healthCheckRunner.run(client);
       performanceMonitor.startMonitoring();
     });

@@ -45,17 +45,23 @@ export async function addTemporaryRole(
       // Check if user already has the role
       if (member.roles.cache.has(roleId)) {
         logger.info(`User ${userId} already has role ${role.name}`);
-        return true;
+        // Don't return early - still need to store in database
       }
 
-      // Assign the role
-      await member.roles.add(
-        role,
-        `Temporary role assignment - expires at ${expiresAt.toISOString()}`,
-      );
-      logger.info(
-        `✅ Successfully assigned temporary role ${role.name} to user ${userId}`,
-      );
+      // Assign the role only if user doesn't already have it
+      if (!member.roles.cache.has(roleId)) {
+        await member.roles.add(
+          role,
+          `Temporary role assignment - expires at ${expiresAt.toISOString()}`,
+        );
+        logger.info(
+          `✅ Successfully assigned temporary role ${role.name} to user ${userId}`,
+        );
+      } else {
+        logger.info(
+          `✅ User ${userId} already has role ${role.name}, skipping Discord assignment`,
+        );
+      }
     } catch (discordError) {
       logger.error(
         `Failed to assign Discord role to user ${userId}:`,
@@ -263,6 +269,7 @@ export async function getTemporaryRoles(guildId) {
   try {
     const storageManager = await getStorageManager();
     const tempRoles = await storageManager.getTemporaryRoles();
+
     const guildRoles = tempRoles[guildId] || {};
 
     // Convert to array format expected by the command
