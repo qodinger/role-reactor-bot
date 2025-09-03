@@ -31,6 +31,7 @@ import {
   logTempRolesListing,
   logTempRoleRemoval,
 } from "./utils.js";
+import { THEME } from "../../../config/theme.js";
 
 /**
  * Handle the assign temp role logic
@@ -506,7 +507,7 @@ async function assignRoleAndDM(
               description: wasUpdate
                 ? `Your **${role.name}** role in **${interaction.guild.name}** has been updated with a new expiration time.`
                 : `You have been assigned the **${role.name}** role in **${interaction.guild.name}**.`,
-              color: 0x00ff00,
+              color: THEME.SUCCESS,
               fields: [
                 {
                   name: "⏰ Duration",
