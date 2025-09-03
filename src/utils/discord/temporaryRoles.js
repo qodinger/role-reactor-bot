@@ -8,6 +8,7 @@ import { getLogger } from "../logger.js";
  * @param {string} roleId
  * @param {Date} expiresAt
  * @param {import("discord.js").Client} [client] Discord client for role assignment
+ * @param {boolean} [notifyExpiry] Whether to send DM when role expires
  * @returns {Promise<boolean>}
  */
 export async function addTemporaryRole(
@@ -16,6 +17,7 @@ export async function addTemporaryRole(
   roleId,
   expiresAt,
   client = null,
+  notifyExpiry = false,
 ) {
   const logger = getLogger();
   try {
@@ -78,6 +80,7 @@ export async function addTemporaryRole(
       userId,
       roleId,
       expiresAt,
+      notifyExpiry,
     );
 
     if (!storageResult) {
@@ -249,6 +252,7 @@ export async function getUserTemporaryRoles(guildId, userId) {
         userId,
         roleId,
         expiresAt: roleData.expiresAt,
+        notifyExpiry: roleData.notifyExpiry || false,
       });
     }
 
@@ -281,6 +285,7 @@ export async function getTemporaryRoles(guildId) {
           userId,
           roleId,
           expiresAt: roleData.expiresAt,
+          notifyExpiry: roleData.notifyExpiry || false,
         });
       }
     }

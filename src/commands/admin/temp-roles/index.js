@@ -69,11 +69,11 @@ export const data = new SlashCommandBuilder()
   .addSubcommand(subcommand =>
     subcommand
       .setName("remove")
-      .setDescription("Remove a temporary role from a user before it expires")
-      .addUserOption(opt =>
+      .setDescription("Remove a temporary role from users before it expires")
+      .addStringOption(opt =>
         opt
-          .setName("user")
-          .setDescription("The user to remove the temporary role from")
+          .setName("users")
+          .setDescription("Comma-separated list of user IDs or mentions")
           .setRequired(true),
       )
       .addRoleOption(opt =>

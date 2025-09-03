@@ -394,10 +394,10 @@ class TemporaryRoleRepository extends BaseRepository {
     return tempRoles;
   }
 
-  async add(guildId, userId, roleId, expiresAt) {
+  async add(guildId, userId, roleId, expiresAt, notifyExpiry = false) {
     await this.collection.updateOne(
       { guildId, userId, roleId },
-      { $set: { expiresAt, updatedAt: new Date() } },
+      { $set: { expiresAt, notifyExpiry, updatedAt: new Date() } },
       { upsert: true },
     );
     this.cache.clear();

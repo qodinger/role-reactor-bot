@@ -441,6 +441,7 @@ export class EnhancedRoleScheduler {
               roleId,
               expiresAt,
               this.client,
+              false, // notifyExpiry - scheduled roles don't support this yet
             );
             this.logger.info(
               `✅ Role assigned to user ${userId}: ${result ? "Success" : "Failed"}`,
