@@ -72,8 +72,20 @@ class DatabaseProvider {
     return this.dbManager.temporaryRoles.getAll();
   }
 
-  async addTemporaryRole(guildId, userId, roleId, expiresAt) {
-    await this.dbManager.temporaryRoles.add(guildId, userId, roleId, expiresAt);
+  async addTemporaryRole(
+    guildId,
+    userId,
+    roleId,
+    expiresAt,
+    notifyExpiry = false,
+  ) {
+    await this.dbManager.temporaryRoles.add(
+      guildId,
+      userId,
+      roleId,
+      expiresAt,
+      notifyExpiry,
+    );
     return true;
   }
 
@@ -194,14 +206,26 @@ class StorageManager {
     return this.provider.read("temporary_roles");
   }
 
-  async addTemporaryRole(guildId, userId, roleId, expiresAt) {
+  async addTemporaryRole(
+    guildId,
+    userId,
+    roleId,
+    expiresAt,
+    notifyExpiry = false,
+  ) {
     if (this.provider instanceof DatabaseProvider) {
-      return this.provider.addTemporaryRole(guildId, userId, roleId, expiresAt);
+      return this.provider.addTemporaryRole(
+        guildId,
+        userId,
+        roleId,
+        expiresAt,
+        notifyExpiry,
+      );
     }
     const tempRoles = this.provider.read("temporary_roles");
     if (!tempRoles[guildId]) tempRoles[guildId] = {};
     if (!tempRoles[guildId][userId]) tempRoles[guildId][userId] = {};
-    tempRoles[guildId][userId][roleId] = { expiresAt };
+    tempRoles[guildId][userId][roleId] = { expiresAt, notifyExpiry };
     return this.provider.write("temporary_roles", tempRoles);
   }
 

@@ -17,19 +17,16 @@ import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 import {
   createTempRoleEmbed,
   createTempRolesListEmbed,
-  createTempRoleRemovedEmbed,
+  createTempRoleRemovalEmbed,
 } from "./embeds.js";
 import {
   validateRole,
   validateDuration,
   processUserList,
   processTempRoles,
-  validateTemporaryRole,
   removeRoleFromUser,
-  removeTemporaryRoleData,
   logTempRoleAssignment,
   logTempRolesListing,
-  logTempRoleRemoval,
 } from "./utils.js";
 import { THEME } from "../../../config/theme.js";
 
@@ -86,6 +83,8 @@ export async function handleAssign(interaction) {
     const reason =
       interaction.options.getString("reason") || "No reason provided";
     const notify = interaction.options.getBoolean("notify") || false;
+    const notifyExpiry =
+      interaction.options.getBoolean("notify-expiry") || false;
 
     // Validate role
     const roleValidation = validateRole(role, interaction.guild);
@@ -144,6 +143,7 @@ export async function handleAssign(interaction) {
             reason,
             interaction,
             notify,
+            notifyExpiry,
           );
         } catch (error) {
           logger.warn(`Failed to assign role to user ${user.id}:`, error);
@@ -310,7 +310,6 @@ export async function handleList(interaction, client) {
 
 export async function handleRemove(interaction) {
   const logger = getLogger();
-  const startTime = Date.now();
 
   try {
     await interaction.deferReply({ flags: 64 });
@@ -347,65 +346,82 @@ export async function handleRemove(interaction) {
     }
 
     // Get command options
-    const targetUser = interaction.options.getUser("user");
+    const usersString = interaction.options.getString("users");
     const role = interaction.options.getRole("role");
     const reason =
       interaction.options.getString("reason") || "No reason provided";
 
-    // Validate that this is indeed a temporary role assignment
-    const validation = await validateTemporaryRole(
-      targetUser.id,
-      role.id,
-      interaction.guild.id,
+    // Process user list (same as assign command)
+    const userProcessingResult = await processUserList(
+      usersString,
+      interaction,
     );
-    if (!validation.valid) {
+    if (!userProcessingResult.valid) {
       return interaction.editReply(
         errorEmbed({
-          title: "Temporary Role Not Found",
-          description: validation.error,
-          solution: validation.solution,
+          title: "Invalid User List",
+          description: userProcessingResult.error,
+          solution: userProcessingResult.solution,
         }),
       );
     }
 
-    // Remove the role from the user
-    const roleRemovalResult = await removeRoleFromUser(
-      targetUser,
-      role,
-      interaction.guild,
-    );
-    if (!roleRemovalResult.success) {
+    const { validUsers: targetUsers } = userProcessingResult;
+
+    // Validate role
+    const roleValidation = validateRole(role, interaction.guild);
+    if (!roleValidation.valid) {
       return interaction.editReply(
         errorEmbed({
-          title: "Failed to Remove Role",
-          description: roleRemovalResult.error,
-          solution: roleRemovalResult.solution,
+          title: "Invalid Role",
+          description: roleValidation.error,
+          solution: roleValidation.solution,
         }),
       );
     }
 
-    // Remove from temporary roles database
-    await removeTemporaryRoleData(targetUser.id, role.id, interaction.guild.id);
+    // Process removals for all users
+    const limiter = pLimit(3);
+    const removalPromises = targetUsers.map(user =>
+      limiter(async () => {
+        try {
+          return await removeRoleFromUser(
+            user,
+            role,
+            interaction.guild,
+            reason,
+          );
+        } catch (error) {
+          logger.warn(`Failed to remove role from user ${user.id}:`, error);
+          return { success: false, user, error: error.message };
+        }
+      }),
+    );
 
-    // Create success embed
-    const embed = createTempRoleRemovedEmbed(
-      targetUser,
+    const results = await Promise.allSettled(removalPromises);
+    const processedResults = results.map(r =>
+      r.status === "fulfilled"
+        ? r.value
+        : { success: false, user: null, error: r.reason },
+    );
+
+    // Create success embed with results
+    const embed = createTempRoleRemovalEmbed(
       role,
+      targetUsers,
       reason,
+      processedResults,
       interaction.user,
-      validation.tempRole,
     );
 
     await interaction.editReply({ embeds: [embed] });
 
     // Log the removal activity
-    logTempRoleRemoval(
-      interaction.user,
-      targetUser,
-      role,
-      reason,
-      validation.tempRole,
-      Date.now() - startTime,
+    const successCount = processedResults.filter(r => r.success).length;
+    const failureCount = processedResults.filter(r => !r.success).length;
+
+    logger.info(
+      `Temporary role removal completed by ${interaction.user.tag} in ${interaction.guild.name}: ${successCount} successful, ${failureCount} failed`,
     );
   } catch (error) {
     logger.error("Error in handleRemove:", error);
@@ -414,7 +430,7 @@ export async function handleRemove(interaction) {
       await interaction.editReply(
         errorEmbed({
           title: "Error",
-          description: "Failed to remove temporary role.",
+          description: "Failed to remove temporary roles.",
           solution: "Please try again or contact support.",
         }),
       );
@@ -430,6 +446,7 @@ export async function handleRemove(interaction) {
  * @param {string} reason
  * @param {import('discord.js').CommandInteraction} interaction
  * @param {boolean} notify - Whether to send DM notification
+ * @param {boolean} notifyExpiry - Whether to send DM when role expires
  */
 async function assignRoleAndDM(
   user,
@@ -438,6 +455,7 @@ async function assignRoleAndDM(
   reason,
   interaction,
   notify = false,
+  notifyExpiry = false,
 ) {
   const logger = getLogger();
 
@@ -484,6 +502,7 @@ async function assignRoleAndDM(
       role.id,
       expiresAt,
       interaction.client,
+      notifyExpiry,
     );
 
     logger.info(`Temporary role stored successfully`);
@@ -502,25 +521,44 @@ async function assignRoleAndDM(
           embeds: [
             {
               title: wasUpdate
-                ? "🎭 Temporary Role Updated"
+                ? "🔄 Temporary Role Updated"
                 : "🎭 Temporary Role Assigned",
               description: wasUpdate
                 ? `Your **${role.name}** role in **${interaction.guild.name}** has been updated with a new expiration time.`
                 : `You have been assigned the **${role.name}** role in **${interaction.guild.name}**.`,
               color: THEME.SUCCESS,
+              thumbnail: {
+                url: role.iconURL() || interaction.guild.iconURL(),
+              },
               fields: [
                 {
-                  name: "⏰ Duration",
-                  value: formatDuration(durationMs),
+                  name: "🎭 Role Information",
+                  value: [
+                    `**Name:** ${role.name}`,
+                    `**Color:** ${role.hexColor}`,
+                    `**Server:** ${interaction.guild.name}`,
+                  ].join("\n"),
                   inline: true,
                 },
                 {
-                  name: "📅 Expires",
-                  value: `<t:${Math.floor(expiresAt.getTime() / 1000)}:R>`,
+                  name: "⏰ Assignment Details",
+                  value: [
+                    `**Duration:** ${formatDuration(durationMs)}`,
+                    `**Expires:** <t:${Math.floor(expiresAt.getTime() / 1000)}:R>`,
+                    `**Assigned by:** ${interaction.user.username}`,
+                  ].join("\n"),
                   inline: true,
                 },
-                { name: "📝 Reason", value: reason, inline: false },
+                {
+                  name: "📝 Reason",
+                  value: reason,
+                  inline: false,
+                },
               ],
+              footer: {
+                text: "Role Reactor • Temporary Roles",
+                icon_url: interaction.guild.iconURL(),
+              },
               timestamp: new Date().toISOString(),
             },
           ],

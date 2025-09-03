@@ -134,7 +134,11 @@ class RoleExpirationScheduler {
         }
 
         if (member.roles.cache.has(role.id)) {
-          roleRemovals.push({ member, role });
+          roleRemovals.push({
+            member,
+            role,
+            notifyExpiry: expiredRole.notifyExpiry,
+          });
         } else {
           // Role already removed, just clean up database
           rolesToCleanup.push(expiredRole);
@@ -157,6 +161,30 @@ class RoleExpirationScheduler {
         roleRemovals,
         "Temporary role expired",
       );
+
+      // Send expiration notifications for roles that were successfully removed
+      for (let i = 0; i < results.length; i++) {
+        const result = results[i];
+        const roleRemoval = roleRemovals[i];
+
+        if (result.success && roleRemoval.notifyExpiry) {
+          try {
+            await this.sendExpirationNotification(
+              roleRemoval.member,
+              roleRemoval.role,
+              guild,
+            );
+            this.logger.info(
+              `📧 Sent expiration notification to ${roleRemoval.member.user.tag}`,
+            );
+          } catch (error) {
+            this.logger.warn(
+              `Failed to send expiration notification to ${roleRemoval.member.user.tag}:`,
+              error.message,
+            );
+          }
+        }
+      }
 
       // Log results
       const successCount = results.filter(r => r.success).length;
@@ -209,9 +237,34 @@ class RoleExpirationScheduler {
       const embed = new EmbedBuilder()
         .setTitle("⏰ Temporary Role Expired!")
         .setDescription(
-          `Your temporary **${role.name}** role in **${guild.name}** has expired.`,
+          `Your temporary **${role.name}** role in **${guild.name}** has expired and has been automatically removed.`,
         )
-        .setColor(0xff0000)
+        .setColor(0xff6b6b) // Soft red color
+        .setThumbnail(role.iconURL() || guild.iconURL())
+        .addFields([
+          {
+            name: "🎭 Role Details",
+            value: [
+              `**Name:** ${role.name}`,
+              `**Color:** ${role.hexColor}`,
+              `**Server:** ${guild.name}`,
+            ].join("\n"),
+            inline: true,
+          },
+          {
+            name: "⏰ Expiration Info",
+            value: [
+              `**Expired at:** <t:${Math.floor(Date.now() / 1000)}:F>`,
+              `**Status:** Automatically removed`,
+              `**Action:** Role has been removed from your account`,
+            ].join("\n"),
+            inline: true,
+          },
+        ])
+        .setFooter({
+          text: "Role Reactor • Temporary Roles",
+          iconURL: guild.iconURL(),
+        })
         .setTimestamp();
 
       await member.user.send({ embeds: [embed] });

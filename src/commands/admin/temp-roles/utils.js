@@ -347,7 +347,12 @@ export async function processTempRoles(tempRoles, guild, _client) {
  * @param {import('discord.js').Guild} guild
  * @returns {Promise<Object>} {success: boolean, error?: string, solution?: string}
  */
-export async function removeRoleFromUser(user, role, guild) {
+export async function removeRoleFromUser(
+  user,
+  role,
+  guild,
+  reason = "No reason provided",
+) {
   const logger = getLogger();
 
   try {
@@ -361,12 +366,29 @@ export async function removeRoleFromUser(user, role, guild) {
       };
     }
 
-    await member.roles.remove(role, "Temporary role removed manually");
-    return { success: true };
+    // Check if this is a temporary role assignment (for logging purposes)
+    const validation = await validateTemporaryRole(user.id, role.id, guild.id);
+    const isTemporaryRole = validation.valid;
+
+    // Remove the role from Discord
+    await member.roles.remove(role, `Temporary role removed: ${reason}`);
+
+    // Remove from temporary roles database if it exists there
+    if (isTemporaryRole) {
+      await removeTemporaryRoleData(user.id, role.id, guild.id);
+    }
+
+    return {
+      success: true,
+      user,
+      tempRole: isTemporaryRole ? validation.tempRole : null,
+      wasUpdate: false,
+    };
   } catch (error) {
     logger.error("Error removing role from user", error);
     return {
       success: false,
+      user,
       error: "Failed to remove role from user.",
       solution: "Check bot permissions and role hierarchy.",
     };
