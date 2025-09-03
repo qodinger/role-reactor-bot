@@ -20,6 +20,7 @@ import {
   validateScheduleInputs,
   formatDisplayId,
 } from "./utils.js";
+import { THEME } from "../../../config/theme.js";
 
 // ============================================================================
 // SCHEDULE CREATION HANDLERS
@@ -210,7 +211,7 @@ export async function handleCancel(interaction, deferred = true) {
                 inline: true,
               },
             )
-            .setColor(0x00ff00)
+            .setColor(THEME.SUCCESS)
             .setTimestamp(),
         ],
         ephemeral: false,
