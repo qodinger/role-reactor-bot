@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Universal Command XP System: Simplified XP system that supports all commands (current and future) with configurable base amounts
 - Dynamic XP Breakdown Display: Level command now shows accurate XP amounts from server settings instead of hardcoded values
 - Modal Router System: New centralized modal interaction handling for XP configuration forms
+- Flexible Role Removal: Temp-roles remove command can now remove any role, not just temporary ones
+- Bulk Role Removal: Enhanced temp-roles remove command with comprehensive multi-user support
 
 ### Changed
 
@@ -42,6 +44,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Command XP Bonus System: Removed inconsistent bonus amounts, now all commands use configurable base XP
 - Interaction Handling Errors: Fixed InteractionAlreadyReplied and InteractionNotReplied errors in XP settings
 - Modal Configuration Flow: Fixed modal submission handling for XP configuration forms
+- Temp-roles Remove Command: Fixed "Invalid User List" error in bulk removal operations
+- User Data Processing: Fixed "Cannot read properties of undefined" errors in removeRoleFromUser function
+- ProcessUserList Function: Fixed parameter passing and async handling in user list processing
+- Data Structure Handling: Fixed user object extraction from validUsers array in remove handler
 
 ### Technical
 
@@ -64,7 +70,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced command content quality:
   - Sponsor command now shows real supporter benefits and donation information
   - Support command provides comprehensive help and contact information
-  - Updated README documentation for all improved commands
+- Improved temp-roles system reliability:
+  - Fixed bulk removal operations with proper user list processing
+  - Enhanced role removal flexibility to handle any role type
+  - Improved error handling and user feedback for removal operations
 
 ## [0.4.1] - 2025-01-22
 
@@ -170,7 +179,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
-- Legal Documentation: Removed `docs/legal/privacy-policy.md` and `docs/legal/terms-of-use.md` as they were intended for end users rather than developers
 - Storage Command Cleanup Features: Removed "Cleanup Expired Roles" and "Test Auto Cleanup" buttons from developer storage command for improved security
 - Avatar Command Redundancy: Removed unnecessary download options text and misleading image size information
 
@@ -216,12 +224,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Data export functionality for GDPR compliance (developer only)
 - Enhanced storage command with privacy features
 - Manual data management through admin commands
-- Legal documentation (Terms of Use and Privacy Policy)
+
 - Improved logging with command and rate limit tracking
 
 ### Changed
 
-- Updated documentation structure and organization
 - Enhanced command descriptions and usage examples
 - Improved error handling and user feedback
 - Simplified storage command to export-only (removed dangerous delete functionality)
@@ -296,10 +303,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added "🔒 [DEVELOPER ONLY]" descriptions to developer commands
 - Simplified deployment scripts (reduced from 8 to 4 commands: `deploy:dev`, `deploy:prod`, `deploy:global`, `delete:commands`)
 - Updated ephemeral usage from `ephemeral: true` to `flags: 64` (Discord deprecation fix)
-- Enhanced documentation with developer command system details
+
 - Improved command visibility and permission handling
-- Streamlined README.md organization
-- Consolidated deployment guides (merged VPS_DEPLOYMENT.md)
+
 - Enhanced database manager error handling
 - Improved scheduler cleanup process
 - Better error messages and validation
