@@ -657,21 +657,11 @@ class GuildSettingsRepository extends BaseRepository {
             messageXPAmount: { min: 15, max: 25 },
             commandXPAmount: {
               base: 8,
-              bonus: {
-                "8ball": 15,
-                level: 5,
-                avatar: 10,
-                serverinfo: 12,
-                roles: 12,
-                help: 3,
-                ping: 3,
-                invite: 3,
-                support: 3,
-              },
             },
             roleXPAmount: 50,
             messageCooldown: 60,
             commandCooldown: 30,
+            // Level formula is fixed at 100 * level^1.5 - no longer configurable
           },
 
           createdAt: new Date(),

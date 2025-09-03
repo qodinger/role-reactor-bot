@@ -91,6 +91,9 @@ export class InteractionManager {
       case InteractionType.MessageComponent:
         await this.handleButtonInteraction(interaction, client);
         break;
+      case InteractionType.ModalSubmit:
+        await this.handleModalInteraction(interaction, client);
+        break;
       default:
         // Unknown interaction type, ignore
         this.logger.debug(`Unknown interaction type: ${interaction.type}`);
@@ -157,6 +160,36 @@ export class InteractionManager {
     } catch (error) {
       this.logger.error(
         `Error handling button interaction ${interaction.customId}`,
+        error,
+      );
+
+      // Only reply if the interaction hasn't been responded to yet
+      if (!interaction.replied && !interaction.deferred) {
+        try {
+          await interaction.reply({
+            content: "❌ An error occurred while processing your request.",
+            flags: 64,
+          });
+        } catch (replyError) {
+          this.logger.error("Error sending error reply", replyError);
+        }
+      }
+    }
+  }
+
+  /**
+   * Handle modal interactions
+   * @param {import('discord.js').ModalSubmitInteraction} interaction - The modal interaction
+   * @param {import('discord.js').Client} client - The Discord client
+   */
+  async handleModalInteraction(interaction, client) {
+    try {
+      // Import modal handlers dynamically to reduce initial bundle size
+      const modalRouter = await import("./routers/modalRouter.js");
+      await modalRouter.routeModalInteraction(interaction, client);
+    } catch (error) {
+      this.logger.error(
+        `Error handling modal interaction ${interaction.customId}`,
         error,
       );
 

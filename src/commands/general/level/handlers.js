@@ -1,5 +1,6 @@
 import { getLogger } from "../../../utils/logger.js";
 import { getExperienceManager } from "../../../features/experience/ExperienceManager.js";
+import { getDatabaseManager } from "../../../utils/storage/databaseManager.js";
 import { createLevelEmbed, createErrorEmbed } from "./embeds.js";
 import {
   calculateUserRank,
@@ -13,12 +14,24 @@ export async function execute(interaction, _client) {
   try {
     const targetUser = interaction.options.getUser("user") || interaction.user;
     const experienceManager = await getExperienceManager();
+    const dbManager = await getDatabaseManager();
 
     const userData = await experienceManager.getUserData(
       interaction.guild.id,
       targetUser.id,
     );
     const progress = experienceManager.calculateProgress(userData.totalXP);
+
+    // Get XP settings from database
+    const settings = await dbManager.guildSettings.getByGuild(
+      interaction.guild.id,
+    );
+    const xpSettings = settings.experienceSystem;
+
+    // Add XP settings to userData for the embed
+    userData.messageXPRange = `${xpSettings.messageXPAmount.min}-${xpSettings.messageXPAmount.max}`;
+    userData.commandXPBase = xpSettings.commandXPAmount.base;
+    userData.roleXPAmount = xpSettings.roleXPAmount;
 
     // Get server rank by calculating position in leaderboard
     const leaderboard = await experienceManager.getLeaderboard(

@@ -83,6 +83,11 @@ export async function routeButtonInteraction(interaction, _client) {
         await handleXPToggleSystem(interaction);
         break;
       }
+      case "xp_toggle_all": {
+        const { handleXPToggleAll } = await import("../handlers/xpHandlers.js");
+        await handleXPToggleAll(interaction);
+        break;
+      }
       case "xp_toggle_message": {
         const { handleXPToggleMessage } = await import(
           "../handlers/xpHandlers.js"
@@ -102,6 +107,29 @@ export async function routeButtonInteraction(interaction, _client) {
           "../handlers/xpHandlers.js"
         );
         await handleXPToggleRole(interaction);
+        break;
+      }
+
+      // XP configuration buttons
+      case "xp_config_message": {
+        const { handleXPConfigMessage } = await import(
+          "../handlers/xpHandlers.js"
+        );
+        await handleXPConfigMessage(interaction);
+        break;
+      }
+      case "xp_config_command": {
+        const { handleXPConfigCommand } = await import(
+          "../handlers/xpHandlers.js"
+        );
+        await handleXPConfigCommand(interaction);
+        break;
+      }
+      case "xp_config_role": {
+        const { handleXPConfigRole } = await import(
+          "../handlers/xpHandlers.js"
+        );
+        await handleXPConfigRole(interaction);
         break;
       }
 

@@ -68,7 +68,7 @@ export async function handleXpSettings(interaction) {
 
     await interaction.editReply({
       embeds: [embed],
-      components: [components],
+      components,
     });
 
     const duration = Date.now() - startTime;
