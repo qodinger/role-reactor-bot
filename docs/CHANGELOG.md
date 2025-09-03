@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Command Content Improvements: Sponsor and support commands now display real content instead of placeholder text
 - Modular Button Handlers: Dedicated handler modules for XP, welcome, help, leaderboard, schedule, and sponsor interactions
 - Centralized Error Handling: Unified error management system for all interaction types
+- Enable/Disable All XP Button: New bulk toggle button for managing all XP sources at once
+- Universal Command XP System: Simplified XP system that supports all commands (current and future) with configurable base amounts
+- Dynamic XP Breakdown Display: Level command now shows accurate XP amounts from server settings instead of hardcoded values
+- Modal Router System: New centralized modal interaction handling for XP configuration forms
 
 ### Changed
 
@@ -21,6 +25,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - XP Settings User Experience: Buttons now update embeds in place instead of sending separate confirmation messages
 - Command Content Quality: Replaced placeholder text with comprehensive, useful information in sponsor and support commands
 - Button Interaction Flow: All button interactions now use deferUpdate() for seamless embed updates
+- XP Settings Button Layout: Reorganized buttons into logical 3-row layout for better user experience
+- XP Configuration Simplification: Removed complex level formula customization, now uses fixed formula (100 \* level^1.5)
+- Command XP System: Removed hardcoded bonus amounts, now uses universal base XP for all commands
+- Level Command XP Display: XP breakdown now dynamically pulls values from server settings
+- XP Settings Embed Layout: Reorganized fields with better organization and removed level progression section
 
 ### Fixed
 
@@ -28,18 +37,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Command Placeholder Content: Replaced "This command has been refactored to modular structure" with actual useful content
 - Help Command Undefined Emojis: Fixed missing emoji constants causing "undefined" placeholders in help output
 - Interaction System Organization: Resolved monolithic interaction handling with proper modular architecture
+- ExperienceManager Context Binding: Fixed critical `this` context issues in setTimeout callbacks causing calculateLevel errors
+- XP Breakdown Accuracy: Fixed level command showing incorrect hardcoded XP values instead of actual server settings
+- Command XP Bonus System: Removed inconsistent bonus amounts, now all commands use configurable base XP
+- Interaction Handling Errors: Fixed InteractionAlreadyReplied and InteractionNotReplied errors in XP settings
+- Modal Configuration Flow: Fixed modal submission handling for XP configuration forms
 
 ### Technical
 
 - Implemented centralized interaction management system:
   - `InteractionManager.js` - Centralized interaction routing and management
   - `buttonRouter.js` - Button interaction routing based on customId patterns
+  - `modalRouter.js` - Modal interaction routing for configuration forms
   - Dedicated handler modules for different interaction types
   - Centralized error handling for all interactions
 - Refactored XP settings interaction handling:
   - Updated all XP toggle handlers to use `interaction.deferUpdate()`
   - Replaced individual success embeds with updated XP settings embed
   - Improved user experience with in-place embed updates
+  - Added bulk toggle functionality for all XP sources
+- Enhanced XP system architecture:
+  - Simplified command XP to use only configurable base amounts
+  - Removed complex bonus system for universal command support
+  - Fixed ExperienceManager context binding issues with inline calculations
+  - Made level progression formula fixed (100 \* level^1.5) for consistency
 - Enhanced command content quality:
   - Sponsor command now shows real supporter benefits and donation information
   - Support command provides comprehensive help and contact information
