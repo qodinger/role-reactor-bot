@@ -16,7 +16,7 @@ export function createXpSettingsEmbed(interaction, xpSettings) {
       {
         name: `${EMOJIS.STATUS.SUCCESS} System Status`,
         value: xpSettings.enabled ? "🟢 Enabled" : "🔴 Disabled",
-        inline: true,
+        inline: false,
       },
       {
         name: `${EMOJIS.UI.MESSAGE} Message XP`,

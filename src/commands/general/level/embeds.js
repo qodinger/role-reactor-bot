@@ -59,16 +59,16 @@ export function createLevelEmbed(
         `${EMOJIS.UI.ANSWER} **Messages Sent:** ${userData.messagesSent || 0}`,
         `${EMOJIS.ACTIONS.QUICK} **Commands Used:** ${userData.commandsUsed || 0}`,
         `${EMOJIS.FEATURES.ROLES} **Roles Earned:** ${userData.rolesEarned || 0}`,
-        `${EMOJIS.UI.PROGRESS} **Server Rank:** ${serverRank}`,
+        `${EMOJIS.UI.TROPHY} **Server Rank:** ${serverRank}`,
       ].join("\n"),
       inline: false,
     })
     .addFields({
       name: `${EMOJIS.UI.INFO} XP Breakdown`,
       value: [
-        `${EMOJIS.UI.ANSWER} **Message XP:** 15-25 XP per message (60s cooldown)`,
-        `${EMOJIS.ACTIONS.QUICK} **Command XP:** 3-15 XP per command (30s cooldown)`,
-        `${EMOJIS.FEATURES.ROLES} **Role XP:** 50 XP per role assignment`,
+        `${EMOJIS.UI.ANSWER} **Message XP:** ${userData.messageXPRange || "15-25"} XP per message (60s cooldown)`,
+        `${EMOJIS.ACTIONS.QUICK} **Command XP:** ${userData.commandXPBase || "8"} XP per command (30s cooldown)`,
+        `${EMOJIS.FEATURES.ROLES} **Role XP:** ${userData.roleXPAmount || "50"} XP per role assignment`,
       ].join("\n"),
       inline: false,
     })

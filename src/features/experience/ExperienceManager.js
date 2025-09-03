@@ -37,7 +37,7 @@ class ExperienceCache {
     // Start batch timeout if not already running
     if (!this.batchTimeout) {
       this.batchTimeout = setTimeout(
-        () => this.processBatchUpdates(),
+        this.processBatchUpdates.bind(this),
         this.batchDelay,
       );
     }
@@ -68,8 +68,12 @@ class ExperienceCache {
           userData.lastUpdated = new Date();
         }
 
-        // Recalculate level
-        userData.level = this.calculateLevel(userData.totalXP);
+        // Recalculate level (inline calculation to avoid context issues)
+        let level = 1;
+        while (Math.floor(100 * Math.pow(level, 1.5)) <= userData.totalXP) {
+          level++;
+        }
+        userData.level = level - 1;
 
         // Update cache and storage
         currentData[key] = userData;
@@ -535,28 +539,9 @@ class ExperienceManager {
       return null;
     }
 
-    // Base XP for any command usage
-    let xp = 8; // Default XP for any command
-
-    // Bonus XP for more engaging commands
-    if (commandName === "8ball")
-      xp = 15; // Fun interactive command
-    else if (commandName === "level" || commandName === "leaderboard")
-      xp = 5; // Self-checking commands
-    else if (commandName === "avatar")
-      xp = 10; // Visual command
-    else if (commandName === "serverinfo" || commandName === "userinfo")
-      xp = 12; // Info commands
-    else if (commandName === "roles")
-      xp = 12; // Role management
-    else if (
-      commandName === "help" ||
-      commandName === "ping" ||
-      commandName === "invite" ||
-      commandName === "support"
-    )
-      xp = 3; // Utility commands
-    // All other commands get the default 8 XP
+    // Get base XP amount from guild settings
+    const guildSettings = await dbManager.guildSettings.getByGuild(guildId);
+    const xp = guildSettings.experienceSystem.commandXPAmount.base;
 
     const userData = await this.addXP(guildId, userId, xp);
 

@@ -63,9 +63,11 @@ A command to display user level profiles with detailed experience information an
 
 ### XP Breakdown
 
-- **Message XP**: 15-25 XP per message (60s cooldown)
-- **Command XP**: 3-15 XP per command (30s cooldown)
-- **Role XP**: 50 XP per role assignment
+- **Message XP**: 15-25 XP per message (60s cooldown) - _Configurable_
+- **Command XP**: 8 XP per command (30s cooldown) - _Configurable, applies to all commands_
+- **Role XP**: 50 XP per role assignment - _Configurable_
+
+_XP amounts are dynamically pulled from the server's XP settings configuration._
 
 ## Technical Details
 
