@@ -4,17 +4,17 @@ import { EMOJIS, THEME, UI_COMPONENTS } from "../../../config/theme.js";
 export function createSponsorEmbed(user) {
   return new EmbedBuilder()
     .setColor(THEME.PRIMARY)
-    .setTitle(`${EMOJIS.UI.STAR} Sponsor the Bot`)
-    .setDescription("Support the bot's development and get exclusive benefits!")
+    .setTitle(`${EMOJIS.UI.STAR} Support the Bot`)
+    .setDescription("Help keep this bot free and running for everyone!")
     .addFields(
       {
-        name: "🎯 Supporter Benefits",
+        name: "🤝 Why Support?",
         value: [
-          "• 🎯 **Priority Support** - Get help faster when you need it",
-          "• 🆕 **Early Access** - Try new features before everyone else",
-          "• 🏷️ **Supporter Badge** - Show your support in the community",
-          "• 💬 **Direct Feedback** - Help shape the bot's future",
-          "• 🎁 **Exclusive Features** - Access to special commands and tools",
+          "• 🚀 **Development** - Support new features and improvements",
+          "• 🛠️ **Maintenance** - Keep servers running and updated",
+          "• 🐛 **Bug Fixes** - Ensure the bot stays reliable",
+          "• 🆓 **Keep It Free** - Help maintain the bot's free services",
+          "• 💡 **Innovation** - Enable new ideas and capabilities",
         ].join("\n"),
         inline: false,
       },
@@ -25,6 +25,7 @@ export function createSponsorEmbed(user) {
           "• 🔄 **One-Time or Regular** - Donate once or set up recurring",
           "• 🌟 **No Pressure** - Support only if you want to",
           "• 🎯 **Every Bit Helps** - Even small donations make a difference",
+          "• ⏰ **No Commitment** - Cancel anytime",
         ].join("\n"),
         inline: false,
       },

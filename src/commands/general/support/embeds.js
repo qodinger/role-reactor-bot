@@ -27,16 +27,6 @@ export function createSupportEmbed(user) {
         ].join("\n"),
         inline: false,
       },
-      {
-        name: "📞 Contact Information",
-        value: [
-          "• 🏠 **Support Server** - Join our Discord community",
-          "• 📧 **Email Support** - Contact us directly",
-          "• 📱 **Social Media** - Follow us for updates",
-          "• 🌐 **Website** - Visit our official website",
-        ].join("\n"),
-        inline: false,
-      },
     )
     .setFooter(
       UI_COMPONENTS.createFooter(

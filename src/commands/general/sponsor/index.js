@@ -3,6 +3,6 @@ import { execute } from "./handlers.js";
 
 export const data = new SlashCommandBuilder()
   .setName("sponsor")
-  .setDescription(`Get information about sponsoring the bot`);
+  .setDescription(`Get information about supporting the bot's development`);
 
 export { execute };

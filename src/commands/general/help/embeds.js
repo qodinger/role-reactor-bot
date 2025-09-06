@@ -882,7 +882,7 @@ export class HelpEmbedBuilder {
           {
             name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
             value:
-              "Information about supporting the bot's development, including ways to contribute and help keep the bot running for everyone!",
+              "Information about supporting the bot's development to help keep it free and running for everyone, including why support is needed, how to contribute, and an interactive 'Become a Sponsor' button!",
             inline: false,
           },
         );
@@ -903,7 +903,7 @@ export class HelpEmbedBuilder {
           {
             name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
             value:
-              "Support information including how to get help, report issues, suggest features, and contact the development team!",
+              "Support information including how to get help, report issues, suggest features, and interactive buttons for Discord support server and GitHub repository!",
             inline: false,
           },
         );

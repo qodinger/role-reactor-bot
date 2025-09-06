@@ -344,6 +344,7 @@ class Config {
       guide: "https://rolereactor.app/docs",
       github: "https://github.com/qodinger/role-reactor-bot",
       support: "https://discord.gg/D8tYkU75Ry",
+      sponsor: "https://rolereactor.app/sponsor",
       invite: null, // Will be generated dynamically by the bot
     };
   }
