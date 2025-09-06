@@ -278,19 +278,25 @@ export class HelpEmbedBuilder {
         embed.addFields(
           {
             name: `${EMOJIS.FEATURES.FUN} 🎱 How to Use`,
-            value: '```/8ball question:"Will I win the tournament?"```',
+            value: '```/8ball question:"Will I succeed in my career?"```',
             inline: false,
           },
           {
             name: `${EMOJIS.UI.MENU} 📝 What You Need`,
             value:
-              "**question** - Ask the magic 8-ball anything you want to know!",
+              "**question** - Ask the intelligent magic 8-ball anything you want to know!",
             inline: false,
           },
           {
             name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
             value:
-              "A mysterious response from the magic 8-ball with various categories: positive, negative, neutral, and uncertain answers. Perfect for fun decision-making!",
+              "An intelligent response from the mystical oracle with 5 smart categories: Very Positive, Positive, Neutral, Negative, and Very Negative. The 8-ball analyzes your question's sentiment and context to provide more relevant answers!",
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.FEATURES.FUN} 🧠 Smart Features`,
+            value:
+              "**Sentiment Analysis** - Detects positive/negative keywords in your question\n**Context Awareness** - Recognizes personal, urgent, and emotional questions\n**Smart Weighting** - Adjusts response probabilities based on question type\n**5 Response Levels** - From exceptional fortune to dangerous warnings",
             inline: false,
           },
         );
@@ -471,18 +477,18 @@ export class HelpEmbedBuilder {
           {
             name: `${EMOJIS.FEATURES.ROLES} ⏰ How to Use`,
             value: [
-              '```/temp-roles assign user:@username role:@EventRole duration:2h reason:"Tournament access" notify:true```',
+              '```/temp-roles assign users:"@user1, @user2" role:@EventRole duration:2h reason:"Tournament access" notify:true notify-expiry:true```',
               "```/temp-roles list [user:@username]```",
-              '```/temp-roles remove user:@username role:@EventRole reason:"Event ended early"```',
+              '```/temp-roles remove users:"@user1, @user2" role:@EventRole reason:"Event ended early"```',
             ].join("\n"),
             inline: false,
           },
           {
             name: `${EMOJIS.UI.MENU} 📝 Subcommands`,
             value: [
-              "**assign** - Give a temporary role to a user with custom duration and optional DM notification",
+              "**assign** - Give temporary roles to multiple users with custom duration and optional DM notifications",
               "**list** - View all temporary roles or check a specific user's temporary roles",
-              "**remove** - Remove a temporary role early with optional reason",
+              "**remove** - Remove temporary roles from multiple users early with optional reason",
             ].join("\n"),
             inline: false,
           },
@@ -496,6 +502,12 @@ export class HelpEmbedBuilder {
             name: `${EMOJIS.STATUS.INFO} ⏱️ Duration Examples`,
             value:
               "`30m`, `2h`, `1d`, `1w` - Perfect for events, tournaments, and temporary access!",
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.FEATURES.FUN} 🚀 Smart Features`,
+            value:
+              "**Bulk Operations** - Assign/remove roles from multiple users simultaneously\n**Flexible Removal** - Remove any role, not just temporary ones\n**Smart Notifications** - Optional DM notifications for assignment and expiration\n**Modern Design** - Beautiful embeds with comprehensive information",
             inline: false,
           },
         );
