@@ -14,7 +14,6 @@ import {
   validateColor as isValidHexColor,
   validateRoleName as isValidRoleName,
 } from "../../src/utils/discord/roleValidator.js";
-import { getUserTemporaryRoles } from "../../src/utils/discord/temporaryRoles.js";
 import {
   sanitizeInput,
   isValidEmoji,
@@ -32,6 +31,14 @@ jest.mock("../../src/utils/storage/storageManager.js", () => ({
     getSupporters: jest.fn().mockResolvedValue({}),
     setSupporters: jest.fn().mockResolvedValue(true),
   })),
+}));
+
+// Mock the temporaryRoles module to prevent database calls
+jest.mock("../../src/utils/discord/temporaryRoles.js", () => ({
+  getUserTemporaryRoles: jest.fn().mockResolvedValue([]),
+  addTemporaryRole: jest.fn().mockResolvedValue(true),
+  removeTemporaryRole: jest.fn().mockResolvedValue(true),
+  getTemporaryRoles: jest.fn().mockResolvedValue([]),
 }));
 
 // Mock functions for testing
@@ -772,6 +779,9 @@ describe("Discord API Integration Tests", () => {
         expect(typeof removeRoleResult).toBe("boolean");
 
         // Test user temporary roles (now mocked)
+        const { getUserTemporaryRoles } = await import(
+          "../../src/utils/discord/temporaryRoles.js"
+        );
         const userTempRoles = await getUserTemporaryRoles(
           TEST_GUILD_ID,
           TEST_USER_ID,
