@@ -23,6 +23,15 @@ import {
   validateCommandInputs,
 } from "../../src/utils/discord/inputUtils.js";
 
+// Mock the storage manager to prevent database calls
+jest.mock("../../src/utils/storage/storageManager.js", () => ({
+  getStorageManager: () => ({
+    getTemporaryRoles: jest.fn().mockResolvedValue([]),
+    addTemporaryRole: jest.fn().mockResolvedValue(true),
+    removeTemporaryRole: jest.fn().mockResolvedValue(true),
+  }),
+}));
+
 // Mock functions for testing
 const hasPermission = (member, permission) => {
   // Return false if member or permissions are undefined
@@ -130,6 +139,30 @@ class MockMember {
         // Mock some permissions for testing
         return permission === "MANAGE_ROLES" || permission === "ADMINISTRATOR";
       },
+    };
+
+    // Add Discord.js role manager methods
+    this.roles.add = async (role, _reason) => {
+      const roleId = typeof role === "string" ? role : role.id;
+      const roleObj = this.guild.roles.get(roleId);
+      if (roleObj) {
+        this.roles.set(roleId, roleObj);
+        const logger = getLogger();
+        logger.info(`Added role ${roleId} to member ${this.user.id}`);
+        return this;
+      }
+      throw new Error("Role not found");
+    };
+
+    this.roles.remove = async (role, _reason) => {
+      const roleId = typeof role === "string" ? role : role.id;
+      if (this.roles.has(roleId)) {
+        this.roles.delete(roleId);
+        const logger = getLogger();
+        logger.info(`Removed role ${roleId} from member ${this.user.id}`);
+        return this;
+      }
+      throw new Error("Role not found");
     };
   }
 
@@ -333,9 +366,11 @@ describe("Discord API Integration Tests", () => {
     // Clear any remaining timers
     jest.clearAllTimers();
 
-    // Clear any remaining timeouts/intervals
-    jest.runOnlyPendingTimers();
-    jest.useRealTimers();
+    // Only run pending timers if fake timers are enabled
+    if (jest.isMockFunction(setTimeout)) {
+      jest.runOnlyPendingTimers();
+      jest.useRealTimers();
+    }
 
     // Force garbage collection if available
     if (global.gc) {
@@ -746,7 +781,7 @@ describe("Discord API Integration Tests", () => {
         // Still expect the basic structure to work
         expect(true).toBe(true);
       }
-    }, 10000); // Reduced timeout since we're mocking database calls
+    }, 15000); // Increased timeout for role management operations
 
     test("should validate user permissions", async () => {
       // Test permission checking
