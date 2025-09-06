@@ -25,11 +25,13 @@ import {
 
 // Mock the storage manager to prevent database calls
 jest.mock("../../src/utils/storage/storageManager.js", () => ({
-  getStorageManager: () => ({
-    getTemporaryRoles: jest.fn().mockResolvedValue([]),
+  getStorageManager: jest.fn(() => ({
+    getTemporaryRoles: jest.fn().mockResolvedValue({}),
     addTemporaryRole: jest.fn().mockResolvedValue(true),
     removeTemporaryRole: jest.fn().mockResolvedValue(true),
-  }),
+    getSupporters: jest.fn().mockResolvedValue({}),
+    setSupporters: jest.fn().mockResolvedValue(true),
+  })),
 }));
 
 // Mock functions for testing
