@@ -33,11 +33,23 @@ async function loadCommands() {
     const folderPath = path.join(commandsPath, folder);
     if (!fs.statSync(folderPath).isDirectory()) continue;
 
+    categories[folder] = [];
+
+    // Check for direct .js files (old style)
     const commandFiles = fs
       .readdirSync(folderPath)
       .filter(file => file.endsWith(".js"));
 
-    categories[folder] = [];
+    // Check for subfolders with index.js (new style)
+    const subfolders = fs.readdirSync(folderPath).filter(item => {
+      const itemPath = path.join(folderPath, item);
+      return (
+        fs.statSync(itemPath).isDirectory() &&
+        fs.existsSync(path.join(itemPath, "index.js"))
+      );
+    });
+
+    // Load direct .js files
     for (const file of commandFiles) {
       try {
         const filePath = path.join(folderPath, file);
@@ -54,6 +66,31 @@ async function loadCommands() {
       } catch (error) {
         console.error(
           createErrorMessage(`  [X] Error loading ${file}: ${error.message}`),
+        );
+      }
+    }
+
+    // Load subfolder index.js files
+    for (const subfolder of subfolders) {
+      try {
+        const indexPath = path.join(folderPath, subfolder, "index.js");
+        const commandModule = await import(indexPath);
+        const commandData = commandModule.data || commandModule.default?.data;
+
+        if (commandData) {
+          categories[folder].push(commandData.toJSON());
+        } else {
+          console.warn(
+            colors.warning(
+              `  [!] No command data found in ${subfolder}/index.js`,
+            ),
+          );
+        }
+      } catch (error) {
+        console.error(
+          createErrorMessage(
+            `  [X] Error loading ${subfolder}/index.js: ${error.message}`,
+          ),
         );
       }
     }

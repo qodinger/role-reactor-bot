@@ -1,51 +1,51 @@
 // Enhanced theme configuration for improved UX/UI
 export const THEME = {
-  // Primary brand colors
-  PRIMARY: 0x7f7bf5, // Main brand color
-  SECONDARY: 0x6c5ce7, // Secondary brand color
-  ACCENT: 0xa29bfe, // Accent color for highlights
+  // Primary brand colors (softened)
+  PRIMARY: 0x9b8bf0, // Soft lavender
+  SECONDARY: 0x8b7fd8, // Muted purple
+  ACCENT: 0xb8a9f5, // Light lavender
 
-  // Status colors with better contrast
-  SUCCESS: 0x00d084, // Green for success messages
-  ERROR: 0xff3838, // Red for error messages
-  WARNING: 0xffa502, // Orange for warnings
-  INFO: 0x3742fa, // Blue for info messages
+  // Status colors (pastel versions)
+  SUCCESS: 0x7dd3fc, // Soft sky blue
+  ERROR: 0xfca5a5, // Soft coral
+  WARNING: 0xfcd34d, // Soft yellow
+  INFO: 0x93c5fd, // Soft blue
 
-  // UI Component colors
-  BACKGROUND: 0x2f3136, // Dark background
-  SURFACE: 0x36393f, // Card/surface background
-  BORDER: 0x4f545c, // Border color
-  TEXT_PRIMARY: 0xffffff, // Primary text
-  TEXT_SECONDARY: 0xb9bbbe, // Secondary text
-  TEXT_MUTED: 0x72767d, // Muted text
+  // UI Component colors (softer)
+  BACKGROUND: 0x374151, // Softer dark
+  SURFACE: 0x4b5563, // Softer surface
+  BORDER: 0x6b7280, // Softer border
+  TEXT_PRIMARY: 0xf9fafb, // Soft white
+  TEXT_SECONDARY: 0xd1d5db, // Soft gray
+  TEXT_MUTED: 0x9ca3af, // Softer muted
 
-  // Category colors for command grouping
-  ADMIN: 0xff6b6b, // Red for admin commands
-  GENERAL: 0x4ecdc4, // Teal for general commands
-  DEVELOPER: 0xffe66d, // Yellow for developer commands
-  MODERATION: 0xa8e6cf, // Light green for moderation
-  UTILITY: 0xdda0dd, // Plum for utility commands
+  // Category colors (pastel versions)
+  ADMIN: 0xfecaca, // Soft pink
+  GENERAL: 0x99f6e4, // Soft teal
+  DEVELOPER: 0xfef3c7, // Soft cream
+  MODERATION: 0xbbf7d0, // Soft mint
+  UTILITY: 0xe9d5ff, // Soft lavender
 
-  // Complexity indicators
-  EASY: 0x2ecc71, // Green for easy commands
-  MEDIUM: 0xf39c12, // Orange for medium commands
-  HARD: 0xe74c3c, // Red for hard commands
+  // Complexity indicators (softer)
+  EASY: 0x86efac, // Soft green
+  MEDIUM: 0xfbbf24, // Soft amber
+  HARD: 0xfca5a5, // Soft red
 
-  // Usage frequency indicators
-  HIGH_USAGE: 0xff4757, // Hot red for high usage
-  MEDIUM_USAGE: 0x3742fa, // Blue for medium usage
-  LOW_USAGE: 0x57606f, // Gray for low usage
+  // Usage frequency indicators (pastel)
+  HIGH_USAGE: 0xfecaca, // Soft pink
+  MEDIUM_USAGE: 0x93c5fd, // Soft blue
+  LOW_USAGE: 0x9ca3af, // Soft gray
 
-  // Interactive states
-  HOVER: 0x5865f2, // Discord blurple for hover
-  ACTIVE: 0x4752c4, // Darker blurple for active
-  DISABLED: 0x72767d, // Gray for disabled
+  // Interactive states (softer)
+  HOVER: 0xa5b4fc, // Soft indigo
+  ACTIVE: 0x818cf8, // Softer indigo
+  DISABLED: 0x9ca3af, // Soft gray
 
-  // Semantic colors
-  ONLINE: 0x43b581, // Discord green
-  IDLE: 0xfaa61a, // Discord yellow
-  DND: 0xf04747, // Discord red
-  OFFLINE: 0x747f8d, // Discord gray
+  // Semantic colors (pastel versions)
+  ONLINE: 0x86efac, // Soft green
+  IDLE: 0xfde047, // Soft yellow
+  DND: 0xfca5a5, // Soft red
+  OFFLINE: 0x9ca3af, // Soft gray
 };
 
 // UI Component helper functions
@@ -178,11 +178,12 @@ export const EMOJIS = {
     LINK: "🔗",
     SETTINGS: "⚙️",
     HELP: "❓",
-    BACK: "🔙",
-    FORWARD: "🔜",
+    BACK: "⬅️",
+    FORWARD: "➡️",
     UP: "🔼",
     DOWN: "🔽",
     QUICK: "🚀",
+    HEART: "💖",
   },
 
   // Features and functionality
@@ -198,6 +199,12 @@ export const EMOJIS = {
     BACKUP: "💾",
     SYNC: "🔄",
     EXPERIENCE: "⭐",
+    PREMIUM: "💎",
+    WELCOME: "🎉",
+    USER: "👤",
+    SERVER: "🏠",
+    SUPPORT: "💝",
+    FUN: "🎮",
   },
 
   // Navigation and UI
@@ -227,6 +234,7 @@ export const EMOJIS = {
     MESSAGE: "💬",
     COMMAND: "⚡",
     TIME: "⏰",
+    TROPHY: "🏆",
   },
 
   // Time and scheduling

@@ -29,7 +29,8 @@ import config from "./config/config.js";
 import { getStorageManager } from "./utils/storage/storageManager.js";
 import { getPerformanceMonitor } from "./utils/monitoring/performanceMonitor.js";
 import { getLogger } from "./utils/logger.js";
-import { getScheduler } from "./features/temporaryRoles/RoleExpirationScheduler.js";
+import { EnhancedRoleScheduler } from "./features/enhancedTemporaryRoles/EnhancedRoleScheduler.js";
+import { getScheduler as getRoleExpirationScheduler } from "./features/temporaryRoles/RoleExpirationScheduler.js";
 import { getHealthCheckRunner } from "./utils/monitoring/healthCheck.js";
 import HealthServer from "./utils/monitoring/healthServer.js";
 import { getCommandHandler } from "./utils/core/commandHandler.js";
@@ -114,22 +115,61 @@ function createClient() {
     ],
     partials: [Partials.Message, Partials.Channel, Partials.Reaction],
     makeCache: Options.cacheWithLimits(config.cacheLimits),
-    // Use rate limit configuration from config
-    rest: config.rateLimits.rest,
-    ws: config.rateLimits.ws,
+    // Use optimized rate limit configuration from config
+    rest: {
+      ...config.rateLimits.rest,
+      // Enhanced rate limiting
+      globalLimit: config.rateLimits.rest.globalLimit || 50,
+      userLimit: config.rateLimits.rest.userLimit || 10,
+      guildLimit: config.rateLimits.rest.guildLimit || 20,
+    },
+    ws: {
+      ...config.rateLimits.ws,
+      // Optimized WebSocket settings
+      heartbeatInterval: config.rateLimits.ws.heartbeatInterval || 41250,
+      maxReconnectAttempts: config.rateLimits.ws.maxReconnectAttempts || 5,
+      reconnectDelay: config.rateLimits.ws.reconnectDelay || 1000,
+    },
   });
 
-  // Add rate limit event handlers
+  // Add enhanced rate limit event handlers
   client.rest.on("rateLimited", rateLimitInfo => {
     const logger = getLogger();
     logger.warn(
       `🚫 Rate limited: ${rateLimitInfo.method} ${rateLimitInfo.path} - Retry after ${rateLimitInfo.timeout}ms`,
     );
+
+    // Log rate limit statistics for monitoring
+    logger.debug(`Rate limit details:`, {
+      method: rateLimitInfo.method,
+      path: rateLimitInfo.path,
+      timeout: rateLimitInfo.timeout,
+      limit: rateLimitInfo.limit,
+      remaining: rateLimitInfo.remaining,
+      resetAfter: rateLimitInfo.resetAfter,
+    });
   });
 
   client.rest.on("invalidated", () => {
     const logger = getLogger();
     logger.error("❌ REST connection invalidated - attempting reconnection...");
+  });
+
+  // Add connection monitoring
+  client.on("ready", () => {
+    const logger = getLogger();
+    logger.info(`🚀 Bot connected with ${client.guilds.cache.size} guilds`);
+
+    // Log cache statistics
+    logger.debug("Cache statistics:", {
+      guilds: client.guilds.cache.size,
+      users: client.users.cache.size,
+      channels: client.channels.cache.size,
+      roles: client.guilds.cache.reduce(
+        (total, guild) => total + guild.roles.cache.size,
+        0,
+      ),
+    });
   });
 
   return client;
@@ -145,10 +185,13 @@ async function gracefulShutdown(client, healthServer) {
       healthServer.stop();
     }
 
-    // Stop scheduler
-    const scheduler = getScheduler(client);
-    if (scheduler) {
-      scheduler.stop();
+    // Stop schedulers
+    if (global.enhancedScheduler) {
+      global.enhancedScheduler.stop();
+    }
+
+    if (global.tempRoleScheduler) {
+      global.tempRoleScheduler.stop();
     }
 
     // Close Discord connection
@@ -188,10 +231,31 @@ async function loadCommands(client, commandsPath) {
 
       if (!stats.isDirectory()) continue;
 
+      // Check for direct .js files (old style)
       const commandFiles = (await fs.promises.readdir(folderPath)).filter(
         file => file.endsWith(".js"),
       );
 
+      // Check for subfolders with index.js (new style)
+      const subfolders = [];
+      for (const item of await fs.promises.readdir(folderPath)) {
+        const itemPath = path.join(folderPath, item);
+        try {
+          const itemStats = await fs.promises.stat(itemPath);
+          if (itemStats.isDirectory()) {
+            try {
+              await fs.promises.access(path.join(itemPath, "index.js"));
+              subfolders.push(item);
+            } catch {
+              // index.js doesn't exist, skip this subfolder
+            }
+          }
+        } catch {
+          // Can't stat item, skip
+        }
+      }
+
+      // Load direct .js files
       for (const file of commandFiles) {
         try {
           const filePath = path.join(folderPath, file);
@@ -220,6 +284,41 @@ async function loadCommands(client, commandsPath) {
         } catch (error) {
           errorCount++;
           logger.error(`❌ Failed to load command from ${file}:`, error);
+        }
+      }
+
+      // Load subfolder index.js files
+      for (const subfolder of subfolders) {
+        try {
+          const indexPath = path.join(folderPath, subfolder, "index.js");
+          const command = await import(indexPath);
+
+          if (command.data && command.execute) {
+            // Load into both collections to ensure synchronization
+            client.commands.set(command.data.name, command);
+            const registered = commandHandler.registerCommand(command);
+
+            if (registered) {
+              loadedCount++;
+              logger.debug(`✅ Loaded command: ${command.data.name}`);
+            } else {
+              errorCount++;
+              logger.error(
+                `❌ Failed to register command: ${command.data.name}`,
+              );
+            }
+          } else {
+            errorCount++;
+            logger.warn(
+              `⚠️ Command file ${subfolder}/index.js is missing data or execute function`,
+            );
+          }
+        } catch (error) {
+          errorCount++;
+          logger.error(
+            `❌ Failed to load command from ${subfolder}/index.js:`,
+            error,
+          );
         }
       }
     }
@@ -380,20 +479,66 @@ async function main() {
       }
     }
 
-    // Start the bot
-    await client.login(config.discord.token);
+    // Start the bot with retry logic
+    let loginAttempts = 0;
+    const maxLoginAttempts = 3;
+
+    while (loginAttempts < maxLoginAttempts) {
+      try {
+        logger.info(
+          `🔌 Attempting to connect to Discord (attempt ${loginAttempts + 1}/${maxLoginAttempts})...`,
+        );
+        await client.login(config.discord.token);
+        break; // Success, exit the retry loop
+      } catch (error) {
+        loginAttempts++;
+        logger.warn(`⚠️ Login attempt ${loginAttempts} failed:`, error.message);
+
+        if (loginAttempts >= maxLoginAttempts) {
+          throw new Error(
+            `Failed to connect to Discord after ${maxLoginAttempts} attempts: ${error.message}`,
+          );
+        }
+
+        // Wait before retrying
+        logger.info(`⏳ Waiting 5 seconds before retry...`);
+        await new Promise(resolve => {
+          setTimeout(resolve, 5000);
+        });
+      }
+    }
 
     // Setup shutdown handlers
     const shutdown = () => gracefulShutdown(client, healthServer);
     process.on("SIGTERM", shutdown);
     process.on("SIGINT", shutdown);
 
+    // Add error handling for Discord connection issues
+    client.on("error", error => {
+      logger.error("❌ Discord client error:", error);
+    });
+
+    client.on("disconnect", () => {
+      logger.warn("⚠️ Discord client disconnected");
+    });
+
+    client.on("reconnecting", () => {
+      logger.info("🔄 Discord client reconnecting...");
+    });
+
     client.once("ready", () => {
       logger.success(`✅ ${client.user.tag} v${getVersion()} is ready!`);
 
       // Start background services
-      const scheduler = getScheduler(client);
+      const scheduler = new EnhancedRoleScheduler(client);
+      global.enhancedScheduler = scheduler; // Store globally for shutdown
       scheduler.start();
+
+      // Start temporary role expiration scheduler
+      const tempRoleScheduler = getRoleExpirationScheduler(client);
+      global.tempRoleScheduler = tempRoleScheduler; // Store globally for shutdown
+      tempRoleScheduler.start();
+
       healthCheckRunner.run(client);
       performanceMonitor.startMonitoring();
     });

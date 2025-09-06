@@ -72,8 +72,20 @@ class DatabaseProvider {
     return this.dbManager.temporaryRoles.getAll();
   }
 
-  async addTemporaryRole(guildId, userId, roleId, expiresAt) {
-    await this.dbManager.temporaryRoles.add(guildId, userId, roleId, expiresAt);
+  async addTemporaryRole(
+    guildId,
+    userId,
+    roleId,
+    expiresAt,
+    notifyExpiry = false,
+  ) {
+    await this.dbManager.temporaryRoles.add(
+      guildId,
+      userId,
+      roleId,
+      expiresAt,
+      notifyExpiry,
+    );
     return true;
   }
 
@@ -98,6 +110,26 @@ class DatabaseProvider {
   async getUserExperienceLeaderboard(guildId, limit) {
     return this.dbManager.userExperience.getLeaderboard(guildId, limit);
   }
+
+  // Supporter management methods
+  async getSupporters() {
+    try {
+      return this.dbManager.guildSettings.getSupporters() || {};
+    } catch (error) {
+      this.logger.error("Failed to get supporters from database", error);
+      return {};
+    }
+  }
+
+  async setSupporters(supporters) {
+    try {
+      await this.dbManager.guildSettings.setSupporters(supporters);
+      return true;
+    } catch (error) {
+      this.logger.error("Failed to set supporters in database", error);
+      return false;
+    }
+  }
 }
 
 class StorageManager {
@@ -111,13 +143,24 @@ class StorageManager {
     if (this.isInitialized) return;
     this.logger.info("🔧 Initializing storage manager...");
 
-    const dbManager = await getDatabaseManager();
-    if (dbManager && dbManager.connectionManager.db) {
-      this.provider = new DatabaseProvider(dbManager, this.logger);
-      this.logger.success("✅ Database storage enabled");
-    } else {
+    try {
+      const dbManager = await getDatabaseManager();
+      if (dbManager && dbManager.connectionManager.db) {
+        this.provider = new DatabaseProvider(dbManager, this.logger);
+        this.logger.success("✅ Database storage enabled");
+      } else {
+        this.provider = new FileProvider(this.logger);
+        this.logger.warn(
+          "⚠️ Database storage disabled, using local files only",
+        );
+      }
+    } catch (error) {
+      this.logger.warn(
+        "⚠️ Failed to connect to database, falling back to local files:",
+        error.message,
+      );
       this.provider = new FileProvider(this.logger);
-      this.logger.warn("⚠️ Database storage disabled, using local files only");
+      this.logger.info("📁 Using local file storage as fallback");
     }
 
     this.isInitialized = true;
@@ -163,14 +206,26 @@ class StorageManager {
     return this.provider.read("temporary_roles");
   }
 
-  async addTemporaryRole(guildId, userId, roleId, expiresAt) {
+  async addTemporaryRole(
+    guildId,
+    userId,
+    roleId,
+    expiresAt,
+    notifyExpiry = false,
+  ) {
     if (this.provider instanceof DatabaseProvider) {
-      return this.provider.addTemporaryRole(guildId, userId, roleId, expiresAt);
+      return this.provider.addTemporaryRole(
+        guildId,
+        userId,
+        roleId,
+        expiresAt,
+        notifyExpiry,
+      );
     }
     const tempRoles = this.provider.read("temporary_roles");
     if (!tempRoles[guildId]) tempRoles[guildId] = {};
     if (!tempRoles[guildId][userId]) tempRoles[guildId][userId] = {};
-    tempRoles[guildId][userId][roleId] = { expiresAt };
+    tempRoles[guildId][userId][roleId] = { expiresAt, notifyExpiry };
     return this.provider.write("temporary_roles", tempRoles);
   }
 

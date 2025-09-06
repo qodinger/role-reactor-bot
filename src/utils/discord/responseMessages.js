@@ -49,7 +49,9 @@ class EmbedFactory {
     }
 
     embed.setTitle(`${statusEmoji} ${title}`.trim());
-    embed.setDescription(description);
+    if (description) {
+      embed.setDescription(description);
+    }
 
     if (fields.length > 0) {
       embed.addFields(fields);
@@ -71,7 +73,7 @@ export function roleCreatedEmbed({ messageUrl, roleCount, channelId }) {
   const embed = embedFactory.create("SUCCESS", {
     title: "Role Setup Complete!",
     description:
-      `${EMOJIS.FEATURES.AUTOMATION} Your role-reaction message has been created successfully!\n\n` +
+      `Your role-reaction message has been created successfully!\n\n` +
       `${EMOJIS.UI.STAR} Members can now self-assign roles by reacting to the message.`,
     fields: [
       {
@@ -148,7 +150,7 @@ export function roleUpdatedEmbed({ messageId, updates, changeCount = 0 }) {
   const embed = embedFactory.create("INFO", {
     title: "Configuration Updated Successfully!",
     description:
-      `${EMOJIS.STATUS.SUCCESS} Your role-reaction message has been updated with the latest changes.\n\n` +
+      `Your role-reaction message has been updated with the latest changes.\n\n` +
       `**What changed:**\n${formattedUpdates}`,
     fields,
     footer:
@@ -188,7 +190,7 @@ export function roleDeletedEmbed({ messageId, rolesRemoved = 0 }) {
   const embed = embedFactory.create("WARNING", {
     title: "Role Configuration Removed",
     description:
-      `${EMOJIS.STATUS.WARNING} The role-reaction message has been successfully removed from the system.\n\n` +
+      `The role-reaction message has been successfully removed from the system.\n\n` +
       `${EMOJIS.UI.CROSS} Members can no longer self-assign roles from this message.`,
     fields,
     footer:
@@ -205,7 +207,7 @@ export function roleDeletedEmbed({ messageId, rolesRemoved = 0 }) {
 
 export function errorEmbed({
   title,
-  description,
+  description = "An error occurred. Please try again.",
   fields = [],
   solution = null,
 }) {

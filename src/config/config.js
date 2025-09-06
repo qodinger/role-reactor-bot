@@ -136,17 +136,23 @@ class Config {
 
   /**
    * Get cache limits configuration
-   * @returns {Object} Cache limits configuration
+   * @returns {Object} Cache limits configuration object
    */
   get cacheLimits() {
     return {
-      MessageManager: 100, // Increased from 25
-      UserManager: 500, // Increased from 100
-      GuildManager: 50, // Added for guild caching
-      ChannelManager: 100, // Added for channel caching
-      GuildMemberManager: 200, // Added for member caching
-      RoleManager: 100, // Added for role caching
-      EmojiManager: 50, // Added for emoji caching
+      MessageManager: 200, // Increased from 100
+      UserManager: 1000, // Increased from 500
+      GuildManager: 100, // Increased from 50
+      ChannelManager: 200, // Increased from 100
+      GuildMemberManager: 500, // Increased from 200
+      RoleManager: 200, // Increased from 100
+      EmojiManager: 100, // Increased from 50
+      // Add new cache managers
+      ApplicationCommandManager: 50,
+      GuildScheduledEventManager: 25,
+      StageInstanceManager: 25,
+      ThreadManager: 100,
+      VoiceStateManager: 200,
     };
   }
 
@@ -160,11 +166,19 @@ class Config {
         timeout: 15000,
         retries: 3,
         offset: 750,
+        // Enhanced rate limiting
+        globalLimit: 50, // Global requests per second
+        userLimit: 10, // Per-user requests per second
+        guildLimit: 20, // Per-guild requests per second
       },
       ws: {
         properties: {
           browser: "Discord iOS",
         },
+        // WebSocket rate limiting
+        heartbeatInterval: 41250, // Discord's recommended interval
+        maxReconnectAttempts: 5,
+        reconnectDelay: 1000,
       },
     };
 
@@ -177,11 +191,134 @@ class Config {
           timeout: 20000, // Longer timeout for production
           retries: 5, // More retries for production
           offset: 1000, // Larger offset for production
+          globalLimit: 100, // Higher limits for production
+          userLimit: 20,
+          guildLimit: 40,
+        },
+        ws: {
+          ...baseConfig.ws,
+          maxReconnectAttempts: 10, // More reconnection attempts for production
+          reconnectDelay: 500, // Faster reconnection for production
         },
       };
     }
 
     return baseConfig;
+  }
+
+  /**
+   * Get caching configuration
+   * @returns {Object} Caching configuration object
+   */
+  get caching() {
+    return {
+      // Member cache settings
+      memberCache: {
+        ttl: 5 * 60 * 1000, // 5 minutes
+        maxSize: 1000,
+        cleanupInterval: 5 * 60 * 1000, // 5 minutes
+      },
+      // Role mapping cache settings
+      roleMappingCache: {
+        ttl: 15 * 60 * 1000, // 15 minutes
+        maxSize: 500,
+        refreshInterval: 5 * 60 * 1000, // 5 minutes
+        cleanupInterval: 15 * 60 * 1000, // 15 minutes
+      },
+      // Experience cache settings
+      experienceCache: {
+        ttl: 10 * 60 * 1000, // 10 minutes
+        maxSize: 2000,
+        batchDelay: 5000, // 5 seconds
+        cleanupInterval: 10 * 60 * 1000, // 10 minutes
+      },
+      // Database query cache settings
+      queryCache: {
+        ttl: 2 * 60 * 1000, // 2 minutes
+        maxSize: 500,
+        cleanupInterval: 5 * 60 * 1000, // 5 minutes
+      },
+      // General cache settings
+      general: {
+        ttl: 5 * 60 * 1000, // 5 minutes
+        maxSize: 1000,
+        cleanupInterval: 5 * 60 * 1000, // 5 minutes
+      },
+    };
+  }
+
+  /**
+   * Get batch operation configuration
+   * @returns {Object} Batch operation configuration object
+   */
+  get batchOperations() {
+    return {
+      // Role operations
+      roleAdd: {
+        batchSize: 5,
+        delay: 100, // 100ms between batches
+        maxConcurrent: 3,
+      },
+      roleRemove: {
+        batchSize: 5,
+        delay: 100,
+        maxConcurrent: 3,
+      },
+      // Member operations
+      memberFetch: {
+        batchSize: 10,
+        delay: 50, // 50ms between batches
+        maxConcurrent: 5,
+      },
+      // Message operations
+      messageSend: {
+        batchSize: 3,
+        delay: 200, // 200ms between batches
+        maxConcurrent: 2,
+      },
+      // Reaction operations
+      reactionAdd: {
+        batchSize: 10,
+        delay: 50,
+        maxConcurrent: 5,
+      },
+    };
+  }
+
+  /**
+   * Get API optimization configuration
+   * @returns {Object} API optimization configuration object
+   */
+  get apiOptimization() {
+    return {
+      // Enable/disable optimizations
+      enabled: true,
+      // Bulk operations
+      bulkOperations: {
+        enabled: true,
+        maxBatchSize: 10,
+        defaultDelay: 100,
+      },
+      // Caching strategies
+      caching: {
+        enabled: true,
+        aggressive: this.isProduction, // More aggressive caching in production
+        preload: this.isProduction, // Preload frequently accessed data in production
+      },
+      // Rate limiting
+      rateLimiting: {
+        enabled: true,
+        adaptive: this.isProduction, // Adaptive rate limiting in production
+        backoff: this.isProduction, // Exponential backoff in production
+      },
+      // Connection pooling
+      connectionPooling: {
+        enabled: true,
+        maxConnections: this.isProduction ? 50 : 20,
+        minConnections: this.isProduction ? 10 : 5,
+        idleTimeout: 60000,
+      },
+    };
   }
 
   /**
@@ -207,6 +344,7 @@ class Config {
       guide: "https://rolereactor.app/docs",
       github: "https://github.com/qodinger/role-reactor-bot",
       support: "https://discord.gg/D8tYkU75Ry",
+      sponsor: "https://rolereactor.app/sponsor",
       invite: null, // Will be generated dynamically by the bot
     };
   }

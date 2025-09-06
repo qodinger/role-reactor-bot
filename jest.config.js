@@ -21,16 +21,6 @@ export default {
   coverageDirectory: "coverage",
   coverageReporters: ["text", "lcov", "html"],
 
-  // Coverage thresholds - disabled for now
-  // coverageThreshold: {
-  //   global: {
-  //     branches: 70,
-  //     functions: 70,
-  //     lines: 70,
-  //     statements: 70,
-  //   },
-  // },
-
   // Files to collect coverage from
   collectCoverageFrom: [
     "src/**/*.js",
@@ -40,13 +30,13 @@ export default {
     "!**/tests/**",
   ],
 
-  // Setup files
-  setupFilesAfterEnv: ["<rootDir>/tests/setup.js"],
+  // Setup files - temporarily disabled to fix module resolution
+  // setupFilesAfterEnv: ["<rootDir>/tests/setup.js"],
 
   // Transform configuration
   transform: {},
 
-  // Globals
+  // ES Module support
   globals: {
     "ts-jest": {
       useESM: true,
@@ -67,4 +57,15 @@ export default {
 
   // Reset modules between tests
   resetModules: true,
+
+  // Force exit to prevent hanging processes
+  forceExit: true,
+
+  // Detect open handles to find leaks
+  detectOpenHandles: true,
+
+  // Module name mapping for better resolution
+  moduleNameMapper: {
+    "^(\\.{1,2}/.*)\\.js$": "$1",
+  },
 };
