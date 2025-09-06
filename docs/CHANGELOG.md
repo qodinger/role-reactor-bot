@@ -9,147 +9,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Interaction Management System: Centralized interaction handling with modular button interaction handlers
-- XP Settings Embed Updates: XP settings buttons now update the original embed in place instead of sending new messages
-- Command Content Improvements: Sponsor and support commands now display real content instead of placeholder text
-- Modular Button Handlers: Dedicated handler modules for XP, welcome, help, leaderboard, schedule, and sponsor interactions
-- Centralized Error Handling: Unified error management system for all interaction types
-- Enable/Disable All XP Button: New bulk toggle button for managing all XP sources at once
-- Universal Command XP System: Simplified XP system that supports all commands (current and future) with configurable base amounts
-- Dynamic XP Breakdown Display: Level command now shows accurate XP amounts from server settings instead of hardcoded values
-- Modal Router System: New centralized modal interaction handling for XP configuration forms
-- Flexible Role Removal: Temp-roles remove command can now remove any role, not just temporary ones
-- Bulk Role Removal: Enhanced temp-roles remove command with comprehensive multi-user support
+- Schedule Role System: Comprehensive role scheduling with one-time and recurring assignments
+- Natural Language Scheduling: Support for human-readable time formats like "tomorrow 9am" and "monday 6pm"
 - Smart 8ball System: Intelligent question analysis with sentiment detection and context-aware responses
-- Advanced Response Categories: 5 response levels (very positive to very negative) with smart weighting system
-- Question Analysis Engine: Automatic detection of question types, sentiment, urgency, and personal context
-- Weighted Response Selection: Dynamic probability adjustment based on question analysis results
+- Bulk Role Removal: Enhanced temp-roles remove command with comprehensive multi-user support
+- Interactive Sponsor Button: Direct "Become a Sponsor" button linking to sponsor page
+- Interactive Support Buttons: Discord support server and GitHub repository buttons
+- Modular Command Architecture: All commands refactored into organized folder structures with dedicated handlers, embeds, and utilities
+- Enhanced Help System: Comprehensive help documentation with autocomplete, interactive UI, and dynamic content generation
+- XP Settings Management: Interactive XP system configuration with real-time embed updates
+- Role Reactions Consolidation: Unified role-reaction management under single command with setup, list, update, and delete subcommands
 
 ### Changed
 
-- Interaction System Architecture: Refactored from monolithic interactionCreate.js to modular InteractionManager with dedicated handlers
-- XP Settings User Experience: Buttons now update embeds in place instead of sending separate confirmation messages
-- Command Content Quality: Replaced placeholder text with comprehensive, useful information in sponsor and support commands
-- Button Interaction Flow: All button interactions now use deferUpdate() for seamless embed updates
-- XP Settings Button Layout: Reorganized buttons into logical 3-row layout for better user experience
-- XP Configuration Simplification: Removed complex level formula customization, now uses fixed formula (100 \* level^1.5)
-- Command XP System: Removed hardcoded bonus amounts, now uses universal base XP for all commands
-- Level Command XP Display: XP breakdown now dynamically pulls values from server settings
-- XP Settings Embed Layout: Reorganized fields with better organization and removed level progression section
-- 8ball Command Design: Redesigned with mystical theme and category-specific visual indicators
-- 8ball Response System: Enhanced from random selection to intelligent context-aware response generation
-- Help Command Documentation: Updated with comprehensive smart features and bulk operations documentation
+- Command Structure: All commands now follow modular pattern with dedicated files for handlers, embeds, utils, and components
+- Help Command: Complete redesign with autocomplete support, interactive dropdowns, and comprehensive command documentation
+- Role Reactions System: Consolidated from multiple commands into single `/role-reactions` command with subcommands
+- Temporary Role System: Modernized embeds, improved user experience, and enhanced bulk operations
+- XP Settings Interface: Buttons now update embeds in place instead of sending separate confirmation messages
+- 8ball Command Design: Redesigned with mystical theme and intelligent response system
+- Sponsor Command: Updated to focus on development support rather than premium features
+- Support Command: Enhanced with interactive buttons for better user engagement
+- Interaction System: Centralized interaction management with dedicated button and modal routers
 
 ### Fixed
 
-- XP Settings Button Behavior: Fixed buttons sending new messages instead of updating the original embed
-- Command Placeholder Content: Replaced "This command has been refactored to modular structure" with actual useful content
 - Help Command Undefined Emojis: Fixed missing emoji constants causing "undefined" placeholders in help output
-- Interaction System Organization: Resolved monolithic interaction handling with proper modular architecture
-- ExperienceManager Context Binding: Fixed critical `this` context issues in setTimeout callbacks causing calculateLevel errors
-- XP Breakdown Accuracy: Fixed level command showing incorrect hardcoded XP values instead of actual server settings
-- Command XP Bonus System: Removed inconsistent bonus amounts, now all commands use configurable base XP
-- Interaction Handling Errors: Fixed InteractionAlreadyReplied and InteractionNotReplied errors in XP settings
-- Modal Configuration Flow: Fixed modal submission handling for XP configuration forms
-- Temp-roles Remove Command: Fixed "Invalid User List" error in bulk removal operations
-- User Data Processing: Fixed "Cannot read properties of undefined" errors in removeRoleFromUser function
-- ProcessUserList Function: Fixed parameter passing and async handling in user list processing
-- Data Structure Handling: Fixed user object extraction from validUsers array in remove handler
-- 8ball Response Selection: Fixed array length bug in response selection causing incorrect random responses
-- 8ball Image Display: Removed broken image URLs that were not displaying properly in embeds
-- 8ball Code Quality: Fixed unused imports and hardcoded colors for better maintainability
-
-### Technical
-
-- Implemented centralized interaction management system:
-  - `InteractionManager.js` - Centralized interaction routing and management
-  - `buttonRouter.js` - Button interaction routing based on customId patterns
-  - `modalRouter.js` - Modal interaction routing for configuration forms
-  - Dedicated handler modules for different interaction types
-  - Centralized error handling for all interactions
-- Refactored XP settings interaction handling:
-  - Updated all XP toggle handlers to use `interaction.deferUpdate()`
-  - Replaced individual success embeds with updated XP settings embed
-  - Improved user experience with in-place embed updates
-  - Added bulk toggle functionality for all XP sources
-- Enhanced XP system architecture:
-  - Simplified command XP to use only configurable base amounts
-  - Removed complex bonus system for universal command support
-  - Fixed ExperienceManager context binding issues with inline calculations
-  - Made level progression formula fixed (100 \* level^1.5) for consistency
-- Enhanced command content quality:
-  - Sponsor command now shows real supporter benefits and donation information
-  - Support command provides comprehensive help and contact information
-- Improved temp-roles system reliability:
-  - Fixed bulk removal operations with proper user list processing
-  - Enhanced role removal flexibility to handle any role type
-  - Improved error handling and user feedback for removal operations
-- Enhanced 8ball command intelligence:
-  - Implemented sentiment analysis with keyword detection for positive/negative/urgent/personal questions
-  - Added 5 response categories with smart weighting system based on question context
-  - Created weighted random selection algorithm for context-aware responses
-  - Redesigned embed system with mystical theme and category-specific visual indicators
-  - Fixed response selection bugs and improved code quality
-- Updated help system documentation:
-  - Enhanced 8ball command documentation with smart features and technical details
-  - Added comprehensive temp-roles bulk operations documentation
-  - Updated command descriptions to reflect new capabilities and improvements
+- Button Emoji Visibility: Fixed black emojis not visible in Discord dark theme
+- Temporary Role Expiration Notifications: Fixed DM notifications not being sent when roles expire
+- 8ball Response Selection: Fixed bug in response selection logic
+- Command Placeholder Content: Replaced placeholder text with actual useful content in sponsor and support commands
+- XP Settings Button Behavior: Fixed buttons sending new messages instead of updating the original embed
+- Temporary Role Bulk Removal: Fixed "Invalid User List" error in multi-user removal operations
 
 ## [0.4.1] - 2025-01-22
 
-### Added
-
-- Sponsor Command: New `/sponsor` command with Buy Me a Coffee integration for user donations
-- Theme Integration: Centralized color management with pastel theme palette
-- Enhanced Error Messages: User-friendly error messages with actionable guidance using dedent formatting
-- API Optimization: Comprehensive Discord API call optimization with caching, batching, and rate limiting
-- Schedule Parser Utility: New comprehensive time parsing system supporting shorthand formats (`2m`, `5h`, `1d`, `2w`) and natural language
-- Enhanced Command Loading: Support for modular command structures with subfolder index.js files
-
 ### Changed
 
-- Theme Colors: Updated all colors to softer, pastel versions for better visual appeal
-- Command Colors: All commands now use centralized theme colors instead of hardcoded values
-- Error Handling: Improved error messages with specific causes, quick fixes, and alternative solutions
-- Sponsor Command: Simplified to focus on donation rather than complex payment methods
-- Schedule Command Structure: Refactored `/schedule-role` command into modular folder structure with subcommands (`create`, `list`, `view`, `cancel`)
-- Role Assignment Logic: Reversed order to assign Discord role first, then store in database for better consistency
-- Command Loading: Enhanced to support subfolder index.js files for modular command structures
 - XP System Configuration: Simplified from complex command-based configuration to button-driven toggles
 - XP System Default: XP system is now disabled by default and requires admin activation
 - Experience Manager: Now checks guild settings before awarding XP
 
-### Fixed
-
-- Orphaned Temporary Roles: Critical bug where users saw temporary roles in bot lists but didn't actually have them assigned on Discord
-- Database Synchronization: Ensured bot's internal state stays consistent with actual Discord role assignments
-- Schedule Command Deployment: Fixed command loading issues with new modular folder structure
-- Interaction Handling: Resolved `InteractionNotReplied` errors in schedule commands
-- Status Synchronization: Fixed recurring role status updates and expiration handling
-- Time Display: Corrected misleading "Expired ago" timestamps in schedule details
-
 ### Technical
 
-- Added dedent library for cleaner multi-line template strings
-- Enhanced database integration and caching for better performance
-- Improved webhook handling for donation platform integrations
-- Updated help system to include new sponsor command
-- Implemented comprehensive API optimization system:
-  - Member caching (80-90% API call reduction)
-  - Role mapping cache (70-80% database query reduction)
-  - Experience system batching (60-70% database write reduction)
-  - Bulk role operations (50-60% API call reduction)
-  - Enhanced database caching (40-50% query reduction)
-  - Batch operation manager (centralized processing)
-- Refactored schedule-role command into modular components:
-  - `handlers.js` - Core logic for subcommands
-  - `embeds.js` - All embed creation functions
-  - `utils.js` - Utility functions and formatting
-  - `list.js` - List subcommand logic
-  - `index.js` - Main command entry point
-- Enhanced role scheduler with improved status management and error handling
-- Enhanced error handling with fail-safe cleanup mechanisms
-- Improved database connection management and schema handling
 - Enhanced test environment setup with proper environment variables
 - Added build, type-check, and health scripts for better development workflow
 - Improved XP system UX by removing configure-xp command
