@@ -1,6 +1,7 @@
 import { Events } from "discord.js";
 import { getRoleMapping } from "../utils/discord/roleMappingManager.js";
 import { getLogger } from "../utils/logger.js";
+import { getCachedMember } from "../utils/discord/roleManager.js";
 
 export const name = Events.MessageReactionAdd;
 
@@ -28,8 +29,8 @@ export async function execute(reaction, user, client) {
       return;
     }
 
-    // Get member
-    const member = await guild.members.fetch(user.id);
+    // Get member using cached method to reduce API calls
+    const member = await getCachedMember(guild, user.id);
     if (!member) {
       return;
     }

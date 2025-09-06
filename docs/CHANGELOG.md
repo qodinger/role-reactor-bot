@@ -5,6 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Schedule Role System: Comprehensive role scheduling with one-time and recurring assignments
+- Natural Language Scheduling: Support for human-readable time formats like "tomorrow 9am" and "monday 6pm"
+- Smart 8ball System: Intelligent question analysis with sentiment detection and context-aware responses
+- Bulk Role Removal: Enhanced temp-roles remove command with comprehensive multi-user support
+- Interactive Sponsor Button: Direct "Become a Sponsor" button linking to sponsor page
+- Interactive Support Buttons: Discord support server and GitHub repository buttons
+- Modular Command Architecture: All commands refactored into organized folder structures with dedicated handlers, embeds, and utilities
+- Enhanced Help System: Comprehensive help documentation with autocomplete, interactive UI, and dynamic content generation
+- XP Settings Management: Interactive XP system configuration with real-time embed updates
+- Role Reactions Consolidation: Unified role-reaction management under single command with setup, list, update, and delete subcommands
+
+### Changed
+
+- Command Structure: All commands now follow modular pattern with dedicated files for handlers, embeds, utils, and components
+- Help Command: Complete redesign with autocomplete support, interactive dropdowns, and comprehensive command documentation
+- Role Reactions System: Consolidated from multiple commands into single `/role-reactions` command with subcommands
+- Temporary Role System: Modernized embeds, improved user experience, and enhanced bulk operations
+- XP Settings Interface: Buttons now update embeds in place instead of sending separate confirmation messages
+- 8ball Command Design: Redesigned with mystical theme and intelligent response system
+- Sponsor Command: Updated to focus on development support rather than premium features
+- Support Command: Enhanced with interactive buttons for better user engagement
+- Interaction System: Centralized interaction management with dedicated button and modal routers
+
+### Fixed
+
+- Help Command Undefined Emojis: Fixed missing emoji constants causing "undefined" placeholders in help output
+- Button Emoji Visibility: Fixed black emojis not visible in Discord dark theme
+- Temporary Role Expiration Notifications: Fixed DM notifications not being sent when roles expire
+- 8ball Response Selection: Fixed bug in response selection logic
+- Command Placeholder Content: Replaced placeholder text with actual useful content in sponsor and support commands
+- XP Settings Button Behavior: Fixed buttons sending new messages instead of updating the original embed
+- Temporary Role Bulk Removal: Fixed "Invalid User List" error in multi-user removal operations
+
 ## [0.4.1] - 2025-01-22
 
 ### Changed
@@ -64,7 +101,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
-- Legal Documentation: Removed `docs/legal/privacy-policy.md` and `docs/legal/terms-of-use.md` as they were intended for end users rather than developers
 - Storage Command Cleanup Features: Removed "Cleanup Expired Roles" and "Test Auto Cleanup" buttons from developer storage command for improved security
 - Avatar Command Redundancy: Removed unnecessary download options text and misleading image size information
 
@@ -110,12 +146,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Data export functionality for GDPR compliance (developer only)
 - Enhanced storage command with privacy features
 - Manual data management through admin commands
-- Legal documentation (Terms of Use and Privacy Policy)
+
 - Improved logging with command and rate limit tracking
 
 ### Changed
 
-- Updated documentation structure and organization
 - Enhanced command descriptions and usage examples
 - Improved error handling and user feedback
 - Simplified storage command to export-only (removed dangerous delete functionality)
@@ -190,10 +225,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added "🔒 [DEVELOPER ONLY]" descriptions to developer commands
 - Simplified deployment scripts (reduced from 8 to 4 commands: `deploy:dev`, `deploy:prod`, `deploy:global`, `delete:commands`)
 - Updated ephemeral usage from `ephemeral: true` to `flags: 64` (Discord deprecation fix)
-- Enhanced documentation with developer command system details
+
 - Improved command visibility and permission handling
-- Streamlined README.md organization
-- Consolidated deployment guides (merged VPS_DEPLOYMENT.md)
+
 - Enhanced database manager error handling
 - Improved scheduler cleanup process
 - Better error messages and validation

@@ -7,21 +7,209 @@ import { getLogger } from "../logger.js";
  * @param {string} userId
  * @param {string} roleId
  * @param {Date} expiresAt
+ * @param {import("discord.js").Client} [client] Discord client for role assignment
+ * @param {boolean} [notifyExpiry] Whether to send DM when role expires
  * @returns {Promise<boolean>}
  */
-export async function addTemporaryRole(guildId, userId, roleId, expiresAt) {
+export async function addTemporaryRole(
+  guildId,
+  userId,
+  roleId,
+  expiresAt,
+  client = null,
+  notifyExpiry = false,
+) {
   const logger = getLogger();
   try {
+    // First, try to assign the Discord role to the user
+    try {
+      // Get the guild and member
+      const guild = client?.guilds?.cache?.get(guildId);
+      if (!guild) {
+        logger.error(
+          `Guild ${guildId} not found for temporary role assignment`,
+        );
+        return false;
+      }
+
+      const member = await guild.members.fetch(userId);
+      if (!member) {
+        logger.error(`Member ${userId} not found in guild ${guildId}`);
+        return false;
+      }
+
+      const role = guild.roles.cache.get(roleId);
+      if (!role) {
+        logger.error(`Role ${roleId} not found in guild ${guildId}`);
+        return false;
+      }
+
+      // Check if user already has the role
+      if (member.roles.cache.has(roleId)) {
+        logger.info(`User ${userId} already has role ${role.name}`);
+        // Don't return early - still need to store in database
+      }
+
+      // Assign the role only if user doesn't already have it
+      if (!member.roles.cache.has(roleId)) {
+        await member.roles.add(
+          role,
+          `Temporary role assignment - expires at ${expiresAt.toISOString()}`,
+        );
+        logger.info(
+          `✅ Successfully assigned temporary role ${role.name} to user ${userId}`,
+        );
+      } else {
+        logger.info(
+          `✅ User ${userId} already has role ${role.name}, skipping Discord assignment`,
+        );
+      }
+    } catch (discordError) {
+      logger.error(
+        `Failed to assign Discord role to user ${userId}:`,
+        discordError,
+      );
+      // If Discord assignment fails, don't store in database
+      return false;
+    }
+
+    // Only store in database if Discord assignment succeeded
     const storageManager = await getStorageManager();
-    return await storageManager.addTemporaryRole(
+    const storageResult = await storageManager.addTemporaryRole(
       guildId,
       userId,
       roleId,
       expiresAt,
+      notifyExpiry,
     );
+
+    if (!storageResult) {
+      logger.error(
+        `Failed to store temporary role in database for user ${userId}`,
+      );
+      // If storage fails, we should remove the Discord role we just assigned
+      try {
+        const guild = client?.guilds?.cache?.get(guildId);
+        if (guild) {
+          const member = await guild.members.fetch(userId);
+          const role = guild.roles.cache.get(roleId);
+          if (member && role) {
+            await member.roles.remove(
+              role,
+              "Failed to store temporary role in database",
+            );
+            logger.info(
+              `Removed Discord role ${role.name} from user ${userId} due to storage failure`,
+            );
+          }
+        }
+      } catch (cleanupError) {
+        logger.error(
+          "Failed to cleanup Discord role after storage failure:",
+          cleanupError,
+        );
+      }
+      return false;
+    }
+
+    return true;
   } catch (error) {
     logger.error("Failed to add temporary role", error);
     return false;
+  }
+}
+
+/**
+ * Adds a supporter role to a user (permanent supporter role).
+ * @param {string} guildId
+ * @param {string} userId
+ * @param {string} roleId
+ * @param {Date} assignedAt
+ * @param {string} reason
+ * @returns {Promise<boolean>}
+ */
+export async function addSupporter(
+  guildId,
+  userId,
+  roleId,
+  assignedAt,
+  reason,
+) {
+  const logger = getLogger();
+  try {
+    const storageManager = await getStorageManager();
+    const supporters = await storageManager.getSupporters();
+
+    if (!supporters[guildId]) {
+      supporters[guildId] = {};
+    }
+
+    supporters[guildId][userId] = {
+      roleId,
+      assignedAt: assignedAt.toISOString(),
+      reason,
+      isActive: true,
+    };
+
+    await storageManager.setSupporters(supporters);
+    logger.info(`Added supporter role for user ${userId} in guild ${guildId}`);
+    return true;
+  } catch (error) {
+    logger.error("Failed to add supporter role", error);
+    return false;
+  }
+}
+
+/**
+ * Removes a supporter role from a user.
+ * @param {string} guildId
+ * @param {string} userId
+ * @returns {Promise<boolean>}
+ */
+export async function removeSupporter(guildId, userId) {
+  const logger = getLogger();
+  try {
+    const storageManager = await getStorageManager();
+    const supporters = await storageManager.getSupporters();
+
+    if (supporters[guildId]?.[userId]) {
+      delete supporters[guildId][userId];
+      await storageManager.setSupporters(supporters);
+      logger.info(
+        `Removed supporter role for user ${userId} in guild ${guildId}`,
+      );
+      return true;
+    }
+
+    return false;
+  } catch (error) {
+    logger.error("Failed to remove supporter role", error);
+    return false;
+  }
+}
+
+/**
+ * Gets all supporters for a guild.
+ * @param {string} guildId
+ * @returns {Promise<Array>}
+ */
+export async function getSupporters(guildId) {
+  const logger = getLogger();
+  try {
+    const storageManager = await getStorageManager();
+    const supporters = await storageManager.getSupporters();
+    const guildSupporters = supporters[guildId] || {};
+
+    return Object.entries(guildSupporters).map(([userId, data]) => ({
+      userId,
+      roleId: data.roleId,
+      assignedAt: new Date(data.assignedAt),
+      reason: data.reason,
+      isActive: data.isActive,
+    }));
+  } catch (error) {
+    logger.error("Failed to get supporters", error);
+    return [];
   }
 }
 
@@ -64,6 +252,7 @@ export async function getUserTemporaryRoles(guildId, userId) {
         userId,
         roleId,
         expiresAt: roleData.expiresAt,
+        notifyExpiry: roleData.notifyExpiry || false,
       });
     }
 
@@ -84,6 +273,7 @@ export async function getTemporaryRoles(guildId) {
   try {
     const storageManager = await getStorageManager();
     const tempRoles = await storageManager.getTemporaryRoles();
+
     const guildRoles = tempRoles[guildId] || {};
 
     // Convert to array format expected by the command
@@ -95,6 +285,7 @@ export async function getTemporaryRoles(guildId) {
           userId,
           roleId,
           expiresAt: roleData.expiresAt,
+          notifyExpiry: roleData.notifyExpiry || false,
         });
       }
     }

@@ -1,6 +1,125 @@
 import { getLogger } from "../../utils/logger.js";
 import { getStorageManager } from "../../utils/storage/storageManager.js";
 
+// Cache for user experience data to reduce database calls
+class ExperienceCache {
+  constructor() {
+    this.cache = new Map();
+    this.ttl = 10 * 60 * 1000; // 10 minutes
+    this.batchUpdates = new Map(); // Batch updates for efficiency
+    this.batchTimeout = null;
+    this.batchDelay = 5000; // 5 seconds
+  }
+
+  get(guildId, userId) {
+    const key = `${guildId}:${userId}`;
+    const cached = this.cache.get(key);
+    if (cached && Date.now() - cached.timestamp < this.ttl) {
+      return cached.data;
+    }
+    this.cache.delete(key);
+    return null;
+  }
+
+  set(guildId, userId, data) {
+    const key = `${guildId}:${userId}`;
+    this.cache.set(key, { data, timestamp: Date.now() });
+  }
+
+  // Queue update for batch processing
+  queueUpdate(guildId, userId, updateData) {
+    const key = `${guildId}:${userId}`;
+    if (!this.batchUpdates.has(key)) {
+      this.batchUpdates.set(key, { guildId, userId, updates: [] });
+    }
+    this.batchUpdates.get(key).updates.push(updateData);
+
+    // Start batch timeout if not already running
+    if (!this.batchTimeout) {
+      this.batchTimeout = setTimeout(
+        this.processBatchUpdates.bind(this),
+        this.batchDelay,
+      );
+    }
+  }
+
+  async processBatchUpdates() {
+    if (this.batchUpdates.size === 0) return;
+
+    const logger = getLogger();
+    logger.debug(`Processing ${this.batchUpdates.size} batched XP updates`);
+
+    try {
+      const storageManager = await getStorageManager();
+      const currentData = (await storageManager.read("user_experience")) || {};
+
+      // Apply all batched updates
+      for (const { guildId, userId, updates } of this.batchUpdates.values()) {
+        const key = `${guildId}_${userId}`;
+        const userData = currentData[key] || {
+          totalXP: 0,
+          level: 1,
+          lastUpdated: new Date(),
+        };
+
+        // Apply all updates for this user
+        for (const update of updates) {
+          userData.totalXP += update.xp;
+          userData.lastUpdated = new Date();
+        }
+
+        // Recalculate level (inline calculation to avoid context issues)
+        let level = 1;
+        while (Math.floor(100 * Math.pow(level, 1.5)) <= userData.totalXP) {
+          level++;
+        }
+        userData.level = level - 1;
+
+        // Update cache and storage
+        currentData[key] = userData;
+        this.set(guildId, userId, userData);
+      }
+
+      // Write all updates to storage in one operation
+      await storageManager.write("user_experience", currentData);
+
+      logger.debug(
+        `Successfully processed ${this.batchUpdates.size} batched XP updates`,
+      );
+    } catch (error) {
+      logger.error("Error processing batched XP updates:", error);
+    } finally {
+      // Clear batch updates and reset timeout
+      this.batchUpdates.clear();
+      this.batchTimeout = null;
+    }
+  }
+
+  clear() {
+    this.cache.clear();
+    this.batchUpdates.clear();
+    if (this.batchTimeout) {
+      clearTimeout(this.batchTimeout);
+      this.batchTimeout = null;
+    }
+  }
+
+  // Cleanup expired entries
+  cleanup() {
+    const now = Date.now();
+    for (const [key, cached] of this.cache.entries()) {
+      if (now - cached.timestamp > this.ttl) {
+        this.cache.delete(key);
+      }
+    }
+  }
+}
+
+const experienceCache = new ExperienceCache();
+
+// Cleanup cache every 10 minutes
+setInterval(() => experienceCache.cleanup(), 10 * 60 * 1000).unref();
+
 /**
  * Experience Manager for handling user XP and levels
  * Integrates with role management system for level-based rewards
@@ -67,7 +186,7 @@ class ExperienceManager {
   }
 
   /**
-   * Add XP to a user
+   * Add XP to a user with caching and batching
    * @param {string} guildId - Discord guild ID
    * @param {string} userId - Discord user ID
    * @param {number} xp - XP to add
@@ -76,9 +195,16 @@ class ExperienceManager {
   async addXP(guildId, userId, xp) {
     await this.initialize();
 
-    const userData = await this.getUserData(guildId, userId);
-    const newTotalXP = userData.totalXP + xp;
+    // Check cache first
+    let userData = experienceCache.get(guildId, userId);
+
+    if (!userData) {
+      // Fallback to storage if not in cache
+      userData = await this.getUserData(guildId, userId);
+    }
+
     const oldLevel = userData.level;
+    const newTotalXP = userData.totalXP + xp;
     const newLevel = this.calculateLevel(newTotalXP);
 
     const updatedData = {
@@ -88,10 +214,11 @@ class ExperienceManager {
       lastUpdated: new Date(),
     };
 
-    await this.storageManager.write("user_experience", {
-      ...(await this.storageManager.read("user_experience")),
-      [`${guildId}_${userId}`]: updatedData,
-    });
+    // Update cache immediately for fast access
+    experienceCache.set(guildId, userId, updatedData);
+
+    // Queue update for batch processing to reduce database calls
+    experienceCache.queueUpdate(guildId, userId, { xp });
 
     // Log level up if it happened
     if (newLevel > oldLevel) {
@@ -100,7 +227,12 @@ class ExperienceManager {
       );
     }
 
-    return updatedData;
+    return {
+      ...updatedData,
+      leveledUp: newLevel > oldLevel,
+      oldLevel,
+      newLevel,
+    };
   }
 
   /**
@@ -407,28 +539,9 @@ class ExperienceManager {
       return null;
     }
 
-    // Base XP for any command usage
-    let xp = 8; // Default XP for any command
-
-    // Bonus XP for more engaging commands
-    if (commandName === "8ball")
-      xp = 15; // Fun interactive command
-    else if (commandName === "level" || commandName === "leaderboard")
-      xp = 5; // Self-checking commands
-    else if (commandName === "avatar")
-      xp = 10; // Visual command
-    else if (commandName === "serverinfo" || commandName === "userinfo")
-      xp = 12; // Info commands
-    else if (commandName === "roles")
-      xp = 12; // Role management
-    else if (
-      commandName === "help" ||
-      commandName === "ping" ||
-      commandName === "invite" ||
-      commandName === "support"
-    )
-      xp = 3; // Utility commands
-    // All other commands get the default 8 XP
+    // Get base XP amount from guild settings
+    const guildSettings = await dbManager.guildSettings.getByGuild(guildId);
+    const xp = guildSettings.experienceSystem.commandXPAmount.base;
 
     const userData = await this.addXP(guildId, userId, xp);
 

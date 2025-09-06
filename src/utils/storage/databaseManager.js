@@ -2,29 +2,125 @@ import { MongoClient } from "mongodb";
 import { getLogger } from "../logger.js";
 import config from "../../config/config.js";
 
+// Enhanced cache manager with TTL and size limits
 class CacheManager {
-  constructor(timeout = 5 * 60 * 1000) {
+  constructor(timeout = 5 * 60 * 1000, maxSize = 1000) {
     this.cache = new Map();
     this.timeout = timeout;
+    this.maxSize = maxSize;
+    this.accessOrder = []; // Track access order for LRU eviction
   }
 
   get(key) {
     const cached = this.cache.get(key);
     if (!cached || Date.now() - cached.timestamp > this.timeout) {
       this.cache.delete(key);
+      this.removeFromAccessOrder(key);
+      return null;
+    }
+
+    // Update access order
+    this.updateAccessOrder(key);
+    return cached.data;
+  }
+
+  set(key, data) {
+    // Evict oldest entries if cache is full
+    if (this.cache.size >= this.maxSize) {
+      this.evictOldest();
+    }
+
+    this.cache.set(key, { data, timestamp: Date.now() });
+    this.updateAccessOrder(key);
+  }
+
+  clear() {
+    this.cache.clear();
+    this.accessOrder = [];
+  }
+
+  updateAccessOrder(key) {
+    // Remove from current position
+    this.removeFromAccessOrder(key);
+    // Add to end (most recently used)
+    this.accessOrder.push(key);
+  }
+
+  removeFromAccessOrder(key) {
+    const index = this.accessOrder.indexOf(key);
+    if (index > -1) {
+      this.accessOrder.splice(index, 1);
+    }
+  }
+
+  evictOldest() {
+    if (this.accessOrder.length > 0) {
+      const oldestKey = this.accessOrder.shift();
+      this.cache.delete(oldestKey);
+    }
+  }
+
+  // Cleanup expired entries
+  cleanup() {
+    const now = Date.now();
+    for (const [key, cached] of this.cache.entries()) {
+      if (now - cached.timestamp > this.timeout) {
+        this.cache.delete(key);
+        this.removeFromAccessOrder(key);
+      }
+    }
+  }
+}
+
+// Query cache for frequently accessed data
+class QueryCache {
+  constructor() {
+    this.cache = new Map();
+    this.ttl = 2 * 60 * 1000; // 2 minutes for query results
+    this.maxSize = 500;
+  }
+
+  get(queryKey) {
+    const cached = this.cache.get(queryKey);
+    if (!cached || Date.now() - cached.timestamp > this.ttl) {
+      this.cache.delete(queryKey);
       return null;
     }
     return cached.data;
   }
 
-  set(key, data) {
-    this.cache.set(key, { data, timestamp: Date.now() });
+  set(queryKey, data) {
+    if (this.cache.size >= this.maxSize) {
+      // Remove oldest entry
+      const firstKey = this.cache.keys().next().value;
+      if (firstKey) this.cache.delete(firstKey);
+    }
+    this.cache.set(queryKey, { data, timestamp: Date.now() });
   }
 
   clear() {
     this.cache.clear();
   }
+
+  // Invalidate cache for specific collection
+  invalidateCollection(collectionName) {
+    for (const [key] of this.cache.entries()) {
+      if (key.startsWith(collectionName)) {
+        this.cache.delete(key);
+      }
+    }
+  }
 }
+
+const queryCache = new QueryCache();
+
+// Cleanup caches every 5 minutes
+setInterval(
+  () => {
+    queryCache.clear();
+  },
+  5 * 60 * 1000,
+).unref();
 
 class ConnectionManager {
   constructor(logger, dbConfig) {
@@ -38,6 +134,7 @@ class ConnectionManager {
     this.maxReconnectAttempts = 5;
     this.reconnectDelay = 2000;
     this.healthCheckInterval = null;
+    this.connectionPool = new Map(); // Connection pool for different operations
   }
 
   async connect() {
@@ -53,11 +150,39 @@ class ConnectionManager {
       this.logger.info("🔌 Attempting to connect to MongoDB...");
       this.client = new MongoClient(this.config.uri, {
         ...this.config.options,
-        // Add automatic reconnection options
-        serverSelectionTimeoutMS: 10000,
-        heartbeatFrequencyMS: 10000,
+        // Enhanced connection pooling
+        maxPoolSize: Math.max(20, this.config.options.maxPoolSize || 20),
+        minPoolSize: Math.max(5, this.config.options.minPoolSize || 5),
+        maxIdleTimeMS: Math.max(
+          60000,
+          this.config.options.maxIdleTimeMS || 60000,
+        ),
+        serverSelectionTimeoutMS: Math.max(
+          15000,
+          this.config.options.serverSelectionTimeoutMS || 15000,
+        ),
+        connectTimeoutMS: Math.max(
+          15000,
+          this.config.options.connectTimeoutMS || 15000,
+        ),
+        socketTimeoutMS: Math.max(
+          60000,
+          this.config.options.socketTimeoutMS || 60000,
+        ),
         retryWrites: true,
         retryReads: true,
+        w: "majority",
+        // Enhanced reconnection options
+        heartbeatFrequencyMS: 10000,
+        // Add connection optimization
+        maxConnecting: Math.max(5, this.config.options.maxConnecting || 5),
+        // Connection pool monitoring
+        monitorCommands: true,
+        serverApi: {
+          version: "1",
+          strict: false,
+          deprecationErrors: false,
+        },
       });
 
       const connection = this.client.connect();
@@ -99,14 +224,10 @@ class ConnectionManager {
         this.logger.error(
           "❌ Max reconnection attempts reached. Manual restart required.",
         );
+        throw error;
       }
-
-      return null;
     } finally {
-      // Clean up timeout to prevent memory leaks
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
+      if (timeoutId) clearTimeout(timeoutId);
     }
   }
 
@@ -273,10 +394,10 @@ class TemporaryRoleRepository extends BaseRepository {
     return tempRoles;
   }
 
-  async add(guildId, userId, roleId, expiresAt) {
+  async add(guildId, userId, roleId, expiresAt, notifyExpiry = false) {
     await this.collection.updateOne(
       { guildId, userId, roleId },
-      { $set: { expiresAt, updatedAt: new Date() } },
+      { $set: { expiresAt, notifyExpiry, updatedAt: new Date() } },
       { upsert: true },
     );
     this.cache.clear();
@@ -292,6 +413,61 @@ class TemporaryRoleRepository extends BaseRepository {
       this.cache.clear();
     }
     return result.deletedCount > 0;
+  }
+
+  // Supporter management methods
+  async addSupporter(guildId, userId, roleId, assignedAt, reason) {
+    try {
+      await this.collection.updateOne(
+        { guildId, userId, roleId, type: "supporter" },
+        {
+          $set: {
+            assignedAt,
+            reason,
+            isActive: true,
+            updatedAt: new Date(),
+          },
+        },
+        { upsert: true },
+      );
+      this.cache.clear();
+      return true;
+    } catch (error) {
+      this.logger.error("Failed to add supporter role", error);
+      return false;
+    }
+  }
+
+  async removeSupporter(guildId, userId) {
+    try {
+      const result = await this.collection.deleteOne({
+        guildId,
+        userId,
+        type: "supporter",
+      });
+      if (result.deletedCount > 0) {
+        this.cache.clear();
+      }
+      return result.deletedCount > 0;
+    } catch (error) {
+      this.logger.error("Failed to remove supporter role", error);
+      return false;
+    }
+  }
+
+  async getSupporters(guildId) {
+    try {
+      const documents = await this.collection
+        .find({
+          guildId,
+          type: "supporter",
+        })
+        .toArray();
+      return documents;
+    } catch (error) {
+      this.logger.error("Failed to get supporters", error);
+      return [];
+    }
   }
 }
 
@@ -481,22 +657,13 @@ class GuildSettingsRepository extends BaseRepository {
             messageXPAmount: { min: 15, max: 25 },
             commandXPAmount: {
               base: 8,
-              bonus: {
-                "8ball": 15,
-                level: 5,
-                avatar: 10,
-                serverinfo: 12,
-                roles: 12,
-                help: 3,
-                ping: 3,
-                invite: 3,
-                support: 3,
-              },
             },
             roleXPAmount: 50,
             messageCooldown: 60,
             commandCooldown: 30,
+            // Level formula is fixed at 100 * level^1.5 - no longer configurable
           },
+
           createdAt: new Date(),
           updatedAt: new Date(),
         }
@@ -552,6 +719,45 @@ class GuildSettingsRepository extends BaseRepository {
         error,
       );
       throw error;
+    }
+  }
+
+  // Supporter management methods
+  async getSupporters() {
+    try {
+      const supporters = await this.collection
+        .find({}, { projection: { supporters: 1 } })
+        .toArray();
+
+      const allSupporters = {};
+      supporters.forEach(guild => {
+        if (guild.supporters) {
+          allSupporters[guild.guildId] = guild.supporters;
+        }
+      });
+
+      return allSupporters;
+    } catch (error) {
+      this.logger.error("Failed to get supporters", error);
+      return {};
+    }
+  }
+
+  async setSupporters(supporters) {
+    try {
+      // Update each guild's supporters
+      for (const [guildId, guildSupporters] of Object.entries(supporters)) {
+        await this.collection.updateOne(
+          { guildId },
+          { $set: { supporters: guildSupporters, updatedAt: new Date() } },
+          { upsert: true },
+        );
+      }
+      this.cache.clear();
+      return true;
+    } catch (error) {
+      this.logger.error("Failed to set supporters", error);
+      return false;
     }
   }
 }
@@ -634,7 +840,16 @@ let databaseManager = null;
 export async function getDatabaseManager() {
   if (!databaseManager) {
     databaseManager = new DatabaseManager();
-    await databaseManager.connect();
+    try {
+      await databaseManager.connect();
+    } catch (error) {
+      // Log the error but don't throw - let the storage manager fall back to files
+      databaseManager.logger.warn(
+        "⚠️ Database connection failed, storage manager will use file fallback:",
+        error.message,
+      );
+      return null;
+    }
   }
 
   // Check if repositories are properly initialized
@@ -642,13 +857,20 @@ export async function getDatabaseManager() {
     // Try to reconnect if repositories are not initialized
     try {
       await databaseManager.connect();
-    } catch (_error) {
-      throw new Error("Database repositories not properly initialized");
+    } catch (error) {
+      databaseManager.logger.warn(
+        "⚠️ Database reconnection failed:",
+        error.message,
+      );
+      return null;
     }
 
     // Check again after reconnection attempt
     if (!databaseManager.welcomeSettings) {
-      throw new Error("Database repositories not properly initialized");
+      databaseManager.logger.warn(
+        "⚠️ Database repositories not properly initialized",
+      );
+      return null;
     }
   }
 
