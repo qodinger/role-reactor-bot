@@ -58,6 +58,12 @@ export default {
   // Reset modules between tests
   resetModules: true,
 
+  // Force exit to prevent hanging processes
+  forceExit: true,
+
+  // Detect open handles to find leaks
+  detectOpenHandles: true,
+
   // Module name mapping for better resolution
   moduleNameMapper: {
     "^(\\.{1,2}/.*)\\.js$": "$1",

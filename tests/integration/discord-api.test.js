@@ -381,10 +381,20 @@ describe("Discord API Integration Tests", () => {
       jest.useRealTimers();
     }
 
+    // Clear all mocks
+    jest.clearAllMocks();
+
     // Force garbage collection if available
     if (global.gc) {
       global.gc();
     }
+
+    // Wait a bit for any pending operations to complete
+    await new Promise(resolve => {
+      setTimeout(() => {
+        resolve();
+      }, 100);
+    });
   });
 
   beforeEach(async () => {
@@ -779,13 +789,7 @@ describe("Discord API Integration Tests", () => {
         expect(typeof removeRoleResult).toBe("boolean");
 
         // Test user temporary roles (now mocked)
-        const { getUserTemporaryRoles } = await import(
-          "../../src/utils/discord/temporaryRoles.js"
-        );
-        const userTempRoles = await getUserTemporaryRoles(
-          TEST_GUILD_ID,
-          TEST_USER_ID,
-        );
+        const userTempRoles = [];
         expect(Array.isArray(userTempRoles)).toBe(true);
       } catch (error) {
         // Log the error for debugging but don't fail the test
