@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Modal Router System: New centralized modal interaction handling for XP configuration forms
 - Flexible Role Removal: Temp-roles remove command can now remove any role, not just temporary ones
 - Bulk Role Removal: Enhanced temp-roles remove command with comprehensive multi-user support
+- Smart 8ball System: Intelligent question analysis with sentiment detection and context-aware responses
+- Advanced Response Categories: 5 response levels (very positive to very negative) with smart weighting system
+- Question Analysis Engine: Automatic detection of question types, sentiment, urgency, and personal context
+- Weighted Response Selection: Dynamic probability adjustment based on question analysis results
 
 ### Changed
 
@@ -32,6 +36,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Command XP System: Removed hardcoded bonus amounts, now uses universal base XP for all commands
 - Level Command XP Display: XP breakdown now dynamically pulls values from server settings
 - XP Settings Embed Layout: Reorganized fields with better organization and removed level progression section
+- 8ball Command Design: Redesigned with mystical theme and category-specific visual indicators
+- 8ball Response System: Enhanced from random selection to intelligent context-aware response generation
+- Help Command Documentation: Updated with comprehensive smart features and bulk operations documentation
 
 ### Fixed
 
@@ -48,6 +55,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - User Data Processing: Fixed "Cannot read properties of undefined" errors in removeRoleFromUser function
 - ProcessUserList Function: Fixed parameter passing and async handling in user list processing
 - Data Structure Handling: Fixed user object extraction from validUsers array in remove handler
+- 8ball Response Selection: Fixed array length bug in response selection causing incorrect random responses
+- 8ball Image Display: Removed broken image URLs that were not displaying properly in embeds
+- 8ball Code Quality: Fixed unused imports and hardcoded colors for better maintainability
 
 ### Technical
 
@@ -74,6 +84,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Fixed bulk removal operations with proper user list processing
   - Enhanced role removal flexibility to handle any role type
   - Improved error handling and user feedback for removal operations
+- Enhanced 8ball command intelligence:
+  - Implemented sentiment analysis with keyword detection for positive/negative/urgent/personal questions
+  - Added 5 response categories with smart weighting system based on question context
+  - Created weighted random selection algorithm for context-aware responses
+  - Redesigned embed system with mystical theme and category-specific visual indicators
+  - Fixed response selection bugs and improved code quality
+- Updated help system documentation:
+  - Enhanced 8ball command documentation with smart features and technical details
+  - Added comprehensive temp-roles bulk operations documentation
+  - Updated command descriptions to reflect new capabilities and improvements
 
 ## [0.4.1] - 2025-01-22
 
