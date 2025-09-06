@@ -17,16 +17,20 @@ A production-ready Discord bot for self-assignable roles through reactions. Buil
 ## ✨ Features
 
 - **🎯 Self-Assignable Roles**: Users can assign/remove roles by reacting to messages
-- **⏰ Temporary Roles**: Auto-expire roles after a set time
-- **🚀 Enhanced Temporary Roles**: Schedule future role assignments, create recurring schedules, and advanced role management
+- **⏰ Temporary Roles**: Auto-expire roles after a set time with smart notifications
+- **🚀 Schedule Role System**: Schedule future role assignments with natural language parsing
+- **🔄 Recurring Roles**: Create daily, weekly, monthly, or custom interval schedules
 - **🎉 Welcome System**: Auto-welcome new members with customizable messages and auto-role assignment
+- **🧠 Smart 8ball**: Intelligent question analysis with sentiment detection and context-aware responses
+- **📊 XP System**: Configurable experience system with level progression and leaderboards
+- **👤 User Information**: Avatar display, server info, and user statistics
 - **🛡️ Permission Controls**: Comprehensive permission checking
 - **🎨 Custom Emojis**: Support for Unicode and custom server emojis
 - **📊 Role Categories**: Organize roles into logical groups
 - **🔧 Easy Setup**: Simple slash commands for configuration
 - **📈 Health Monitoring**: Built-in health checks and performance metrics
 - **📝 Structured Logging**: Enterprise-grade logging with file output
-- **🎨 User-Friendly UI**: Clean, concise, and helpful messaging
+- **🎨 User-Friendly UI**: Clean, concise, and helpful messaging with interactive buttons
 - **🔗 Centralized Links**: Consistent external links and invite generation
 
 ## 🚀 Quick Start
@@ -86,28 +90,50 @@ A production-ready Discord bot for self-assignable roles through reactions. Buil
 
 ### Setting Up Role Reactions
 
-Create role-reaction messages using the `/setup-roles` command:
+Create role-reaction messages using the `/role-reactions setup` command:
 
 **Simple format:**
 
 ```
-/setup-roles title:"Server Roles" description:"Choose your roles by reacting!" roles:"🎮:Gamer,🎨:Artist,💻:Developer"
+/role-reactions setup title:"Server Roles" description:"Choose your roles by reacting!" roles:"🎮 @Gamer,🎨 @Artist,💻 @Developer"
 ```
 
 **With categories:**
 
 ```
-/setup-roles title:"Server Roles" description:"Choose your roles by reacting!" roles:"#Gaming\n🎮:Gamer,🎲:Board Games\n#Music\n🎵:Music Lover,🎸:Guitarist"
+/role-reactions setup title:"Server Roles" description:"Choose your roles by reacting!" roles:"#Gaming\n🎮 @Gamer,🎲 @Board Games\n#Music\n🎵 @Music Lover,🎸 @Guitarist"
+```
+
+**Manage existing role-reaction messages:**
+
+```
+/role-reactions list
+/role-reactions update message_id:"1234567890" title:"Updated Title"
+/role-reactions delete message_id:"1234567890"
 ```
 
 ### Temporary Roles
 
-Assign temporary roles that auto-expire:
+Assign temporary roles that auto-expire with smart notifications:
 
 **Assign a temporary role:**
 
 ```
-/assign-temp-role user:@username role:@EventRole duration:"2h" reason:"Event participation"
+/temp-roles assign users:"@username" role:@EventRole duration:"2h" reason:"Event participation" notify-expiry:true
+```
+
+**Bulk assignment:**
+
+```
+/temp-roles assign users:"@user1, @user2, @user3" role:@VIP duration:"1d" reason:"Event access"
+```
+
+**Manage temporary roles:**
+
+```
+/temp-roles list
+/temp-roles list user:@username
+/temp-roles remove users:"@username" role:@EventRole
 ```
 
 **Duration formats:**
@@ -116,6 +142,47 @@ Assign temporary roles that auto-expire:
 - `2h` - 2 hours
 - `1d` - 1 day
 - `1w` - 1 week
+
+### Schedule Role System
+
+Schedule future role assignments with natural language parsing:
+
+**One-time schedules:**
+
+```
+/schedule-role create users:"@username" role:@EventRole type:"one-time" schedule:"tomorrow 9am" duration:"2h" reason:"Event access"
+/schedule-role create users:"@user1, @user2" role:@VIP type:"one-time" schedule:"friday 6pm" duration:"1d"
+```
+
+**Recurring schedules:**
+
+```
+/schedule-role create users:"@username" role:@WeeklyRole type:"weekly" schedule:"monday 9am" duration:"1d"
+/schedule-role create users:"@username" role:@MonthlyRole type:"monthly" schedule:"1st 10am" duration:"2h"
+```
+
+**Manage schedules:**
+
+```
+/schedule-role list
+/schedule-role view id:"2802a998...7f7a"
+/schedule-role cancel id:"2802a998...7f7a"
+```
+
+**Schedule types:**
+
+- `one-time` - Single assignment at specified time
+- `daily` - Every day at specified time
+- `weekly` - Every week on specified day/time
+- `monthly` - Every month on specified day/time
+- `custom` - Custom interval (e.g., every 3 days)
+
+**Natural language examples:**
+
+- `"tomorrow 9am"` - Tomorrow at 9:00 AM
+- `"monday 6pm"` - Next Monday at 6:00 PM
+- `"15 2pm"` - 15th of this month at 2:00 PM
+- `"120"` - In 120 minutes
 
 ### Welcome System
 
@@ -163,24 +230,54 @@ The XP system is **disabled by default** and must be enabled by server administr
 
 **Note:** XP system configuration is now simplified with button-driven toggles. All settings use optimized default values that work well for most servers.
 
+### General Commands
+
+**Smart 8ball with intelligent responses:**
+
+```
+/8ball question:"Will I pass my exam?"
+/8ball question:"How do I learn programming?"
+```
+
+**User information and statistics:**
+
+```
+/avatar user:@username
+/serverinfo
+/level user:@username
+/leaderboard
+```
+
+**Bot information and support:**
+
+```
+/help
+/ping
+/invite
+/support
+/sponsor
+```
+
 ### Available Commands
 
 #### Server Management Commands
 
-| Command             | Description                     | Permissions  |
-| ------------------- | ------------------------------- | ------------ |
-| `/setup-roles`      | Create a role-reaction message  | Manage Roles |
-| `/update-roles`     | Update an existing message      | Manage Roles |
-| `/delete-roles`     | Delete a role-reaction message  | Manage Roles |
-| `/list-roles`       | List all role-reaction messages | Manage Roles |
-| `/assign-temp-role` | Assign a temporary role         | Manage Roles |
-| `/list-temp-roles`  | List temporary roles            | Manage Roles |
-| `/remove-temp-role` | Remove a temporary role         | Manage Roles |
-| `/schedule-role`    | Schedule future role assignment | Manage Roles |
-| `/schedule-role`    | Schedule roles (create/list)    | Manage Roles |
-| `/setup-welcome`    | Configure welcome system        | Manage Guild |
-| `/welcome-settings` | View welcome system settings    | Manage Guild |
-| `/xp-settings`      | View XP system settings         | Manage Guild |
+| Command                  | Description                              | Permissions  |
+| ------------------------ | ---------------------------------------- | ------------ |
+| `/role-reactions setup`  | Create a role-reaction message           | Manage Roles |
+| `/role-reactions list`   | List all role-reaction messages          | Manage Roles |
+| `/role-reactions update` | Update an existing role-reaction message | Manage Roles |
+| `/role-reactions delete` | Delete a role-reaction message           | Manage Roles |
+| `/temp-roles assign`     | Assign temporary roles (supports bulk)   | Manage Roles |
+| `/temp-roles list`       | List temporary roles                     | Manage Roles |
+| `/temp-roles remove`     | Remove temporary roles (supports bulk)   | Manage Roles |
+| `/schedule-role create`  | Schedule future role assignments         | Manage Roles |
+| `/schedule-role list`    | List scheduled and recurring roles       | Manage Roles |
+| `/schedule-role view`    | View details of a specific schedule      | Manage Roles |
+| `/schedule-role cancel`  | Cancel a scheduled or recurring role     | Manage Roles |
+| `/setup-welcome`         | Configure welcome system                 | Manage Guild |
+| `/welcome-settings`      | View welcome system settings             | Manage Guild |
+| `/xp-settings`           | View and manage XP system settings       | Manage Guild |
 
 #### Developer Commands
 
@@ -192,13 +289,18 @@ The XP system is **disabled by default** and must be enabled by server administr
 
 #### General Commands
 
-| Command    | Description                         | Permissions |
-| ---------- | ----------------------------------- | ----------- |
-| `/help`    | Display bot information             | None        |
-| `/ping`    | Check bot latency and status        | None        |
-| `/invite`  | Get bot invite link                 | None        |
-| `/support` | Get support server link             | None        |
-| `/sponsor` | Support bot development (donations) | None        |
+| Command        | Description                                    | Permissions |
+| -------------- | ---------------------------------------------- | ----------- |
+| `/help`        | Display comprehensive bot help and information | None        |
+| `/ping`        | Check bot latency and status                   | None        |
+| `/invite`      | Get bot invite link with proper permissions    | None        |
+| `/support`     | Get support server and GitHub links            | None        |
+| `/sponsor`     | Support bot development (donations)            | None        |
+| `/8ball`       | Ask the magic 8ball with intelligent responses | None        |
+| `/avatar`      | Display user avatar in high resolution         | None        |
+| `/serverinfo`  | Display detailed server information            | None        |
+| `/level`       | Check user XP level and statistics             | None        |
+| `/leaderboard` | View server XP leaderboard                     | None        |
 
 ## 🔧 Configuration
 
@@ -277,17 +379,22 @@ The bot includes comprehensive health monitoring:
 
 ### Recent Improvements
 
-- **📝 Cleaner Messages**: All commands now provide concise, user-friendly messaging
-- **🔗 Consistent Links**: Centralized external links configuration
-- **⚡ Dynamic Invites**: Automatic invite link generation with proper permissions
-- **🎯 Focused Help**: Streamlined help system with essential information only
+- **🧠 Smart 8ball**: Intelligent question analysis with sentiment detection and context-aware responses
+- **📅 Schedule Role System**: Natural language scheduling with recurring role assignments
+- **🔄 Bulk Operations**: Multi-user support for temporary role assignments and removals
+- **🎨 Modern UI**: Redesigned embeds with interactive buttons and better visual hierarchy
+- **📝 Enhanced Help**: Comprehensive help system with autocomplete and interactive navigation
+- **🔗 Interactive Buttons**: Direct links to support server, GitHub, and sponsor pages
+- **⚡ Real-time Updates**: XP settings and other interfaces update in place instead of sending new messages
 - **🛡️ Better Error Handling**: Clear, actionable error messages with troubleshooting tips
 - **📱 Mobile-Friendly**: Optimized for both desktop and mobile Discord clients
 
 ### Command Features
 
-- **Interactive Help**: Dropdown menus and buttons for easy navigation
-- **Autocomplete**: Smart command suggestions with filtering
+- **Interactive Help**: Dropdown menus, buttons, and autocomplete for easy navigation
+- **Smart Responses**: Context-aware 8ball responses based on question analysis
+- **Bulk Management**: Multi-user operations for efficient role management
+- **Natural Language**: Human-readable time formats for scheduling
 - **Permission Checks**: Automatic permission validation with helpful feedback
 - **Error Recovery**: Graceful error handling with retry mechanisms
 - **Performance Tips**: Contextual advice based on connection status
