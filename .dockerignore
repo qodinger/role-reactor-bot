@@ -1,0 +1,47 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Development files
+.git
+.github
+.husky
+.vscode
+.cursor
+
+# Logs
+*.log
+logs
+
+# Environment files
+.env
+# .env.* - Allow production environment files
+
+# Documentation
+docs
+README.md
+LICENSE
+
+# Docker files
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# IDE files
+.idea
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files
+coverage
+.nyc_output
+.jest
+
+# Build artifacts
+dist
+build
+out 

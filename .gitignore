@@ -139,7 +139,6 @@ logs/
 *.log
 
 # Docker
-.dockerignore
 docker-compose.yml
 docker-compose.override.yml
 
