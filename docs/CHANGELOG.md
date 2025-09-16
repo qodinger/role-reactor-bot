@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.2] - 2025-01-22
+
+### Added
+
+- Ko-fi Funding Support: Added Ko-fi funding option to GitHub FUNDING.yml for additional support channels
+- Comprehensive Deployment Solution: Added new deployment scripts and solutions to fix version mismatch issues
+- Enhanced Docker Update Scripts: Improved docker update scripts for more reliable deployments
+- Quick Deployment Guide: Added QUICK-DEPLOY.md for streamlined deployment process
+
+### Changed
+
+- Documentation Structure: Reorganized deployment documentation by moving DEPLOYMENT.md and QUICK-DEPLOY.md to docs/ directory
+- Documentation Consolidation: Updated DEPLOYMENT.md with latest content and improved organization
+- Package Configuration: Updated package.json with latest dependencies and configuration
+- Bot Invite System: Enhanced invite functionality for better bot setup experience
+
+### Fixed
+
+- Bot Permissions: Added missing bot permissions for full functionality
+- Permission Detection: Improved permission handling and validation system
+
 ## [1.0.1] - 2025-09-16
 
 ### Fixed

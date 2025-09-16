@@ -39,6 +39,7 @@
     "Pkgs",
     "Repliable",
     "Retryable",
+    "rolereactor",
     "scriptalert",
     "serverinfo",
     "smhdw",
