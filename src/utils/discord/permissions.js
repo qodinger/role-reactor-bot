@@ -59,7 +59,11 @@ export function botHasRequiredPermissions(guild) {
  * @returns {string[]} An array of missing permission names.
  */
 export function getMissingBotPermissions(guild) {
-  if (!guild || !guild.members.me) return [];
+  if (!guild || !guild.members.me) {
+    // If we can't access the bot member, return all required permissions
+    // as missing to ensure the user knows what's needed
+    return BOT_PERMISSIONS.map(formatPermissionName);
+  }
   const botMember = guild.members.me;
   return BOT_PERMISSIONS.filter(perm => !botMember.permissions.has(perm)).map(
     formatPermissionName,

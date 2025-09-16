@@ -36,6 +36,20 @@ export async function handleSetup(interaction, client) {
         description: `I need the following permissions to create role-reaction messages: **${permissionNames}**`,
         solution:
           "Please ask a server administrator to grant me these permissions and try again.",
+        fields: [
+          {
+            name: "🔧 How to Fix",
+            value:
+              "1. Go to **Server Settings** → **Roles**\n2. Find my role (Role Reactor)\n3. Enable the missing permissions listed above\n4. Make sure my role is positioned above the roles you want to assign",
+            inline: false,
+          },
+          {
+            name: "📋 Required Permissions",
+            value:
+              "• **Manage Roles** - To assign/remove roles from users\n• **Manage Messages** - To manage role-reaction messages\n• **Add Reactions** - To add emoji reactions to messages\n• **Read Message History** - To read channel history\n• **View Channel** - To access channel information\n• **Send Messages** - To send role-reaction messages\n• **Embed Links** - To create rich embeds",
+            inline: false,
+          },
+        ],
       }),
     );
   }
