@@ -11,6 +11,8 @@ const BOT_PERMISSIONS = [
   PermissionFlagsBits.ViewChannel,
   PermissionFlagsBits.SendMessages,
   PermissionFlagsBits.EmbedLinks,
+  PermissionFlagsBits.ManageGuild,
+  PermissionFlagsBits.UseExternalEmojis,
 ];
 
 /**

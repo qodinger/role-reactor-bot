@@ -7,6 +7,10 @@ export const DEFAULT_INVITE_PERMISSIONS = [
   PermissionFlagsBits.AddReactions,
   PermissionFlagsBits.ReadMessageHistory,
   PermissionFlagsBits.ViewChannel,
+  PermissionFlagsBits.SendMessages,
+  PermissionFlagsBits.EmbedLinks,
+  PermissionFlagsBits.ManageGuild,
+  PermissionFlagsBits.UseExternalEmojis,
 ];
 
 /**
@@ -20,7 +24,7 @@ export const DEFAULT_INVITE_PERMISSIONS = [
 export async function generateInviteLink(client, options = {}) {
   const defaultOptions = {
     permissions: DEFAULT_INVITE_PERMISSIONS,
-    scopes: ["bot"],
+    scopes: ["bot", "applications.commands"],
   };
   const mergedOptions = {
     permissions: options.permissions || defaultOptions.permissions,
