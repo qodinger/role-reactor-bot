@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Role Reactions Permission Error: Fixed "Unknown Permission" error in role-reactions setup command when bot member data is unavailable
+- Permission Error Messages: Enhanced error messages with detailed permission explanations and step-by-step fix instructions
+- Bot Permission Detection: Improved getMissingBotPermissions() to return all required permissions when guild.members.me is unavailable
+
 ## [1.0.0] - 2025-09-07
 
 ### Added
