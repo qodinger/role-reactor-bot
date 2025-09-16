@@ -262,22 +262,22 @@ The XP system is **disabled by default** and must be enabled by server administr
 
 #### Server Management Commands
 
-| Command                  | Description                              | Permissions  |
-| ------------------------ | ---------------------------------------- | ------------ |
-| `/role-reactions setup`  | Create a role-reaction message           | Manage Roles |
-| `/role-reactions list`   | List all role-reaction messages          | Manage Roles |
-| `/role-reactions update` | Update an existing role-reaction message | Manage Roles |
-| `/role-reactions delete` | Delete a role-reaction message           | Manage Roles |
-| `/temp-roles assign`     | Assign temporary roles (supports bulk)   | Manage Roles |
-| `/temp-roles list`       | List temporary roles                     | Manage Roles |
-| `/temp-roles remove`     | Remove temporary roles (supports bulk)   | Manage Roles |
-| `/schedule-role create`  | Schedule future role assignments         | Manage Roles |
-| `/schedule-role list`    | List scheduled and recurring roles       | Manage Roles |
-| `/schedule-role view`    | View details of a specific schedule      | Manage Roles |
-| `/schedule-role cancel`  | Cancel a scheduled or recurring role     | Manage Roles |
-| `/setup-welcome`         | Configure welcome system                 | Manage Guild |
-| `/welcome-settings`      | View welcome system settings             | Manage Guild |
-| `/xp-settings`           | View and manage XP system settings       | Manage Guild |
+| Command                  | Description                              | Permissions   |
+| ------------------------ | ---------------------------------------- | ------------- |
+| `/role-reactions setup`  | Create a role-reaction message           | Manage Roles  |
+| `/role-reactions list`   | List all role-reaction messages          | Manage Roles  |
+| `/role-reactions update` | Update an existing role-reaction message | Manage Roles  |
+| `/role-reactions delete` | Delete a role-reaction message           | Manage Roles  |
+| `/temp-roles assign`     | Assign temporary roles (supports bulk)   | Manage Roles  |
+| `/temp-roles list`       | List temporary roles                     | Manage Roles  |
+| `/temp-roles remove`     | Remove temporary roles (supports bulk)   | Manage Roles  |
+| `/schedule-role create`  | Schedule future role assignments         | Manage Roles  |
+| `/schedule-role list`    | List scheduled and recurring roles       | Manage Roles  |
+| `/schedule-role view`    | View details of a specific schedule      | Manage Roles  |
+| `/schedule-role cancel`  | Cancel a scheduled or recurring role     | Manage Roles  |
+| `/setup-welcome`         | Configure welcome system                 | Manage Server |
+| `/welcome-settings`      | View welcome system settings             | Manage Server |
+| `/xp-settings`           | View and manage XP system settings       | Manage Server |
 
 #### Developer Commands
 

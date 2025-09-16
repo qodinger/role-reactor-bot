@@ -753,7 +753,7 @@ export class HelpEmbedBuilder {
           },
           {
             name: `${EMOJIS.FEATURES.SECURITY} 🔐 Permissions`,
-            value: "• **Manage Guild** permission required",
+            value: "• **Manage Server** permission required",
             inline: false,
           },
           {
@@ -923,7 +923,7 @@ export class HelpEmbedBuilder {
           },
           {
             name: `${EMOJIS.FEATURES.SECURITY} 🔐 Permissions`,
-            value: "• **Manage Guild** permission required",
+            value: "• **Manage Server** permission required",
             inline: false,
           },
           {
@@ -954,7 +954,7 @@ export class HelpEmbedBuilder {
           },
           {
             name: `${EMOJIS.FEATURES.SECURITY} 🔐 Permissions`,
-            value: "• **Manage Guild** permission required",
+            value: "• **Manage Server** permission required",
             inline: false,
           },
           {

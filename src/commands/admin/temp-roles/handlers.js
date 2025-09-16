@@ -42,12 +42,8 @@ export async function handleAssign(interaction) {
     await interaction.deferReply({ flags: 64 });
 
     // Validate bot permissions
-    const requiredPermissions = ["ManageRoles"];
-    if (!botHasRequiredPermissions(interaction.guild, requiredPermissions)) {
-      const missingPermissions = getMissingBotPermissions(
-        interaction.guild,
-        requiredPermissions,
-      );
+    if (!botHasRequiredPermissions(interaction.guild)) {
+      const missingPermissions = getMissingBotPermissions(interaction.guild);
       const permissionNames = missingPermissions
         .map(formatPermissionName)
         .join(", ");

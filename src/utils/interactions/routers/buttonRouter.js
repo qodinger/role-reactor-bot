@@ -24,6 +24,15 @@ export async function routeButtonInteraction(interaction, _client) {
       return;
     }
 
+    // Role-reactions pagination buttons
+    if (customId.startsWith("rolelist_")) {
+      const { handlePagination } = await import(
+        "../../../commands/admin/role-reactions/handlers.js"
+      );
+      await handlePagination(interaction, _client);
+      return;
+    }
+
     if (
       customId.startsWith("cancel_schedule_") ||
       customId.startsWith("view_schedule_") ||

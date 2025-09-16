@@ -59,7 +59,7 @@ export async function execute(interaction, _client) {
         errorEmbed({
           title: "Permission Denied",
           description:
-            "You need Manage Guild permissions to configure the welcome system.",
+            "You need Manage Server permissions to configure the welcome system.",
           solution: "Contact a server administrator for assistance.",
         }),
       );

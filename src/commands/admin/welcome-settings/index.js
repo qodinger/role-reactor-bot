@@ -27,7 +27,7 @@ export async function execute(interaction) {
         errorEmbed({
           title: "Permission Denied",
           description:
-            "You need Manage Guild permissions to view welcome settings.",
+            "You need Manage Server permissions to view welcome settings.",
           solution: "Contact a server administrator for assistance.",
         }),
       );

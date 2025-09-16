@@ -26,7 +26,8 @@ export async function execute(interaction) {
       return interaction.reply(
         errorEmbed({
           title: "Permission Denied",
-          description: "You need Manage Guild permissions to view XP settings.",
+          description:
+            "You need Manage Server permissions to view XP settings.",
           solution: "Contact a server administrator for assistance.",
         }),
       );

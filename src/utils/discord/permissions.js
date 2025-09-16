@@ -58,18 +58,16 @@ export function botHasRequiredPermissions(guild) {
 /**
  * Gets a list of missing permissions for the bot in a guild.
  * @param {import("discord.js").Guild} guild The guild to check.
- * @returns {string[]} An array of missing permission names.
+ * @returns {import("discord.js").PermissionFlagsBits[]} An array of missing permission flags.
  */
 export function getMissingBotPermissions(guild) {
   if (!guild || !guild.members.me) {
     // If we can't access the bot member, return all required permissions
     // as missing to ensure the user knows what's needed
-    return BOT_PERMISSIONS.map(formatPermissionName);
+    return [...BOT_PERMISSIONS];
   }
   const botMember = guild.members.me;
-  return BOT_PERMISSIONS.filter(perm => !botMember.permissions.has(perm)).map(
-    formatPermissionName,
-  );
+  return BOT_PERMISSIONS.filter(perm => !botMember.permissions.has(perm));
 }
 
 /**
@@ -78,9 +76,17 @@ export function getMissingBotPermissions(guild) {
  * @returns {string} The formatted permission name.
  */
 export function formatPermissionName(permission) {
-  const permissionName = Object.keys(PermissionFlagsBits).find(
-    key => PermissionFlagsBits[key] === permission,
-  );
+  // Convert to BigInt if needed (Discord.js v14 uses BigInt for permissions)
+  const permissionValue =
+    typeof permission === "bigint" ? permission : BigInt(permission);
+
+  // Find the permission name by comparing BigInt values
+  const permissionName = Object.keys(PermissionFlagsBits).find(key => {
+    const flagValue = PermissionFlagsBits[key];
+    const bigIntValue =
+      typeof flagValue === "bigint" ? flagValue : BigInt(flagValue);
+    return bigIntValue === permissionValue;
+  });
 
   if (!permissionName) {
     return "Unknown Permission";

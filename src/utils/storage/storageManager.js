@@ -54,6 +54,14 @@ class DatabaseProvider {
     return this.dbManager.roleMappings.getAll();
   }
 
+  async getRoleMappingsPaginated(guildId, page = 1, limit = 4) {
+    return this.dbManager.roleMappings.getByGuildPaginated(
+      guildId,
+      page,
+      limit,
+    );
+  }
+
   async setRoleMapping(messageId, guildId, channelId, roles) {
     await this.dbManager.roleMappings.set(messageId, guildId, channelId, roles);
     return true;
@@ -172,6 +180,39 @@ class StorageManager {
       return this.provider.getRoleMappings();
     }
     return this.provider.read("role_mappings");
+  }
+
+  async getRoleMappingsPaginated(guildId, page = 1, limit = 4) {
+    if (this.provider instanceof DatabaseProvider) {
+      return this.provider.getRoleMappingsPaginated(guildId, page, limit);
+    }
+    // Fallback to file-based pagination
+    const allMappings = this.provider.read("role_mappings");
+    const guildMappings = Object.entries(allMappings).filter(
+      ([, m]) => m.guildId === guildId,
+    );
+
+    const totalItems = guildMappings.length;
+    const totalPages = Math.ceil(totalItems / limit);
+    const skip = (page - 1) * limit;
+    const paginatedMappings = guildMappings.slice(skip, skip + limit);
+
+    const mappings = {};
+    for (const [messageId, mapping] of paginatedMappings) {
+      mappings[messageId] = mapping;
+    }
+
+    return {
+      mappings,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalItems,
+        itemsPerPage: limit,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
+    };
   }
 
   async setRoleMapping(messageId, guildId, channelId, roles) {

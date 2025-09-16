@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Role Reactions Setup Permission Error: Fixed Discord API Error 50013 (Missing Permissions) in role-reactions setup command
+- Channel Permission Validation: Added proper channel-specific permission checks for SendMessages and EmbedLinks
+- Error Handling: Improved error handling around message sending with detailed error messages and solutions
+- Permission Detection: Enhanced permission validation to check both guild-level and channel-level permissions
+
 ## [1.0.2] - 2025-01-22
 
 ### Added
