@@ -7,12 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Structured Logging System: Replaced all console.log statements with proper structured logging across role-reactions commands
+- Enhanced Debugging: Added comprehensive debugging information for delete command troubleshooting
+- Pagination Support: Implemented paginated database queries for role-reactions list command with 4 items per page
+- Guild Validation: Added guildId parameter validation to getRoleMapping function for proper message lookup
+
+### Changed
+
+- Logging Architecture: Migrated from console.log to structured logger with configurable log levels
+- Delete Command Logic: Enhanced delete command with detailed mapping information and fallback debugging
+- Database Queries: Updated role-reactions list to use paginated queries for better performance
+- Error Handling: Improved error messages with structured data for better debugging
+
 ### Fixed
 
+- Role Reactions Delete Command: Fixed "Message Not Found" error by properly validating guildId in getRoleMapping function
+- Permission Parameter Issues: Fixed incorrect permission parameter usage in temp-roles and setup-welcome commands
+- Button Router: Updated pagination button routing to use correct custom ID prefix (rolelist\_)
+- Cache Invalidation: Fixed potential cache issues between list and delete commands
 - Role Reactions Setup Permission Error: Fixed Discord API Error 50013 (Missing Permissions) in role-reactions setup command
 - Channel Permission Validation: Added proper channel-specific permission checks for SendMessages and EmbedLinks
-- Error Handling: Improved error handling around message sending with detailed error messages and solutions
-- Permission Detection: Enhanced permission validation to check both guild-level and channel-level permissions
 
 ## [1.0.2] - 2025-01-22
 
