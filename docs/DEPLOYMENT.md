@@ -1,372 +1,228 @@
-# Deployment Guide
+# Role Reactor Bot - Deployment Guide
 
-## 🚀 Production Deployment
+## Quick Start
 
-### Quick Start
-
-```bash
-# Build and start production container
-pnpm docker:build
-pnpm docker:prod
-
-# Check status
-docker ps | grep role-reactor-bot
-
-# View logs
-pnpm docker:logs
-```
-
-### Environment Setup
-
-1. **Create `.env` file**
-
-   ```env
-   DISCORD_TOKEN=your_bot_token
-   CLIENT_ID=your_client_id
-   MONGODB_URI=mongodb://localhost:27017
-   LOG_LEVEL=INFO
-   ```
-
-2. **Deploy slash commands**
-
-   ```bash
-   pnpm run deploy:commands
-   ```
-
-3. **Start the bot**
-   ```bash
-   pnpm docker:prod
-   ```
-
-## 🔄 Update Workflows
-
-### Automated Updates
-
-The project includes an automated update script that handles the entire update process:
+For the fastest deployment of the latest version:
 
 ```bash
-# Run automated update (recommended)
-./scripts/update.sh
+# Method 1: Using npm/pnpm script (recommended)
+pnpm run deploy:latest
+
+# Method 2: Direct script execution
+./scripts/deploy-latest.sh
 ```
 
-This script will:
+## Available Deployment Methods
 
-- Create a backup of your data
-- Pull latest changes from the repository
-- Stop the current bot
-- Rebuild the Docker container
-- Restart the bot
-- Clean up old backups (keeps last 5)
+### 1. Latest Version Deployment (Recommended)
 
-### Manual Updates
+The new `deploy-latest.sh` script is the most reliable way to deploy. It handles all edge cases and ensures the latest version is deployed correctly.
+
+**Available commands:**
+```bash
+# Standard deployment
+pnpm run deploy:latest
+
+# Verbose output (shows detailed docker commands)
+pnpm run deploy:latest:verbose
+
+# Force deployment (even if no changes detected)
+pnpm run deploy:latest:force
+```
+
+**What this script does:**
+1. ✅ Pulls latest changes from git repository
+2. ✅ Stops and removes existing containers
+3. ✅ Cleans Docker cache and images (prevents version mismatches)
+4. ✅ Builds fresh Docker image with `--no-cache` and `--pull`
+5. ✅ Verifies the built image contains the correct version
+6. ✅ Starts the new container
+7. ✅ Verifies deployment success and health
+
+### 2. Legacy Deployment Methods
+
+These scripts are still available but may encounter caching issues:
 
 ```bash
-# Full update (stop, rebuild, restart)
-pnpm docker:update
+# Update scripts (may have caching issues)
+pnpm run docker:update          # Basic update
+pnpm run docker:update:clean    # Update with system prune
+pnpm run docker:force-update    # Aggressive cleanup + update
 
-# Automated update with backup
-./scripts/update.sh
+# Manual deployment
+pnpm run docker:clean           # Stop and clean
+pnpm run docker:build:force     # Build with no cache
+pnpm run docker:prod            # Start production container
 ```
 
-### Configuration Updates
+## Troubleshooting
 
+### Common Issues and Solutions
+
+#### 1. Version Mismatch (Old Version Still Running)
+**Problem:** Docker shows old version even after rebuild
+**Solution:** Use the new deployment script which handles this automatically:
 ```bash
-# Restart with new config
-pnpm docker:restart:prod
+pnpm run deploy:latest
 ```
 
-### Emergency Restart
-
+#### 2. Container Fails to Start
+**Problem:** Container exits or shows unhealthy status
+**Solutions:**
 ```bash
-# Quick restart
-pnpm docker:restart:prod
+# Check logs for errors
+docker logs role-reactor-bot
+
+# Check environment files exist
+ls -la .env*
+
+# Verify permissions
+./scripts/fix-permissions.sh
 ```
 
-## 📊 Monitoring
+#### 3. Build Failures
+**Problem:** Docker build fails or uses cached layers incorrectly
+**Solution:**
+```bash
+# Use force deployment to clear all caches
+pnpm run deploy:latest:force
+```
+
+#### 4. Database Connection Issues
+**Problem:** Bot can't connect to database
+**Solutions:**
+```bash
+# Check if MongoDB is running (if using local DB)
+sudo systemctl status mongod
+
+# Verify environment variables
+docker exec role-reactor-bot printenv | grep MONGODB
+```
 
 ### Health Checks
 
-```bash
-# Container status
-docker ps | grep role-reactor-bot
-
-# Resource usage
-docker stats role-reactor-bot
-
-# Recent logs
-docker logs role-reactor-bot --tail 20
-```
-
-### Bot Commands
-
-- `/health` - Check bot health status
-- `/performance` - View performance metrics
-
-### Log Analysis
-
-```bash
-# Follow logs in real-time
-docker logs -f role-reactor-bot
-
-# Search for errors
-docker logs role-reactor-bot | grep -i error
-
-# Search for specific events
-docker logs role-reactor-bot | grep "messageDelete"
-```
-
-## 🛠️ Development
-
-### Development Mode
-
-```bash
-# Start development with live reload
-pnpm docker:dev
-
-# View development logs
-pnpm docker:dev:logs
-
-# Stop development
-pnpm docker:dev:down
-```
-
-### Local Testing
-
-```bash
-# Build and test locally
-pnpm docker:build
-pnpm docker:run
-```
-
-## 📋 Command Reference
-
-### Production Commands
-
-- `pnpm docker:prod` - Start production container
-- `pnpm docker:restart:prod` - Restart production container
-- `pnpm docker:update` - Full update (stop, rebuild, restart)
-- `pnpm docker:stop` - Stop production container
-- `pnpm docker:clean` - Stop and remove container
-- `pnpm docker:logs` - View production logs
-
-### Development Commands
-
-- `pnpm docker:dev` - Start development mode
-- `pnpm docker:dev:logs` - View development logs
-- `pnpm docker:dev:down` - Stop development
-
-### Build Commands
-
-- `pnpm docker:build` - Build image (with cache)
-- `pnpm docker:build:force` - Build image (no cache)
-
-## 🚨 Troubleshooting
-
-### Container Issues
+After deployment, verify everything is working:
 
 ```bash
 # Check container status
-docker ps -a | grep role-reactor-bot
+docker ps | grep role-reactor-bot
 
-# Restart if stopped
-docker start role-reactor-bot
-
-# Full restart
-pnpm docker:restart:prod
-```
-
-### Database Issues
-
-```bash
-# Check MongoDB connection
-docker logs role-reactor-bot | grep -i mongo
-
-# Restart with fresh connection
-pnpm docker:restart:prod
-```
-
-### Bot Not Responding
-
-```bash
 # Check logs
-docker logs role-reactor-bot --tail 50
+docker logs role-reactor-bot -f
 
-# Restart bot
-pnpm docker:restart:prod
-
-# If still issues, full update
-pnpm docker:update
+# Check version inside container
+docker exec role-reactor-bot cat package.json | grep version
 ```
 
-## 🔧 Alternative Deployment
+## Environment Setup
 
-### PM2 Deployment
+### Required Files
 
-```bash
-# Install PM2
-npm install -g pm2
-
-# Start the bot
-pm2 start src/index.js --name role-reactor-bot
-
-# Monitor
-pm2 monit
-
-# View logs
-pm2 logs role-reactor-bot
-```
-
-### Manual Deployment
-
-```bash
-# Install dependencies
-pnpm install
-
-# Start the bot
-pnpm start
-```
-
-## 🖥️ VPS Deployment
-
-### Prerequisites
-
-- Ubuntu 20.04+ or similar Linux distribution
-- SSH access to your VPS
-- Git installed on your VPS
-
-### VPS Provider Recommendations
-
-- **DigitalOcean**: $5/month (1GB RAM, 1 CPU, 25GB SSD)
-- **Linode**: $5/month (1GB RAM, 1 CPU, 25GB SSD)
-- **Vultr**: $2.50/month (512MB RAM, 1 CPU, 10GB SSD)
-
-### Recommended Specs
-
-- **RAM**: 1GB minimum (2GB recommended)
-- **CPU**: 1 core minimum
-- **Storage**: 20GB+ SSD
-- **Bandwidth**: 1TB+ monthly
-
-### Step 1: Server Setup
-
-```bash
-# Connect to your VPS
-ssh root@your-server-ip
-
-# Update system
-apt update && apt upgrade -y
-
-# Install Docker
-curl -fsSL https://get.docker.com -o get-docker.sh
-sh get-docker.sh
-
-# Install Docker Compose
-apt-get install docker-compose-plugin
-
-# Create non-root user (recommended)
-adduser botuser
-usermod -aG docker botuser
-```
-
-### Step 2: Deploy the Bot
-
-```bash
-# Clone the repository
-git clone https://github.com/your-username/role-reactor-bot.git
-cd role-reactor-bot
-
-# Set up environment variables
-cp env.example .env
-nano .env
-
-# Run the deployment script
-chmod +x scripts/deploy.sh
-./scripts/deploy.sh
-```
-
-### Step 3: Auto-Start Setup
-
-```bash
-# Create systemd service
-sudo nano /etc/systemd/system/role-reactor-bot.service
-```
-
-Add the following content:
-
-```ini
-[Unit]
-Description=Role Reactor Bot
-Requires=docker.service
-After=docker.service
-
-[Service]
-Type=oneshot
-RemainAfterExit=yes
-WorkingDirectory=/home/botuser/role-reactor-bot
-ExecStart=/usr/local/bin/docker-compose up -d
-ExecStop=/usr/local/bin/docker-compose down
-TimeoutStartSec=0
-
-[Install]
-WantedBy=multi-user.target
-```
-
-```bash
-# Enable and start service
-systemctl enable role-reactor-bot.service
-systemctl start role-reactor-bot.service
-```
-
-### Step 4: Security Setup
-
-```bash
-# Firewall setup
-ufw allow ssh
-ufw allow 3000
-ufw enable
-
-# Regular updates (add to crontab)
-crontab -e
-# Add: 0 2 * * 0 /home/botuser/role-reactor-bot/scripts/update.sh
-```
-
-## 📈 Performance
-
-### Resource Requirements
-
-- **CPU**: 1 core minimum, 2+ cores recommended
-- **Memory**: 512MB minimum, 1GB+ recommended
-- **Storage**: 100MB for application, additional for logs
-- **Network**: Stable internet connection
-
-### Monitoring Metrics
-
-- **Uptime**: Target 99.9%
-- **Response Time**: <100ms for commands
-- **Memory Usage**: <200MB baseline
-- **Error Rate**: <0.1%
-
-## 🔐 Security
+Ensure these files exist:
+- `.env.production` - Production environment variables
+- `docker-compose.prod.yml` - Production compose configuration
 
 ### Environment Variables
 
-- Never commit `.env` files
-- Use different tokens for development and production
-- Rotate tokens regularly
-- Use strong, unique passwords for MongoDB
+Key variables in `.env.production`:
+```env
+DISCORD_TOKEN=your_bot_token
+DISCORD_CLIENT_ID=your_client_id
+MONGODB_URI=your_mongodb_connection_string
+NODE_ENV=production
+```
 
-### Network Security
+## Monitoring
 
-- Use HTTPS for external connections
-- Configure firewall rules appropriately
-- Monitor for suspicious activity
-- Keep dependencies updated
+### View Live Logs
+```bash
+docker logs role-reactor-bot -f
+```
 
-## 📞 Support
+### Container Status
+```bash
+# Quick status check
+docker ps | grep role-reactor-bot
 
-For deployment issues:
+# Detailed container info
+docker inspect role-reactor-bot
+```
 
-1. Check the logs: `docker logs role-reactor-bot`
-2. Verify environment variables
-3. Test database connectivity
-4. Create an issue on GitHub with logs
+### Health Endpoint
+The bot exposes a health check endpoint:
+```bash
+curl http://localhost:3000/health
+```
+
+## Best Practices
+
+1. **Always use the latest deployment script** for new deployments
+2. **Check logs after deployment** to ensure everything started correctly
+3. **Monitor memory usage** - the bot will show warnings if memory usage is high
+4. **Regular updates** - deploy updates promptly to get bug fixes and new features
+5. **Backup before deployment** - especially if you've made local configuration changes
+
+## Rollback
+
+If you need to rollback to a previous version:
+
+```bash
+# 1. Check available tags
+git tag -l
+
+# 2. Checkout specific version
+git checkout v1.0.0  # Replace with desired version
+
+# 3. Deploy that version
+pnpm run deploy:latest:force
+
+# 4. Return to main branch when ready
+git checkout main
+```
+
+## Advanced Usage
+
+### Custom Docker Commands
+
+If you need more control:
+
+```bash
+# Build specific version
+docker build -t role-reactor-bot:v1.0.1 .
+
+# Run with custom configuration
+docker run -d --name role-reactor-bot \
+  --env-file .env.production \
+  -p 3000:3000 \
+  role-reactor-bot:v1.0.1
+```
+
+### Development Deployment
+
+For development deployment:
+
+```bash
+# Start development environment
+pnpm run docker:dev
+
+# View development logs
+pnpm run docker:dev:logs
+
+# Stop development environment
+pnpm run docker:dev:down
+```
+
+## Support
+
+If you encounter issues:
+
+1. Check this deployment guide
+2. Review the logs: `docker logs role-reactor-bot`
+3. Try the force deployment: `pnpm run deploy:latest:force`
+4. Check the project's GitHub issues
+5. Ensure all required environment variables are set
+
+---
+
+**Last Updated:** 2025-09-16
+**Script Version:** deploy-latest.sh v1.0
