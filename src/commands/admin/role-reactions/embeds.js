@@ -1,5 +1,11 @@
-import { EmbedBuilder } from "discord.js";
+import {
+  EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+} from "discord.js";
 import { THEME_COLOR, THEME } from "../../../config/theme.js";
+import { getLogger } from "../../../utils/logger.js";
 
 // Setup Roles embed
 export function createSetupRolesEmbed(
@@ -26,35 +32,65 @@ export function createSetupRolesEmbed(
     })
     .join("\n");
 
-  embed.addFields({
-    name: "🎭 Available Roles",
-    value: roleList,
-    inline: false,
-  });
-
-  embed.addFields({
-    name: "💡 How to Use",
-    value:
-      "Members can click the reactions below to get or remove roles instantly!",
-    inline: false,
-  });
+  embed.addFields([
+    {
+      name: "🎭 Available Roles",
+      value: roleList,
+      inline: false,
+    },
+    {
+      name: "💡 How to Use",
+      value:
+        "Members can click the reactions below to get or remove roles instantly!",
+      inline: false,
+    },
+  ]);
 
   return embed;
 }
 
-// List Roles embed
-export function createListRolesEmbed(guildMappings, client) {
+// List Roles embed with pagination
+export function createListRolesEmbed(
+  guildMappings,
+  client,
+  page = 1,
+  itemsPerPage = 4,
+  pagination = null,
+) {
+  // Use pagination data if provided, otherwise calculate it
+  const totalPages = pagination
+    ? pagination.totalPages
+    : Math.ceil(guildMappings.length / itemsPerPage);
+  const totalItems = pagination ? pagination.totalItems : guildMappings.length;
+  const startIndex = pagination
+    ? (page - 1) * itemsPerPage
+    : (page - 1) * itemsPerPage;
+  const endIndex = pagination
+    ? startIndex + guildMappings.length
+    : startIndex + itemsPerPage;
+
   const embed = new EmbedBuilder()
     .setTitle("🎭 Role-Reaction Messages")
     .setDescription(
-      `Found **${guildMappings.length}** role-reaction message${guildMappings.length !== 1 ? "s" : ""} in this server.`,
+      `Found **${totalItems}** role-reaction message${totalItems !== 1 ? "s" : ""} in this server.`,
     )
     .setColor(THEME_COLOR)
     .setTimestamp()
     .setFooter({
-      text: "Role Reactor • Click reactions to get roles!",
+      text: `Role Reactor • Page ${page}/${totalPages} • Click reactions to get roles!`,
       iconURL: client.user.displayAvatarURL(),
     });
+
+  if (guildMappings.length === 0) {
+    embed.addFields([
+      {
+        name: "📋 Messages",
+        value: "No role-reaction messages found in this server.",
+        inline: false,
+      },
+    ]);
+    return { embed, totalPages, currentPage: page };
+  }
 
   const roleList = guildMappings
     .map(([messageId, mapping]) => {
@@ -80,9 +116,68 @@ export function createListRolesEmbed(guildMappings, client) {
     })
     .join("\n\n");
 
-  embed.addFields({ name: "📋 Messages", value: roleList, inline: false });
+  // Ensure the field value is not too long (Discord limit is 1024 characters)
+  const fieldValue =
+    roleList || "No role-reaction messages found in this server.";
+  const truncatedValue =
+    fieldValue.length > 1024
+      ? `${fieldValue.substring(0, 1021)}...`
+      : fieldValue;
 
-  return embed;
+  embed.addFields([
+    {
+      name: `📋 Messages (${startIndex + 1}-${Math.min(endIndex, totalItems)} of ${totalItems})`,
+      value: truncatedValue,
+      inline: false,
+    },
+  ]);
+
+  return { embed, totalPages, currentPage: page };
+}
+
+// Create pagination buttons
+export function createPaginationButtons(
+  currentPage,
+  totalPages,
+  customIdPrefix = "rolelist",
+) {
+  const logger = getLogger();
+
+  logger.debug("createPaginationButtons called", { customIdPrefix });
+  const row = new ActionRowBuilder();
+
+  // Previous button
+  const prevCustomId = `${customIdPrefix}_prev_${Math.max(1, currentPage - 1)}`;
+  logger.debug("Generated prevCustomId", { prevCustomId });
+  const prevButton = new ButtonBuilder()
+    .setCustomId(prevCustomId)
+    .setLabel("Previous")
+    .setStyle(ButtonStyle.Secondary)
+    .setEmoji("⬅️")
+    .setDisabled(currentPage <= 1);
+
+  // Next button
+  const nextCustomId = `${customIdPrefix}_next_${Math.min(totalPages, currentPage + 1)}`;
+  logger.debug("Generated nextCustomId", { nextCustomId });
+  const nextButton = new ButtonBuilder()
+    .setCustomId(nextCustomId)
+    .setLabel("Next")
+    .setStyle(ButtonStyle.Secondary)
+    .setEmoji("➡️")
+    .setDisabled(currentPage >= totalPages);
+
+  // Page info button (disabled, just for display)
+  const pageCustomId = `${customIdPrefix}_page_${currentPage}`;
+  logger.debug("Generated pageCustomId", { pageCustomId });
+  const pageButton = new ButtonBuilder()
+    .setCustomId(pageCustomId)
+    .setLabel(`Page ${currentPage}/${totalPages}`)
+    .setStyle(ButtonStyle.Primary)
+    .setDisabled(true);
+
+  row.addComponents(prevButton, pageButton, nextButton);
+
+  return [row];
 }
 
 // Update Roles embed
@@ -105,11 +200,13 @@ export function createUpdatedRolesEmbed(updatedMapping, roleMapping, client) {
     })
     .join("\n");
 
-  embed.addFields({
-    name: "🎭 Available Roles",
-    value: roleList || "No roles available",
-    inline: false,
-  });
+  embed.addFields([
+    {
+      name: "🎭 Available Roles",
+      value: roleList || "No roles available",
+      inline: false,
+    },
+  ]);
 
   return embed;
 }
