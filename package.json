@@ -45,7 +45,10 @@
     "docker:dev:down": "docker compose -f docker-compose.dev.yml down",
     "docker:prod:logs": "docker compose -f docker-compose.prod.yml logs -f",
     "docker:prod:down": "docker compose -f docker-compose.prod.yml down",
-    "fix:permissions": "./scripts/fix-permissions.sh"
+    "fix:permissions": "./scripts/fix-permissions.sh",
+    "deploy:latest": "./scripts/deploy-latest.sh",
+    "deploy:latest:verbose": "./scripts/deploy-latest.sh --verbose",
+    "deploy:latest:force": "./scripts/deploy-latest.sh --force"
   },
   "keywords": [
     "discord",
