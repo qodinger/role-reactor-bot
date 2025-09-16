@@ -54,6 +54,44 @@ export async function handleSetup(interaction, client) {
     );
   }
 
+  // Check channel-specific permissions
+  const channelPermissions = interaction.channel.permissionsFor(interaction.guild.members.me);
+  if (!channelPermissions.has("SendMessages")) {
+    return interaction.editReply(
+      errorEmbed({
+        title: "Missing Channel Permissions",
+        description: "I don't have permission to send messages in this channel.",
+        solution: "Please grant me **Send Messages** permission in this channel and try again.",
+        fields: [
+          {
+            name: "🔧 How to Fix",
+            value:
+              "1. Right-click on this channel → **Edit Channel**\n2. Go to **Permissions** tab\n3. Find my role (Role Reactor) or @everyone\n4. Enable **Send Messages** permission\n5. Make sure no other role is denying this permission",
+            inline: false,
+          },
+        ],
+      }),
+    );
+  }
+
+  if (!channelPermissions.has("EmbedLinks")) {
+    return interaction.editReply(
+      errorEmbed({
+        title: "Missing Channel Permissions",
+        description: "I don't have permission to embed links in this channel.",
+        solution: "Please grant me **Embed Links** permission in this channel and try again.",
+        fields: [
+          {
+            name: "🔧 How to Fix",
+            value:
+              "1. Right-click on this channel → **Edit Channel**\n2. Go to **Permissions** tab\n3. Find my role (Role Reactor) or @everyone\n4. Enable **Embed Links** permission\n5. Make sure no other role is denying this permission",
+            inline: false,
+          },
+        ],
+      }),
+    );
+  }
+
   const title = interaction.options.getString("title");
   const description = interaction.options.getString("description");
   const rolesString = interaction.options.getString("roles");
@@ -88,7 +126,26 @@ export async function handleSetup(interaction, client) {
     client,
   );
 
-  const message = await interaction.channel.send({ embeds: [embed] });
+  let message;
+  try {
+    message = await interaction.channel.send({ embeds: [embed] });
+  } catch (error) {
+    return interaction.editReply(
+      errorEmbed({
+        title: "Failed to Send Message",
+        description: `Unable to send the role-reaction message to this channel: ${error.message}`,
+        solution: "Please check my permissions in this channel and try again.",
+        fields: [
+          {
+            name: "🔧 Required Permissions",
+            value:
+              "• **Send Messages** - To send the role-reaction message\n• **Embed Links** - To create rich embeds\n• **Add Reactions** - To add emoji reactions",
+            inline: false,
+          },
+        ],
+      }),
+    );
+  }
 
   const limiter = pLimit(3);
   await Promise.all(
