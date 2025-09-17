@@ -8,19 +8,32 @@ The Role Reactions command lets administrators create, manage, and maintain role
 
 ```
 role-reactions/
-├── index.js          # Command definition, subcommands, entry point
-├── handlers.js       # Core logic for setup/list/delete/update flows
-├── embeds.js         # Discord embed creation for all views
-├── utils.js          # Helpers (role processing, mapping, color choices)
-└── README.md         # This documentation
+├── index.js              # Command definition, subcommands, entry point
+├── handlers.js           # Main command handlers (setup/list/delete/update)
+├── embeds.js             # Discord embed creation for all views
+├── utils.js              # Core utilities (role processing, mapping, color choices)
+├── validation.js         # Interaction validation and bot member checks
+├── deferral.js           # Safe interaction deferral with timeout protection
+├── permissions.js        # Guild and channel permission validation
+├── messageOperations.js  # Message creation, reaction handling, and role mapping
+└── README.md             # This documentation
 ```
 
 ## Architecture
 
+### **Core Files**
+
 - **`index.js`**: Defines `/role-reactions` with subcommands (`setup`, `list`, `delete`, `update`), routes to handlers, validates permissions, and defers interactions.
-- **`handlers.js`**: Implements business logic for creating, listing, deleting, and updating role-reaction messages; orchestrates embeds and utils.
+- **`handlers.js`**: Main command handlers that orchestrate the business logic flow using utility modules.
 - **`embeds.js`**: Builds all rich embeds used across subcommands for setup, listing, and updates.
-- **`utils.js`**: Role processing utilities, role mapping functions, color choices, and common helpers.
+- **`utils.js`**: Core utilities for role processing, role mapping functions, and color choices.
+
+### **Utility Modules**
+
+- **`validation.js`**: Interaction validation, bot member availability checks, and standardized error responses.
+- **`deferral.js`**: Safe interaction deferral with timeout protection for both commands and button updates.
+- **`permissions.js`**: Comprehensive permission validation for guild-level and channel-level permissions.
+- **`messageOperations.js`**: Message creation, reaction handling, role input processing, and role mapping persistence.
 
 ## Subcommands
 
@@ -54,7 +67,7 @@ role-reactions/
 - Pastel color palette with visual emoji indicators
 - Role format: "emoji @role" or "emoji rolename"
 - Automatic reaction addition to messages
-- List view shows all configured role-reaction messages
+- Paginated list view (4 items per page) with navigation buttons
 - Update functionality for modifying existing messages
 
 ## Error Handling
