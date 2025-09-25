@@ -3,7 +3,7 @@ import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 import {
   getScheduledRoles,
   getRecurringSchedules,
-} from "../../../utils/discord/enhancedTemporaryRoles.js";
+} from "../../../utils/discord/temporaryRoles.js";
 import {
   createScheduledRolesEmbed,
   createRecurringSchedulesEmbed,

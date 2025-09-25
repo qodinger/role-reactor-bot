@@ -3,13 +3,13 @@ import { getStorageManager } from "../../utils/storage/storageManager.js";
 import {
   processScheduledRoles,
   processRecurringSchedules,
-} from "../../utils/discord/enhancedTemporaryRoles.js";
-import { addTemporaryRole } from "../../utils/discord/temporaryRoles.js";
+  addTemporaryRole,
+} from "../../utils/discord/temporaryRoles.js";
 
 /**
- * Enhanced Role Scheduler for handling scheduled and recurring temporary roles
+ * Role Scheduler for handling scheduled and recurring temporary roles
  */
-export class EnhancedRoleScheduler {
+export class RoleScheduler {
   constructor(client) {
     this.client = client;
     this.logger = getLogger();
@@ -20,21 +20,21 @@ export class EnhancedRoleScheduler {
   }
 
   /**
-   * Start the enhanced role scheduler
+   * Start the role scheduler
    */
   start() {
     if (this.isRunning) {
-      this.logger.warn("⚠️ Enhanced role scheduler is already running");
+      this.logger.warn("⚠️ Role scheduler is already running");
       return;
     }
 
-    this.logger.info("🚀 Starting enhanced role scheduler...");
+    this.logger.info("🚀 Starting role scheduler...");
     this.isRunning = true;
 
     // Run every minute to check for scheduled and recurring roles
     this.interval = setInterval(async () => {
       try {
-        this.logger.debug("🕐 Enhanced scheduler cleanup triggered");
+        this.logger.debug("🕐 Scheduler cleanup triggered");
         await this.processScheduledRoles();
         await this.processRecurringSchedules();
         await this.processExpiredTemporaryRoles();
@@ -46,13 +46,11 @@ export class EnhancedRoleScheduler {
           this.lastCleanupTime = now;
         }
       } catch (error) {
-        this.logger.error("❌ Error in enhanced role scheduler", error);
+        this.logger.error("❌ Error in role scheduler", error);
       }
     }, 60000).unref();
 
-    this.logger.success(
-      "✅ Enhanced role scheduler started (runs every 60 seconds)",
-    );
+    this.logger.success("✅ Role scheduler started (runs every 60 seconds)");
 
     // Run initial cleanup
     this.processScheduledRoles();
@@ -63,7 +61,7 @@ export class EnhancedRoleScheduler {
   }
 
   /**
-   * Stop the enhanced role scheduler
+   * Stop the role scheduler
    */
   stop() {
     if (this.interval) {

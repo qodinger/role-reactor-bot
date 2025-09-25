@@ -4,7 +4,7 @@ import {
   createRecurringRoleSchedule,
   findScheduleById,
   cancelSchedule,
-} from "../../../utils/discord/enhancedTemporaryRoles.js";
+} from "../../../utils/discord/temporaryRoles.js";
 import {
   parseOneTimeSchedule,
   parseRecurringSchedule,
