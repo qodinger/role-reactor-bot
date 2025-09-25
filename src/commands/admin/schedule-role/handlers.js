@@ -1,26 +1,21 @@
 import { getLogger } from "../../../utils/logger.js";
-import { errorEmbed } from "../../../utils/discord/responseMessages.js";
-import {
-  scheduleTemporaryRole,
-  createRecurringRoleSchedule,
-  findScheduleById,
-  cancelSchedule,
-} from "../../../utils/discord/enhancedTemporaryRoles.js";
-import {
-  parseOneTimeSchedule,
-  parseRecurringSchedule,
-  getScheduleHelpText,
-} from "../../../utils/scheduleParser.js";
 import {
   createOneTimeScheduleEmbed,
   createRecurringScheduleEmbed,
 } from "./embeds.js";
-import {
-  extractScheduleOptions,
-  validateScheduleInputs,
-  formatDisplayId,
-} from "./utils.js";
+import { extractScheduleOptions, formatDisplayId } from "./utils.js";
 import { THEME } from "../../../config/theme.js";
+
+// Import refactored utility modules
+import { validateInteraction, validateScheduleOptions } from "./validation.js";
+import { handleDeferral, sendResponse } from "./deferral.js";
+import { handleCommandError } from "./errorHandling.js";
+import {
+  createOneTimeSchedule as createOneTimeScheduleOp,
+  createRecurringSchedule as createRecurringScheduleOp,
+  cancelScheduleById,
+  getScheduleById,
+} from "./scheduleOperations.js";
 
 // ============================================================================
 // SCHEDULE CREATION HANDLERS
@@ -28,133 +23,108 @@ import { THEME } from "../../../config/theme.js";
 
 export async function handleScheduleRole(interaction, deferred = true) {
   const logger = getLogger();
-  const options = extractScheduleOptions(interaction);
-
-  logger.debug("Options received:", options);
-
-  // Validate inputs
-  const validation = await validateScheduleInputs(interaction, options);
-  if (!validation.valid) {
-    if (deferred) {
-      return await interaction.editReply(validation.error);
-    } else {
-      return await interaction.reply({ ...validation.error, flags: 64 });
-    }
-  }
 
   try {
+    // Validate interaction only if not already deferred
+    if (!deferred) {
+      const validation = validateInteraction(interaction);
+      if (!validation.success) {
+        return;
+      }
+    }
+
+    // Handle deferral if not already deferred
+    if (!deferred) {
+      const deferResult = await handleDeferral(interaction);
+      if (!deferResult.success) {
+        if (deferResult.isExpired) {
+          logger.warn("Interaction expired during deferral");
+        }
+        return;
+      }
+      deferred = true; // Update deferred status
+    }
+
+    // Extract and validate options
+    const options = extractScheduleOptions(interaction);
+    logger.debug("Options received", { options });
+
+    const optionsValidation = validateScheduleOptions(options);
+    if (!optionsValidation.success) {
+      return await sendResponse(
+        interaction,
+        optionsValidation.errorResponse,
+        deferred,
+      );
+    }
+
+    const { userIds } = optionsValidation.data;
+    const validatedOptions = { ...options, userIds };
+
+    // Create schedule based on type
     let result;
     let embed;
 
-    if (options.type === "one-time") {
-      result = await createOneTimeSchedule(interaction, options);
-      embed = createOneTimeScheduleEmbed(result, options);
-    } else {
-      // Parse the recurring schedule first to get the details for the embed
-      const parsedSchedule = parseRecurringSchedule(
-        options.type,
-        options.schedule,
+    if (validatedOptions.type === "one-time") {
+      const scheduleResult = await createOneTimeScheduleOp(
+        interaction,
+        validatedOptions,
       );
-      if (!parsedSchedule) {
-        const errorResponse = {
-          ...errorEmbed({
-            title: "Invalid Schedule Details",
-            description: getScheduleHelpText(options.type),
-          }),
-        };
-        if (deferred) {
-          return await interaction.editReply(errorResponse);
-        } else {
-          return await interaction.reply({ ...errorResponse, flags: 64 });
-        }
+      if (!scheduleResult.success) {
+        return await sendResponse(
+          interaction,
+          scheduleResult.errorResponse,
+          deferred,
+        );
       }
+      result = scheduleResult.data;
+      embed = createOneTimeScheduleEmbed(result, validatedOptions);
+    } else {
+      const scheduleResult = await createRecurringScheduleOp(
+        interaction,
+        validatedOptions,
+      );
+      if (!scheduleResult.success) {
+        return await sendResponse(
+          interaction,
+          scheduleResult.errorResponse,
+          deferred,
+        );
+      }
+      result = scheduleResult.data;
 
-      result = await createRecurringSchedule(interaction, options);
-      embed = createRecurringScheduleEmbed(result, options, parsedSchedule);
+      // Parse schedule for embed details
+      const { parseRecurringSchedule } = await import(
+        "../../../utils/scheduleParser.js"
+      );
+      const parsedSchedule = parseRecurringSchedule(
+        validatedOptions.type,
+        validatedOptions.schedule,
+      );
+      embed = createRecurringScheduleEmbed(
+        result,
+        validatedOptions,
+        parsedSchedule,
+      );
     }
 
-    if (!result) {
-      const errorResponse = {
-        ...errorEmbed({
-          title: "Creation Failed",
-          description: "Failed to create the schedule. Please try again.",
-        }),
-      };
-      if (deferred) {
-        return await interaction.editReply(errorResponse);
-      } else {
-        return await interaction.reply({ ...errorResponse, flags: 64 });
-      }
-    }
-
-    if (deferred) {
-      await interaction.editReply({
+    // Send success response
+    await sendResponse(
+      interaction,
+      {
         embeds: [embed],
         ephemeral: false,
-      });
-    } else {
-      await interaction.reply({
-        embeds: [embed],
-        flags: 64,
-      });
-    }
+      },
+      deferred,
+    );
+
+    logger.debug("Schedule creation completed successfully", {
+      type: validatedOptions.type,
+      scheduleId: result.scheduleId,
+    });
   } catch (error) {
-    logger.error("Error creating schedule:", error);
-    const errorResponse = {
-      ...errorEmbed({
-        title: "Creation Failed",
-        description:
-          "An error occurred while creating the schedule. Please try again.",
-      }),
-    };
-    if (deferred) {
-      await interaction.editReply(errorResponse);
-    } else {
-      await interaction.reply({ ...errorResponse, flags: 64 });
-    }
+    await handleCommandError(interaction, error, "schedule creation", deferred);
   }
-}
-
-// ============================================================================
-// SCHEDULE CREATION FUNCTIONS
-// ============================================================================
-
-async function createOneTimeSchedule(interaction, options) {
-  const scheduleTime = parseOneTimeSchedule(options.schedule);
-  if (!scheduleTime) {
-    throw new Error("Invalid schedule format");
-  }
-
-  const { userIds } = await validateScheduleInputs(interaction, options);
-
-  return await scheduleTemporaryRole(
-    interaction.guild.id,
-    userIds,
-    options.role.id,
-    scheduleTime,
-    options.duration,
-    options.reason,
-    interaction.user.id,
-  );
-}
-
-async function createRecurringSchedule(interaction, options) {
-  const schedule = parseRecurringSchedule(options.type, options.schedule);
-  if (!schedule) {
-    throw new Error("Invalid recurring schedule format");
-  }
-
-  const { userIds } = await validateScheduleInputs(interaction, options);
-
-  return await createRecurringRoleSchedule(
-    interaction.guild.id,
-    userIds,
-    options.role.id,
-    schedule,
-    options.duration,
-    options.reason,
-    interaction.user.id,
-  );
 }
 
 // ============================================================================
@@ -163,91 +133,87 @@ async function createRecurringSchedule(interaction, options) {
 
 export async function handleCancel(interaction, deferred = true) {
   const logger = getLogger();
-  const scheduleId = interaction.options.getString("id");
 
   try {
-    const schedule = await findScheduleById(scheduleId);
-
-    if (!schedule) {
-      const errorResponse = {
-        ...errorEmbed({
-          title: "Schedule Not Found",
-          description: `Could not find a schedule with ID \`${scheduleId}\`.`,
-          solution:
-            "Use `/schedule-role list` to see all available schedules and their IDs.",
-        }),
-      };
-      if (deferred) {
-        return await interaction.editReply(errorResponse);
-      } else {
-        return await interaction.reply({ ...errorResponse, flags: 64 });
+    // Validate interaction only if not already deferred
+    if (!deferred) {
+      const validation = validateInteraction(interaction);
+      if (!validation.success) {
+        return;
       }
     }
 
-    const success = await cancelSchedule(schedule.scheduleId);
-
-    if (success) {
-      const roleName =
-        interaction.guild.roles.cache.get(schedule.roleId)?.name ||
-        "Unknown Role";
-
-      const successResponse = {
-        embeds: [
-          new (await import("discord.js")).EmbedBuilder()
-            .setTitle("✅ Schedule Cancelled")
-            .setDescription(
-              `Successfully cancelled the schedule for **${roleName}**`,
-            )
-            .addFields(
-              {
-                name: "Schedule ID",
-                value: `\`${formatDisplayId(schedule.scheduleId)}\``,
-                inline: true,
-              },
-              { name: "Status", value: "🚫 **Cancelled**", inline: true },
-              {
-                name: "Users",
-                value: `${schedule.userIds.length} user(s)`,
-                inline: true,
-              },
-            )
-            .setColor(THEME.SUCCESS)
-            .setTimestamp(),
-        ],
-        ephemeral: false,
-      };
-
-      if (deferred) {
-        await interaction.editReply(successResponse);
-      } else {
-        await interaction.reply({ ...successResponse, flags: 64 });
+    // Handle deferral if not already deferred
+    if (!deferred) {
+      const deferResult = await handleDeferral(interaction);
+      if (!deferResult.success) {
+        if (deferResult.isExpired) {
+          logger.warn("Interaction expired during deferral");
+        }
+        return;
       }
-    } else {
-      const errorResponse = {
-        ...errorEmbed({
-          title: "Cancellation Failed",
-          description: "Failed to cancel the schedule. Please try again.",
-        }),
-      };
-      if (deferred) {
-        await interaction.editReply(errorResponse);
-      } else {
-        await interaction.reply({ ...errorResponse, flags: 64 });
-      }
+      deferred = true; // Update deferred status
     }
-  } catch (error) {
-    logger.error("Error cancelling schedule:", error);
-    const errorResponse = {
-      ...errorEmbed({
-        title: "Cancellation Error",
-        description: "An error occurred while trying to cancel the schedule.",
-      }),
+
+    const scheduleId = interaction.options.getString("id");
+    logger.debug("Cancelling schedule", { scheduleId });
+
+    // Cancel the schedule
+    const cancelResult = await cancelScheduleById(scheduleId);
+    if (!cancelResult.success) {
+      return await sendResponse(
+        interaction,
+        cancelResult.errorResponse,
+        deferred,
+      );
+    }
+
+    const schedule = cancelResult.data;
+    const roleName =
+      interaction.guild.roles.cache.get(schedule.roleId)?.name ||
+      "Unknown Role";
+
+    // Create success response
+    const { EmbedBuilder } = await import("discord.js");
+    const successResponse = {
+      embeds: [
+        new EmbedBuilder()
+          .setTitle("✅ Schedule Cancelled")
+          .setDescription(
+            `Successfully cancelled the schedule for **${roleName}**`,
+          )
+          .addFields(
+            {
+              name: "Schedule ID",
+              value: `\`${formatDisplayId(schedule.scheduleId)}\``,
+              inline: true,
+            },
+            { name: "Status", value: "🚫 **Cancelled**", inline: true },
+            {
+              name: "Users",
+              value: `${schedule.userIds.length} user(s)`,
+              inline: true,
+            },
+          )
+          .setColor(THEME.SUCCESS)
+          .setTimestamp(),
+      ],
+      ephemeral: false,
     };
-    if (deferred) {
-      await interaction.editReply(errorResponse);
-    } else {
-      await interaction.reply({ ...errorResponse, flags: 64 });
-    }
+
+    await sendResponse(interaction, successResponse, deferred);
+
+    logger.debug("Schedule cancellation completed successfully", {
+      scheduleId,
+      originalScheduleId: schedule.scheduleId,
+    });
+  } catch (error) {
+    await handleCommandError(
+      interaction,
+      error,
+      "schedule cancellation",
+      deferred,
+    );
   }
 }
 
@@ -257,53 +223,61 @@ export async function handleCancel(interaction, deferred = true) {
 
 export async function handleView(interaction, deferred = true) {
   const logger = getLogger();
-  const scheduleId = interaction.options.getString("id");
 
   try {
-    const schedule = await findScheduleById(scheduleId);
-
-    if (!schedule) {
-      const errorResponse = {
-        ...errorEmbed({
-          title: "Schedule Not Found",
-          description: `Could not find a schedule with ID \`${scheduleId}\`.`,
-          solution:
-            "Use `/schedule-role list` to see all available schedules and their IDs.",
-        }),
-      };
-      if (deferred) {
-        return await interaction.editReply(errorResponse);
-      } else {
-        return await interaction.reply({ ...errorResponse, flags: 64 });
+    // Validate interaction only if not already deferred
+    if (!deferred) {
+      const validation = validateInteraction(interaction);
+      if (!validation.success) {
+        return;
       }
     }
 
+    // Handle deferral if not already deferred
+    if (!deferred) {
+      const deferResult = await handleDeferral(interaction);
+      if (!deferResult.success) {
+        if (deferResult.isExpired) {
+          logger.warn("Interaction expired during deferral");
+        }
+        return;
+      }
+      deferred = true; // Update deferred status
+    }
+
+    const scheduleId = interaction.options.getString("id");
+    logger.debug("Viewing schedule", { scheduleId });
+
+    // Get the schedule
+    const scheduleResult = await getScheduleById(scheduleId);
+    if (!scheduleResult.success) {
+      return await sendResponse(
+        interaction,
+        scheduleResult.errorResponse,
+        deferred,
+      );
+    }
+
+    const schedule = scheduleResult.data;
+
+    // Create detail embed
     const { createScheduleDetailEmbed } = await import("./embeds.js");
     const embed = createScheduleDetailEmbed(schedule, interaction.guild);
 
-    if (deferred) {
-      await interaction.editReply({
+    await sendResponse(
+      interaction,
+      {
         embeds: [embed],
         ephemeral: false,
-      });
-    } else {
-      await interaction.reply({
-        embeds: [embed],
-        flags: 64,
-      });
-    }
+      },
+      deferred,
+    );
+
+    logger.debug("Schedule view completed successfully", {
+      scheduleId,
+      originalScheduleId: schedule.scheduleId,
+    });
   } catch (error) {
-    logger.error("Error viewing schedule:", error);
-    const errorResponse = {
-      ...errorEmbed({
-        title: "View Error",
-        description: "An error occurred while trying to view the schedule.",
-      }),
-    };
-    if (deferred) {
-      await interaction.editReply(errorResponse);
-    } else {
-      await interaction.reply({ ...errorResponse, flags: 64 });
-    }
+    await handleCommandError(interaction, error, "schedule view", deferred);
   }
 }
