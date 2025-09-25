@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pagination Support: Implemented paginated database queries for role-reactions list command with 4 items per page
 - Guild Validation: Added guildId parameter validation to getRoleMapping function for proper message lookup
 
+### Removed
+
+- Serverinfo Command: Removed `/serverinfo` command and all related files to reduce bot complexity and remove dependency on presence data
+
 ### Changed
 
 - Logging Architecture: Migrated from console.log to structured logger with configurable log levels

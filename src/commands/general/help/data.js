@@ -72,7 +72,6 @@ export function getCommandEmoji(commandName) {
     xp: EMOJIS.FEATURES.EXPERIENCE,
 
     // Info commands
-    serverinfo: EMOJIS.UI.SERVER,
     userinfo: EMOJIS.UI.USER,
     info: EMOJIS.UI.INFO,
 
@@ -174,7 +173,6 @@ export const COMMAND_CATEGORIES = {
       "invite",
       "support",
       "sponsor",
-      "serverinfo",
       "userinfo",
       "avatar",
       "8ball",

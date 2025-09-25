@@ -116,7 +116,6 @@ class Config {
       guildMembers: true,
       guildMessages: true,
       guildMessageReactions: true,
-      messageContent: true,
     };
   }
 

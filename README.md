@@ -243,7 +243,6 @@ The XP system is **disabled by default** and must be enabled by server administr
 
 ```
 /avatar user:@username
-/serverinfo
 /level user:@username
 /leaderboard
 ```
@@ -298,7 +297,6 @@ The XP system is **disabled by default** and must be enabled by server administr
 | `/sponsor`     | Support bot development (donations)            | None        |
 | `/8ball`       | Ask the magic 8ball with intelligent responses | None        |
 | `/avatar`      | Display user avatar in high resolution         | None        |
-| `/serverinfo`  | Display detailed server information            | None        |
 | `/level`       | Check user XP level and statistics             | None        |
 | `/leaderboard` | View server XP leaderboard                     | None        |
 

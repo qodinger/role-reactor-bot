@@ -846,27 +846,6 @@ export class HelpEmbedBuilder {
         );
         break;
 
-      case "serverinfo":
-        embed.addFields(
-          {
-            name: `${EMOJIS.FEATURES.SERVER} 🏠 How to Use`,
-            value: "```/serverinfo```",
-            inline: false,
-          },
-          {
-            name: `${EMOJIS.UI.MENU} 📝 What You Need`,
-            value: "No parameters needed - just run the command!",
-            inline: false,
-          },
-          {
-            name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
-            value:
-              "Comprehensive server information including member count, creation date, owner details, channel counts, role information, and server features!",
-            inline: false,
-          },
-        );
-        break;
-
       case "sponsor":
         embed.addFields(
           {
