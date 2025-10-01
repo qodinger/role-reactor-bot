@@ -34,7 +34,7 @@ export function createGoodbyeConfigModal(currentSettings = {}) {
     .setLabel("Goodbye Message")
     .setStyle(TextInputStyle.Paragraph)
     .setPlaceholder(
-      "Enter goodbye message (use placeholders like {user}, {server}, {memberCount})",
+      "Enter goodbye message (use {user}, {server}, {memberCount})\nExample: **{user}** left the server",
     )
     .setValue(currentSettings.message || "")
     .setRequired(false);

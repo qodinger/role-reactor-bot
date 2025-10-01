@@ -89,7 +89,8 @@ export async function handleGoodbyeConfigModal(interaction) {
     const newSettings = {
       channelId,
       message:
-        messageInput || "Goodbye {user}! Thanks for being part of {server}!",
+        messageInput ||
+        "**{user}** left the server\nThanks for being part of **{server}**! 👋",
       enabled,
       embedEnabled,
     };

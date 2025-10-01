@@ -1,5 +1,5 @@
 import { EmbedBuilder } from "discord.js";
-import { THEME_COLOR, EMOJIS } from "../../config/theme.js";
+import { THEME_COLOR } from "../../config/theme.js";
 
 /**
  * Process goodbye message with placeholders
@@ -28,45 +28,38 @@ export function processGoodbyeMessage(message, member) {
 export function createGoodbyeEmbed(settings, member) {
   const embed = new EmbedBuilder()
     .setColor(settings.embedColor || THEME_COLOR)
-    .setTitle(
-      processGoodbyeMessage(
-        settings.embedTitle || "👋 Goodbye from {server}!",
-        member,
-      ),
-    )
+    .setAuthor({
+      name: `${member.user.username} left the server`,
+      iconURL: member.user.displayAvatarURL({ dynamic: true, size: 64 }),
+    })
     .setDescription(
       processGoodbyeMessage(
         settings.message ||
-          "Goodbye {user}! Thanks for being part of {server}! 👋",
+          "**{user}** left the server\nThanks for being part of **{server}**! 👋",
         member,
       ),
     )
+    .addFields({
+      name: "",
+      value: "",
+      inline: false,
+    })
+    .addFields({
+      name: "📊 Server Statistics",
+      value: `**${member.guild.memberCount}** members remaining`,
+      inline: true,
+    })
+    .addFields({
+      name: "⏰ Left At",
+      value: `<t:${Math.floor(Date.now() / 1000)}:F>`,
+      inline: true,
+    })
+    .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 256 }))
     .setTimestamp()
     .setFooter({
-      text: `${EMOJIS.FEATURES.ROLES} Goodbye System • ${member.guild.name}`,
+      text: `${member.guild.name} • Goodbye System`,
       iconURL: member.client.user.displayAvatarURL(),
     });
-
-  // Add thumbnail if enabled
-  if (settings.embedThumbnail !== false) {
-    embed.setThumbnail(
-      member.user.displayAvatarURL({ dynamic: true, size: 256 }),
-    );
-  }
-
-  // Add fields with member information
-  embed.addFields([
-    {
-      name: `${EMOJIS.UI.USERS} Farewell`,
-      value: `**👤 Name:** ${member.user.username}\n**📅 Left:** <t:${Math.floor(Date.now() / 1000)}:R>\n**🎯 Was:** ${getOrdinal(member.guild.memberCount + 1)} member`,
-      inline: true,
-    },
-    {
-      name: `${EMOJIS.UI.INFO} Server`,
-      value: `**👥 Members:** ${member.guild.memberCount}\n**🏠 Server:** ${member.guild.name}`,
-      inline: true,
-    },
-  ]);
 
   return embed;
 }

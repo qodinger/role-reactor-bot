@@ -693,7 +693,8 @@ class GoodbyeSettingsRepository extends BaseRepository {
           guildId,
           enabled: false,
           channelId: null,
-          message: "Goodbye {user}! Thanks for being part of {server}! 👋",
+          message:
+            "**{user}** left the server\nThanks for being part of **{server}**! 👋",
           embedEnabled: true,
           embedColor: 0x7f7bf5,
           embedTitle: "👋 Goodbye from {server}!",
