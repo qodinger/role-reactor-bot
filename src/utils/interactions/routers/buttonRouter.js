@@ -1,13 +1,13 @@
 import { getLogger } from "../../logger.js";
 
 /**
- * Button interaction router
- * Routes button interactions to appropriate handlers based on customId patterns
+ * Message component interaction router
+ * Routes button and select menu interactions to appropriate handlers based on customId patterns
  */
 
 /**
- * Route button interaction to appropriate handler
- * @param {import('discord.js').ButtonInteraction} interaction - The button interaction
+ * Route message component interaction to appropriate handler
+ * @param {import('discord.js').MessageComponentInteraction} interaction - The message component interaction
  * @param {import('discord.js').Client} _client - The Discord client (unused but kept for consistency)
  */
 export async function routeButtonInteraction(interaction, _client) {
@@ -15,6 +15,22 @@ export async function routeButtonInteraction(interaction, _client) {
   const { customId } = interaction;
 
   try {
+    // Handle select menu interactions
+    if (interaction.isStringSelectMenu()) {
+      if (customId === "goodbye_channel_select") {
+        const { handleGoodbyeChannelSelect } = await import(
+          "../handlers/goodbyeChannelSelectHandler.js"
+        );
+        await handleGoodbyeChannelSelect(interaction);
+        return;
+      }
+
+      // Add more select menu routing patterns here as needed
+      logger.debug(`Unknown select menu interaction: ${customId}`);
+      return;
+    }
+
+    // Handle button interactions
     // Route based on customId patterns
     if (customId.startsWith("leaderboard_")) {
       const { handleLeaderboardButton } = await import(
@@ -159,6 +175,51 @@ export async function routeButtonInteraction(interaction, _client) {
           "../handlers/sponsorHandlers.js"
         );
         await handleSponsorPerks(interaction);
+        break;
+      }
+
+      // Goodbye system buttons
+      case "goodbye_configure":
+      case "goodbye_edit": {
+        const { handleGoodbyeConfigure } = await import(
+          "../handlers/goodbyeHandlers.js"
+        );
+        await handleGoodbyeConfigure(interaction);
+        break;
+      }
+      case "goodbye_toggle": {
+        const { handleGoodbyeToggle } = await import(
+          "../handlers/goodbyeHandlers.js"
+        );
+        await handleGoodbyeToggle(interaction);
+        break;
+      }
+      case "goodbye_reset": {
+        const { handleGoodbyeReset } = await import(
+          "../handlers/goodbyeHandlers.js"
+        );
+        await handleGoodbyeReset(interaction);
+        break;
+      }
+      case "goodbye_format": {
+        const { handleGoodbyeFormat } = await import(
+          "../handlers/goodbyeHandlers.js"
+        );
+        await handleGoodbyeFormat(interaction);
+        break;
+      }
+      case "goodbye_test": {
+        const { handleGoodbyeTest } = await import(
+          "../handlers/goodbyeHandlers.js"
+        );
+        await handleGoodbyeTest(interaction);
+        break;
+      }
+      case "goodbye_settings": {
+        const { handleGoodbyeEdit } = await import(
+          "../handlers/goodbyeHandlers.js"
+        );
+        await handleGoodbyeEdit(interaction);
         break;
       }
 

@@ -404,6 +404,33 @@ export function roleStatsEmbed({
   };
 }
 
+export function successEmbed({
+  title,
+  description,
+  solution = null,
+  fields = [],
+}) {
+  const embedFields = [...fields];
+
+  if (solution) {
+    embedFields.push({
+      name: `${EMOJIS.UI.CHECKMARK} What's Next?`,
+      value: solution,
+      inline: false,
+    });
+  }
+
+  const embed = embedFactory.create("SUCCESS", {
+    title,
+    description,
+    fields: embedFields,
+  });
+
+  return {
+    embeds: [embed],
+  };
+}
+
 export function helpEmbed({
   commandName,
   description,

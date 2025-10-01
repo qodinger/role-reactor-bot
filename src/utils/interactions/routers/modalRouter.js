@@ -22,6 +22,14 @@ export async function routeModalInteraction(interaction, _client) {
       return;
     }
 
+    if (customId === "goodbye_config_modal") {
+      const { handleGoodbyeConfigModal } = await import(
+        "../handlers/goodbyeModalHandler.js"
+      );
+      await handleGoodbyeConfigModal(interaction);
+      return;
+    }
+
     // Add more modal routing patterns here as needed
     logger.debug(`Unknown modal interaction: ${customId}`);
   } catch (error) {
