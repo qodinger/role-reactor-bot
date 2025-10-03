@@ -619,7 +619,7 @@ class WelcomeSettingsRepository extends BaseRepository {
           guildId,
           enabled: false,
           channelId: null,
-          message: "Welcome {user} to {server}! 🎉",
+          message: "Welcome **{user}** to **{server}**! 🎉",
           autoRoleId: null,
           embedEnabled: true,
           embedColor: 0x7f7bf5,

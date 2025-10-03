@@ -30,6 +30,14 @@ export async function routeModalInteraction(interaction, _client) {
       return;
     }
 
+    if (customId === "welcome_config_modal") {
+      const { handleWelcomeConfigModal } = await import(
+        "../handlers/welcomeModalHandler.js"
+      );
+      await handleWelcomeConfigModal(interaction);
+      return;
+    }
+
     // Add more modal routing patterns here as needed
     logger.debug(`Unknown modal interaction: ${customId}`);
   } catch (error) {

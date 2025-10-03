@@ -1,5 +1,5 @@
 import { EmbedBuilder } from "discord.js";
-import { THEME_COLOR, EMOJIS } from "../../config/theme.js";
+import { THEME_COLOR } from "../../config/theme.js";
 
 /**
  * Process welcome message with placeholders
@@ -28,44 +28,37 @@ export function processWelcomeMessage(message, member) {
 export function createWelcomeEmbed(settings, member) {
   const embed = new EmbedBuilder()
     .setColor(settings.embedColor || THEME_COLOR)
-    .setTitle(
-      processWelcomeMessage(
-        settings.embedTitle || "🎉 Welcome to {server}!",
-        member,
-      ),
-    )
+    .setAuthor({
+      name: `${member.user.username} joined the server`,
+      iconURL: member.user.displayAvatarURL({ dynamic: true, size: 64 }),
+    })
     .setDescription(
       processWelcomeMessage(
-        settings.message || "Welcome {user} to {server}! 🎉",
+        settings.message || "Welcome **{user}** to **{server}**! 🎉",
         member,
       ),
     )
+    .addFields({
+      name: "",
+      value: "",
+      inline: false,
+    })
+    .addFields({
+      name: "📊 Server Statistics",
+      value: `**${member.guild.memberCount}** members total`,
+      inline: true,
+    })
+    .addFields({
+      name: "⏰ Joined At",
+      value: `<t:${Math.floor(Date.now() / 1000)}:F>`,
+      inline: true,
+    })
+    .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 256 }))
     .setTimestamp()
     .setFooter({
-      text: `${EMOJIS.FEATURES.ROLES} Welcome System • ${member.guild.name}`,
+      text: `${member.guild.name} • Welcome System`,
       iconURL: member.client.user.displayAvatarURL(),
     });
-
-  // Add thumbnail if enabled
-  if (settings.embedThumbnail !== false) {
-    embed.setThumbnail(
-      member.user.displayAvatarURL({ dynamic: true, size: 256 }),
-    );
-  }
-
-  // Add fields with member information (simplified)
-  embed.addFields([
-    {
-      name: `${EMOJIS.UI.USERS} Welcome`,
-      value: `**👤 Name:** ${member.user.username}\n**📅 Joined:** <t:${Math.floor(member.joinedTimestamp / 1000)}:R>\n**🎯 You are:** ${getOrdinal(member.guild.memberCount)} member`,
-      inline: true,
-    },
-    {
-      name: `${EMOJIS.UI.INFO} Server`,
-      value: `**👥 Members:** ${member.guild.memberCount}\n**🏠 Server:** ${member.guild.name}`,
-      inline: true,
-    },
-  ]);
 
   return embed;
 }
