@@ -533,7 +533,6 @@ function calculateNextRun(schedule) {
 export function validateScheduleTime(timeInput) {
   try {
     const input = timeInput.toLowerCase().trim();
-    console.log(`[DEBUG] validateScheduleTime input: "${input}"`);
 
     // Handle relative time expressions
     if (input.startsWith("in ")) {
@@ -544,7 +543,6 @@ export function validateScheduleTime(timeInput) {
     if (input.includes("today")) {
       const today = new Date();
       const result = parseTimeOfDay(today, input);
-      console.log(`[DEBUG] today parseTimeOfDay result:`, result);
       return result;
     }
 
@@ -567,14 +565,11 @@ export function validateScheduleTime(timeInput) {
     if (input.includes(":") && !input.includes("-") && !input.includes("/")) {
       const today = new Date();
       const result = parseTimeOfDay(today, input);
-      console.log(`[DEBUG] parseTimeOfDay result:`, result);
       return result;
     }
 
-    console.log(`[DEBUG] validateScheduleTime result: null`);
     return null;
   } catch (_error) {
-    console.log(`[DEBUG] validateScheduleTime error:`, _error);
     return null;
   }
 }

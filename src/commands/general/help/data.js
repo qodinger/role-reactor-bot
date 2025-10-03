@@ -1,5 +1,6 @@
 import { THEME, EMOJIS } from "../../../config/theme.js";
 import { getCommandHandler } from "../../../utils/core/commandHandler.js";
+import { getLogger } from "../../../utils/logger.js";
 
 /**
  * Automatically generate smart tags for commands based on name and description
@@ -205,7 +206,8 @@ export function generateCommandMetadata(client) {
 
   // Safety check for client and commands collection
   if (!client || !client.commands) {
-    console.warn(
+    const logger = getLogger();
+    logger.warn(
       "Client or commands collection not available, returning empty metadata",
     );
     return {};
@@ -248,7 +250,8 @@ export function generateCommandCategories(_client) {
 
   // Safety check for command handler
   if (!commandHandler || !allCommands || allCommands.length === 0) {
-    console.warn(
+    const logger = getLogger();
+    logger.warn(
       "Command handler not available or no commands found, using fallback categories",
     );
     // Return categories with empty commands arrays for safety
@@ -325,7 +328,8 @@ export function generateCommandCategories(_client) {
 export function getDynamicHelpData(client) {
   // Safety check for client
   if (!client) {
-    console.warn("Client not available, using fallback help data");
+    const logger = getLogger();
+    logger.warn("Client not available, using fallback help data");
     return {
       COMMAND_METADATA: {},
       COMMAND_CATEGORIES,

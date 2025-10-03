@@ -372,8 +372,7 @@ class Config {
     try {
       this.validateRequiredEnvVars();
       return true;
-    } catch (error) {
-      console.error("Configuration validation failed:", error.message);
+    } catch (_error) {
       return false;
     }
   }

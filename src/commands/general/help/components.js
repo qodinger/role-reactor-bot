@@ -8,6 +8,7 @@ import {
 import { getDynamicHelpData } from "./data.js";
 import { EMOJIS } from "../../../config/theme.js";
 import config from "../../../config/config.js";
+import { getLogger } from "../../../utils/logger.js";
 import { getDefaultInviteLink } from "../../../utils/discord/invite.js";
 
 /**
@@ -92,7 +93,8 @@ export class ComponentBuilder {
         .setPlaceholder(`${EMOJIS.ACTIONS.SEARCH} Choose a command category...`)
         .addOptions(options);
     } catch (error) {
-      console.error("Error creating category menu:", error);
+      const logger = getLogger();
+      logger.error("Error creating category menu:", error);
       // Fallback to basic menu
       return new StringSelectMenuBuilder()
         .setCustomId("help_category_select")

@@ -2,6 +2,7 @@ import { EmbedBuilder, PermissionFlagsBits } from "discord.js";
 import { THEME_COLOR, EMOJIS, UI_COMPONENTS } from "../../../config/theme.js";
 import { getDynamicHelpData } from "./data.js";
 import config from "../../../config/config.js";
+import { getLogger } from "../../../utils/logger.js";
 
 /**
  * Builder class for creating help embeds
@@ -225,7 +226,8 @@ export class HelpEmbedBuilder {
 
       return embed;
     } catch (error) {
-      console.error("Error creating category embed:", error);
+      const logger = getLogger();
+      logger.error("Error creating category embed:", error);
       return null;
     }
   }
@@ -257,7 +259,8 @@ export class HelpEmbedBuilder {
 
       return embed;
     } catch (error) {
-      console.error("Error creating command detail embed:", error);
+      const logger = getLogger();
+      logger.error("Error creating command detail embed:", error);
       // Return a basic embed as fallback
       return new EmbedBuilder()
         .setTitle(`${EMOJIS.ACTIONS.HELP} /${command.data.name}`)

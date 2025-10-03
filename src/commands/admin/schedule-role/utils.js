@@ -186,11 +186,6 @@ export function formatRecurringScheduleDetails(schedule) {
         return `Every ${days} day(s)`;
       }
     default:
-      // Add debug logging to see what we're actually getting
-      console.log(
-        "Debug - schedule object:",
-        JSON.stringify(schedule, null, 2),
-      );
       return "Unknown schedule";
   }
 }
