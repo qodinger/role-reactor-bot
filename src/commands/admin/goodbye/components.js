@@ -23,17 +23,6 @@ export function createGoodbyeSettingsComponents(settings) {
       .setStyle(ButtonStyle.Secondary),
   );
 
-  // Only add test button if goodbye system is enabled and channel is configured
-  if (settings.enabled && settings.channelId) {
-    buttonComponents.push(
-      new ButtonBuilder()
-        .setCustomId("goodbye_test")
-        .setLabel("Test Goodbye")
-        .setEmoji(EMOJIS.ACTIONS.QUICK)
-        .setStyle(ButtonStyle.Secondary),
-    );
-  }
-
   // Show toggle button (disabled if no channel and system is disabled)
   const canToggle = settings.channelId || settings.enabled;
   buttonComponents.push(
@@ -43,21 +32,29 @@ export function createGoodbyeSettingsComponents(settings) {
       .setEmoji(settings.enabled ? EMOJIS.STATUS.ERROR : EMOJIS.STATUS.SUCCESS)
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(!canToggle),
-    new ButtonBuilder()
-      .setCustomId("goodbye_reset")
-      .setLabel("Reset")
-      .setEmoji(EMOJIS.ACTIONS.DELETE)
-      .setStyle(ButtonStyle.Secondary),
   );
 
-  // Add format switch button as a second row
-  const formatRow = new ActionRowBuilder().addComponents(
+  // Add format switch button and test button as a second row
+  const secondRowButtons = [
     new ButtonBuilder()
       .setCustomId("goodbye_format")
       .setLabel(`Switch to ${settings.embedEnabled ? "Text" : "Embed"}`)
       .setStyle(ButtonStyle.Secondary)
       .setEmoji(EMOJIS.ACTIONS.REFRESH),
-  );
+  ];
+
+  // Add test button if goodbye system is enabled and channel is configured
+  if (settings.enabled && settings.channelId) {
+    secondRowButtons.push(
+      new ButtonBuilder()
+        .setCustomId("goodbye_test")
+        .setLabel("Test Goodbye")
+        .setEmoji(EMOJIS.ACTIONS.QUICK)
+        .setStyle(ButtonStyle.Secondary),
+    );
+  }
+
+  const formatRow = new ActionRowBuilder().addComponents(...secondRowButtons);
 
   return [new ActionRowBuilder().addComponents(...buttonComponents), formatRow];
 }
@@ -113,8 +110,14 @@ export function createChannelSelectComponents(guild, currentChannelId = null) {
     .setEmoji(EMOJIS.ACTIONS.BACK)
     .setStyle(ButtonStyle.Secondary);
 
+  const resetButton = new ButtonBuilder()
+    .setCustomId("goodbye_reset")
+    .setLabel("Reset")
+    .setEmoji(EMOJIS.ACTIONS.DELETE)
+    .setStyle(ButtonStyle.Secondary);
+
   return [
     new ActionRowBuilder().addComponents(selectMenu),
-    new ActionRowBuilder().addComponents(backButton),
+    new ActionRowBuilder().addComponents(backButton, resetButton),
   ];
 }

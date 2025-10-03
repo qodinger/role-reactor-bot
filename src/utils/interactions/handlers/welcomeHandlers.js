@@ -341,39 +341,8 @@ export async function handleWelcomeTest(interaction) {
       });
     }
 
-    // Create a mock member for testing (using the interaction user)
-    const mockMember = {
-      user: interaction.user,
-      guild: interaction.guild,
-      client: interaction.client,
-      toString: () => `<@${interaction.user.id}>`,
-      displayName: interaction.user.username,
-      roles: {
-        add: async (role, reason) => {
-          // Actually assign the role for real testing
-          if (settings.autoRoleId) {
-            const autoRole = interaction.guild.roles.cache.get(
-              settings.autoRoleId,
-            );
-            if (autoRole) {
-              try {
-                await interaction.user.roles.add(autoRole, reason);
-                logger.info(
-                  `Test: Auto-role ${autoRole.name} assigned to ${interaction.user.tag}`,
-                );
-                return true;
-              } catch (error) {
-                logger.error(
-                  `Test: Failed to assign auto-role: ${error.message}`,
-                );
-                return false;
-              }
-            }
-          }
-          return false;
-        },
-      },
-    };
+    // Use the actual interaction member for testing
+    const testMember = interaction.member;
 
     // Test auto-role assignment first
     let roleTestDetails = "";
@@ -394,7 +363,7 @@ export async function handleWelcomeTest(interaction) {
         } else {
           // Try actual role assignment
           try {
-            await mockMember.roles.add(autoRole, "Welcome System - Test");
+            await testMember.roles.add(autoRole, "Welcome System - Test");
             roleTestDetails = "✅ Role assigned successfully";
           } catch (error) {
             roleTestDetails = `❌ Role assignment failed: ${error.message}`;
@@ -410,13 +379,13 @@ export async function handleWelcomeTest(interaction) {
     let sentMessage = null;
     try {
       if (settings.embedEnabled) {
-        const embed = createWelcomeEmbed(settings, mockMember);
+        const embed = createWelcomeEmbed(settings, testMember);
         sentMessage = await welcomeChannel.send({ embeds: [embed] });
         messageResult = "Embed message sent successfully";
       } else {
         const processedMessage = processWelcomeMessage(
           settings.message || "Welcome **{user}** to **{server}**! 🎉",
-          mockMember,
+          testMember,
         );
         sentMessage = await welcomeChannel.send(processedMessage);
         messageResult = "Text message sent successfully";

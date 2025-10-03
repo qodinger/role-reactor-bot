@@ -1,6 +1,6 @@
 import { getLogger } from "../../logger.js";
 import { getDatabaseManager } from "../../storage/databaseManager.js";
-import { errorEmbed, successEmbed } from "../../discord/responseMessages.js";
+import { errorEmbed } from "../../discord/responseMessages.js";
 import { hasAdminPermissions } from "../../discord/permissions.js";
 import { createGoodbyeSettingsEmbed } from "../../../commands/admin/goodbye/embeds.js";
 import {
@@ -378,26 +378,81 @@ export async function handleGoodbyeTest(interaction) {
       );
     }
 
-    const member = interaction.member;
+    // Check bot permissions in the goodbye channel
+    const botMember = interaction.guild.members.me;
+    const channelPermissions = goodbyeChannel.permissionsFor(botMember);
 
-    // Process the test message
-    const processedMessage = processGoodbyeMessage(settings.message, member);
-
-    if (settings.embedEnabled) {
-      const embed = createGoodbyeEmbed(settings, member);
-      await goodbyeChannel.send({ embeds: [embed] });
-    } else {
-      await goodbyeChannel.send(processedMessage);
+    if (!channelPermissions.has("SendMessages")) {
+      return interaction.editReply(
+        errorEmbed({
+          title: "Permission Error",
+          description: `I don't have permission to send messages in ${goodbyeChannel.toString()}`,
+          solution:
+            "Please grant me Send Messages permission in the goodbye channel.",
+        }),
+      );
     }
 
-    await interaction.editReply(
-      successEmbed({
-        title: "Test Message Sent",
-        description: `A test goodbye message has been sent to ${goodbyeChannel}.`,
-        solution:
-          "Check the channel to see how the goodbye message will appear.",
-      }),
-    );
+    // If using embeds, also check for EmbedLinks permission
+    if (settings.embedEnabled && !channelPermissions.has("EmbedLinks")) {
+      return interaction.editReply(
+        errorEmbed({
+          title: "Permission Error",
+          description: `I don't have permission to embed links in ${goodbyeChannel.toString()}`,
+          solution:
+            "Please grant me Embed Links permission in the goodbye channel.",
+        }),
+      );
+    }
+
+    // Use the actual interaction member for testing
+    const testMember = interaction.member;
+
+    // Send the actual goodbye message to the configured channel
+    let messageResult = null;
+    let sentMessage = null;
+    try {
+      if (settings.embedEnabled) {
+        const embed = createGoodbyeEmbed(settings, testMember);
+        sentMessage = await goodbyeChannel.send({ embeds: [embed] });
+        messageResult = "Embed message sent successfully";
+      } else {
+        const processedMessage = processGoodbyeMessage(
+          settings.message ||
+            "**{user}** left the server\nThanks for being part of **{server}**! 👋",
+          testMember,
+        );
+        sentMessage = await goodbyeChannel.send(processedMessage);
+        messageResult = "Text message sent successfully";
+      }
+    } catch (error) {
+      messageResult = `Failed to send message: ${error.message}`;
+    }
+
+    // Create direct link to the sent message if available
+    let messageLink = "";
+    if (sentMessage) {
+      messageLink = `\n\n🔗 [**View Test Message**](${sentMessage.url})`;
+    }
+
+    await interaction.editReply({
+      embeds: [
+        {
+          title: "👋 Goodbye System Test Results",
+          description: `Test completed in ${goodbyeChannel.toString()}${messageLink}\n\n**Message Test:** ${messageResult}`,
+          color: 0x00ff00,
+          fields: [
+            {
+              name: "📋 Test Details",
+              value: `**Format:** ${settings.embedEnabled ? "Embed" : "Text"}\n**Channel:** ${goodbyeChannel.toString()}\n**Message:** ${settings.message || "Default message"}`,
+              inline: false,
+            },
+          ],
+          timestamp: new Date().toISOString(),
+        },
+      ],
+      ephemeral: true,
+    });
 
     logger.info(
       `Goodbye test message sent by ${interaction.user.tag} in ${interaction.guild.name}`,
