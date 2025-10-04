@@ -46,8 +46,8 @@ export class HelpEmbedBuilder {
     const embed = new EmbedBuilder()
       .setAuthor(
         UI_COMPONENTS.createAuthor(
-          `${client.user.username} - Interactive Help`,
-          client.user.displayAvatarURL(),
+          `${client?.user?.username || "Role Reactor"} - Interactive Help`,
+          client?.user?.displayAvatarURL() || null,
         ),
       )
       .setDescription(
@@ -59,12 +59,12 @@ export class HelpEmbedBuilder {
         ].join("\n"),
       )
       .setColor(THEME_COLOR)
-      .setThumbnail(client.user.displayAvatarURL())
+      .setThumbnail(client?.user?.displayAvatarURL() || null)
       .setTimestamp()
       .setFooter(
         UI_COMPONENTS.createFooter(
-          `Serving ${client.guilds.cache.size} servers • Thanks for using Role Reactor!`,
-          client.user.displayAvatarURL(),
+          `Serving ${client?.guilds?.cache?.size || 0} servers • Thanks for using Role Reactor!`,
+          client?.user?.displayAvatarURL() || null,
         ),
       );
 
@@ -152,7 +152,7 @@ export class HelpEmbedBuilder {
       embed.setFooter(
         UI_COMPONENTS.createFooter(
           `Showing ${Math.min(25, total)} of ${total} commands`,
-          client.user.displayAvatarURL(),
+          client?.user?.displayAvatarURL() || null,
         ),
       );
     } catch {
@@ -207,7 +207,7 @@ export class HelpEmbedBuilder {
         .setFooter(
           UI_COMPONENTS.createFooter(
             "Use the dropdown to switch categories",
-            client.user.displayAvatarURL(),
+            client?.user?.displayAvatarURL() || null,
           ),
         );
 
@@ -250,7 +250,7 @@ export class HelpEmbedBuilder {
         .setFooter(
           UI_COMPONENTS.createFooter(
             "Role Reactor Help",
-            client.user.displayAvatarURL(),
+            client?.user?.displayAvatarURL() || null,
           ),
         );
 
@@ -570,7 +570,7 @@ export class HelpEmbedBuilder {
           {
             name: `${EMOJIS.FEATURES.EXPERIENCE} 📊 How to Use`,
             value: [
-              "```/xp setup enabled:true message-xp:true command-xp:true role-xp:true```",
+              "```/xp setup enabled:true message-xp:true command-xp:true role-xp:true voice-xp:true```",
               "```/xp settings```",
             ].join("\n"),
             inline: false,
@@ -626,21 +626,21 @@ export class HelpEmbedBuilder {
         embed.addFields(
           {
             name: `${EMOJIS.FEATURES.EXPERIENCE} 🏆 How to Use`,
-            value: "```/leaderboard [timeframe:weekly] [user:@username]```",
+            value: "```/leaderboard [limit:10] [type:xp]```",
             inline: false,
           },
           {
             name: `${EMOJIS.UI.MENU} 📝 What You Need`,
             value: [
-              "**timeframe** *(optional)* - Choose from: all-time, weekly, monthly (default: weekly)",
-              "**user** *(optional)* - Check a specific member's ranking (leave empty to see top users)",
+              "**limit** *(optional)* - Number of users to show (1-25, default: 10)",
+              "**type** *(optional)* - Choose from: xp, level, messages, voice (default: xp)",
             ].join("\n"),
             inline: false,
           },
           {
             name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
             value:
-              "A beautiful leaderboard showing top users by XP, with interactive buttons to switch between timeframes and view different rankings!",
+              "A beautiful leaderboard showing top users by XP, level, messages, or voice time. Choose from different ranking types to see who's most active in your server!",
             inline: false,
           },
         );
@@ -662,7 +662,7 @@ export class HelpEmbedBuilder {
           {
             name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
             value:
-              "Detailed level information including current XP, progress to next level, rank on server, and a visual progress bar. Perfect for tracking your growth!",
+              "Detailed level information including current XP, progress to next level, messages sent, commands used, voice time, and roles earned. Perfect for tracking your growth!",
             inline: false,
           },
         );

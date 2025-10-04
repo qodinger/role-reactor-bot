@@ -111,12 +111,14 @@ export async function handleCategoryHelp(
   const logger = getLogger();
 
   try {
+    logger.debug(`Creating category embed for: ${categoryKey}`);
     const embed = HelpEmbedBuilder.createCategoryEmbed(
       categoryKey,
       interaction.client,
     );
 
     if (!embed) {
+      logger.warn(`Category embed is null for: ${categoryKey}`);
       await handleCategoryNotFound(interaction, categoryKey, deferred);
       return;
     }
@@ -240,7 +242,14 @@ export async function routeHelpInteraction(interaction, deferred = true) {
 
   try {
     if (interaction.customId === "help_category_select") {
+      if (!interaction.values || interaction.values.length === 0) {
+        logger.warn("No values provided for category selection");
+        await handleHelpError(interaction, "No category selected", deferred);
+        return;
+      }
+
       const categoryKey = interaction.values[0].replace("category_", "");
+      logger.debug(`Selected category: ${categoryKey}`);
       await handleCategoryHelp(interaction, categoryKey, deferred);
     } else if (interaction.customId.startsWith("help_cmd_")) {
       const cmdName = interaction.customId.replace("help_cmd_", "");

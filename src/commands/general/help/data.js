@@ -294,7 +294,7 @@ export function getDynamicHelpData(client) {
     logger.warn("Client not available, using fallback help data");
     return {
       COMMAND_METADATA: {},
-      COMMAND_CATEGORIES: generateCommandCategories(client),
+      COMMAND_CATEGORIES: generateCommandCategories(null),
     };
   }
 

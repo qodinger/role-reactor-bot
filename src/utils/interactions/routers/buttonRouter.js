@@ -41,14 +41,6 @@ export async function routeButtonInteraction(interaction, _client) {
         return;
       }
 
-      if (customId === "help_category_select") {
-        const { handleHelpInteraction } = await import(
-          "../handlers/helpHandlers.js"
-        );
-        await handleHelpInteraction(interaction);
-        return;
-      }
-
       // Add more select menu routing patterns here as needed
       logger.debug(`Unknown select menu interaction: ${customId}`);
       return;
