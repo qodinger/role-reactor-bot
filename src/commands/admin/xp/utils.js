@@ -38,6 +38,32 @@ export function formatXpAmount(amount) {
 }
 
 /**
+ * Update XP settings in the database
+ * @param {string} guildId
+ * @param {Object} xpSettings
+ * @param {Object} dbManager
+ */
+export async function updateXpSettings(guildId, xpSettings, dbManager) {
+  const logger = getLogger();
+
+  try {
+    // Get current guild settings
+    const settings = await dbManager.guildSettings.getByGuild(guildId);
+
+    // Update the experience system settings
+    settings.experienceSystem = { ...settings.experienceSystem, ...xpSettings };
+
+    // Save the updated settings
+    await dbManager.guildSettings.set(guildId, settings);
+
+    logger.info(`XP settings updated for guild ${guildId}`);
+  } catch (error) {
+    logger.error(`Failed to update XP settings for guild ${guildId}:`, error);
+    throw error;
+  }
+}
+
+/**
  * Log XP settings access
  * @param {string} guildId
  * @param {string} userId

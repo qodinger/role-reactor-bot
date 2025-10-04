@@ -154,6 +154,13 @@ export class InteractionManager {
    */
   async handleButtonInteraction(interaction, client) {
     try {
+      // Check if it's actually a select menu interaction
+      if (interaction.isStringSelectMenu()) {
+        const selectMenuRouter = await import("./routers/selectMenuRouter.js");
+        await selectMenuRouter.routeSelectMenuInteraction(interaction, client);
+        return;
+      }
+
       // Import button handlers dynamically to reduce initial bundle size
       const buttonRouter = await import("./routers/buttonRouter.js");
       await buttonRouter.routeButtonInteraction(interaction, client);

@@ -225,6 +225,32 @@ class ExperienceManager {
       this.logger.info(
         `🎉 User ${userId} leveled up to level ${newLevel} in guild ${guildId}`,
       );
+
+      // Send level-up notification
+      try {
+        const { getLevelUpNotifier } = await import("./LevelUpNotifier.js");
+        const levelUpNotifier = await getLevelUpNotifier();
+
+        // Get guild and user objects for notification
+        const { getDatabaseManager } = await import(
+          "../../utils/storage/databaseManager.js"
+        );
+        const dbManager = await getDatabaseManager();
+        const guild = dbManager.client.guilds.cache.get(guildId);
+        const user = dbManager.client.users.cache.get(userId);
+
+        if (guild && user) {
+          await levelUpNotifier.sendLevelUpNotification(
+            guild,
+            user,
+            oldLevel,
+            newLevel,
+            newTotalXP,
+          );
+        }
+      } catch (error) {
+        this.logger.error("Error sending level-up notification:", error);
+      }
     }
 
     return {

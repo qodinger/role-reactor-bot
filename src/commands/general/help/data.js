@@ -132,7 +132,7 @@ export const COMMAND_CATEGORIES = {
       "schedule-role",
       "welcome",
       "goodbye",
-      "xp-settings",
+      "xp",
     ],
   },
   general: {

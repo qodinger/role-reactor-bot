@@ -24,6 +24,14 @@ export async function routeSelectMenuInteraction(interaction, _client) {
       return;
     }
 
+    if (customId === "xp_select_channel") {
+      const { handleXpChannelSelect } = await import(
+        "../../../commands/admin/xp/handlers.js"
+      );
+      await handleXpChannelSelect(interaction);
+      return;
+    }
+
     // Add more select menu routing patterns here as needed
     logger.debug(`Unknown select menu interaction: ${customId}`);
   } catch (error) {

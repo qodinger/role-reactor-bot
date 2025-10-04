@@ -1,20 +1,55 @@
-import { SlashCommandBuilder } from "discord.js";
-import { execute } from "./handlers.js";
+import { SlashCommandBuilder, PermissionFlagsBits } from "discord.js";
+import { getLogger } from "../../../utils/logger.js";
+import { errorEmbed } from "../../../utils/discord/responseMessages.js";
+import { handleLeaderboard } from "./handlers.js";
+
+// ============================================================================
+// COMMAND DEFINITION
+// ============================================================================
 
 export const data = new SlashCommandBuilder()
   .setName("leaderboard")
-  .setDescription(`View the server experience leaderboard with time filters`)
+  .setDescription("View the XP leaderboard for this server")
+  .addIntegerOption(option =>
+    option
+      .setName("limit")
+      .setDescription("Number of users to show (1-25)")
+      .setMinValue(1)
+      .setMaxValue(25)
+      .setRequired(false),
+  )
   .addStringOption(option =>
     option
-      .setName("timeframe")
-      .setDescription("Time period for the leaderboard")
-      .setRequired(false)
+      .setName("type")
+      .setDescription("Type of leaderboard to show")
       .addChoices(
-        { name: "🏆 All Time", value: "all" },
-        { name: "📅 Daily", value: "daily" },
-        { name: "📊 Weekly", value: "weekly" },
-        { name: "📈 Monthly", value: "monthly" },
-      ),
-  );
+        { name: "XP (Total Experience)", value: "xp" },
+        { name: "Level", value: "level" },
+        { name: "Messages", value: "messages" },
+        { name: "Voice Time", value: "voice" },
+      )
+      .setRequired(false),
+  )
+  .setDefaultMemberPermissions(PermissionFlagsBits.ViewChannel);
 
-export { execute };
+// ============================================================================
+// MAIN EXECUTION
+// ============================================================================
+
+export async function execute(interaction, client) {
+  const logger = getLogger();
+
+  try {
+    // Handle the leaderboard display
+    await handleLeaderboard(interaction, client);
+  } catch (error) {
+    logger.error("Error in leaderboard command:", error);
+    await interaction.reply(
+      errorEmbed({
+        title: "Error",
+        description: "Failed to process leaderboard command.",
+        solution: "Please try again or contact support if the issue persists.",
+      }),
+    );
+  }
+}

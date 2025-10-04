@@ -565,16 +565,33 @@ export class HelpEmbedBuilder {
         );
         break;
 
-      case "xp-settings":
+      case "xp":
         embed.addFields(
           {
             name: `${EMOJIS.FEATURES.EXPERIENCE} 📊 How to Use`,
-            value: "```/xp-settings```",
+            value: [
+              "```/xp setup enabled:true message-xp:true command-xp:true role-xp:true```",
+              "```/xp settings```",
+            ].join("\n"),
             inline: false,
           },
           {
-            name: `${EMOJIS.UI.MENU} 📝 What You Need`,
-            value: "No parameters needed - just run the command!",
+            name: `${EMOJIS.UI.MENU} 📝 Subcommands`,
+            value: [
+              "**setup** - Configure the XP system with various options",
+              "**settings** - View and manage the XP system settings",
+            ].join("\n"),
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.UI.MENU} 📝 Setup Options`,
+            value: [
+              "**enabled** *(optional)* - Enable or disable the XP system",
+              "**message-xp** *(optional)* - Enable XP for sending messages",
+              "**command-xp** *(optional)* - Enable XP for using commands",
+              "**role-xp** *(optional)* - Enable XP for role assignments",
+              "**voice-xp** *(optional)* - Enable XP for voice chat participation",
+            ].join("\n"),
             inline: false,
           },
           {
@@ -587,7 +604,7 @@ export class HelpEmbedBuilder {
             value: [
               "Current XP system status with interactive buttons to:",
               "• Toggle the entire XP system on/off",
-              "• Enable/disable message XP, command XP, and role XP individually",
+              "• Enable/disable message XP, command XP, role XP, and voice XP individually",
               "• View current XP amounts, cooldowns, and settings",
               "• Access configuration help",
             ].join("\n"),

@@ -420,7 +420,7 @@ class CommandHandler {
    * @returns {Object} Object with commands from both collections
    * @example
    * const allCommands = handler.getAllCommandsDebug();
-   * // { handler: ['ping', 'help'], client: ['ping', 'help', 'xp-settings'] }
+   * // { handler: ['ping', 'help'], client: ['ping', 'help', 'xp'] }
    */
   getAllCommandsDebug() {
     const handlerCommands = Array.from(this.commands.keys()).sort();

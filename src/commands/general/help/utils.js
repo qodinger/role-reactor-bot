@@ -53,7 +53,7 @@ export function getCommandCategory(commandName) {
     commandName.includes("schedule-role") ||
     commandName.includes("welcome") ||
     commandName.includes("goodbye") ||
-    commandName.includes("xp-settings")
+    commandName.includes("xp")
   ) {
     return "admin";
   }

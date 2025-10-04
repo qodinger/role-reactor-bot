@@ -1,63 +1,11 @@
 import { getLogger } from "../../logger.js";
-import { createXpSettingsEmbed } from "../../../commands/admin/xp-settings/embeds.js";
-import { createXpSettingsComponents } from "../../../commands/admin/xp-settings/components.js";
+import { createXpSettingsEmbed } from "../../../commands/admin/xp/embeds.js";
+import { createXpSettingsComponents } from "../../../commands/admin/xp/components.js";
 
 /**
  * XP system button interaction handlers
  * Handles all XP-related button interactions
  */
-
-/**
- * Handle XP system toggle button
- * @param {import('discord.js').ButtonInteraction} interaction - The button interaction
- */
-export const handleXPToggleSystem = async interaction => {
-  const logger = getLogger();
-
-  try {
-    await interaction.deferUpdate();
-
-    // Import required modules
-    const { getDatabaseManager } = await import(
-      "../../storage/databaseManager.js"
-    );
-
-    const dbManager = await getDatabaseManager();
-    const settings = await dbManager.guildSettings.getByGuild(
-      interaction.guild.id,
-    );
-
-    // Toggle the enabled status
-    const newSettings = {
-      ...settings,
-      experienceSystem: {
-        ...settings.experienceSystem,
-        enabled: !settings.experienceSystem.enabled,
-      },
-    };
-
-    await dbManager.guildSettings.set(interaction.guild.id, newSettings);
-
-    // Create updated embed and components
-    const embed = createXpSettingsEmbed(
-      interaction,
-      newSettings.experienceSystem,
-    );
-    const components = createXpSettingsComponents(newSettings.experienceSystem);
-
-    await interaction.editReply({
-      embeds: [embed],
-      components,
-    });
-
-    logger.info(
-      `XP system ${newSettings.experienceSystem.enabled ? "enabled" : "disabled"} for guild ${interaction.guild.name} by user ${interaction.user.tag}`,
-    );
-  } catch (error) {
-    logger.error("Error handling XP system toggle", error);
-    await handleXPError(interaction, "toggling the XP system");
-  }
-};
 
 /**
  * Handle message XP toggle button
@@ -206,6 +154,184 @@ export const handleXPToggleRole = async interaction => {
   } catch (error) {
     logger.error("Error handling role XP toggle", error);
     await handleXPError(interaction, "toggling role XP");
+  }
+};
+
+/**
+ * Handle voice XP toggle button
+ * @param {import('discord.js').ButtonInteraction} interaction - The button interaction
+ */
+export const handleXPToggleVoice = async interaction => {
+  const logger = getLogger();
+
+  try {
+    const { getDatabaseManager } = await import(
+      "../../storage/databaseManager.js"
+    );
+    const { createXpSettingsEmbed } = await import(
+      "../../../commands/admin/xp/embeds.js"
+    );
+    const { createXpSettingsComponents } = await import(
+      "../../../commands/admin/xp/components.js"
+    );
+
+    const dbManager = await getDatabaseManager();
+    const settings = await dbManager.guildSettings.getByGuild(
+      interaction.guild.id,
+    );
+
+    const newSettings = {
+      ...settings,
+      experienceSystem: {
+        ...settings.experienceSystem,
+        voiceXP: !settings.experienceSystem.voiceXP,
+      },
+    };
+
+    await dbManager.guildSettings.set(interaction.guild.id, newSettings);
+
+    // Create updated embed and components
+    const embed = createXpSettingsEmbed(
+      interaction,
+      newSettings.experienceSystem,
+    );
+    const components = createXpSettingsComponents(newSettings.experienceSystem);
+
+    await interaction.update({
+      embeds: [embed],
+      components,
+    });
+
+    logger.info(
+      `Voice XP ${newSettings.experienceSystem.voiceXP ? "enabled" : "disabled"} for guild ${interaction.guild.name} by user ${interaction.user.tag}`,
+    );
+  } catch (error) {
+    logger.error("Error handling voice XP toggle", error);
+    await handleXPError(interaction, "toggling voice XP");
+  }
+};
+
+/**
+ * Handle XP system toggle
+ * @param {import('discord.js').ButtonInteraction} interaction - The button interaction
+ */
+export const handleXPToggleSystem = async interaction => {
+  const logger = getLogger();
+
+  try {
+    const { getDatabaseManager } = await import(
+      "../../storage/databaseManager.js"
+    );
+    const { createXpSettingsEmbed } = await import(
+      "../../../commands/admin/xp/embeds.js"
+    );
+    const { createXpSettingsComponents } = await import(
+      "../../../commands/admin/xp/components.js"
+    );
+
+    const dbManager = await getDatabaseManager();
+    const settings = await dbManager.guildSettings.getByGuild(
+      interaction.guild.id,
+    );
+
+    const newSettings = {
+      ...settings,
+      experienceSystem: {
+        ...settings.experienceSystem,
+        enabled: !settings.experienceSystem.enabled,
+      },
+    };
+
+    await dbManager.guildSettings.set(interaction.guild.id, newSettings);
+
+    // Get level-up channel
+    const levelUpChannel = newSettings.experienceSystem.levelUpChannel
+      ? interaction.guild.channels.cache.get(
+          newSettings.experienceSystem.levelUpChannel,
+        )
+      : null;
+
+    // Create updated embed and components
+    const embed = createXpSettingsEmbed(
+      interaction,
+      newSettings.experienceSystem,
+      levelUpChannel,
+    );
+    const components = createXpSettingsComponents(newSettings.experienceSystem);
+
+    await interaction.update({
+      embeds: [embed],
+      components,
+    });
+
+    logger.info(
+      `XP system ${newSettings.experienceSystem.enabled ? "enabled" : "disabled"} for guild ${interaction.guild.name} by user ${interaction.user.tag}`,
+    );
+  } catch (error) {
+    logger.error("Error handling XP system toggle", error);
+    await handleXPError(interaction, "toggling the XP system");
+  }
+};
+
+/**
+ * Handle level-up messages toggle
+ * @param {import('discord.js').ButtonInteraction} interaction - The button interaction
+ */
+export const handleXPToggleLevelUp = async interaction => {
+  const logger = getLogger();
+
+  try {
+    const { getDatabaseManager } = await import(
+      "../../storage/databaseManager.js"
+    );
+    const { createLevelUpEmbed } = await import(
+      "../../../commands/admin/xp/embeds.js"
+    );
+    const { createLevelUpComponents } = await import(
+      "../../../commands/admin/xp/components.js"
+    );
+
+    const dbManager = await getDatabaseManager();
+    const settings = await dbManager.guildSettings.getByGuild(
+      interaction.guild.id,
+    );
+
+    const newSettings = {
+      ...settings,
+      experienceSystem: {
+        ...settings.experienceSystem,
+        levelUpMessages: !settings.experienceSystem.levelUpMessages,
+      },
+    };
+
+    await dbManager.guildSettings.set(interaction.guild.id, newSettings);
+
+    // Get level-up channel
+    const levelUpChannel = newSettings.experienceSystem.levelUpChannel
+      ? interaction.guild.channels.cache.get(
+          newSettings.experienceSystem.levelUpChannel,
+        )
+      : null;
+
+    // Create updated embed and components
+    const embed = createLevelUpEmbed(
+      interaction,
+      newSettings.experienceSystem,
+      levelUpChannel,
+    );
+    const components = createLevelUpComponents(newSettings.experienceSystem);
+
+    await interaction.update({
+      embeds: [embed],
+      components,
+    });
+
+    logger.info(
+      `Level-up messages ${newSettings.experienceSystem.levelUpMessages ? "enabled" : "disabled"} for guild ${interaction.guild.name} by user ${interaction.user.tag}`,
+    );
+  } catch (error) {
+    logger.error("Error handling level-up messages toggle", error);
+    await handleXPError(interaction, "toggling level-up messages");
   }
 };
 
@@ -389,11 +515,11 @@ export const handleXPToggleAll = async interaction => {
     const { getDatabaseManager } = await import(
       "../../storage/databaseManager.js"
     );
-    const { createXpSettingsEmbed } = await import(
-      "../../../commands/admin/xp-settings/embeds.js"
+    const { createXpSourceEmbed } = await import(
+      "../../../commands/admin/xp/embeds.js"
     );
-    const { createXpSettingsComponents } = await import(
-      "../../../commands/admin/xp-settings/components.js"
+    const { createXpSourceComponents } = await import(
+      "../../../commands/admin/xp/components.js"
     );
 
     const dbManager = await getDatabaseManager();
@@ -405,7 +531,8 @@ export const handleXPToggleAll = async interaction => {
     const allEnabled =
       settings.experienceSystem.messageXP &&
       settings.experienceSystem.commandXP &&
-      settings.experienceSystem.roleXP;
+      settings.experienceSystem.roleXP &&
+      settings.experienceSystem.voiceXP;
 
     // Toggle all XP sources
     const newSettings = {
@@ -415,18 +542,19 @@ export const handleXPToggleAll = async interaction => {
         messageXP: !allEnabled,
         commandXP: !allEnabled,
         roleXP: !allEnabled,
+        voiceXP: !allEnabled,
       },
     };
 
     // Save the updated settings
     await dbManager.guildSettings.set(interaction.guild.id, newSettings);
 
-    // Create updated embed and components
-    const embed = createXpSettingsEmbed(
+    // Create updated embed and components for XP Sources page
+    const embed = createXpSourceEmbed(
       interaction,
       newSettings.experienceSystem,
     );
-    const components = createXpSettingsComponents(newSettings.experienceSystem);
+    const components = createXpSourceComponents(newSettings.experienceSystem);
 
     // Update the original message
     await interaction.editReply({

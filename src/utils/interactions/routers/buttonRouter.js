@@ -186,6 +186,92 @@ export async function routeButtonInteraction(interaction, _client) {
         await handleXPToggleRole(interaction);
         break;
       }
+      case "xp_toggle_voice": {
+        const { handleXPToggleVoice } = await import(
+          "../handlers/xpHandlers.js"
+        );
+        await handleXPToggleVoice(interaction);
+        break;
+      }
+
+      // XP configuration buttons
+      case "xp_configure": {
+        const { handleXpGeneralConfig } = await import(
+          "../../../commands/admin/xp/handlers.js"
+        );
+        await handleXpGeneralConfig(interaction);
+        break;
+      }
+      case "xp_configure_basic": {
+        const { handleXpBasicConfig } = await import(
+          "../../../commands/admin/xp/handlers.js"
+        );
+        await handleXpBasicConfig(interaction);
+        break;
+      }
+      case "xp_configure_advanced": {
+        const { handleXpAdvancedConfig } = await import(
+          "../../../commands/admin/xp/handlers.js"
+        );
+        await handleXpAdvancedConfig(interaction);
+        break;
+      }
+      case "xp_configure_sources": {
+        const { handleXpSourceConfig } = await import(
+          "../../../commands/admin/xp/handlers.js"
+        );
+        await handleXpSourceConfig(interaction);
+        break;
+      }
+      case "xp_configure_levelup": {
+        const { handleLevelUpConfig } = await import(
+          "../../../commands/admin/xp/handlers.js"
+        );
+        await handleLevelUpConfig(interaction);
+        break;
+      }
+      case "xp_toggle": {
+        const { handleXPToggleSystem } = await import(
+          "../handlers/xpHandlers.js"
+        );
+        await handleXPToggleSystem(interaction);
+        break;
+      }
+      case "xp_test": {
+        const { handleXpTest } = await import(
+          "../../../commands/admin/xp/handlers.js"
+        );
+        await handleXpTest(interaction);
+        break;
+      }
+      case "xp_toggle_levelup": {
+        const { handleXPToggleLevelUp } = await import(
+          "../handlers/xpHandlers.js"
+        );
+        await handleXPToggleLevelUp(interaction);
+        break;
+      }
+      case "xp_configure_channel": {
+        const { handleXpChannelConfig } = await import(
+          "../../../commands/admin/xp/handlers.js"
+        );
+        await handleXpChannelConfig(interaction);
+        break;
+      }
+      case "xp_test_levelup": {
+        const { handleXpTestLevelUp } = await import(
+          "../../../commands/admin/xp/handlers.js"
+        );
+        await handleXpTestLevelUp(interaction);
+        break;
+      }
+      case "back_to_settings": {
+        const { handleSettings } = await import(
+          "../../../commands/admin/xp/handlers.js"
+        );
+        await handleSettings(interaction, interaction.client);
+        break;
+      }
 
       // XP configuration buttons
       case "xp_config_message": {

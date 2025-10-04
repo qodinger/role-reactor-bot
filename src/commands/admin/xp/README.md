@@ -1,13 +1,13 @@
-# XP Settings Command
+# XP Command
 
 ## Overview
 
-The XP Settings command allows administrators to view and manage the XP system configuration for their server.
+The XP command allows administrators to configure and manage the XP system for their server using subcommands.
 
 ## File Structure
 
 ```
-xp-settings/
+xp/
 ├── index.js          # Main command definition and entry point
 ├── handlers.js       # Core logic and interaction handling
 ├── embeds.js         # Discord embed creation
@@ -18,17 +18,32 @@ xp-settings/
 
 ## Architecture
 
-Following the modular pattern established by the `schedule-role` command:
+Following the modular pattern established by other admin commands:
 
-- **`index.js`**: Command definition, permission validation, and main execution flow
-- **`handlers.js`**: Core business logic, database operations, and interaction processing
+- **`index.js`**: Command definition with subcommands, permission validation, and main execution flow
+- **`handlers.js`**: Core business logic for setup and settings subcommands
 - **`embeds.js`**: Discord embed creation and formatting
 - **`components.js`**: Interactive UI components (buttons, select menus)
 - **`utils.js`**: Helper functions, validation, and logging utilities
 
+## Subcommands
+
+### `/xp setup`
+
+Configure the XP system with various options:
+
+- `enabled` - Enable or disable the XP system
+- `message-xp` - Enable XP for sending messages
+- `command-xp` - Enable XP for using commands
+- `role-xp` - Enable XP for role assignments
+
+### `/xp settings`
+
+View and manage the XP system settings with interactive buttons.
+
 ## Key Features
 
-- View current XP system configuration
+- Subcommand-based configuration
 - Interactive buttons for enabling/disabling XP features
 - Real-time settings display
 - Permission-based access control
@@ -37,7 +52,8 @@ Following the modular pattern established by the `schedule-role` command:
 ## Usage
 
 ```
-/xp-settings
+/xp setup enabled:true message-xp:true command-xp:true role-xp:true
+/xp settings
 ```
 
 ## Permissions Required

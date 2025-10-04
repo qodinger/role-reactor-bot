@@ -16,9 +16,19 @@ export async function routeModalInteraction(interaction, _client) {
 
   try {
     // Route based on customId patterns
-    if (customId.startsWith("xp_config_")) {
-      const { handleXPConfigModal } = await import("../handlers/xpHandlers.js");
-      await handleXPConfigModal(interaction);
+    if (customId === "xp_config_modal") {
+      const { handleXpConfigModalSubmit } = await import(
+        "../../../commands/admin/xp/handlers.js"
+      );
+      await handleXpConfigModalSubmit(interaction);
+      return;
+    }
+
+    if (customId === "xp_advanced_config_modal") {
+      const { handleXpAdvancedConfigModalSubmit } = await import(
+        "../../../commands/admin/xp/handlers.js"
+      );
+      await handleXpAdvancedConfigModalSubmit(interaction);
       return;
     }
 

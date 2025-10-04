@@ -770,6 +770,7 @@ class GuildSettingsRepository extends BaseRepository {
             messageXP: true,
             commandXP: true,
             roleXP: true,
+            voiceXP: true,
             messageXPAmount: { min: 15, max: 25 },
             commandXPAmount: {
               base: 8,
@@ -777,6 +778,8 @@ class GuildSettingsRepository extends BaseRepository {
             roleXPAmount: 50,
             messageCooldown: 60,
             commandCooldown: 30,
+            levelUpMessages: true,
+            levelUpChannel: null,
             // Level formula is fixed at 100 * level^1.5 - no longer configurable
           },
 
