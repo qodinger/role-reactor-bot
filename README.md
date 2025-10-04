@@ -21,6 +21,7 @@ A production-ready Discord bot for self-assignable roles through reactions. Buil
 - **🚀 Schedule Role System**: Schedule future role assignments with natural language parsing
 - **🔄 Recurring Roles**: Create daily, weekly, monthly, or custom interval schedules
 - **🎉 Welcome System**: Auto-welcome new members with customizable messages and auto-role assignment
+- **👋 Goodbye System**: Auto-goodbye messages when members leave with customizable placeholders
 - **🧠 Smart 8ball**: Intelligent question analysis with sentiment detection and context-aware responses
 - **📊 XP System**: Configurable experience system with level progression and leaderboards
 - **👤 User Information**: Avatar display, server info, and user statistics
@@ -191,13 +192,29 @@ Automatically welcome new members with customizable messages and auto-role assig
 **Setup welcome system:**
 
 ```
-/setup-welcome channel:#welcome message:"Welcome {user} to {server}! You are member #{memberCount.ordinal}!" auto-role:@Member enabled:true embed:true
+/welcome setup channel:#welcome message:"Welcome {user} to {server}! You are member #{memberCount.ordinal}!" auto-role:@Member enabled:true embed:true
 ```
 
 **View settings:**
 
 ```
-/welcome-settings
+/welcome settings
+```
+
+### Goodbye System
+
+Automatically send goodbye messages when members leave with customizable placeholders:
+
+**Setup goodbye system:**
+
+```
+/goodbye setup channel:#general message:"**{user}** left the server\nThanks for being part of **{server}**! 👋" enabled:true embed:true
+```
+
+**View settings:**
+
+```
+/goodbye settings
 ```
 
 **Available placeholders:**
@@ -274,8 +291,10 @@ The XP system is **disabled by default** and must be enabled by server administr
 | `/schedule-role list`    | List scheduled and recurring roles       | Manage Roles  |
 | `/schedule-role view`    | View details of a specific schedule      | Manage Roles  |
 | `/schedule-role cancel`  | Cancel a scheduled or recurring role     | Manage Roles  |
-| `/setup-welcome`         | Configure welcome system                 | Manage Server |
-| `/welcome-settings`      | View welcome system settings             | Manage Server |
+| `/welcome setup`         | Configure welcome system                 | Manage Server |
+| `/welcome settings`      | View welcome system settings             | Manage Server |
+| `/goodbye setup`         | Configure goodbye system                 | Manage Server |
+| `/goodbye settings`      | View goodbye system settings             | Manage Server |
 | `/xp-settings`           | View and manage XP system settings       | Manage Server |
 
 #### Developer Commands
