@@ -19,18 +19,21 @@ tests/
 ## 🧪 Test Types
 
 ### Unit Tests (`tests/unit/`)
+
 - **Purpose**: Test individual functions and modules in isolation
 - **Coverage**: Command handlers, utilities, managers
 - **Mocking**: Heavy use of mocks to isolate units
 - **Speed**: Fast execution, no external dependencies
 
 ### Integration Tests (`tests/integration/`)
+
 - **Purpose**: Test interactions with external APIs (Discord API)
 - **Coverage**: API calls, authentication, error handling
 - **Mocking**: Mock external services while testing real logic
 - **Speed**: Medium execution time
 
 ### End-to-End Tests (`tests/e2e/`)
+
 - **Purpose**: Test complete user workflows and scenarios
 - **Coverage**: Full user journeys from setup to cleanup
 - **Mocking**: Minimal mocking, focus on real interactions
@@ -39,11 +42,13 @@ tests/
 ## 🚀 Running Tests
 
 ### All Tests
+
 ```bash
 pnpm test
 ```
 
 ### Specific Test Types
+
 ```bash
 # Run specific test files directly
 pnpm test tests/unit/
@@ -52,6 +57,7 @@ pnpm test tests/e2e/
 ```
 
 ### Development Mode
+
 ```bash
 # Watch mode for development
 pnpm test:watch
@@ -82,22 +88,22 @@ The setup file provides global utilities for creating mock objects:
 ```javascript
 // Create mock Discord interaction
 const interaction = testUtils.createMockInteraction({
-  commandName: 'setup-roles',
-  userId: '123456789012345678',
+  commandName: "setup-roles",
+  userId: "123456789012345678",
   guild: mockGuild,
 });
 
 // Create mock Discord guild
 const guild = testUtils.createMockGuild({
-  id: 'guild123',
-  name: 'Test Guild',
-  roles: [['role1', { id: 'role1', name: 'Developer' }]],
+  id: "guild123",
+  name: "Test Guild",
+  roles: [["role1", { id: "role1", name: "Developer" }]],
 });
 
 // Create mock Discord member
 const member = testUtils.createMockMember({
-  id: 'member123',
-  username: 'TestUser',
+  id: "member123",
+  username: "TestUser",
   hasPermission: true,
 });
 ```
@@ -105,7 +111,7 @@ const member = testUtils.createMockMember({
 ### Available Mock Utilities
 
 - `createMockInteraction()` - Discord slash command interactions
-- `createMockGuild()` - Discord guild objects  
+- `createMockGuild()` - Discord guild objects
 - `createMockMember()` - Discord member objects
 - `createMockMessage()` - Discord message objects
 - `createMockReaction()` - Discord reaction objects
@@ -119,25 +125,25 @@ const member = testUtils.createMockMember({
 ### Test File Structure
 
 ```javascript
-import { jest } from '@jest/globals';
+import { jest } from "@jest/globals";
 
-describe('ModuleName', () => {
+describe("ModuleName", () => {
   let mockDependency;
-  
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
-  
-  describe('FunctionName', () => {
-    test('should handle success case', async () => {
-      const input = 'test input';
+
+  describe("FunctionName", () => {
+    test("should handle success case", async () => {
+      const input = "test input";
       const result = await functionUnderTest(input);
-      expect(result).toBe('expected output');
+      expect(result).toBe("expected output");
     });
-    
-    test('should handle error case', async () => {
-      const input = 'invalid input';
-      await expect(functionUnderTest(input)).rejects.toThrow('Error message');
+
+    test("should handle error case", async () => {
+      const input = "invalid input";
+      await expect(functionUnderTest(input)).rejects.toThrow("Error message");
     });
   });
 });
@@ -156,7 +162,7 @@ describe('ModuleName', () => {
 
 ```javascript
 // Mock modules
-jest.mock('../../src/utils/logger.js', () => ({
+jest.mock("../../src/utils/logger.js", () => ({
   getLogger: jest.fn(() => ({
     info: jest.fn(),
     error: jest.fn(),
@@ -164,14 +170,14 @@ jest.mock('../../src/utils/logger.js', () => ({
 }));
 
 // Mock functions
-const mockFunction = jest.fn().mockResolvedValue('result');
+const mockFunction = jest.fn().mockResolvedValue("result");
 
 // Mock Discord objects
 const mockInteraction = {
-  commandName: 'test-command',
+  commandName: "test-command",
   reply: jest.fn(),
   options: {
-    getString: jest.fn().mockReturnValue('test'),
+    getString: jest.fn().mockReturnValue("test"),
   },
 };
 ```
@@ -191,10 +197,10 @@ const mockInteraction = {
 Test environment variables are set in `tests/setup.js`:
 
 ```javascript
-process.env.NODE_ENV = 'test';
-process.env.DISCORD_TOKEN = 'test-token';
-process.env.MONGODB_URI = 'mongodb://localhost:27017/test';
-process.env.PORT = '3001';
+process.env.NODE_ENV = "test";
+process.env.DISCORD_TOKEN = "test-token";
+process.env.MONGODB_URI = "mongodb://localhost:27017/test";
+process.env.PORT = "3001";
 ```
 
 ## 🐛 Debugging Tests
@@ -227,4 +233,4 @@ NODE_OPTIONS='--inspect-brk' pnpm test tests/unit/commandHandler.test.js
 ```bash
 # Generate detailed coverage report
 pnpm test:coverage
-``` 
+```

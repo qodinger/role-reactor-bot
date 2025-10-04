@@ -120,8 +120,8 @@ export class ComponentBuilder {
       new ButtonBuilder()
         .setCustomId("help_view_overview")
         .setLabel("Overview")
-        .setEmoji(EMOJIS.STATUS.INFO)
-        .setStyle(ButtonStyle.Primary),
+        .setEmoji(EMOJIS.ACTIONS.VIEW)
+        .setStyle(ButtonStyle.Secondary),
       new ButtonBuilder()
         .setCustomId("help_view_all")
         .setLabel("All Commands")
@@ -188,7 +188,7 @@ export class ComponentBuilder {
         new ButtonBuilder()
           .setLabel("Invite")
           .setURL(inviteURL)
-          .setEmoji(EMOJIS.ACTIONS.LINK)
+          .setEmoji(EMOJIS.ACTIONS.INVITE)
           .setStyle(ButtonStyle.Link),
       );
     }

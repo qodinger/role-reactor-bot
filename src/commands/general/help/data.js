@@ -2,138 +2,119 @@ import { THEME, EMOJIS } from "../../../config/theme.js";
 import { getCommandHandler } from "../../../utils/core/commandHandler.js";
 import { getLogger } from "../../../utils/logger.js";
 
+// ============================================================================
+// TAG GENERATION
+// ============================================================================
+
 /**
- * Automatically generate smart tags for commands based on name and description
+ * Tag patterns for command categorization
+ */
+const TAG_PATTERNS = {
+  role: ["role", "roles"],
+  temporary: ["temp", "temporary"],
+  welcome: ["welcome"],
+  goodbye: ["goodbye"],
+  setup: ["setup", "configure"],
+  view: ["list", "view"],
+  edit: ["update", "edit"],
+  delete: ["delete", "remove"],
+  assign: ["assign", "give"],
+  experience: ["level", "xp", "experience"],
+  ranking: ["leaderboard", "ranking"],
+  image: ["avatar", "image"],
+  help: ["help", "guide"],
+  status: ["ping", "latency"],
+  health: ["health", "status"],
+  performance: ["performance", "metrics"],
+  storage: ["storage", "database"],
+  link: ["invite", "link"],
+  support: ["support", "community", "sponsor", "donate"],
+  fun: ["8ball", "question"],
+};
+
+/**
+ * Generate smart tags for commands based on name and description
  * @param {string} commandName - The command name
  * @param {string} description - The command description
- * @returns {Array} - Array of relevant tags
+ * @returns {string[]} Array of relevant tags
  */
 export function generateCommandTags(commandName, description) {
   const tags = [commandName];
   const text = `${commandName} ${description}`.toLowerCase();
 
-  // Add tags based on command patterns
-  if (text.includes("role") || text.includes("roles")) tags.push("role");
-  if (text.includes("temp") || text.includes("temporary"))
-    tags.push("temporary");
-  if (text.includes("welcome")) tags.push("welcome");
-  if (text.includes("setup") || text.includes("configure")) tags.push("setup");
-  if (text.includes("list") || text.includes("view")) tags.push("view");
-  if (text.includes("update") || text.includes("edit")) tags.push("edit");
-  if (text.includes("delete") || text.includes("remove")) tags.push("delete");
-  if (text.includes("assign") || text.includes("give")) tags.push("assign");
-  if (
-    text.includes("level") ||
-    text.includes("xp") ||
-    text.includes("experience")
-  )
-    tags.push("experience");
-  if (text.includes("leaderboard") || text.includes("ranking"))
-    tags.push("ranking");
-  if (text.includes("info") || text.includes("information")) tags.push("info");
-  if (text.includes("avatar") || text.includes("image")) tags.push("image");
-  if (text.includes("help") || text.includes("guide")) tags.push("help");
-  if (text.includes("ping") || text.includes("latency")) tags.push("status");
-  if (text.includes("health") || text.includes("status")) tags.push("health");
-  if (text.includes("performance") || text.includes("metrics"))
-    tags.push("performance");
-  if (text.includes("storage") || text.includes("database"))
-    tags.push("storage");
-  if (text.includes("invite") || text.includes("link")) tags.push("link");
-  if (text.includes("support") || text.includes("community"))
-    tags.push("support");
-  if (
-    text.includes("fun") ||
-    text.includes("8ball") ||
-    text.includes("question")
-  )
-    tags.push("fun");
-  if (
-    text.includes("sponsor") ||
-    text.includes("donate") ||
-    text.includes("support")
-  )
-    tags.push("support");
+  // Add tags based on patterns
+  for (const [tag, patterns] of Object.entries(TAG_PATTERNS)) {
+    if (patterns.some(pattern => text.includes(pattern))) {
+      tags.push(tag);
+    }
+  }
 
-  // Remove duplicates and return
   return [...new Set(tags)];
 }
+
+// ============================================================================
+// EMOJI MAPPING
+// ============================================================================
+
+/**
+ * Emoji mapping for command types
+ */
+const EMOJI_MAP = {
+  // Experience system
+  level: EMOJIS.FEATURES.EXPERIENCE,
+  leaderboard: EMOJIS.FEATURES.EXPERIENCE,
+  xp: EMOJIS.FEATURES.EXPERIENCE,
+
+  // Fun commands
+  "8ball": EMOJIS.UI.QUESTION,
+
+  // Role management
+  role: EMOJIS.FEATURES.ROLES,
+  roles: EMOJIS.FEATURES.ROLES,
+  welcome: EMOJIS.ACTIONS.SETTINGS,
+  goodbye: EMOJIS.ACTIONS.SETTINGS,
+
+  // Temporary roles
+  temp: EMOJIS.FEATURES.TEMPORARY,
+  temporary: EMOJIS.FEATURES.TEMPORARY,
+
+  // Actions
+  setup: EMOJIS.ACTIONS.SETTINGS,
+  list: EMOJIS.ACTIONS.VIEW,
+  update: EMOJIS.ACTIONS.EDIT,
+  delete: EMOJIS.ACTIONS.DELETE,
+  assign: EMOJIS.ACTIONS.ADD,
+  remove: EMOJIS.ACTIONS.REMOVE,
+
+  // System monitoring
+  health: EMOJIS.STATUS.SUCCESS,
+  performance: EMOJIS.FEATURES.MONITORING,
+  storage: EMOJIS.FEATURES.BACKUP,
+
+  // Community
+  sponsor: EMOJIS.ACTIONS.HEART,
+
+  // Default fallback
+  default: EMOJIS.ACTIONS.HELP,
+};
 
 /**
  * Get appropriate emoji for a command based on its name
  * @param {string} commandName - The command name
- * @returns {string} - Appropriate emoji for the command
+ * @returns {string} Appropriate emoji for the command
  */
 export function getCommandEmoji(commandName) {
-  // Smart emoji mapping based on command patterns
-  const emojiMap = {
-    // Experience commands
-    level: EMOJIS.FEATURES.EXPERIENCE,
-    leaderboard: EMOJIS.FEATURES.EXPERIENCE,
-    xp: EMOJIS.FEATURES.EXPERIENCE,
-
-    // Info commands
-    userinfo: EMOJIS.UI.USER,
-    info: EMOJIS.UI.INFO,
-
-    // Fun commands
-    "8ball": EMOJIS.UI.QUESTION,
-    fun: EMOJIS.CATEGORIES.FUN,
-
-    // Role commands
-    role: EMOJIS.FEATURES.ROLES,
-    roles: EMOJIS.FEATURES.ROLES,
-
-    // Welcome commands
-    welcome: EMOJIS.ACTIONS.SETTINGS,
-
-    // Temporary commands
-    temp: EMOJIS.FEATURES.TEMPORARY,
-    temporary: EMOJIS.FEATURES.TEMPORARY,
-
-    // Setup commands
-    setup: EMOJIS.ACTIONS.SETTINGS,
-
-    // List commands
-    list: EMOJIS.ACTIONS.VIEW,
-
-    // Update commands
-    update: EMOJIS.ACTIONS.EDIT,
-
-    // Delete commands
-    delete: EMOJIS.ACTIONS.DELETE,
-
-    // Assign commands
-    assign: EMOJIS.ACTIONS.ADD,
-
-    // Remove commands
-    remove: EMOJIS.ACTIONS.REMOVE,
-
-    // Health commands
-    health: EMOJIS.STATUS.SUCCESS,
-
-    // Performance commands
-    performance: EMOJIS.FEATURES.MONITORING,
-
-    // Storage commands
-    storage: EMOJIS.FEATURES.BACKUP,
-
-    // Sponsor command
-    sponsor: EMOJIS.ACTIONS.HEART,
-
-    // Default fallback
-    default: EMOJIS.ACTIONS.HELP,
-  };
-
-  // Check for pattern matches first
-  for (const [pattern, emoji] of Object.entries(emojiMap)) {
+  for (const [pattern, emoji] of Object.entries(EMOJI_MAP)) {
     if (commandName.includes(pattern)) {
       return emoji;
     }
   }
-
-  return emojiMap.default;
+  return EMOJI_MAP.default;
 }
+
+// ============================================================================
+// COMMAND CATEGORIES
+// ============================================================================
 
 /**
  * Command category definitions with automatic command discovery
@@ -146,20 +127,12 @@ export const COMMAND_CATEGORIES = {
     color: THEME.ADMIN,
     requiredPermissions: ["MANAGE_ROLES"],
     commandPatterns: [
-      "setup-",
-      "update-",
-      "delete-",
-      "list-",
-      "assign-",
-      "remove-",
-      "welcome-",
-      "role",
-      "temp",
-      "manage",
-      "admin",
-      "xp",
-      "schedule-",
-      "bulk-",
+      "role-reactions",
+      "temp-roles",
+      "schedule-role",
+      "welcome",
+      "goodbye",
+      "xp-settings",
     ],
   },
   general: {
@@ -174,14 +147,10 @@ export const COMMAND_CATEGORIES = {
       "invite",
       "support",
       "sponsor",
-      "userinfo",
       "avatar",
       "8ball",
       "level",
       "leaderboard",
-      "info",
-      "fun",
-      "xp",
     ],
   },
   developer: {
@@ -190,13 +159,17 @@ export const COMMAND_CATEGORIES = {
     description: "Developer and bot management commands",
     color: THEME.DEVELOPER,
     requiredPermissions: ["DEVELOPER"],
-    commandPatterns: ["health", "performance", "storage", "debug", "dev"],
+    commandPatterns: ["health", "performance", "storage"],
   },
 };
 
+// ============================================================================
+// METADATA GENERATION
+// ============================================================================
+
 /**
- * Dynamically generate command metadata based on loaded commands
- * @param {Client} client - Discord client instance
+ * Generate command metadata for help system
+ * @param {import('discord.js').Client} client - Discord client instance
  * @returns {Object} Generated command metadata
  */
 export function generateCommandMetadata(client) {
@@ -205,7 +178,7 @@ export function generateCommandMetadata(client) {
   const metadata = {};
 
   // Safety check for client and commands collection
-  if (!client || !client.commands) {
+  if (!client?.commands) {
     const logger = getLogger();
     logger.warn(
       "Client or commands collection not available, returning empty metadata",
@@ -217,21 +190,16 @@ export function generateCommandMetadata(client) {
     const command = client.commands.get(commandName);
     if (!command) continue;
 
-    // Always generate metadata dynamically, but enhance with pre-defined data if available
     const description = command.data?.description || "No description available";
     const shortDesc =
       description.length > 50
         ? `${description.substring(0, 47)}...`
         : description;
 
-    // Generate smart tags based on command name and description
-    const tags = generateCommandTags(commandName, description);
-
-    // Start with dynamic metadata
     metadata[commandName] = {
       emoji: getCommandEmoji(commandName),
       shortDesc,
-      tags,
+      tags: generateCommandTags(commandName, description),
     };
   }
 
@@ -239,8 +207,8 @@ export function generateCommandMetadata(client) {
 }
 
 /**
- * Dynamically generate command categories based on loaded commands
- * @param {Client} _client - Discord client instance (unused but kept for API consistency)
+ * Generate command categories based on loaded commands
+ * @param {import('discord.js').Client} _client - Discord client instance (unused but kept for API consistency)
  * @returns {Object} Generated command categories
  */
 export function generateCommandCategories(_client) {
@@ -249,12 +217,11 @@ export function generateCommandCategories(_client) {
   const categories = {};
 
   // Safety check for command handler
-  if (!commandHandler || !allCommands || allCommands.length === 0) {
+  if (!commandHandler?.getAllCommands || !allCommands?.length) {
     const logger = getLogger();
     logger.warn(
       "Command handler not available or no commands found, using fallback categories",
     );
-    // Return categories with empty commands arrays for safety
     const fallbackCategories = {};
     for (const [key, config] of Object.entries(COMMAND_CATEGORIES)) {
       fallbackCategories[key] = {
@@ -265,36 +232,30 @@ export function generateCommandCategories(_client) {
     return fallbackCategories;
   }
 
-  // Initialize categories with their base configuration
-  for (const [categoryKey, categoryConfig] of Object.entries(
-    COMMAND_CATEGORIES,
-  )) {
-    categories[categoryKey] = {
-      ...categoryConfig,
-      commands: [],
-    };
+  // Initialize categories with base configuration
+  for (const [key, config] of Object.entries(COMMAND_CATEGORIES)) {
+    categories[key] = { ...config, commands: [] };
   }
 
-  // Categorize commands based on patterns and rules
+  // Categorize commands based on patterns
   for (const commandName of allCommands) {
     let categorized = false;
 
-    // Check each category's patterns
     for (const [categoryKey, categoryConfig] of Object.entries(categories)) {
       const patterns = categoryConfig.commandPatterns;
 
-      for (const pattern of patterns) {
-        if (commandName.includes(pattern) || commandName === pattern) {
-          categories[categoryKey].commands.push(commandName);
-          categorized = true;
-          break;
-        }
+      if (
+        patterns.some(
+          pattern => commandName.includes(pattern) || commandName === pattern,
+        )
+      ) {
+        categories[categoryKey].commands.push(commandName);
+        categorized = true;
+        break;
       }
-
-      if (categorized) break;
     }
 
-    // If not categorized, put in general
+    // Fallback to general category
     if (!categorized) {
       if (!categories.general) {
         categories.general = {
@@ -311,28 +272,29 @@ export function generateCommandCategories(_client) {
   }
 
   // Remove empty categories
-  for (const [categoryKey, categoryConfig] of Object.entries(categories)) {
-    if (categoryConfig.commands.length === 0) {
-      delete categories[categoryKey];
-    }
-  }
-
-  return categories;
+  return Object.fromEntries(
+    Object.entries(categories).filter(
+      ([, config]) => config.commands.length > 0,
+    ),
+  );
 }
 
+// ============================================================================
+// MAIN EXPORT
+// ============================================================================
+
 /**
- * Get the complete dynamic help data
- * @param {Client} client - Discord client instance
+ * Get complete dynamic help data for the help system
+ * @param {import('discord.js').Client} client - Discord client instance
  * @returns {Object} Complete help data with metadata and categories
  */
 export function getDynamicHelpData(client) {
-  // Safety check for client
   if (!client) {
     const logger = getLogger();
     logger.warn("Client not available, using fallback help data");
     return {
       COMMAND_METADATA: {},
-      COMMAND_CATEGORIES,
+      COMMAND_CATEGORIES: generateCommandCategories(client),
     };
   }
 

@@ -92,10 +92,10 @@ export class HelpEmbedBuilder {
         {
           name: `${EMOJIS.ACTIONS.QUICK} Quick Start`,
           value: [
-            `${EMOJIS.NUMBERS.ONE} Use \`/setup-roles\` to create role selections`,
+            `${EMOJIS.NUMBERS.ONE} Use \`/role-reactions setup\` to create role selections`,
             `${EMOJIS.NUMBERS.TWO} Members click reactions to get roles instantly`,
-            `${EMOJIS.NUMBERS.THREE} Use \`/assign-temp-role\` for time-limited access`,
-            `${EMOJIS.NUMBERS.FOUR} Track everything with \`/list-roles\``,
+            `${EMOJIS.NUMBERS.THREE} Use \`/temp-roles assign\` for time-limited access`,
+            `${EMOJIS.NUMBERS.FOUR} Track everything with \`/temp-roles list\``,
             `${EMOJIS.NUMBERS.FIVE} Schedule roles with \`/schedule-role\` for future events`,
             `${EMOJIS.NUMBERS.SIX} Create schedules with \`/schedule-role\` (one-time or recurring)`,
           ].join("\n"),
@@ -327,104 +327,65 @@ export class HelpEmbedBuilder {
         );
         break;
 
-      case "update-roles":
+      case "role-reactions":
         embed.addFields(
           {
-            name: `${EMOJIS.ACTIONS.EDIT} Usage`,
-            value:
-              '```/update-roles message_id:123456789012345678 title:"Updated Roles!" roles:"🎮:Gamer,🎨:Artist" color:"#ff0000"```',
-            inline: false,
-          },
-          {
-            name: `${EMOJIS.UI.MENU} Parameters`,
+            name: `${EMOJIS.FEATURES.ROLES} 🎯 How to Use`,
             value: [
-              "**message_id** - ID of the role message to change (get from `/list-roles`)",
-              "**title** *(optional)* - New title for your role message",
-              "**description** *(optional)* - Updated description text",
-              "**roles** *(optional)* - New roles with emojis",
-              "**color** *(optional)* - New color for the message",
+              '```/role-reactions setup title:"Choose Your Roles" description:"React to get roles!" roles:"🎮 @Gamer, 🎨 @Artist"```',
+              "```/role-reactions list```",
+              '```/role-reactions update message_id:"1234567890" title:"Updated Title"```',
+              '```/role-reactions delete message_id:"1234567890"```',
             ].join("\n"),
             inline: false,
           },
           {
-            name: `${EMOJIS.FEATURES.SECURITY} Permissions`,
-            value:
-              "• **Manage Roles** permission (for you)\n• **Manage Messages** permission (for the bot)",
-            inline: false,
-          },
-        );
-        break;
-
-      case "delete-roles":
-        embed.addFields(
-          {
-            name: `${EMOJIS.ACTIONS.DELETE} Usage`,
-            value: "```/delete-roles message_id:123456789012345678```",
-            inline: false,
-          },
-          {
-            name: `${EMOJIS.UI.MENU} Parameters`,
-            value:
-              "**message_id** - ID of the role message to remove (get from `/list-roles`)",
-            inline: false,
-          },
-          {
-            name: `${EMOJIS.FEATURES.SECURITY} Permissions`,
-            value:
-              "• **Manage Roles** permission (for you)\n• **Manage Messages** permission (for the bot)",
-            inline: false,
-          },
-        );
-        break;
-
-      case "list-roles":
-        embed.addFields(
-          {
-            name: `${EMOJIS.ACTIONS.VIEW} 📋 How to Use`,
-            value: "```/list-roles```",
-            inline: false,
-          },
-          {
-            name: `${EMOJIS.UI.MENU} 📝 What You Need`,
-            value: "No parameters needed - just run the command!",
+            name: `${EMOJIS.UI.MENU} 📝 Subcommands`,
+            value: [
+              "**setup** - Create a new role-reaction message",
+              "**list** - List all role-reaction messages",
+              "**update** - Update an existing role-reaction message",
+              "**delete** - Delete a role-reaction message",
+            ].join("\n"),
             inline: false,
           },
           {
             name: `${EMOJIS.FEATURES.SECURITY} 🔐 Permissions`,
-            value: "• **Manage Roles** permission (for you)",
+            value: "• **Manage Roles** permission required",
             inline: false,
           },
           {
             name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
             value:
-              "A list of all your active role selection messages with their titles, message IDs, and which channels they're in. Perfect for keeping track of your community's role system!",
+              "Interactive role assignment via emoji reactions with customizable embeds, automatic reaction addition, and comprehensive management tools!",
             inline: false,
           },
         );
         break;
 
-      case "assign-temp-role":
+      case "temp-roles":
         embed.addFields(
           {
-            name: `${EMOJIS.ACTIONS.ADD} ⏰ How to Use`,
-            value:
-              '```/assign-temp-role users:"@user1,@user2" role:@EventRole duration:"2h" reason:"Tournament participation"```',
+            name: `${EMOJIS.FEATURES.TEMPORARY} ⏰ How to Use`,
+            value: [
+              '```/temp-roles assign users:"@user1,@user2" role:@EventRole duration:"2h" reason:"Tournament participation"```',
+              "```/temp-roles list user:@user1```",
+              '```/temp-roles remove users:"@user1" role:@EventRole reason:"Early removal"```',
+            ].join("\n"),
             inline: false,
           },
           {
-            name: `${EMOJIS.UI.MENU} 📝 What You Need`,
+            name: `${EMOJIS.UI.MENU} 📝 Subcommands`,
             value: [
-              "**users** - The members you want to give the temporary role to (can be multiple)",
-              "**role** - The role you want to assign temporarily",
-              "**duration** - How long the role should last (like 30m, 2h, 1d, 1w)",
-              "**reason** *(optional)* - Why you're giving this temporary role",
+              "**assign** - Assign temporary roles to users that expire after a set duration",
+              "**list** - List active temporary roles for a user or all users",
+              "**remove** - Remove a temporary role from users before it expires",
             ].join("\n"),
             inline: false,
           },
           {
             name: `${EMOJIS.FEATURES.SECURITY} 🔐 Permissions`,
-            value:
-              "• **Manage Roles** permission (for you)\n• **Manage Roles** permission (for the bot)",
+            value: "• **Manage Roles** permission required",
             inline: false,
           },
           {
@@ -442,107 +403,6 @@ export class HelpEmbedBuilder {
             name: `${EMOJIS.STATUS.INFO} 🎉 Perfect For`,
             value:
               "Events, tournaments, giveaways, VIP access, beta testing, or any temporary special access!",
-            inline: false,
-          },
-        );
-        break;
-
-      case "list-temp-roles":
-        embed.addFields(
-          {
-            name: `${EMOJIS.ACTIONS.VIEW} 📋 How to Use`,
-            value: "```/list-temp-roles [user:@username]```",
-            inline: false,
-          },
-          {
-            name: `${EMOJIS.UI.MENU} 📝 What You Need`,
-            value: [
-              "**user** *(optional)* - Check a specific member's temporary roles (leave empty to see all)",
-            ].join("\n"),
-            inline: false,
-          },
-          {
-            name: `${EMOJIS.FEATURES.SECURITY} 🔐 Permissions`,
-            value: "• **Manage Roles** permission (for you)",
-            inline: false,
-          },
-          {
-            name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
-            value:
-              "A list of all temporary roles with when they expire and how much time is left. Great for keeping track of event access and special permissions!",
-            inline: false,
-          },
-        );
-        break;
-
-      case "temp-roles":
-        embed.addFields(
-          {
-            name: `${EMOJIS.FEATURES.ROLES} ⏰ How to Use`,
-            value: [
-              '```/temp-roles assign users:"@user1, @user2" role:@EventRole duration:2h reason:"Tournament access" notify:true notify-expiry:true```',
-              "```/temp-roles list [user:@username]```",
-              '```/temp-roles remove users:"@user1, @user2" role:@EventRole reason:"Event ended early"```',
-            ].join("\n"),
-            inline: false,
-          },
-          {
-            name: `${EMOJIS.UI.MENU} 📝 Subcommands`,
-            value: [
-              "**assign** - Give temporary roles to multiple users with custom duration and optional DM notifications",
-              "**list** - View all temporary roles or check a specific user's temporary roles",
-              "**remove** - Remove temporary roles from multiple users early with optional reason",
-            ].join("\n"),
-            inline: false,
-          },
-          {
-            name: `${EMOJIS.FEATURES.SECURITY} 🔐 Permissions`,
-            value:
-              "• **Manage Roles** permission (for you)\n• **Manage Roles** permission (for the bot)",
-            inline: false,
-          },
-          {
-            name: `${EMOJIS.STATUS.INFO} ⏱️ Duration Examples`,
-            value:
-              "`30m`, `2h`, `1d`, `1w` - Perfect for events, tournaments, and temporary access!",
-            inline: false,
-          },
-          {
-            name: `${EMOJIS.FEATURES.FUN} 🚀 Smart Features`,
-            value:
-              "**Bulk Operations** - Assign/remove roles from multiple users simultaneously\n**Flexible Removal** - Remove any role, not just temporary ones\n**Smart Notifications** - Optional DM notifications for assignment and expiration\n**Modern Design** - Beautiful embeds with comprehensive information",
-            inline: false,
-          },
-        );
-        break;
-
-      case "remove-temp-role":
-        embed.addFields(
-          {
-            name: `${EMOJIS.ACTIONS.REMOVE} 🗑️ How to Use`,
-            value:
-              '```/remove-temp-role user:@username role:@EventRole reason:"Event ended early"```',
-            inline: false,
-          },
-          {
-            name: `${EMOJIS.UI.MENU} 📝 What You Need`,
-            value: [
-              "**user** - The member you want to remove the temporary role from",
-              "**role** - The temporary role you want to remove",
-              "**reason** *(optional)* - Why you're removing the role early",
-            ].join("\n"),
-            inline: false,
-          },
-          {
-            name: `${EMOJIS.FEATURES.SECURITY} 🔐 Permissions`,
-            value:
-              "• **Manage Roles** permission (for you)\n• **Manage Roles** permission (for the bot)",
-            inline: false,
-          },
-          {
-            name: `${EMOJIS.STATUS.INFO} ⚠️ Important Note`,
-            value:
-              "This only works on temporary roles that were assigned through the bot. Regular roles need to be removed manually.",
             inline: false,
           },
         );
@@ -649,43 +509,6 @@ export class HelpEmbedBuilder {
             name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
             value:
               "An invite link to add Role Reactor Bot to your server. The link is sent as an ephemeral message, so only you can see it. Share it with others to invite the bot!",
-            inline: false,
-          },
-        );
-        break;
-
-      case "role-reactions":
-        embed.addFields(
-          {
-            name: `${EMOJIS.FEATURES.ROLES} 🎭 How to Use`,
-            value: [
-              '```/role-reactions setup title:"Choose Your Roles" description:"React to get roles!" roles:"🎮 @Gamer, 🎨 @Artist, 📚 @Reader" color:"Pastel Blue"```',
-              "```/role-reactions list```",
-              '```/role-reactions update message_id:"1234567890" title:"Updated Title" color:"Pastel Green"```',
-              '```/role-reactions delete message_id:"1234567890"```',
-            ].join("\n"),
-            inline: false,
-          },
-          {
-            name: `${EMOJIS.UI.MENU} 📝 Subcommands`,
-            value: [
-              "**setup** - Create a new role-reaction message with custom title, description, roles, and color",
-              "**list** - View all role-reaction messages in your server with their details",
-              "**update** - Modify an existing role-reaction message (title, description, roles, or color)",
-              "**delete** - Remove a role-reaction message by its ID",
-            ].join("\n"),
-            inline: false,
-          },
-          {
-            name: `${EMOJIS.FEATURES.SECURITY} 🔐 Permissions`,
-            value:
-              "• **Manage Roles** permission (for you)\n• **Manage Messages** permission (for the bot)\n• **Add Reactions** permission (for the bot)",
-            inline: false,
-          },
-          {
-            name: `${EMOJIS.STATUS.INFO} 🎨 Color Options`,
-            value:
-              "Pastel Blue, Pastel Green, Pastel Pink, Pastel Purple, Pastel Yellow, Pastel Orange, Pastel Red, Pastel Teal",
             inline: false,
           },
         );
@@ -891,46 +714,21 @@ export class HelpEmbedBuilder {
         );
         break;
 
-      case "welcome-settings":
+      case "welcome":
         embed.addFields(
           {
             name: `${EMOJIS.FEATURES.WELCOME} 🎉 How to Use`,
-            value: "```/welcome-settings```",
-            inline: false,
-          },
-          {
-            name: `${EMOJIS.UI.MENU} 📝 What You Need`,
-            value: "No parameters needed - just run the command!",
-            inline: false,
-          },
-          {
-            name: `${EMOJIS.FEATURES.SECURITY} 🔐 Permissions`,
-            value: "• **Manage Server** permission required",
-            inline: false,
-          },
-          {
-            name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
-            value:
-              "Interactive welcome system configuration with buttons to toggle features, customize messages, and set up automatic welcome responses for new members!",
-            inline: false,
-          },
-        );
-        break;
-
-      case "setup-welcome":
-        embed.addFields(
-          {
-            name: `${EMOJIS.FEATURES.WELCOME} 🎉 How to Use`,
-            value:
-              '```/setup-welcome channel:#welcome message:"Welcome to our server!" enabled:true```',
-            inline: false,
-          },
-          {
-            name: `${EMOJIS.UI.MENU} 📝 What You Need`,
             value: [
-              "**channel** - The channel where welcome messages will be sent",
-              "**message** - Custom welcome message (supports placeholders)",
-              "**enabled** - Whether the welcome system is active",
+              '```/welcome setup channel:#welcome message:"Welcome {user} to {server}! 🎉" auto-role:@Member enabled:true```',
+              "```/welcome settings```",
+            ].join("\n"),
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.UI.MENU} 📝 Subcommands`,
+            value: [
+              "**setup** - Configure the welcome system with channel, message, and auto-role",
+              "**settings** - View and manage current welcome system settings",
             ].join("\n"),
             inline: false,
           },
@@ -942,7 +740,39 @@ export class HelpEmbedBuilder {
           {
             name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
             value:
-              "Confirmation that your welcome system has been configured, with options to test the setup and customize further settings!",
+              "Interactive welcome system with channel selection, message customization, auto-role assignment, and real-time settings management for new members!",
+            inline: false,
+          },
+        );
+        break;
+
+      case "goodbye":
+        embed.addFields(
+          {
+            name: `${EMOJIS.FEATURES.WELCOME} 👋 How to Use`,
+            value: [
+              '```/goodbye setup channel:#general message:"**{user}** left the server\\nThanks for being part of **{server}**! 👋" enabled:true```',
+              "```/goodbye settings```",
+            ].join("\n"),
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.UI.MENU} 📝 Subcommands`,
+            value: [
+              "**setup** - Configure the goodbye system with channel and message",
+              "**settings** - View and manage current goodbye system settings",
+            ].join("\n"),
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.FEATURES.SECURITY} 🔐 Permissions`,
+            value: "• **Manage Server** permission required",
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
+            value:
+              "Interactive goodbye system with channel selection, message customization, and real-time settings management for members leaving!",
             inline: false,
           },
         );

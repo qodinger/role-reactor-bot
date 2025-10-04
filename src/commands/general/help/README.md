@@ -86,7 +86,7 @@ help/
 ### Specific Command Help
 
 ```javascript
-/help command:setup-roles
+/help command:role-reactions
 ```
 
 ### Interaction Handling

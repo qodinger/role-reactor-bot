@@ -176,7 +176,7 @@ export async function testWelcomeSystem(
         success: false,
         error: "Welcome system is not enabled",
         solution:
-          "Use `/setup-welcome` to configure and enable the welcome system.",
+          "Use `/welcome setup` to configure and enable the welcome system.",
       };
     }
 
@@ -184,7 +184,7 @@ export async function testWelcomeSystem(
       return {
         success: false,
         error: "No welcome channel configured",
-        solution: "Use `/setup-welcome` to set a welcome channel.",
+        solution: "Use `/welcome setup` to set a welcome channel.",
       };
     }
 
@@ -193,7 +193,7 @@ export async function testWelcomeSystem(
       return {
         success: false,
         error: "Welcome channel not found",
-        solution: "Use `/setup-welcome` to reconfigure the welcome system.",
+        solution: "Use `/welcome setup` to reconfigure the welcome system.",
       };
     }
 

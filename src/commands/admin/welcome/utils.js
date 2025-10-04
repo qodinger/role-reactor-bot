@@ -21,7 +21,7 @@ export function validateWelcomeInputs(interaction, channel, autoRole, enabled) {
           description:
             "You must specify a channel to enable the welcome system.",
           solution:
-            "Use `/setup-welcome channel:#your-channel enabled:true` to enable with a channel.",
+            "Use `/welcome setup channel:#your-channel enabled:true` to enable with a channel.",
         }),
       };
     }

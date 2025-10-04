@@ -408,7 +408,7 @@ class CommandHandler {
    * @returns {Array<string>} Array of registered command names
    * @example
    * const commands = handler.getAllCommands();
-   * // ['ping', 'setup-roles', 'help', ...]
+   * // ['ping', 'role-reactions', 'help', ...]
    */
   getAllCommands() {
     return Array.from(this.commands.keys());

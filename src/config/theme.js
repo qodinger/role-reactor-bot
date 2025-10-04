@@ -184,6 +184,7 @@ export const EMOJIS = {
     DOWN: "🔽",
     QUICK: "🚀",
     HEART: "💖",
+    INVITE: "💌",
   },
 
   // Features and functionality

@@ -20,7 +20,8 @@ export class InteractionHandler {
    */
   async handleInteraction(interaction) {
     try {
-      await routeHelpInteraction(interaction, false);
+      // Help interactions should be deferred since the original help command defers
+      await routeHelpInteraction(interaction, true);
     } catch (error) {
       this.logger.error("Error handling help interaction", error);
       await this.handleInteractionError(interaction, error);

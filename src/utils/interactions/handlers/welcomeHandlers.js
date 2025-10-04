@@ -12,6 +12,7 @@ import {
   processWelcomeMessage,
   createWelcomeEmbed,
 } from "../../discord/welcomeUtils.js";
+import { THEME, THEME_COLOR } from "../../../config/theme.js";
 
 /**
  * Handle welcome configure button interaction
@@ -50,7 +51,7 @@ export async function handleWelcomeConfigure(interaction) {
       title: "Configure Welcome System",
       description:
         "Select a channel for welcome messages, then configure the settings.",
-      color: 0x5865f2,
+      color: THEME_COLOR,
       fields: [
         {
           name: "Step 1: Select Channel",
@@ -209,7 +210,7 @@ export async function handleWelcomeReset(interaction) {
       channelId: null,
       message: "Welcome **{user}** to **{server}**! 🎉",
       embedEnabled: true,
-      embedColor: 0x7f7bf5,
+      embedColor: THEME_COLOR,
       embedTitle: "👋 Welcome to {server}!",
       embedDescription: "Thanks for joining our community!",
       embedThumbnail: true,
@@ -414,7 +415,7 @@ export async function handleWelcomeTest(interaction) {
         {
           title: "🎉 Welcome System Test Results",
           description: `Test completed in ${welcomeChannel.toString()}${messageLink}\n\n${testResults.join("\n")}`,
-          color: 0x00ff00,
+          color: THEME.SUCCESS,
           fields: [
             {
               name: "📋 Test Details",
@@ -715,7 +716,7 @@ export async function handleWelcomeConfigureRole(interaction) {
       title: "Configure Welcome Auto-Role",
       description:
         "Select a role from the dropdown below to automatically assign to new members, or use the 'Clear Auto-Role' button to remove the current one.",
-      color: 0x5865f2,
+      color: THEME_COLOR,
       fields: [
         {
           name: "Select Role",
