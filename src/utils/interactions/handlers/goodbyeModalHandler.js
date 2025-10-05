@@ -3,8 +3,6 @@ import { getLogger } from "../../logger.js";
 import { getDatabaseManager } from "../../storage/databaseManager.js";
 import { errorEmbed } from "../../discord/responseMessages.js";
 import { hasAdminPermissions } from "../../discord/permissions.js";
-import { createGoodbyeSettingsEmbed } from "../../../commands/admin/goodbye/embeds.js";
-import { createGoodbyeSettingsComponents } from "../../../commands/admin/goodbye/components.js";
 
 /**
  * Handle goodbye configuration modal submission
@@ -30,49 +28,8 @@ export async function handleGoodbyeConfigModal(interaction) {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     // Get form data
-    const channelInput =
-      interaction.fields.getTextInputValue("goodbye_channel");
     const messageInput =
       interaction.fields.getTextInputValue("goodbye_message");
-    const enabledInput =
-      interaction.fields.getTextInputValue("goodbye_enabled");
-    const embedInput = interaction.fields.getTextInputValue("goodbye_embed");
-
-    // Parse channel input (handle both mentions and IDs)
-    let channelId = null;
-    if (channelInput) {
-      // Extract channel ID from mention or use as direct ID
-      const channelMatch =
-        channelInput.match(/<#(\d+)>/) || channelInput.match(/^(\d+)$/);
-      if (channelMatch) {
-        channelId = channelMatch[1];
-      } else {
-        return interaction.editReply(
-          errorEmbed({
-            title: "Invalid Channel",
-            description: "Please provide a valid channel mention or ID.",
-            solution: "Use #channel-name or the channel ID directly.",
-          }),
-        );
-      }
-    }
-
-    // Validate channel exists
-    const channel = interaction.guild.channels.cache.get(channelId);
-    if (!channel) {
-      return interaction.editReply(
-        errorEmbed({
-          title: "Channel Not Found",
-          description:
-            "The specified channel does not exist or is not accessible.",
-          solution: "Please check the channel ID and try again.",
-        }),
-      );
-    }
-
-    // Parse boolean values
-    const enabled = enabledInput.toLowerCase() === "true";
-    const embedEnabled = embedInput.toLowerCase() === "true";
 
     // Validate message if provided
     if (messageInput && messageInput.length > 2000) {
@@ -85,15 +42,18 @@ export async function handleGoodbyeConfigModal(interaction) {
       );
     }
 
-    // Save settings
+    // Get current settings to preserve other values
     const dbManager = await getDatabaseManager();
+    const currentSettings = await dbManager.goodbyeSettings.getByGuild(
+      interaction.guild.id,
+    );
+
+    // Update only the message, preserve other settings
     const newSettings = {
-      channelId,
+      ...currentSettings,
       message:
         messageInput ||
         "**{user}** left the server\nThanks for being part of **{server}**! 👋",
-      enabled,
-      embedEnabled,
     };
 
     await dbManager.goodbyeSettings.set(interaction.guild.id, newSettings);
@@ -103,13 +63,19 @@ export async function handleGoodbyeConfigModal(interaction) {
       interaction.guild.id,
     );
 
-    // Create updated embed and components
-    const embed = createGoodbyeSettingsEmbed(
-      interaction,
-      updatedSettings,
-      channel,
+    // Return to configuration page with updated settings
+    const { createGoodbyeConfigPageEmbed } = await import(
+      "../../../commands/admin/goodbye/modals.js"
     );
-    const components = createGoodbyeSettingsComponents(updatedSettings);
+    const { createGoodbyeConfigPageComponents } = await import(
+      "../../../commands/admin/goodbye/components.js"
+    );
+
+    const embed = createGoodbyeConfigPageEmbed(interaction, updatedSettings);
+    const components = createGoodbyeConfigPageComponents(
+      interaction.guild,
+      updatedSettings,
+    );
 
     // Update the original message
     await interaction.editReply({
@@ -118,11 +84,8 @@ export async function handleGoodbyeConfigModal(interaction) {
     });
 
     logger.info(
-      `Goodbye system configured via modal by ${interaction.user.tag} in ${interaction.guild.name}`,
+      `Goodbye message configured via modal by ${interaction.user.tag} in ${interaction.guild.name}`,
       {
-        channelId,
-        enabled,
-        embedEnabled,
         messageLength: messageInput?.length || 0,
       },
     );

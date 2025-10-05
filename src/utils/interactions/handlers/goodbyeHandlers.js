@@ -1,13 +1,17 @@
-import { MessageFlags } from "discord.js";
+import {
+  MessageFlags,
+  StringSelectMenuBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+} from "discord.js";
 import { getLogger } from "../../logger.js";
 import { getDatabaseManager } from "../../storage/databaseManager.js";
 import { errorEmbed } from "../../discord/responseMessages.js";
 import { hasAdminPermissions } from "../../discord/permissions.js";
+import { EMOJIS, THEME_COLOR } from "../../../config/theme.js";
 import { createGoodbyeSettingsEmbed } from "../../../commands/admin/goodbye/embeds.js";
-import {
-  createGoodbyeSettingsComponents,
-  createChannelSelectComponents,
-} from "../../../commands/admin/goodbye/components.js";
+import { createGoodbyeSettingsComponents } from "../../../commands/admin/goodbye/components.js";
 import {
   createGoodbyeEmbed,
   processGoodbyeMessage,
@@ -40,33 +44,19 @@ export async function handleGoodbyeConfigure(interaction) {
       interaction.guild.id,
     );
 
-    // Create channel select components
-    const components = createChannelSelectComponents(
-      interaction.guild,
-      currentSettings.channelId,
+    // Create and show the configuration page
+    const { createGoodbyeConfigPageEmbed } = await import(
+      "../../../commands/admin/goodbye/modals.js"
+    );
+    const { createGoodbyeConfigPageComponents } = await import(
+      "../../../commands/admin/goodbye/components.js"
     );
 
-    // Create embed for channel selection
-    const embed = {
-      title: "Configure Goodbye System",
-      description:
-        "Select a channel for goodbye messages, then configure the settings.",
-      color: 0x5865f2,
-      fields: [
-        {
-          name: "Step 1: Select Channel",
-          value:
-            "Choose a channel from the dropdown below where goodbye messages will be sent.",
-          inline: false,
-        },
-        {
-          name: "Step 2: Configure Settings",
-          value:
-            "After selecting a channel, you'll be able to configure the message, format, and other settings.",
-          inline: false,
-        },
-      ],
-    };
+    const embed = createGoodbyeConfigPageEmbed(interaction, currentSettings);
+    const components = createGoodbyeConfigPageComponents(
+      interaction.guild,
+      currentSettings,
+    );
 
     await interaction.reply({
       embeds: [embed],
@@ -75,7 +65,7 @@ export async function handleGoodbyeConfigure(interaction) {
     });
 
     logger.info(
-      `Goodbye channel select opened by ${interaction.user.tag} in ${interaction.guild.name}`,
+      `Goodbye configuration page displayed for guild ${interaction.guild.name} by user ${interaction.user.tag}`,
     );
   } catch (error) {
     logger.error("Error in handleGoodbyeConfigure:", error);
@@ -88,6 +78,169 @@ export async function handleGoodbyeConfigure(interaction) {
         }),
       );
     }
+  }
+}
+
+/**
+ * Handle goodbye configure message button
+ * @param {import('discord.js').ButtonInteraction} interaction
+ */
+export async function handleGoodbyeConfigureMessage(interaction) {
+  const logger = getLogger();
+
+  try {
+    // Check permissions
+    if (!hasAdminPermissions(interaction.member)) {
+      return interaction.reply(
+        errorEmbed({
+          title: "Permission Denied",
+          description:
+            "You need Manage Server permissions to configure the goodbye system.",
+          solution: "Contact a server administrator for assistance.",
+        }),
+        { flags: MessageFlags.Ephemeral },
+      );
+    }
+
+    const dbManager = await getDatabaseManager();
+    const currentSettings = await dbManager.goodbyeSettings.getByGuild(
+      interaction.guild.id,
+    );
+
+    // Create and show the message configuration modal
+    const { createGoodbyeConfigModal } = await import(
+      "../../../commands/admin/goodbye/modals.js"
+    );
+    const modal = createGoodbyeConfigModal(currentSettings);
+
+    await interaction.showModal(modal);
+
+    logger.info(
+      `Goodbye message configuration modal displayed for guild ${interaction.guild.name} by user ${interaction.user.tag}`,
+    );
+  } catch (error) {
+    logger.error(
+      "Error displaying goodbye message configuration modal:",
+      error,
+    );
+    await interaction.reply(
+      errorEmbed({
+        title: "Error",
+        description: "Failed to display goodbye message configuration modal.",
+        solution: "Please try again or contact support if the issue persists.",
+      }),
+    );
+  }
+}
+
+/**
+ * Handle goodbye select channel button
+ * @param {import('discord.js').ButtonInteraction} interaction
+ */
+export async function handleGoodbyeSelectChannel(interaction) {
+  const logger = getLogger();
+
+  try {
+    // Get available text channels
+    const textChannels = interaction.guild.channels.cache
+      .filter(channel => channel.type === 0)
+      .map(channel => ({
+        id: channel.id,
+        name: channel.name,
+      }))
+      .slice(0, 25); // Discord limit
+
+    if (textChannels.length === 0) {
+      return interaction.reply(
+        errorEmbed({
+          title: "No Channels Available",
+          description: "No text channels found in this server.",
+          solution: "Create a text channel first, then try again.",
+        }),
+      );
+    }
+
+    // Get current settings to set default selection
+    const dbManager = await getDatabaseManager();
+    const settings = await dbManager.goodbyeSettings.getByGuild(
+      interaction.guild.id,
+    );
+
+    const embed = {
+      title: "Select a channel for goodbye messages",
+      description:
+        "Choose where goodbye messages will be sent when members leave your server.",
+      color: THEME_COLOR,
+      fields: [
+        {
+          name: "📋 Instructions",
+          value:
+            "Select a channel from the dropdown below. This will be where goodbye messages are sent.",
+          inline: false,
+        },
+      ],
+    };
+
+    // Create select options with current channel marked
+    const selectOptions = textChannels.map(channel => ({
+      label: `#${channel.name}`,
+      value: channel.id,
+      emoji: EMOJIS.UI.CHANNELS,
+      default: settings.channelId === channel.id,
+    }));
+
+    // Add current channel if it's not in the list
+    if (
+      settings.channelId &&
+      !selectOptions.find(opt => opt.value === settings.channelId)
+    ) {
+      const currentChannel = interaction.guild.channels.cache.get(
+        settings.channelId,
+      );
+      if (currentChannel) {
+        selectOptions.unshift({
+          label: `#${currentChannel.name} (Current)`,
+          value: settings.channelId,
+          emoji: EMOJIS.UI.CHANNELS,
+          default: true,
+        });
+      }
+    }
+
+    const channelSelectMenu = new StringSelectMenuBuilder()
+      .setCustomId("goodbye_channel_select")
+      .setPlaceholder("Select a channel for goodbye messages")
+      .addOptions(selectOptions);
+
+    // Create action rows
+    const selectRow = new ActionRowBuilder().addComponents(channelSelectMenu);
+    const backButton = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId("goodbye_back_to_settings")
+        .setLabel("Back to Settings")
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji("⬅️"),
+    );
+
+    await interaction.reply({
+      embeds: [embed],
+      components: [selectRow, backButton],
+      flags: MessageFlags.Ephemeral,
+    });
+
+    logger.info(
+      `Channel selection displayed for guild ${interaction.guild.name} by user ${interaction.user.tag}`,
+    );
+  } catch (error) {
+    logger.error("Error displaying channel configuration:", error);
+
+    await interaction.reply(
+      errorEmbed({
+        title: "Error",
+        description: "Failed to display channel configuration.",
+        solution: "Please try again or contact support if the issue persists.",
+      }),
+    );
   }
 }
 
@@ -441,7 +594,7 @@ export async function handleGoodbyeTest(interaction) {
         {
           title: "👋 Goodbye System Test Results",
           description: `Test completed in ${goodbyeChannel.toString()}${messageLink}\n\n**Message Test:** ${messageResult}`,
-          color: 0x00ff00,
+          color: THEME_COLOR,
           fields: [
             {
               name: "📋 Test Details",

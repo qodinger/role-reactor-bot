@@ -4,6 +4,7 @@ import {
   TextInputStyle,
   ActionRowBuilder,
 } from "discord.js";
+import { THEME, EMOJIS } from "../../../config/theme.js";
 
 /**
  * Create goodbye configuration modal
@@ -13,57 +14,68 @@ import {
 export function createGoodbyeConfigModal(currentSettings = {}) {
   const modal = new ModalBuilder()
     .setCustomId("goodbye_config_modal")
-    .setTitle("Configure Goodbye System");
-
-  // Channel input (read-only, pre-filled from select menu)
-  const channelInput = new TextInputBuilder()
-    .setCustomId("goodbye_channel")
-    .setLabel("Goodbye Channel (Selected)")
-    .setStyle(TextInputStyle.Short)
-    .setPlaceholder("Channel selected from dropdown")
-    .setValue(
-      currentSettings.channelId
-        ? `<#${currentSettings.channelId}>`
-        : "No channel selected",
-    )
-    .setRequired(false);
+    .setTitle("Configure Goodbye Message");
 
   // Message input
   const messageInput = new TextInputBuilder()
     .setCustomId("goodbye_message")
-    .setLabel("Goodbye Message")
+    .setLabel("Message")
     .setStyle(TextInputStyle.Paragraph)
     .setPlaceholder(
-      "Enter goodbye message (use {user}, {server}, {memberCount})\nExample: **{user}** left the server",
+      "Enter goodbye message (use {user}, {server}, {memberCount})",
     )
-    .setValue(currentSettings.message || "")
+    .setValue(
+      currentSettings.message ||
+        "**{user}** left the server\nThanks for being part of **{server}**! 👋",
+    )
     .setRequired(false);
 
-  // Enable/Disable input
-  const enabledInput = new TextInputBuilder()
-    .setCustomId("goodbye_enabled")
-    .setLabel("Enable System (true/false)")
-    .setStyle(TextInputStyle.Short)
-    .setPlaceholder("true or false")
-    .setValue(currentSettings.enabled ? "true" : "false")
-    .setRequired(true);
-
-  // Embed format input
-  const embedInput = new TextInputBuilder()
-    .setCustomId("goodbye_embed")
-    .setLabel("Use Embed Format (true/false)")
-    .setStyle(TextInputStyle.Short)
-    .setPlaceholder("true or false")
-    .setValue(currentSettings.embedEnabled ? "true" : "false")
-    .setRequired(true);
-
   // Add inputs to modal
-  modal.addComponents(
-    new ActionRowBuilder().addComponents(channelInput),
-    new ActionRowBuilder().addComponents(messageInput),
-    new ActionRowBuilder().addComponents(enabledInput),
-    new ActionRowBuilder().addComponents(embedInput),
-  );
+  modal.addComponents(new ActionRowBuilder().addComponents(messageInput));
 
   return modal;
+}
+
+/**
+ * Create the goodbye configuration page embed
+ * @param {import('discord.js').Interaction} interaction - The interaction
+ * @param {Object} currentSettings - Current goodbye settings
+ * @returns {Object} Embed object
+ */
+export function createGoodbyeConfigPageEmbed(
+  interaction,
+  currentSettings = {},
+) {
+  const currentChannel = currentSettings.channelId
+    ? interaction.guild.channels.cache.get(currentSettings.channelId)
+    : null;
+
+  return {
+    title: `${EMOJIS.ACTIONS.SETTINGS} Configure Goodbye System`,
+    description: "Set up your goodbye message and channel in one place.",
+    color: THEME.PRIMARY,
+    fields: [
+      {
+        name: `${EMOJIS.UI.MENU} Current Settings`,
+        value: [
+          `**Channel:** ${currentChannel ? currentChannel.toString() : "Not set"}`,
+          `**Message:** ${currentSettings.message ? "Custom message set" : "Using default"}`,
+          `**Status:** ${currentSettings.enabled ? `${EMOJIS.STATUS.SUCCESS} Enabled` : `${EMOJIS.STATUS.ERROR} Disabled`}`,
+        ].join("\n"),
+        inline: false,
+      },
+      {
+        name: `${EMOJIS.ACTIONS.SETTINGS} Configuration Options`,
+        value: [
+          `• ${EMOJIS.UI.CHANNELS} **Select Channel** - Choose where goodbye messages are sent`,
+          `• ${EMOJIS.ACTIONS.EDIT} **Configure Message** - Customize the goodbye message content`,
+          `• ${EMOJIS.ACTIONS.DELETE} **Reset** - Reset all goodbye system settings to defaults`,
+        ].join("\n"),
+        inline: false,
+      },
+    ],
+    footer: {
+      text: "Configure your goodbye system step by step",
+    },
+  };
 }

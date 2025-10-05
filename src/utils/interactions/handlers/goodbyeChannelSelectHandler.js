@@ -3,7 +3,6 @@ import { getLogger } from "../../logger.js";
 import { getDatabaseManager } from "../../storage/databaseManager.js";
 import { errorEmbed } from "../../discord/responseMessages.js";
 import { hasAdminPermissions } from "../../discord/permissions.js";
-import { createGoodbyeConfigModal } from "../../../commands/admin/goodbye/modals.js";
 
 /**
  * Handle goodbye channel selection
@@ -42,19 +41,39 @@ export async function handleGoodbyeChannelSelect(interaction) {
       );
     }
 
-    // Get current settings
+    // Get current settings and update with selected channel
     const dbManager = await getDatabaseManager();
     const currentSettings = await dbManager.goodbyeSettings.getByGuild(
       interaction.guild.id,
     );
 
-    // Create modal with selected channel pre-filled
-    const modal = createGoodbyeConfigModal({
+    // Update settings with selected channel
+    const updatedSettings = {
       ...currentSettings,
       channelId: selectedChannelId,
-    });
+    };
 
-    await interaction.showModal(modal);
+    await dbManager.goodbyeSettings.set(interaction.guild.id, updatedSettings);
+
+    // Return to configuration page with updated settings
+    const { createGoodbyeConfigPageEmbed } = await import(
+      "../../../commands/admin/goodbye/modals.js"
+    );
+    const { createGoodbyeConfigPageComponents } = await import(
+      "../../../commands/admin/goodbye/components.js"
+    );
+
+    const embed = createGoodbyeConfigPageEmbed(interaction, updatedSettings);
+    const components = createGoodbyeConfigPageComponents(
+      interaction.guild,
+      updatedSettings,
+    );
+
+    await interaction.reply({
+      embeds: [embed],
+      components,
+      flags: MessageFlags.Ephemeral,
+    });
 
     logger.info(
       `Goodbye channel selected: #${selectedChannel.name} by ${interaction.user.tag} in ${interaction.guild.name}`,

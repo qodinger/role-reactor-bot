@@ -311,6 +311,20 @@ export async function routeButtonInteraction(interaction, _client) {
         await handleGoodbyeConfigure(interaction);
         break;
       }
+      case "goodbye_configure_message": {
+        const { handleGoodbyeConfigureMessage } = await import(
+          "../handlers/goodbyeHandlers.js"
+        );
+        await handleGoodbyeConfigureMessage(interaction);
+        break;
+      }
+      case "goodbye_select_channel": {
+        const { handleGoodbyeSelectChannel } = await import(
+          "../handlers/goodbyeHandlers.js"
+        );
+        await handleGoodbyeSelectChannel(interaction);
+        break;
+      }
       case "goodbye_toggle": {
         const { handleGoodbyeToggle } = await import(
           "../handlers/goodbyeHandlers.js"
@@ -337,6 +351,13 @@ export async function routeButtonInteraction(interaction, _client) {
           "../handlers/goodbyeHandlers.js"
         );
         await handleGoodbyeTest(interaction);
+        break;
+      }
+      case "goodbye_back_to_settings": {
+        const { handleSettings } = await import(
+          "../../../commands/admin/goodbye/handlers.js"
+        );
+        await handleSettings(interaction, interaction.client);
         break;
       }
       case "goodbye_settings": {

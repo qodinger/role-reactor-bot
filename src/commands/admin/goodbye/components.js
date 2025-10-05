@@ -105,19 +105,67 @@ export function createChannelSelectComponents(guild, currentChannelId = null) {
     .addOptions(selectOptions);
 
   const backButton = new ButtonBuilder()
-    .setCustomId("goodbye_settings")
+    .setCustomId("goodbye_back_to_settings")
     .setLabel("Back to Settings")
     .setEmoji(EMOJIS.ACTIONS.BACK)
     .setStyle(ButtonStyle.Secondary);
 
-  const resetButton = new ButtonBuilder()
-    .setCustomId("goodbye_reset")
-    .setLabel("Reset")
-    .setEmoji(EMOJIS.ACTIONS.DELETE)
-    .setStyle(ButtonStyle.Secondary);
-
   return [
     new ActionRowBuilder().addComponents(selectMenu),
-    new ActionRowBuilder().addComponents(backButton, resetButton),
+    new ActionRowBuilder().addComponents(backButton),
   ];
+}
+
+/**
+ * Create goodbye configuration page components
+ * @param {import('discord.js').Guild} guild - The guild
+ * @param {Object} currentSettings - Current goodbye settings
+ * @returns {ActionRowBuilder[]}
+ */
+export function createGoodbyeConfigPageComponents(
+  guild,
+  _currentSettings = {},
+) {
+  const buttonComponents = [];
+
+  // Channel selection button
+  buttonComponents.push(
+    new ButtonBuilder()
+      .setCustomId("goodbye_select_channel")
+      .setLabel("Select Channel")
+      .setEmoji(EMOJIS.UI.CHANNELS)
+      .setStyle(ButtonStyle.Secondary),
+  );
+
+  // Message configuration button
+  buttonComponents.push(
+    new ButtonBuilder()
+      .setCustomId("goodbye_configure_message")
+      .setLabel("Configure Message")
+      .setEmoji(EMOJIS.ACTIONS.SETTINGS)
+      .setStyle(ButtonStyle.Secondary),
+  );
+
+  // Reset button
+  buttonComponents.push(
+    new ButtonBuilder()
+      .setCustomId("goodbye_reset")
+      .setLabel("Reset")
+      .setEmoji(EMOJIS.ACTIONS.DELETE)
+      .setStyle(ButtonStyle.Secondary),
+  );
+
+  // Create first row with main configuration buttons
+  const firstRow = new ActionRowBuilder().addComponents(...buttonComponents);
+
+  // Create second row with back button
+  const secondRow = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId("goodbye_back_to_settings")
+      .setLabel("Back to Settings")
+      .setEmoji(EMOJIS.ACTIONS.BACK)
+      .setStyle(ButtonStyle.Secondary),
+  );
+
+  return [firstRow, secondRow];
 }
