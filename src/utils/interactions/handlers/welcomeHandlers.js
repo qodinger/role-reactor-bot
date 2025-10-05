@@ -23,8 +23,13 @@ export async function handleWelcomeConfigure(interaction) {
   const logger = getLogger();
 
   try {
+    // Defer the interaction immediately to prevent timeout
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.deferUpdate();
+    }
+
     if (!hasAdminPermissions(interaction.member)) {
-      return interaction.reply({
+      return interaction.editReply({
         embeds: [
           errorEmbed({
             title: "Permission Denied",
@@ -32,7 +37,6 @@ export async function handleWelcomeConfigure(interaction) {
               "You need administrator permissions to configure the welcome system.",
           }),
         ],
-        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -55,10 +59,9 @@ export async function handleWelcomeConfigure(interaction) {
       currentSettings,
     );
 
-    await interaction.reply({
+    await interaction.editReply({
       embeds: [embed],
       components,
-      flags: MessageFlags.Ephemeral,
     });
 
     logger.info(

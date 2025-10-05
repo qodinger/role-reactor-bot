@@ -13,6 +13,11 @@ export const handleLeaderboardButton = async interaction => {
   const logger = getLogger();
 
   try {
+    // Defer the interaction immediately to prevent timeout
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.deferUpdate();
+    }
+
     // Parse the button customId: leaderboard_timeframe_userId
     const parts = interaction.customId.split("_");
     if (parts.length !== 3) {
@@ -27,9 +32,8 @@ export const handleLeaderboardButton = async interaction => {
 
     // Check if the button was clicked by the same user
     if (interaction.user.id !== userId) {
-      await interaction.reply({
+      await interaction.editReply({
         content: "❌ You can only use your own leaderboard buttons.",
-        flags: 64,
       });
       return;
     }
