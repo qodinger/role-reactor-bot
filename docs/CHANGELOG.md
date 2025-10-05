@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Button Interaction Timeouts: Added interaction deferral to prevent "This interaction failed" errors
+- Welcome System Buttons: Fixed handleWelcomeConfigure to defer interactions before processing
+- Goodbye System Buttons: Fixed handleGoodbyeConfigure, handleGoodbyeConfigureMessage, and handleGoodbyeSelectChannel to defer interactions
+- Leaderboard Buttons: Fixed handleLeaderboardButton to defer interactions before timeframe switching
+- Error Response Handling: Updated button handlers to use editReply() instead of reply() after deferral
+
 ## [1.1.0] - 2025-01-27
 
 ### Added

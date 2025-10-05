@@ -99,7 +99,12 @@ function getPositionMedal(position) {
  * @returns {string} Formatted entry
  */
 function formatLeaderboardEntry(position, medal, username, user, type) {
-  const level = Math.floor(100 * Math.pow(user.totalXP || 0, 1.5));
+  // Calculate level from totalXP using the correct formula
+  let level = 1;
+  while (Math.floor(100 * Math.pow(level, 1.5)) <= (user.totalXP || 0)) {
+    level++;
+  }
+  level = level - 1;
 
   switch (type) {
     case "level":

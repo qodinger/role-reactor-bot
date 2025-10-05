@@ -1,3 +1,4 @@
+import { MessageFlags } from "discord.js";
 import { getLogger } from "../logger.js";
 
 /**
@@ -48,7 +49,7 @@ export async function handleInteractionError(
       // Interaction not yet responded to, send a new reply
       await interaction.reply({
         content: `❌ ${userMessage}`,
-        flags: 64, // Ephemeral flag
+        flags: MessageFlags.Ephemeral,
       });
     }
   } catch (replyError) {
@@ -77,7 +78,7 @@ export async function handleButtonError(interaction, error, action) {
     if (!interaction.replied && !interaction.deferred) {
       await interaction.reply({
         content: `❌ ${userMessage}`,
-        flags: 64,
+        flags: MessageFlags.Ephemeral,
       });
     } else if (interaction.deferred) {
       await interaction.editReply({

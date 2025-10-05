@@ -1,5 +1,5 @@
+import { MessageFlags, InteractionType } from "discord.js";
 import { getLogger } from "../logger.js";
-import { InteractionType } from "discord.js";
 
 /**
  * Centralized interaction manager for handling all Discord interactions
@@ -175,7 +175,7 @@ export class InteractionManager {
         try {
           await interaction.reply({
             content: "❌ An error occurred while processing your request.",
-            flags: 64,
+            flags: MessageFlags.Ephemeral,
           });
         } catch (replyError) {
           this.logger.error("Error sending error reply", replyError);
@@ -205,7 +205,7 @@ export class InteractionManager {
         try {
           await interaction.reply({
             content: "❌ An error occurred while processing your request.",
-            flags: 64,
+            flags: MessageFlags.Ephemeral,
           });
         } catch (replyError) {
           this.logger.error("Error sending error reply", replyError);

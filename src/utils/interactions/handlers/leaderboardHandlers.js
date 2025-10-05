@@ -1,3 +1,4 @@
+import { MessageFlags } from "discord.js";
 import { getLogger } from "../../logger.js";
 
 /**
@@ -57,7 +58,7 @@ export const handleLeaderboardButton = async interaction => {
       try {
         await interaction.reply({
           content: "❌ An error occurred while updating the leaderboard.",
-          flags: 64,
+          flags: MessageFlags.Ephemeral,
         });
       } catch (replyError) {
         logger.error("Error sending error reply", replyError);

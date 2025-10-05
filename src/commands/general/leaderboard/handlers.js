@@ -136,8 +136,19 @@ async function getCustomLeaderboard(guildId, type, limit) {
   switch (type) {
     case "level":
       sortedUsers = guildUsers.sort((a, b) => {
-        const levelA = Math.floor(100 * Math.pow(a.totalXP || 0, 1.5));
-        const levelB = Math.floor(100 * Math.pow(b.totalXP || 0, 1.5));
+        // Calculate level from totalXP using the correct formula
+        let levelA = 1;
+        while (Math.floor(100 * Math.pow(levelA, 1.5)) <= (a.totalXP || 0)) {
+          levelA++;
+        }
+        levelA = levelA - 1;
+
+        let levelB = 1;
+        while (Math.floor(100 * Math.pow(levelB, 1.5)) <= (b.totalXP || 0)) {
+          levelB++;
+        }
+        levelB = levelB - 1;
+
         return levelB - levelA;
       });
       break;

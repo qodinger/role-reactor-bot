@@ -8,12 +8,12 @@ export function createInviteButtons(inviteLink) {
   return new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setLabel("Invite me!")
-      .setEmoji(EMOJIS.ACTIONS.LINK)
+      .setEmoji(EMOJIS.ACTIONS.INVITE)
       .setStyle(ButtonStyle.Link)
       .setURL(inviteLink),
     new ButtonBuilder()
       .setLabel("Support Server")
-      .setEmoji("🆘")
+      .setEmoji(EMOJIS.ACTIONS.SUPPORT)
       .setStyle(ButtonStyle.Link)
       .setURL(supportLink),
   );

@@ -1,3 +1,4 @@
+import { MessageFlags } from "discord.js";
 import { getLogger } from "../../logger.js";
 import { createXpSettingsEmbed } from "../../../commands/admin/xp/embeds.js";
 import { createXpSettingsComponents } from "../../../commands/admin/xp/components.js";
@@ -703,7 +704,7 @@ const handleXPError = async (interaction, action) => {
     try {
       await interaction.reply({
         content: `❌ An error occurred while ${action}.`,
-        flags: 64,
+        flags: MessageFlags.Ephemeral,
       });
     } catch (replyError) {
       logger.error("Error sending error reply", replyError);

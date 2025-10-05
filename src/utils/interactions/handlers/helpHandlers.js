@@ -1,3 +1,4 @@
+import { MessageFlags } from "discord.js";
 import { getLogger } from "../../logger.js";
 
 /**
@@ -32,7 +33,7 @@ export const handleHelpInteraction = async interaction => {
       try {
         await interaction.reply({
           content: "❌ An error occurred while processing your help request.",
-          flags: 64,
+          flags: MessageFlags.Ephemeral,
         });
       } catch (replyError) {
         logger.error("Error sending help error reply", replyError);

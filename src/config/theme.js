@@ -186,6 +186,7 @@ export const EMOJIS = {
     HEART: "💖",
     INVITE: "💌",
     TEST: "🧪",
+    SUPPORT: "🆘",
   },
 
   // Features and functionality

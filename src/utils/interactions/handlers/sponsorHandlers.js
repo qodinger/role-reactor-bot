@@ -1,3 +1,4 @@
+import { MessageFlags } from "discord.js";
 import { getLogger } from "../../logger.js";
 import { THEME, EMOJIS } from "../../../config/theme.js";
 
@@ -77,7 +78,7 @@ const handleSponsorError = async (interaction, action) => {
     try {
       await interaction.reply({
         content: `❌ An error occurred while ${action}.`,
-        flags: 64,
+        flags: MessageFlags.Ephemeral,
       });
     } catch (replyError) {
       logger.error("Error sending error reply", replyError);
