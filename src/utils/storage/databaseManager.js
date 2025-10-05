@@ -368,6 +368,48 @@ class RoleMappingRepository extends BaseRepository {
     await this.collection.deleteOne({ messageId });
     this.cache.clear();
   }
+
+  async getByGuildPaginated(guildId, page = 1, limit = 4) {
+    const cacheKey = `role_mappings:guild:${guildId}:page:${page}:limit:${limit}`;
+    const cached = this.cache.get(cacheKey);
+    if (cached) return cached;
+
+    const skip = (page - 1) * limit;
+
+    // Get total count for this guild
+    const totalCount = await this.collection.countDocuments({ guildId });
+
+    // Get paginated results
+    const documents = await this.collection
+      .find({ guildId })
+      .skip(skip)
+      .limit(limit)
+      .toArray();
+
+    const mappings = {};
+    for (const doc of documents) {
+      mappings[doc.messageId] = {
+        guildId: doc.guildId,
+        channelId: doc.channelId,
+        roles: doc.roles,
+      };
+    }
+
+    const result = {
+      mappings,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(totalCount / limit),
+        totalItems: totalCount,
+        itemsPerPage: limit,
+        hasNextPage: page < Math.ceil(totalCount / limit),
+        hasPrevPage: page > 1,
+      },
+    };
+
+    this.cache.set(cacheKey, result);
+    return result;
+  }
 }
 
 class TemporaryRoleRepository extends BaseRepository {
@@ -577,7 +619,7 @@ class WelcomeSettingsRepository extends BaseRepository {
           guildId,
           enabled: false,
           channelId: null,
-          message: "Welcome {user} to {server}! 🎉",
+          message: "Welcome **{user}** to **{server}**! 🎉",
           autoRoleId: null,
           embedEnabled: true,
           embedColor: 0x7f7bf5,
@@ -638,6 +680,80 @@ class WelcomeSettingsRepository extends BaseRepository {
   }
 }
 
+class GoodbyeSettingsRepository extends BaseRepository {
+  constructor(db, cache, logger) {
+    super(db, "goodbye_settings", cache, logger);
+  }
+
+  async getByGuild(guildId) {
+    try {
+      const settings = await this.collection.findOne({ guildId });
+      return (
+        settings || {
+          guildId,
+          enabled: false,
+          channelId: null,
+          message:
+            "**{user}** left the server\nThanks for being part of **{server}**! 👋",
+          embedEnabled: true,
+          embedColor: 0x7f7bf5,
+          embedTitle: "👋 Goodbye from {server}!",
+          embedDescription: "Thanks for being part of our community!",
+          embedThumbnail: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to get goodbye settings for guild ${guildId}`,
+        error,
+      );
+      throw error;
+    }
+  }
+
+  async set(guildId, settings) {
+    try {
+      await this.collection.updateOne(
+        { guildId },
+        { $set: { ...settings, guildId, updatedAt: new Date() } },
+        { upsert: true },
+      );
+      this.cache.clear();
+    } catch (error) {
+      this.logger.error(
+        `Failed to set goodbye settings for guild ${guildId}`,
+        error,
+      );
+      throw error;
+    }
+  }
+
+  async delete(guildId) {
+    try {
+      await this.collection.deleteOne({ guildId });
+      this.cache.clear();
+    } catch (error) {
+      this.logger.error(
+        `Failed to delete goodbye settings for guild ${guildId}`,
+        error,
+      );
+      throw error;
+    }
+  }
+
+  async getAllEnabled() {
+    try {
+      const settings = await this.collection.find({ enabled: true }).toArray();
+      return settings;
+    } catch (error) {
+      this.logger.error("Failed to get all enabled goodbye settings", error);
+      throw error;
+    }
+  }
+}
+
 class GuildSettingsRepository extends BaseRepository {
   constructor(db, cache, logger) {
     super(db, "guild_settings", cache, logger);
@@ -654,6 +770,7 @@ class GuildSettingsRepository extends BaseRepository {
             messageXP: true,
             commandXP: true,
             roleXP: true,
+            voiceXP: true,
             messageXPAmount: { min: 15, max: 25 },
             commandXPAmount: {
               base: 8,
@@ -661,6 +778,8 @@ class GuildSettingsRepository extends BaseRepository {
             roleXPAmount: 50,
             messageCooldown: 60,
             commandCooldown: 30,
+            levelUpMessages: true,
+            levelUpChannel: null,
             // Level formula is fixed at 100 * level^1.5 - no longer configurable
           },
 
@@ -797,6 +916,11 @@ class DatabaseManager {
           this.logger,
         );
         this.welcomeSettings = new WelcomeSettingsRepository(
+          db,
+          this.cacheManager,
+          this.logger,
+        );
+        this.goodbyeSettings = new GoodbyeSettingsRepository(
           db,
           this.cacheManager,
           this.logger,

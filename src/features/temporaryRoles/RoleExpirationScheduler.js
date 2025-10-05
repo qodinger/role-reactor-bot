@@ -6,6 +6,7 @@ import {
   bulkRemoveRoles,
   getCachedMember,
 } from "../../utils/discord/roleManager.js";
+import { THEME } from "../../config/theme.js";
 
 class RoleExpirationScheduler {
   constructor(client) {
@@ -239,7 +240,7 @@ class RoleExpirationScheduler {
         .setDescription(
           `Your temporary **${role.name}** role in **${guild.name}** has expired and has been automatically removed.`,
         )
-        .setColor(0xff6b6b) // Soft red color
+        .setColor(THEME.ERROR)
         .setThumbnail(role.iconURL() || guild.iconURL())
         .addFields([
           {

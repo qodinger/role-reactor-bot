@@ -162,6 +162,7 @@ export const EMOJIS = {
 
   // Actions and interactions
   ACTIONS: {
+    SETTINGS: "⚙️",
     EDIT: "✏️",
     DELETE: "🗑️",
     ADD: "➕",
@@ -176,7 +177,6 @@ export const EMOJIS = {
     DOWNLOAD: "📥",
     COPY: "📋",
     LINK: "🔗",
-    SETTINGS: "⚙️",
     HELP: "❓",
     BACK: "⬅️",
     FORWARD: "➡️",
@@ -184,6 +184,8 @@ export const EMOJIS = {
     DOWN: "🔽",
     QUICK: "🚀",
     HEART: "💖",
+    INVITE: "💌",
+    TEST: "🧪",
   },
 
   // Features and functionality

@@ -1,3 +1,4 @@
+import { MessageFlags } from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 import { HelpEmbedBuilder } from "./embeds.js";
@@ -28,13 +29,12 @@ export async function handleGeneralHelp(interaction, deferred = true) {
       await interaction.editReply({
         embeds: [embed],
         components,
-        ephemeral: false,
       });
     } else {
       await interaction.reply({
         embeds: [embed],
         components,
-        flags: 64,
+        flags: MessageFlags.Ephemeral,
       });
     }
   } catch (error) {
@@ -88,13 +88,12 @@ export async function handleSpecificCommandHelp(
       await interaction.editReply({
         embeds: [embed],
         components,
-        ephemeral: false,
       });
     } else {
       await interaction.reply({
         embeds: [embed],
         components,
-        flags: 64,
+        flags: MessageFlags.Ephemeral,
       });
     }
   } catch (error) {
@@ -111,12 +110,14 @@ export async function handleCategoryHelp(
   const logger = getLogger();
 
   try {
+    logger.debug(`Creating category embed for: ${categoryKey}`);
     const embed = HelpEmbedBuilder.createCategoryEmbed(
       categoryKey,
       interaction.client,
     );
 
     if (!embed) {
+      logger.warn(`Category embed is null for: ${categoryKey}`);
       await handleCategoryNotFound(interaction, categoryKey, deferred);
       return;
     }
@@ -131,13 +132,12 @@ export async function handleCategoryHelp(
       await interaction.editReply({
         embeds: [embed],
         components,
-        ephemeral: false,
       });
     } else {
       await interaction.reply({
         embeds: [embed],
         components,
-        flags: 64,
+        flags: MessageFlags.Ephemeral,
       });
     }
   } catch (error) {
@@ -164,13 +164,12 @@ export async function handleAllCommandsHelp(interaction, deferred = true) {
       await interaction.editReply({
         embeds: [embed],
         components,
-        ephemeral: false,
       });
     } else {
       await interaction.reply({
         embeds: [embed],
         components,
-        flags: 64,
+        flags: MessageFlags.Ephemeral,
       });
     }
   } catch (error) {
@@ -195,7 +194,10 @@ async function handleCommandNotFound(interaction, commandName, deferred) {
   if (deferred) {
     await interaction.editReply(errorResponse);
   } else {
-    await interaction.reply({ ...errorResponse, flags: 64 });
+    await interaction.reply({
+      ...errorResponse,
+      flags: MessageFlags.Ephemeral,
+    });
   }
 }
 
@@ -211,7 +213,10 @@ async function handleCategoryNotFound(interaction, categoryKey, deferred) {
   if (deferred) {
     await interaction.editReply(errorResponse);
   } else {
-    await interaction.reply({ ...errorResponse, flags: 64 });
+    await interaction.reply({
+      ...errorResponse,
+      flags: MessageFlags.Ephemeral,
+    });
   }
 }
 
@@ -227,7 +232,10 @@ async function handleHelpError(interaction, message, deferred) {
   if (deferred) {
     await interaction.editReply(errorResponse);
   } else {
-    await interaction.reply({ ...errorResponse, flags: 64 });
+    await interaction.reply({
+      ...errorResponse,
+      flags: MessageFlags.Ephemeral,
+    });
   }
 }
 
@@ -240,7 +248,14 @@ export async function routeHelpInteraction(interaction, deferred = true) {
 
   try {
     if (interaction.customId === "help_category_select") {
+      if (!interaction.values || interaction.values.length === 0) {
+        logger.warn("No values provided for category selection");
+        await handleHelpError(interaction, "No category selected", deferred);
+        return;
+      }
+
       const categoryKey = interaction.values[0].replace("category_", "");
+      logger.debug(`Selected category: ${categoryKey}`);
       await handleCategoryHelp(interaction, categoryKey, deferred);
     } else if (interaction.customId.startsWith("help_cmd_")) {
       const cmdName = interaction.customId.replace("help_cmd_", "");

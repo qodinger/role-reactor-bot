@@ -8,6 +8,7 @@ import {
 import { getDynamicHelpData } from "./data.js";
 import { EMOJIS } from "../../../config/theme.js";
 import config from "../../../config/config.js";
+import { getLogger } from "../../../utils/logger.js";
 import { getDefaultInviteLink } from "../../../utils/discord/invite.js";
 
 /**
@@ -21,8 +22,13 @@ export class ComponentBuilder {
    * @returns {boolean}
    */
   static hasCategoryPermissions(member, requiredPermissions) {
-    if (!requiredPermissions || requiredPermissions.length === 0) {
+    if (!member || !requiredPermissions || requiredPermissions.length === 0) {
       return true; // No permissions required
+    }
+
+    // Check if member has required properties
+    if (!member.user || !member.permissions) {
+      return true; // Default to true if member data is incomplete
     }
 
     for (const permission of requiredPermissions) {
@@ -64,9 +70,15 @@ export class ComponentBuilder {
   /**
    * Create interactive category selection menu
    * @param {import('discord.js').GuildMember} member
+   * @param {import('discord.js').Client} client
+   * @param {string} selectedCategory - Currently selected category key
    * @returns {import('discord.js').StringSelectMenuBuilder}
    */
-  static createCategoryMenu(member = null, client = null) {
+  static createCategoryMenu(
+    member = null,
+    client = null,
+    selectedCategory = null,
+  ) {
     try {
       const { COMMAND_CATEGORIES } = getDynamicHelpData(client);
       const options = Object.entries(COMMAND_CATEGORIES)
@@ -85,6 +97,7 @@ export class ComponentBuilder {
           description: category.description,
           value: `category_${key}`,
           emoji: category.emoji,
+          default: selectedCategory === key,
         }));
 
       return new StringSelectMenuBuilder()
@@ -92,7 +105,8 @@ export class ComponentBuilder {
         .setPlaceholder(`${EMOJIS.ACTIONS.SEARCH} Choose a command category...`)
         .addOptions(options);
     } catch (error) {
-      console.error("Error creating category menu:", error);
+      const logger = getLogger();
+      logger.error("Error creating category menu:", error);
       // Fallback to basic menu
       return new StringSelectMenuBuilder()
         .setCustomId("help_category_select")
@@ -103,6 +117,7 @@ export class ComponentBuilder {
             description: "Basic bot information and help",
             value: "category_general",
             emoji: EMOJIS.CATEGORIES.GENERAL,
+            default: selectedCategory === "general",
           },
         ]);
     }
@@ -118,8 +133,8 @@ export class ComponentBuilder {
       new ButtonBuilder()
         .setCustomId("help_view_overview")
         .setLabel("Overview")
-        .setEmoji(EMOJIS.STATUS.INFO)
-        .setStyle(ButtonStyle.Primary),
+        .setEmoji(EMOJIS.ACTIONS.VIEW)
+        .setStyle(ButtonStyle.Secondary),
       new ButtonBuilder()
         .setCustomId("help_view_all")
         .setLabel("All Commands")
@@ -186,7 +201,7 @@ export class ComponentBuilder {
         new ButtonBuilder()
           .setLabel("Invite")
           .setURL(inviteURL)
-          .setEmoji(EMOJIS.ACTIONS.LINK)
+          .setEmoji(EMOJIS.ACTIONS.INVITE)
           .setStyle(ButtonStyle.Link),
       );
     }
@@ -226,7 +241,7 @@ export class ComponentBuilder {
     member = null,
     client = null,
   ) {
-    const categoryMenu = this.createCategoryMenu(member, client);
+    const categoryMenu = this.createCategoryMenu(member, client, categoryKey);
     const buttons = await this.createCommandButtons(categoryKey, client);
     const viewToggles = this.createViewToggleButtons();
 

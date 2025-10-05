@@ -110,13 +110,13 @@ export async function execute(interaction, client) {
 
     switch (subcommand) {
       case "assign":
-        await handleAssign(interaction);
+        await handleAssign(interaction, client);
         break;
       case "list":
         await handleList(interaction, client);
         break;
       case "remove":
-        await handleRemove(interaction);
+        await handleRemove(interaction, client);
         break;
 
       default:

@@ -5,6 +5,11 @@ import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 import { handleScheduleRole, handleCancel, handleView } from "./handlers.js";
 import { handleList } from "./list.js";
 
+// Import refactored utility modules
+import { validateInteraction, validateBotMember } from "./validation.js";
+import { handleDeferral, sendResponse } from "./deferral.js";
+import { handleCommandError } from "./errorHandling.js";
+
 // ============================================================================
 // COMMAND DEFINITION
 // ============================================================================
@@ -104,36 +109,49 @@ export async function execute(interaction) {
       return;
     }
 
-    const deferred = await deferInteraction(interaction);
+    // Validate interaction
+    const validation = validateInteraction(interaction);
+    if (!validation.success) {
+      return;
+    }
+
+    // Validate bot member
+    const botMemberValidation = validateBotMember(interaction);
+    if (!botMemberValidation.success) {
+      return await sendResponse(
+        interaction,
+        errorEmbed(botMemberValidation.errorResponse),
+        false,
+      );
+    }
+
+    // Handle deferral
+    const deferResult = await handleDeferral(interaction);
+    if (!deferResult.success) {
+      if (deferResult.isExpired) {
+        logger.warn("Interaction expired during deferral");
+      }
+      return;
+    }
+
+    // Check permissions
     await checkPermissions(interaction);
 
     const subcommand = interaction.options.getSubcommand();
-    await routeSubcommand(interaction, subcommand, deferred);
+    await routeSubcommand(interaction, subcommand, true); // Always deferred at this point
   } catch (error) {
-    logger.error("Error in schedule-role command:", error);
-    await handleCommandError(interaction, error);
+    await handleCommandError(
+      interaction,
+      error,
+      "schedule-role command",
+      false,
+    );
   }
 }
 
 // ============================================================================
 // INTERACTION MANAGEMENT
 // ============================================================================
-
-async function deferInteraction(interaction) {
-  try {
-    await interaction.deferReply({ flags: 64 }); // ephemeral flag
-    return true; // Successfully deferred
-  } catch (deferError) {
-    if (
-      deferError.message !== "Interaction has already been acknowledged." &&
-      deferError.message !== "Unknown interaction"
-    ) {
-      const logger = getLogger();
-      logger.error("Failed to defer reply:", deferError);
-    }
-    return false; // Failed to defer
-  }
-}
 
 async function checkPermissions(interaction) {
   if (!(await hasAdminPermissions(interaction.member, ["ManageRoles"]))) {
@@ -142,65 +160,40 @@ async function checkPermissions(interaction) {
 }
 
 async function routeSubcommand(interaction, subcommand, deferred) {
+  const logger = getLogger();
+
+  logger.debug("Routing subcommand", {
+    subcommand,
+    deferred,
+    interactionId: interaction.id,
+  });
+
   switch (subcommand) {
     case "create":
+      logger.debug("Calling handleScheduleRole");
       await handleScheduleRole(interaction, deferred);
       break;
     case "list":
+      logger.debug("Calling handleList");
       await handleList(interaction, deferred);
       break;
     case "cancel":
+      logger.debug("Calling handleCancel");
       await handleCancel(interaction, deferred);
       break;
     case "view":
+      logger.debug("Calling handleView");
       await handleView(interaction, deferred);
       break;
-    default:
-      if (deferred) {
-        await interaction.editReply({
-          ...errorEmbed({
-            title: "Invalid Subcommand",
-            description:
-              "Please use 'create' to schedule a role, 'list' to view schedules, 'view' to see details, or 'cancel' to cancel a schedule.",
-          }),
-        });
-      } else {
-        await interaction.reply({
-          ...errorEmbed({
-            title: "Invalid Subcommand",
-            description:
-              "Please use 'create' to schedule a role, 'list' to view schedules, 'view' to see details, or 'cancel' to cancel a schedule.",
-          }),
-          flags: 64,
-        });
-      }
-  }
-}
-
-async function handleCommandError(interaction, _error) {
-  try {
-    if (interaction.deferred) {
-      await interaction.editReply({
-        embeds: [
-          errorEmbed({
-            title: "Unexpected Error",
-            description: "An unexpected error occurred. Please try again.",
-          }),
-        ],
+    default: {
+      logger.warn("Invalid subcommand", { subcommand });
+      const errorResponse = errorEmbed({
+        title: "Invalid Subcommand",
+        description:
+          "Please use 'create' to schedule a role, 'list' to view schedules, 'view' to see details, or 'cancel' to cancel a schedule.",
       });
-    } else {
-      await interaction.reply({
-        embeds: [
-          errorEmbed({
-            title: "Unexpected Error",
-            description: "An unexpected error occurred. Please try again.",
-          }),
-        ],
-        flags: 64,
-      });
+      await sendResponse(interaction, errorResponse, deferred);
+      break;
     }
-  } catch (replyError) {
-    const logger = getLogger();
-    logger.error("Failed to send error response:", replyError);
   }
 }

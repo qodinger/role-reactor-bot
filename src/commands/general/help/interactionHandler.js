@@ -1,3 +1,4 @@
+import { MessageFlags } from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
 import { EMOJIS } from "../../../config/theme.js";
 import { routeHelpInteraction } from "./handlers.js";
@@ -20,7 +21,8 @@ export class InteractionHandler {
    */
   async handleInteraction(interaction) {
     try {
-      await routeHelpInteraction(interaction, false);
+      // Help interactions should be deferred since the original help command defers
+      await routeHelpInteraction(interaction, true);
     } catch (error) {
       this.logger.error("Error handling help interaction", error);
       await this.handleInteractionError(interaction, error);
@@ -36,7 +38,7 @@ export class InteractionHandler {
     if (!interaction.replied && !interaction.deferred) {
       await interaction.reply({
         content: `${EMOJIS.STATUS.ERROR} An error occurred while processing your request.`,
-        flags: 64,
+        flags: MessageFlags.Ephemeral,
       });
     }
   }

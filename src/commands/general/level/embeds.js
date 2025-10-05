@@ -1,89 +1,84 @@
 import { EmbedBuilder } from "discord.js";
-import { EMOJIS, THEME, UI_COMPONENTS } from "../../../config/theme.js";
+import { THEME_COLOR, EMOJIS } from "../../../config/theme.js";
 
-export function createLevelEmbed(
-  targetUser,
-  userData,
-  progress,
-  progressBar,
-  rank,
-  rankEmoji,
-  rankColor,
-  serverRank,
-  guild,
-) {
-  return new EmbedBuilder()
-    .setColor(rankColor)
-    .setTitle(`${rankEmoji} ${targetUser.username}'s Level Profile`)
-    .setThumbnail(targetUser.displayAvatarURL({ dynamic: true, size: 256 }))
-    .addFields(
+/**
+ * Create the level embed
+ * @param {import('discord.js').CommandInteraction} interaction
+ * @param {import('discord.js').User} user - Target user
+ * @param {object} userData - User experience data
+ * @param {object} progress - Progress data
+ * @returns {import('discord.js').EmbedBuilder}
+ */
+export function createLevelEmbed(interaction, user, userData, progress) {
+  const embed = new EmbedBuilder()
+    .setColor(THEME_COLOR)
+    .setTitle(`${EMOJIS.FEATURES.EXPERIENCE} Level Information`)
+    .setDescription(`**${user.displayName || user.username}**'s XP progress`)
+    .setThumbnail(user.displayAvatarURL({ dynamic: true }))
+    .addFields([
       {
-        name: `${EMOJIS.UI.USERS} User`,
-        value: `${targetUser.tag}`,
+        name: `${EMOJIS.STATUS.INFO} Current Level`,
+        value: `**${progress.currentLevel}**`,
         inline: true,
       },
       {
-        name: `${rankEmoji} Rank`,
-        value: `**${rank}**`,
+        name: `${EMOJIS.FEATURES.EXPERIENCE} Total XP`,
+        value: `**${progress.totalXP.toLocaleString()}**`,
         inline: true,
       },
       {
-        name: `${EMOJIS.FEATURES.ROLES} Level`,
-        value: `**${userData.level}**`,
+        name: `${EMOJIS.UI.TIME} Next Level`,
+        value: `**${progress.xpNeededForNextLevel.toLocaleString()}** XP needed`,
         inline: true,
       },
       {
-        name: `${EMOJIS.UI.PROGRESS} Total XP`,
-        value: `**${userData.totalXP.toLocaleString()}**`,
-        inline: true,
-      },
-      {
-        name: `${EMOJIS.TIME.CLOCK} Progress`,
-        value: `**${progress.xpInCurrentLevel}/${progress.xpNeededForNextLevel}**`,
-        inline: true,
-      },
-      {
-        name: `${EMOJIS.UI.STAR} Next Level`,
-        value: `**Level ${userData.level + 1}**`,
-        inline: true,
-      },
-      {
-        name: `${EMOJIS.UI.PROGRESS} Progress Bar`,
-        value: `\`${progressBar}\` **${Math.round(progress.progress)}%**`,
+        name: `${EMOJIS.UI.PROGRESS} Progress to Level ${progress.currentLevel + 1}`,
+        value: createProgressBar(progress.progress),
         inline: false,
       },
-    )
-    .addFields({
-      name: `${EMOJIS.UI.INFO} Activity Statistics`,
-      value: [
-        `${EMOJIS.UI.ANSWER} **Messages Sent:** ${userData.messagesSent || 0}`,
-        `${EMOJIS.ACTIONS.QUICK} **Commands Used:** ${userData.commandsUsed || 0}`,
-        `${EMOJIS.FEATURES.ROLES} **Roles Earned:** ${userData.rolesEarned || 0}`,
-        `${EMOJIS.UI.TROPHY} **Server Rank:** ${serverRank}`,
-      ].join("\n"),
-      inline: false,
+      {
+        name: `${EMOJIS.UI.PROGRESS} Statistics`,
+        value: [
+          `💬 **Messages**: ${(userData.messagesSent || 0).toLocaleString()}`,
+          `⚡ **Commands**: ${(userData.commandsUsed || 0).toLocaleString()}`,
+          `🎭 **Roles Earned**: ${(userData.rolesEarned || 0).toLocaleString()}`,
+          `🎤 **Voice Time**: ${formatVoiceTime(userData.voiceTime || 0)}`,
+        ].join("\n"),
+        inline: false,
+      },
+    ])
+    .setFooter({
+      text: `${EMOJIS.FEATURES.EXPERIENCE} Keep chatting to earn more XP!`,
+      iconURL: user.displayAvatarURL({ dynamic: true }),
     })
-    .addFields({
-      name: `${EMOJIS.UI.INFO} XP Breakdown`,
-      value: [
-        `${EMOJIS.UI.ANSWER} **Message XP:** ${userData.messageXPRange || "15-25"} XP per message (60s cooldown)`,
-        `${EMOJIS.ACTIONS.QUICK} **Command XP:** ${userData.commandXPBase || "8"} XP per command (30s cooldown)`,
-        `${EMOJIS.FEATURES.ROLES} **Role XP:** ${userData.roleXPAmount || "50"} XP per role assignment`,
-      ].join("\n"),
-      inline: false,
-    })
-    .setFooter(
-      UI_COMPONENTS.createFooter(
-        `Last updated: ${userData.lastUpdated ? new Date(userData.lastUpdated).toLocaleDateString() : "Never"} • ${guild.name}`,
-        targetUser.displayAvatarURL(),
-      ),
-    )
     .setTimestamp();
+
+  return embed;
 }
 
-export function createErrorEmbed() {
-  return new EmbedBuilder()
-    .setColor(THEME.ERROR)
-    .setTitle(`${EMOJIS.STATUS.ERROR} Error`)
-    .setDescription("Sorry, I couldn't load the level information right now.");
+/**
+ * Create a visual progress bar
+ * @param {number} progress - Progress percentage (0-100)
+ * @returns {string} Progress bar string
+ */
+function createProgressBar(progress) {
+  const filled = Math.round(progress / 10);
+  const empty = 10 - filled;
+
+  return `\`${"█".repeat(filled)}${"░".repeat(empty)}\` ${progress.toFixed(1)}%`;
+}
+
+/**
+ * Format voice time in hours and minutes
+ * @param {number} minutes - Voice time in minutes
+ * @returns {string} Formatted time
+ */
+function formatVoiceTime(minutes) {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+
+  if (hours > 0) {
+    return `${hours}h ${mins}m`;
+  }
+  return `${mins}m`;
 }

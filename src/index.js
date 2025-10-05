@@ -29,7 +29,7 @@ import config from "./config/config.js";
 import { getStorageManager } from "./utils/storage/storageManager.js";
 import { getPerformanceMonitor } from "./utils/monitoring/performanceMonitor.js";
 import { getLogger } from "./utils/logger.js";
-import { EnhancedRoleScheduler } from "./features/enhancedTemporaryRoles/EnhancedRoleScheduler.js";
+import { RoleScheduler } from "./features/temporaryRoles/RoleScheduler.js";
 import { getScheduler as getRoleExpirationScheduler } from "./features/temporaryRoles/RoleExpirationScheduler.js";
 import { getHealthCheckRunner } from "./utils/monitoring/healthCheck.js";
 import HealthServer from "./utils/monitoring/healthServer.js";
@@ -111,7 +111,7 @@ function createClient() {
       GatewayIntentBits.GuildMembers,
       GatewayIntentBits.GuildMessages,
       GatewayIntentBits.GuildMessageReactions,
-      GatewayIntentBits.MessageContent,
+      GatewayIntentBits.GuildVoiceStates,
     ],
     partials: [Partials.Message, Partials.Channel, Partials.Reaction],
     makeCache: Options.cacheWithLimits(config.cacheLimits),
@@ -186,8 +186,8 @@ async function gracefulShutdown(client, healthServer) {
     }
 
     // Stop schedulers
-    if (global.enhancedScheduler) {
-      global.enhancedScheduler.stop();
+    if (global.roleScheduler) {
+      global.roleScheduler.stop();
     }
 
     if (global.tempRoleScheduler) {
@@ -530,8 +530,8 @@ async function main() {
       logger.success(`✅ ${client.user.tag} v${getVersion()} is ready!`);
 
       // Start background services
-      const scheduler = new EnhancedRoleScheduler(client);
-      global.enhancedScheduler = scheduler; // Store globally for shutdown
+      const scheduler = new RoleScheduler(client);
+      global.roleScheduler = scheduler; // Store globally for shutdown
       scheduler.start();
 
       // Start temporary role expiration scheduler

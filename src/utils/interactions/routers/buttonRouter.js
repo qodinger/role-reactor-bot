@@ -1,13 +1,13 @@
 import { getLogger } from "../../logger.js";
 
 /**
- * Button interaction router
- * Routes button interactions to appropriate handlers based on customId patterns
+ * Message component interaction router
+ * Routes button and select menu interactions to appropriate handlers based on customId patterns
  */
 
 /**
- * Route button interaction to appropriate handler
- * @param {import('discord.js').ButtonInteraction} interaction - The button interaction
+ * Route message component interaction to appropriate handler
+ * @param {import('discord.js').MessageComponentInteraction} interaction - The message component interaction
  * @param {import('discord.js').Client} _client - The Discord client (unused but kept for consistency)
  */
 export async function routeButtonInteraction(interaction, _client) {
@@ -15,12 +15,33 @@ export async function routeButtonInteraction(interaction, _client) {
   const { customId } = interaction;
 
   try {
+    logger.debug(
+      `Routing interaction: ${customId}, type: ${interaction.type}, isStringSelectMenu: ${interaction.isStringSelectMenu()}`,
+    );
+
+    // Handle select menu interactions
+    if (interaction.isStringSelectMenu()) {
+      // Add more select menu routing patterns here as needed
+      logger.debug(`Unknown select menu interaction: ${customId}`);
+      return;
+    }
+
+    // Handle button interactions
     // Route based on customId patterns
     if (customId.startsWith("leaderboard_")) {
       const { handleLeaderboardButton } = await import(
         "../handlers/leaderboardHandlers.js"
       );
       await handleLeaderboardButton(interaction);
+      return;
+    }
+
+    // Role-reactions pagination buttons
+    if (customId.startsWith("rolelist_")) {
+      const { handlePagination } = await import(
+        "../../../commands/admin/role-reactions/handlers.js"
+      );
+      await handlePagination(interaction, _client);
       return;
     }
 
@@ -53,6 +74,20 @@ export async function routeButtonInteraction(interaction, _client) {
         await handleWelcomeConfigure(interaction);
         break;
       }
+      case "welcome_configure_message": {
+        const { handleWelcomeConfigureMessage } = await import(
+          "../handlers/welcomeHandlers.js"
+        );
+        await handleWelcomeConfigureMessage(interaction);
+        break;
+      }
+      case "welcome_select_channel": {
+        const { handleWelcomeSelectChannel } = await import(
+          "../handlers/welcomeHandlers.js"
+        );
+        await handleWelcomeSelectChannel(interaction);
+        break;
+      }
       case "welcome_test": {
         const { handleWelcomeTest } = await import(
           "../handlers/welcomeHandlers.js"
@@ -72,6 +107,27 @@ export async function routeButtonInteraction(interaction, _client) {
           "../handlers/welcomeHandlers.js"
         );
         await handleWelcomeReset(interaction);
+        break;
+      }
+      case "welcome_format": {
+        const { handleWelcomeFormat } = await import(
+          "../handlers/welcomeHandlers.js"
+        );
+        await handleWelcomeFormat(interaction);
+        break;
+      }
+      case "welcome_configure_role": {
+        const { handleWelcomeConfigureRole } = await import(
+          "../handlers/welcomeHandlers.js"
+        );
+        await handleWelcomeConfigureRole(interaction);
+        break;
+      }
+      case "welcome_clear_role": {
+        const { handleWelcomeClearRole } = await import(
+          "../handlers/welcomeHandlers.js"
+        );
+        await handleWelcomeClearRole(interaction);
         break;
       }
 
@@ -107,6 +163,99 @@ export async function routeButtonInteraction(interaction, _client) {
           "../handlers/xpHandlers.js"
         );
         await handleXPToggleRole(interaction);
+        break;
+      }
+      case "xp_toggle_voice": {
+        const { handleXPToggleVoice } = await import(
+          "../handlers/xpHandlers.js"
+        );
+        await handleXPToggleVoice(interaction);
+        break;
+      }
+
+      // XP configuration buttons
+      case "xp_configure": {
+        const { handleXpGeneralConfig } = await import(
+          "../../../commands/admin/xp/handlers.js"
+        );
+        await handleXpGeneralConfig(interaction);
+        break;
+      }
+      case "xp_configure_basic": {
+        const { handleXpBasicConfig } = await import(
+          "../../../commands/admin/xp/handlers.js"
+        );
+        await handleXpBasicConfig(interaction);
+        break;
+      }
+      case "xp_configure_advanced": {
+        const { handleXpAdvancedConfig } = await import(
+          "../../../commands/admin/xp/handlers.js"
+        );
+        await handleXpAdvancedConfig(interaction);
+        break;
+      }
+      case "xp_configure_sources": {
+        const { handleXpSourceConfig } = await import(
+          "../../../commands/admin/xp/handlers.js"
+        );
+        await handleXpSourceConfig(interaction);
+        break;
+      }
+      case "xp_configure_levelup": {
+        const { handleLevelUpConfig } = await import(
+          "../../../commands/admin/xp/handlers.js"
+        );
+        await handleLevelUpConfig(interaction);
+        break;
+      }
+      case "xp_toggle": {
+        const { handleXPToggleSystem } = await import(
+          "../handlers/xpHandlers.js"
+        );
+        await handleXPToggleSystem(interaction);
+        break;
+      }
+      case "xp_test": {
+        const { handleXpTest } = await import(
+          "../../../commands/admin/xp/handlers.js"
+        );
+        await handleXpTest(interaction);
+        break;
+      }
+      case "xp_toggle_levelup": {
+        const { handleXPToggleLevelUp } = await import(
+          "../handlers/xpHandlers.js"
+        );
+        await handleXPToggleLevelUp(interaction);
+        break;
+      }
+      case "xp_configure_channel": {
+        const { handleXpChannelConfig } = await import(
+          "../../../commands/admin/xp/handlers.js"
+        );
+        await handleXpChannelConfig(interaction);
+        break;
+      }
+      case "xp_test_levelup": {
+        const { handleXpTestLevelUp } = await import(
+          "../../../commands/admin/xp/handlers.js"
+        );
+        await handleXpTestLevelUp(interaction);
+        break;
+      }
+      case "welcome_back_to_settings": {
+        const { handleSettings } = await import(
+          "../../../commands/admin/welcome/handlers.js"
+        );
+        await handleSettings(interaction, interaction.client);
+        break;
+      }
+      case "back_to_settings": {
+        const { handleSettings } = await import(
+          "../../../commands/admin/xp/handlers.js"
+        );
+        await handleSettings(interaction, interaction.client);
         break;
       }
 
@@ -153,12 +302,75 @@ export async function routeButtonInteraction(interaction, _client) {
         break;
       }
 
+      // Goodbye system buttons
+      case "goodbye_configure":
+      case "goodbye_edit": {
+        const { handleGoodbyeConfigure } = await import(
+          "../handlers/goodbyeHandlers.js"
+        );
+        await handleGoodbyeConfigure(interaction);
+        break;
+      }
+      case "goodbye_configure_message": {
+        const { handleGoodbyeConfigureMessage } = await import(
+          "../handlers/goodbyeHandlers.js"
+        );
+        await handleGoodbyeConfigureMessage(interaction);
+        break;
+      }
+      case "goodbye_select_channel": {
+        const { handleGoodbyeSelectChannel } = await import(
+          "../handlers/goodbyeHandlers.js"
+        );
+        await handleGoodbyeSelectChannel(interaction);
+        break;
+      }
+      case "goodbye_toggle": {
+        const { handleGoodbyeToggle } = await import(
+          "../handlers/goodbyeHandlers.js"
+        );
+        await handleGoodbyeToggle(interaction);
+        break;
+      }
+      case "goodbye_reset": {
+        const { handleGoodbyeReset } = await import(
+          "../handlers/goodbyeHandlers.js"
+        );
+        await handleGoodbyeReset(interaction);
+        break;
+      }
+      case "goodbye_format": {
+        const { handleGoodbyeFormat } = await import(
+          "../handlers/goodbyeHandlers.js"
+        );
+        await handleGoodbyeFormat(interaction);
+        break;
+      }
+      case "goodbye_test": {
+        const { handleGoodbyeTest } = await import(
+          "../handlers/goodbyeHandlers.js"
+        );
+        await handleGoodbyeTest(interaction);
+        break;
+      }
+      case "goodbye_back_to_settings": {
+        const { handleSettings } = await import(
+          "../../../commands/admin/goodbye/handlers.js"
+        );
+        await handleSettings(interaction, interaction.client);
+        break;
+      }
+      case "goodbye_settings": {
+        const { handleGoodbyeEdit } = await import(
+          "../handlers/goodbyeHandlers.js"
+        );
+        await handleGoodbyeEdit(interaction);
+        break;
+      }
+
       default: {
         // Check if it's a help interaction that wasn't caught above
-        if (
-          customId === "help_category_select" ||
-          customId.startsWith("help_cmd_")
-        ) {
+        if (customId.startsWith("help_cmd_")) {
           const { handleHelpInteraction } = await import(
             "../handlers/helpHandlers.js"
           );

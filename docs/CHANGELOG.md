@@ -7,6 +7,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Goodbye System: Complete goodbye system with auto-goodbye messages when members leave
+- Goodbye System Commands: Added `/goodbye` command with comprehensive configuration options
+- Goodbye Message Placeholders: Support for {user}, {user.name}, {user.tag}, {user.id}, {server}, {server.id}, {memberCount}, {memberCount.ordinal}
+- Goodbye Embed Support: Rich embed format for goodbye messages with member information
+- Goodbye System Database: MongoDB integration for storing goodbye settings per guild
+- Goodbye System Validation: Comprehensive permission and configuration validation
+- Goodbye System Utilities: Dedicated utility functions for message processing and embed creation
+- Channel Selection Dropdown: Interactive channel selection for goodbye system configuration
+- Two-Step Configuration: Channel select → modal configuration flow for better UX
+- Welcome System Improvements: Enhanced welcome system with better button layout and organization
+- Welcome System Test: Real role assignment testing in welcome system test functionality
+- Documentation: Added comprehensive README files for goodbye and welcome commands
+- Structured Logging System: Replaced all console.log statements with proper structured logging across role-reactions commands
+- Enhanced Debugging: Added comprehensive debugging information for delete command troubleshooting
+- Pagination Support: Implemented paginated database queries for role-reactions list command with 4 items per page
+- Guild Validation: Added guildId parameter validation to getRoleMapping function for proper message lookup
+
+### Removed
+
+- Serverinfo Command: Removed `/serverinfo` command and all related files to reduce bot complexity and remove dependency on presence data
+- Debug Console Statements: Removed debug console.log statements from production code for cleaner logging
+
+### Changed
+
+- Welcome System Architecture: Consolidated welcome commands into unified `/welcome` command structure
+- Welcome Button Layout: Reorganized button layout with Reset button moved to Configure page
+- Welcome Test Functionality: Improved test accuracy by using real interaction.member instead of mock data
+- Goodbye Message Format: Updated to modern format with bold user/server names and improved layout
+- Logging Architecture: Migrated from console.log to structured logger with configurable log levels
+- Delete Command Logic: Enhanced delete command with detailed mapping information and fallback debugging
+- Database Queries: Updated role-reactions list to use paginated queries for better performance
+- Error Handling: Improved error messages with structured data for better debugging
+- Code Quality: Cleaned up debug statements and improved logging consistency throughout the application
+
+### Fixed
+
+- Welcome System Test: Fixed test functionality to use authentic user data and enable real role assignment
+- Goodbye Message Consistency: Fixed old goodbye message format across all components
+- Back to Settings Button: Fixed 'Back to Settings' button to show actual settings interface
+- Role Reactions Delete Command: Fixed "Message Not Found" error by properly validating guildId in getRoleMapping function
+- Permission Parameter Issues: Fixed incorrect permission parameter usage in temp-roles and welcome commands
+- Button Router: Updated pagination button routing to use correct custom ID prefix (rolelist\_)
+- Cache Invalidation: Fixed potential cache issues between list and delete commands
+- Role Reactions Setup Permission Error: Fixed Discord API Error 50013 (Missing Permissions) in role-reactions setup command
+- Channel Permission Validation: Added proper channel-specific permission checks for SendMessages and EmbedLinks
+
 ## [1.0.2] - 2025-01-22
 
 ### Added
@@ -105,7 +153,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Auto-Welcome Messages: Automatically send welcome messages when new members join
 - Custom Welcome Messages: Support for customizable welcome messages with placeholders
 - Auto-Role Assignment: Automatically assign roles to new members upon joining
-- Welcome System Commands: Added `/setup-welcome` and `/welcome-settings` for configuration
+- Welcome System Commands: Added `/welcome setup` and `/welcome settings` for configuration
 - Welcome Message Placeholders: Support for {user}, {user.name}, {user.tag}, {user.id}, {server}, {server.id}, {memberCount}, {memberCount.ordinal}
 - Welcome Embed Support: Rich embed format for welcome messages with member information
 - Welcome System Database: MongoDB integration for storing welcome settings per guild

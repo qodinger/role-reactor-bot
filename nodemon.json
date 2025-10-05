@@ -4,10 +4,10 @@
     "src/config/",
     "src/utils/core/",
     "src/events/",
-    "src/features/"
+    "src/features/",
+    "src/commands/"
   ],
   "ignore": [
-    "src/commands/",
     "src/utils/storage/",
     "src/utils/monitoring/",
     "logs/",

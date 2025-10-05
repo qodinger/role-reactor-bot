@@ -408,7 +408,7 @@ class CommandHandler {
    * @returns {Array<string>} Array of registered command names
    * @example
    * const commands = handler.getAllCommands();
-   * // ['ping', 'setup-roles', 'help', ...]
+   * // ['ping', 'role-reactions', 'help', ...]
    */
   getAllCommands() {
     return Array.from(this.commands.keys());
@@ -420,7 +420,7 @@ class CommandHandler {
    * @returns {Object} Object with commands from both collections
    * @example
    * const allCommands = handler.getAllCommandsDebug();
-   * // { handler: ['ping', 'help'], client: ['ping', 'help', 'xp-settings'] }
+   * // { handler: ['ping', 'help'], client: ['ping', 'help', 'xp'] }
    */
   getAllCommandsDebug() {
     const handlerCommands = Array.from(this.commands.keys()).sort();

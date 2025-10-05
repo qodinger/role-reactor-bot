@@ -1,18 +1,23 @@
 import { getLogger } from "../../logger.js";
 
 /**
- * Help button interaction handlers
- * Handles all help-related button interactions
+ * Help interaction handlers
+ * Handles all help-related button and select menu interactions
  */
 
 /**
  * Handle help command interactions
- * @param {import('discord.js').ButtonInteraction} interaction - The button interaction
+ * @param {import('discord.js').MessageComponentInteraction} interaction - The message component interaction
  */
 export const handleHelpInteraction = async interaction => {
   const logger = getLogger();
 
   try {
+    // Defer the interaction if it hasn't been replied to yet
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.deferUpdate();
+    }
+
     // Import the help interaction handler dynamically to avoid circular dependencies
     const { InteractionHandler } = await import(
       "../../../commands/general/help/interactionHandler.js"

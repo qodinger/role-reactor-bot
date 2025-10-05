@@ -1,4 +1,4 @@
-import { SlashCommandBuilder } from "discord.js";
+import { SlashCommandBuilder, MessageFlags } from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 import { handleStorageCheck } from "./handlers.js";
@@ -40,7 +40,7 @@ export async function execute(interaction, client) {
 
 async function deferInteraction(interaction) {
   try {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     return true; // Successfully deferred
   } catch (deferError) {
     if (

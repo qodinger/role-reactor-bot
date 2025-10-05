@@ -2,6 +2,8 @@
  * Utility functions for the invite command
  */
 
+import { getLogger } from "../../../utils/logger.js";
+
 /**
  * Generate a bot invite link with required permissions
  * @param {Object} client - Discord client instance
@@ -20,7 +22,8 @@ export async function generateInviteLink(client) {
     );
     return await getDefaultInviteLink(client);
   } catch (error) {
-    console.error("Error generating invite link:", error);
+    const logger = getLogger();
+    logger.error("Error generating invite link:", error);
     return null;
   }
 }

@@ -157,7 +157,7 @@ class ErrorHandler {
    * try {
    *   await command.execute(interaction, client);
    * } catch (error) {
-   *   errorHandler.handleCommandError(error, 'setup-roles', interaction.user.id, {
+   *   errorHandler.handleCommandError(error, 'role-reactions', interaction.user.id, {
    *     guildId: interaction.guildId,
    *     channelId: interaction.channelId
    *   });

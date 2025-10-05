@@ -60,15 +60,20 @@ setInterval(() => roleMappingCache.cleanup(), 15 * 60 * 1000).unref();
 /**
  * Gets the role mapping for a specific message with caching.
  * @param {string} messageId The ID of the message.
+ * @param {string} guildId The ID of the guild (optional, for validation).
  * @returns {Promise<object|null>} The role mapping, or null if not found.
  */
-export async function getRoleMapping(messageId) {
+export async function getRoleMapping(messageId, guildId = null) {
   const logger = getLogger();
 
   try {
     // Check cache first
     const cached = roleMappingCache.get(messageId);
     if (cached) {
+      // If guildId is provided, validate it matches
+      if (guildId && cached.guildId !== guildId) {
+        return null;
+      }
       return cached;
     }
 
@@ -80,6 +85,10 @@ export async function getRoleMapping(messageId) {
     // Check cache again after potential refresh
     const refreshed = roleMappingCache.get(messageId);
     if (refreshed) {
+      // If guildId is provided, validate it matches
+      if (guildId && refreshed.guildId !== guildId) {
+        return null;
+      }
       return refreshed;
     }
 

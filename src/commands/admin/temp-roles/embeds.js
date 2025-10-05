@@ -12,6 +12,7 @@ import { THEME } from "../../../config/theme.js";
  * @param {string} durationString
  * @param {string} reason
  * @param {Array} results
+ * @param {import('discord.js').Client} client
  * @returns {import('discord.js').EmbedBuilder}
  */
 export function createTempRoleEmbed(
@@ -20,6 +21,7 @@ export function createTempRoleEmbed(
   durationString,
   reason,
   results,
+  client,
 ) {
   const embed = new EmbedBuilder()
     .setTitle("🎭 Temporary Role Assignment")
@@ -31,7 +33,7 @@ export function createTempRoleEmbed(
     .setTimestamp()
     .setFooter({
       text: "Role Reactor • Temporary Roles",
-      iconURL: "https://cdn.discordapp.com/emojis/1234567890123456789.png",
+      iconURL: client.user.displayAvatarURL(),
     });
 
   // Main information section
@@ -203,31 +205,6 @@ export function createTempRolesListEmbed(
     }
   }
 
-  // Add helpful information with better formatting
-  embed.addFields({
-    name: "💡 Quick Actions",
-    value: [
-      "🔧 `/temp-roles remove` - Remove roles early",
-      "➕ `/temp-roles assign` - Create new temporary roles",
-      "📋 `/temp-roles list` - View all active roles",
-    ].join("\n"),
-    inline: false,
-  });
-
-  // Add server info if showing all roles
-  if (!targetUser && processedRoles.length > 0) {
-    const totalUsers = new Set(processedRoles.map(r => r.userId)).size;
-    embed.addFields({
-      name: "📊 Server Statistics",
-      value: [
-        `**Total Roles:** ${processedRoles.length}`,
-        `**Affected Users:** ${totalUsers}`,
-        `**Server:** ${guild.name}`,
-      ].join("\n"),
-      inline: true,
-    });
-  }
-
   return embed;
 }
 
@@ -238,6 +215,7 @@ export function createTempRolesListEmbed(
  * @param {string} reason
  * @param {import('discord.js').User} removedBy
  * @param {Object} tempRole
+ * @param {import('discord.js').Client} client
  * @returns {import('discord.js').EmbedBuilder}
  */
 export function createTempRoleRemovedEmbed(
@@ -246,6 +224,7 @@ export function createTempRoleRemovedEmbed(
   reason,
   removedBy,
   tempRole,
+  client,
 ) {
   // Calculate time remaining before removal
   const now = new Date();
@@ -302,7 +281,7 @@ export function createTempRoleRemovedEmbed(
     ])
     .setFooter({
       text: "Role Reactor • Temporary Roles",
-      iconURL: "https://cdn.discordapp.com/emojis/1234567890123456789.png",
+      iconURL: client.user.displayAvatarURL(),
     })
     .setTimestamp();
 }
@@ -314,6 +293,7 @@ export function createTempRoleRemovedEmbed(
  * @param {string} reason
  * @param {Array} results
  * @param {import('discord.js').User} removedBy
+ * @param {import('discord.js').Client} client
  * @returns {import('discord.js').EmbedBuilder}
  */
 export function createTempRoleRemovalEmbed(
@@ -322,6 +302,7 @@ export function createTempRoleRemovalEmbed(
   reason,
   results,
   removedBy,
+  client,
 ) {
   const embed = new EmbedBuilder()
     .setTitle("🗑️ Temporary Role Removal")
@@ -333,7 +314,7 @@ export function createTempRoleRemovalEmbed(
     .setTimestamp()
     .setFooter({
       text: "Role Reactor • Temporary Roles",
-      iconURL: "https://cdn.discordapp.com/emojis/1234567890123456789.png",
+      iconURL: client.user.displayAvatarURL(),
     });
 
   // Main information section

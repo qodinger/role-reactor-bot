@@ -48,14 +48,12 @@ export function getCommandCategory(commandName) {
 
   // Check for admin commands
   if (
-    commandName.includes("setup") ||
-    commandName.includes("update") ||
-    commandName.includes("delete") ||
-    commandName.includes("assign") ||
-    commandName.includes("remove") ||
-    commandName.includes("schedule") ||
-    commandName.includes("xp") ||
-    commandName.includes("welcome")
+    commandName.includes("role-reactions") ||
+    commandName.includes("temp-roles") ||
+    commandName.includes("schedule-role") ||
+    commandName.includes("welcome") ||
+    commandName.includes("goodbye") ||
+    commandName.includes("xp")
   ) {
     return "admin";
   }

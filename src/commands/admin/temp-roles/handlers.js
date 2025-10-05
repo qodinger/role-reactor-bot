@@ -33,8 +33,9 @@ import { THEME } from "../../../config/theme.js";
 /**
  * Handle the assign temp role logic
  * @param {import('discord.js').CommandInteraction} interaction
+ * @param {import('discord.js').Client} client
  */
-export async function handleAssign(interaction) {
+export async function handleAssign(interaction, client) {
   const logger = getLogger();
   const startTime = Date.now();
 
@@ -42,12 +43,8 @@ export async function handleAssign(interaction) {
     await interaction.deferReply({ flags: 64 });
 
     // Validate bot permissions
-    const requiredPermissions = ["ManageRoles"];
-    if (!botHasRequiredPermissions(interaction.guild, requiredPermissions)) {
-      const missingPermissions = getMissingBotPermissions(
-        interaction.guild,
-        requiredPermissions,
-      );
+    if (!botHasRequiredPermissions(interaction.guild)) {
+      const missingPermissions = getMissingBotPermissions(interaction.guild);
       const permissionNames = missingPermissions
         .map(formatPermissionName)
         .join(", ");
@@ -161,6 +158,7 @@ export async function handleAssign(interaction) {
       durationString,
       reason,
       results,
+      client,
     );
     await interaction.editReply({ embeds: [embed] });
 
@@ -308,7 +306,7 @@ export async function handleList(interaction, client) {
   }
 }
 
-export async function handleRemove(interaction) {
+export async function handleRemove(interaction, client) {
   const logger = getLogger();
 
   try {
@@ -412,6 +410,7 @@ export async function handleRemove(interaction) {
       reason,
       processedResults,
       interaction.user,
+      client,
     );
 
     await interaction.editReply({ embeds: [embed] });

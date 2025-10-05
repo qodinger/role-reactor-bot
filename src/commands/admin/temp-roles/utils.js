@@ -306,20 +306,11 @@ export async function processTempRoles(tempRoles, guild, _client) {
   const processedRoles = [];
   const now = new Date();
 
-  console.log(
-    `Processing ${tempRoles.length} temp roles, current time: ${now.toISOString()}`,
-  );
-
   for (const tempRole of tempRoles) {
     const expiresAt = new Date(tempRole.expiresAt);
 
-    console.log(
-      `Role ${tempRole.roleId} expires at: ${expiresAt.toISOString()}, isExpired: ${expiresAt <= now}`,
-    );
-
     // Skip expired roles
     if (expiresAt <= now) {
-      console.log(`Skipping expired role: ${tempRole.roleId}`);
       continue;
     }
 

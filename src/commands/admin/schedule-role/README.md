@@ -8,21 +8,34 @@ The Schedule Role command lets administrators schedule role assignments for user
 
 ```
 schedule-role/
-├── index.js          # Command definition, subcommands, entry point
-├── handlers.js       # Core logic for create/cancel/view flows
-├── list.js           # Logic for listing scheduled roles
-├── embeds.js         # Discord embed creation for all views
-├── utils.js          # Helpers (validation, parsing, formatting)
-└── README.md         # This documentation
+├── index.js              # Command definition, subcommands, entry point
+├── handlers.js           # Main command handlers (create/cancel/view flows)
+├── list.js               # Logic for listing scheduled roles
+├── embeds.js             # Discord embed creation for all views
+├── utils.js              # Core utilities (validation, parsing, formatting)
+├── validation.js         # Interaction validation and input validation
+├── deferral.js           # Safe interaction deferral with timeout protection
+├── errorHandling.js      # Consistent error response creation
+├── scheduleOperations.js # Schedule creation and management logic
+└── README.md             # This documentation
 ```
 
 ## Architecture
 
+### **Core Files**
+
 - **`index.js`**: Defines `/schedule-role` with subcommands (`create`, `list`, `cancel`, `view`), routes to handlers, validates permissions, and defers interactions.
-- **`handlers.js`**: Implements business logic for scheduling, canceling, and viewing schedules; orchestrates embeds and utils.
+- **`handlers.js`**: Main command handlers that orchestrate the business logic flow using utility modules.
 - **`list.js`**: Dedicated listing logic for scheduled and recurring roles.
 - **`embeds.js`**: Builds all rich embeds used across subcommands.
-- **`utils.js`**: Parsing of inputs (times, durations), validation, ID formatting, common helpers.
+- **`utils.js`**: Core utilities for parsing inputs (times, durations), validation, ID formatting, and common helpers.
+
+### **Utility Modules**
+
+- **`validation.js`**: Interaction validation, bot member availability checks, and schedule input validation.
+- **`deferral.js`**: Safe interaction deferral with timeout protection and response handling.
+- **`errorHandling.js`**: Consistent error response creation and command error handling.
+- **`scheduleOperations.js`**: Schedule creation, cancellation, and retrieval operations.
 
 ## Subcommands
 
@@ -59,9 +72,10 @@ schedule-role/
 
 ## Error Handling
 
-- Validates user and bot permissions
+- Validates user and bot permissions before execution
 - Clear error messages for invalid IDs, missing roles, or schedule conflicts
-- Defensive handling of Discord API errors and timeouts
+- Defensive handling of Discord API errors and rate limits
+- Graceful handling of missing channels or deleted messages
 
 ## Notes
 

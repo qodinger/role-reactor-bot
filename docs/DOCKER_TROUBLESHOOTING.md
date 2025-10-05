@@ -1,6 +1,6 @@
 # Docker Troubleshooting Guide
 
-## Issue: xp-settings Command Shows "Unknown Command" in Production
+## Issue: xp Command Shows "Unknown Command" in Production
 
 ### 🔍 **Root Cause**
 

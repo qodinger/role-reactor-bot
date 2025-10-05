@@ -1,4 +1,4 @@
-import { SlashCommandBuilder } from "discord.js";
+import { SlashCommandBuilder, MessageFlags } from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 import {
@@ -48,7 +48,7 @@ export async function execute(interaction) {
 
 async function deferInteraction(interaction) {
   try {
-    await interaction.deferReply({ flags: 64 }); // ephemeral flag
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     return true; // Successfully deferred
   } catch (deferError) {
     if (
@@ -99,7 +99,7 @@ async function handleCommandError(interaction, _error) {
             description: "An unexpected error occurred. Please try again.",
           }),
         ],
-        flags: 64,
+        flags: MessageFlags.Ephemeral,
       });
     }
   } catch (replyError) {
