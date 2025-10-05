@@ -40,6 +40,30 @@ export async function routeSelectMenuInteraction(interaction, _client) {
       return;
     }
 
+    if (customId === "welcome_channel_select") {
+      const { handleWelcomeChannelSelect } = await import(
+        "../handlers/welcomeChannelSelectHandler.js"
+      );
+      await handleWelcomeChannelSelect(interaction);
+      return;
+    }
+
+    if (customId === "goodbye_channel_select") {
+      const { handleGoodbyeChannelSelect } = await import(
+        "../handlers/goodbyeChannelSelectHandler.js"
+      );
+      await handleGoodbyeChannelSelect(interaction);
+      return;
+    }
+
+    if (customId === "welcome_role_select") {
+      const { handleWelcomeRoleSelect } = await import(
+        "../handlers/welcomeRoleSelectHandler.js"
+      );
+      await handleWelcomeRoleSelect(interaction);
+      return;
+    }
+
     // Add more select menu routing patterns here as needed
     logger.debug(`Unknown select menu interaction: ${customId}`);
   } catch (error) {

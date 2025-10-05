@@ -1,3 +1,4 @@
+import { MessageFlags } from "discord.js";
 import { getLogger } from "../../logger.js";
 import { getDatabaseManager } from "../../storage/databaseManager.js";
 import { errorEmbed } from "../../discord/responseMessages.js";
@@ -31,11 +32,124 @@ export async function handleWelcomeConfigure(interaction) {
               "You need administrator permissions to configure the welcome system.",
           }),
         ],
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
-    await interaction.deferReply({ ephemeral: true });
+    const dbManager = await getDatabaseManager();
+    const currentSettings = await dbManager.welcomeSettings.getByGuild(
+      interaction.guild.id,
+    );
+
+    // Create and show the configuration page
+    const { createWelcomeConfigPageEmbed } = await import(
+      "../../../commands/admin/welcome/modals.js"
+    );
+    const { createWelcomeConfigPageComponents } = await import(
+      "../../../commands/admin/welcome/components.js"
+    );
+
+    const embed = createWelcomeConfigPageEmbed(interaction, currentSettings);
+    const components = createWelcomeConfigPageComponents(
+      interaction.guild,
+      currentSettings,
+    );
+
+    await interaction.reply({
+      embeds: [embed],
+      components,
+      flags: MessageFlags.Ephemeral,
+    });
+
+    logger.info(
+      `Welcome configuration page opened by ${interaction.user.tag} in ${interaction.guild.name}`,
+    );
+  } catch (error) {
+    logger.error(`Error in handleWelcomeConfigure: ${error.message}`, error);
+    await interaction.reply(
+      errorEmbed({
+        title: "Configuration Error",
+        description:
+          "An error occurred while opening the welcome configuration.",
+      }),
+    );
+  }
+}
+
+/**
+ * Handle welcome message configuration button interaction
+ * @param {import('discord.js').ButtonInteraction} interaction
+ */
+export async function handleWelcomeConfigureMessage(interaction) {
+  const logger = getLogger();
+
+  try {
+    if (!hasAdminPermissions(interaction.member)) {
+      return interaction.reply({
+        embeds: [
+          errorEmbed({
+            title: "Permission Denied",
+            description:
+              "You need administrator permissions to configure the welcome system.",
+          }),
+        ],
+        flags: MessageFlags.Ephemeral,
+      });
+    }
+
+    const dbManager = await getDatabaseManager();
+    const currentSettings = await dbManager.welcomeSettings.getByGuild(
+      interaction.guild.id,
+    );
+
+    // Create and show the message configuration modal
+    const { createWelcomeConfigModal } = await import(
+      "../../../commands/admin/welcome/modals.js"
+    );
+    const modal = createWelcomeConfigModal(currentSettings);
+
+    await interaction.showModal(modal);
+
+    logger.info(
+      `Welcome message configuration modal opened by ${interaction.user.tag} in ${interaction.guild.name}`,
+    );
+  } catch (error) {
+    logger.error(
+      `Error in handleWelcomeConfigureMessage: ${error.message}`,
+      error,
+    );
+    await interaction.reply(
+      errorEmbed({
+        title: "Configuration Error",
+        description:
+          "An error occurred while opening the welcome message configuration.",
+      }),
+    );
+  }
+}
+
+/**
+ * Handle welcome channel selection button interaction
+ * @param {import('discord.js').ButtonInteraction} interaction
+ */
+export async function handleWelcomeSelectChannel(interaction) {
+  const logger = getLogger();
+
+  try {
+    if (!hasAdminPermissions(interaction.member)) {
+      return interaction.reply({
+        embeds: [
+          errorEmbed({
+            title: "Permission Denied",
+            description:
+              "You need administrator permissions to configure the welcome system.",
+          }),
+        ],
+        flags: MessageFlags.Ephemeral,
+      });
+    }
+
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const dbManager = await getDatabaseManager();
     const currentSettings = await dbManager.welcomeSettings.getByGuild(
@@ -48,21 +162,21 @@ export async function handleWelcomeConfigure(interaction) {
     );
 
     const embed = {
-      title: "Configure Welcome System",
+      title: "📝 Select Welcome Channel",
       description:
-        "Select a channel for welcome messages, then configure the settings.",
+        "Choose where to send welcome messages for new members joining your server.",
       color: THEME_COLOR,
       fields: [
         {
-          name: "Step 1: Select Channel",
+          name: "📋 What This Does",
           value:
-            "Choose a channel from the dropdown below where welcome messages will be sent.",
+            "Select a channel from the dropdown below where welcome messages will be sent. Make sure the bot has permission to send messages in the selected channel.",
           inline: false,
         },
         {
-          name: "Step 2: Configure Settings",
+          name: "💡 Pro Tips",
           value:
-            "After selecting a channel, you'll be able to configure the message, format, and other settings.",
+            "• Choose a channel that new members can see\n• Consider using a dedicated #welcome channel\n• Make sure the bot has proper permissions",
           inline: false,
         },
       ],
@@ -71,23 +185,26 @@ export async function handleWelcomeConfigure(interaction) {
     await interaction.editReply({
       embeds: [embed],
       components,
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
 
     logger.info(
       `Welcome channel select opened by ${interaction.user.tag} in ${interaction.guild.name}`,
     );
   } catch (error) {
-    logger.error(`Error in handleWelcomeConfigure: ${error.message}`, error);
+    logger.error(
+      `Error in handleWelcomeSelectChannel: ${error.message}`,
+      error,
+    );
     await interaction.editReply({
       embeds: [
         errorEmbed({
           title: "Configuration Error",
           description:
-            "An error occurred while opening the welcome configuration.",
+            "An error occurred while opening the welcome channel selection.",
         }),
       ],
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
   }
 }
@@ -109,7 +226,7 @@ export async function handleWelcomeToggle(interaction) {
               "You need administrator permissions to toggle the welcome system.",
           }),
         ],
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -129,7 +246,7 @@ export async function handleWelcomeToggle(interaction) {
               "Please configure a welcome channel first before enabling the system.",
           }),
         ],
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -195,7 +312,7 @@ export async function handleWelcomeReset(interaction) {
               "You need administrator permissions to reset the welcome system.",
           }),
         ],
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -268,7 +385,7 @@ export async function handleWelcomeTest(interaction) {
               "You need administrator permissions to test the welcome system.",
           }),
         ],
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -288,7 +405,7 @@ export async function handleWelcomeTest(interaction) {
               "The welcome system is not enabled or no channel is configured.",
           }),
         ],
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -305,7 +422,7 @@ export async function handleWelcomeTest(interaction) {
               "The configured welcome channel could not be found. Please reconfigure.",
           }),
         ],
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -323,7 +440,7 @@ export async function handleWelcomeTest(interaction) {
               "Please grant me Send Messages permission in the welcome channel.",
           }),
         ],
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -338,7 +455,7 @@ export async function handleWelcomeTest(interaction) {
               "Please grant me Embed Links permission in the welcome channel.",
           }),
         ],
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -463,7 +580,7 @@ export async function handleWelcomeEdit(interaction) {
               "You need administrator permissions to view welcome settings.",
           }),
         ],
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -478,7 +595,7 @@ export async function handleWelcomeEdit(interaction) {
             description: "Welcome settings repository is not available.",
           }),
         ],
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -621,7 +738,7 @@ export async function handleWelcomeClearRole(interaction) {
               "You need administrator permissions to clear the welcome auto-role.",
           }),
         ],
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
     await interaction.deferReply({ ephemeral: true });
@@ -688,7 +805,14 @@ export async function handleWelcomeConfigureRole(interaction) {
   const logger = getLogger();
 
   try {
+    logger.debug(
+      `Welcome configure role button clicked by ${interaction.user.tag}`,
+    );
+
     if (!hasAdminPermissions(interaction.member)) {
+      logger.warn(
+        `Permission denied for ${interaction.user.tag} in welcome configure role`,
+      );
       return interaction.reply({
         embeds: [
           errorEmbed({
@@ -697,9 +821,11 @@ export async function handleWelcomeConfigureRole(interaction) {
               "You need administrator permissions to configure the welcome auto-role.",
           }),
         ],
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
+
+    logger.debug(`Deferring reply for welcome configure role`);
     await interaction.deferReply({ ephemeral: true });
 
     const dbManager = await getDatabaseManager();

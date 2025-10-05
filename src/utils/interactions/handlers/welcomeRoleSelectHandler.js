@@ -1,8 +1,9 @@
+import { MessageFlags } from "discord.js";
 import { getLogger } from "../../logger.js";
 import { hasAdminPermissions } from "../../discord/permissions.js";
 import { errorEmbed } from "../../discord/responseMessages.js";
-import { createWelcomeSettingsEmbed } from "../../../commands/admin/welcome/embeds.js";
-import { createWelcomeSettingsComponents } from "../../../commands/admin/welcome/components.js";
+import { createRoleSelectComponents } from "../../../commands/admin/welcome/components.js";
+import { THEME_COLOR } from "../../../config/theme.js";
 import { getDatabaseManager } from "../../storage/databaseManager.js";
 
 /**
@@ -23,7 +24,7 @@ export async function handleWelcomeRoleSelect(interaction) {
               "You need administrator permissions to configure the welcome auto-role.",
           }),
         ],
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -38,7 +39,7 @@ export async function handleWelcomeRoleSelect(interaction) {
             description: "The selected role could not be found.",
           }),
         ],
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -80,17 +81,26 @@ export async function handleWelcomeRoleSelect(interaction) {
       interaction.guild.id,
     );
 
-    const welcomeChannel = updatedSettings.channelId
-      ? interaction.guild.channels.cache.get(updatedSettings.channelId)
-      : null;
-
-    const embed = createWelcomeSettingsEmbed(
-      interaction,
-      updatedSettings,
-      welcomeChannel,
-      selectedRole,
+    // Return to auto-role configuration page with updated settings
+    const components = createRoleSelectComponents(
+      interaction.guild,
+      updatedSettings.autoRoleId,
     );
-    const components = createWelcomeSettingsComponents(updatedSettings);
+
+    const embed = {
+      title: "Configure Welcome Auto-Role",
+      description:
+        "Select a role from the dropdown below to automatically assign to new members, or use the 'Clear Auto-Role' button to remove the current one.",
+      color: THEME_COLOR,
+      fields: [
+        {
+          name: "Select Role",
+          value:
+            "Choose a role from the dropdown below. Selecting a role will automatically save it as the auto-role.",
+          inline: false,
+        },
+      ],
+    };
 
     await interaction.editReply({
       embeds: [embed],

@@ -1,3 +1,4 @@
+import { MessageFlags } from "discord.js";
 import { getLogger } from "../../logger.js";
 import { getDatabaseManager } from "../../storage/databaseManager.js";
 import { errorEmbed } from "../../discord/responseMessages.js";
@@ -21,7 +22,7 @@ export async function handleGoodbyeChannelSelect(interaction) {
             "You need Manage Server permissions to configure the goodbye system.",
           solution: "Contact a server administrator for assistance.",
         }),
-        { ephemeral: true },
+        { flags: MessageFlags.Ephemeral },
       );
     }
 
@@ -37,7 +38,7 @@ export async function handleGoodbyeChannelSelect(interaction) {
             "The selected channel no longer exists or is not accessible.",
           solution: "Please try selecting a different channel.",
         }),
-        { ephemeral: true },
+        { flags: MessageFlags.Ephemeral },
       );
     }
 

@@ -1,7 +1,7 @@
+import { MessageFlags } from "discord.js";
 import { getLogger } from "../../logger.js";
 import { hasAdminPermissions } from "../../discord/permissions.js";
 import { errorEmbed } from "../../discord/responseMessages.js";
-import { createWelcomeConfigModal } from "../../../commands/admin/welcome/modals.js";
 import { getDatabaseManager } from "../../storage/databaseManager.js";
 
 /**
@@ -21,7 +21,7 @@ export async function handleWelcomeChannelSelect(interaction) {
               "You need administrator permissions to configure the welcome system.",
           }),
         ],
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -37,7 +37,7 @@ export async function handleWelcomeChannelSelect(interaction) {
             description: "The selected channel could not be found.",
           }),
         ],
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -56,7 +56,7 @@ export async function handleWelcomeChannelSelect(interaction) {
               "Please grant me Send Messages permission in the selected channel.",
           }),
         ],
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -75,15 +75,28 @@ export async function handleWelcomeChannelSelect(interaction) {
 
     await dbManager.welcomeSettings.set(interaction.guild.id, updatedSettings);
 
-    // Create modal with selected channel pre-filled and current settings
-    const modal = createWelcomeConfigModal({
-      ...updatedSettings,
+    // Return to configuration page with updated settings
+    const { createWelcomeConfigPageEmbed } = await import(
+      "../../../commands/admin/welcome/modals.js"
+    );
+    const { createWelcomeConfigPageComponents } = await import(
+      "../../../commands/admin/welcome/components.js"
+    );
+
+    const embed = createWelcomeConfigPageEmbed(interaction, updatedSettings);
+    const components = createWelcomeConfigPageComponents(
+      interaction.guild,
+      updatedSettings,
+    );
+
+    await interaction.reply({
+      embeds: [embed],
+      components,
+      flags: MessageFlags.Ephemeral,
     });
 
-    await interaction.showModal(modal);
-
     logger.info(
-      `Welcome config modal opened for channel ${selectedChannel.name} by ${interaction.user.tag} in ${interaction.guild.name}`,
+      `Welcome channel ${selectedChannel.name} selected by ${interaction.user.tag} in ${interaction.guild.name}`,
     );
   } catch (error) {
     logger.error(

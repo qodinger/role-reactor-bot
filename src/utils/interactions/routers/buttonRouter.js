@@ -15,32 +15,12 @@ export async function routeButtonInteraction(interaction, _client) {
   const { customId } = interaction;
 
   try {
+    logger.debug(
+      `Routing interaction: ${customId}, type: ${interaction.type}, isStringSelectMenu: ${interaction.isStringSelectMenu()}`,
+    );
+
     // Handle select menu interactions
     if (interaction.isStringSelectMenu()) {
-      if (customId === "goodbye_channel_select") {
-        const { handleGoodbyeChannelSelect } = await import(
-          "../handlers/goodbyeChannelSelectHandler.js"
-        );
-        await handleGoodbyeChannelSelect(interaction);
-        return;
-      }
-
-      if (customId === "welcome_channel_select") {
-        const { handleWelcomeChannelSelect } = await import(
-          "../handlers/welcomeChannelSelectHandler.js"
-        );
-        await handleWelcomeChannelSelect(interaction);
-        return;
-      }
-
-      if (customId === "welcome_role_select") {
-        const { handleWelcomeRoleSelect } = await import(
-          "../handlers/welcomeRoleSelectHandler.js"
-        );
-        await handleWelcomeRoleSelect(interaction);
-        return;
-      }
-
       // Add more select menu routing patterns here as needed
       logger.debug(`Unknown select menu interaction: ${customId}`);
       return;
@@ -94,6 +74,20 @@ export async function routeButtonInteraction(interaction, _client) {
         await handleWelcomeConfigure(interaction);
         break;
       }
+      case "welcome_configure_message": {
+        const { handleWelcomeConfigureMessage } = await import(
+          "../handlers/welcomeHandlers.js"
+        );
+        await handleWelcomeConfigureMessage(interaction);
+        break;
+      }
+      case "welcome_select_channel": {
+        const { handleWelcomeSelectChannel } = await import(
+          "../handlers/welcomeHandlers.js"
+        );
+        await handleWelcomeSelectChannel(interaction);
+        break;
+      }
       case "welcome_test": {
         const { handleWelcomeTest } = await import(
           "../handlers/welcomeHandlers.js"
@@ -134,13 +128,6 @@ export async function routeButtonInteraction(interaction, _client) {
           "../handlers/welcomeHandlers.js"
         );
         await handleWelcomeClearRole(interaction);
-        break;
-      }
-      case "welcome_settings": {
-        const { handleWelcomeEdit } = await import(
-          "../handlers/welcomeHandlers.js"
-        );
-        await handleWelcomeEdit(interaction);
         break;
       }
 
@@ -255,6 +242,13 @@ export async function routeButtonInteraction(interaction, _client) {
           "../../../commands/admin/xp/handlers.js"
         );
         await handleXpTestLevelUp(interaction);
+        break;
+      }
+      case "welcome_back_to_settings": {
+        const { handleSettings } = await import(
+          "../../../commands/admin/welcome/handlers.js"
+        );
+        await handleSettings(interaction, interaction.client);
         break;
       }
       case "back_to_settings": {

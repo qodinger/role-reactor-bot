@@ -1,3 +1,9 @@
+import {
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  MessageFlags,
+} from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
 import { getDatabaseManager } from "../../../utils/storage/databaseManager.js";
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";
@@ -13,7 +19,6 @@ import {
   createLevelUpComponents,
   createChannelSelectMenu,
 } from "./components.js";
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
 import { EMOJIS } from "../../../config/theme.js";
 import { updateXpSettings } from "./utils.js";
 
@@ -925,7 +930,7 @@ export async function handleXpTestLevelUp(interaction) {
 
     await interaction.reply({
       content: "🎉 Test level-up message sent! Check the configured channel.",
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
 
     logger.info(

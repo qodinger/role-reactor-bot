@@ -1,3 +1,4 @@
+import { MessageFlags } from "discord.js";
 import { getLogger } from "../../logger.js";
 import { getDatabaseManager } from "../../storage/databaseManager.js";
 import { errorEmbed } from "../../discord/responseMessages.js";
@@ -70,7 +71,7 @@ export async function handleGoodbyeConfigure(interaction) {
     await interaction.reply({
       embeds: [embed],
       components,
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
 
     logger.info(
@@ -451,7 +452,7 @@ export async function handleGoodbyeTest(interaction) {
           timestamp: new Date().toISOString(),
         },
       ],
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
 
     logger.info(

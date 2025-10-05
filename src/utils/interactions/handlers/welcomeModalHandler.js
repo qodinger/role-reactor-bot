@@ -1,9 +1,10 @@
+import { MessageFlags } from "discord.js";
 import { getLogger } from "../../logger.js";
 import { getDatabaseManager } from "../../storage/databaseManager.js";
 import { errorEmbed } from "../../discord/responseMessages.js";
 import { hasAdminPermissions } from "../../discord/permissions.js";
-import { createWelcomeSettingsEmbed } from "../../../commands/admin/welcome/embeds.js";
-import { createWelcomeSettingsComponents } from "../../../commands/admin/welcome/components.js";
+import { createWelcomeConfigPageEmbed } from "../../../commands/admin/welcome/modals.js";
+import { createWelcomeConfigPageComponents } from "../../../commands/admin/welcome/components.js";
 import { isValidMessage } from "../../validation/welcomeValidation.js";
 
 /**
@@ -22,7 +23,7 @@ export async function handleWelcomeConfigModal(interaction) {
               "You need administrator permissions to configure the welcome system.",
           }),
         ],
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -39,7 +40,7 @@ export async function handleWelcomeConfigModal(interaction) {
             description: "Please provide a valid welcome message.",
           }),
         ],
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -61,17 +62,12 @@ export async function handleWelcomeConfigModal(interaction) {
     const updatedSettings = await dbManager.welcomeSettings.getByGuild(
       interaction.guild.id,
     );
-    const welcomeChannel = interaction.guild.channels.cache.get(
-      updatedSettings.channelId,
-    );
 
-    const embed = createWelcomeSettingsEmbed(
-      interaction,
+    const embed = createWelcomeConfigPageEmbed(interaction, updatedSettings);
+    const components = createWelcomeConfigPageComponents(
+      interaction.guild,
       updatedSettings,
-      welcomeChannel,
-      null,
     );
-    const components = createWelcomeSettingsComponents(updatedSettings);
 
     await interaction.editReply({
       embeds: [embed],

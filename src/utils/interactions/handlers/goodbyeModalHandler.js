@@ -1,3 +1,4 @@
+import { MessageFlags } from "discord.js";
 import { getLogger } from "../../logger.js";
 import { getDatabaseManager } from "../../storage/databaseManager.js";
 import { errorEmbed } from "../../discord/responseMessages.js";
@@ -22,11 +23,11 @@ export async function handleGoodbyeConfigModal(interaction) {
             "You need Manage Server permissions to configure the goodbye system.",
           solution: "Contact a server administrator for assistance.",
         }),
-        { ephemeral: true },
+        { flags: MessageFlags.Ephemeral },
       );
     }
 
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     // Get form data
     const channelInput =
