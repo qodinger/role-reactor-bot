@@ -109,7 +109,7 @@ pnpm format:check
 
 ### Naming Conventions
 
-- **Files**: Use kebab-case (e.g., `setup-roles.js`)
+- **Files**: Use kebab-case (e.g., `role-reactions.js`)
 - **Functions**: Use camelCase (e.g., `setupRoles`)
 - **Constants**: Use UPPER_SNAKE_CASE (e.g., `THEME_COLOR`)
 - **Classes**: Use PascalCase (e.g., `RoleExpirationScheduler`)

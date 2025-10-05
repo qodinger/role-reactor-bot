@@ -1,3 +1,4 @@
+import { MessageFlags } from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 import { HelpEmbedBuilder } from "./embeds.js";
@@ -28,13 +29,12 @@ export async function handleGeneralHelp(interaction, deferred = true) {
       await interaction.editReply({
         embeds: [embed],
         components,
-        ephemeral: false,
       });
     } else {
       await interaction.reply({
         embeds: [embed],
         components,
-        flags: 64,
+        flags: MessageFlags.Ephemeral,
       });
     }
   } catch (error) {
@@ -88,13 +88,12 @@ export async function handleSpecificCommandHelp(
       await interaction.editReply({
         embeds: [embed],
         components,
-        ephemeral: false,
       });
     } else {
       await interaction.reply({
         embeds: [embed],
         components,
-        flags: 64,
+        flags: MessageFlags.Ephemeral,
       });
     }
   } catch (error) {
@@ -133,13 +132,12 @@ export async function handleCategoryHelp(
       await interaction.editReply({
         embeds: [embed],
         components,
-        ephemeral: false,
       });
     } else {
       await interaction.reply({
         embeds: [embed],
         components,
-        flags: 64,
+        flags: MessageFlags.Ephemeral,
       });
     }
   } catch (error) {
@@ -166,13 +164,12 @@ export async function handleAllCommandsHelp(interaction, deferred = true) {
       await interaction.editReply({
         embeds: [embed],
         components,
-        ephemeral: false,
       });
     } else {
       await interaction.reply({
         embeds: [embed],
         components,
-        flags: 64,
+        flags: MessageFlags.Ephemeral,
       });
     }
   } catch (error) {
@@ -197,7 +194,10 @@ async function handleCommandNotFound(interaction, commandName, deferred) {
   if (deferred) {
     await interaction.editReply(errorResponse);
   } else {
-    await interaction.reply({ ...errorResponse, flags: 64 });
+    await interaction.reply({
+      ...errorResponse,
+      flags: MessageFlags.Ephemeral,
+    });
   }
 }
 
@@ -213,7 +213,10 @@ async function handleCategoryNotFound(interaction, categoryKey, deferred) {
   if (deferred) {
     await interaction.editReply(errorResponse);
   } else {
-    await interaction.reply({ ...errorResponse, flags: 64 });
+    await interaction.reply({
+      ...errorResponse,
+      flags: MessageFlags.Ephemeral,
+    });
   }
 }
 
@@ -229,7 +232,10 @@ async function handleHelpError(interaction, message, deferred) {
   if (deferred) {
     await interaction.editReply(errorResponse);
   } else {
-    await interaction.reply({ ...errorResponse, flags: 64 });
+    await interaction.reply({
+      ...errorResponse,
+      flags: MessageFlags.Ephemeral,
+    });
   }
 }
 

@@ -236,7 +236,7 @@ The XP system is **disabled by default** and must be enabled by server administr
 
 **Admin Commands:**
 
-- `/xp-settings` - View current XP system status and toggle features
+- `/xp settings` - View current XP system status and toggle features
 
 **Default Settings:**
 
@@ -295,7 +295,7 @@ The XP system is **disabled by default** and must be enabled by server administr
 | `/welcome settings`      | View welcome system settings             | Manage Server |
 | `/goodbye setup`         | Configure goodbye system                 | Manage Server |
 | `/goodbye settings`      | View goodbye system settings             | Manage Server |
-| `/xp-settings`           | View and manage XP system settings       | Manage Server |
+| `/xp settings`           | View and manage XP system settings       | Manage Server |
 
 #### Developer Commands
 

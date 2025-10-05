@@ -88,7 +88,7 @@ The setup file provides global utilities for creating mock objects:
 ```javascript
 // Create mock Discord interaction
 const interaction = testUtils.createMockInteraction({
-  commandName: "setup-roles",
+  commandName: "role-reactions",
   userId: "123456789012345678",
   guild: mockGuild,
 });

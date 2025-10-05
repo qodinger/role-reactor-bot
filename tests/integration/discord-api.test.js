@@ -554,9 +554,9 @@ describe("Discord API Integration Tests", () => {
   });
 
   describe("Command Execution with Real Data", () => {
-    test("should execute setup-roles command with real data", async () => {
+    test("should execute role-reactions command with real data", async () => {
       const interaction = new MockInteraction(2, {
-        name: "setup-roles",
+        name: "role-reactions",
         options: [
           {
             name: "channel",
@@ -581,9 +581,9 @@ describe("Discord API Integration Tests", () => {
       expect(typeof result).toBe("boolean");
     });
 
-    test("should execute assign-temp-role command with real data", async () => {
+    test("should execute temp-roles command with real data", async () => {
       const interaction = new MockInteraction(2, {
-        name: "assign-temp-role",
+        name: "temp-roles",
         options: [
           {
             name: "user",
@@ -811,7 +811,7 @@ describe("Discord API Integration Tests", () => {
       expect(typeof userPermissions).toBe("boolean");
 
       // Test required permissions for commands
-      const requiredPerms = getRequiredPermissions("setup-roles");
+      const requiredPerms = getRequiredPermissions("role-reactions");
       expect(Array.isArray(requiredPerms)).toBe(true);
     });
   });
