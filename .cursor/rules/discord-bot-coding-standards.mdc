@@ -1,0 +1,264 @@
+---
+description: This rule defines the coding standards, patterns, and best practices for the Role Reactor Discord Bot project. It covers code organization, Discord.js patterns, theme system usage, error handling, and performance optimization to ensure consistency and maintainability across the entire codebase.
+globs: *.js,*.ts,*.jsx,*.tsx
+---
+
+## 1. Code Organization and Structure
+
+- **Directory Structure:**
+  - `src/`: Contains the main source code of the bot.
+    - `commands/`: Houses individual command modules, organized by permission level.
+      - `admin/`: Administrator-only commands requiring elevated permissions.
+      - `developer/`: Developer/debug commands for bot maintenance and diagnostics.
+      - `general/`: General user commands accessible to all users.
+    - `events/`: Discord event handlers (e.g., messageCreate, interactionCreate).
+    - `features/`: Feature modules that extend bot functionality.
+    - `utils/`: Utility functions and helper modules.
+      - `core/`: Core utilities used across the bot.
+      - `discord/`: Discord-specific utilities and helpers.
+      - `interactions/`: Interaction handlers for buttons, modals, and select menus.
+      - `storage/`: Storage management and database operations.
+    - `config/`: Configuration files including theme and bot settings.
+  - `tests/`: Unit and integration tests.
+  - `docs/`: Documentation for commands and features.
+  - `scripts/`: Automation scripts for deployment and maintenance.
+- **File Naming Conventions:**
+  - Commands: `commandName/` (directory) with `index.js`, `handlers.js`, `embeds.js`, `utils.js`.
+  - Events: `eventName.js` (camelCase).
+  - Utilities: `utilityName.js` (camelCase).
+  - Configuration: `configName.js` (camelCase).
+  - Use descriptive and consistent file names that clearly indicate their purpose.
+
+## 2. Code Style and Formatting
+
+- **Import/Export Patterns:**
+  - Always use ES modules (`import/export`) for all JavaScript files.
+  - Organize imports in the following order: Discord.js imports, internal utility imports, local imports.
+  - Use destructuring for multiple imports from the same module.
+  - Use relative paths for local imports and absolute paths for utilities.
+- **Function Declarations:**
+  - Use `async/await` for all asynchronous operations.
+  - Always include error handling with try-catch blocks.
+  - Use descriptive function names that clearly indicate their purpose.
+  - Include JSDoc comments for complex functions.
+- **Error Handling:**
+  - Always defer interactions immediately for long operations to prevent timeouts.
+  - Use the centralized `errorEmbed` function for consistent error messages.
+  - Log errors with context including user information and timing.
+  - Provide user-friendly error messages with solutions when possible.
+- **Code Formatting:**
+  - Use Prettier for consistent code formatting.
+  - Follow ESLint rules defined in the project configuration.
+  - Use meaningful variable names that describe their purpose.
+  - Keep functions focused on a single responsibility.
+
+## 3. Discord.js Best Practices
+
+- **Interaction Handling:**
+  - Always defer long operations immediately using `interaction.deferReply({ flags: MessageFlags.Ephemeral })`.
+  - Use `interaction.editReply()` after deferral for responses.
+  - Use `interaction.reply()` only for immediate responses that don't require processing.
+  - Use `interaction.update()` for button and select menu interactions.
+  - Handle interaction timeouts gracefully with proper error messages.
+- **Embed Creation:**
+  - Always use the centralized theme system for colors and emojis.
+  - Include timestamps and footers for better user experience.
+  - Use descriptive titles and descriptions that clearly communicate the purpose.
+  - Keep embed content concise and well-formatted.
+- **Component Creation:**
+  - Use consistent custom IDs that follow a clear naming pattern.
+  - Include emojis from the theme system for better visual appeal.
+  - Use appropriate button styles (Primary, Secondary, Success, Danger) based on action type.
+  - Group related components in action rows logically.
+- **Permission Validation:**
+  - Always validate user permissions before allowing sensitive operations.
+  - Use the centralized permission checking functions.
+  - Provide clear error messages when permissions are insufficient.
+
+## 4. Theme and Emoji System
+
+- **Always Use Theme Constants:**
+  - Never use hardcoded emojis or colors in the code.
+  - Import `EMOJIS` and `THEME` from `../../../config/theme.js` in all files.
+  - Use descriptive emoji constants that clearly indicate their purpose.
+  - Add new emojis to the theme file when needed rather than hardcoding them.
+- **Emoji Categories:**
+  - `EMOJIS.STATUS.*`: Status indicators (SUCCESS, ERROR, WARNING, ONLINE, OFFLINE).
+  - `EMOJIS.ACTIONS.*`: Action buttons (CONFIRM, CANCEL, REFRESH, BACK, FORWARD).
+  - `EMOJIS.UI.*`: UI elements (QUESTION, INFO, MENU, PROGRESS, USER).
+  - `EMOJIS.TIME.*`: Time-related (CLOCK, ALARM, CALENDAR, STOPWATCH).
+  - `EMOJIS.FEATURES.*`: Feature-specific emojis (EXPERIENCE, WELCOME, POLL).
+  - `EMOJIS.EIGHTBALL.*`: Dedicated emojis for 8ball command.
+- **Color Usage:**
+  - Use `THEME.PRIMARY` for main brand color and primary actions.
+  - Use `THEME.SUCCESS` for success messages and confirmations.
+  - Use `THEME.ERROR` for error messages and failures.
+  - Use `THEME.WARNING` for warning messages and cautions.
+  - Use `THEME.SECONDARY` for secondary information and less important elements.
+
+## 5. Database and Storage
+
+- **Storage Manager Usage:**
+  - Always use the centralized storage manager for data operations.
+  - Use `getStorageManager()` to get the storage instance.
+  - The storage manager automatically handles MongoDB and file-based storage fallback.
+  - Use appropriate data keys that clearly identify the data type and scope.
+- **Database Operations:**
+  - Use `getDatabaseManager()` for database-specific operations.
+  - Always handle database connection errors gracefully.
+  - Use timeouts for database operations to prevent interaction timeouts.
+  - Implement proper error handling for database failures.
+- **Data Consistency:**
+  - Ensure data is synchronized between file and database storage.
+  - Use atomic operations when possible to prevent data corruption.
+  - Implement proper validation before storing data.
+
+## 6. Logging Standards
+
+- **Logger Usage:**
+  - Always use `getLogger()` to get the logger instance.
+  - Use appropriate log levels: `info`, `debug`, `warn`, `error`.
+  - Include relevant context in log messages (user, guild, operation).
+  - Use structured logging with consistent message formats.
+- **Performance Logging:**
+  - Track operation duration using `Date.now()` timestamps.
+  - Log slow operations (>1000ms) as warnings.
+  - Include performance metrics in success logs.
+  - Use debug logging for detailed operation tracking.
+- **Error Logging:**
+  - Always log errors with full context including stack traces.
+  - Include user and guild information in error logs.
+  - Log both the error message and the full error object.
+  - Use consistent error message formats across the codebase.
+
+## 7. Command Structure
+
+- **Command Definition:**
+  - Use `SlashCommandBuilder` for all slash commands.
+  - Use descriptive names and descriptions that clearly indicate the command's purpose.
+  - Organize commands by permission level (admin, developer, general).
+  - Use subcommands for complex commands with multiple operations.
+  - Include proper option validation and requirements.
+- **Command Execution:**
+  - Always validate permissions before processing commands.
+  - Use switch statements to route subcommands to appropriate handlers.
+  - Implement proper error handling with try-catch blocks.
+  - Use the centralized error handling system for consistent error messages.
+  - Log command execution with relevant context.
+- **Handler Organization:**
+  - Separate command logic into dedicated handler functions.
+  - Keep handlers focused on single responsibilities.
+  - Use descriptive function names that clearly indicate their purpose.
+  - Include proper JSDoc comments for complex handlers.
+
+## 8. Event Handlers
+
+- **Event Structure:**
+  - Use the standard Discord.js event handler pattern.
+  - Export both `name` and `execute` function.
+  - Always include error handling with try-catch blocks.
+  - Use descriptive event names that clearly indicate their purpose.
+- **Event Processing:**
+  - Handle events asynchronously to prevent blocking.
+  - Log event processing with relevant context.
+  - Implement proper error handling for event failures.
+  - Use appropriate log levels for different event types.
+
+## 9. Validation and Error Handling
+
+- **Input Validation:**
+  - Always validate user input before processing.
+  - Use consistent validation patterns across the codebase.
+  - Provide clear error messages for validation failures.
+  - Sanitize input to prevent security vulnerabilities.
+- **Error Response Pattern:**
+  - Use the centralized `errorEmbed` function for all error responses.
+  - Include helpful solutions in error messages when possible.
+  - Provide consistent error formatting across all commands.
+  - Log errors with full context for debugging.
+
+## 10. Performance Considerations
+
+- **Timeout Handling:**
+  - Use timeouts for database operations to prevent interaction timeouts.
+  - Implement proper timeout error handling.
+  - Use `Promise.race()` for timeout implementation.
+  - Set appropriate timeout durations based on operation complexity.
+- **Rate Limiting:**
+  - Implement rate limiting for user actions to prevent abuse.
+  - Use appropriate rate limit durations based on action type.
+  - Provide clear feedback when rate limits are exceeded.
+  - Log rate limit violations for monitoring.
+
+## 11. Testing and Debugging
+
+- **Debug Information:**
+  - Use debug logging for detailed operation tracking.
+  - Include interaction IDs and timing information in debug logs.
+  - Log operation context including user and guild information.
+  - Use appropriate log levels for different types of information.
+- **Error Context:**
+  - Always include full error context in error logs.
+  - Include user information, guild information, and operation details.
+  - Log both error messages and stack traces.
+  - Use structured logging for better error analysis.
+
+## 12. Documentation Standards
+
+- **Function Documentation:**
+  - Use JSDoc comments for all public functions.
+  - Include parameter types and descriptions.
+  - Document return values and possible exceptions.
+  - Use proper TypeScript-style type annotations.
+- **README Structure:**
+  - Include overview and features section.
+  - Document file structure and organization.
+  - Provide command usage examples with parameters.
+  - Include technical details and integration information.
+  - Document maintenance and troubleshooting information.
+
+## 13. Security Best Practices
+
+- **Input Sanitization:**
+  - Always sanitize user input before processing.
+  - Remove potentially harmful characters and code.
+  - Implement proper length limits for all inputs.
+  - Validate input types and formats.
+- **Permission Validation:**
+  - Always validate permissions before sensitive operations.
+  - Use centralized permission checking functions.
+  - Provide clear error messages for permission denials.
+  - Log permission violations for security monitoring.
+
+## 14. Code Quality
+
+- **Linting Rules:**
+  - Use ESLint with the project configuration.
+  - Fix all linting errors before committing.
+  - Use Prettier for consistent code formatting.
+  - Never use `console.log` statements (use logger instead).
+- **Commit Messages:**
+  - Use conventional commit message format.
+  - Include clear descriptions of changes made.
+  - Use appropriate commit types (feat, fix, docs, style, refactor, test, chore).
+  - Keep commit messages concise but descriptive.
+
+## 15. Common Patterns
+
+- **Modal Creation:**
+  - Use consistent custom IDs for modals and inputs.
+  - Include proper validation and requirements.
+  - Use descriptive labels and placeholders.
+  - Group related inputs in logical action rows.
+- **Select Menu Creation:**
+  - Use emojis from the theme system for visual appeal.
+  - Include descriptive labels and values.
+  - Use appropriate placeholder text.
+  - Group related options logically.
+- **Component Organization:**
+  - Use consistent naming patterns for custom IDs.
+  - Group related components in action rows.
+  - Use appropriate component styles based on action type.
+  - Include proper emojis and labels for better UX.
+
+This coding standard ensures consistency, maintainability, and follows Discord.js best practices throughout the entire codebase.

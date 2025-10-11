@@ -158,13 +158,16 @@ export async function handleSettings(interaction, _client) {
   const logger = getLogger();
   const startTime = Date.now();
 
+  // Defer immediately to prevent timeout
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
   try {
-    // Get database manager and settings BEFORE deferring reply
+    // Get database manager and settings AFTER deferring reply
     const dbManager = await getDatabaseManager();
 
     // Check if guild settings repository is available
     if (!dbManager.guildSettings) {
-      return interaction.reply(
+      return interaction.editReply(
         errorEmbed({
           title: "Database Error",
           description: "Guild settings repository is not available.",
@@ -193,7 +196,7 @@ export async function handleSettings(interaction, _client) {
         `Failed to retrieve guild settings for guild ${interaction.guild.id}`,
         error,
       );
-      return interaction.reply(
+      return interaction.editReply(
         errorEmbed({
           title: "Database Error",
           description: "Failed to retrieve guild settings from database.",
@@ -202,9 +205,6 @@ export async function handleSettings(interaction, _client) {
         }),
       );
     }
-
-    // Now defer the reply after we have the data
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const xpSettings = settings.experienceSystem;
 
