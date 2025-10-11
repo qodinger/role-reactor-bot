@@ -1,9 +1,13 @@
+import { MessageFlags } from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
 import { createAvatarEmbed, createErrorEmbed } from "./embeds.js";
 import { createAvatarButtons } from "./components.js";
 
 export async function execute(interaction, _client) {
   const logger = getLogger();
+
+  // Defer immediately to prevent timeout
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   try {
     const targetUser = interaction.options.getUser("user") || interaction.user;
@@ -31,11 +35,11 @@ export async function execute(interaction, _client) {
       hasServerAvatar,
     );
 
-    await interaction.reply({ embeds: [embed], components: [buttons] });
+    await interaction.editReply({ embeds: [embed], components: [buttons] });
     logger.logCommand("avatar", interaction.user.id, Date.now(), true);
   } catch (error) {
     logger.error("Error in avatar command", error);
-    await interaction.reply({
+    await interaction.editReply({
       embeds: [createErrorEmbed()],
     });
   }

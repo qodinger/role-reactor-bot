@@ -1,4 +1,3 @@
-import { MessageFlags } from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
 import { getDatabaseManager } from "../../../utils/storage/databaseManager.js";
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";
@@ -18,7 +17,7 @@ export async function handleLevel(interaction, _client) {
     const dbManager = await getDatabaseManager();
 
     if (!dbManager.guildSettings) {
-      return interaction.reply(
+      return interaction.editReply(
         errorEmbed({
           title: "Database Error",
           description: "Guild settings repository is not available.",
@@ -33,7 +32,7 @@ export async function handleLevel(interaction, _client) {
       interaction.guild.id,
     );
     if (!guildSettings.experienceSystem.enabled) {
-      return interaction.reply(
+      return interaction.editReply(
         errorEmbed({
           title: "XP System Disabled",
           description: "The XP system is not enabled for this server.",
@@ -42,9 +41,6 @@ export async function handleLevel(interaction, _client) {
         }),
       );
     }
-
-    // Defer reply
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     // Get target user (default to command user)
     const targetUser = interaction.options.getUser("user") || interaction.user;

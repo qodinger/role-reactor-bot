@@ -1,4 +1,8 @@
-import { SlashCommandBuilder, PermissionFlagsBits } from "discord.js";
+import {
+  SlashCommandBuilder,
+  PermissionFlagsBits,
+  MessageFlags,
+} from "discord.js";
 import { hasAdminPermissions } from "../../../utils/discord/permissions.js";
 import { getLogger } from "../../../utils/logger.js";
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";
@@ -94,9 +98,12 @@ export async function execute(interaction, client) {
   const logger = getLogger();
 
   try {
+    // Defer immediately to prevent timeout
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
     // Validate user permissions
     if (!hasAdminPermissions(interaction.member)) {
-      return interaction.reply(
+      return interaction.editReply(
         errorEmbed({
           title: "Permission Denied",
           description:
@@ -120,7 +127,7 @@ export async function execute(interaction, client) {
         break;
 
       default:
-        await interaction.reply(
+        await interaction.editReply(
           errorEmbed({
             title: "Unknown Subcommand",
             description: `The subcommand "${subcommand}" is not recognized.`,

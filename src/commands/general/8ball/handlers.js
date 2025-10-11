@@ -6,6 +6,9 @@ export async function execute(interaction, _client) {
   const logger = getLogger();
 
   try {
+    // Defer immediately to prevent timeout
+    await interaction.deferReply({ ephemeral: false });
+
     const question = interaction.options.getString("question");
 
     // Smart response analysis
@@ -146,11 +149,11 @@ export async function execute(interaction, _client) {
       interaction.user,
     );
 
-    await interaction.reply({ embeds: [embed] });
+    await interaction.editReply({ embeds: [embed] });
     logger.logCommand("8ball", interaction.user.id, Date.now(), true);
   } catch (error) {
     logger.error("Error in 8ball command", error);
-    await interaction.reply({
+    await interaction.editReply({
       embeds: [createErrorEmbed()],
     });
   }

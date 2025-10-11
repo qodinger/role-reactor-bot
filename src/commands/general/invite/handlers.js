@@ -4,6 +4,9 @@ import { createInviteButtons } from "./components.js";
 
 export async function execute(interaction, client) {
   try {
+    // Defer immediately to prevent timeout
+    await interaction.deferReply({ ephemeral: true });
+
     // Generate invite link dynamically
     let inviteLink = client.inviteLink;
     if (!inviteLink) {
@@ -20,15 +23,13 @@ export async function execute(interaction, client) {
     const embed = createInviteEmbed(botName, botAvatar, userName, inviteLink);
     const buttons = createInviteButtons(inviteLink);
 
-    await interaction.reply({
+    await interaction.editReply({
       embeds: [embed],
       components: [buttons],
-      flags: 64,
     });
   } catch (_error) {
-    await interaction.reply({
+    await interaction.editReply({
       content: `❌ Unable to generate invite link. Please try again later or contact support.`,
-      flags: 64,
     });
   }
 }
