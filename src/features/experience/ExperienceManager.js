@@ -134,9 +134,19 @@ class ExperienceManager {
   async initialize() {
     if (this.isInitialized) return;
 
-    this.storageManager = await getStorageManager();
-    this.isInitialized = true;
-    this.logger.info("🎯 Experience Manager initialized");
+    // Initialize storage manager asynchronously to avoid blocking
+    try {
+      this.storageManager = await getStorageManager();
+      this.isInitialized = true;
+      this.logger.info("🎯 Experience Manager initialized");
+    } catch (error) {
+      this.logger.error(
+        "Failed to initialize Experience Manager storage",
+        error,
+      );
+      // Don't mark as initialized if storage failed
+      throw error;
+    }
   }
 
   /**

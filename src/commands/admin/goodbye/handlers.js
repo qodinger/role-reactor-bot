@@ -1,3 +1,4 @@
+import { MessageFlags } from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
 import {
   botHasRequiredPermissions,
@@ -20,7 +21,7 @@ export async function handleSetup(interaction, _client) {
   const startTime = Date.now();
 
   try {
-    await interaction.deferReply({ flags: 64 });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     if (!botHasRequiredPermissions(interaction.guild)) {
       const missingPermissions = getMissingBotPermissions(interaction.guild);
@@ -132,7 +133,7 @@ export async function handleSettings(interaction, _client) {
   const startTime = Date.now();
 
   try {
-    await interaction.deferReply({ flags: 64 });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     // Get database manager
     const dbManager = await getDatabaseManager();

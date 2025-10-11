@@ -141,10 +141,9 @@ class Config {
     return {
       MessageManager: 200, // Increased from 100
       UserManager: 1000, // Increased from 500
-      GuildManager: 100, // Increased from 50
-      ChannelManager: 200, // Increased from 100
+      // Note: GuildManager, ChannelManager, and RoleManager cannot be overridden
+      // They are managed internally by discord.js
       GuildMemberManager: 500, // Increased from 200
-      RoleManager: 200, // Increased from 100
       EmojiManager: 100, // Increased from 50
       // Add new cache managers
       ApplicationCommandManager: 50,

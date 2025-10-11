@@ -1,4 +1,5 @@
-import fs from "fs";
+import fs from "fs/promises";
+import fsSync from "fs";
 import path from "path";
 import { getLogger } from "../logger.js";
 import { getDatabaseManager } from "./databaseManager.js";
@@ -11,8 +12,8 @@ class FileProvider {
   }
 
   _ensureDataDirectory() {
-    if (!fs.existsSync(this.storagePath)) {
-      fs.mkdirSync(this.storagePath, { recursive: true });
+    if (!fsSync.existsSync(this.storagePath)) {
+      fsSync.mkdirSync(this.storagePath, { recursive: true });
     }
   }
 
@@ -20,22 +21,30 @@ class FileProvider {
     return path.join(this.storagePath, `${collection}.json`);
   }
 
-  read(collection) {
+  async read(collection) {
     try {
       const filePath = this._getFilePath(collection);
-      if (!fs.existsSync(filePath)) return {};
-      const data = fs.readFileSync(filePath, "utf8");
-      return JSON.parse(data);
+      // Use async file access instead of blocking existsSync
+      try {
+        const data = await fs.readFile(filePath, "utf8");
+        return JSON.parse(data);
+      } catch (readError) {
+        // If file doesn't exist, return empty object
+        if (readError.code === "ENOENT") {
+          return {};
+        }
+        throw readError;
+      }
     } catch (error) {
       this.logger.error(`❌ Failed to read ${collection} from file`, error);
       return {};
     }
   }
 
-  write(collection, data) {
+  async write(collection, data) {
     try {
       const filePath = this._getFilePath(collection);
-      fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+      await fs.writeFile(filePath, JSON.stringify(data, null, 2));
       return true;
     } catch (error) {
       this.logger.error(`❌ Failed to write ${collection} to file`, error);
@@ -138,6 +147,39 @@ class DatabaseProvider {
       return false;
     }
   }
+
+  // Poll management methods
+  async getAllPolls() {
+    return this.dbManager.polls.getAll();
+  }
+
+  async getPollById(pollId) {
+    return this.dbManager.polls.getById(pollId);
+  }
+
+  async getPollsByGuild(guildId) {
+    return this.dbManager.polls.getByGuild(guildId);
+  }
+
+  async getPollByMessageId(messageId) {
+    return this.dbManager.polls.getByMessageId(messageId);
+  }
+
+  async createPoll(pollData) {
+    return this.dbManager.polls.create(pollData);
+  }
+
+  async updatePoll(pollId, pollData) {
+    return this.dbManager.polls.update(pollId, pollData);
+  }
+
+  async deletePoll(pollId) {
+    return this.dbManager.polls.delete(pollId);
+  }
+
+  async cleanupEndedPolls() {
+    return this.dbManager.polls.cleanupEndedPolls();
+  }
 }
 
 class StorageManager {
@@ -145,6 +187,65 @@ class StorageManager {
     this.logger = getLogger();
     this.provider = null;
     this.isInitialized = false;
+  }
+
+  /**
+   * Migrate data from local files to database when MongoDB becomes available
+   */
+  async migrateLocalDataToDatabase() {
+    try {
+      this.logger.info("🔄 Checking for local data to migrate...");
+
+      // Create a temporary file provider to read local data
+      const fileProvider = new FileProvider(this.logger);
+
+      // Check if there are polls in local files
+      const localPolls = await fileProvider.read("polls");
+      const localPollCount = Object.keys(localPolls).length;
+
+      if (localPollCount === 0) {
+        this.logger.info("📁 No local poll data to migrate");
+        return;
+      }
+
+      this.logger.info(
+        `📁 Found ${localPollCount} polls in local files, checking database...`,
+      );
+
+      // Check if database already has polls
+      const dbPolls = await this.provider.getAllPolls();
+      const dbPollCount = Object.keys(dbPolls).length;
+
+      if (dbPollCount > 0) {
+        this.logger.info(
+          `📊 Database already has ${dbPollCount} polls, skipping migration`,
+        );
+        return;
+      }
+
+      // Migrate polls from local files to database
+      this.logger.info(`🔄 Migrating ${localPollCount} polls to database...`);
+
+      let migratedCount = 0;
+      for (const [pollId, pollData] of Object.entries(localPolls)) {
+        try {
+          await this.provider.createPoll(pollData);
+          migratedCount++;
+        } catch (error) {
+          this.logger.warn(`Failed to migrate poll ${pollId}:`, error.message);
+        }
+      }
+
+      this.logger.success(
+        `✅ Successfully migrated ${migratedCount}/${localPollCount} polls to database`,
+      );
+
+      // Optionally, you can clear local files after successful migration
+      // Uncomment the next line if you want to clear local files after migration
+      // await fileProvider.write("polls", {});
+    } catch (error) {
+      this.logger.error("❌ Migration failed:", error);
+    }
   }
 
   async initialize() {
@@ -156,6 +257,9 @@ class StorageManager {
       if (dbManager && dbManager.connectionManager.db) {
         this.provider = new DatabaseProvider(dbManager, this.logger);
         this.logger.success("✅ Database storage enabled");
+
+        // Migrate data from local files to database
+        await this.migrateLocalDataToDatabase();
       } else {
         this.provider = new FileProvider(this.logger);
         this.logger.warn(
@@ -288,6 +392,90 @@ class StorageManager {
     return false;
   }
 
+  // Poll management methods
+  async getAllPolls() {
+    if (this.provider instanceof DatabaseProvider) {
+      return this.provider.getAllPolls();
+    }
+    return this.provider.read("polls");
+  }
+
+  async getPollById(pollId) {
+    if (this.provider instanceof DatabaseProvider) {
+      return this.provider.getPollById(pollId);
+    }
+    const polls = this.provider.read("polls");
+    return polls[pollId] || null;
+  }
+
+  async getPollsByGuild(guildId) {
+    if (this.provider instanceof DatabaseProvider) {
+      return this.provider.getPollsByGuild(guildId);
+    }
+    const polls = this.provider.read("polls");
+    const guildPolls = {};
+    for (const [pollId, poll] of Object.entries(polls)) {
+      if (poll.guildId === guildId) {
+        guildPolls[pollId] = poll;
+      }
+    }
+    return guildPolls;
+  }
+
+  async getPollByMessageId(messageId) {
+    if (this.provider instanceof DatabaseProvider) {
+      return this.provider.getPollByMessageId(messageId);
+    }
+    const polls = this.provider.read("polls");
+    for (const [, poll] of Object.entries(polls)) {
+      if (poll.messageId === messageId) {
+        return poll;
+      }
+    }
+    return null;
+  }
+
+  async createPoll(pollData) {
+    if (this.provider instanceof DatabaseProvider) {
+      return this.provider.createPoll(pollData);
+    }
+    const polls = this.provider.read("polls");
+    polls[pollData.id] = pollData;
+    return this.provider.write("polls", polls);
+  }
+
+  async updatePoll(pollId, pollData) {
+    if (this.provider instanceof DatabaseProvider) {
+      return this.provider.updatePoll(pollId, pollData);
+    }
+    const polls = this.provider.read("polls");
+    if (polls[pollId]) {
+      polls[pollId] = { ...polls[pollId], ...pollData };
+      return this.provider.write("polls", polls);
+    }
+    return false;
+  }
+
+  async deletePoll(pollId) {
+    if (this.provider instanceof DatabaseProvider) {
+      return this.provider.deletePoll(pollId);
+    }
+    const polls = this.provider.read("polls");
+    if (polls[pollId]) {
+      delete polls[pollId];
+      return this.provider.write("polls", polls);
+    }
+    return false;
+  }
+
+  async cleanupEndedPolls() {
+    if (this.provider instanceof DatabaseProvider) {
+      return this.provider.cleanupEndedPolls();
+    }
+    // File-based cleanup would be more complex and is omitted for this refactoring
+    return 0;
+  }
+
   // Generic storage methods for other features
   async read(collection) {
     if (this.provider instanceof DatabaseProvider) {
@@ -303,9 +491,9 @@ class StorageManager {
       }
       // For other collections, use file-based storage
       const fileProvider = new FileProvider(this.logger);
-      return fileProvider.read(collection);
+      return await fileProvider.read(collection);
     }
-    return this.provider.read(collection);
+    return await this.provider.read(collection);
   }
 
   async write(collection, data) {
@@ -323,9 +511,9 @@ class StorageManager {
       }
       // For other collections, use file-based storage
       const fileProvider = new FileProvider(this.logger);
-      return fileProvider.write(collection, data);
+      return await fileProvider.write(collection, data);
     }
-    return this.provider.write(collection, data);
+    return await this.provider.write(collection, data);
   }
 }
 

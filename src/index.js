@@ -31,6 +31,8 @@ import { getPerformanceMonitor } from "./utils/monitoring/performanceMonitor.js"
 import { getLogger } from "./utils/logger.js";
 import { RoleScheduler } from "./features/temporaryRoles/RoleScheduler.js";
 import { getScheduler as getRoleExpirationScheduler } from "./features/temporaryRoles/RoleExpirationScheduler.js";
+// PollScheduler disabled - using native Discord polls only
+// import { PollScheduler } from "./features/polls/PollScheduler.js";
 import { getHealthCheckRunner } from "./utils/monitoring/healthCheck.js";
 import HealthServer from "./utils/monitoring/healthServer.js";
 import { getCommandHandler } from "./utils/core/commandHandler.js";
@@ -112,6 +114,7 @@ function createClient() {
       GatewayIntentBits.GuildMessages,
       GatewayIntentBits.GuildMessageReactions,
       GatewayIntentBits.GuildVoiceStates,
+      GatewayIntentBits.GuildMessagePolls,
     ],
     partials: [Partials.Message, Partials.Channel, Partials.Reaction],
     makeCache: Options.cacheWithLimits(config.cacheLimits),
@@ -192,6 +195,14 @@ async function gracefulShutdown(client, healthServer) {
 
     if (global.tempRoleScheduler) {
       global.tempRoleScheduler.stop();
+    }
+
+    if (global.pollScheduler) {
+      global.pollScheduler.stop();
+    }
+
+    if (global.pollCleanupInterval) {
+      clearInterval(global.pollCleanupInterval);
     }
 
     // Close Discord connection
@@ -538,6 +549,32 @@ async function main() {
       const tempRoleScheduler = getRoleExpirationScheduler(client);
       global.tempRoleScheduler = tempRoleScheduler; // Store globally for shutdown
       tempRoleScheduler.start();
+
+      // Poll scheduler disabled - using native Discord polls only
+      // Native polls handle their own UI updates automatically
+      // const pollScheduler = new PollScheduler(client);
+      // global.pollScheduler = pollScheduler; // Store globally for shutdown
+      // pollScheduler.start();
+
+      // Start poll cleanup scheduler (runs every 6 hours)
+      const pollCleanupInterval = setInterval(
+        async () => {
+          try {
+            const storageManager = await getStorageManager();
+            const cleanedCount = await storageManager.cleanupEndedPolls();
+            if (cleanedCount > 0) {
+              logger.info(
+                `🧹 Poll cleanup: Removed ${cleanedCount} ended polls`,
+              );
+            }
+          } catch (error) {
+            logger.error("❌ Poll cleanup failed:", error);
+          }
+        },
+        6 * 60 * 60 * 1000,
+      ); // 6 hours
+
+      global.pollCleanupInterval = pollCleanupInterval; // Store globally for shutdown
 
       healthCheckRunner.run(client);
       performanceMonitor.startMonitoring();

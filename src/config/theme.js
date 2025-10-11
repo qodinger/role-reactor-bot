@@ -187,6 +187,8 @@ export const EMOJIS = {
     INVITE: "💌",
     TEST: "🧪",
     SUPPORT: "🆘",
+    PREVIOUS: "⬅️",
+    NEXT: "➡️",
   },
 
   // Features and functionality
@@ -238,6 +240,14 @@ export const EMOJIS = {
     COMMAND: "⚡",
     TIME: "⏰",
     TROPHY: "🏆",
+    EMPTY: "📭",
+    LIGHT_BULB: "💡",
+    SINGLE_CHOICE: "🔘",
+    MULTIPLE_CHOICE: "☑️",
+    VOTE: "🗳️",
+    RESULT: "🎯",
+    END: "🚫",
+    ID: "🆔",
   },
 
   // Time and scheduling

@@ -15,6 +15,21 @@ export async function routeSelectMenuInteraction(interaction, _client) {
   const { customId } = interaction;
 
   try {
+    // Handle poll creation select menus
+    if (customId.startsWith("poll_") && customId.endsWith("_select")) {
+      // Check if interaction is already acknowledged
+      if (interaction.replied || interaction.deferred) {
+        logger.warn(`Interaction ${customId} already acknowledged, skipping`);
+        return;
+      }
+
+      const { handlePollCreationSelect } = await import(
+        "../../../commands/general/poll/handlers.js"
+      );
+      await handlePollCreationSelect(interaction, _client);
+      return;
+    }
+
     // Route based on customId patterns
     if (customId === "goodbye_channel_select") {
       const { handleGoodbyeChannelSelect } = await import(
