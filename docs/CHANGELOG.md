@@ -7,13 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Poll System: Create and manage native Discord polls with `/poll` command
+- Poll Commands: `/poll create`, `/poll list`, `/poll end`, `/poll delete` for full poll management
+- Interactive Poll Creation: Easy-to-use forms for creating polls with custom duration and vote types
+- Poll Management: View all server polls with pagination and filter options
+
 ### Fixed
 
-- Button Interaction Timeouts: Added interaction deferral to prevent "This interaction failed" errors
-- Welcome System Buttons: Fixed handleWelcomeConfigure to defer interactions before processing
-- Goodbye System Buttons: Fixed handleGoodbyeConfigure, handleGoodbyeConfigureMessage, and handleGoodbyeSelectChannel to defer interactions
-- Leaderboard Buttons: Fixed handleLeaderboardButton to defer interactions before timeframe switching
-- Error Response Handling: Updated button handlers to use editReply() instead of reply() after deferral
+- Command Timeouts: Fixed "Unknown interaction" errors that occurred when commands took too long to respond
+- Database Commands: Improved response times for /leaderboard and /level commands
+- Heavy Processing Commands: Fixed timeout issues with /8ball and /temp-roles commands
+- All Commands: Enhanced reliability and response times across all bot commands
+- Button Interactions: Fixed "This interaction failed" errors on various system buttons
+- Welcome System: Improved button response reliability
+- Goodbye System: Enhanced button interaction stability
+- Leaderboard: Fixed timeframe switching button issues
 
 ## [1.1.0] - 2025-01-27
 
@@ -23,18 +33,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Goodbye System Commands: Added `/goodbye` command with comprehensive configuration options
 - Goodbye Message Placeholders: Support for {user}, {user.name}, {user.tag}, {user.id}, {server}, {server.id}, {memberCount}, {memberCount.ordinal}
 - Goodbye Embed Support: Rich embed format for goodbye messages with member information
-- Goodbye System Database: MongoDB integration for storing goodbye settings per guild
-- Goodbye System Validation: Comprehensive permission and configuration validation
-- Goodbye System Utilities: Dedicated utility functions for message processing and embed creation
+- Goodbye System Storage: Automatic saving of goodbye settings for each server
+- Goodbye System Security: Enhanced permission checks for configuration access
+- Goodbye System Features: Improved message formatting and placeholder support
 - Channel Selection Dropdown: Interactive channel selection for goodbye system configuration
 - Two-Step Configuration: Channel select → modal configuration flow for better UX
 - Welcome System Improvements: Enhanced welcome system with better button layout and organization
 - Welcome System Test: Real role assignment testing in welcome system test functionality
 - Documentation: Added comprehensive README files for goodbye and welcome commands
-- Structured Logging System: Replaced all console.log statements with proper structured logging across role-reactions commands
-- Enhanced Debugging: Added comprehensive debugging information for delete command troubleshooting
-- Pagination Support: Implemented paginated database queries for role-reactions list command with 4 items per page
-- Guild Validation: Added guildId parameter validation to getRoleMapping function for proper message lookup
+- Improved Logging: Enhanced error tracking and debugging information
+- Better Error Messages: More helpful error messages for troubleshooting
+- Role List Pagination: Added page navigation for role lists (4 items per page)
+- Server Validation: Improved server-specific data handling
 
 ### Removed
 
@@ -138,13 +148,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - XP System Configuration: Simplified from complex command-based configuration to button-driven toggles
 - XP System Default: XP system is now disabled by default and requires admin activation
 - Experience Manager: Now checks guild settings before awarding XP
-
-### Technical
-
-- Enhanced test environment setup with proper environment variables
-- Added build, type-check, and health scripts for better development workflow
-- Improved XP system UX by removing configure-xp command
-- All tests now passing reliably (90/90)
+- Development Tools: Enhanced testing and build processes
 
 ## [0.4.0] - 2025-08-11
 
