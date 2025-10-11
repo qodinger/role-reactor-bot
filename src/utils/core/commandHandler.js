@@ -268,7 +268,7 @@ class CommandHandler {
       // Pre-award XP if requested by the command so the UI shows fresh totals
       // Make this asynchronous to avoid blocking command execution
       if (command.preAwardXP) {
-        setImmediate(async () => {
+        setTimeout(async () => {
           try {
             const experienceManager = await getExperienceManager();
             await experienceManager.awardCommandXP(
@@ -318,7 +318,7 @@ class CommandHandler {
       // Award XP for command usage (only for successful commands), unless pre-awarded
       // Make XP processing completely asynchronous to avoid blocking command execution
       if (!command.preAwardXP) {
-        setImmediate(async () => {
+        setTimeout(async () => {
           try {
             const experienceManager = await getExperienceManager();
             this.logger.info(

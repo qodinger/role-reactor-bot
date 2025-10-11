@@ -1,5 +1,6 @@
 import { MessageFlags, InteractionType } from "discord.js";
 import { getLogger } from "../logger.js";
+import { EMOJIS } from "../../config/theme.js";
 
 /**
  * Centralized interaction manager for handling all Discord interactions
@@ -172,7 +173,7 @@ export class InteractionManager {
       if (!interaction.replied && !interaction.deferred) {
         try {
           await interaction.reply({
-            content: "❌ An error occurred while processing your request.",
+            content: `${EMOJIS.STATUS.ERROR} An error occurred while processing your request.`,
             flags: MessageFlags.Ephemeral,
           });
         } catch (replyError) {
@@ -202,7 +203,7 @@ export class InteractionManager {
       if (!interaction.replied && !interaction.deferred) {
         try {
           await interaction.reply({
-            content: "❌ An error occurred while processing your request.",
+            content: `${EMOJIS.STATUS.ERROR} An error occurred while processing your request.`,
             flags: MessageFlags.Ephemeral,
           });
         } catch (replyError) {
@@ -232,7 +233,7 @@ export class InteractionManager {
       if (!interaction.replied && !interaction.deferred) {
         try {
           await interaction.reply({
-            content: "❌ An error occurred while processing your request.",
+            content: `${EMOJIS.STATUS.ERROR} An error occurred while processing your request.`,
             flags: MessageFlags.Ephemeral,
           });
         } catch (replyError) {

@@ -1,5 +1,6 @@
 import { MessageFlags } from "discord.js";
 import { getLogger } from "../logger.js";
+import { EMOJIS } from "../../config/theme.js";
 
 /**
  * Standardized error handling for interactions
@@ -37,18 +38,18 @@ export async function handleInteractionError(
       // Interaction already replied, try to edit the reply
       if (interaction.editReply) {
         await interaction.editReply({
-          content: `❌ ${userMessage}`,
+          content: `${EMOJIS.STATUS.ERROR} ${userMessage}`,
         });
       }
     } else if (deferred) {
       // Interaction was deferred, edit the reply
       await interaction.editReply({
-        content: `❌ ${userMessage}`,
+        content: `${EMOJIS.STATUS.ERROR} ${userMessage}`,
       });
     } else {
       // Interaction not yet responded to, send a new reply
       await interaction.reply({
-        content: `❌ ${userMessage}`,
+        content: `${EMOJIS.STATUS.ERROR} ${userMessage}`,
         flags: MessageFlags.Ephemeral,
       });
     }
@@ -77,12 +78,12 @@ export async function handleButtonError(interaction, error, action) {
   try {
     if (!interaction.replied && !interaction.deferred) {
       await interaction.reply({
-        content: `❌ ${userMessage}`,
+        content: `${EMOJIS.STATUS.ERROR} ${userMessage}`,
         flags: MessageFlags.Ephemeral,
       });
     } else if (interaction.deferred) {
       await interaction.editReply({
-        content: `❌ ${userMessage}`,
+        content: `${EMOJIS.STATUS.ERROR} ${userMessage}`,
       });
     }
   } catch (replyError) {
@@ -105,8 +106,8 @@ export async function handleCommandError(interaction, error, commandName) {
   try {
     if (!interaction.replied && !interaction.deferred) {
       await interaction.reply({
-        content: "❌ An error occurred while executing this command.",
-        flags: 64,
+        content: `${EMOJIS.STATUS.ERROR} An error occurred while executing this command.`,
+        flags: MessageFlags.Ephemeral,
       });
     }
   } catch (replyError) {

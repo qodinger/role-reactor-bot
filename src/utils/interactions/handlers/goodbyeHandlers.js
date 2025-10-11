@@ -191,7 +191,7 @@ export async function handleGoodbyeSelectChannel(interaction) {
       color: THEME_COLOR,
       fields: [
         {
-          name: "📋 Instructions",
+          name: `${EMOJIS.ACTIONS.INSTRUCTIONS} Instructions`,
           value:
             "Select a channel from the dropdown below. This will be where goodbye messages are sent.",
           inline: false,
@@ -237,7 +237,7 @@ export async function handleGoodbyeSelectChannel(interaction) {
         .setCustomId("goodbye_back_to_settings")
         .setLabel("Back to Settings")
         .setStyle(ButtonStyle.Secondary)
-        .setEmoji("⬅️"),
+        .setEmoji(EMOJIS.ACTIONS.BACK),
     );
 
     await interaction.editReply({
@@ -291,11 +291,10 @@ export async function handleGoodbyeReset(interaction) {
       guildId: interaction.guild.id,
       enabled: false,
       channelId: null,
-      message:
-        "**{user}** left the server\nThanks for being part of **{server}**! 👋",
+      message: `**{user}** left the server\nThanks for being part of **{server}**! ${EMOJIS.ACTIONS.WAVE}`,
       embedEnabled: true,
-      embedColor: 0x7f7bf5,
-      embedTitle: "👋 Goodbye from {server}!",
+      embedColor: THEME_COLOR,
+      embedTitle: `${EMOJIS.ACTIONS.GOODBYE} Goodbye from {server}!`,
       embedDescription: "Thanks for being part of our community!",
       embedThumbnail: true,
       createdAt: new Date(),
@@ -590,7 +589,7 @@ export async function handleGoodbyeTest(interaction) {
       } else {
         const processedMessage = processGoodbyeMessage(
           settings.message ||
-            "**{user}** left the server\nThanks for being part of **{server}**! 👋",
+            `**{user}** left the server\nThanks for being part of **{server}**! ${EMOJIS.ACTIONS.WAVE}`,
           testMember,
         );
         sentMessage = await goodbyeChannel.send(processedMessage);
@@ -603,18 +602,18 @@ export async function handleGoodbyeTest(interaction) {
     // Create direct link to the sent message if available
     let messageLink = "";
     if (sentMessage) {
-      messageLink = `\n\n🔗 [**View Test Message**](${sentMessage.url})`;
+      messageLink = `\n\n${EMOJIS.ACTIONS.LINK} [**View Test Message**](${sentMessage.url})`;
     }
 
     await interaction.editReply({
       embeds: [
         {
-          title: "👋 Goodbye System Test Results",
+          title: `${EMOJIS.ACTIONS.GOODBYE} Goodbye System Test Results`,
           description: `Test completed in ${goodbyeChannel.toString()}${messageLink}\n\n**Message Test:** ${messageResult}`,
           color: THEME_COLOR,
           fields: [
             {
-              name: "📋 Test Details",
+              name: `${EMOJIS.ACTIONS.TEST_DETAILS} Test Details`,
               value: `**Format:** ${settings.embedEnabled ? "Embed" : "Text"}\n**Channel:** ${goodbyeChannel.toString()}\n**Message:** ${settings.message || "Default message"}`,
               inline: false,
             },

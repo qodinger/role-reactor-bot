@@ -39,10 +39,10 @@ export function calculateLatency(apiLatency) {
  * @returns {string} Visual indicator emoji
  */
 export function getLatencyIndicator(latency) {
-  if (latency < 100) return "🟢";
-  if (latency < 200) return "🟡";
-  if (latency < 400) return "🟠";
-  return "🔴";
+  if (latency < 100) return EMOJIS.STATUS.ONLINE;
+  if (latency < 200) return EMOJIS.STATUS.IDLE;
+  if (latency < 400) return EMOJIS.STATUS.WARNING;
+  return EMOJIS.STATUS.OFFLINE;
 }
 
 /**

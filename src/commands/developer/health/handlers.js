@@ -1,3 +1,4 @@
+import { MessageFlags } from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
 import { isDeveloper } from "../../../utils/discord/permissions.js";
 import { createHealthEmbed } from "./embeds.js";
@@ -21,7 +22,7 @@ export async function handleHealthCheck(interaction, client, deferred = true) {
       const response = {
         content:
           "❌ **Permission Denied**\nYou need developer permissions to use this command.",
-        flags: 64,
+        flags: MessageFlags.Ephemeral,
       };
 
       if (deferred) {
@@ -39,7 +40,10 @@ export async function handleHealthCheck(interaction, client, deferred = true) {
     if (deferred) {
       await interaction.editReply({ embeds: [embed] });
     } else {
-      await interaction.reply({ embeds: [embed], flags: 64 });
+      await interaction.reply({
+        embeds: [embed],
+        flags: MessageFlags.Ephemeral,
+      });
     }
 
     logger.info("Health check completed successfully", {
@@ -65,7 +69,7 @@ async function handleHealthError(interaction, error, deferred) {
     const errorResponse = {
       content:
         "❌ **Health Check Failed**\nAn error occurred while checking bot health. Please try again later.",
-      flags: 64,
+      flags: MessageFlags.Ephemeral,
     };
 
     if (deferred) {

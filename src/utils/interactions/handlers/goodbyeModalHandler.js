@@ -3,6 +3,7 @@ import { getLogger } from "../../logger.js";
 import { getDatabaseManager } from "../../storage/databaseManager.js";
 import { errorEmbed } from "../../discord/responseMessages.js";
 import { hasAdminPermissions } from "../../discord/permissions.js";
+import { EMOJIS } from "../../../config/theme.js";
 
 /**
  * Handle goodbye configuration modal submission
@@ -53,7 +54,7 @@ export async function handleGoodbyeConfigModal(interaction) {
       ...currentSettings,
       message:
         messageInput ||
-        "**{user}** left the server\nThanks for being part of **{server}**! 👋",
+        `**{user}** left the server\nThanks for being part of **{server}**! ${EMOJIS.ACTIONS.WAVE}`,
     };
 
     await dbManager.goodbyeSettings.set(interaction.guild.id, newSettings);

@@ -1,5 +1,6 @@
 import { MessageFlags } from "discord.js";
 import { getLogger } from "../../logger.js";
+import { EMOJIS } from "../../../config/theme.js";
 
 /**
  * Leaderboard button interaction handlers
@@ -34,7 +35,7 @@ export const handleLeaderboardButton = async interaction => {
     // Check if the button was clicked by the same user
     if (interaction.user.id !== userId) {
       await interaction.editReply({
-        content: "❌ You can only use your own leaderboard buttons.",
+        content: `${EMOJIS.STATUS.ERROR} You can only use your own leaderboard buttons.`,
       });
       return;
     }
@@ -57,7 +58,7 @@ export const handleLeaderboardButton = async interaction => {
     if (!interaction.replied && !interaction.deferred) {
       try {
         await interaction.reply({
-          content: "❌ An error occurred while updating the leaderboard.",
+          content: `${EMOJIS.STATUS.ERROR} An error occurred while updating the leaderboard.`,
           flags: MessageFlags.Ephemeral,
         });
       } catch (replyError) {

@@ -119,7 +119,7 @@ class LevelUpNotifier {
           inline: true,
         },
         {
-          name: `${EMOJIS.UI.TIME} Next Level`,
+          name: `${EMOJIS.TIME.ALARM} Next Level`,
           value: `**${xpNeeded.toLocaleString()}** XP to go`,
           inline: true,
         },

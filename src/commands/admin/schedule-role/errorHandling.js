@@ -1,3 +1,4 @@
+import { MessageFlags } from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 
@@ -137,7 +138,10 @@ export async function handleCommandError(
     if (deferred) {
       await interaction.editReply({ embeds: [errorResponse] });
     } else {
-      await interaction.reply({ embeds: [errorResponse], flags: 64 });
+      await interaction.reply({
+        embeds: [errorResponse],
+        flags: MessageFlags.Ephemeral,
+      });
     }
   } catch (replyError) {
     logger.error("Failed to send error response", {

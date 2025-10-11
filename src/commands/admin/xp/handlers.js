@@ -76,7 +76,7 @@ export async function handleSetup(interaction, _client) {
     }
 
     // Defer reply
-    await interaction.deferReply({ flags: 64 });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     // Get options
     const enabled = interaction.options.getBoolean("enabled");
@@ -204,7 +204,7 @@ export async function handleSettings(interaction, _client) {
     }
 
     // Now defer the reply after we have the data
-    await interaction.deferReply({ flags: 64 });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const xpSettings = settings.experienceSystem;
 

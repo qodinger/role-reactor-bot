@@ -871,7 +871,7 @@ export async function handlePollList(interaction, _client, _deferred = false) {
             .setCustomId(`poll_list_page_${page - 1}`)
             .setLabel("Previous")
             .setStyle(ButtonStyle.Secondary)
-            .setEmoji(EMOJIS.ACTIONS.PREVIOUS),
+            .setEmoji(EMOJIS.ACTIONS.BACK),
         );
       }
 
@@ -892,7 +892,7 @@ export async function handlePollList(interaction, _client, _deferred = false) {
             .setCustomId(`poll_list_page_${page + 1}`)
             .setLabel("Next")
             .setStyle(ButtonStyle.Secondary)
-            .setEmoji(EMOJIS.ACTIONS.NEXT),
+            .setEmoji(EMOJIS.ACTIONS.FORWARD),
         );
       }
 
@@ -1203,7 +1203,7 @@ export async function handlePollListButton(interaction, _client) {
               .setCustomId(`poll_list_page_${page - 1}`)
               .setLabel("Previous")
               .setStyle(ButtonStyle.Secondary)
-              .setEmoji(EMOJIS.ACTIONS.PREVIOUS),
+              .setEmoji(EMOJIS.ACTIONS.BACK),
           );
         }
 
@@ -1224,7 +1224,7 @@ export async function handlePollListButton(interaction, _client) {
               .setCustomId(`poll_list_page_${page + 1}`)
               .setLabel("Next")
               .setStyle(ButtonStyle.Secondary)
-              .setEmoji(EMOJIS.ACTIONS.NEXT),
+              .setEmoji(EMOJIS.ACTIONS.FORWARD),
           );
         }
 

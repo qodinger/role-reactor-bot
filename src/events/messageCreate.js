@@ -1,6 +1,7 @@
 import { Events, EmbedBuilder } from "discord.js";
 import { getLogger } from "../utils/logger.js";
 import { getExperienceManager } from "../features/experience/ExperienceManager.js";
+import { EMOJIS } from "../config/theme.js";
 
 export const name = Events.MessageCreate;
 
@@ -38,28 +39,28 @@ export async function execute(message, client) {
 
       // Determine rank and emoji based on new level
       let rank = "Newcomer";
-      let rankEmoji = "🌱";
+      let rankEmoji = EMOJIS.FEATURES.EXPERIENCE;
       let rankColor = 0x00ff00;
 
       if (xpData.newLevel >= 50) {
         rank = "Legend";
-        rankEmoji = "👑";
+        rankEmoji = EMOJIS.UI.OWNER;
         rankColor = 0xffd700;
       } else if (xpData.newLevel >= 30) {
         rank = "Veteran";
-        rankEmoji = "⭐";
+        rankEmoji = EMOJIS.UI.STAR;
         rankColor = 0xff6b35;
       } else if (xpData.newLevel >= 20) {
         rank = "Experienced";
-        rankEmoji = "🎯";
+        rankEmoji = EMOJIS.ACTIONS.TARGET;
         rankColor = 0x9b59b6;
       } else if (xpData.newLevel >= 10) {
         rank = "Regular";
-        rankEmoji = "🎪";
+        rankEmoji = EMOJIS.ACTIONS.WELCOME;
         rankColor = 0x3498db;
       } else if (xpData.newLevel >= 5) {
         rank = "Active";
-        rankEmoji = "🚀";
+        rankEmoji = EMOJIS.ACTIONS.QUICK;
         rankColor = 0xe74c3c;
       }
 

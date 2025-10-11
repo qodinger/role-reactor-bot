@@ -1,3 +1,4 @@
+import { MessageFlags } from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
 import { getDatabaseManager } from "../../../utils/storage/databaseManager.js";
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";
@@ -43,7 +44,7 @@ export async function handleLeaderboard(interaction, _client) {
     }
 
     // Defer reply
-    await interaction.deferReply({ flags: 64 });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     // Get options
     const limit = interaction.options.getInteger("limit") || 10;

@@ -3,7 +3,7 @@ import {
   formatDuration,
   parseDuration,
 } from "../../../utils/discord/temporaryRoles.js";
-import { THEME } from "../../../config/theme.js";
+import { THEME, EMOJIS } from "../../../config/theme.js";
 
 /**
  * Create the temporary role assignment embed
@@ -172,14 +172,16 @@ export function createTempRolesListEmbed(
             const timeRemaining = role.timeRemaining;
             const isExpiringSoon =
               timeRemaining.includes("minute") && parseInt(timeRemaining) <= 5;
-            const statusEmoji = isExpiringSoon ? "⚠️" : "⏰";
+            const statusEmoji = isExpiringSoon
+              ? EMOJIS.STATUS.WARNING
+              : EMOJIS.TIME.ALARM;
 
             return `${statusEmoji} **${role.roleInfo.name}** - Expires ${timeRemaining}`;
           })
           .join("\n");
 
         embed.addFields({
-          name: `👤 ${user.username} (${roles.length} role${roles.length !== 1 ? "s" : ""})`,
+          name: `${EMOJIS.UI.USER} ${user.username} (${roles.length} role${roles.length !== 1 ? "s" : ""})`,
           value: roleList,
           inline: false,
         });

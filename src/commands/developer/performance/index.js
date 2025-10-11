@@ -42,7 +42,7 @@ export async function execute(interaction, client) {
 
 async function deferInteraction(interaction) {
   try {
-    await interaction.deferReply({ flags: 64 }); // ephemeral flag
+    await interaction.deferReply(); // ephemeral flag
     return true; // Successfully deferred
   } catch (deferError) {
     if (

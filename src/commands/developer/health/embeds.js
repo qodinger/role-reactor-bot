@@ -1,5 +1,5 @@
 import { EmbedBuilder } from "discord.js";
-import { THEME } from "../../../config/theme.js";
+import { THEME, EMOJIS } from "../../../config/theme.js";
 
 // ============================================================================
 // HEALTH EMBED BUILDER
@@ -97,28 +97,28 @@ async function getSystemChecks(client) {
 }
 
 function determineOverallStatus(checks) {
-  const hasErrors = checks.bot_ready.includes("❌");
-  const hasWarnings = checks.websocket.includes("⚠️");
+  const hasErrors = checks.bot_ready.includes(EMOJIS.STATUS.ERROR);
+  const hasWarnings = checks.websocket.includes(EMOJIS.STATUS.WARNING);
 
   if (hasErrors) {
     return {
       status: "error",
       color: THEME.ERROR,
-      emoji: "❌",
+      emoji: EMOJIS.STATUS.ERROR,
       description: "Critical issues detected. Immediate attention required! 🔴",
     };
   } else if (hasWarnings) {
     return {
       status: "warning",
       color: THEME.WARNING,
-      emoji: "⚠️",
+      emoji: EMOJIS.STATUS.WARNING,
       description: "Minor issues detected. Monitor closely. 🟡",
     };
   } else {
     return {
       status: "healthy",
       color: THEME.SUCCESS,
-      emoji: "✅",
+      emoji: EMOJIS.STATUS.SUCCESS,
       description: "All systems are operating normally! 🚀",
     };
   }
