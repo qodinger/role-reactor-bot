@@ -38,6 +38,7 @@ import HealthServer from "./utils/monitoring/healthServer.js";
 import { getCommandHandler } from "./utils/core/commandHandler.js";
 import { getEventHandler } from "./utils/core/eventHandler.js";
 import { getVersion } from "./utils/discord/version.js";
+import { startWebhookServer } from "./server/webhookServer.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -203,6 +204,10 @@ async function gracefulShutdown(client, healthServer) {
 
     if (global.pollCleanupInterval) {
       clearInterval(global.pollCleanupInterval);
+    }
+
+    if (global.subscriptionCleanupInterval) {
+      clearInterval(global.subscriptionCleanupInterval);
     }
 
     // Close Discord connection
@@ -426,6 +431,25 @@ async function loadEvents(client, eventsPath) {
   }
 }
 
+// Track active guilds for Ko-fi webhook processing
+async function trackActiveGuilds(client) {
+  const logger = getLogger();
+  try {
+    const storage = await getStorageManager();
+    const guildIds = Array.from(client.guilds.cache.keys());
+
+    // Store active guilds for webhook processing
+    await storage.set("bot_active_guilds", guildIds);
+
+    logger.info(
+      `📊 Tracked ${guildIds.length} active guilds for Ko-fi processing:`,
+      guildIds,
+    );
+  } catch (error) {
+    logger.error("Error tracking active guilds:", error);
+  }
+}
+
 async function main() {
   const logger = getLogger();
   let client = null;
@@ -537,8 +561,25 @@ async function main() {
       logger.info("🔄 Discord client reconnecting...");
     });
 
+    // Track guild changes for Ko-fi processing
+    client.on("guildCreate", async guild => {
+      logger.info(`➕ Bot joined guild: ${guild.name} (${guild.id})`);
+      await trackActiveGuilds(client);
+    });
+
+    client.on("guildDelete", async guild => {
+      logger.info(`➖ Bot left guild: ${guild.name} (${guild.id})`);
+      await trackActiveGuilds(client);
+    });
+
     client.once("ready", () => {
       logger.success(`✅ ${client.user.tag} v${getVersion()} is ready!`);
+
+      // Track active guilds for Ko-fi webhook processing
+      trackActiveGuilds(client);
+
+      // Start webhook server for Ko-fi integration
+      startWebhookServer();
 
       // Start background services
       const scheduler = new RoleScheduler(client);
@@ -575,6 +616,27 @@ async function main() {
       ); // 6 hours
 
       global.pollCleanupInterval = pollCleanupInterval; // Store globally for shutdown
+
+      // Start subscription cleanup scheduler (runs every 24 hours)
+      const subscriptionCleanupInterval = setInterval(
+        async () => {
+          try {
+            const { checkExpiredSubscriptions } = await import(
+              "./webhooks/kofi.js"
+            );
+            const expiredCount = await checkExpiredSubscriptions();
+            if (expiredCount > 0) {
+              logger.info(
+                `🧹 Subscription cleanup: Removed ${expiredCount} expired Core memberships`,
+              );
+            }
+          } catch (error) {
+            logger.error("❌ Subscription cleanup failed:", error);
+          }
+        },
+        24 * 60 * 60 * 1000, // 24 hours
+      );
+      global.subscriptionCleanupInterval = subscriptionCleanupInterval; // Store globally for shutdown
 
       healthCheckRunner.run(client);
       performanceMonitor.startMonitoring();

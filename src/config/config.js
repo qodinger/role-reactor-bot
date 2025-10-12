@@ -339,11 +339,63 @@ class Config {
    */
   get externalLinks() {
     return {
+      name: "Role Reactor Bot",
       guide: "https://rolereactor.app/docs",
       github: "https://github.com/qodinger/role-reactor-bot",
       support: "https://discord.gg/D8tYkU75Ry",
       sponsor: "https://rolereactor.app/sponsor",
       invite: null, // Will be generated dynamically by the bot
+    };
+  }
+
+  /**
+   * Get Core pricing configuration
+   * @returns {Object} Core pricing configuration object
+   */
+  get corePricing() {
+    return {
+      // AI generation cost per image
+      aiCostPerImage: 0.05,
+
+      // Donation rates (Cores per $1)
+      donation: {
+        rate: 10, // 10 Cores per $1
+        minimum: 5, // Minimum $5 donation
+      },
+
+      // Subscription tiers (monthly)
+      subscriptions: {
+        "Core Basic": {
+          price: 10,
+          cores: 120,
+          description: "Basic Core membership",
+        },
+        "Core Premium": {
+          price: 25,
+          cores: 350,
+          description: "Premium Core membership",
+        },
+        "Core Elite": {
+          price: 50,
+          cores: 750,
+          description: "Elite Core membership",
+        },
+      },
+
+      // Ko-fi fee structure
+      kofiFees: {
+        paymentProcessing: 0.029, // 2.9%
+        fixedFee: 0.3, // $0.30 per transaction
+        platformFee: 0.05, // 5% (waived for first $100/month)
+        platformFeeThreshold: 100, // $100/month threshold
+      },
+
+      // Core system settings
+      coreSystem: {
+        minimumSubscription: 10, // Minimum $10 for Core membership
+        aiServiceCost: 1, // 1 Core per AI service
+        priorityProcessing: true, // Core members get priority
+      },
     };
   }
 
@@ -360,6 +412,7 @@ class Config {
       partials: this.partials,
       cacheLimits: this.cacheLimits,
       rateLimits: this.rateLimits,
+      corePricing: this.corePricing,
     };
   }
 

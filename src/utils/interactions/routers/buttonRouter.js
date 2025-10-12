@@ -31,6 +31,16 @@ export async function routeButtonInteraction(interaction, _client) {
 
     // Handle button interactions
     // Route based on customId patterns
+
+    // Handle AI Avatar buttons
+    if (customId.startsWith("ai_avatar_")) {
+      const { handleAIAvatarButton } = await import(
+        "../../../commands/general/avatar/handlers.js"
+      );
+      await handleAIAvatarButton(interaction);
+      return;
+    }
+
     if (customId.startsWith("poll_")) {
       // Handle poll creation buttons
       if (

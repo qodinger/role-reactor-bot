@@ -515,6 +515,25 @@ class StorageManager {
     }
     return await this.provider.write(collection, data);
   }
+
+  // Generic get and set methods for AI avatar credits and other data
+  async get(key) {
+    if (this.provider && this.provider.get) {
+      return this.provider.get(key);
+    }
+    // Fallback to file storage
+    const fileProvider = new FileProvider(this.logger);
+    return fileProvider.read(key);
+  }
+
+  async set(key, data) {
+    if (this.provider && this.provider.set) {
+      return this.provider.set(key, data);
+    }
+    // Fallback to file storage
+    const fileProvider = new FileProvider(this.logger);
+    return fileProvider.write(key, data);
+  }
 }
 
 let storageManager = null;

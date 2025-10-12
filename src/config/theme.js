@@ -173,6 +173,7 @@ export const EMOJIS = {
     SORT: "📊",
     REFRESH: "🔄",
     SAVE: "💾",
+    TIPS: "💡",
     UPLOAD: "📤",
     DOWNLOAD: "📥",
     COPY: "📋",
