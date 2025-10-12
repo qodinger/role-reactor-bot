@@ -24,16 +24,12 @@ export class AvatarService {
   /**
    * Generate an AI avatar with enhanced prompts
    * @param {string} prompt - User's prompt
-   * @param {string} style - Anime style
-   * @param {string} mood - Character mood
    * @param {boolean} showDebugPrompt - Show debug information
    * @param {string} userId - User ID for concurrency tracking
    * @returns {Promise<Object>} Generated avatar data
    */
   async generateAvatar(
     prompt,
-    style,
-    mood,
     showDebugPrompt = false,
     userId = "unknown",
   ) {
@@ -59,11 +55,7 @@ export class AvatarService {
             throw new Error("Prompt too long: maximum 500 characters allowed");
           }
 
-          const enhancedPrompt = await this.buildAnimePrompt(
-            prompt,
-            style,
-            mood,
-          );
+          const enhancedPrompt = await this.buildAnimePrompt(prompt);
 
           logger.info(`Generating AI avatar for user ${userId}: "${prompt}"`);
           logger.debug(`Enhanced prompt: "${enhancedPrompt}"`);
@@ -72,8 +64,6 @@ export class AvatarService {
             return {
               enhancedPrompt,
               originalPrompt: prompt,
-              style,
-              mood,
             };
           }
 
@@ -94,8 +84,6 @@ export class AvatarService {
           return {
             ...result,
             prompt: enhancedPrompt,
-            style,
-            mood,
             processingTime,
           };
         } catch (error) {
@@ -121,18 +109,16 @@ export class AvatarService {
           }
         }
       },
-      { prompt, style, mood, showDebugPrompt },
+      { prompt, showDebugPrompt },
     );
   }
 
   /**
    * Build enhanced anime prompt with fixed template
    * @param {string} userPrompt - User's original prompt
-   * @param {string} _style - Unused (kept for compatibility)
-   * @param {string} _mood - Unused (kept for compatibility)
    * @returns {Promise<string>} Enhanced prompt
    */
-  async buildAnimePrompt(userPrompt, _style, _mood) {
+  async buildAnimePrompt(userPrompt) {
     const config = await loadPromptConfig();
     const characterDescription = this.parseUserPrompt(userPrompt, config);
     const colorPreference = this.extractColorPreference(userPrompt);
@@ -205,7 +191,7 @@ export class AvatarService {
 }
 
 export const avatarService = new AvatarService();
-export const generateAvatar = (prompt, style, mood, showDebugPrompt) =>
-  avatarService.generateAvatar(prompt, style, mood, showDebugPrompt);
-export const buildAnimePrompt = (userPrompt, style, mood) =>
-  avatarService.buildAnimePrompt(userPrompt, style, mood);
+export const generateAvatar = (prompt, showDebugPrompt, userId) =>
+  avatarService.generateAvatar(prompt, showDebugPrompt, userId);
+export const buildAnimePrompt = (userPrompt) =>
+  avatarService.buildAnimePrompt(userPrompt);

@@ -218,9 +218,7 @@ export async function handleAIAvatarGenerate(interaction) {
     logger.debug(`Starting AI generation...`);
     const avatarData = await generateAIAvatar(
       prompt,
-      "modern", // Default style (unused)
-      "happy", // Default mood (unused)
-      false,
+      false, // showDebugPrompt
       interaction.user.id,
     );
     logger.debug(`AI generation took ${Date.now() - aiStartTime}ms`);
