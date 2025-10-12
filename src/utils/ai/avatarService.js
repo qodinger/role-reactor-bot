@@ -28,11 +28,7 @@ export class AvatarService {
    * @param {string} userId - User ID for concurrency tracking
    * @returns {Promise<Object>} Generated avatar data
    */
-  async generateAvatar(
-    prompt,
-    showDebugPrompt = false,
-    userId = "unknown",
-  ) {
+  async generateAvatar(prompt, showDebugPrompt = false, userId = "unknown") {
     const requestId = `avatar_${userId}_${Date.now()}`;
     const startTime = Date.now();
 
@@ -193,5 +189,5 @@ export class AvatarService {
 export const avatarService = new AvatarService();
 export const generateAvatar = (prompt, showDebugPrompt, userId) =>
   avatarService.generateAvatar(prompt, showDebugPrompt, userId);
-export const buildAnimePrompt = (userPrompt) =>
+export const buildAnimePrompt = userPrompt =>
   avatarService.buildAnimePrompt(userPrompt);
