@@ -6,31 +6,27 @@ This directory contains reusable AI services for various AI-powered features in 
 
 The AI utilities are designed with a modular, reusable architecture:
 
-- **`aiService.js`** - Core AI service with generic methods for any AI task
+- **`multiProviderAIService.js`** - Multi-provider AI service supporting OpenRouter and OpenAI
 - **`avatarService.js`** - Specialized service for AI avatar generation
-- **`textService.js`** - Specialized service for AI text generation
+- **`concurrencyManager.js`** - Request concurrency management
 - **`index.js`** - Central export file for easy imports
 
-## Core AI Service
+## Multi-Provider AI Service
 
-The `AIService` class provides the foundation for all AI operations:
+The `MultiProviderAIService` class provides the foundation for all AI operations:
 
 ```javascript
-import { aiService } from "./utils/ai/aiService.js";
+import { multiProviderAIService } from "./utils/ai/multiProviderAIService.js";
 
-// Generate any type of AI content
-const result = await aiService.generate({
-  model: "google/gemini-2.5-flash",
+// Generate AI content using the configured provider
+const result = await multiProviderAIService.generate({
+  type: "image", // Only image generation is supported
   prompt: "Your prompt here",
-  type: "text", // or "image"
   config: {
-    /* additional options */
+    size: "1024x1024",
+    quality: "standard",
   },
 });
-
-// Or use convenience methods
-const image = await aiService.generateImage("A beautiful landscape");
-const text = await aiService.generateText("Explain quantum computing");
 ```
 
 ## Specialized Services
@@ -49,53 +45,48 @@ const avatar = await generateAvatar(
 );
 ```
 
-### Text Service
+### Concurrency Manager
 
-For AI-generated text content:
+For managing AI request concurrency and preventing rate limit issues:
 
 ```javascript
-import {
-  generateCreativeWriting,
-  generateCodeExplanation,
-} from "./utils/ai/textService.js";
+import { concurrencyManager } from "./utils/ai/concurrencyManager.js";
 
-// Creative writing
-const story = await generateCreativeWriting(
-  "A story about a robot learning to love",
-  "creative", // style
-  500, // target length
-);
-
-// Code explanation
-const explanation = await generateCodeExplanation(
-  "function fibonacci(n) { return n <= 1 ? n : fibonacci(n-1) + fibonacci(n-2); }",
-  "javascript",
+// Queue a request with concurrency control
+const result = await concurrencyManager.queueRequest(
+  "unique-request-id",
+  async () => {
+    // Your AI generation logic here
+    return await multiProviderAIService.generate(options);
+  },
+  {
+    /* request metadata */
+  },
 );
 ```
 
 ## Available Models
 
-The AI service supports various models through OpenRouter:
+The AI service supports image generation through multiple providers:
 
-### Image Generation
+### OpenRouter Models
 
 - `google/gemini-2.5-flash-image-preview` (Recommended)
 - `stability-ai/stable-diffusion-xl-base-1.0`
 - `google/imagen-3`
 
-### Text Generation
+### OpenAI Models
 
-- `google/gemini-2.5-flash` (Recommended)
-- `openai/gpt-4o`
-- `anthropic/claude-3.5-sonnet`
+- `dall-e-3` (High quality image generation)
 
-## Rate Limiting
+## Concurrency Management
 
-All AI services include built-in rate limiting:
+All AI services include built-in concurrency management:
 
-- **5 requests per hour per user**
-- Automatic cleanup of old rate limit data
-- Configurable limits via environment variables
+- **Maximum 3 concurrent requests per user**
+- Automatic request queuing
+- Prevents API rate limit issues
+- Configurable limits via concurrency manager
 
 ## Error Handling
 
@@ -116,18 +107,17 @@ Comprehensive error handling for common scenarios:
 
 ```javascript
 // src/utils/ai/myFeatureService.js
-import { aiService } from "./aiService.js";
+import { multiProviderAIService } from "./multiProviderAIService.js";
 
 export class MyFeatureService {
   constructor() {
-    this.aiService = aiService;
+    this.aiService = multiProviderAIService;
   }
 
   async generateMyContent(prompt, options = {}) {
     return await this.aiService.generate({
-      model: "google/gemini-2.5-flash",
+      type: "image",
       prompt: this.enhancePrompt(prompt, options),
-      type: "text",
       config: options,
     });
   }
@@ -158,20 +148,27 @@ export async function execute(interaction) {
 
 ### Adding New Models
 
-To add support for new models, update the `getAvailableModels()` method in `aiService.js`:
+To add support for new models, update the configuration in `config.js`:
 
 ```javascript
-getAvailableModels() {
-  return {
-    image: [
-      "google/gemini-2.5-flash-image-preview",
-      "your-new-image-model",
-    ],
-    text: [
-      "google/gemini-2.5-flash",
-      "your-new-text-model",
-    ],
-  };
+// In config.js aiModels getter
+providers: {
+  openrouter: {
+    models: {
+      image: {
+        primary: "google/gemini-2.5-flash-image-preview",
+        // Add new models here
+      },
+    },
+  },
+  openai: {
+    models: {
+      image: {
+        primary: "dall-e-3",
+        // Add new models here
+      },
+    },
+  },
 }
 ```
 
@@ -180,7 +177,16 @@ getAvailableModels() {
 Required environment variables:
 
 ```env
+# AI Provider Selection
+AI_PRIMARY_PROVIDER=openrouter  # or "openai"
+
+# OpenRouter Configuration
 OPENROUTER_API_KEY=your_openrouter_api_key
+
+# OpenAI Configuration
+OPENAI_API_KEY=your_openai_api_key
+
+# Bot Information
 BOT_NAME=Role Reactor Bot
 BOT_WEBSITE_URL=https://github.com/rolereactor
 ```
@@ -189,11 +195,12 @@ BOT_WEBSITE_URL=https://github.com/rolereactor
 
 The AI utilities are designed to be easily extensible:
 
-- **New AI providers** - Add support for other AI APIs
+- **New AI providers** - Add support for other AI APIs (Anthropic, Cohere, etc.)
 - **New content types** - Add video, audio, or other media generation
 - **Advanced features** - Add conversation memory, context awareness, etc.
-- **Caching** - Add intelligent caching for repeated requests
+- **Enhanced caching** - Add intelligent caching for repeated requests
 - **Analytics** - Add usage tracking and analytics
+- **Text generation** - Re-add text generation capabilities if needed
 
 ## Best Practices
 

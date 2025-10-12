@@ -1,6 +1,6 @@
 import { AttachmentBuilder, MessageFlags } from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
-import { generateAIAvatar } from "./aiService.js";
+import { generateAvatar as generateAIAvatar } from "../../../utils/ai/avatarService.js";
 import { CreditManager } from "./utils/creditManager.js";
 import { InteractionHandler } from "./utils/interactionHandler.js";
 import { createLoadingSkeleton } from "./utils/imageUtils.js";
@@ -99,7 +99,10 @@ export async function handleAIAvatarGenerate(interaction) {
       },
     ];
 
-    await interaction.editReply({ embeds: [errorEmbed] });
+    await interaction.editReply({
+      embeds: [errorEmbed],
+      files: [], // Remove any loading images
+    });
     return;
   }
 
@@ -149,7 +152,10 @@ export async function handleAIAvatarGenerate(interaction) {
         `You've been temporarily blocked from avatar generation due to repeated content policy violations.\n\n**Block Duration:** ${remainingTime} minutes remaining\n\n**Reason:** Multiple attempts with potentially inappropriate content\n\n**What you can do:**\n• Wait for the block to expire\n• Use more appropriate language in your prompts\n• Contact an administrator if you believe this is an error`,
       );
 
-      await interaction.editReply({ embeds: [errorEmbed] });
+      await interaction.editReply({
+        embeds: [errorEmbed],
+        files: [], // Remove any loading images
+      });
       return;
     }
 
@@ -172,7 +178,10 @@ export async function handleAIAvatarGenerate(interaction) {
       prompt,
     );
 
-    await interaction.editReply({ embeds: [creditEmbed] });
+    await interaction.editReply({
+      embeds: [creditEmbed],
+      files: [], // Remove any loading images
+    });
     return;
   }
 
@@ -362,7 +371,10 @@ export async function handleAIAvatarGenerate(interaction) {
       },
     ];
 
-    await interaction.editReply({ embeds: [errorEmbed] });
+    await interaction.editReply({
+      embeds: [errorEmbed],
+      files: [], // Remove any loading images
+    });
   }
 }
 

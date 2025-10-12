@@ -349,6 +349,41 @@ class Config {
   }
 
   /**
+   * Get AI model configuration
+   * @returns {Object} AI model configuration object
+   */
+  get aiModels() {
+    return {
+      // Primary AI provider (openrouter or openai)
+      primary: process.env.AI_PRIMARY_PROVIDER || "openrouter",
+
+      // Model configurations
+      providers: {
+        openrouter: {
+          name: "OpenRouter",
+          baseUrl: "https://openrouter.ai/api/v1/chat/completions",
+          apiKey: process.env.OPENROUTER_API_KEY,
+          models: {
+            image: {
+              primary: "google/gemini-2.5-flash-image-preview",
+            },
+          },
+        },
+        openai: {
+          name: "OpenAI",
+          baseUrl: "https://api.openai.com/v1",
+          apiKey: process.env.OPENAI_API_KEY,
+          models: {
+            image: {
+              primary: "dall-e-3",
+            },
+          },
+        },
+      },
+    };
+  }
+
+  /**
    * Get Core pricing configuration
    * @returns {Object} Core pricing configuration object
    */
@@ -412,6 +447,7 @@ class Config {
       partials: this.partials,
       cacheLimits: this.cacheLimits,
       rateLimits: this.rateLimits,
+      aiModels: this.aiModels,
       corePricing: this.corePricing,
     };
   }

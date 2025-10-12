@@ -1,10 +1,14 @@
-import { aiService } from "./aiService.js";
+import { multiProviderAIService } from "./multiProviderAIService.js";
 import { concurrencyManager } from "./concurrencyManager.js";
 import { getLogger } from "../logger.js";
 
-// Load prompt configuration
+// Load prompt configuration with caching
+let promptConfigCache = null;
 async function loadPromptConfig() {
-  return await import("../../config/aiPrompts.js");
+  if (!promptConfigCache) {
+    promptConfigCache = await import("../../config/aiPrompts.js");
+  }
+  return promptConfigCache;
 }
 
 const logger = getLogger();
@@ -14,7 +18,7 @@ const logger = getLogger();
  */
 export class AvatarService {
   constructor() {
-    this.aiService = aiService;
+    this.aiService = multiProviderAIService;
   }
 
   /**
@@ -34,11 +38,27 @@ export class AvatarService {
     userId = "unknown",
   ) {
     const requestId = `avatar_${userId}_${Date.now()}`;
+    const startTime = Date.now();
 
     return concurrencyManager.queueRequest(
       requestId,
       async () => {
         try {
+          // Validate input
+          if (
+            !prompt ||
+            typeof prompt !== "string" ||
+            prompt.trim().length === 0
+          ) {
+            throw new Error(
+              "Invalid prompt: prompt must be a non-empty string",
+            );
+          }
+
+          if (prompt.length > 500) {
+            throw new Error("Prompt too long: maximum 500 characters allowed");
+          }
+
           const enhancedPrompt = await this.buildAnimePrompt(
             prompt,
             style,
@@ -46,7 +66,7 @@ export class AvatarService {
           );
 
           logger.info(`Generating AI avatar for user ${userId}: "${prompt}"`);
-          logger.info(`Enhanced prompt: "${enhancedPrompt}"`);
+          logger.debug(`Enhanced prompt: "${enhancedPrompt}"`);
 
           if (showDebugPrompt) {
             return {
@@ -57,22 +77,48 @@ export class AvatarService {
             };
           }
 
-          const result = await this.aiService.generateImage(enhancedPrompt, {
-            model: "google/gemini-2.5-flash-image-preview",
-            aspect_ratio: "1:1",
-            size: "1024x1024",
-            quality: "standard",
+          const result = await this.aiService.generate({
+            type: "image",
+            prompt: enhancedPrompt,
+            config: {
+              size: "1024x1024",
+              quality: "standard",
+            },
           });
+
+          const processingTime = Date.now() - startTime;
+          logger.info(
+            `Avatar generation completed in ${processingTime}ms for user ${userId}`,
+          );
 
           return {
             ...result,
             prompt: enhancedPrompt,
             style,
             mood,
+            processingTime,
           };
         } catch (error) {
-          logger.error("Error generating AI avatar:", error);
-          throw new Error(`Avatar generation failed: ${error.message}`);
+          const processingTime = Date.now() - startTime;
+          logger.error(
+            `Avatar generation failed after ${processingTime}ms for user ${userId}:`,
+            error,
+          );
+
+          // Provide more specific error messages
+          if (error.message.includes("API error: 401")) {
+            throw new Error("Authentication failed: Invalid API key");
+          } else if (error.message.includes("API error: 429")) {
+            throw new Error("Rate limit exceeded: Please try again later");
+          } else if (error.message.includes("API error: 402")) {
+            throw new Error("Payment required: Insufficient credits");
+          } else if (error.message.includes("No image generated")) {
+            throw new Error(
+              "Image generation failed: Please try a different prompt",
+            );
+          } else {
+            throw new Error(`Avatar generation failed: ${error.message}`);
+          }
         }
       },
       { prompt, style, mood, showDebugPrompt },
@@ -91,18 +137,17 @@ export class AvatarService {
     const characterDescription = this.parseUserPrompt(userPrompt, config);
     const colorPreference = this.extractColorPreference(userPrompt);
 
-    let finalPrompt = config.BASE_PROMPT_TEMPLATE.replace(
-      "{characterDescription}",
-      characterDescription,
-    );
+    // Build prompt more efficiently
+    const parts = [
+      config.BASE_PROMPT_TEMPLATE.replace(
+        "{characterDescription}",
+        characterDescription,
+      ),
+      colorPreference,
+      config.PROMPT_SUFFIX,
+    ].filter(Boolean);
 
-    if (colorPreference) {
-      finalPrompt += `, ${colorPreference}`;
-    }
-
-    finalPrompt += config.PROMPT_SUFFIX;
-
-    return finalPrompt;
+    return parts.join(", ");
   }
 
   /**
@@ -144,45 +189,18 @@ export class AvatarService {
    * @returns {string} Color preference
    */
   extractColorPreference(userPrompt) {
-    if (!userPrompt || userPrompt.trim().length === 0) {
+    if (!userPrompt?.trim()) {
       return ""; // No default color to avoid forcing backgrounds
     }
 
     const description = userPrompt.toLowerCase();
 
-    // Common color keywords
-    const colorMap = {
-      blue: "blue",
-      red: "red",
-      yellow: "yellow",
-      green: "green",
-      purple: "purple",
-      pink: "pink",
-      orange: "orange",
-      black: "black",
-      white: "white",
-      gray: "gray",
-      grey: "gray",
-      brown: "brown",
-      violet: "violet",
-      cyan: "cyan",
-      magenta: "magenta",
-      lime: "lime",
-      navy: "navy",
-      maroon: "maroon",
-      olive: "olive",
-      teal: "teal",
-      silver: "silver",
-      gold: "gold",
-    };
+    // Use a more efficient color detection with regex
+    const colorRegex =
+      /\b(blue|red|yellow|green|purple|pink|orange|black|white|gray|grey|brown|violet|cyan|magenta|lime|navy|maroon|olive|teal|silver|gold)\b/;
+    const match = description.match(colorRegex);
 
-    for (const [color, value] of Object.entries(colorMap)) {
-      if (description.includes(color)) {
-        return value;
-      }
-    }
-
-    return "";
+    return match ? match[1] : "";
   }
 }
 
