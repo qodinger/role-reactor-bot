@@ -236,11 +236,6 @@ export class MultiProviderAIService {
       cacheKey,
     );
 
-    logger.debug(
-      "OpenRouter response structure:",
-      JSON.stringify(data, null, 2),
-    );
-
     const imageUrl = this.extractImageUrl(data);
     if (!imageUrl) {
       logger.error("OpenRouter response missing image data:", {
@@ -371,8 +366,11 @@ export class MultiProviderAIService {
     formData.append("steps", config.steps || 20); // More steps for better quality
     formData.append("seed", config.seed || Math.floor(Math.random() * 1000000)); // Random seed for variety
 
-    // Use negative prompt from configuration
-    formData.append("negative_prompt", promptConfig.NEGATIVE_PROMPT);
+    // Use provider-specific negative prompt
+    const negativePrompt =
+      promptConfig.PROVIDER_PROMPTS?.stability?.negative ||
+      promptConfig.NEGATIVE_PROMPT;
+    formData.append("negative_prompt", negativePrompt);
 
     const response = await fetch(this.config.providers.stability.baseUrl, {
       method: "POST",

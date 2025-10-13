@@ -30,6 +30,7 @@ export class AvatarService {
    * @param {string} styleOptions.colorStyle - Color style override
    * @param {string} styleOptions.mood - Mood style override
    * @param {string} styleOptions.artStyle - Art style override
+   * @param {Function} progressCallback - Optional progress callback function
    * @returns {Promise<Object>} Generated avatar data
    */
   async generateAvatar(
@@ -37,6 +38,7 @@ export class AvatarService {
     showDebugPrompt = false,
     userId = "unknown",
     styleOptions = {},
+    progressCallback = null,
   ) {
     const requestId = `avatar_${userId}_${Date.now()}`;
     const startTime = Date.now();
@@ -45,6 +47,9 @@ export class AvatarService {
       requestId,
       async () => {
         try {
+          // Step 1: Initialize
+          if (progressCallback) progressCallback("Initializing AI service...");
+
           // Validate input
           if (
             !prompt ||
@@ -60,9 +65,15 @@ export class AvatarService {
             throw new Error("Prompt too long: maximum 500 characters allowed");
           }
 
+          // Step 2: Build enhanced prompt
+          if (progressCallback) progressCallback("Building enhanced prompt...");
+
+          // Determine provider for prompt optimization
+          const targetProvider = this.aiService.config.primary;
           const enhancedPrompt = await this.buildAnimePrompt(
             prompt,
             styleOptions,
+            targetProvider,
           );
 
           logger.info(`Generating AI avatar for user ${userId}: "${prompt}"`);
@@ -75,19 +86,33 @@ export class AvatarService {
             };
           }
 
+          // Step 3: Connect to AI provider
+          if (progressCallback)
+            progressCallback("Connecting to AI provider...");
+
+          // Step 4: Generate image
+          if (progressCallback)
+            progressCallback("Generating image (this may take 30-60s)...");
           const result = await this.aiService.generate({
             type: "image",
             prompt: enhancedPrompt,
             config: {
               size: "1024x1024",
               quality: "standard",
+              userId, // Pass userId for rate limiting
             },
           });
+
+          // Step 5: Process image data
+          if (progressCallback) progressCallback("Processing image data...");
 
           const processingTime = Date.now() - startTime;
           logger.info(
             `Avatar generation completed in ${processingTime}ms for user ${userId}`,
           );
+
+          // Step 6: Finalize result
+          if (progressCallback) progressCallback("Finalizing result...");
 
           return {
             ...result,
@@ -127,7 +152,11 @@ export class AvatarService {
    * @param {Object} styleOptions - Optional style overrides
    * @returns {Promise<string>} Enhanced prompt
    */
-  async buildAnimePrompt(userPrompt, styleOptions = {}) {
+  async buildAnimePrompt(
+    userPrompt,
+    styleOptions = {},
+    provider = "stability",
+  ) {
     const config = await loadPromptConfig();
 
     // Use original prompt or default character if empty
@@ -139,22 +168,81 @@ export class AvatarService {
       styleOptions,
     );
 
-    // Build prompt more efficiently with enhancements
-    const parts = [
-      config.BASE_PROMPT_TEMPLATE.replace(
+    // Get provider-specific prompt template
+    const providerConfig = config.PROVIDER_PROMPTS?.[provider];
+    if (!providerConfig) {
+      logger.warn(
+        `Provider ${provider} not found in PROVIDER_PROMPTS, falling back to stability`,
+      );
+    }
+    const finalConfig = providerConfig || config.PROVIDER_PROMPTS.stability;
+
+    // Build prompt based on provider type
+    let prompt;
+    if (provider === "openrouter") {
+      // OpenRouter uses conversational format
+      prompt = finalConfig.base.replace(
         "{characterDescription}",
         baseDescription,
-      ),
-      enhancements.characterType,
-      enhancements.colorStyle,
-      enhancements.moodStyle,
-      enhancements.artStyle,
-      config.PROMPT_SUFFIX,
-    ]
-      .filter(Boolean)
-      .filter(part => part.trim() !== "");
+      );
 
-    return parts.join(", ");
+      // Add enhancements as additional instructions
+      const enhancementParts = [
+        enhancements.characterType,
+        enhancements.colorStyle,
+        enhancements.moodStyle,
+        enhancements.artStyle,
+      ]
+        .filter(Boolean)
+        .filter(part => part.trim() !== "")
+        .map(part => part.trim());
+
+      if (enhancementParts.length > 0) {
+        prompt += ` ${enhancementParts.join(" ")}`;
+      }
+
+      prompt += ` ${finalConfig.suffix}`;
+    } else if (provider === "openai") {
+      // OpenAI uses descriptive format
+      prompt = finalConfig.base.replace(
+        "{characterDescription}",
+        baseDescription,
+      );
+
+      // Add enhancements as additional descriptions
+      const enhancementParts = [
+        enhancements.characterType,
+        enhancements.colorStyle,
+        enhancements.moodStyle,
+        enhancements.artStyle,
+      ]
+        .filter(Boolean)
+        .filter(part => part.trim() !== "")
+        .map(part => part.trim());
+
+      if (enhancementParts.length > 0) {
+        prompt += ` ${enhancementParts.join(" ")}`;
+      }
+
+      prompt += ` ${finalConfig.suffix}`;
+    } else {
+      // Stability AI uses comma-separated format
+      const parts = [
+        finalConfig.base.replace("{characterDescription}", baseDescription),
+        enhancements.characterType,
+        enhancements.colorStyle,
+        enhancements.moodStyle,
+        enhancements.artStyle,
+        finalConfig.suffix,
+      ]
+        .filter(Boolean)
+        .filter(part => part && part.trim() !== "")
+        .map(part => part.trim());
+
+      prompt = parts.join(", ");
+    }
+
+    return prompt;
   }
 
   /**
@@ -259,7 +347,19 @@ export class AvatarService {
 }
 
 export const avatarService = new AvatarService();
-export const generateAvatar = (prompt, showDebugPrompt, userId, styleOptions) =>
-  avatarService.generateAvatar(prompt, showDebugPrompt, userId, styleOptions);
+export const generateAvatar = (
+  prompt,
+  showDebugPrompt,
+  userId,
+  styleOptions,
+  progressCallback,
+) =>
+  avatarService.generateAvatar(
+    prompt,
+    showDebugPrompt,
+    userId,
+    styleOptions,
+    progressCallback,
+  );
 export const buildAnimePrompt = (userPrompt, styleOptions) =>
   avatarService.buildAnimePrompt(userPrompt, styleOptions);

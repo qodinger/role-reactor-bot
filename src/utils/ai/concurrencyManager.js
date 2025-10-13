@@ -9,10 +9,66 @@ export class ConcurrencyManager {
   constructor() {
     this.activeRequests = new Set();
     this.queue = [];
-    this.maxConcurrent = parseInt(process.env.AI_MAX_CONCURRENT) || 3;
+    // Increased limits for better scalability
+    this.maxConcurrent = parseInt(process.env.AI_MAX_CONCURRENT) || 50;
     this.requestTimeout = parseInt(process.env.AI_REQUEST_TIMEOUT) || 120000; // 2 minutes
     this.retryAttempts = parseInt(process.env.AI_RETRY_ATTEMPTS) || 2;
     this.retryDelay = parseInt(process.env.AI_RETRY_DELAY) || 1000; // 1 second
+
+    // User-specific rate limiting
+    this.userRequests = new Map(); // userId -> { count, lastRequest }
+    this.userRateLimit = parseInt(process.env.AI_USER_RATE_LIMIT) || 5; // 5 requests per user
+    this.userRateWindow = parseInt(process.env.AI_USER_RATE_WINDOW) || 300000; // 5 minutes
+
+    // Queue management
+    this.maxQueueSize = parseInt(process.env.AI_MAX_QUEUE_SIZE) || 1000;
+    this.queueTimeout = parseInt(process.env.AI_QUEUE_TIMEOUT) || 600000; // 10 minutes
+  }
+
+  /**
+   * Check if user has exceeded rate limit
+   * @param {string} userId - User ID to check
+   * @returns {boolean} True if rate limited
+   */
+  isUserRateLimited(userId) {
+    if (!userId) return false;
+
+    const now = Date.now();
+    const userData = this.userRequests.get(userId);
+
+    if (!userData) {
+      this.userRequests.set(userId, { count: 1, lastRequest: now });
+      return false;
+    }
+
+    // Reset counter if window has passed
+    if (now - userData.lastRequest > this.userRateWindow) {
+      this.userRequests.set(userId, { count: 1, lastRequest: now });
+      return false;
+    }
+
+    // Check if user has exceeded limit
+    if (userData.count >= this.userRateLimit) {
+      return true;
+    }
+
+    // Increment counter
+    userData.count++;
+    userData.lastRequest = now;
+    this.userRequests.set(userId, userData);
+    return false;
+  }
+
+  /**
+   * Clean up old user rate limit data
+   */
+  cleanupUserRateLimits() {
+    const now = Date.now();
+    for (const [userId, userData] of this.userRequests.entries()) {
+      if (now - userData.lastRequest > this.userRateWindow) {
+        this.userRequests.delete(userId);
+      }
+    }
   }
 
   /**
@@ -24,6 +80,23 @@ export class ConcurrencyManager {
    */
   async queueRequest(requestId, generationFunction, options = {}) {
     return new Promise((resolve, reject) => {
+      // Check user rate limiting
+      const userId = options.userId;
+      if (userId && this.isUserRateLimited(userId)) {
+        reject(
+          new Error(
+            `Rate limit exceeded. Please wait ${Math.ceil(this.userRateWindow / 60000)} minutes before making another request.`,
+          ),
+        );
+        return;
+      }
+
+      // Check queue size limit
+      if (this.queue.length >= this.maxQueueSize) {
+        reject(new Error("Queue is full. Please try again later."));
+        return;
+      }
+
       const request = {
         id: requestId,
         function: generationFunction,
@@ -32,6 +105,7 @@ export class ConcurrencyManager {
         reject,
         timestamp: Date.now(),
         attempts: 0,
+        userId,
       };
 
       this.queue.push(request);
@@ -44,6 +118,15 @@ export class ConcurrencyManager {
           reject(new Error("AI generation request timed out"));
         }
       }, this.requestTimeout);
+
+      // Set queue timeout
+      setTimeout(() => {
+        const queueIndex = this.queue.findIndex(r => r.id === requestId);
+        if (queueIndex !== -1) {
+          this.queue.splice(queueIndex, 1);
+          reject(new Error("Request timed out in queue"));
+        }
+      }, this.queueTimeout);
     });
   }
 
@@ -65,7 +148,7 @@ export class ConcurrencyManager {
 
     try {
       logger.debug(
-        `Processing AI request ${request.id} (${this.activeRequests.size}/${this.maxConcurrent} active)`,
+        `Processing AI request ${request.id} (${this.activeRequests.size}/${this.maxConcurrent} active, ${this.queue.length} queued)`,
       );
 
       const result = await request.function(request.options);
@@ -144,6 +227,41 @@ export class ConcurrencyManager {
     });
     this.queue = [];
     this.activeRequests.clear();
+  }
+
+  /**
+   * Get queue statistics
+   * @returns {Object} Queue statistics
+   */
+  getQueueStats() {
+    return {
+      activeRequests: this.activeRequests.size,
+      queuedRequests: this.queue.length,
+      maxConcurrent: this.maxConcurrent,
+      maxQueueSize: this.maxQueueSize,
+      userRateLimit: this.userRateLimit,
+      userRateWindow: this.userRateWindow,
+    };
+  }
+
+  /**
+   * Start periodic cleanup
+   */
+  startCleanup() {
+    // Clean up user rate limits every 5 minutes
+    setInterval(() => {
+      this.cleanupUserRateLimits();
+    }, 300000);
+
+    // Log queue stats every minute
+    setInterval(() => {
+      const stats = this.getQueueStats();
+      if (stats.queuedRequests > 0 || stats.activeRequests > 0) {
+        logger.info(
+          `Queue stats: ${stats.activeRequests} active, ${stats.queuedRequests} queued`,
+        );
+      }
+    }, 60000);
   }
 }
 
