@@ -11,6 +11,8 @@ Generate unique anime-style avatars using AI with advanced style customization! 
 - **Credit System**: Integrated with the bot's credit system for monetization
 - **Advanced Prompts**: Sophisticated prompt enhancement with keyword detection
 - **Multiple Providers**: Fallback system ensures reliable generation
+- **Loading Experience**: Beautiful static gradient loading image during generation
+- **Public Results**: Generated avatars are visible to everyone in the channel for easy downloading
 
 ## Command Usage
 

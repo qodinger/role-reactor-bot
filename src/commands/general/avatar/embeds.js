@@ -73,7 +73,6 @@ export function createSuccessEmbed(interaction, prompt) {
     .setDescription(
       `**"${prompt}"**\n\n✨ *Your unique anime avatar has been generated*`,
     )
-    .setImage(`attachment://ai-avatar-${interaction.user.id}-${Date.now()}.png`)
     .setFooter(
       UI_COMPONENTS.createFooter(
         `Generated for ${interaction.user.username} • AI Avatar Generator`,

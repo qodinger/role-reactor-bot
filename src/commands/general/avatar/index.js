@@ -1,8 +1,4 @@
-import {
-  SlashCommandBuilder,
-  PermissionFlagsBits,
-  MessageFlags,
-} from "discord.js";
+import { SlashCommandBuilder, PermissionFlagsBits } from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 import { handleAvatarGeneration } from "./handlers.js";
@@ -76,7 +72,7 @@ export async function execute(interaction, client) {
 
   try {
     // Defer immediately to prevent timeout
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    await interaction.deferReply();
 
     // Handle the avatar generation
     await handleAvatarGeneration(interaction, client);

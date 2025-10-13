@@ -3,11 +3,13 @@ import { getLogger } from "../../../utils/logger.js";
 import { generateAvatar as generateAIAvatar } from "../../../utils/ai/avatarService.js";
 import { CreditManager } from "./utils/creditManager.js";
 import { InteractionHandler } from "./utils/interactionHandler.js";
-import { ProgressTracker } from "./utils/progressTracker.js";
+import { createLoadingSkeleton } from "./utils/imageUtils.js";
 import {
   createErrorEmbed,
   createCreditEmbed,
   createHelpEmbed,
+  createLoadingEmbed,
+  createSuccessEmbed,
 } from "./embeds.js";
 import {
   validatePrompt,
@@ -24,7 +26,6 @@ const logger = getLogger();
  */
 export async function handleAvatarGeneration(interaction, _client) {
   const startTime = Date.now();
-  let progressTracker;
 
   logger.debug(
     `Starting avatar generation for user ${interaction.user.id}, interaction age: ${Date.now() - interaction.createdTimestamp}ms`,
@@ -75,13 +76,20 @@ export async function handleAvatarGeneration(interaction, _client) {
       return await interaction.editReply({ embeds: [creditEmbed] });
     }
 
-    // Create progress tracker
-    progressTracker = new ProgressTracker(interaction, prompt);
+    // Create static loading image
+    const loadingImage = createLoadingSkeleton();
+    const loadingAttachment = new AttachmentBuilder(loadingImage, {
+      name: `loading-${Date.now()}.png`,
+    });
 
-    // Start progress tracking
-    await progressTracker.start();
+    // Send loading embed with static gradient image
+    const loadingEmbed = createLoadingEmbed(prompt);
+    await interaction.editReply({
+      embeds: [loadingEmbed],
+      files: [loadingAttachment],
+    });
 
-    // Generate the avatar with progress callbacks
+    // Generate the avatar
     const aiStartTime = Date.now();
     logger.debug(`Starting AI generation...`);
 
@@ -90,14 +98,10 @@ export async function handleAvatarGeneration(interaction, _client) {
       false, // showDebugPrompt
       interaction.user.id,
       { colorStyle, mood, artStyle }, // style options
-      stepName => {
-        // Progress callback
-        progressTracker.nextStep(stepName);
-      },
+      null, // No progress callback
     );
 
-    // Stop progress tracking
-    progressTracker.stop();
+    // Animation cleanup not needed for static loading
 
     logger.debug(`AI generation took ${Date.now() - aiStartTime}ms`);
 
@@ -108,14 +112,15 @@ export async function handleAvatarGeneration(interaction, _client) {
     // Deduct credits
     await CreditManager.deductCredits(interaction.user.id, creditsNeeded);
 
-    // Create attachment
+    // Create final attachment
     const attachment = new AttachmentBuilder(avatarData.imageBuffer, {
       name: `ai-avatar-${interaction.user.id}-${Date.now()}.png`,
     });
 
-    // Send final result with progress tracker's success embed
+    // Send final result with success embed
+    const successEmbed = createSuccessEmbed(interaction, prompt);
     await interaction.editReply({
-      embeds: [progressTracker.createSuccessEmbed(avatarData.imageBuffer)],
+      embeds: [successEmbed],
       files: [attachment],
     });
 
@@ -126,11 +131,6 @@ export async function handleAvatarGeneration(interaction, _client) {
       `Style options used: ${formatStyleOptions({ colorStyle, mood, artStyle })}`,
     );
   } catch (error) {
-    // Stop progress tracking on error
-    if (progressTracker) {
-      progressTracker.stop();
-    }
-
     const duration = Date.now() - startTime;
     logger.error(`Error generating AI avatar after ${duration}ms:`, error);
 
