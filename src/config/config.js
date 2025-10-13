@@ -379,6 +379,19 @@ class Config {
             },
           },
         },
+        stability: {
+          name: "Stability AI",
+          baseUrl: "https://api.stability.ai/v2beta/stable-image/generate/sd3",
+          apiKey: process.env.STABILITY_API_KEY,
+          models: {
+            image: {
+              primary: "sd3.5-flash", // Fastest and cheapest
+              large: "sd3.5-large", // Highest quality
+              medium: "sd3.5-medium", // Balanced
+              turbo: "sd3.5-large-turbo", // Quality + Speed
+            },
+          },
+        },
       },
     };
   }
@@ -389,40 +402,32 @@ class Config {
    */
   get corePricing() {
     return {
-      // AI generation cost per image
-      aiCostPerImage: 0.05,
+      // AI generation cost per image (Stability AI SD 3.5 Flash)
+      aiCostPerImage: 0.025, // $0.025 per image with SD 3.5 Flash
 
-      // Donation rates (Cores per $1)
+      // Donation rates (Cores per $1) - Your preferred rates
       donation: {
         rate: 10, // 10 Cores per $1
         minimum: 5, // Minimum $5 donation
       },
 
-      // Subscription tiers (monthly)
+      // Subscription tiers (monthly) - Your preferred rates
       subscriptions: {
         "Core Basic": {
           price: 10,
-          cores: 120,
+          cores: 150, // 15.0 Cores per $1
           description: "Basic Core membership",
         },
         "Core Premium": {
           price: 25,
-          cores: 350,
+          cores: 400, // 16.0 Cores per $1
           description: "Premium Core membership",
         },
         "Core Elite": {
           price: 50,
-          cores: 750,
+          cores: 850, // 17.0 Cores per $1
           description: "Elite Core membership",
         },
-      },
-
-      // Ko-fi fee structure
-      kofiFees: {
-        paymentProcessing: 0.029, // 2.9%
-        fixedFee: 0.3, // $0.30 per transaction
-        platformFee: 0.05, // 5% (waived for first $100/month)
-        platformFeeThreshold: 100, // $100/month threshold
       },
 
       // Core system settings
@@ -432,6 +437,48 @@ class Config {
         priorityProcessing: true, // Core members get priority
       },
     };
+  }
+
+  /**
+   * Get custom emojis configuration based on environment
+   * @returns {Object} Custom emojis for current environment
+   */
+  get customEmojis() {
+    // Different emoji IDs for different environments
+    const emojiConfigs = {
+      development: {
+        core: "1427143438108852276", // Dev Core emoji ID
+        // Add more emojis here as needed
+        // star: "dev_star_emoji_id",
+        // diamond: "dev_diamond_emoji_id",
+        // premium: "dev_premium_emoji_id",
+      },
+      production: {
+        core: "1427129554153242765", // Prod Core emoji ID
+        // Add more emojis here as needed
+        // star: "prod_star_emoji_id",
+        // diamond: "prod_diamond_emoji_id",
+        // premium: "prod_premium_emoji_id",
+      },
+    };
+
+    const emojis = emojiConfigs[this.environment] || emojiConfigs.development;
+
+    // Convert to Discord emoji format
+    const formattedEmojis = {};
+    for (const [name, id] of Object.entries(emojis)) {
+      formattedEmojis[name] = `<:${name}:${id}>`;
+    }
+
+    return formattedEmojis;
+  }
+
+  /**
+   * Get Core emoji (backward compatibility)
+   * @returns {string} Core emoji for current environment
+   */
+  get coreEmoji() {
+    return this.customEmojis.core;
   }
 
   /**
@@ -449,6 +496,8 @@ class Config {
       rateLimits: this.rateLimits,
       aiModels: this.aiModels,
       corePricing: this.corePricing,
+      customEmojis: this.customEmojis,
+      coreEmoji: this.coreEmoji, // Backward compatibility
     };
   }
 

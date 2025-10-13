@@ -4,7 +4,7 @@ This directory contains configuration files for AI services, including prompt te
 
 ## Files
 
-### `aiPrompts.js`
+### `prompts.js`
 
 - **Purpose**: AI prompt configuration with environment variable support
 - **Status**: Safe to commit to public repositories
@@ -30,7 +30,7 @@ This directory contains configuration files for AI services, including prompt te
 
 ## Security
 
-- ✅ `aiPrompts.js` - Safe to share publicly (uses environment variables for sensitive data)
+- ✅ `prompts.js` - Safe to share publicly (uses environment variables for sensitive data)
 - ✅ Environment variables - Keep private (not committed to repository)
 
 ## Template Variables

@@ -1,16 +1,16 @@
 # AI Avatar Generator
 
-Generate unique anime-style avatars using AI with a consistent fixed template! This command creates personalized anime avatars with a beautiful, consistent art style.
+Generate unique anime-style avatars using AI with advanced style customization! This command creates personalized anime avatars with professional quality and customizable artistic styles.
 
 ## Features
 
-- **AI-Powered Generation**: Uses Google Gemini 2.5 Flash Image for high-quality anime avatar generation
-- **Fixed Template**: Consistent anime art style with 80s/lofi aesthetic and cloud backgrounds
-- **High Quality**: 1024x1024 pixel resolution with professional anime art quality
+- **AI-Powered Generation**: Uses multiple AI providers (OpenRouter, OpenAI, Stability AI) for high-quality anime avatar generation
+- **Style Customization**: Choose from color palettes, moods, and art styles
+- **High Quality**: Professional anime art quality with detailed character design
 - **Unique Results**: Each generation creates a completely unique avatar
-- **Multiple Generations**: Users can run the command multiple times to generate different variations
 - **Credit System**: Integrated with the bot's credit system for monetization
-- **Simple Interface**: Just describe your character - no complex options needed
+- **Advanced Prompts**: Sophisticated prompt enhancement with keyword detection
+- **Multiple Providers**: Fallback system ensures reliable generation
 
 ## Command Usage
 
@@ -18,6 +18,12 @@ Generate unique anime-style avatars using AI with a consistent fixed template! T
 
 ```
 /avatar prompt: "cyberpunk hacker with neon glasses"
+```
+
+### With Style Options
+
+```
+/avatar prompt: "cool boy with spiky hair" color_style:neon mood:mysterious art_style:studio
 ```
 
 ### Character Examples
@@ -36,17 +42,40 @@ Generate unique anime-style avatars using AI with a consistent fixed template! T
   - Include colors, hair style, personality traits
   - Examples: "cool boy with spiky hair", "cute girl in red dress"
 
+- **color_style** (optional): Choose a color palette
+  - `vibrant` - Bright and colorful
+  - `pastel` - Soft and dreamy
+  - `monochrome` - Black and white
+  - `neon` - Cyberpunk and futuristic
+  - `warm` - Golden and cozy
+  - `cool` - Blue tones and calm
+
+- **mood** (optional): Choose the character's mood and expression
+  - `happy` - Cheerful and joyful
+  - `serious` - Focused and professional
+  - `mysterious` - Enigmatic and secretive
+  - `cute` - Adorable and kawaii
+  - `cool` - Confident and stylish
+  - `elegant` - Refined and graceful
+
+- **art_style** (optional): Choose the artistic style
+  - `studio` - Studio Ghibli inspired
+  - `manga` - Traditional Japanese comics
+  - `modern` - Contemporary anime style
+  - `retro` - 80s/90s vintage anime
+  - `realistic` - Semi-realistic anime
+  - `chibi` - Super cute and deformed
+
 ## File Structure
 
 ```
 src/commands/general/avatar/
-├── index.js                 # Command definition
-├── handlers.js              # Main command and button handlers
-├── aiService.js             # Re-exports from AI service
+├── index.js                 # Command definition and main execution
+├── handlers.js              # Avatar generation handler
+├── embeds.js                # Discord embed creation
+├── utils.js                 # Utility functions
 ├── README.md               # This documentation
-└── utils/                  # Utility modules
-    ├── index.js            # Utility exports
-    ├── embeds.js           # Discord embed creation
+└── utils/                  # Specialized utility modules
     ├── creditManager.js    # Credit system management
     ├── imageUtils.js       # Image generation utilities
     └── interactionHandler.js # Interaction handling utilities
@@ -56,20 +85,23 @@ src/commands/general/avatar/
 
 ### Main Components
 
-1. **handlers.js**: Main command execution and button interaction handling
-2. **utils/embeds.js**: Centralized embed creation for consistent UI
-3. **utils/creditManager.js**: Credit checking and deduction logic
-4. **utils/imageUtils.js**: Loading skeleton and image utilities
-5. **utils/interactionHandler.js**: Safe interaction handling with error recovery
+1. **index.js**: Command definition and main execution with error handling
+2. **handlers.js**: Avatar generation logic and processing
+3. **embeds.js**: Centralized embed creation for consistent UI
+4. **utils.js**: Core utility functions for validation and formatting
+5. **utils/creditManager.js**: Credit checking and deduction logic
+6. **utils/imageUtils.js**: Loading skeleton and image utilities
+7. **utils/interactionHandler.js**: Safe interaction handling with error recovery
 
 ### Key Features
 
+- **Standard Format**: Follows project-wide command structure patterns
 - **Modular Design**: Separated concerns into focused utility modules
 - **Error Handling**: Comprehensive error handling with user-friendly messages
+- **Style Customization**: Advanced prompt enhancement with style options
 - **Credit System**: Integrated credit management with Core member discounts
-- **Simple Usage**: Just run the command again to generate new variations
-- **Security**: Proper user validation and access control
-- **Performance**: Efficient caching and interaction handling
+- **Security**: Proper user validation and content filtering
+- **Performance**: Efficient processing and interaction handling
 
 ## Technical Details
 
@@ -83,7 +115,8 @@ src/commands/general/avatar/
 ### Usage Pattern
 
 - **Simple Command**: Users run `/avatar` with their desired prompt
-- **Fixed Template**: All avatars use the same consistent art style
+- **Style Options**: Optional color, mood, and art style customization
+- **Smart Enhancement**: Automatic prompt enhancement with keyword detection
 - **Multiple Variations**: Each run generates a unique avatar with different character descriptions
 - **No Persistence**: No need to store previous generation data
 
@@ -106,7 +139,7 @@ src/commands/general/avatar/
 
 ### Modifying the Template
 
-1. Update `src/config/aiPrompts.js` with new template
+1. Update `src/config/prompts.js` with new template
 2. Test with various prompts to ensure consistency
 3. Update documentation if needed
 

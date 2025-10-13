@@ -6,7 +6,7 @@ import { getLogger } from "../logger.js";
 let promptConfigCache = null;
 async function loadPromptConfig() {
   if (!promptConfigCache) {
-    promptConfigCache = await import("../../config/aiPrompts.js");
+    promptConfigCache = await import("../../config/prompts.js");
   }
   return promptConfigCache;
 }
@@ -26,9 +26,18 @@ export class AvatarService {
    * @param {string} prompt - User's prompt
    * @param {boolean} showDebugPrompt - Show debug information
    * @param {string} userId - User ID for concurrency tracking
+   * @param {Object} styleOptions - Optional style overrides
+   * @param {string} styleOptions.colorStyle - Color style override
+   * @param {string} styleOptions.mood - Mood style override
+   * @param {string} styleOptions.artStyle - Art style override
    * @returns {Promise<Object>} Generated avatar data
    */
-  async generateAvatar(prompt, showDebugPrompt = false, userId = "unknown") {
+  async generateAvatar(
+    prompt,
+    showDebugPrompt = false,
+    userId = "unknown",
+    styleOptions = {},
+  ) {
     const requestId = `avatar_${userId}_${Date.now()}`;
     const startTime = Date.now();
 
@@ -51,7 +60,10 @@ export class AvatarService {
             throw new Error("Prompt too long: maximum 500 characters allowed");
           }
 
-          const enhancedPrompt = await this.buildAnimePrompt(prompt);
+          const enhancedPrompt = await this.buildAnimePrompt(
+            prompt,
+            styleOptions,
+          );
 
           logger.info(`Generating AI avatar for user ${userId}: "${prompt}"`);
           logger.debug(`Enhanced prompt: "${enhancedPrompt}"`);
@@ -112,82 +124,142 @@ export class AvatarService {
   /**
    * Build enhanced anime prompt with fixed template
    * @param {string} userPrompt - User's original prompt
+   * @param {Object} styleOptions - Optional style overrides
    * @returns {Promise<string>} Enhanced prompt
    */
-  async buildAnimePrompt(userPrompt) {
+  async buildAnimePrompt(userPrompt, styleOptions = {}) {
     const config = await loadPromptConfig();
-    const characterDescription = this.parseUserPrompt(userPrompt, config);
-    const colorPreference = this.extractColorPreference(userPrompt);
 
-    // Build prompt more efficiently
+    // Use original prompt or default character if empty
+    const baseDescription = userPrompt?.trim() || config.DEFAULT_CHARACTER;
+
+    const enhancements = this.extractEnhancements(
+      userPrompt,
+      config,
+      styleOptions,
+    );
+
+    // Build prompt more efficiently with enhancements
     const parts = [
       config.BASE_PROMPT_TEMPLATE.replace(
         "{characterDescription}",
-        characterDescription,
+        baseDescription,
       ),
-      colorPreference,
+      enhancements.characterType,
+      enhancements.colorStyle,
+      enhancements.moodStyle,
+      enhancements.artStyle,
       config.PROMPT_SUFFIX,
-    ].filter(Boolean);
+    ]
+      .filter(Boolean)
+      .filter(part => part.trim() !== "");
 
     return parts.join(", ");
   }
 
   /**
-   * Parse user prompt to extract character description
+   * Extract comprehensive enhancements from user prompt
    * @param {string} userPrompt - User's original prompt
    * @param {Object} config - Prompt configuration
-   * @returns {string} Parsed character description
+   * @returns {Object} Enhancement object with character type, color, mood, and art style
    */
-  parseUserPrompt(userPrompt, _config) {
-    if (!userPrompt || userPrompt.trim().length === 0) {
-      return "a super cool girl"; // Default character for the template
-    }
-
-    let characterDesc = userPrompt.trim();
-
-    // Check if user already specified character type
-    const description = characterDesc.toLowerCase();
-    const hasCharacterType =
-      description.includes("boy") ||
-      description.includes("man") ||
-      description.includes("girl") ||
-      description.includes("woman") ||
-      description.includes("character") ||
-      description.includes("person") ||
-      description.includes("avatar") ||
-      description.includes("profile");
-
-    if (!hasCharacterType) {
-      // Add default character type if not specified
-      characterDesc = `a super cool ${characterDesc}`;
-    }
-
-    return characterDesc;
-  }
-
-  /**
-   * Extract color preference from user prompt
-   * @param {string} userPrompt - User's original prompt
-   * @returns {string} Color preference
-   */
-  extractColorPreference(userPrompt) {
+  extractEnhancements(userPrompt, config, styleOptions = {}) {
     if (!userPrompt?.trim()) {
-      return ""; // No default color to avoid forcing backgrounds
+      return {
+        characterType: "",
+        colorStyle: "",
+        moodStyle: "",
+        artStyle: "",
+      };
     }
 
     const description = userPrompt.toLowerCase();
+    const enhancements = {
+      characterType: "",
+      colorStyle: "",
+      moodStyle: "",
+      artStyle: "",
+    };
 
-    // Use a more efficient color detection with regex
-    const colorRegex =
-      /\b(blue|red|yellow|green|purple|pink|orange|black|white|gray|grey|brown|violet|cyan|magenta|lime|navy|maroon|olive|teal|silver|gold)\b/;
-    const match = description.match(colorRegex);
+    // Extract character type enhancements with priority order
+    const characterKeywords = [
+      // Higher priority - more specific terms first
+      { type: "female", keywords: ["woman", "lady", "female"] },
+      { type: "male", keywords: ["man", "guy", "dude", "male"] },
+      { type: "girl", keywords: ["girl", "young female", "teenage girl"] },
+      { type: "boy", keywords: ["boy", "young male", "teenage boy"] },
+      { type: "character", keywords: ["character", "persona", "protagonist"] },
+      { type: "person", keywords: ["person", "human", "individual"] },
+      { type: "avatar", keywords: ["avatar", "profile", "picture"] },
+    ];
 
-    return match ? match[1] : "";
+    for (const { type, keywords } of characterKeywords) {
+      if (keywords.some(keyword => description.includes(keyword))) {
+        enhancements.characterType = config.CHARACTER_TYPE_ENHANCEMENTS[type];
+        break;
+      }
+    }
+
+    // Extract color style preferences
+    for (const [color, style] of Object.entries(
+      config.STYLE_MODIFIERS?.colors || {},
+    )) {
+      if (description.includes(color)) {
+        enhancements.colorStyle = style;
+        break;
+      }
+    }
+
+    // Extract mood preferences
+    for (const [mood, style] of Object.entries(
+      config.STYLE_MODIFIERS?.moods || {},
+    )) {
+      if (description.includes(mood)) {
+        enhancements.moodStyle = style;
+        break;
+      }
+    }
+
+    // Extract art style preferences
+    for (const [style, description] of Object.entries(
+      config.STYLE_MODIFIERS?.art_styles || {},
+    )) {
+      if (userPrompt.toLowerCase().includes(style)) {
+        enhancements.artStyle = description;
+        break;
+      }
+    }
+
+    // Override with explicit style options if provided
+    if (
+      styleOptions.colorStyle &&
+      config.STYLE_MODIFIERS?.colors?.[styleOptions.colorStyle]
+    ) {
+      enhancements.colorStyle =
+        config.STYLE_MODIFIERS.colors[styleOptions.colorStyle];
+    }
+
+    if (
+      styleOptions.mood &&
+      config.STYLE_MODIFIERS?.moods?.[styleOptions.mood]
+    ) {
+      enhancements.moodStyle = config.STYLE_MODIFIERS.moods[styleOptions.mood];
+    }
+
+    if (
+      styleOptions.artStyle &&
+      config.STYLE_MODIFIERS?.art_styles?.[styleOptions.artStyle]
+    ) {
+      enhancements.artStyle =
+        config.STYLE_MODIFIERS.art_styles[styleOptions.artStyle];
+    }
+
+    return enhancements;
   }
 }
 
 export const avatarService = new AvatarService();
-export const generateAvatar = (prompt, showDebugPrompt, userId) =>
-  avatarService.generateAvatar(prompt, showDebugPrompt, userId);
-export const buildAnimePrompt = userPrompt =>
-  avatarService.buildAnimePrompt(userPrompt);
+export const generateAvatar = (prompt, showDebugPrompt, userId, styleOptions) =>
+  avatarService.generateAvatar(prompt, showDebugPrompt, userId, styleOptions);
+export const buildAnimePrompt = (userPrompt, styleOptions) =>
+  avatarService.buildAnimePrompt(userPrompt, styleOptions);

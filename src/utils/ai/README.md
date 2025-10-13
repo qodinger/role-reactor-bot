@@ -79,6 +79,13 @@ The AI service supports image generation through multiple providers:
 
 - `dall-e-3` (High quality image generation)
 
+### Stability AI Models (Stable Diffusion 3.5)
+
+- `sd3.5-flash` (Fastest, 2.5 credits) - Recommended for cost efficiency
+- `sd3.5-medium` (Balanced, 3.5 credits) - Good quality/speed balance
+- `sd3.5-large-turbo` (Quality + Speed, 4 credits) - High quality, fast
+- `sd3.5-large` (Highest quality, 6.5 credits) - Best quality results
+
 ## Concurrency Management
 
 All AI services include built-in concurrency management:
@@ -178,13 +185,16 @@ Required environment variables:
 
 ```env
 # AI Provider Selection
-AI_PRIMARY_PROVIDER=openrouter  # or "openai"
+AI_PRIMARY_PROVIDER=openrouter  # or "openai" or "stability"
 
 # OpenRouter Configuration
 OPENROUTER_API_KEY=your_openrouter_api_key
 
 # OpenAI Configuration
 OPENAI_API_KEY=your_openai_api_key
+
+# Stability AI Configuration (Stable Diffusion 3.5)
+STABILITY_API_KEY=your_stability_api_key
 
 # Bot Information
 BOT_NAME=Role Reactor Bot

@@ -10,7 +10,7 @@ export class ConcurrencyManager {
     this.activeRequests = new Set();
     this.queue = [];
     this.maxConcurrent = parseInt(process.env.AI_MAX_CONCURRENT) || 3;
-    this.requestTimeout = parseInt(process.env.AI_REQUEST_TIMEOUT) || 30000; // 30 seconds
+    this.requestTimeout = parseInt(process.env.AI_REQUEST_TIMEOUT) || 120000; // 2 minutes
     this.retryAttempts = parseInt(process.env.AI_RETRY_ATTEMPTS) || 2;
     this.retryDelay = parseInt(process.env.AI_RETRY_DELAY) || 1000; // 1 second
   }

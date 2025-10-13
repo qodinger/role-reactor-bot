@@ -1,6 +1,15 @@
 import config from "../../config/config.js";
 import { getLogger } from "../logger.js";
 
+// Load prompt configuration with caching
+let promptConfigCache = null;
+async function loadPromptConfig() {
+  if (!promptConfigCache) {
+    promptConfigCache = await import("../../config/prompts.js");
+  }
+  return promptConfigCache;
+}
+
 const fetch = globalThis.fetch;
 const logger = getLogger();
 
@@ -191,6 +200,8 @@ export class MultiProviderAIService {
       return this.generateImageOpenRouter(prompt, model, config);
     } else if (provider === "openai") {
       return this.generateImageOpenAI(prompt, model, config);
+    } else if (provider === "stability") {
+      return this.generateImageStability(prompt, model, config);
     } else {
       throw new Error(`Unsupported provider for image generation: ${provider}`);
     }
@@ -334,6 +345,61 @@ export class MultiProviderAIService {
       imageUrl,
       model,
       provider: "openai",
+      prompt,
+    };
+  }
+
+  /**
+   * Generate image using Stability AI (Stable Diffusion 3.5)
+   * @param {string} prompt - Image generation prompt
+   * @param {string} model - Model to use (sd3.5-flash, sd3.5-medium, etc.)
+   * @param {Object} config - Generation configuration
+   * @returns {Promise<Object>} Generated image data
+   */
+  async generateImageStability(prompt, model, config) {
+    // Load prompt configuration
+    const promptConfig = await loadPromptConfig();
+
+    // Create FormData for multipart/form-data request
+    const formData = new globalThis.FormData();
+    formData.append("prompt", prompt);
+    formData.append("model", model);
+    formData.append("output_format", "png");
+    formData.append("aspect_ratio", "1:1");
+    formData.append("style_preset", "anime"); // Perfect for anime avatars!
+    formData.append("cfg_scale", config.cfgScale || 7); // Higher CFG for better prompt adherence
+    formData.append("steps", config.steps || 20); // More steps for better quality
+    formData.append("seed", config.seed || Math.floor(Math.random() * 1000000)); // Random seed for variety
+
+    // Use negative prompt from configuration
+    formData.append("negative_prompt", promptConfig.NEGATIVE_PROMPT);
+
+    const response = await fetch(this.config.providers.stability.baseUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${this.config.providers.stability.apiKey}`,
+        Accept: "image/*",
+        "Stability-Client-ID": "rolereactor-bot",
+        "Stability-Client-Version": "1.0.0",
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      throw new Error(
+        `Stability AI API error: ${response.status} - ${errorData}`,
+      );
+    }
+
+    const imageBuffer = await response.arrayBuffer();
+    const imageUrl = `data:image/png;base64,${Buffer.from(imageBuffer).toString("base64")}`;
+
+    return {
+      imageBuffer: Buffer.from(imageBuffer),
+      imageUrl,
+      model,
+      provider: "stability",
       prompt,
     };
   }
