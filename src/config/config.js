@@ -447,14 +447,14 @@ class Config {
     // Different emoji IDs for different environments
     const emojiConfigs = {
       development: {
-        core: "1427143438108852276", // Dev Core emoji ID
+        core: "1427264796276817950", // Dev Core emoji ID
         // Add more emojis here as needed
         // star: "dev_star_emoji_id",
         // diamond: "dev_diamond_emoji_id",
         // premium: "dev_premium_emoji_id",
       },
       production: {
-        core: "1427129554153242765", // Prod Core emoji ID
+        core: "1427267639457222737", // Prod Core emoji ID
         // Add more emojis here as needed
         // star: "prod_star_emoji_id",
         // diamond: "prod_diamond_emoji_id",

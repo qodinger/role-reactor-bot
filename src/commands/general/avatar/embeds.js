@@ -1,5 +1,8 @@
 import { EmbedBuilder } from "discord.js";
 import { EMOJIS, THEME, UI_COMPONENTS } from "../../../config/theme.js";
+import { config } from "../../../config/config.js";
+
+const CORE_EMOJI = config.coreEmoji;
 
 /**
  * Create error embed for avatar generation failures
@@ -94,36 +97,28 @@ export function createCreditEmbed(
   interaction,
   userData,
   creditsNeeded,
-  prompt,
+  _prompt,
 ) {
   return new EmbedBuilder()
     .setColor(THEME.WARNING)
-    .setTitle(`${EMOJIS.STATUS.WARNING} Insufficient Cores`)
     .setDescription(
-      `You need ${creditsNeeded} Core to generate an AI avatar!\n\n**Your Status:**\n• Cores: ${userData.credits}\n• Core Member: ${userData.isCore ? "Yes ⭐" : "No"}\n• Cost: ${creditsNeeded} Core per AI service`,
+      `You need **${creditsNeeded} ${CORE_EMOJI}** to generate an AI avatar!\n**Your Balance**: ${userData.credits} ${CORE_EMOJI} • **Cost**: ${creditsNeeded} ${CORE_EMOJI} per generation`,
     )
     .addFields([
       {
-        name: `${EMOJIS.UI.INFO} Your Prompt`,
-        value: `"${prompt}"`,
-        inline: false,
-      },
-      {
         name: `${EMOJIS.ACTIONS.REFRESH} Get Cores`,
-        value:
-          "• Donate on [Ko-fi](https://ko-fi.com/rolereactor)\n• Subscribe for Core membership\n• Contact an administrator\n• Use `/credits balance` to check your status",
+        value: `Donate on [Ko-fi](https://ko-fi.com/rolereactor) • Use \`/core pricing\``,
         inline: false,
       },
       {
-        name: `${EMOJIS.UI.INFO} Core Packages`,
-        value:
-          "• $1 donation = 20 Cores\n• $2.50 donation = 50 Cores\n• $5 donation = 100 Cores\n• $10 donation = 200 Cores",
+        name: `${CORE_EMOJI} Core Energy`,
+        value: `1 ${CORE_EMOJI} = 1 AI Avatar • High-quality anime art • 10-30 second generation`,
         inline: false,
       },
     ])
     .setFooter(
       UI_COMPONENTS.createFooter(
-        "Avatar Generator • Core System",
+        "Avatar Generator • Core Energy",
         interaction.client.user.displayAvatarURL(),
       ),
     )
@@ -137,32 +132,18 @@ export function createCreditEmbed(
 export function createHelpEmbed() {
   return new EmbedBuilder()
     .setColor(THEME.PRIMARY)
-    .setTitle(`${EMOJIS.UI.INFO} Avatar Generator Help`)
     .setDescription(
-      "Generate unique anime-style avatars using AI! Generated avatars will be visible to everyone in the channel. Run the command again to generate new variations.",
+      `Generate unique anime-style avatars using AI! Use \`/avatar prompt: "your description"\` to get started.`,
     )
     .addFields([
       {
-        name: `${EMOJIS.UI.INFO} How to Use`,
-        value: '`/avatar prompt: "your description here"`',
-        inline: false,
-      },
-      {
         name: `${EMOJIS.ACTIONS.TIPS} Pro Tips`,
-        value:
-          "• Describe your character: 'cool boy with spiky hair', 'cute girl in red dress'\n• Include details: hair color, clothing, accessories, personality\n• Add colors: 'red', 'blue', 'yellow', etc.\n• Examples: 'cyberpunk hacker', 'kawaii girl with pink hair', 'cool boy with glasses'",
+        value: `Describe your character with details: hair color, clothing, accessories\n**Examples**: "cool boy with spiky hair", "cute girl in red dress", "cyberpunk hacker"`,
         inline: false,
       },
       {
         name: `${EMOJIS.UI.INFO} Style Options`,
-        value:
-          "• **Color Style**: vibrant, pastel, monochrome, neon, warm, cool\n• **Mood**: happy, serious, mysterious, cute, cool, elegant\n• **Art Style**: studio, manga, modern, retro, realistic, chibi",
-        inline: false,
-      },
-      {
-        name: `${EMOJIS.UI.INFO} Core System`,
-        value:
-          "• All users: 1 Core per avatar\n• Use `/credits balance` to check your Cores",
+        value: `**Color**: vibrant, pastel, monochrome • **Mood**: happy, serious, cute • **Art**: studio, manga, modern`,
         inline: false,
       },
     ])

@@ -14,7 +14,7 @@ export const data = new SlashCommandBuilder()
     option
       .setName("prompt")
       .setDescription(
-        "Describe the avatar (e.g., 'cool boy with spiky hair', 'cute girl in red dress')",
+        "Describe the avatar (e.g., 'cyberpunk hacker with neon hair', 'kawaii girl with pink cat ears')",
       )
       .setRequired(true)
       .setMaxLength(500),

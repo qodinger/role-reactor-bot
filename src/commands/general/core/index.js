@@ -2,7 +2,7 @@ import { SlashCommandBuilder, PermissionFlagsBits } from "discord.js";
 import { execute } from "./handlers.js";
 
 export const data = new SlashCommandBuilder()
-  .setName("credits")
+  .setName("core")
   .setDescription("Check your Core balance and view pricing information")
   .addSubcommand(subcommand =>
     subcommand
