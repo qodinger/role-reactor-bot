@@ -238,14 +238,47 @@ async function processSubscription(data) {
   const subscriptionAmount = parseFloat(amount);
   const corePricing = config.corePricing;
 
+  // Determine Core tier based on Ko-fi tier name or subscription amount
+  let detectedTier = null;
+  let detectionMethod = "";
+
+  // First, try to use Ko-fi tier name directly (if it matches our Core tiers)
+  const validTierNames = Object.keys(corePricing.subscriptions);
+  if (tierName && validTierNames.includes(tierName)) {
+    detectedTier = tierName;
+    detectionMethod = "Ko-fi tier name (exact match)";
+  }
+
+  // If no exact tier name match, fall back to amount-based detection
+  if (!detectedTier) {
+    if (subscriptionAmount >= 50) {
+      detectedTier = "Core Elite";
+      detectionMethod = "Amount-based ($50+)";
+    } else if (subscriptionAmount >= 25) {
+      detectedTier = "Core Premium";
+      detectionMethod = "Amount-based ($25+)";
+    } else if (subscriptionAmount >= 10) {
+      detectedTier = "Core Basic";
+      detectionMethod = "Amount-based ($10+)";
+    }
+  }
+
+  // Set the detected tier
+  if (detectedTier) {
+    userData.coreTier = detectedTier;
+    logger.info(
+      `🎯 Detected Core tier: ${detectedTier} for $${subscriptionAmount} subscription (${detectionMethod})`,
+    );
+  }
+
   // Get tier-based Core rewards from config
   const tierCoreMapping = {};
   Object.entries(corePricing.subscriptions).forEach(([tierName, tierData]) => {
     tierCoreMapping[tierName] = tierData.cores;
   });
 
-  // Use tier-based mapping only (no fallback)
-  const monthlyCredits = tierCoreMapping[tierName] || 0;
+  // Use detected tier for credit calculation
+  const monthlyCredits = detectedTier ? tierCoreMapping[detectedTier] || 0 : 0;
 
   // Reject subscriptions under minimum
   if (monthlyCredits === 0) {
@@ -263,6 +296,8 @@ async function processSubscription(data) {
     fromName,
     email,
     tierName: tierName || "Monthly Coffee",
+    detectedTier,
+    detectionMethod,
     isSubscriptionPayment,
     isFirstSubscriptionPayment,
     amount: parseFloat(amount),
@@ -441,8 +476,9 @@ async function processSubscriptionCancellation(data) {
     userData.credits = 0;
   }
 
-  // Remove Core status (they lose Core membership benefits)
+  // Remove Core status and tier (they lose Core membership benefits)
   userData.isCore = false;
+  userData.coreTier = null;
   userData.lastUpdated = new Date().toISOString();
 
   // Update subscription status
@@ -456,7 +492,7 @@ async function processSubscriptionCancellation(data) {
   await storage.set("core_credit", coreCredits);
 
   logger.info(
-    `❌ CORE MEMBERSHIP CANCELLED: Removed Core status for user ${finalDiscordUserId} (${discordUsername || fromName}) - Monthly Coffee subscription cancelled`,
+    `❌ CORE MEMBERSHIP CANCELLED: Removed Core status and tier for user ${finalDiscordUserId} (${discordUsername || fromName}) - Monthly Coffee subscription cancelled`,
   );
 
   // Send cancellation notification

@@ -8,7 +8,27 @@ const CORE_EMOJI = config.coreEmoji;
 // CORE MANAGEMENT EMBED BUILDER
 // ============================================================================
 
-export async function createCoreManagementEmbed({
+// New parameter-based function for simple embeds
+export function createCoreManagementEmbed(
+  type,
+  title,
+  description,
+  fields = [],
+) {
+  const embed = new EmbedBuilder()
+    .setColor(getEmbedColor(type))
+    .setTitle(`${title} ${CORE_EMOJI}`)
+    .setDescription(description)
+    .setTimestamp();
+
+  if (fields && fields.length > 0) {
+    embed.addFields(fields);
+  }
+
+  return embed;
+}
+
+export async function createDetailedCoreManagementEmbed({
   type,
   targetUser,
   amount,
@@ -40,7 +60,11 @@ export async function createCoreManagementEmbed({
       },
       {
         name: `${EMOJIS.UI.INFO} Membership Status`,
-        value: userData?.isCore ? `⭐ **Core Member**` : `👤 **Regular User**`,
+        value: userData?.isCore
+          ? userData?.coreTier
+            ? `⭐ **${userData.coreTier}**`
+            : `⭐ **Core Member**`
+          : `👤 **Regular User**`,
         inline: true,
       },
       {

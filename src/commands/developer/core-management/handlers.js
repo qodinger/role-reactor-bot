@@ -1,7 +1,10 @@
 import { getLogger } from "../../../utils/logger.js";
 import { isDeveloper } from "../../../utils/discord/permissions.js";
 import { getStorageManager } from "../../../utils/storage/storageManager.js";
-import { createCoreManagementEmbed } from "./embeds.js";
+import {
+  createCoreManagementEmbed,
+  createDetailedCoreManagementEmbed,
+} from "./embeds.js";
 
 const logger = getLogger();
 
@@ -9,9 +12,300 @@ const logger = getLogger();
 // CORE MANAGEMENT HANDLERS
 // ============================================================================
 
+async function handleRemoveTier(interaction, targetUser, deferred = true) {
+  const reason =
+    interaction.options.getString("reason") || "No reason provided";
+
+  const storage = await getStorageManager();
+  const userId = targetUser.id;
+
+  try {
+    const coreCredits = (await storage.get("core_credit")) || {};
+    const userData = coreCredits[userId] || {
+      credits: 0,
+      isCore: false,
+      coreTier: null,
+      totalGenerated: 0,
+      lastUpdated: new Date().toISOString(),
+      operations: [],
+    };
+
+    const oldTier = userData.coreTier || "None";
+    const oldCoreStatus = userData.isCore;
+
+    // Remove Core status and tier
+    userData.isCore = false;
+    userData.coreTier = null;
+    userData.lastUpdated = new Date().toISOString();
+    userData.operations = userData.operations || [];
+    userData.operations.push({
+      type: "tier_removed",
+      oldTier,
+      newTier: null,
+      oldCoreStatus,
+      newCoreStatus: false,
+      reason,
+      performedBy: interaction.user.username,
+      performedAt: new Date().toISOString(),
+    });
+
+    coreCredits[userId] = userData;
+    await storage.set("core_credit", coreCredits);
+
+    const successEmbed = createCoreManagementEmbed(
+      "warning",
+      "Core Tier Removed",
+      `Successfully removed ${targetUser.username}'s Core tier`,
+      [
+        {
+          name: "Previous Tier",
+          value: oldTier || "None",
+          inline: true,
+        },
+        {
+          name: "New Tier",
+          value: "None",
+          inline: true,
+        },
+        {
+          name: "Core Status",
+          value: "❌ Inactive",
+          inline: true,
+        },
+        {
+          name: "Reason",
+          value: reason,
+          inline: false,
+        },
+      ],
+    );
+
+    if (deferred) {
+      await interaction.editReply({ embeds: [successEmbed] });
+    } else {
+      await interaction.reply({ embeds: [successEmbed], ephemeral: true });
+    }
+
+    logger.info(
+      `Core tier removed for user ${userId}: ${oldTier} → None by ${interaction.user.username}`,
+    );
+  } catch (error) {
+    logger.error("Error removing Core tier:", error);
+    await handleCoreManagementError(interaction, error, deferred);
+  }
+}
+
+async function handleCheckTier(interaction, deferred = true) {
+  const amount = interaction.options.getNumber("amount");
+  const tierName = interaction.options.getString("tier_name") || null;
+
+  try {
+    // Import config to get tier information
+    const { config } = await import("../../../config/config.js");
+    const corePricing = config.corePricing;
+
+    // Determine tier based on amount and tier name (same logic as webhook)
+    let detectedTier = null;
+    let detectionMethod = "";
+    let monthlyCredits = 0;
+    let tierDescription = "";
+
+    // First, try to use Ko-fi tier name directly (if it matches our Core tiers)
+    const validTierNames = Object.keys(corePricing.subscriptions);
+    if (tierName && validTierNames.includes(tierName)) {
+      detectedTier = tierName;
+      detectionMethod = "Ko-fi tier name (exact match)";
+    }
+
+    // If no exact tier name match, fall back to amount-based detection
+    if (!detectedTier) {
+      if (amount >= 50) {
+        detectedTier = "Core Elite";
+        detectionMethod = "Amount-based ($50+)";
+      } else if (amount >= 25) {
+        detectedTier = "Core Premium";
+        detectionMethod = "Amount-based ($25+)";
+      } else if (amount >= 10) {
+        detectedTier = "Core Basic";
+        detectionMethod = "Amount-based ($10+)";
+      } else {
+        detectedTier = "No Core Tier";
+        detectionMethod = "Below minimum";
+      }
+    }
+
+    // Get tier details
+    if (detectedTier && detectedTier !== "No Core Tier") {
+      monthlyCredits = corePricing.subscriptions[detectedTier].cores;
+      tierDescription = corePricing.subscriptions[detectedTier].description;
+    } else {
+      monthlyCredits = 0;
+      tierDescription = "Below minimum subscription amount";
+    }
+
+    const tierEmbed = createCoreManagementEmbed(
+      "info",
+      "Ko-fi Tier Check",
+      `Amount: $${amount}${tierName ? ` | Ko-fi Tier: ${tierName}` : ""}`,
+      [
+        {
+          name: "Detected Tier",
+          value: detectedTier,
+          inline: true,
+        },
+        {
+          name: "Detection Method",
+          value: detectionMethod,
+          inline: true,
+        },
+        {
+          name: "Monthly Credits",
+          value: `${monthlyCredits} Cores`,
+          inline: true,
+        },
+        {
+          name: "Value per $1",
+          value:
+            monthlyCredits > 0
+              ? `${(monthlyCredits / amount).toFixed(1)} Cores`
+              : "N/A",
+          inline: true,
+        },
+        {
+          name: "Description",
+          value: tierDescription,
+          inline: false,
+        },
+        {
+          name: "Ko-fi Tier Names",
+          value: Object.entries(corePricing.subscriptions)
+            .map(
+              ([tierName, tierData]) =>
+                `**${tierName}** - $${tierData.price}/month (${tierData.cores} Cores)`,
+            )
+            .join("\n"),
+          inline: false,
+        },
+      ],
+    );
+
+    if (deferred) {
+      await interaction.editReply({ embeds: [tierEmbed] });
+    } else {
+      await interaction.reply({ embeds: [tierEmbed], ephemeral: true });
+    }
+
+    logger.info(
+      `Tier check performed: $${amount} → ${detectedTier} by ${interaction.user.username}`,
+    );
+  } catch (error) {
+    logger.error("Error checking tier:", error);
+    await handleCoreManagementError(interaction, error, deferred);
+  }
+}
+
+async function handleSetTier(interaction, targetUser, deferred = true) {
+  const tier = interaction.options.getString("tier");
+  const reason =
+    interaction.options.getString("reason") || "No reason provided";
+
+  const storage = await getStorageManager();
+  const userId = targetUser.id;
+
+  try {
+    // Get centralized credit data
+    const coreCredits = (await storage.get("core_credit")) || {};
+
+    // Get current user data
+    const userData = coreCredits[userId] || {
+      credits: 0,
+      isCore: false,
+      coreTier: null,
+      totalGenerated: 0,
+      lastUpdated: new Date().toISOString(),
+      operations: [],
+    };
+
+    const oldTier = userData.coreTier || "None";
+    const oldCoreStatus = userData.isCore;
+
+    if (tier === "none") {
+      // Remove Core status
+      userData.isCore = false;
+      userData.coreTier = null;
+    } else {
+      // Set Core tier
+      userData.isCore = true;
+      userData.coreTier = tier;
+    }
+
+    userData.lastUpdated = new Date().toISOString();
+
+    // Track operation
+    userData.operations = userData.operations || [];
+    userData.operations.push({
+      type: "tier_change",
+      oldTier,
+      newTier: tier === "none" ? null : tier,
+      oldCoreStatus,
+      newCoreStatus: userData.isCore,
+      reason,
+      performedBy: interaction.user.username,
+      performedAt: new Date().toISOString(),
+    });
+
+    // Update centralized data
+    coreCredits[userId] = userData;
+
+    // Save updated data
+    await storage.set("core_credit", coreCredits);
+
+    const successEmbed = createCoreManagementEmbed(
+      "success",
+      "Core Tier Updated",
+      `Successfully updated ${targetUser.username}'s Core tier`,
+      [
+        {
+          name: "Previous Tier",
+          value: oldTier || "None",
+          inline: true,
+        },
+        {
+          name: "New Tier",
+          value: tier === "none" ? "None" : tier,
+          inline: true,
+        },
+        {
+          name: "Core Status",
+          value: userData.isCore ? "✅ Active" : "❌ Inactive",
+          inline: true,
+        },
+        {
+          name: "Reason",
+          value: reason,
+          inline: false,
+        },
+      ],
+    );
+
+    if (deferred) {
+      await interaction.editReply({ embeds: [successEmbed] });
+    } else {
+      await interaction.reply({ embeds: [successEmbed], ephemeral: true });
+    }
+
+    logger.info(
+      `Core tier updated for user ${userId}: ${oldTier} → ${tier === "none" ? "None" : tier} by ${interaction.user.username}`,
+    );
+  } catch (error) {
+    logger.error("Error setting Core tier:", error);
+    await handleCoreManagementError(interaction, error, deferred);
+  }
+}
+
 export async function handleCoreManagement(
   interaction,
-  client,
+  _client,
   deferred = true,
 ) {
   try {
@@ -39,8 +333,8 @@ export async function handleCoreManagement(
     const subcommand = interaction.options.getSubcommand();
     const targetUser = interaction.options.getUser("user");
 
-    // Validate target user
-    if (!targetUser) {
+    // Validate target user (not required for check-tier subcommand)
+    if (!targetUser && subcommand !== "check-tier") {
       const response = {
         content: "❌ **Invalid User**\nPlease specify a valid user.",
         flags: 64,
@@ -64,6 +358,15 @@ export async function handleCoreManagement(
         break;
       case "set":
         await handleSetCores(interaction, targetUser, deferred);
+        break;
+      case "tier":
+        await handleSetTier(interaction, targetUser, deferred);
+        break;
+      case "remove-tier":
+        await handleRemoveTier(interaction, targetUser, deferred);
+        break;
+      case "check-tier":
+        await handleCheckTier(interaction, deferred);
         break;
       case "view":
         await handleViewCores(interaction, targetUser, deferred);
@@ -120,7 +423,7 @@ async function handleAddCores(interaction, targetUser, deferred) {
     await storage.set("core_credit", coreCredits);
 
     // Create success embed
-    const embed = await createCoreManagementEmbed({
+    const embed = await createDetailedCoreManagementEmbed({
       type: "add",
       targetUser,
       amount,
@@ -178,7 +481,7 @@ async function handleRemoveCores(interaction, targetUser, deferred) {
     await storage.set("core_credit", coreCredits);
 
     // Create success embed
-    const embed = await createCoreManagementEmbed({
+    const embed = await createDetailedCoreManagementEmbed({
       type: "remove",
       targetUser,
       amount,
@@ -236,7 +539,7 @@ async function handleSetCores(interaction, targetUser, deferred) {
     await storage.set("core_credit", coreCredits);
 
     // Create success embed
-    const embed = await createCoreManagementEmbed({
+    const embed = await createDetailedCoreManagementEmbed({
       type: "set",
       targetUser,
       amount,
@@ -274,12 +577,13 @@ async function handleViewCores(interaction, targetUser, deferred) {
     const userData = coreCredits[targetUser.id] || {
       credits: 0,
       isCore: false,
+      coreTier: null,
       totalGenerated: 0,
       lastUpdated: new Date().toISOString(),
     };
 
     // Create view embed
-    const embed = await createCoreManagementEmbed({
+    const embed = await createDetailedCoreManagementEmbed({
       type: "view",
       targetUser,
       amount: userData.credits,

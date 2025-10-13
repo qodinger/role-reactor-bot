@@ -62,30 +62,40 @@ export const CHARACTER_TYPE_ENHANCEMENTS = {
 // Style modifiers
 export const STYLE_MODIFIERS = {
   colors: {
-    vibrant: "vibrant colors, bright palette, saturated tones, colorful design",
-    pastel: "soft pastel colors, gentle tones, dreamy palette, light colors",
-    monochrome: "monochrome style, grayscale, black and white, classic look",
-    neon: "neon colors, cyberpunk aesthetic, glowing effects, futuristic",
-    warm: "warm color palette, golden tones, cozy atmosphere, inviting colors",
-    cool: "cool color palette, blue tones, refreshing colors, calm atmosphere",
+    vibrant:
+      "VIBRANT COLOR PALETTE, bright saturated colors, high contrast, colorful design, vivid tones, bright palette, saturated colors, eye-catching colors, bold color scheme",
+    pastel:
+      "PASTEL COLOR PALETTE, soft gentle colors, dreamy pastel tones, light muted colors, soft color scheme, gentle palette, dreamy colors, soft pastel aesthetic",
+    monochrome:
+      "MONOCHROME STYLE, grayscale color scheme, black and white, classic monochrome, grayscale palette, black and white design, classic look, monochrome aesthetic",
+    neon: "NEON COLOR PALETTE, cyberpunk colors, glowing neon effects, futuristic colors, bright neon tones, cyberpunk aesthetic, glowing effects, electric colors",
+    warm: "WARM COLOR PALETTE, golden warm tones, cozy warm colors, inviting warm atmosphere, warm color scheme, golden palette, warm cozy colors, inviting tones",
+    cool: "COOL COLOR PALETTE, blue cool tones, refreshing cool colors, calm cool atmosphere, cool color scheme, blue palette, refreshing cool tones, calm colors",
   },
   moods: {
-    happy: "cheerful expression, bright smile, joyful mood, positive energy",
-    serious: "serious expression, focused look, determined mood, professional",
+    happy:
+      "HAPPY EXPRESSION, cheerful bright smile, joyful mood, positive energy, happy facial expression, bright cheerful look, joyful character, positive vibes",
+    serious:
+      "SERIOUS EXPRESSION, focused determined look, professional mood, serious facial expression, focused determined character, professional appearance, serious demeanor",
     mysterious:
-      "mysterious expression, enigmatic look, intriguing mood, secretive",
-    cute: "adorable expression, kawaii style, sweet mood, lovable character",
-    cool: "cool expression, confident look, stylish mood, trendy character",
+      "MYSTERIOUS EXPRESSION, enigmatic intriguing look, secretive mood, mysterious facial expression, enigmatic character, intriguing mysterious vibe, secretive demeanor",
+    cute: "CUTE EXPRESSION, adorable kawaii look, sweet lovable mood, cute facial expression, adorable character, kawaii cute vibe, sweet lovable appearance",
+    cool: "COOL EXPRESSION, confident stylish look, trendy mood, cool facial expression, confident character, stylish cool vibe, trendy appearance",
     elegant:
-      "elegant expression, refined look, sophisticated mood, graceful character",
+      "ELEGANT EXPRESSION, refined sophisticated look, graceful mood, elegant facial expression, refined character, sophisticated elegant vibe, graceful appearance",
   },
   art_styles: {
     studio:
-      "studio ghibli style, miyazaki inspired, detailed animation quality",
-    manga: "manga style, black and white line art, traditional japanese comics",
-    modern: "modern anime style, contemporary design, current trends",
-    retro: "retro anime style, 80s 90s aesthetic, vintage anime look",
-    realistic: "semi-realistic anime, detailed features, lifelike proportions",
-    chibi: "chibi style, super deformed, cute proportions, adorable design",
+      "STUDIO GHIBLI STYLE, Hayao Miyazaki inspired art, detailed hand-drawn animation quality, soft watercolor-like colors, whimsical character design, nature-inspired elements, detailed backgrounds, traditional animation techniques",
+    manga:
+      "MANGA STYLE, black and white line art, traditional Japanese comics style, bold linework, dramatic shading, expressive character design, classic manga proportions, ink wash techniques",
+    modern:
+      "MODERN ANIME STYLE, contemporary anime design, current 2020s trends, clean digital art, vibrant colors, detailed character design, popular anime aesthetic, high-quality illustration",
+    retro:
+      "RETRO ANIME STYLE, 80s 90s vintage anime aesthetic, classic anime proportions, nostalgic color palette, traditional cel animation look, old-school anime character design, vintage anime art style",
+    realistic:
+      "SEMI-REALISTIC ANIME, detailed realistic features, lifelike proportions, photorealistic anime style, detailed facial features, realistic anatomy, high-detail character design, realistic anime art",
+    chibi:
+      "CHIBI STYLE, super deformed character design, cute chibi proportions, large head small body, adorable kawaii design, chibi anime style, super cute character, deformed cute proportions, chibi art style",
   },
 };

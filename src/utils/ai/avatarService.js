@@ -186,19 +186,53 @@ export class AvatarService {
         baseDescription,
       );
 
-      // Add enhancements as additional instructions
+      // Add art style first for maximum impact
+      if (enhancements.artStyle) {
+        // Special emphasis for chibi style
+        if (enhancements.artStyle.toLowerCase().includes("chibi")) {
+          prompt = `${enhancements.artStyle}, CHIBI CHARACTER, ${prompt}`;
+        } else {
+          prompt = `${enhancements.artStyle}, ${prompt}`;
+        }
+      }
+
+      // Add other enhancements as additional instructions
       const enhancementParts = [
         enhancements.characterType,
         enhancements.colorStyle,
         enhancements.moodStyle,
-        enhancements.artStyle,
       ]
         .filter(Boolean)
         .filter(part => part.trim() !== "")
         .map(part => part.trim());
 
       if (enhancementParts.length > 0) {
-        prompt += ` ${enhancementParts.join(" ")}`;
+        // Add color and mood styles with emphasis
+        const enhancedParts = enhancementParts.map(part => {
+          if (
+            part.toLowerCase().includes("vibrant") ||
+            part.toLowerCase().includes("neon")
+          ) {
+            return `${part}, BOLD COLORS`;
+          } else if (part.toLowerCase().includes("pastel")) {
+            return `${part}, SOFT COLORS`;
+          } else if (part.toLowerCase().includes("monochrome")) {
+            return `${part}, GRAYSCALE`;
+          } else if (
+            part.toLowerCase().includes("happy") ||
+            part.toLowerCase().includes("cute")
+          ) {
+            return `${part}, POSITIVE VIBES`;
+          } else if (
+            part.toLowerCase().includes("serious") ||
+            part.toLowerCase().includes("mysterious")
+          ) {
+            return `${part}, INTENSE MOOD`;
+          }
+          return part;
+        });
+
+        prompt += ` ${enhancedParts.join(" ")}`;
       }
 
       prompt += ` ${finalConfig.suffix}`;
@@ -209,30 +243,92 @@ export class AvatarService {
         baseDescription,
       );
 
-      // Add enhancements as additional descriptions
+      // Add art style first for maximum impact
+      if (enhancements.artStyle) {
+        // Special emphasis for chibi style
+        if (enhancements.artStyle.toLowerCase().includes("chibi")) {
+          prompt = `${enhancements.artStyle}, CHIBI CHARACTER, ${prompt}`;
+        } else {
+          prompt = `${enhancements.artStyle}, ${prompt}`;
+        }
+      }
+
+      // Add other enhancements as additional descriptions
       const enhancementParts = [
         enhancements.characterType,
         enhancements.colorStyle,
         enhancements.moodStyle,
-        enhancements.artStyle,
       ]
         .filter(Boolean)
         .filter(part => part.trim() !== "")
         .map(part => part.trim());
 
       if (enhancementParts.length > 0) {
-        prompt += ` ${enhancementParts.join(" ")}`;
+        // Add color and mood styles with emphasis
+        const enhancedParts = enhancementParts.map(part => {
+          if (
+            part.toLowerCase().includes("vibrant") ||
+            part.toLowerCase().includes("neon")
+          ) {
+            return `${part}, BOLD COLORS`;
+          } else if (part.toLowerCase().includes("pastel")) {
+            return `${part}, SOFT COLORS`;
+          } else if (part.toLowerCase().includes("monochrome")) {
+            return `${part}, GRAYSCALE`;
+          } else if (
+            part.toLowerCase().includes("happy") ||
+            part.toLowerCase().includes("cute")
+          ) {
+            return `${part}, POSITIVE VIBES`;
+          } else if (
+            part.toLowerCase().includes("serious") ||
+            part.toLowerCase().includes("mysterious")
+          ) {
+            return `${part}, INTENSE MOOD`;
+          }
+          return part;
+        });
+
+        prompt += ` ${enhancedParts.join(" ")}`;
       }
 
       prompt += ` ${finalConfig.suffix}`;
     } else {
-      // Stability AI uses comma-separated format
+      // Stability AI uses comma-separated format - art style goes first
+      const artStylePart = enhancements.artStyle
+        ? enhancements.artStyle.toLowerCase().includes("chibi")
+          ? `${enhancements.artStyle}, CHIBI CHARACTER`
+          : enhancements.artStyle
+        : null;
+
+      // Enhance color and mood styles for Stability AI
+      const enhancedColorStyle = enhancements.colorStyle
+        ? enhancements.colorStyle.toLowerCase().includes("vibrant") ||
+          enhancements.colorStyle.toLowerCase().includes("neon")
+          ? `${enhancements.colorStyle}, BOLD COLORS`
+          : enhancements.colorStyle.toLowerCase().includes("pastel")
+            ? `${enhancements.colorStyle}, SOFT COLORS`
+            : enhancements.colorStyle.toLowerCase().includes("monochrome")
+              ? `${enhancements.colorStyle}, GRAYSCALE`
+              : enhancements.colorStyle
+        : null;
+
+      const enhancedMoodStyle = enhancements.moodStyle
+        ? enhancements.moodStyle.toLowerCase().includes("happy") ||
+          enhancements.moodStyle.toLowerCase().includes("cute")
+          ? `${enhancements.moodStyle}, POSITIVE VIBES`
+          : enhancements.moodStyle.toLowerCase().includes("serious") ||
+              enhancements.moodStyle.toLowerCase().includes("mysterious")
+            ? `${enhancements.moodStyle}, INTENSE MOOD`
+            : enhancements.moodStyle
+        : null;
+
       const parts = [
+        artStylePart, // Art style first for maximum impact
         finalConfig.base.replace("{characterDescription}", baseDescription),
         enhancements.characterType,
-        enhancements.colorStyle,
-        enhancements.moodStyle,
-        enhancements.artStyle,
+        enhancedColorStyle,
+        enhancedMoodStyle,
         finalConfig.suffix,
       ]
         .filter(Boolean)

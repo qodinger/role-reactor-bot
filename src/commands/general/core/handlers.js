@@ -71,13 +71,22 @@ async function handleBalance(interaction) {
     const userData = coreCredits[userId] || {
       credits: 0,
       isCore: false,
+      coreTier: null,
       totalGenerated: 0,
       lastUpdated: new Date().toISOString(),
     };
 
+    // Determine tier display
+    const tierDisplay =
+      userData.isCore && userData.coreTier
+        ? `\n**Tier:** ${userData.coreTier}`
+        : userData.isCore
+          ? `\n**Tier:** Core Member`
+          : "";
+
     const balanceEmbed = {
       color: userData.isCore ? THEME.SUCCESS : THEME.PRIMARY,
-      description: `**Balance:**\n${CORE_EMOJI} ${userData.credits}\n\nGet more at [Ko-fi](https://ko-fi.com/rolereactor) • Use \`/core pricing\``,
+      description: `**Balance:**\n${CORE_EMOJI} ${userData.credits}${tierDisplay}\n\nGet more at [Ko-fi](https://ko-fi.com/rolereactor) • Use \`/core pricing\``,
       timestamp: new Date().toISOString(),
       footer: {
         text: `Core Energy • ${interaction.user.username}`,
