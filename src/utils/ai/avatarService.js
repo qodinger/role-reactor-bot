@@ -36,29 +36,32 @@ export class AvatarService {
     ];
 
     const results = [];
-    
+
     for (const styleOptions of testCombinations) {
       const enhancedPrompt = await this.buildAnimePrompt(
         prompt,
         styleOptions,
         this.aiService.config.primary,
       );
-      
+
       // Simulate the cache key generation logic
       let styleHash = "default";
       if (styleOptions) {
         // Create a more robust hash by using a simple hash function
-        const styleString = JSON.stringify(styleOptions, Object.keys(styleOptions).sort());
+        const styleString = JSON.stringify(
+          styleOptions,
+          Object.keys(styleOptions).sort(),
+        );
         let hash = 0;
         for (let i = 0; i < styleString.length; i++) {
           const char = styleString.charCodeAt(i);
-          hash = ((hash << 5) - hash) + char;
+          hash = (hash << 5) - hash + char;
           hash = hash & hash; // Convert to 32-bit integer
         }
         styleHash = Math.abs(hash).toString(36); // Convert to base36 for shorter string
       }
       const cacheKey = `openrouter_image_${this.aiService.config.providers.openrouter.models.image.primary}_${styleHash}_${Buffer.from(enhancedPrompt).toString("base64").slice(0, 32)}`;
-      
+
       results.push({
         styleOptions,
         styleHash,
@@ -66,7 +69,7 @@ export class AvatarService {
         promptLength: enhancedPrompt.length,
       });
     }
-    
+
     return results;
   }
 

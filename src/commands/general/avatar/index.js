@@ -59,6 +59,7 @@ export const data = new SlashCommandBuilder()
         { name: "Retro - 80s/90s vintage anime", value: "retro" },
         { name: "Realistic - Semi-realistic anime", value: "realistic" },
         { name: "Chibi - Super cute and deformed", value: "chibi" },
+        { name: "Lo-fi - Chill and nostalgic aesthetic", value: "lofi" },
       ),
   )
   .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages);

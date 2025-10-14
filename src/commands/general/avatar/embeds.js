@@ -56,7 +56,6 @@ export function createLoadingEmbed(prompt) {
     .setColor(THEME.PRIMARY)
     .setTitle(`${EMOJIS.UI.PROGRESS} Generating Avatar...`)
     .setDescription(`**"${prompt}"**`)
-    .setImage(`attachment://loading-${Date.now()}.png`)
     .setFooter({
       text: "Avatar Generator • This may take 10-60 seconds",
     })
@@ -128,17 +127,17 @@ export function createHelpEmbed() {
   return new EmbedBuilder()
     .setColor(THEME.PRIMARY)
     .setDescription(
-      `Generate unique anime-style avatars using AI! Use \`/avatar prompt: "your description"\` to get started.`,
+      `Generate unique anime-style avatar profile pictures using AI! Use \`/avatar prompt: "your character description"\` to get started.`,
     )
     .addFields([
       {
         name: `${EMOJIS.ACTIONS.TIPS} Pro Tips`,
-        value: `Describe your character with details: hair color, clothing, accessories\n**Examples**: "cool boy with spiky hair", "cute girl in red dress", "cyberpunk hacker"`,
+        value: `Describe your avatar however you want! Include character details, backgrounds, environments, or any creative elements.\n**Examples**: "cool boy with spiky hair", "cute girl in red dress", "anime girl in a forest", "cyberpunk hacker in neon city", "mysterious character with glasses", "beautiful sunset portrait"\n**Note**: Single character focus works best for profile pictures`,
         inline: false,
       },
       {
         name: `${EMOJIS.UI.INFO} Style Options`,
-        value: `**Color**: vibrant, pastel, monochrome • **Mood**: happy, serious, cute • **Art**: studio, manga, modern`,
+        value: `**Color**: vibrant, pastel, monochrome • **Mood**: happy, serious, cute • **Art**: studio, manga, modern, lofi`,
         inline: false,
       },
     ])

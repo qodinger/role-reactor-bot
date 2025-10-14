@@ -67,6 +67,7 @@ Generate unique anime-style avatars using AI with advanced style customization! 
   - `retro` - 80s/90s vintage anime
   - `realistic` - Semi-realistic anime
   - `chibi` - Super cute and deformed
+  - `lofi` - Chill and nostalgic aesthetic
 
 ## File Structure
 

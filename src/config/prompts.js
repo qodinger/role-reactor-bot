@@ -374,5 +374,11 @@ export const STYLE_MODIFIERS = {
       large head small body, adorable kawaii design, chibi anime style, super cute character,
       deformed cute proportions, chibi art style
     `,
+    lofi: dedent`
+      LO-FI ANIME STYLE, chill aesthetic, soft muted colors, dreamy atmosphere,
+      nostalgic vibes, relaxed character design, cozy warm tones, study music aesthetic,
+      vintage filter effects, soft gradients, minimalist backgrounds, peaceful mood,
+      low contrast, gentle lighting, zen-like composition, calming anime art style
+    `,
   },
 };

@@ -95,9 +95,8 @@ export function validatePrompt(prompt) {
     "mounting",
     "grinding",
 
-    // Clothing/outfit terms (suggestive contexts)
+    // Clothing/outfit terms (suggestive contexts only)
     "lingerie",
-    "bra",
     "panties",
     "underwear",
     "thong",
@@ -110,7 +109,6 @@ export function validatePrompt(prompt) {
     "garter",
     "stockings",
     "fishnet",
-    "leather",
     "latex",
     "rubber",
     "bondage",
@@ -142,7 +140,7 @@ export function validatePrompt(prompt) {
     "pedo",
     "pedophile",
 
-    // Violence and harmful content
+    // Violence and harmful content (only extreme cases)
     "violence",
     "blood",
     "gore",
@@ -158,14 +156,12 @@ export function validatePrompt(prompt) {
     "fight",
     "fighting",
     "battle",
-    "war",
     "weapon",
     "gun",
     "knife",
     "sword",
     "bomb",
     "explosion",
-    "fire",
 
     // Profanity and offensive terms
     "fuck",
@@ -349,6 +345,120 @@ export function validatePrompt(prompt) {
         reason: check.reason,
       };
     }
+  }
+
+  // Minimal avatar validation - only block clearly non-avatar content
+  const avatarValidationChecks = [
+    // Only block multiple people (avatars should be single character)
+    {
+      pattern:
+        /\b(group|multiple|several|many|two|three|four|five|six|seven|eight|nine|ten)\s+(people|characters|persons|individuals|boys|girls|men|women|friends|couple|couples)\b/i,
+      reason:
+        "Avatar generation creates single character images. Please describe one character only.",
+    },
+    // Block specific multiple people phrases
+    {
+      pattern:
+        /\b(group of|couple|couples|pair of|duo|team of)\s+(friends|people|characters|persons|individuals|boys|girls|men|women|walking|standing|sitting)\b/i,
+      reason:
+        "Avatar generation creates single character images. Please describe one character only.",
+    },
+    // Only block pure abstract/non-character content (not when combined with character descriptions)
+    {
+      pattern:
+        /^(abstract|artwork|painting|drawing|sketch|illustration|design|logo|symbol|icon|emblem|text|words|letters|numbers|symbols|signs|banners|posters|advertisements)$/i,
+      reason:
+        "Please describe a character for avatar generation, not just abstract art or symbols.",
+    },
+  ];
+
+  for (const check of avatarValidationChecks) {
+    if (check.pattern.test(prompt)) {
+      logger.warn(`Avatar-specific validation failed for prompt: "${prompt}"`);
+      return {
+        isValid: false,
+        reason: check.reason,
+      };
+    }
+  }
+
+  // Check if prompt is too short (only for very short prompts)
+  if (prompt.trim().length < 3) {
+    return {
+      isValid: false,
+      reason:
+        "Please provide a character description for avatar generation. Examples: 'anime girl', 'cool boy', 'mysterious character'.",
+    };
+  }
+
+  // Very flexible character validation - only require basic character indication
+  const basicCharacterIndicators = [
+    "character",
+    "person",
+    "boy",
+    "girl",
+    "man",
+    "woman",
+    "avatar",
+    "profile",
+    "hair",
+    "eyes",
+    "face",
+    "clothing",
+    "outfit",
+    "dress",
+    "shirt",
+    "jacket",
+    "smile",
+    "expression",
+    "pose",
+    "standing",
+    "looking",
+    "wearing",
+    "anime",
+    "manga",
+    "art",
+    "drawing",
+    "illustration",
+    "portrait",
+    "background",
+    "landscape",
+    "forest",
+    "city",
+    "beach",
+    "mountain",
+    "room",
+    "environment",
+    "cool",
+    "cute",
+    "mysterious",
+    "beautiful",
+    "handsome",
+    "pretty",
+    "awesome",
+    "amazing",
+  ];
+
+  const hasBasicCharacterIndicators = basicCharacterIndicators.some(keyword =>
+    prompt.toLowerCase().includes(keyword),
+  );
+
+  // Only require character indication if prompt is very short or clearly not character-related
+  if (prompt.trim().length < 5 && !hasBasicCharacterIndicators) {
+    return {
+      isValid: false,
+      reason:
+        "Please provide a character description for avatar generation. Examples: 'anime girl', 'cool boy', 'mysterious character'.",
+    };
+  }
+
+  // Only block if it's clearly not character-related AND very short
+  if (!hasBasicCharacterIndicators && prompt.trim().length < 10) {
+    return {
+      isValid: false,
+      reason:
+        "Please describe a character for avatar generation. Examples: 'anime girl with pink hair', 'cool boy in a hoodie', 'mysterious character with glasses'.",
+    };
   }
 
   return { isValid: true, reason: null };
