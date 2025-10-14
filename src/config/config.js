@@ -440,48 +440,6 @@ class Config {
   }
 
   /**
-   * Get custom emojis configuration based on environment
-   * @returns {Object} Custom emojis for current environment
-   */
-  get customEmojis() {
-    // Different emoji IDs for different environments
-    const emojiConfigs = {
-      development: {
-        core: "1427264796276817950", // Dev Core emoji ID
-        // Add more emojis here as needed
-        // star: "dev_star_emoji_id",
-        // diamond: "dev_diamond_emoji_id",
-        // premium: "dev_premium_emoji_id",
-      },
-      production: {
-        core: "1427267639457222737", // Prod Core emoji ID
-        // Add more emojis here as needed
-        // star: "prod_star_emoji_id",
-        // diamond: "prod_diamond_emoji_id",
-        // premium: "prod_premium_emoji_id",
-      },
-    };
-
-    const emojis = emojiConfigs[this.environment] || emojiConfigs.development;
-
-    // Convert to Discord emoji format
-    const formattedEmojis = {};
-    for (const [name, id] of Object.entries(emojis)) {
-      formattedEmojis[name] = `<:${name}:${id}>`;
-    }
-
-    return formattedEmojis;
-  }
-
-  /**
-   * Get Core emoji (backward compatibility)
-   * @returns {string} Core emoji for current environment
-   */
-  get coreEmoji() {
-    return this.customEmojis.core;
-  }
-
-  /**
    * Get all configuration as a single object
    * @returns {Object} Complete configuration object
    */
@@ -496,8 +454,6 @@ class Config {
       rateLimits: this.rateLimits,
       aiModels: this.aiModels,
       corePricing: this.corePricing,
-      customEmojis: this.customEmojis,
-      coreEmoji: this.coreEmoji, // Backward compatibility
     };
   }
 

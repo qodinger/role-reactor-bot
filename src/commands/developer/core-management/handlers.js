@@ -95,115 +95,6 @@ async function handleRemoveTier(interaction, targetUser, deferred = true) {
   }
 }
 
-async function handleCheckTier(interaction, deferred = true) {
-  const amount = interaction.options.getNumber("amount");
-  const tierName = interaction.options.getString("tier_name") || null;
-
-  try {
-    // Import config to get tier information
-    const { config } = await import("../../../config/config.js");
-    const corePricing = config.corePricing;
-
-    // Determine tier based on amount and tier name (same logic as webhook)
-    let detectedTier = null;
-    let detectionMethod = "";
-    let monthlyCredits = 0;
-    let tierDescription = "";
-
-    // First, try to use Ko-fi tier name directly (if it matches our Core tiers)
-    const validTierNames = Object.keys(corePricing.subscriptions);
-    if (tierName && validTierNames.includes(tierName)) {
-      detectedTier = tierName;
-      detectionMethod = "Ko-fi tier name (exact match)";
-    }
-
-    // If no exact tier name match, fall back to amount-based detection
-    if (!detectedTier) {
-      if (amount >= 50) {
-        detectedTier = "Core Elite";
-        detectionMethod = "Amount-based ($50+)";
-      } else if (amount >= 25) {
-        detectedTier = "Core Premium";
-        detectionMethod = "Amount-based ($25+)";
-      } else if (amount >= 10) {
-        detectedTier = "Core Basic";
-        detectionMethod = "Amount-based ($10+)";
-      } else {
-        detectedTier = "No Core Tier";
-        detectionMethod = "Below minimum";
-      }
-    }
-
-    // Get tier details
-    if (detectedTier && detectedTier !== "No Core Tier") {
-      monthlyCredits = corePricing.subscriptions[detectedTier].cores;
-      tierDescription = corePricing.subscriptions[detectedTier].description;
-    } else {
-      monthlyCredits = 0;
-      tierDescription = "Below minimum subscription amount";
-    }
-
-    const tierEmbed = createCoreManagementEmbed(
-      "info",
-      "Ko-fi Tier Check",
-      `Amount: $${amount}${tierName ? ` | Ko-fi Tier: ${tierName}` : ""}`,
-      [
-        {
-          name: "Detected Tier",
-          value: detectedTier,
-          inline: true,
-        },
-        {
-          name: "Detection Method",
-          value: detectionMethod,
-          inline: true,
-        },
-        {
-          name: "Monthly Credits",
-          value: `${monthlyCredits} Cores`,
-          inline: true,
-        },
-        {
-          name: "Value per $1",
-          value:
-            monthlyCredits > 0
-              ? `${(monthlyCredits / amount).toFixed(1)} Cores`
-              : "N/A",
-          inline: true,
-        },
-        {
-          name: "Description",
-          value: tierDescription,
-          inline: false,
-        },
-        {
-          name: "Ko-fi Tier Names",
-          value: Object.entries(corePricing.subscriptions)
-            .map(
-              ([tierName, tierData]) =>
-                `**${tierName}** - $${tierData.price}/month (${tierData.cores} Cores)`,
-            )
-            .join("\n"),
-          inline: false,
-        },
-      ],
-    );
-
-    if (deferred) {
-      await interaction.editReply({ embeds: [tierEmbed] });
-    } else {
-      await interaction.reply({ embeds: [tierEmbed], ephemeral: true });
-    }
-
-    logger.info(
-      `Tier check performed: $${amount} → ${detectedTier} by ${interaction.user.username}`,
-    );
-  } catch (error) {
-    logger.error("Error checking tier:", error);
-    await handleCoreManagementError(interaction, error, deferred);
-  }
-}
-
 async function handleSetTier(interaction, targetUser, deferred = true) {
   const tier = interaction.options.getString("tier");
   const reason =
@@ -333,8 +224,8 @@ export async function handleCoreManagement(
     const subcommand = interaction.options.getSubcommand();
     const targetUser = interaction.options.getUser("user");
 
-    // Validate target user (not required for check-tier subcommand)
-    if (!targetUser && subcommand !== "check-tier") {
+    // Validate target user
+    if (!targetUser) {
       const response = {
         content: "❌ **Invalid User**\nPlease specify a valid user.",
         flags: 64,
@@ -364,9 +255,6 @@ export async function handleCoreManagement(
         break;
       case "remove-tier":
         await handleRemoveTier(interaction, targetUser, deferred);
-        break;
-      case "check-tier":
-        await handleCheckTier(interaction, deferred);
         break;
       case "view":
         await handleViewCores(interaction, targetUser, deferred);

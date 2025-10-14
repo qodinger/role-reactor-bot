@@ -1,6 +1,10 @@
 import { SlashCommandBuilder, PermissionFlagsBits } from "discord.js";
 import { execute } from "./handlers.js";
 
+/**
+ * Core command definition
+ * Allows users to check their Core balance and view pricing information
+ */
 export const data = new SlashCommandBuilder()
   .setName("core")
   .setDescription("Check your Core balance and view pricing information")

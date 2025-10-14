@@ -1,8 +1,8 @@
 import { EmbedBuilder } from "discord.js";
 import { EMOJIS, THEME, UI_COMPONENTS } from "../../../config/theme.js";
-import { config } from "../../../config/config.js";
+import { emojiConfig } from "../../../config/emojis.js";
 
-const CORE_EMOJI = config.coreEmoji;
+const CORE_EMOJI = emojiConfig.customEmojis.core;
 
 /**
  * Create error embed for avatar generation failures
@@ -58,7 +58,7 @@ export function createLoadingEmbed(prompt) {
     .setDescription(`**"${prompt}"**`)
     .setImage(`attachment://loading-${Date.now()}.png`)
     .setFooter({
-      text: "Avatar Generator • This may take 10-30 seconds",
+      text: "Avatar Generator • This may take 10-60 seconds",
     })
     .setTimestamp();
 }
@@ -73,12 +73,10 @@ export function createSuccessEmbed(interaction, prompt) {
   return new EmbedBuilder()
     .setColor(THEME.SUCCESS)
     .setTitle(`${EMOJIS.STATUS.SUCCESS} Avatar Complete!`)
-    .setDescription(
-      `**"${prompt}"**\n\n✨ *Your unique anime avatar has been generated*`,
-    )
+    .setDescription(`**"${prompt}"**\n\n✨ *Your Avatar has been generated*`)
     .setFooter(
       UI_COMPONENTS.createFooter(
-        `Generated for ${interaction.user.username} • AI Avatar Generator`,
+        `Generated for ${interaction.user.username} • Avatar Generator`,
         interaction.user.displayAvatarURL(),
       ),
     )

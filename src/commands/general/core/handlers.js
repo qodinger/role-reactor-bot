@@ -1,22 +1,39 @@
 import { MessageFlags } from "discord.js";
-import { EMOJIS, THEME } from "../../../config/theme.js";
-import { config } from "../../../config/config.js";
-import { getStorageManager } from "../../../utils/storage/storageManager.js";
 import { getLogger } from "../../../utils/logger.js";
+import { getStorageManager } from "../../../utils/storage/storageManager.js";
+import { errorEmbed } from "../../../utils/discord/responseMessages.js";
+import {
+  createBalanceEmbed,
+  createPricingEmbed,
+  createErrorEmbed,
+} from "./embeds.js";
 
 const logger = getLogger();
 
-// Get Core emoji from config (environment-specific)
-const CORE_EMOJI = config.coreEmoji;
-
+/**
+ * Main execution function for the /core command
+ * @param {import("discord.js").ChatInputCommandInteraction} interaction - The interaction object
+ * @param {import("discord.js").Client} _client - The Discord client (unused)
+ */
 export async function execute(interaction, _client) {
-  const logger = getLogger();
+  const startTime = Date.now();
+  const userId = interaction.user.id;
+  const username = interaction.user.username;
 
   try {
+    if (!interaction.isRepliable()) {
+      logger.warn("Interaction is no longer repliable, skipping execution");
+      return;
+    }
+
     // Defer the interaction immediately to prevent timeout
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const subcommand = interaction.options.getSubcommand();
+
+    logger.debug(
+      `Core command executed by ${username} (${userId}): ${subcommand}`,
+    );
 
     switch (subcommand) {
       case "balance":
@@ -25,49 +42,44 @@ export async function execute(interaction, _client) {
       case "pricing":
         await handlePricing(interaction);
         break;
-      default:
-        await interaction.editReply({
-          content: "❌ Unknown subcommand",
-        });
-    }
-  } catch (error) {
-    logger.error(`Error executing core command:`, error);
-
-    try {
-      const errorEmbed = {
-        color: THEME.ERROR,
-        title: `${EMOJIS.STATUS.ERROR} Command Error`,
-        description: "An unexpected error occurred. Please try again later.",
-        timestamp: new Date().toISOString(),
-        footer: {
-          text: "Core Energy • Error",
-          icon_url: interaction.client.user.displayAvatarURL(),
-        },
-      };
-
-      if (interaction.deferred) {
-        await interaction.editReply({ embeds: [errorEmbed] });
-      } else {
-        await interaction.reply({
-          embeds: [errorEmbed],
+      default: {
+        const response = {
+          content: "❌ **Unknown Subcommand**\nPlease use a valid subcommand.",
           flags: MessageFlags.Ephemeral,
-        });
+        };
+        await interaction.editReply(response);
+        break;
       }
-    } catch (replyError) {
-      logger.error("Failed to send error response:", replyError);
     }
+
+    const duration = Date.now() - startTime;
+    logger.info(`Core command completed in ${duration}ms for ${username}`);
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    logger.error(
+      `Error executing core command for ${username} after ${duration}ms:`,
+      error,
+    );
+    await handleCommandError(interaction, error);
   }
 }
 
+/**
+ * Handles the balance subcommand to show user's Core credits
+ * @param {import("discord.js").ChatInputCommandInteraction} interaction - The interaction object
+ */
 async function handleBalance(interaction) {
-  const storage = await getStorageManager();
+  const startTime = Date.now();
   const userId = interaction.user.id;
+  const username = interaction.user.username;
 
   try {
+    const storage = await getStorageManager();
+
     // Get centralized credit data (global, not per guild)
     const coreCredits = (await storage.get("core_credit")) || {};
 
-    // Get user's credit data
+    // Get user's credit data with default values
     const userData = coreCredits[userId] || {
       credits: 0,
       isCore: false,
@@ -76,72 +88,92 @@ async function handleBalance(interaction) {
       lastUpdated: new Date().toISOString(),
     };
 
-    // Determine tier display
-    const tierDisplay =
-      userData.isCore && userData.coreTier
-        ? `\n**Tier:** ${userData.coreTier}`
-        : userData.isCore
-          ? `\n**Tier:** Core Member`
-          : "";
-
-    const balanceEmbed = {
-      color: userData.isCore ? THEME.SUCCESS : THEME.PRIMARY,
-      description: `**Balance:**\n${CORE_EMOJI} ${userData.credits}${tierDisplay}\n\nGet more at [Ko-fi](https://ko-fi.com/rolereactor) • Use \`/core pricing\``,
-      timestamp: new Date().toISOString(),
-      footer: {
-        text: `Core Energy • ${interaction.user.username}`,
-        icon_url: interaction.user.displayAvatarURL(),
-      },
-    };
+    // Create and send balance embed
+    const balanceEmbed = createBalanceEmbed(
+      userData,
+      username,
+      interaction.user.displayAvatarURL(),
+    );
 
     await interaction.editReply({ embeds: [balanceEmbed] });
-  } catch (error) {
-    logger.error("Error checking balance:", error);
 
-    const errorEmbed = {
-      color: THEME.ERROR,
-      title: `${EMOJIS.STATUS.ERROR} Balance Check Failed`,
-      description:
-        "There was an error checking your Core balance. Please try again.",
-      timestamp: new Date().toISOString(),
-      footer: {
-        text: "Core Energy • Error",
-        icon_url: interaction.client.user.displayAvatarURL(),
-      },
-    };
+    const duration = Date.now() - startTime;
+    logger.info(
+      `Balance check completed in ${duration}ms for ${username}: ${userData.credits} Cores`,
+    );
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    logger.error(
+      `Error checking balance for ${username} after ${duration}ms:`,
+      error,
+    );
+
+    const errorEmbed = createErrorEmbed(
+      "Balance Check Failed",
+      "There was an error checking your Core balance. Please try again.",
+      interaction.client.user.displayAvatarURL(),
+    );
 
     await interaction.editReply({ embeds: [errorEmbed] });
   }
 }
 
+/**
+ * Handles the pricing subcommand to show Core pricing information
+ * @param {import("discord.js").ChatInputCommandInteraction} interaction - The interaction object
+ */
 async function handlePricing(interaction) {
-  const pricingEmbed = {
-    color: THEME.PRIMARY,
-    title: `${CORE_EMOJI} Core Pricing`,
-    description: `**1 ${CORE_EMOJI} Core = 1 AI Avatar Generation** • All users pay the same rate`,
-    fields: [
-      {
-        name: `${CORE_EMOJI} One-time Donations`,
-        value: `**$5** → 50 ${CORE_EMOJI} • **$10** → 100 ${CORE_EMOJI}\n**$25** → 250 ${CORE_EMOJI} • **$50** → 500 ${CORE_EMOJI}`,
-        inline: true,
-      },
-      {
-        name: `⭐ Core Membership`,
-        value: `**Basic** $10/mo → 150 ${CORE_EMOJI}\n**Premium** $25/mo → 400 ${CORE_EMOJI}\n**Elite** $50/mo → 850 ${CORE_EMOJI}`,
-        inline: true,
-      },
-      {
-        name: `🚀 Core Benefits`,
-        value: `Priority processing • Monthly bonuses • Better value`,
-        inline: false,
-      },
-    ],
-    timestamp: new Date().toISOString(),
-    footer: {
-      text: `Donate on Ko-fi • Use /core balance to check balance`,
-      icon_url: interaction.client.user.displayAvatarURL(),
-    },
-  };
+  const startTime = Date.now();
+  const username = interaction.user.username;
 
-  await interaction.editReply({ embeds: [pricingEmbed] });
+  try {
+    // Create and send pricing embed
+    const pricingEmbed = createPricingEmbed(
+      interaction.client.user.displayAvatarURL(),
+    );
+    await interaction.editReply({ embeds: [pricingEmbed] });
+
+    const duration = Date.now() - startTime;
+    logger.info(`Pricing display completed in ${duration}ms for ${username}`);
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    logger.error(
+      `Error displaying pricing for ${username} after ${duration}ms:`,
+      error,
+    );
+
+    const errorEmbed = createErrorEmbed(
+      "Pricing Display Failed",
+      "There was an error displaying Core pricing. Please try again.",
+      interaction.client.user.displayAvatarURL(),
+    );
+
+    await interaction.editReply({ embeds: [errorEmbed] });
+  }
+}
+
+/**
+ * Handles command errors with centralized error response
+ * @param {import("discord.js").ChatInputCommandInteraction} interaction - The interaction object
+ * @param {Error} error - The error that occurred
+ */
+async function handleCommandError(interaction, _error) {
+  try {
+    const errorResponse = errorEmbed({
+      title: "Command Error",
+      description:
+        "An unexpected error occurred while processing your request. Please try again later.",
+    });
+
+    if (interaction.deferred) {
+      await interaction.editReply({ embeds: [errorResponse] });
+    } else {
+      await interaction.reply({
+        embeds: [errorResponse],
+        flags: MessageFlags.Ephemeral,
+      });
+    }
+  } catch (replyError) {
+    logger.error("Failed to send error response:", replyError);
+  }
 }

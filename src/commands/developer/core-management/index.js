@@ -158,26 +158,6 @@ export const data = new SlashCommandBuilder()
   )
   .addSubcommand(subcommand =>
     subcommand
-      .setName("check-tier")
-      .setDescription(
-        "Check what Core tier a Ko-fi subscription amount corresponds to",
-      )
-      .addNumberOption(option =>
-        option
-          .setName("amount")
-          .setDescription("Ko-fi subscription amount in USD")
-          .setRequired(true)
-          .setMinValue(0.01),
-      )
-      .addStringOption(option =>
-        option
-          .setName("tier_name")
-          .setDescription("Ko-fi tier name (e.g., Bronze, Silver, Gold)")
-          .setRequired(false),
-      ),
-  )
-  .addSubcommand(subcommand =>
-    subcommand
       .setName("view")
       .setDescription("View a user's Core credit information")
       .addUserOption(option =>

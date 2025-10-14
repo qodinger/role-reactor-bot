@@ -1,8 +1,8 @@
 import { EmbedBuilder } from "discord.js";
 import { THEME, EMOJIS } from "../../../config/theme.js";
-import { config } from "../../../config/config.js";
+import { emojiConfig } from "../../../config/emojis.js";
 
-const CORE_EMOJI = config.coreEmoji;
+const CORE_EMOJI = emojiConfig.customEmojis.core;
 
 // ============================================================================
 // CORE MANAGEMENT EMBED BUILDER
