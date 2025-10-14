@@ -16,9 +16,16 @@ export class ConcurrencyManager {
     this.retryDelay = parseInt(process.env.AI_RETRY_DELAY) || 1000; // 1 second
 
     // User-specific rate limiting
-    this.userRequests = new Map(); // userId -> { count, lastRequest }
+    this.userRequests = new Map(); // userId -> { count, lastRequest, isCore, coreTier }
     this.userRateLimit = parseInt(process.env.AI_USER_RATE_LIMIT) || 5; // 5 requests per user
     this.userRateWindow = parseInt(process.env.AI_USER_RATE_WINDOW) || 300000; // 5 minutes
+
+    // Core tier rate limiting benefits
+    this.coreTierLimits = {
+      "Core Basic": { multiplier: 1.5, priority: 1 }, // 7.5 requests per 5 minutes
+      "Core Premium": { multiplier: 2.0, priority: 2 }, // 10 requests per 5 minutes
+      "Core Elite": { multiplier: 3.0, priority: 3 }, // 15 requests per 5 minutes
+    };
 
     // Queue management
     this.maxQueueSize = parseInt(process.env.AI_MAX_QUEUE_SIZE) || 1000;
@@ -28,27 +35,49 @@ export class ConcurrencyManager {
   /**
    * Check if user has exceeded rate limit
    * @param {string} userId - User ID to check
+   * @param {Object} coreUserData - User data including Core tier info
    * @returns {boolean} True if rate limited
    */
-  isUserRateLimited(userId) {
+  isUserRateLimited(userId, coreUserData = null) {
     if (!userId) return false;
 
     const now = Date.now();
     const userData = this.userRequests.get(userId);
 
+    // Calculate effective rate limit based on Core tier
+    let effectiveRateLimit = this.userRateLimit;
+    if (coreUserData && coreUserData.isCore && coreUserData.coreTier) {
+      const tierConfig = this.coreTierLimits[coreUserData.coreTier];
+      if (tierConfig) {
+        effectiveRateLimit = Math.floor(
+          this.userRateLimit * tierConfig.multiplier,
+        );
+      }
+    }
+
     if (!userData) {
-      this.userRequests.set(userId, { count: 1, lastRequest: now });
+      this.userRequests.set(userId, {
+        count: 1,
+        lastRequest: now,
+        isCore: coreUserData?.isCore || false,
+        coreTier: coreUserData?.coreTier || null,
+      });
       return false;
     }
 
     // Reset counter if window has passed
     if (now - userData.lastRequest > this.userRateWindow) {
-      this.userRequests.set(userId, { count: 1, lastRequest: now });
+      this.userRequests.set(userId, {
+        count: 1,
+        lastRequest: now,
+        isCore: coreUserData?.isCore || false,
+        coreTier: coreUserData?.coreTier || null,
+      });
       return false;
     }
 
-    // Check if user has exceeded limit
-    if (userData.count >= this.userRateLimit) {
+    // Check if user has exceeded their effective limit
+    if (userData.count >= effectiveRateLimit) {
       return true;
     }
 
@@ -82,10 +111,19 @@ export class ConcurrencyManager {
     return new Promise((resolve, reject) => {
       // Check user rate limiting
       const userId = options.userId;
-      if (userId && this.isUserRateLimited(userId)) {
+      const coreUserData = options.coreUserData;
+      if (userId && this.isUserRateLimited(userId, coreUserData)) {
+        const effectiveRateLimit =
+          coreUserData?.isCore && coreUserData?.coreTier
+            ? Math.floor(
+                this.userRateLimit *
+                  (this.coreTierLimits[coreUserData.coreTier]?.multiplier || 1),
+              )
+            : this.userRateLimit;
+
         reject(
           new Error(
-            `Rate limit exceeded. Please wait ${Math.ceil(this.userRateWindow / 60000)} minutes before making another request.`,
+            `Rate limit exceeded. You can make ${effectiveRateLimit} requests per ${Math.ceil(this.userRateWindow / 60000)} minutes. Please wait before making another request.`,
           ),
         );
         return;
@@ -106,6 +144,10 @@ export class ConcurrencyManager {
         timestamp: Date.now(),
         attempts: 0,
         userId,
+        priority:
+          coreUserData?.isCore && coreUserData?.coreTier
+            ? this.coreTierLimits[coreUserData.coreTier]?.priority || 0
+            : 0,
       };
 
       this.queue.push(request);
@@ -140,6 +182,14 @@ export class ConcurrencyManager {
     ) {
       return;
     }
+
+    // Sort queue by priority (higher priority first), then by timestamp
+    this.queue.sort((a, b) => {
+      if (a.priority !== b.priority) {
+        return b.priority - a.priority; // Higher priority first
+      }
+      return a.timestamp - b.timestamp; // Earlier timestamp first
+    });
 
     const request = this.queue.shift();
     if (!request) return;

@@ -480,12 +480,12 @@ export function formatStyleOptions(styleOptions) {
 }
 
 /**
- * Calculate generation cost based on user status
+ * Calculate generation cost (all users pay 1 Core)
  * @param {Object} userData - User credit data
  * @returns {number} Cost in credits
  */
-export function calculateGenerationCost(userData) {
-  return userData.isCore ? 1 : 2;
+export function calculateGenerationCost(_userData) {
+  return 1; // All users pay 1 Core per avatar generation
 }
 
 /**

@@ -23,7 +23,8 @@ export class CreditManager {
       lastUpdated: new Date().toISOString(),
     };
 
-    // All users pay 1 Core per image generation
+    // All users pay 1 Core per avatar generation
+    // Core members get rate limiting benefits instead of cost reduction
     const creditsNeeded = 1;
 
     return {
@@ -52,7 +53,7 @@ export class CreditManager {
 
     const previousCount = userData.totalGenerated;
 
-    // All users pay 1 Core per image generation
+    // All users pay 1 Core per avatar generation
     userData.credits -= creditsNeeded;
     userData.totalGenerated += 1;
     userData.lastUpdated = new Date().toISOString();

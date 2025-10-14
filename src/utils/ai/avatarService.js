@@ -91,6 +91,7 @@ export class AvatarService {
     userId = "unknown",
     styleOptions = {},
     progressCallback = null,
+    coreUserData = null,
   ) {
     const requestId = `avatar_${userId}_${Date.now()}`;
     const startTime = Date.now();
@@ -195,7 +196,7 @@ export class AvatarService {
           }
         }
       },
-      { prompt, showDebugPrompt },
+      { prompt, showDebugPrompt, userId, coreUserData },
     );
   }
 

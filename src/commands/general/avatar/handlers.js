@@ -99,6 +99,7 @@ export async function handleAvatarGeneration(interaction, _client) {
       interaction.user.id,
       { colorStyle, mood, artStyle }, // style options
       null, // No progress callback
+      userData, // Core user data for rate limiting
     );
 
     // Animation cleanup not needed for static loading

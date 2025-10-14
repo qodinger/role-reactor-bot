@@ -431,25 +431,6 @@ async function loadEvents(client, eventsPath) {
   }
 }
 
-// Track active guilds for Ko-fi webhook processing
-async function trackActiveGuilds(client) {
-  const logger = getLogger();
-  try {
-    const storage = await getStorageManager();
-    const guildIds = Array.from(client.guilds.cache.keys());
-
-    // Store active guilds for webhook processing
-    await storage.set("bot_active_guilds", guildIds);
-
-    logger.info(
-      `📊 Tracked ${guildIds.length} active guilds for Ko-fi processing:`,
-      guildIds,
-    );
-  } catch (error) {
-    logger.error("Error tracking active guilds:", error);
-  }
-}
-
 async function main() {
   const logger = getLogger();
   let client = null;
@@ -561,22 +542,17 @@ async function main() {
       logger.info("🔄 Discord client reconnecting...");
     });
 
-    // Track guild changes for Ko-fi processing
+    // Track guild changes
     client.on("guildCreate", async guild => {
       logger.info(`➕ Bot joined guild: ${guild.name} (${guild.id})`);
-      await trackActiveGuilds(client);
     });
 
     client.on("guildDelete", async guild => {
       logger.info(`➖ Bot left guild: ${guild.name} (${guild.id})`);
-      await trackActiveGuilds(client);
     });
 
     client.once("ready", () => {
       logger.success(`✅ ${client.user.tag} v${getVersion()} is ready!`);
-
-      // Track active guilds for Ko-fi webhook processing
-      trackActiveGuilds(client);
 
       // Start webhook server for Ko-fi integration
       startWebhookServer();

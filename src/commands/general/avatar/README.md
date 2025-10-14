@@ -110,8 +110,8 @@ src/commands/general/avatar/
 
 ### Credit System
 
-- **Regular Users**: 2 credits per avatar ($0.10)
-- **Core Members**: 1 credit per avatar ($0.05)
+- **All Users**: 1 Core per avatar ($0.10)
+- **Core Members**: Get rate limiting benefits (higher limits, priority processing)
 - **API Cost**: $0.01 per generation
 - **Storage**: Centralized credit data in `core_credit.json`
 
