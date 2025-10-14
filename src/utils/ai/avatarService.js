@@ -100,6 +100,7 @@ export class AvatarService {
               size: "1024x1024",
               quality: "standard",
               userId, // Pass userId for rate limiting
+              styleOptions, // Include style options for cache key differentiation
             },
           });
 

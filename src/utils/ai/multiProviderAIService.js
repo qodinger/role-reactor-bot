@@ -214,14 +214,18 @@ export class MultiProviderAIService {
    * @param {Object} config - Generation configuration
    * @returns {Promise<Object>} Generated image data
    */
-  async generateImageOpenRouter(prompt, model, _config) {
+  async generateImageOpenRouter(prompt, model, config) {
     const requestBody = {
       model,
       messages: [{ role: "user", content: prompt }],
       modalities: ["image", "text"],
     };
 
-    const cacheKey = `openrouter_image_${model}_${Buffer.from(prompt).toString("base64").slice(0, 32)}`;
+    // Include style options in cache key to prevent cache hits for different styles
+    const styleHash = config?.styleOptions ? 
+      Buffer.from(JSON.stringify(config.styleOptions)).toString("base64").slice(0, 16) : 
+      "default";
+    const cacheKey = `openrouter_image_${model}_${styleHash}_${Buffer.from(prompt).toString("base64").slice(0, 32)}`;
 
     const data = await this.makeApiRequest(
       this.config.providers.openrouter.baseUrl,

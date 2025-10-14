@@ -74,12 +74,9 @@ export function createSuccessEmbed(interaction, prompt) {
     .setColor(THEME.SUCCESS)
     .setTitle(`${EMOJIS.STATUS.SUCCESS} Avatar Complete!`)
     .setDescription(`**"${prompt}"**\n\n✨ *Your Avatar has been generated*`)
-    .setFooter(
-      UI_COMPONENTS.createFooter(
-        `Generated for ${interaction.user.username} • Avatar Generator`,
-        interaction.user.displayAvatarURL(),
-      ),
-    )
+    .setFooter({
+      text: `Generated for ${interaction.user.username} • Avatar Generator`,
+    })
     .setTimestamp();
 }
 
