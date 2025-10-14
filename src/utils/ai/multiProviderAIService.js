@@ -222,10 +222,24 @@ export class MultiProviderAIService {
     };
 
     // Include style options in cache key to prevent cache hits for different styles
-    const styleHash = config?.styleOptions ? 
-      Buffer.from(JSON.stringify(config.styleOptions)).toString("base64").slice(0, 16) : 
-      "default";
+    let styleHash = "default";
+    if (config?.styleOptions) {
+      // Create a more robust hash by using a simple hash function
+      const styleString = JSON.stringify(config.styleOptions, Object.keys(config.styleOptions).sort());
+      let hash = 0;
+      for (let i = 0; i < styleString.length; i++) {
+        const char = styleString.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32-bit integer
+      }
+      styleHash = Math.abs(hash).toString(36); // Convert to base36 for shorter string
+    }
     const cacheKey = `openrouter_image_${model}_${styleHash}_${Buffer.from(prompt).toString("base64").slice(0, 32)}`;
+    
+    // Debug logging for cache key generation
+    logger.debug(`Cache key generated: ${cacheKey}`);
+    logger.debug(`Style options: ${JSON.stringify(config?.styleOptions || {})}`);
+    logger.debug(`Style hash: ${styleHash}`);
 
     const data = await this.makeApiRequest(
       this.config.providers.openrouter.baseUrl,
