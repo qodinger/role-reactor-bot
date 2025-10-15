@@ -31,7 +31,7 @@ const TAG_PATTERNS = {
   support: ["support", "community", "sponsor", "donate"],
   fun: ["8ball", "question"],
   webhook: ["webhook", "api", "kofi", "donation"],
-  debug: ["debug", "avatar-debug", "verify"],
+  debug: ["debug", "verify"],
 };
 
 /**
@@ -141,7 +141,6 @@ export const COMMAND_CATEGORIES = {
       "health",
       "performance",
       "storage",
-      "avatar-debug",
       "core-management",
       "verify",
     ],

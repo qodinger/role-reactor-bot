@@ -122,7 +122,6 @@ export async function autocomplete(interaction) {
     "health",
     "performance",
     "storage",
-    "avatar-debug",
     "core-management",
     "verify",
   ];

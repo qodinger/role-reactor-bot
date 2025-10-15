@@ -31,7 +31,7 @@ export const data = new SlashCommandBuilder()
   .addSubcommand(subcommand =>
     subcommand
       .setName("add")
-      .setDescription("Add Core credits to a user")
+      .setDescription("🔒 [DEVELOPER ONLY] Add Core credits to a user")
       .addUserOption(option =>
         option
           .setName("user")
@@ -57,7 +57,7 @@ export const data = new SlashCommandBuilder()
   .addSubcommand(subcommand =>
     subcommand
       .setName("remove")
-      .setDescription("Remove Core credits from a user")
+      .setDescription("🔒 [DEVELOPER ONLY] Remove Core credits from a user")
       .addUserOption(option =>
         option
           .setName("user")
@@ -83,7 +83,9 @@ export const data = new SlashCommandBuilder()
   .addSubcommand(subcommand =>
     subcommand
       .setName("set")
-      .setDescription("Set a user's Core credits to a specific amount")
+      .setDescription(
+        "🔒 [DEVELOPER ONLY] Set a user's Core credits to a specific amount",
+      )
       .addUserOption(option =>
         option
           .setName("user")
@@ -109,7 +111,7 @@ export const data = new SlashCommandBuilder()
   .addSubcommand(subcommand =>
     subcommand
       .setName("tier")
-      .setDescription("Set a user's Core membership tier")
+      .setDescription("🔒 [DEVELOPER ONLY] Set a user's Core membership tier")
       .addUserOption(option =>
         option
           .setName("user")
@@ -141,7 +143,9 @@ export const data = new SlashCommandBuilder()
   .addSubcommand(subcommand =>
     subcommand
       .setName("remove-tier")
-      .setDescription("Remove a user's Core tier (subscription cancelled)")
+      .setDescription(
+        "🔒 [DEVELOPER ONLY] Remove a user's Core tier (subscription cancelled)",
+      )
       .addUserOption(option =>
         option
           .setName("user")
@@ -159,7 +163,9 @@ export const data = new SlashCommandBuilder()
   .addSubcommand(subcommand =>
     subcommand
       .setName("view")
-      .setDescription("View a user's Core credit information")
+      .setDescription(
+        "🔒 [DEVELOPER ONLY] View a user's Core credit information",
+      )
       .addUserOption(option =>
         option
           .setName("user")
@@ -167,7 +173,7 @@ export const data = new SlashCommandBuilder()
           .setRequired(true),
       ),
   )
-  .setDefaultMemberPermissions(0n)
+  .setDefaultMemberPermissions(0n) // Visible to all, but restricted by isDeveloper() check
   .setDMPermission(false);
 
 // ============================================================================

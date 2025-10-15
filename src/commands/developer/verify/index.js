@@ -1,19 +1,25 @@
 import { SlashCommandBuilder } from "discord.js";
 import { execute } from "./handlers.js";
 
+// ============================================================================
+// COMMAND DEFINITION
+// ============================================================================
+
 export const data = new SlashCommandBuilder()
   .setName("verify")
   .setDescription(
-    "🔒 [DEVELOPER ONLY] Manually verify Ko-fi donations and grant credits",
+    "🔒 [DEVELOPER ONLY] Manually verify Ko-fi donations and grant Core credits",
   )
   .addSubcommand(subcommand =>
     subcommand
       .setName("donation")
-      .setDescription("Verify a Ko-fi donation and grant credits")
+      .setDescription(
+        "🔒 [DEVELOPER ONLY] Verify a Ko-fi donation and grant Core credits",
+      )
       .addUserOption(option =>
         option
           .setName("user")
-          .setDescription("User to grant credits to")
+          .setDescription("User to grant Core credits to")
           .setRequired(true),
       )
       .addNumberOption(option =>
@@ -21,7 +27,8 @@ export const data = new SlashCommandBuilder()
           .setName("amount")
           .setDescription("Donation amount in USD")
           .setRequired(true)
-          .setMinValue(0.01),
+          .setMinValue(0.01)
+          .setMaxValue(10000),
       )
       .addStringOption(option =>
         option
@@ -40,11 +47,13 @@ export const data = new SlashCommandBuilder()
   .addSubcommand(subcommand =>
     subcommand
       .setName("subscription")
-      .setDescription("Verify a Ko-fi subscription and grant Core status")
+      .setDescription(
+        "🔒 [DEVELOPER ONLY] Verify a Ko-fi subscription and grant Core membership",
+      )
       .addUserOption(option =>
         option
           .setName("user")
-          .setDescription("User to grant Core status to")
+          .setDescription("User to grant Core membership to")
           .setRequired(true),
       )
       .addStringOption(option =>
@@ -64,17 +73,19 @@ export const data = new SlashCommandBuilder()
   .addSubcommand(subcommand =>
     subcommand
       .setName("manual")
-      .setDescription("Manually add credits without Ko-fi verification")
+      .setDescription(
+        "🔒 [DEVELOPER ONLY] Manually add Core credits without Ko-fi verification",
+      )
       .addUserOption(option =>
         option
           .setName("user")
-          .setDescription("User to grant credits to")
+          .setDescription("User to grant Core credits to")
           .setRequired(true),
       )
       .addIntegerOption(option =>
         option
           .setName("credits")
-          .setDescription("Number of credits to add")
+          .setDescription("Number of Core credits to add")
           .setRequired(true)
           .setMinValue(1)
           .setMaxValue(1000),
@@ -87,6 +98,6 @@ export const data = new SlashCommandBuilder()
           .setMaxLength(200),
       ),
   )
-  .setDefaultMemberPermissions(0n); // Developer only
+  .setDefaultMemberPermissions(0n); // Visible to all, but restricted by isDeveloper() check
 
 export { execute };

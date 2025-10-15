@@ -16,23 +16,17 @@ class EmojiConfig {
     const emojiConfigs = {
       development: {
         core: "1427264796276817950",
-        coreBasic: "1427264796276817950",
-        premiumBadge: "1427242549403324536",
-        eliteBadge: "1427242061991514142",
+        coreBasicBadge: "1427982373244637244",
+        corePremiumBadge: "1427982777466359859",
+        coreEliteBadge: "1427983161513607288",
         // Add more emojis here as needed
-        // star: "dev_star_emoji_id",
-        // diamond: "dev_diamond_emoji_id",
-        // premium: "dev_premium_emoji_id",
       },
       production: {
         core: "1427267639457222737",
-        coreBasic: "1427267639457222737",
-        premiumBadge: "1427267639457222737",
-        eliteBadge: "1427267639457222737",
+        coreBasicBadge: "1427984193756987452",
+        corePremiumBadge: "1427984335377793136",
+        coreEliteBadge: "1427984418420555906",
         // Add more emojis here as needed
-        // star: "prod_star_emoji_id",
-        // diamond: "prod_diamond_emoji_id",
-        // premium: "prod_premium_emoji_id",
       },
     };
 
@@ -47,6 +41,33 @@ class EmojiConfig {
     }
 
     return formattedEmojis;
+  }
+
+  /**
+   * Get the appropriate badge emoji for a core tier
+   *
+   * @param {string} tier - The core tier name (e.g., "Core Basic", "Core Premium", "Core Elite")
+   * @returns {string} The badge emoji for the tier, or fallback emoji if not found
+   *
+   * @example
+   * // Usage in embeds or messages
+   * const badge = emojiConfig.getTierBadge("Core Premium");
+   * // Returns: <:core_premium_badge:1427984335377793136>
+   *
+   * // Usage in embed fields
+   * embed.addFields({
+   *   name: "Tier",
+   *   value: `${emojiConfig.getTierBadge(userData.coreTier)} ${userData.coreTier}`
+   * });
+   */
+  getTierBadge(tier) {
+    const badges = {
+      "Core Basic": this.customEmojis.coreBasicBadge,
+      "Core Premium": this.customEmojis.corePremiumBadge,
+      "Core Elite": this.customEmojis.coreEliteBadge,
+    };
+
+    return badges[tier] || "⭐";
   }
 
   /**

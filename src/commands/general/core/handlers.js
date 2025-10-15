@@ -1,12 +1,25 @@
 import { MessageFlags } from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
-import { getStorageManager } from "../../../utils/storage/storageManager.js";
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 import {
   createBalanceEmbed,
   createPricingEmbed,
   createErrorEmbed,
+  createValidationErrorEmbed,
 } from "./embeds.js";
+import {
+  getUserData,
+  handleCoreError,
+  logOperationDuration,
+  createPerformanceContext,
+} from "./utils.js";
+import {
+  validateCoreCommandInputs,
+  validateBalanceInputs,
+  validatePricingInputs,
+  validateInteractionState,
+  validateCommandPermissions,
+} from "./validation.js";
 
 const logger = getLogger();
 
@@ -16,23 +29,47 @@ const logger = getLogger();
  * @param {import("discord.js").Client} _client - The Discord client (unused)
  */
 export async function execute(interaction, _client) {
-  const startTime = Date.now();
-  const userId = interaction.user.id;
-  const username = interaction.user.username;
+  const perfContext = createPerformanceContext(
+    "core command",
+    interaction.user.username,
+    interaction.user.id,
+  );
 
   try {
-    if (!interaction.isRepliable()) {
-      logger.warn("Interaction is no longer repliable, skipping execution");
+    // Validate interaction state
+    const stateValidation = validateInteractionState(interaction);
+    if (!stateValidation.valid) {
+      logger.warn(`Interaction validation failed: ${stateValidation.error}`);
+      return;
+    }
+
+    // Validate command permissions
+    const permissionValidation = validateCommandPermissions(interaction);
+    if (!permissionValidation.valid) {
+      logger.warn(
+        `Permission validation failed: ${permissionValidation.error}`,
+      );
+      return;
+    }
+
+    // Validate core command inputs
+    const inputValidation = validateCoreCommandInputs(interaction);
+    if (!inputValidation.valid) {
+      const errorEmbed = createValidationErrorEmbed(
+        inputValidation.errors,
+        interaction.client,
+      );
+      await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
       return;
     }
 
     // Defer the interaction immediately to prevent timeout
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-    const subcommand = interaction.options.getSubcommand();
+    const { subcommand } = inputValidation.data;
 
     logger.debug(
-      `Core command executed by ${username} (${userId}): ${subcommand}`,
+      `Core command executed by ${perfContext.username} (${perfContext.userId}): ${subcommand}`,
     );
 
     switch (subcommand) {
@@ -43,23 +80,26 @@ export async function execute(interaction, _client) {
         await handlePricing(interaction);
         break;
       default: {
-        const response = {
-          content: "❌ **Unknown Subcommand**\nPlease use a valid subcommand.",
-          flags: MessageFlags.Ephemeral,
-        };
-        await interaction.editReply(response);
+        const errorEmbed = createErrorEmbed(
+          "Unknown Subcommand",
+          "Please use a valid subcommand.",
+          interaction.client.user.displayAvatarURL(),
+        );
+        await interaction.editReply({ embeds: [errorEmbed] });
         break;
       }
     }
 
-    const duration = Date.now() - startTime;
-    logger.info(`Core command completed in ${duration}ms for ${username}`);
-  } catch (error) {
-    const duration = Date.now() - startTime;
-    logger.error(
-      `Error executing core command for ${username} after ${duration}ms:`,
-      error,
+    logOperationDuration(
+      perfContext.startTime,
+      "Core command",
+      perfContext.username,
     );
+  } catch (error) {
+    handleCoreError(error, "core command", {
+      userId: perfContext.userId,
+      username: perfContext.username,
+    });
     await handleCommandError(interaction, error);
   }
 }
@@ -69,44 +109,50 @@ export async function execute(interaction, _client) {
  * @param {import("discord.js").ChatInputCommandInteraction} interaction - The interaction object
  */
 async function handleBalance(interaction) {
-  const startTime = Date.now();
-  const userId = interaction.user.id;
-  const username = interaction.user.username;
+  const perfContext = createPerformanceContext(
+    "balance check",
+    interaction.user.username,
+    interaction.user.id,
+  );
 
   try {
-    const storage = await getStorageManager();
+    // Validate balance inputs
+    const inputValidation = validateBalanceInputs(interaction);
+    if (!inputValidation.valid) {
+      const errorEmbed = createValidationErrorEmbed(
+        inputValidation.errors,
+        interaction.client,
+      );
+      await interaction.editReply({ embeds: [errorEmbed] });
+      return;
+    }
 
-    // Get centralized credit data (global, not per guild)
-    const coreCredits = (await storage.get("core_credit")) || {};
-
-    // Get user's credit data with default values
-    const userData = coreCredits[userId] || {
-      credits: 0,
-      isCore: false,
-      coreTier: null,
-      totalGenerated: 0,
-      lastUpdated: new Date().toISOString(),
-    };
+    // Get user data
+    const userData = await getUserData(perfContext.userId);
 
     // Create and send balance embed
     const balanceEmbed = createBalanceEmbed(
       userData,
-      username,
+      perfContext.username,
       interaction.user.displayAvatarURL(),
     );
 
     await interaction.editReply({ embeds: [balanceEmbed] });
 
-    const duration = Date.now() - startTime;
+    logOperationDuration(
+      perfContext.startTime,
+      "Balance check",
+      perfContext.username,
+    );
+
     logger.info(
-      `Balance check completed in ${duration}ms for ${username}: ${userData.credits} Cores`,
+      `Balance check completed for ${perfContext.username}: ${userData.credits} Cores`,
     );
   } catch (error) {
-    const duration = Date.now() - startTime;
-    logger.error(
-      `Error checking balance for ${username} after ${duration}ms:`,
-      error,
-    );
+    handleCoreError(error, "balance check", {
+      userId: perfContext.userId,
+      username: perfContext.username,
+    });
 
     const errorEmbed = createErrorEmbed(
       "Balance Check Failed",
@@ -123,24 +169,40 @@ async function handleBalance(interaction) {
  * @param {import("discord.js").ChatInputCommandInteraction} interaction - The interaction object
  */
 async function handlePricing(interaction) {
-  const startTime = Date.now();
-  const username = interaction.user.username;
+  const perfContext = createPerformanceContext(
+    "pricing display",
+    interaction.user.username,
+    interaction.user.id,
+  );
 
   try {
+    // Validate pricing inputs
+    const inputValidation = validatePricingInputs(interaction);
+    if (!inputValidation.valid) {
+      const errorEmbed = createValidationErrorEmbed(
+        inputValidation.errors,
+        interaction.client,
+      );
+      await interaction.editReply({ embeds: [errorEmbed] });
+      return;
+    }
+
     // Create and send pricing embed
     const pricingEmbed = createPricingEmbed(
       interaction.client.user.displayAvatarURL(),
     );
     await interaction.editReply({ embeds: [pricingEmbed] });
 
-    const duration = Date.now() - startTime;
-    logger.info(`Pricing display completed in ${duration}ms for ${username}`);
-  } catch (error) {
-    const duration = Date.now() - startTime;
-    logger.error(
-      `Error displaying pricing for ${username} after ${duration}ms:`,
-      error,
+    logOperationDuration(
+      perfContext.startTime,
+      "Pricing display",
+      perfContext.username,
     );
+  } catch (error) {
+    handleCoreError(error, "pricing display", {
+      userId: perfContext.userId,
+      username: perfContext.username,
+    });
 
     const errorEmbed = createErrorEmbed(
       "Pricing Display Failed",

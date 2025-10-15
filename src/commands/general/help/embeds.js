@@ -895,40 +895,6 @@ export class HelpEmbedBuilder {
         );
         break;
 
-      case "avatar-debug":
-        embed.addFields(
-          {
-            name: `${EMOJIS.UI.INFO} 🔧 How to Use`,
-            value: [
-              "```/avatar-debug stats```",
-              "```/avatar-debug user user:@username```",
-              "```/avatar-debug generation-list user:@username```",
-            ].join("\n"),
-            inline: false,
-          },
-          {
-            name: `${EMOJIS.UI.MENU} 📝 Subcommands`,
-            value: [
-              "**stats** - View overall avatar generation statistics",
-              "**user** - Get detailed user generation information",
-              "**generation-list** - List recent generations for a user",
-            ].join("\n"),
-            inline: false,
-          },
-          {
-            name: `${EMOJIS.FEATURES.SECURITY} 🔐 Permissions`,
-            value: "• **Developer** access required",
-            inline: false,
-          },
-          {
-            name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
-            value:
-              "Detailed debugging information about avatar generation including success rates, processing times, error logs, and user statistics for troubleshooting!",
-            inline: false,
-          },
-        );
-        break;
-
       case "core-management":
         embed.addFields(
           {
@@ -937,7 +903,9 @@ export class HelpEmbedBuilder {
               "```/core-management add user:@username amount:10```",
               "```/core-management remove user:@username amount:5```",
               "```/core-management set user:@username amount:100```",
-              "```/core-management list```",
+              "```/core-management tier user:@username tier:Core Basic```",
+              "```/core-management remove-tier user:@username```",
+              "```/core-management view user:@username```",
             ].join("\n"),
             inline: false,
           },
@@ -947,7 +915,9 @@ export class HelpEmbedBuilder {
               "**add** - Add Core credits to a user's account",
               "**remove** - Remove Core credits from a user's account",
               "**set** - Set a user's Core balance to a specific amount",
-              "**list** - List all users with Core credits",
+              "**tier** - Set a user's Core membership tier",
+              "**remove-tier** - Remove a user's Core membership tier",
+              "**view** - View a user's Core account details",
             ].join("\n"),
             inline: false,
           },
@@ -959,7 +929,7 @@ export class HelpEmbedBuilder {
           {
             name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
             value:
-              "Complete Core credit management system for developers to add, remove, set, and monitor user Core balances across the entire bot!",
+              "Complete Core credit and tier management system for developers to add, remove, set, and monitor user Core balances and membership tiers across the entire bot!",
             inline: false,
           },
         );
@@ -970,18 +940,18 @@ export class HelpEmbedBuilder {
           {
             name: `${EMOJIS.STATUS.SUCCESS} ✅ How to Use`,
             value: [
-              "```/verify donation user:@username amount:5.00 transaction_id:abc123```",
-              "```/verify subscription user:@username tier:Core transaction_id:def456```",
-              "```/verify manual-credits user:@username amount:10 reason:Special event```",
+              "```/verify donation user:@username amount:5.00 ko-fi-url:https://ko-fi.com/s/abc123 notes:Monthly supporter```",
+              "```/verify subscription user:@username ko-fi-url:https://ko-fi.com/s/def456 notes:Premium subscriber```",
+              "```/verify manual user:@username credits:50 notes:Special event compensation```",
             ].join("\n"),
             inline: false,
           },
           {
             name: `${EMOJIS.UI.MENU} 📝 Subcommands`,
             value: [
-              "**donation** - Verify and process Ko-fi donations",
-              "**subscription** - Verify and process Ko-fi subscriptions",
-              "**manual-credits** - Manually add Core credits with reason",
+              "**donation** - Verify a Ko-fi donation and grant Core credits",
+              "**subscription** - Verify a Ko-fi subscription and grant Core membership",
+              "**manual** - Manually add Core credits without Ko-fi verification",
             ].join("\n"),
             inline: false,
           },
@@ -993,7 +963,7 @@ export class HelpEmbedBuilder {
           {
             name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
             value:
-              "Manual verification system for Ko-fi donations and subscriptions, with automatic Core credit assignment and transaction tracking for developers!",
+              "Manual verification system for Ko-fi donations and subscriptions, with automatic Core credit assignment and comprehensive transaction tracking for developers!",
             inline: false,
           },
         );

@@ -1,5 +1,6 @@
 import { EMOJIS, THEME } from "../../../config/theme.js";
 import { emojiConfig } from "../../../config/emojis.js";
+import { formatTierDisplay, getCorePricing } from "./utils.js";
 
 // Get custom emojis object
 const { customEmojis } = emojiConfig;
@@ -12,27 +13,7 @@ const { customEmojis } = emojiConfig;
  * @returns {Object} Discord embed object
  */
 export function createBalanceEmbed(userData, username, avatarURL) {
-  // Determine tier display with proper badge emoji
-  let tierDisplay;
-  if (userData.isCore && userData.coreTier) {
-    switch (userData.coreTier) {
-      case "Core Basic":
-        tierDisplay = `${customEmojis.coreBasic} Core Basic`;
-        break;
-      case "Core Premium":
-        tierDisplay = `${customEmojis.premiumBadge} Core Premium`;
-        break;
-      case "Core Elite":
-        tierDisplay = `${customEmojis.eliteBadge} Core Elite`;
-        break;
-      default:
-        tierDisplay = `${customEmojis.core} ${userData.coreTier}`;
-    }
-  } else if (userData.isCore) {
-    tierDisplay = `${customEmojis.core} Core Member`;
-  } else {
-    tierDisplay = "Regular";
-  }
+  const tierDisplay = formatTierDisplay(userData);
 
   return {
     color: THEME.PRIMARY,
@@ -42,18 +23,18 @@ export function createBalanceEmbed(userData, username, avatarURL) {
     },
     fields: [
       {
-        name: `**Tier**`,
+        name: `Tier`,
         value: tierDisplay,
         inline: true,
       },
       {
-        name: `**Balance**`,
+        name: `Balance`,
         value: `${customEmojis.core} ${userData.credits}`,
         inline: true,
       },
       {
-        name: ``,
-        value: `[Get more Cores on Ko-fi](https://ko-fi.com/rolereactor) • View \`/core pricing\``,
+        name: `Get More Cores`,
+        value: `[Donate on Ko-fi](https://ko-fi.com/rolereactor) • View \`/core pricing\``,
         inline: false,
       },
     ],
@@ -66,29 +47,47 @@ export function createBalanceEmbed(userData, username, avatarURL) {
  * @returns {Object} Discord embed object
  */
 export function createPricingEmbed(botAvatarURL) {
+  const pricing = getCorePricing();
+
+  // Format donation pricing
+  const donationPricing = Object.entries(pricing.donations)
+    .map(([price, credits]) => `**${price}** → ${credits} ${customEmojis.core}`)
+    .join("\n");
+
+  // Format subscription pricing
+  const subscriptionPricing = Object.entries(pricing.subscriptions)
+    .map(([tier, info]) => {
+      const tierBadge = emojiConfig.getTierBadge(tier);
+      return `**${tierBadge} ${tier}** ${info.price} → ${info.credits} ${customEmojis.core}`;
+    })
+    .join("\n");
+
+  // Format benefits
+  const benefits = pricing.benefits.map(benefit => `${benefit}`).join(" • ");
+
   return {
     color: THEME.PRIMARY,
-    title: `Core Pricing`,
+    title: `Core Pricing & Benefits`,
     fields: [
       {
-        name: `**One-time Donations**`,
-        value: `**$10** → 100 ${customEmojis.core}\n**$25** → 250 ${customEmojis.core}\n**$50** → 500 ${customEmojis.core}`,
+        name: `One-time Donations`,
+        value: donationPricing,
         inline: true,
       },
       {
-        name: `**Core Membership**`,
-        value: `**Basic** $10/mo → 150 ${customEmojis.core}\n**Premium** $25/mo → 400 ${customEmojis.core}\n**Elite** $50/mo → 850 ${customEmojis.core}`,
+        name: `Core Membership`,
+        value: subscriptionPricing,
         inline: true,
       },
       {
         name: `Core Benefits`,
-        value: `Priority processing • Monthly bonuses • Better value`,
+        value: benefits,
         inline: false,
       },
     ],
     timestamp: new Date().toISOString(),
     footer: {
-      text: `Donate on Ko-fi • Use /core balance to check balance`,
+      text: "Donate on Ko-fi • Use /core balance to check balance",
       icon_url: botAvatarURL,
     },
   };
@@ -110,6 +109,34 @@ export function createErrorEmbed(title, description, botAvatarURL) {
     footer: {
       text: "Core Energy • Error",
       icon_url: botAvatarURL,
+    },
+  };
+}
+
+/**
+ * Creates a validation error embed
+ * @param {Array<string>} errors - Array of error messages
+ * @param {Object} client - Discord client
+ * @returns {Object} Discord embed object
+ */
+export function createValidationErrorEmbed(errors, client) {
+  return {
+    color: THEME.ERROR,
+    title: `${EMOJIS.STATUS.ERROR} Validation Error`,
+    description: "Please fix the following errors:",
+    fields: [
+      {
+        name: "Errors",
+        value: errors
+          .map((error, index) => `${index + 1}. ${error}`)
+          .join("\n"),
+        inline: false,
+      },
+    ],
+    timestamp: new Date().toISOString(),
+    footer: {
+      text: "Core Energy • Input Validation",
+      icon_url: client.user.displayAvatarURL(),
     },
   };
 }

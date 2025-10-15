@@ -5,6 +5,7 @@ import {
   createCoreManagementEmbed,
   createDetailedCoreManagementEmbed,
 } from "./embeds.js";
+import { emojiConfig } from "../../../config/emojis.js";
 
 const logger = getLogger();
 
@@ -30,7 +31,10 @@ async function handleRemoveTier(interaction, targetUser, deferred = true) {
       operations: [],
     };
 
-    const oldTier = userData.coreTier || "None";
+    const oldTier = userData.coreTier
+      ? `${emojiConfig.getTierBadge(userData.coreTier)} ${userData.coreTier}`
+      : "None";
+    const oldTierName = userData.coreTier; // Store original tier name
     const oldCoreStatus = userData.isCore;
 
     // Remove Core status and tier
@@ -52,33 +56,23 @@ async function handleRemoveTier(interaction, targetUser, deferred = true) {
     coreCredits[userId] = userData;
     await storage.set("core_credit", coreCredits);
 
-    const successEmbed = createCoreManagementEmbed(
-      "warning",
-      "Core Tier Removed",
-      `Successfully removed ${targetUser.username}'s Core tier`,
-      [
-        {
-          name: "Previous Tier",
-          value: oldTier || "None",
-          inline: true,
-        },
-        {
-          name: "New Tier",
-          value: "None",
-          inline: true,
-        },
-        {
-          name: "Core Status",
-          value: "❌ Inactive",
-          inline: true,
-        },
-        {
-          name: "Reason",
-          value: reason,
-          inline: false,
-        },
-      ],
-    );
+    const embedParams = {
+      type: "remove-tier",
+      targetUser,
+      amount: 0,
+      oldAmount: 0,
+      newAmount: userData.credits,
+      reason,
+      operator: interaction.user,
+      userData: {
+        ...userData,
+        coreTier: oldTierName, // Use the original tier name
+      },
+    };
+
+    console.log("Embed params:", JSON.stringify(embedParams, null, 2));
+
+    const successEmbed = createDetailedCoreManagementEmbed(embedParams);
 
     if (deferred) {
       await interaction.editReply({ embeds: [successEmbed] });
@@ -117,7 +111,7 @@ async function handleSetTier(interaction, targetUser, deferred = true) {
       operations: [],
     };
 
-    const oldTier = userData.coreTier || "None";
+    const oldTier = `${emojiConfig.getTierBadge(userData.coreTier)} ${userData.coreTier}`;
     const oldCoreStatus = userData.isCore;
 
     if (tier === "none") {
@@ -163,7 +157,10 @@ async function handleSetTier(interaction, targetUser, deferred = true) {
         },
         {
           name: "New Tier",
-          value: tier === "none" ? "None" : tier,
+          value:
+            tier === "none"
+              ? "None"
+              : `${emojiConfig.getTierBadge(tier)} ${tier}`,
           inline: true,
         },
         {

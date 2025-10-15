@@ -12,7 +12,7 @@ export const data = new SlashCommandBuilder()
   .setDescription(
     "🔒 [DEVELOPER ONLY] View bot performance metrics and statistics",
   )
-  .setDefaultMemberPermissions(0n)
+  .setDefaultMemberPermissions(0n) // Visible to all, but restricted by isDeveloper() check
   .setDMPermission(false);
 
 // ============================================================================

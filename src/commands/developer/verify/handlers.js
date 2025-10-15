@@ -1,7 +1,27 @@
-import { EMOJIS, THEME } from "../../../config/theme.js";
-import { getStorageManager } from "../../../utils/storage/storageManager.js";
 import { getLogger } from "../../../utils/logger.js";
 import { isDeveloper } from "../../../utils/discord/permissions.js";
+import {
+  createDonationSuccessEmbed,
+  createSubscriptionSuccessEmbed,
+  createManualCreditsSuccessEmbed,
+  createErrorEmbed,
+  createPermissionDeniedEmbed,
+} from "./embeds.js";
+import {
+  getUserData,
+  saveUserData,
+  calculateCreditsFromDonation,
+  getMonthlyCreditsForTier,
+  addVerificationRecord,
+  createVerificationRecord,
+  handleVerificationError,
+} from "./utils.js";
+import {
+  validateDonationInputs,
+  validateSubscriptionInputs,
+  validateManualCreditsInputs,
+  createValidationErrorEmbed,
+} from "./validation.js";
 
 const logger = getLogger();
 
@@ -13,13 +33,11 @@ export async function execute(interaction) {
   if (!isDeveloper(interaction.user.id)) {
     logger.warn("Permission denied for verify command", {
       userId: interaction.user.id,
-      guildId: interaction.guild.id,
+      guildId: interaction.guild?.id,
     });
 
-    await interaction.editReply({
-      content:
-        "❌ **Permission Denied**\nYou need developer permissions to use this command.",
-    });
+    const permissionEmbed = createPermissionDeniedEmbed(interaction.client);
+    await interaction.editReply({ embeds: [permissionEmbed] });
     return;
   }
 
@@ -36,366 +54,235 @@ export async function execute(interaction) {
       case "manual":
         await handleManualCredits(interaction);
         break;
-      default:
-        await interaction.editReply({
-          content: "❌ Unknown subcommand",
+      default: {
+        const errorEmbed = createErrorEmbed({
+          title: "Unknown Subcommand",
+          description: "The specified subcommand is not recognized.",
+          footerText: "Core Verification • Error",
+          client: interaction.client,
         });
+        await interaction.editReply({ embeds: [errorEmbed] });
+        break;
+      }
     }
   } catch (error) {
-    logger.error(`Error executing ai-avatar-verify ${subcommand}:`, error);
+    handleVerificationError(error, `verify ${subcommand}`, {
+      userId: interaction.user.id,
+      guildId: interaction.guild?.id,
+    });
 
-    const errorEmbed = {
-      color: THEME.ERROR,
-      title: `${EMOJIS.STATUS.ERROR} Verification Error`,
+    const errorEmbed = createErrorEmbed({
+      title: "Verification Error",
       description: "An unexpected error occurred. Please try again later.",
-      timestamp: new Date().toISOString(),
-      footer: {
-        text: "AI Avatar Verification • Error",
-        icon_url: interaction.client.user.displayAvatarURL(),
-      },
-    };
+      footerText: "Core Verification • Error",
+      client: interaction.client,
+    });
 
     await interaction.editReply({ embeds: [errorEmbed] });
   }
 }
 
 async function handleDonationVerification(interaction) {
-  const targetUser = interaction.options.getUser("user");
-  const amount = interaction.options.getNumber("amount");
-  const koFiUrl = interaction.options.getString("ko-fi-url");
-  const notes = interaction.options.getString("notes");
+  // Validate inputs
+  const validation = validateDonationInputs(interaction.options);
+  if (!validation.valid) {
+    const errorEmbed = createValidationErrorEmbed(
+      validation.errors,
+      interaction.client,
+    );
+    await interaction.editReply({ embeds: [errorEmbed] });
+    return;
+  }
 
-  const storage = await getStorageManager();
+  const { user: targetUser, amount, koFiUrl, notes } = validation.data;
   const userId = targetUser.id;
 
   try {
-    // Get centralized credit data (global, not per guild)
-    const coreCredits = (await storage.get("core_credit")) || {};
-
     // Get current user data
-    const userData = coreCredits[userId] || {
-      credits: 0,
-      isCore: false,
-      totalGenerated: 0,
-      lastUpdated: new Date().toISOString(),
-      verifications: [],
-    };
+    const userData = await getUserData(userId);
 
-    // Calculate credits from donation amount ($0.05 per credit)
-    const creditsToAdd = Math.floor(amount / 0.05);
+    // Calculate credits from donation amount
+    const creditsToAdd = calculateCreditsFromDonation(amount);
 
     // Add credits
     userData.credits += creditsToAdd;
-    userData.lastUpdated = new Date().toISOString();
 
-    // Track verification
-    userData.verifications = userData.verifications || [];
-    userData.verifications.push({
-      type: "donation",
-      amount: amount || 0,
+    // Create and add verification record
+    const verificationRecord = createVerificationRecord("donation", {
+      amount,
       credits: creditsToAdd,
       koFiUrl,
       notes,
       verifiedBy: interaction.user.username,
-      verifiedAt: new Date().toISOString(),
     });
 
-    // Update centralized data
-    coreCredits[userId] = userData;
+    const updatedUserData = addVerificationRecord(userData, verificationRecord);
 
     // Save updated data
-    await storage.set("core_credit", coreCredits);
+    await saveUserData(userId, updatedUserData);
 
-    const successEmbed = {
-      color: THEME.SUCCESS,
-      title: `${EMOJIS.STATUS.SUCCESS} Donation Verified!`,
-      description: `Successfully verified a **$${amount} donation** for ${targetUser.username} and added **${creditsToAdd} credits** for AI services.`,
-      fields: [
-        {
-          name: `${EMOJIS.UI.USER} User`,
-          value: `${targetUser.username} (${targetUser.id})`,
-          inline: true,
-        },
-        {
-          name: `${EMOJIS.UI.INFO} Type`,
-          value: "Donation",
-          inline: true,
-        },
-        {
-          name: `${EMOJIS.UI.INFO} Amount`,
-          value: `$${amount}`,
-          inline: true,
-        },
-        {
-          name: `${EMOJIS.UI.INFO} Credits Added`,
-          value: `${creditsToAdd} credits`,
-          inline: true,
-        },
-        {
-          name: `${EMOJIS.UI.INFO} New Balance`,
-          value: `${userData.credits} credits`,
-          inline: true,
-        },
-        {
-          name: `${EMOJIS.UI.INFO} Verified By`,
-          value: interaction.user.username,
-          inline: true,
-        },
-        {
-          name: `${EMOJIS.UI.INFO} Ko-fi URL`,
-          value: koFiUrl || "Not provided",
-          inline: false,
-        },
-        {
-          name: `${EMOJIS.UI.INFO} Notes`,
-          value: notes || "No additional notes",
-          inline: false,
-        },
-      ],
-      timestamp: new Date().toISOString(),
-      footer: {
-        text: "AI Avatar Generator • Manual Verification",
-        icon_url: interaction.client.user.displayAvatarURL(),
-      },
-    };
+    // Create success embed
+    const successEmbed = createDonationSuccessEmbed({
+      targetUser,
+      amount,
+      creditsToAdd,
+      newBalance: updatedUserData.credits,
+      koFiUrl,
+      notes,
+      verifiedBy: interaction.user.username,
+      client: interaction.client,
+    });
 
     await interaction.editReply({ embeds: [successEmbed] });
   } catch (error) {
-    logger.error("Error verifying donation:", error);
+    handleVerificationError(error, "donation verification", {
+      userId,
+      amount,
+      verifiedBy: interaction.user.username,
+    });
 
-    const errorEmbed = {
-      color: THEME.ERROR,
-      title: `${EMOJIS.STATUS.ERROR} Verification Failed`,
+    const errorEmbed = createErrorEmbed({
+      title: "Verification Failed",
       description:
         "There was an error verifying the donation. Please try again later.",
-      timestamp: new Date().toISOString(),
-      footer: {
-        text: "AI Avatar Generator • Error",
-        icon_url: interaction.client.user.displayAvatarURL(),
-      },
-    };
+      footerText: "Core Verification • Error",
+      client: interaction.client,
+    });
 
     await interaction.editReply({ embeds: [errorEmbed] });
   }
 }
 
 async function handleSubscriptionVerification(interaction) {
-  const targetUser = interaction.options.getUser("user");
-  const koFiUrl = interaction.options.getString("ko-fi-url");
-  const notes = interaction.options.getString("notes");
+  // Validate inputs
+  const validation = validateSubscriptionInputs(interaction.options);
+  if (!validation.valid) {
+    const errorEmbed = createValidationErrorEmbed(
+      validation.errors,
+      interaction.client,
+    );
+    await interaction.editReply({ embeds: [errorEmbed] });
+    return;
+  }
 
-  const storage = await getStorageManager();
+  const { user: targetUser, koFiUrl, notes } = validation.data;
   const userId = targetUser.id;
 
   try {
-    // Get centralized credit data (global, not per guild)
-    const coreCredits = (await storage.get("core_credit")) || {};
-
     // Get current user data
-    const userData = coreCredits[userId] || {
-      credits: 0,
-      isCore: false,
-      totalGenerated: 0,
-      lastUpdated: new Date().toISOString(),
-      verifications: [],
-    };
+    const userData = await getUserData(userId);
 
-    // Set Core status and add monthly credits
+    // Set Core status and tier (default to Basic)
     userData.isCore = true;
-    userData.credits += 50; // Monthly free credits for Core members
-    userData.lastUpdated = new Date().toISOString();
+    userData.coreTier = userData.coreTier || "Core Basic";
 
-    // Track verification
-    userData.verifications = userData.verifications || [];
-    userData.verifications.push({
-      type: "subscription",
-      amount: 0,
-      credits: 50,
+    // Add monthly credits for the tier
+    const monthlyCredits = getMonthlyCreditsForTier(userData.coreTier);
+    userData.credits += monthlyCredits;
+
+    // Create and add verification record
+    const verificationRecord = createVerificationRecord("subscription", {
+      credits: monthlyCredits,
+      tier: userData.coreTier,
       koFiUrl,
       notes,
       verifiedBy: interaction.user.username,
-      verifiedAt: new Date().toISOString(),
     });
 
-    // Update centralized data
-    coreCredits[userId] = userData;
+    const updatedUserData = addVerificationRecord(userData, verificationRecord);
 
     // Save updated data
-    await storage.set("core_credit", coreCredits);
+    await saveUserData(userId, updatedUserData);
 
-    const successEmbed = {
-      color: THEME.SUCCESS,
-      title: `${EMOJIS.STATUS.SUCCESS} Core Status Granted`,
-      description: `Successfully granted Core membership to ${targetUser.username}!`,
-      fields: [
-        {
-          name: `${EMOJIS.UI.USER} User`,
-          value: `${targetUser.username} (${targetUser.id})`,
-          inline: true,
-        },
-        {
-          name: `${EMOJIS.UI.INFO} Type`,
-          value: "Subscription",
-          inline: true,
-        },
-        {
-          name: `${EMOJIS.UI.INFO} Status`,
-          value: "⭐ Core Member",
-          inline: true,
-        },
-        {
-          name: `${EMOJIS.UI.INFO} Credits Added`,
-          value: "50 credits (monthly)",
-          inline: true,
-        },
-        {
-          name: `${EMOJIS.UI.INFO} New Balance`,
-          value: `${userData.credits} credits`,
-          inline: true,
-        },
-        {
-          name: `${EMOJIS.UI.INFO} Verified By`,
-          value: interaction.user.username,
-          inline: true,
-        },
-        {
-          name: `${EMOJIS.UI.INFO} Ko-fi URL`,
-          value: koFiUrl || "Not provided",
-          inline: false,
-        },
-        {
-          name: `${EMOJIS.UI.INFO} Notes`,
-          value: notes || "No additional notes",
-          inline: false,
-        },
-      ],
-      timestamp: new Date().toISOString(),
-      footer: {
-        text: "AI Avatar Generator • Manual Verification",
-        icon_url: interaction.client.user.displayAvatarURL(),
-      },
-    };
+    // Create success embed
+    const successEmbed = createSubscriptionSuccessEmbed({
+      targetUser,
+      tier: updatedUserData.coreTier,
+      creditsAdded: monthlyCredits,
+      newBalance: updatedUserData.credits,
+      koFiUrl,
+      notes,
+      verifiedBy: interaction.user.username,
+      client: interaction.client,
+    });
 
     await interaction.editReply({ embeds: [successEmbed] });
   } catch (error) {
-    logger.error("Error verifying subscription:", error);
+    handleVerificationError(error, "subscription verification", {
+      userId,
+      verifiedBy: interaction.user.username,
+    });
 
-    const errorEmbed = {
-      color: THEME.ERROR,
-      title: `${EMOJIS.STATUS.ERROR} Verification Failed`,
+    const errorEmbed = createErrorEmbed({
+      title: "Verification Failed",
       description:
         "There was an error verifying the subscription. Please try again later.",
-      timestamp: new Date().toISOString(),
-      footer: {
-        text: "AI Avatar Generator • Error",
-        icon_url: interaction.client.user.displayAvatarURL(),
-      },
-    };
+      footerText: "Core Verification • Error",
+      client: interaction.client,
+    });
 
     await interaction.editReply({ embeds: [errorEmbed] });
   }
 }
 
 async function handleManualCredits(interaction) {
-  const targetUser = interaction.options.getUser("user");
-  const credits = interaction.options.getInteger("credits");
-  const notes = interaction.options.getString("notes");
+  // Validate inputs
+  const validation = validateManualCreditsInputs(interaction.options);
+  if (!validation.valid) {
+    const errorEmbed = createValidationErrorEmbed(
+      validation.errors,
+      interaction.client,
+    );
+    await interaction.editReply({ embeds: [errorEmbed] });
+    return;
+  }
 
-  const storage = await getStorageManager();
+  const { user: targetUser, credits, notes } = validation.data;
   const userId = targetUser.id;
 
   try {
-    // Get centralized credit data (global, not per guild)
-    const coreCredits = (await storage.get("core_credit")) || {};
-
     // Get current user data
-    const userData = coreCredits[userId] || {
-      credits: 0,
-      isCore: false,
-      totalGenerated: 0,
-      lastUpdated: new Date().toISOString(),
-      verifications: [],
-    };
+    const userData = await getUserData(userId);
 
     // Add credits
     userData.credits += credits;
-    userData.lastUpdated = new Date().toISOString();
 
-    // Track verification
-    userData.verifications = userData.verifications || [];
-    userData.verifications.push({
-      type: "manual",
-      amount: 0,
+    // Create and add verification record
+    const verificationRecord = createVerificationRecord("manual", {
       credits,
-      koFiUrl: null,
       notes,
       verifiedBy: interaction.user.username,
-      verifiedAt: new Date().toISOString(),
     });
 
-    // Update centralized data
-    coreCredits[userId] = userData;
+    const updatedUserData = addVerificationRecord(userData, verificationRecord);
 
     // Save updated data
-    await storage.set("core_credit", coreCredits);
+    await saveUserData(userId, updatedUserData);
 
-    const successEmbed = {
-      color: THEME.SUCCESS,
-      title: `${EMOJIS.STATUS.SUCCESS} Credits Added`,
-      description: `Successfully added ${credits} credits to ${targetUser.username}!`,
-      fields: [
-        {
-          name: `${EMOJIS.UI.USER} User`,
-          value: `${targetUser.username} (${targetUser.id})`,
-          inline: true,
-        },
-        {
-          name: `${EMOJIS.UI.INFO} Type`,
-          value: "Manual",
-          inline: true,
-        },
-        {
-          name: `${EMOJIS.UI.INFO} Credits Added`,
-          value: `${credits} credits`,
-          inline: true,
-        },
-        {
-          name: `${EMOJIS.UI.INFO} New Balance`,
-          value: `${userData.credits} credits`,
-          inline: true,
-        },
-        {
-          name: `${EMOJIS.UI.INFO} Added By`,
-          value: interaction.user.username,
-          inline: true,
-        },
-        {
-          name: `${EMOJIS.UI.INFO} Notes`,
-          value: notes || "No additional notes",
-          inline: false,
-        },
-      ],
-      timestamp: new Date().toISOString(),
-      footer: {
-        text: "AI Avatar Generator • Manual Credits",
-        icon_url: interaction.client.user.displayAvatarURL(),
-      },
-    };
+    // Create success embed
+    const successEmbed = createManualCreditsSuccessEmbed({
+      targetUser,
+      credits,
+      newBalance: updatedUserData.credits,
+      notes,
+      addedBy: interaction.user.username,
+      client: interaction.client,
+    });
 
     await interaction.editReply({ embeds: [successEmbed] });
   } catch (error) {
-    logger.error("Error adding manual credits:", error);
+    handleVerificationError(error, "manual credits", {
+      userId,
+      credits,
+      addedBy: interaction.user.username,
+    });
 
-    const errorEmbed = {
-      color: THEME.ERROR,
-      title: `${EMOJIS.STATUS.ERROR} Credit Addition Failed`,
+    const errorEmbed = createErrorEmbed({
+      title: "Credit Addition Failed",
       description: "There was an error adding credits. Please try again later.",
-      timestamp: new Date().toISOString(),
-      footer: {
-        text: "AI Avatar Generator • Error",
-        icon_url: interaction.client.user.displayAvatarURL(),
-      },
-    };
+      footerText: "Core Verification • Error",
+      client: interaction.client,
+    });
 
     await interaction.editReply({ embeds: [errorEmbed] });
   }

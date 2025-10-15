@@ -1,5 +1,5 @@
 import { EmbedBuilder } from "discord.js";
-import { THEME, EMOJIS } from "../../../config/theme.js";
+import { THEME } from "../../../config/theme.js";
 import { emojiConfig } from "../../../config/emojis.js";
 
 const CORE_EMOJI = emojiConfig.customEmojis.core;
@@ -38,12 +38,25 @@ export async function createDetailedCoreManagementEmbed({
   operator,
   userData = null,
 }) {
+  // Ensure description is always set
+  const description = getEmbedDescription(
+    type,
+    targetUser,
+    amount,
+    oldAmount,
+    newAmount,
+  );
+  console.log("Generated description:", description);
+  console.log("Type:", type, "TargetUser:", targetUser?.username);
+
+  const finalDescription =
+    description || "Core account management operation completed.";
+  console.log("Final description:", finalDescription);
+
   const embed = new EmbedBuilder()
     .setColor(getEmbedColor(type))
-    .setTitle(`${getEmbedTitle(type)} Core Energy`)
-    .setDescription(
-      getEmbedDescription(type, targetUser, amount, oldAmount, newAmount),
-    )
+    .setDescription(finalDescription)
+    .setThumbnail(targetUser.displayAvatarURL({ dynamic: true, size: 256 }))
     .setFooter({
       text: `Operator: ${operator.tag} • ${new Date().toLocaleDateString()}`,
       iconURL: operator.displayAvatarURL(),
@@ -59,25 +72,51 @@ export async function createDetailedCoreManagementEmbed({
         inline: true,
       },
       {
-        name: `${EMOJIS.UI.INFO} Membership Status`,
-        value: userData?.isCore
-          ? userData?.coreTier
-            ? `⭐ **${userData.coreTier}**`
-            : `⭐ **Core Member**`
-          : `👤 **Regular User**`,
-        inline: true,
-      },
-      {
-        name: `${EMOJIS.UI.INFO} Avatars Generated`,
-        value: `**${userData?.totalGenerated || 0}**`,
+        name: `Membership Status`,
+        value:
+          userData?.isCore && userData?.coreTier
+            ? `${emojiConfig.getTierBadge(userData.coreTier)} **${userData.coreTier}**`
+            : userData?.isCore
+              ? `${CORE_EMOJI} **Core Member**`
+              : `None`,
         inline: true,
       },
     );
 
     if (userData?.lastUpdated) {
       embed.addFields({
-        name: `${EMOJIS.TIME.CLOCK} Last Updated`,
+        name: `Last Updated`,
         value: `<t:${Math.floor(new Date(userData.lastUpdated).getTime() / 1000)}:R>`,
+        inline: false,
+      });
+    }
+  } else if (type === "remove-tier") {
+    // Special handling for tier removal
+    embed.addFields(
+      {
+        name: `Previous Tier`,
+        value: userData?.coreTier
+          ? `${emojiConfig.getTierBadge(userData.coreTier)} ${userData.coreTier}`
+          : "None",
+        inline: true,
+      },
+      {
+        name: `New Tier`,
+        value: "None",
+        inline: true,
+      },
+      {
+        name: `Core Status`,
+        value: "❌ Inactive",
+        inline: true,
+      },
+    );
+
+    // Add reason if provided
+    if (reason && reason !== "No reason provided") {
+      embed.addFields({
+        name: `Reason`,
+        value: reason,
         inline: false,
       });
     }
@@ -103,18 +142,22 @@ export async function createDetailedCoreManagementEmbed({
     // Add reason if provided
     if (reason && reason !== "No reason provided") {
       embed.addFields({
-        name: `${EMOJIS.UI.INFO} Reason`,
+        name: `Reason`,
         value: reason,
         inline: false,
       });
     }
   }
 
-  // Add target user info
+  // Add target user info with enhanced design
   embed.addFields({
-    name: `${EMOJIS.UI.USER} Target User`,
-    value: `${targetUser} (${targetUser.tag})\nID: \`${targetUser.id}\``,
-    inline: false,
+    name: `Target User`,
+    value: [
+      `**User:** ${targetUser}`,
+      `**Tag:** \`${targetUser.tag}\``,
+      `**ID:** \`${targetUser.id}\``,
+    ].join("\n"),
+    inline: true,
   });
 
   return embed;
@@ -134,38 +177,33 @@ function getEmbedColor(type) {
       return THEME.PRIMARY;
     case "view":
       return THEME.SECONDARY;
+    case "tier":
+      return THEME.SUCCESS;
+    case "remove-tier":
+      return THEME.WARNING;
     default:
       return THEME.PRIMARY;
   }
 }
 
-function getEmbedTitle(type) {
-  switch (type) {
-    case "add":
-      return "Added";
-    case "remove":
-      return "Removed";
-    case "set":
-      return "Set";
-    case "view":
-      return "Viewing";
-    default:
-      return "Core Management";
-  }
-}
-
 function getEmbedDescription(type, targetUser, amount, _oldAmount, _newAmount) {
+  const username = targetUser?.username || targetUser?.tag || "Unknown User";
+
   switch (type) {
     case "add":
-      return `Successfully added **${amount} ${CORE_EMOJI}** to ${targetUser}'s account.`;
+      return `Successfully added **${amount} ${CORE_EMOJI}** to ${username}'s Core account.`;
     case "remove":
-      return `Successfully removed **${amount} ${CORE_EMOJI}** from ${targetUser}'s account.`;
+      return `Successfully removed **${amount} ${CORE_EMOJI}** from ${username}'s Core account.`;
     case "set":
-      return `Successfully set ${targetUser}'s Core credits to **${amount} ${CORE_EMOJI}**.`;
+      return `Successfully set ${username}'s Core balance to **${amount} ${CORE_EMOJI}**.`;
     case "view":
-      return `Viewing ${targetUser}'s Core credit information.`;
+      return `Displaying ${username}'s Core account information and statistics.`;
+    case "tier":
+      return `Successfully updated ${username}'s Core membership tier.`;
+    case "remove-tier":
+      return `Successfully removed ${username}'s Core membership tier.`;
     default:
-      return "Core credit management operation completed.";
+      return "Core account management operation completed successfully.";
   }
 }
 

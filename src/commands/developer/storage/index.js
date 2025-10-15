@@ -1,4 +1,7 @@
-import { SlashCommandBuilder, MessageFlags } from "discord.js";
+import {
+  SlashCommandBuilder,
+  MessageFlags,
+} from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 import { handleStorageCheck } from "./handlers.js";
@@ -10,7 +13,7 @@ import { handleStorageCheck } from "./handlers.js";
 export const data = new SlashCommandBuilder()
   .setName("storage")
   .setDescription("🔒 [DEVELOPER ONLY] Show storage configuration status")
-  .setDefaultMemberPermissions(0n)
+  .setDefaultMemberPermissions(0n) // Visible to all, but restricted by isDeveloper() check
   .setDMPermission(false);
 
 // ============================================================================

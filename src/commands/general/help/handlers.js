@@ -81,7 +81,6 @@ export async function handleSpecificCommandHelp(
       "health",
       "performance",
       "storage",
-      "avatar-debug",
       "core-management",
       "verify",
     ];
