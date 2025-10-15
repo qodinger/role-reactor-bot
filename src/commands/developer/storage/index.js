@@ -1,7 +1,4 @@
-import {
-  SlashCommandBuilder,
-  MessageFlags,
-} from "discord.js";
+import { SlashCommandBuilder, MessageFlags } from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 import { handleStorageCheck } from "./handlers.js";
