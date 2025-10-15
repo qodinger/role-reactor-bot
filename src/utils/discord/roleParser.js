@@ -77,7 +77,12 @@ export function parseRoleString(roleString) {
     }
     // Handle regular role names
     else {
-      roleName = str;
+      // Strip @ symbol if it's not a role mention (not @&123456789)
+      if (str.startsWith("@") && !str.match(/^@&\d+$/)) {
+        roleName = str.substring(1); // Remove the @ symbol
+      } else {
+        roleName = str;
+      }
     }
 
     if (!roleName || roleName.trim() === "") {

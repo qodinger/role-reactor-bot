@@ -10,7 +10,7 @@ import { handleAvatarDebug } from "./handlers.js";
 export const data = new SlashCommandBuilder()
   .setName("avatar-debug")
   .setDescription(
-    "Developer tool: View avatar generation statistics and user history",
+    "🔒 [DEVELOPER ONLY] View avatar generation statistics and user history",
   )
   .addSubcommand(subcommand =>
     subcommand

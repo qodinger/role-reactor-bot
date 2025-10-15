@@ -4,7 +4,7 @@ import { execute } from "./handlers.js";
 export const data = new SlashCommandBuilder()
   .setName("verify")
   .setDescription(
-    "Manually verify Ko-fi donations and grant credits (Developer only)",
+    "🔒 [DEVELOPER ONLY] Manually verify Ko-fi donations and grant credits",
   )
   .addSubcommand(subcommand =>
     subcommand

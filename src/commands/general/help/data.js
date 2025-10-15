@@ -30,6 +30,8 @@ const TAG_PATTERNS = {
   link: ["invite", "link"],
   support: ["support", "community", "sponsor", "donate"],
   fun: ["8ball", "question"],
+  webhook: ["webhook", "api", "kofi", "donation"],
+  debug: ["debug", "avatar-debug", "verify"],
 };
 
 /**
@@ -94,6 +96,15 @@ const EMOJI_MAP = {
   // Community
   sponsor: EMOJIS.ACTIONS.HEART,
 
+  // Webhook and API
+  webhook: EMOJIS.FEATURES.MONITORING,
+  api: EMOJIS.FEATURES.MONITORING,
+  kofi: EMOJIS.ACTIONS.HEART,
+
+  // Debug and verification
+  debug: EMOJIS.UI.INFO,
+  verify: EMOJIS.STATUS.SUCCESS,
+
   // Default fallback
   default: EMOJIS.ACTIONS.HELP,
 };
@@ -120,10 +131,25 @@ export function getCommandEmoji(commandName) {
  * Command category definitions with automatic command discovery
  */
 export const COMMAND_CATEGORIES = {
+  developer: {
+    emoji: EMOJIS.CATEGORIES.DEVELOPER,
+    name: "Developer",
+    description: "Developer tools, bot management, and debugging commands",
+    color: THEME.DEVELOPER,
+    requiredPermissions: ["DEVELOPER"],
+    commandPatterns: [
+      "health",
+      "performance",
+      "storage",
+      "avatar-debug",
+      "core-management",
+      "verify",
+    ],
+  },
   admin: {
     emoji: EMOJIS.CATEGORIES.ADMIN,
     name: "Administration",
-    description: "Manage role reactions and server settings",
+    description: "Manage role reactions, temporary roles, and server settings",
     color: THEME.ADMIN,
     requiredPermissions: ["MANAGE_ROLES"],
     commandPatterns: [
@@ -138,7 +164,8 @@ export const COMMAND_CATEGORIES = {
   general: {
     emoji: EMOJIS.CATEGORIES.GENERAL,
     name: "General",
-    description: "Basic bot information and help",
+    description:
+      "Basic bot information, avatar generation, and community features",
     color: THEME.GENERAL,
     requiredPermissions: [],
     commandPatterns: [
@@ -151,15 +178,9 @@ export const COMMAND_CATEGORIES = {
       "8ball",
       "level",
       "leaderboard",
+      "core",
+      "poll",
     ],
-  },
-  developer: {
-    emoji: EMOJIS.CATEGORIES.DEVELOPER,
-    name: "Developer",
-    description: "Developer and bot management commands",
-    color: THEME.DEVELOPER,
-    requiredPermissions: ["DEVELOPER"],
-    commandPatterns: ["health", "performance", "storage"],
   },
 };
 
