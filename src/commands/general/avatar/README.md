@@ -133,7 +133,7 @@ src/commands/general/avatar/
 ## Dependencies
 
 - **Discord.js**: Discord API interaction
-- **Canvas**: Loading skeleton generation
+- **PNG Loading**: Static loading image from assets
 - **AI Service**: Google Gemini 2.5 Flash Image integration
 - **Storage Manager**: Credit and data persistence
 - **Theme System**: Consistent UI styling
