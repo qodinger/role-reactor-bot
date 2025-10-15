@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, PermissionFlagsBits } from "discord.js";
+import { SlashCommandBuilder } from "discord.js";
 import { execute } from "./handlers.js";
 
 export const data = new SlashCommandBuilder()
@@ -87,6 +87,6 @@ export const data = new SlashCommandBuilder()
           .setMaxLength(200),
       ),
   )
-  .setDefaultMemberPermissions(PermissionFlagsBits.Administrator);
+  .setDefaultMemberPermissions(0n); // Developer only
 
 export { execute };

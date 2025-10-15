@@ -131,11 +131,18 @@ class CommandHandler {
    * if (hasPermission) { /* user can manage roles *\/ }
    */
   async checkPermissionWithCache(member, permission) {
+    if (!member) return false;
+    
     const cacheKey = `${member.id}:${permission}`;
     const cached = this.permissionCache.get(cacheKey);
 
     if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
       return cached.hasPermission;
+    }
+
+    // Check if permissions property exists and has the has method
+    if (!member.permissions || typeof member.permissions.has !== 'function') {
+      return false;
     }
 
     const hasPermission = member.permissions.has(permission);

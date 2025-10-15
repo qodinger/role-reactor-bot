@@ -255,7 +255,9 @@ async function handleRefreshButton(interaction, poll) {
 async function handleDeleteButton(interaction, poll, storageManager) {
   // Check permissions
   const isCreator = poll.creatorId === interaction.user.id;
-  const isAdmin = interaction.member.permissions.has("ManageMessages");
+  const isAdmin = interaction.member && 
+    interaction.member.permissions && 
+    interaction.member.permissions.has("ManageMessages");
 
   if (!isCreator && !isAdmin) {
     return await interaction.editReply({
@@ -284,7 +286,9 @@ async function handleDeleteButton(interaction, poll, storageManager) {
 async function handleEndPollButton(interaction, poll, storageManager) {
   // Check permissions
   const isCreator = poll.creatorId === interaction.user.id;
-  const isAdmin = interaction.member.permissions.has("ManageMessages");
+  const isAdmin = interaction.member && 
+    interaction.member.permissions && 
+    interaction.member.permissions.has("ManageMessages");
 
   if (!isCreator && !isAdmin) {
     return await interaction.editReply({

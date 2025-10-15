@@ -562,6 +562,13 @@ async function main() {
       global.roleScheduler = scheduler; // Store globally for shutdown
       scheduler.start();
 
+      // Start automatic cleanup for generation history
+      import("./commands/general/avatar/utils/generationHistory.js").then(
+        ({ GenerationHistory }) => {
+          GenerationHistory.startAutoCleanup();
+        },
+      );
+
       // Start temporary role expiration scheduler
       const tempRoleScheduler = getRoleExpirationScheduler(client);
       global.tempRoleScheduler = tempRoleScheduler; // Store globally for shutdown

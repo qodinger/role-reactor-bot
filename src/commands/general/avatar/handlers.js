@@ -4,6 +4,7 @@ import { generateAvatar as generateAIAvatar } from "../../../utils/ai/avatarServ
 import { CreditManager } from "./utils/creditManager.js";
 import { InteractionHandler } from "./utils/interactionHandler.js";
 import { createLoadingSkeleton } from "./utils/imageUtils.js";
+import { GenerationHistory } from "./utils/generationHistory.js";
 import {
   createErrorEmbed,
   createCreditEmbed,
@@ -93,25 +94,49 @@ export async function handleAvatarGeneration(interaction, _client) {
     const aiStartTime = Date.now();
     logger.debug(`Starting AI generation...`);
 
-    const avatarData = await generateAIAvatar(
-      prompt,
-      false, // showDebugPrompt
-      interaction.user.id,
-      { colorStyle, mood, artStyle }, // style options
-      null, // No progress callback
-      userData, // Core user data for rate limiting
-    );
+    let avatarData;
+    let generationSuccess = false;
+    let generationError = null;
 
-    // Animation cleanup not needed for static loading
+    try {
+      avatarData = await generateAIAvatar(
+        prompt,
+        false, // showDebugPrompt
+        interaction.user.id,
+        { colorStyle, mood, artStyle }, // style options
+        null, // No progress callback
+        userData, // Core user data for rate limiting
+      );
 
-    logger.debug(`AI generation took ${Date.now() - aiStartTime}ms`);
+      if (!avatarData || !avatarData.imageBuffer) {
+        throw new Error("Failed to generate avatar image");
+      }
 
-    if (!avatarData || !avatarData.imageBuffer) {
-      throw new Error("Failed to generate avatar image");
+      generationSuccess = true;
+      logger.debug(`AI generation took ${Date.now() - aiStartTime}ms`);
+    } catch (error) {
+      generationSuccess = false;
+      generationError = error.message;
+      logger.error(`AI generation failed: ${error.message}`);
+      throw error;
+    } finally {
+      // Record generation history for debugging/support
+      const processingTime = Date.now() - aiStartTime;
+      await GenerationHistory.recordGeneration(interaction.user.id, {
+        prompt,
+        success: generationSuccess,
+        error: generationError,
+        processingTime,
+        userTier: userData.isCore
+          ? userData.coreTier || "Core Basic"
+          : "Regular",
+      });
     }
 
-    // Deduct credits
-    await CreditManager.deductCredits(interaction.user.id, creditsNeeded);
+    // Deduct credits only on success
+    if (generationSuccess) {
+      await CreditManager.deductCredits(interaction.user.id, creditsNeeded);
+    }
 
     // Create final attachment
     const attachment = new AttachmentBuilder(avatarData.imageBuffer, {

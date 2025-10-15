@@ -1,13 +1,27 @@
-import { PermissionFlagsBits } from "discord.js";
 import { EMOJIS, THEME } from "../../../config/theme.js";
 import { getStorageManager } from "../../../utils/storage/storageManager.js";
 import { getLogger } from "../../../utils/logger.js";
+import { isDeveloper } from "../../../utils/discord/permissions.js";
 
 const logger = getLogger();
 
 export async function execute(interaction) {
   // Defer the interaction immediately to prevent timeout
   await interaction.deferReply({ ephemeral: true });
+
+  // Check developer permissions
+  if (!isDeveloper(interaction.user.id)) {
+    logger.warn("Permission denied for verify command", {
+      userId: interaction.user.id,
+      guildId: interaction.guild.id,
+    });
+
+    await interaction.editReply({
+      content:
+        "❌ **Permission Denied**\nYou need developer permissions to use this command.",
+    });
+    return;
+  }
 
   const subcommand = interaction.options.getSubcommand();
 
@@ -46,15 +60,6 @@ export async function execute(interaction) {
 }
 
 async function handleDonationVerification(interaction) {
-  // Check if user has developer permissions
-  if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
-    await interaction.editReply({
-      content: "❌ You do not have permission to use this developer command.",
-      ephemeral: true,
-    });
-    return;
-  }
-
   const targetUser = interaction.options.getUser("user");
   const amount = interaction.options.getNumber("amount");
   const koFiUrl = interaction.options.getString("ko-fi-url");
@@ -175,15 +180,6 @@ async function handleDonationVerification(interaction) {
 }
 
 async function handleSubscriptionVerification(interaction) {
-  // Check if user has developer permissions
-  if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
-    await interaction.editReply({
-      content: "❌ You do not have permission to use this developer command.",
-      ephemeral: true,
-    });
-    return;
-  }
-
   const targetUser = interaction.options.getUser("user");
   const koFiUrl = interaction.options.getString("ko-fi-url");
   const notes = interaction.options.getString("notes");
@@ -301,15 +297,6 @@ async function handleSubscriptionVerification(interaction) {
 }
 
 async function handleManualCredits(interaction) {
-  // Check if user has developer permissions
-  if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
-    await interaction.editReply({
-      content: "❌ You do not have permission to use this developer command.",
-      ephemeral: true,
-    });
-    return;
-  }
-
   const targetUser = interaction.options.getUser("user");
   const credits = interaction.options.getInteger("credits");
   const notes = interaction.options.getString("notes");
