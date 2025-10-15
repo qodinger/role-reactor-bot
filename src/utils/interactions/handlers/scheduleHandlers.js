@@ -1,5 +1,6 @@
+import { MessageFlags } from "discord.js";
+import { THEME, THEME_COLOR, EMOJIS } from "../../../config/theme.js";
 import { getLogger } from "../../logger.js";
-import { THEME, THEME_COLOR } from "../../../config/theme.js";
 
 /**
  * Schedule role button interaction handlers
@@ -26,7 +27,7 @@ export const handleCancelSchedule = async interaction => {
   const logger = getLogger();
 
   try {
-    await interaction.deferReply({ flags: 64 });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     // Extract schedule ID from button customId
     const scheduleId = interaction.customId.replace("cancel_schedule_", "");
@@ -45,7 +46,7 @@ export const handleCancelSchedule = async interaction => {
         embeds: [
           new EmbedBuilder()
             .setColor(THEME.ERROR)
-            .setTitle("❌ Schedule Not Found")
+            .setTitle(`${EMOJIS.STATUS.ERROR} Schedule Not Found`)
             .setDescription(
               "The scheduled role could not be found or has already been cancelled.",
             )
@@ -57,10 +58,10 @@ export const handleCancelSchedule = async interaction => {
     // Create success embed
     const embed = new EmbedBuilder()
       .setColor(THEME.SUCCESS)
-      .setTitle("✅ Schedule Cancelled")
+      .setTitle(`${EMOJIS.STATUS.SUCCESS} Schedule Cancelled`)
       .setDescription("The scheduled role has been cancelled successfully.")
       .addFields({
-        name: "🆔 Schedule ID",
+        name: `${EMOJIS.UI.ID} Schedule ID`,
         value: `\`${formatDisplayId(scheduleId)}\``,
         inline: true,
       })
@@ -87,7 +88,7 @@ export const handleViewSchedule = async interaction => {
   const logger = getLogger();
 
   try {
-    await interaction.deferReply({ flags: 64 });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     // Extract schedule ID from button customId
     const scheduleId = interaction.customId.replace("view_schedule_", "");
@@ -113,8 +114,8 @@ export const handleViewSchedule = async interaction => {
       return await interaction.editReply({
         embeds: [
           new EmbedBuilder()
-            .setColor(0xff4444)
-            .setTitle("❌ Schedule Not Found")
+            .setColor(THEME.ERROR)
+            .setTitle(`${EMOJIS.STATUS.ERROR} Schedule Not Found`)
             .setDescription("The scheduled role could not be found.")
             .setTimestamp(),
         ],
@@ -134,47 +135,47 @@ export const handleViewSchedule = async interaction => {
         : "Unknown User";
 
       embed = new EmbedBuilder()
-        .setTitle("⏰ Scheduled Role Details")
+        .setTitle(`${EMOJIS.TIME.ALARM} Scheduled Role Details`)
         .setDescription(`Details for scheduled role assignment **${roleName}**`)
         .setColor(THEME_COLOR)
         .addFields(
           {
-            name: "🆔 Schedule ID",
+            name: `${EMOJIS.UI.ID} Schedule ID`,
             value: `\`${formatDisplayId(scheduledRole.scheduleId)}\``,
             inline: true,
           },
           {
-            name: "🎯 Role",
+            name: `${EMOJIS.ACTIONS.ROLE} Role`,
             value: roleName,
             inline: true,
           },
           {
-            name: "📅 Schedule Time",
+            name: `${EMOJIS.TIME.CALENDAR} Schedule Time`,
             value: new Date(scheduledRole.scheduleTime).toLocaleString(),
             inline: true,
           },
           {
-            name: "⏱️ Duration",
+            name: `${EMOJIS.TIME.TIMER} Duration`,
             value: scheduledRole.duration,
             inline: true,
           },
           {
-            name: "👥 Users",
+            name: `${EMOJIS.UI.USERS} Users`,
             value: `${scheduledRole.userIds.length} user(s)`,
             inline: true,
           },
           {
-            name: "📝 Reason",
+            name: `${EMOJIS.ACTIONS.WRITING} Reason`,
             value: scheduledRole.reason || "No reason specified",
             inline: true,
           },
           {
-            name: "👤 Scheduled By",
+            name: `${EMOJIS.UI.USER} Scheduled By`,
             value: scheduledByName,
             inline: true,
           },
           {
-            name: "📊 Status",
+            name: `${EMOJIS.UI.PROGRESS} Status`,
             value: scheduledRole.status,
             inline: true,
           },
@@ -190,47 +191,47 @@ export const handleViewSchedule = async interaction => {
       const createdByName = createdBy ? createdBy.displayName : "Unknown User";
 
       embed = new EmbedBuilder()
-        .setTitle("🔄 Recurring Schedule Details")
+        .setTitle(`${EMOJIS.ACTIONS.REFRESH} Recurring Schedule Details`)
         .setDescription(`Details for recurring role schedule **${roleName}**`)
         .setColor(THEME_COLOR)
         .addFields(
           {
-            name: "🆔 Schedule ID",
+            name: `${EMOJIS.UI.ID} Schedule ID`,
             value: `\`${formatDisplayId(recurringSchedule.scheduleId)}\``,
             inline: true,
           },
           {
-            name: "🎯 Role",
+            name: `${EMOJIS.ACTIONS.ROLE} Role`,
             value: roleName,
             inline: true,
           },
           {
-            name: "📅 Schedule Type",
+            name: `${EMOJIS.TIME.CALENDAR} Schedule Type`,
             value: recurringSchedule.schedule.type,
             inline: true,
           },
           {
-            name: "⏱️ Duration",
+            name: `${EMOJIS.TIME.TIMER} Duration`,
             value: recurringSchedule.duration,
             inline: true,
           },
           {
-            name: "👥 Users",
+            name: `${EMOJIS.UI.USERS} Users`,
             value: `${recurringSchedule.userIds.length} user(s)`,
             inline: true,
           },
           {
-            name: "📝 Reason",
+            name: `${EMOJIS.ACTIONS.WRITING} Reason`,
             value: recurringSchedule.reason || "No reason specified",
             inline: true,
           },
           {
-            name: "👤 Created By",
+            name: `${EMOJIS.UI.USER} Created By`,
             value: createdByName,
             inline: true,
           },
           {
-            name: "📊 Status",
+            name: `${EMOJIS.UI.PROGRESS} Status`,
             value: recurringSchedule.status,
             inline: true,
           },
@@ -259,7 +260,7 @@ export const handleModifySchedule = async interaction => {
   const logger = getLogger();
 
   try {
-    await interaction.deferReply({ flags: 64 });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     // Extract schedule ID from button customId
     const scheduleId = interaction.customId.replace("modify_schedule_", "");
@@ -271,15 +272,15 @@ export const handleModifySchedule = async interaction => {
     // This can be expanded later to allow editing schedule parameters
     const embed = new EmbedBuilder()
       .setColor(THEME.WARNING)
-      .setTitle("⚠️ Modification Not Available")
+      .setTitle(`${EMOJIS.STATUS.WARNING} Modification Not Available`)
       .setDescription("Schedule modification is not yet implemented.")
       .addFields({
-        name: "🆔 Schedule ID",
+        name: `${EMOJIS.UI.ID} Schedule ID`,
         value: `\`${formatDisplayId(scheduleId)}\``,
         inline: true,
       })
       .addFields({
-        name: "💡 Alternative",
+        name: `${EMOJIS.ACTIONS.ALTERNATIVE} Alternative`,
         value:
           "You can cancel this schedule and create a new one with the desired parameters.",
         inline: false,
@@ -314,8 +315,8 @@ const handleScheduleError = async (interaction, action) => {
   if (!interaction.replied && !interaction.deferred) {
     try {
       await interaction.reply({
-        content: `❌ An error occurred while ${action}.`,
-        flags: 64,
+        content: `${EMOJIS.STATUS.ERROR} An error occurred while ${action}.`,
+        flags: MessageFlags.Ephemeral,
       });
     } catch (replyError) {
       logger.error("Error sending error reply", replyError);
@@ -323,7 +324,7 @@ const handleScheduleError = async (interaction, action) => {
   } else if (interaction.deferred) {
     try {
       await interaction.editReply({
-        content: `❌ An error occurred while ${action}.`,
+        content: `${EMOJIS.STATUS.ERROR} An error occurred while ${action}.`,
       });
     } catch (editError) {
       logger.error("Error sending error edit reply", editError);

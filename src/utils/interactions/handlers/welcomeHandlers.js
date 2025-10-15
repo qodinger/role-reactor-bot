@@ -13,7 +13,7 @@ import {
   processWelcomeMessage,
   createWelcomeEmbed,
 } from "../../discord/welcomeUtils.js";
-import { THEME, THEME_COLOR } from "../../../config/theme.js";
+import { THEME, THEME_COLOR, EMOJIS } from "../../../config/theme.js";
 
 /**
  * Handle welcome configure button interaction
@@ -23,8 +23,13 @@ export async function handleWelcomeConfigure(interaction) {
   const logger = getLogger();
 
   try {
+    // Defer the interaction immediately to prevent timeout
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.deferUpdate();
+    }
+
     if (!hasAdminPermissions(interaction.member)) {
-      return interaction.reply({
+      return interaction.editReply({
         embeds: [
           errorEmbed({
             title: "Permission Denied",
@@ -32,7 +37,6 @@ export async function handleWelcomeConfigure(interaction) {
               "You need administrator permissions to configure the welcome system.",
           }),
         ],
-        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -55,10 +59,9 @@ export async function handleWelcomeConfigure(interaction) {
       currentSettings,
     );
 
-    await interaction.reply({
+    await interaction.editReply({
       embeds: [embed],
       components,
-      flags: MessageFlags.Ephemeral,
     });
 
     logger.info(
@@ -162,19 +165,19 @@ export async function handleWelcomeSelectChannel(interaction) {
     );
 
     const embed = {
-      title: "📝 Select Welcome Channel",
+      title: `${EMOJIS.ACTIONS.WRITING} Select Welcome Channel`,
       description:
         "Choose where to send welcome messages for new members joining your server.",
       color: THEME_COLOR,
       fields: [
         {
-          name: "📋 What This Does",
+          name: `${EMOJIS.ACTIONS.INSTRUCTIONS} What This Does`,
           value:
             "Select a channel from the dropdown below where welcome messages will be sent. Make sure the bot has permission to send messages in the selected channel.",
           inline: false,
         },
         {
-          name: "💡 Pro Tips",
+          name: `${EMOJIS.ACTIONS.PRO_TIPS} Pro Tips`,
           value:
             "• Choose a channel that new members can see\n• Consider using a dedicated #welcome channel\n• Make sure the bot has proper permissions",
           inline: false,
@@ -325,10 +328,10 @@ export async function handleWelcomeReset(interaction) {
       guildId: interaction.guild.id,
       enabled: false,
       channelId: null,
-      message: "Welcome **{user}** to **{server}**! 🎉",
+      message: `Welcome **{user}** to **{server}**! ${EMOJIS.ACTIONS.WELCOME}`,
       embedEnabled: true,
       embedColor: THEME_COLOR,
-      embedTitle: "👋 Welcome to {server}!",
+      embedTitle: `${EMOJIS.ACTIONS.WAVE} Welcome to {server}!`,
       embedDescription: "Thanks for joining our community!",
       embedThumbnail: true,
       autoRoleId: null,
@@ -482,9 +485,9 @@ export async function handleWelcomeTest(interaction) {
           // Try actual role assignment
           try {
             await testMember.roles.add(autoRole, "Welcome System - Test");
-            roleTestDetails = "✅ Role assigned successfully";
+            roleTestDetails = `${EMOJIS.STATUS.SUCCESS} Role assigned successfully`;
           } catch (error) {
-            roleTestDetails = `❌ Role assignment failed: ${error.message}`;
+            roleTestDetails = `${EMOJIS.STATUS.ERROR} Role assignment failed: ${error.message}`;
           }
         }
       } else {
@@ -502,7 +505,8 @@ export async function handleWelcomeTest(interaction) {
         messageResult = "Embed message sent successfully";
       } else {
         const processedMessage = processWelcomeMessage(
-          settings.message || "Welcome **{user}** to **{server}**! 🎉",
+          settings.message ||
+            `Welcome **{user}** to **{server}**! ${EMOJIS.ACTIONS.WELCOME}`,
           testMember,
         );
         sentMessage = await welcomeChannel.send(processedMessage);
@@ -524,18 +528,18 @@ export async function handleWelcomeTest(interaction) {
     // Create direct link to the sent message if available
     let messageLink = "";
     if (sentMessage) {
-      messageLink = `\n\n🔗 [**View Test Message**](${sentMessage.url})`;
+      messageLink = `\n\n${EMOJIS.ACTIONS.LINK} [**View Test Message**](${sentMessage.url})`;
     }
 
     await interaction.editReply({
       embeds: [
         {
-          title: "🎉 Welcome System Test Results",
+          title: `${EMOJIS.ACTIONS.TEST_RESULTS} Welcome System Test Results`,
           description: `Test completed in ${welcomeChannel.toString()}${messageLink}\n\n${testResults.join("\n")}`,
           color: THEME.SUCCESS,
           fields: [
             {
-              name: "📋 Test Details",
+              name: `${EMOJIS.ACTIONS.TEST_DETAILS} Test Details`,
               value: `**Format:** ${settings.embedEnabled ? "Embed" : "Text"}\n**Channel:** ${welcomeChannel.toString()}\n**Message:** ${settings.message || "Default message"}`,
               inline: false,
             },

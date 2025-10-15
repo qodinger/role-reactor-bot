@@ -1,3 +1,4 @@
+import { MessageFlags } from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
 
 /**
@@ -9,7 +10,7 @@ import { getLogger } from "../../../utils/logger.js";
  */
 export async function safeDeferReply(
   interaction,
-  options = { flags: 64 },
+  options = { flags: MessageFlags.Ephemeral },
   timeoutMs = 2000,
 ) {
   const logger = getLogger();

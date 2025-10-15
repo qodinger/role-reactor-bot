@@ -5,6 +5,7 @@ import {
   handleGeneralHelp as handleGeneralHelpHandler,
   handleSpecificCommandHelp as handleSpecificCommandHelpHandler,
 } from "./handlers.js";
+import { isDeveloper } from "../../../utils/discord/permissions.js";
 
 // ============================================================================
 // COMMAND DEFINITION
@@ -116,8 +117,31 @@ export async function autocomplete(interaction) {
   const focusedValue = interaction.options.getFocused().toLowerCase();
   const commands = Array.from(interaction.client.commands.keys());
 
+  // Filter out developer commands if user is not a developer
+  const developerCommands = [
+    "health",
+    "performance",
+    "storage",
+    "core-management",
+    "verify",
+  ];
+
+  const userIsDeveloper = isDeveloper(interaction.user.id);
+
   const filtered = commands
-    .filter(choice => choice.toLowerCase().includes(focusedValue))
+    .filter(choice => {
+      // Filter by search term
+      if (!choice.toLowerCase().includes(focusedValue)) {
+        return false;
+      }
+
+      // Filter out developer commands if user is not a developer
+      if (developerCommands.includes(choice) && !userIsDeveloper) {
+        return false;
+      }
+
+      return true;
+    })
     .slice(0, 25);
 
   await interaction.respond(

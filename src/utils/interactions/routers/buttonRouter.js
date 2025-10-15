@@ -21,13 +21,67 @@ export async function routeButtonInteraction(interaction, _client) {
 
     // Handle select menu interactions
     if (interaction.isStringSelectMenu()) {
-      // Add more select menu routing patterns here as needed
-      logger.debug(`Unknown select menu interaction: ${customId}`);
+      // Select menu interactions are handled by the select menu router
+      // This should not happen as the interaction manager routes them separately
+      logger.warn(
+        `Select menu interaction ${customId} routed to button handler - this should not happen`,
+      );
       return;
     }
 
     // Handle button interactions
     // Route based on customId patterns
+
+    // Handle AI Avatar buttons
+    if (customId.startsWith("ai_avatar_")) {
+      const { handleAIAvatarButton } = await import(
+        "../../../commands/general/avatar/handlers.js"
+      );
+      await handleAIAvatarButton(interaction);
+      return;
+    }
+
+    if (customId.startsWith("poll_")) {
+      // Handle poll creation buttons
+      if (
+        customId === "poll_continue_to_modal" ||
+        customId === "poll_cancel_creation"
+      ) {
+        const { handlePollCreationButton } = await import(
+          "../../../commands/general/poll/handlers.js"
+        );
+        await handlePollCreationButton(interaction, _client);
+        return;
+      }
+
+      // Handle poll list pagination buttons
+      if (
+        customId.startsWith("poll_list_page_") ||
+        customId === "poll_list_current"
+      ) {
+        const { handlePollListButton } = await import(
+          "../../../commands/general/poll/handlers.js"
+        );
+        await handlePollListButton(interaction, _client);
+        return;
+      }
+
+      // Other poll buttons disabled - using native Discord polls only
+      if (
+        customId.startsWith("poll_create_quick") ||
+        customId.startsWith("poll_refresh_list")
+      ) {
+        logger.warn(
+          `Custom poll button interaction received but disabled: ${customId}`,
+        );
+        return;
+      }
+
+      // Unknown poll button
+      logger.warn(`Unknown poll button interaction: ${customId}`);
+      return;
+    }
+
     if (customId.startsWith("leaderboard_")) {
       const { handleLeaderboardButton } = await import(
         "../handlers/leaderboardHandlers.js"

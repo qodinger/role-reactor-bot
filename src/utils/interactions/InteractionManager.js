@@ -1,5 +1,6 @@
+import { MessageFlags, InteractionType } from "discord.js";
 import { getLogger } from "../logger.js";
-import { InteractionType } from "discord.js";
+import { EMOJIS } from "../../config/theme.js";
 
 /**
  * Centralized interaction manager for handling all Discord interactions
@@ -89,7 +90,12 @@ export class InteractionManager {
         await this.handleAutocompleteInteraction(interaction, client);
         break;
       case InteractionType.MessageComponent:
-        await this.handleButtonInteraction(interaction, client);
+        // Check if it's a select menu or button
+        if (interaction.isStringSelectMenu()) {
+          await this.handleSelectMenuInteraction(interaction, client);
+        } else {
+          await this.handleButtonInteraction(interaction, client);
+        }
         break;
       case InteractionType.ModalSubmit:
         await this.handleModalInteraction(interaction, client);
@@ -108,6 +114,7 @@ export class InteractionManager {
    */
   async handleCommandInteraction(interaction, client) {
     try {
+      // Normal command handling for other commands
       const { getCommandHandler } = await import("../core/commandHandler.js");
       const commandHandler = getCommandHandler();
 
@@ -148,19 +155,41 @@ export class InteractionManager {
   }
 
   /**
+   * Handle select menu interactions
+   * @param {import('discord.js').StringSelectMenuInteraction} interaction - The select menu interaction
+   * @param {import('discord.js').Client} client - The Discord client
+   */
+  async handleSelectMenuInteraction(interaction, client) {
+    try {
+      const selectMenuRouter = await import("./routers/selectMenuRouter.js");
+      await selectMenuRouter.routeSelectMenuInteraction(interaction, client);
+    } catch (error) {
+      this.logger.error(
+        `Error handling select menu interaction ${interaction.customId}`,
+        error,
+      );
+
+      // Only reply if the interaction hasn't been responded to yet
+      if (!interaction.replied && !interaction.deferred) {
+        try {
+          await interaction.reply({
+            content: `${EMOJIS.STATUS.ERROR} An error occurred while processing your request.`,
+            flags: MessageFlags.Ephemeral,
+          });
+        } catch (replyError) {
+          this.logger.error("Failed to send error reply", replyError);
+        }
+      }
+    }
+  }
+
+  /**
    * Handle button interactions
    * @param {import('discord.js').ButtonInteraction} interaction - The button interaction
    * @param {import('discord.js').Client} client - The Discord client
    */
   async handleButtonInteraction(interaction, client) {
     try {
-      // Check if it's actually a select menu interaction
-      if (interaction.isStringSelectMenu()) {
-        const selectMenuRouter = await import("./routers/selectMenuRouter.js");
-        await selectMenuRouter.routeSelectMenuInteraction(interaction, client);
-        return;
-      }
-
       // Import button handlers dynamically to reduce initial bundle size
       const buttonRouter = await import("./routers/buttonRouter.js");
       await buttonRouter.routeButtonInteraction(interaction, client);
@@ -174,8 +203,8 @@ export class InteractionManager {
       if (!interaction.replied && !interaction.deferred) {
         try {
           await interaction.reply({
-            content: "❌ An error occurred while processing your request.",
-            flags: 64,
+            content: `${EMOJIS.STATUS.ERROR} An error occurred while processing your request.`,
+            flags: MessageFlags.Ephemeral,
           });
         } catch (replyError) {
           this.logger.error("Error sending error reply", replyError);
@@ -204,8 +233,8 @@ export class InteractionManager {
       if (!interaction.replied && !interaction.deferred) {
         try {
           await interaction.reply({
-            content: "❌ An error occurred while processing your request.",
-            flags: 64,
+            content: `${EMOJIS.STATUS.ERROR} An error occurred while processing your request.`,
+            flags: MessageFlags.Ephemeral,
           });
         } catch (replyError) {
           this.logger.error("Error sending error reply", replyError);

@@ -1,0 +1,270 @@
+---
+description: This rule defines the standards and best practices for maintaining the CHANGELOG.md file. It covers formatting, content guidelines, user-focused descriptions, and version management to ensure clear and consistent documentation of project changes.
+globs: CHANGELOG.md
+---
+
+## 1. Changelog Structure and Format
+
+- **File Location:** `docs/CHANGELOG.md` (always in the docs directory)
+- **Format:** Follow [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format
+- **Versioning:** Use [Semantic Versioning](https://semver.org/spec/v2.0.0.html) (MAJOR.MINOR.PATCH)
+- **Date Format:** Use ISO 8601 format (YYYY-MM-DD) for all version dates (year-month-day order to avoid ambiguity)
+- **Header Structure:**
+
+  ```markdown
+  # Changelog
+
+  All notable changes to this project will be documented in this file.
+
+  The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+  and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+  ## [Unreleased]
+
+  ## [X.Y.Z] - YYYY-MM-DD
+  ```
+
+## 2. Content Categories
+
+- **Added:** New features, commands, or functionality
+- **Changed:** Changes to existing functionality
+- **Deprecated:** Features marked for removal in future versions
+- **Removed:** Features removed in this version
+- **Fixed:** Bug fixes and improvements for **released features only**
+- **Security:** Security-related changes
+- **Performance:** Performance improvements and optimizations
+
+### Important Categorization Rules
+
+- **Fixed Section:** Only include fixes for features that have been released to users
+- **Unreleased Features:** New features go in "Added" section, not "Fixed" section
+- **Developer Commands:** Do not include internal developer tools in user-facing changelog
+- **Breaking Changes:** Always document breaking changes prominently
+
+## 3. Writing Guidelines
+
+### User-Focused Descriptions
+
+- **Focus on user impact, not technical implementation**
+- **Use clear, non-technical language that humans can understand**
+- **Describe what users can do, not how it's built**
+- **Avoid technical jargon and implementation details**
+- **Write meaningful, human-readable entries**
+
+**Good Examples:**
+
+- ✅ "Poll System: Create and manage native Discord polls with `/poll` command"
+- ✅ "Command Timeouts: Fixed 'Unknown interaction' errors that occurred when commands took too long to respond"
+- ✅ "Interactive Poll Creation: Easy-to-use forms for creating polls with custom duration and vote types"
+
+**Bad Examples:**
+
+- ❌ "Poll System: Complete native Discord poll system with interactive creation and management"
+- ❌ "Command Interaction Timeouts: Added immediate deferral to prevent 'Unknown interaction' errors across all commands"
+- ❌ "Poll Data Storage: MongoDB integration for storing poll data with automatic cleanup"
+
+### Entry Format
+
+- **Use bullet points with descriptive titles**
+- **Keep entries concise but informative**
+- **Group related changes together**
+- **Use consistent tense (past tense for completed changes)**
+
+**Format:**
+
+```markdown
+- Feature Name: Brief description of what users can do or experience
+- Command Name: What the command does or how it was improved
+- System Name: User-visible changes or improvements
+```
+
+## 4. Version Management
+
+### Unreleased Section
+
+- **Always maintain an [Unreleased] section at the top**
+- **Add new changes to [Unreleased] during development**
+- **Move [Unreleased] content to versioned section when releasing**
+
+### Version Numbering
+
+- **MAJOR (X.0.0):** Breaking changes, incompatible API changes
+- **MINOR (X.Y.0):** New features, backward-compatible functionality additions
+- **PATCH (X.Y.Z):** Bug fixes, backward-compatible improvements
+
+### Release Process
+
+1. **Development:** Add changes to [Unreleased] section
+2. **Release:** Move [Unreleased] content to new version section
+3. **Update:** Add release date and clear [Unreleased] section
+4. **Commit:** Include changelog updates in release commit
+
+### Release Date Accuracy
+
+- **Use Git History:** Always verify release dates using `git log --grep="version"` or `git show <commit-hash> --format="%ad" --date=short`
+- **Actual Commit Dates:** Use the date from the version bump commit, not arbitrary dates
+- **Format:** Use YYYY-MM-DD format consistently
+- **Verification:** Double-check dates against actual git commit history before finalizing
+
+## 5. Content Organization
+
+### Grouping Related Changes
+
+- **Group similar features together**
+- **Order by importance (user-facing features first)**
+- **Separate major features from minor improvements**
+
+**Example Structure:**
+
+```markdown
+### Added
+
+- Major Feature: Primary new functionality
+- Command Group: Related commands or features
+- Minor Feature: Smaller additions
+
+### Fixed
+
+- Critical Issues: High-impact bug fixes
+- Performance: Speed and reliability improvements
+- UI/UX: User interface improvements
+```
+
+### Prioritization
+
+1. **User-facing features and commands**
+2. **Bug fixes and improvements**
+3. **Performance and reliability**
+4. **Technical improvements (only if user-visible)**
+
+## 6. Quality Standards
+
+### Clarity and Readability
+
+- **Use active voice when possible**
+- **Be specific about what changed**
+- **Avoid vague descriptions**
+- **Include command names when relevant**
+
+### Consistency
+
+- **Use consistent terminology throughout**
+- **Follow the same format for similar entries**
+- **Maintain consistent capitalization**
+- **Use consistent punctuation**
+
+### Completeness
+
+- **Include all significant changes**
+- **Don't include trivial changes (typos, minor refactoring)**
+- **Ensure all user-visible changes are documented**
+- **Include breaking changes prominently**
+
+### What NOT to Include
+
+- **Developer Commands:** Internal tools like `/core-management`, `/health`, `/performance`, `/storage`
+- **Technical Implementation:** Database migrations, code refactoring, internal architecture changes
+- **Unreleased Feature Fixes:** Don't put "fixes" for features that haven't been released yet
+- **Internal Security:** Developer-only security improvements that don't affect users
+- **Code Quality:** Linting fixes, formatting changes, documentation updates
+
+## 7. Examples
+
+### Good Changelog Entry
+
+```markdown
+## [1.2.0] - 2025-10-15
+
+### Added
+
+- AI Avatar Generation: Complete AI-powered avatar generation system with `/avatar` command
+- Avatar Content Filter: Advanced content filtering with 97.6% accuracy for inappropriate content detection
+- Core Credit System: New credit-based economy for avatar generation with Ko-fi integration
+- Core Command: New `/core` command with clean UI and Core Energy branding
+- Poll System: Create and manage native Discord polls with `/poll` command
+- Poll Commands: `/poll create`, `/poll list`, `/poll end`, `/poll delete` for full poll management
+
+### Fixed
+
+- Command Timeouts: Fixed "Unknown interaction" errors that occurred when commands took too long to respond
+- Database Commands: Improved response times for /leaderboard and /level commands
+- Help System Security: Fixed developer commands being visible to non-developers in "All Commands" view
+- Role Parser: Fixed role parsing to properly strip @ symbol from role names (e.g., "@Gamer" → "Gamer")
+```
+
+### Bad Changelog Entry
+
+```markdown
+## [1.2.0] - 2025-01-28
+
+### Added
+
+- Poll System: Complete native Discord poll system with interactive creation and management
+- Poll Data Storage: MongoDB integration for storing poll data with automatic cleanup
+- Poll Event Handling: Real-time poll vote tracking with messagePollVoteAdd and messagePollVoteRemove events
+- Core Management: Developer command `/core-management` for managing user Core credits
+- Developer Command Security: Added permission-based filtering to hide developer commands from non-developers
+
+### Fixed
+
+- Poll Command Help: Fixed misleading help examples that showed non-existent parameters
+- Core Command UI: Redesigned with clean, compact layouts and Core Energy branding
+- Database Migration: Successfully migrated existing XP data from files to MongoDB
+- Linting Errors: Fixed string concatenation and variable usage issues
+```
+
+## 8. Maintenance Guidelines
+
+### Regular Updates
+
+- **Update changelog with every significant change**
+- **Review and refine entries before releases**
+- **Remove technical details that don't benefit users**
+- **Ensure entries are clear to non-technical users**
+
+### Review Process
+
+- **Read entries from user perspective**
+- **Ask: "Would a user care about this detail?"**
+- **Simplify complex technical descriptions**
+- **Focus on outcomes, not implementation**
+
+### Version Control
+
+- **Include changelog updates in feature commits**
+- **Don't wait until release to update changelog**
+- **Keep [Unreleased] section current during development**
+- **Clean up [Unreleased] section when releasing**
+
+## 9. Common Mistakes to Avoid
+
+- **Don't include implementation details**
+- **Don't use technical jargon**
+- **Don't be too verbose**
+- **Don't skip user-visible changes**
+- **Don't include trivial changes**
+- **Don't use present tense for completed changes**
+- **Don't mix technical and user-focused descriptions**
+- **Don't forget to update [Unreleased] section**
+- **Don't include developer commands in user-facing changelog**
+- **Don't put "fixes" for unreleased features in Fixed section**
+- **Don't use arbitrary dates - always verify with git history**
+- **Don't include database migrations or internal architecture changes**
+- **Don't mention "renamed" commands if the old command was never released**
+
+## 10. Integration with Development
+
+### During Development
+
+- **Add entries as features are developed**
+- **Update entries when features change**
+- **Review entries during code review**
+- **Refine entries before merging**
+
+### Before Release
+
+- **Review all [Unreleased] entries**
+- **Simplify and clarify descriptions**
+- **Remove technical implementation details**
+- **Focus on user benefits and outcomes**
+- **Ensure consistency in tone and format**

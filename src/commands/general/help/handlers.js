@@ -4,6 +4,7 @@ import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 import { HelpEmbedBuilder } from "./embeds.js";
 import { ComponentBuilder } from "./components.js";
 import { logHelpUsage, isValidCommandName } from "./utils.js";
+import { isDeveloper } from "../../../utils/discord/permissions.js";
 
 // ============================================================================
 // HELP COMMAND HANDLERS
@@ -71,6 +72,29 @@ export async function handleSpecificCommandHelp(
 
     if (!command) {
       logger.warn(`Command not found in client.commands: ${commandName}`);
+      await handleCommandNotFound(interaction, commandName, deferred);
+      return;
+    }
+
+    // Check if this is a developer command and user has permission
+    const developerCommands = [
+      "health",
+      "performance",
+      "storage",
+      "core-management",
+      "verify",
+    ];
+
+    if (
+      developerCommands.includes(commandName) &&
+      !isDeveloper(interaction.user.id)
+    ) {
+      logger.warn("Permission denied for developer command help", {
+        userId: interaction.user.id,
+        commandName,
+        guildId: interaction.guild?.id,
+      });
+
       await handleCommandNotFound(interaction, commandName, deferred);
       return;
     }
@@ -154,7 +178,10 @@ export async function handleAllCommandsHelp(interaction, deferred = true) {
   const logger = getLogger();
 
   try {
-    const embed = HelpEmbedBuilder.createAllCommandsEmbed(interaction.client);
+    const embed = HelpEmbedBuilder.createAllCommandsEmbed(
+      interaction.client,
+      interaction.member,
+    );
     const components = await ComponentBuilder.createMainComponents(
       interaction.member,
       interaction.client,

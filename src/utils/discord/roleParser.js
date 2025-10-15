@@ -25,7 +25,7 @@ export function parseRoleString(roleString) {
     if (!str) continue;
 
     const emojiMatch = str.match(
-      /^(<a?:.+?:\d+>|[\p{Emoji_Presentation}\p{Emoji}\uFE0F])/u,
+      /^(<a?:.+?:\d+>|[\p{Emoji_Presentation}\p{Emoji}\uFE0F]+)/u,
     );
     if (!emojiMatch) {
       errors.push(`Invalid or missing emoji in part: "${part}"`);
@@ -77,7 +77,12 @@ export function parseRoleString(roleString) {
     }
     // Handle regular role names
     else {
-      roleName = str;
+      // Strip @ symbol if it's not a role mention (not @&123456789)
+      if (str.startsWith("@") && !str.match(/^@&\d+$/)) {
+        roleName = str.substring(1); // Remove the @ symbol
+      } else {
+        roleName = str;
+      }
     }
 
     if (!roleName || roleName.trim() === "") {

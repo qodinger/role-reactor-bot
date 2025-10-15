@@ -1,4 +1,5 @@
 import { getLogger } from "../../../utils/logger.js";
+import { EMOJIS } from "../../../config/theme.js";
 
 // ============================================================================
 // PERFORMANCE UTILITY FUNCTIONS
@@ -54,14 +55,14 @@ export function getPerformanceStatus(score) {
   if (score >= 90) {
     return {
       status: "Excellent",
-      emoji: "🟢",
+      emoji: EMOJIS.STATUS.ONLINE,
       color: "#00FF00",
       description: "Performance is optimal!",
     };
   } else if (score >= 75) {
     return {
       status: "Good",
-      emoji: "🟡",
+      emoji: EMOJIS.STATUS.IDLE,
       color: "#FFFF00",
       description: "Performance is good with minor issues.",
     };
@@ -75,7 +76,7 @@ export function getPerformanceStatus(score) {
   } else {
     return {
       status: "Poor",
-      emoji: "🔴",
+      emoji: EMOJIS.STATUS.OFFLINE,
       color: "#FF0000",
       description: "Performance requires immediate attention!",
     };

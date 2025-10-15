@@ -34,6 +34,9 @@ export async function execute(reaction, user, client) {
       return;
     }
 
+    // Note: Poll reactions are now handled by Discord's native poll system
+    // This event handler only processes role assignment reactions
+
     // Get role mapping for this message
     const roleMapping = await getRoleMapping(reaction.message.id);
     if (!roleMapping) {

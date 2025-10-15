@@ -1,6 +1,8 @@
+import { MessageFlags } from "discord.js";
 import { getLogger } from "../../logger.js";
 import { createXpSettingsEmbed } from "../../../commands/admin/xp/embeds.js";
 import { createXpSettingsComponents } from "../../../commands/admin/xp/components.js";
+import { EMOJIS } from "../../../config/theme.js";
 
 /**
  * XP system button interaction handlers
@@ -678,7 +680,7 @@ export const handleXPConfigModal = async interaction => {
     await interaction.editReply({
       embeds: [embed],
       components,
-      content: `✅ ${successMessage}`,
+      content: `${EMOJIS.STATUS.SUCCESS} ${successMessage}`,
     });
 
     logger.info(
@@ -702,8 +704,8 @@ const handleXPError = async (interaction, action) => {
   if (!interaction.replied && !interaction.deferred) {
     try {
       await interaction.reply({
-        content: `❌ An error occurred while ${action}.`,
-        flags: 64,
+        content: `${EMOJIS.STATUS.ERROR} An error occurred while ${action}.`,
+        flags: MessageFlags.Ephemeral,
       });
     } catch (replyError) {
       logger.error("Error sending error reply", replyError);
@@ -711,7 +713,7 @@ const handleXPError = async (interaction, action) => {
   } else if (interaction.deferred) {
     try {
       await interaction.editReply({
-        content: `❌ An error occurred while ${action}.`,
+        content: `${EMOJIS.STATUS.ERROR} An error occurred while ${action}.`,
       });
     } catch (editError) {
       logger.error("Error sending error edit reply", editError);

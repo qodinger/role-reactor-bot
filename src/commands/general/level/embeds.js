@@ -27,7 +27,7 @@ export function createLevelEmbed(interaction, user, userData, progress) {
         inline: true,
       },
       {
-        name: `${EMOJIS.UI.TIME} Next Level`,
+        name: `${EMOJIS.TIME.ALARM} Next Level`,
         value: `**${progress.xpNeededForNextLevel.toLocaleString()}** XP needed`,
         inline: true,
       },

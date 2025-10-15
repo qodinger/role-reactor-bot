@@ -48,6 +48,14 @@ export async function routeModalInteraction(interaction, _client) {
       return;
     }
 
+    if (customId === "poll_creation_modal") {
+      const { handlePollModalSubmit } = await import(
+        "../../../commands/general/poll/modalHandler.js"
+      );
+      await handlePollModalSubmit(interaction, _client);
+      return;
+    }
+
     // Add more modal routing patterns here as needed
     logger.debug(`Unknown modal interaction: ${customId}`);
   } catch (error) {

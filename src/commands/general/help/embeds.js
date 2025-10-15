@@ -3,6 +3,7 @@ import { THEME_COLOR, EMOJIS, UI_COMPONENTS } from "../../../config/theme.js";
 import { getDynamicHelpData } from "./data.js";
 import config from "../../../config/config.js";
 import { getLogger } from "../../../utils/logger.js";
+import { ComponentBuilder } from "./components.js";
 
 /**
  * Builder class for creating help embeds
@@ -112,19 +113,41 @@ export class HelpEmbedBuilder {
   /**
    * Create an embed showing all commands (first 25 due to Discord limits)
    * @param {import('discord.js').Client} client
+   * @param {import('discord.js').GuildMember} member
    * @returns {import('discord.js').EmbedBuilder}
    */
-  static createAllCommandsEmbed(client) {
+  static createAllCommandsEmbed(client, member = null) {
     const embed = new EmbedBuilder()
       .setTitle(`${EMOJIS.ACTIONS.SEARCH} All Commands`)
       .setColor(THEME_COLOR)
       .setTimestamp();
 
     try {
-      const { COMMAND_METADATA } = getDynamicHelpData(client);
-      const all = Object.entries(COMMAND_METADATA).sort((a, b) =>
-        a[0].localeCompare(b[0]),
-      );
+      const { COMMAND_METADATA, COMMAND_CATEGORIES } =
+        getDynamicHelpData(client);
+
+      // Filter commands based on user permissions
+      const all = Object.entries(COMMAND_METADATA)
+        .filter(([cmdName, _meta]) => {
+          // If no member provided, show all commands (for backward compatibility)
+          if (!member) return true;
+
+          // Find the category this command belongs to
+          const category = Object.values(COMMAND_CATEGORIES).find(cat =>
+            cat.commandPatterns.some(pattern =>
+              cmdName.toLowerCase().includes(pattern.toLowerCase()),
+            ),
+          );
+
+          if (!category) return true; // Show if no category found
+
+          // Check if user has permissions for this category
+          return ComponentBuilder.hasCategoryPermissions(
+            member,
+            category.requiredPermissions,
+          );
+        })
+        .sort((a, b) => a[0].localeCompare(b[0]));
 
       const shown = all.slice(0, 25);
 
@@ -332,10 +355,11 @@ export class HelpEmbedBuilder {
           {
             name: `${EMOJIS.FEATURES.ROLES} 🎯 How to Use`,
             value: [
-              '```/role-reactions setup title:"Choose Your Roles" description:"React to get roles!" roles:"🎮 @Gamer, 🎨 @Artist"```',
+              "```/role-reactions setup title:Choose Your Roles description:React to get roles! roles:🎮 @Gamer, 🎨 @Artist```",
+              "```/role-reactions setup title:Game Roles description:Pick your role! roles:🎮 Gamer, 🎨 Artist```",
               "```/role-reactions list```",
-              '```/role-reactions update message_id:"1234567890" title:"Updated Title"```',
-              '```/role-reactions delete message_id:"1234567890"```',
+              "```/role-reactions update message_id:1234567890 title:Updated Title```",
+              "```/role-reactions delete message_id:1234567890```",
             ].join("\n"),
             inline: false,
           },
@@ -360,6 +384,16 @@ export class HelpEmbedBuilder {
               "Interactive role assignment via emoji reactions with customizable embeds, automatic reaction addition, and comprehensive management tools!",
             inline: false,
           },
+          {
+            name: `${EMOJIS.UI.INFO} 💡 Role Format Tips`,
+            value: [
+              "• **@RoleName** - Use @ symbol (e.g., `@Gamer`)",
+              "• **RoleName** - Use role name directly (e.g., `Gamer`)",
+              "• **<@&ID>** - Use role mention (e.g., `<@&123456789>`)",
+              '• **"Role Name"** - Use quotes for spaces (e.g., `"Gaming Role"`)',
+            ].join("\n"),
+            inline: false,
+          },
         );
         break;
 
@@ -368,9 +402,9 @@ export class HelpEmbedBuilder {
           {
             name: `${EMOJIS.FEATURES.TEMPORARY} ⏰ How to Use`,
             value: [
-              '```/temp-roles assign users:"@user1,@user2" role:@EventRole duration:"2h" reason:"Tournament participation"```',
+              "```/temp-roles assign users:@user1,@user2 role:@EventRole duration:2h reason:Tournament participation```",
               "```/temp-roles list user:@user1```",
-              '```/temp-roles remove users:"@user1" role:@EventRole reason:"Early removal"```',
+              "```/temp-roles remove users:@user1 role:@EventRole reason:Early removal```",
             ].join("\n"),
             inline: false,
           },
@@ -555,8 +589,8 @@ export class HelpEmbedBuilder {
           {
             name: `${EMOJIS.STATUS.INFO} 💡 Quick Examples`,
             value: [
-              '```/schedule-role create users:@user1,@user2 role:@MeetingRole type:one-time schedule:"tomorrow 2pm" duration:3h```',
-              '```/schedule-role create users:@user1,@user2 role:@WeeklyRole type:weekly schedule:"monday 9am" duration:8h```',
+              "```/schedule-role create users:@user1,@user2 role:@MeetingRole type:one-time schedule:tomorrow 2pm duration:3h```",
+              "```/schedule-role create users:@user1,@user2 role:@WeeklyRole type:weekly schedule:monday 9am duration:8h```",
               "```/schedule-role create users:@user1,@user2 role:@DailyRole type:daily schedule:6pm duration:12h```",
               "```/schedule-role list```",
             ].join("\n"),
@@ -790,6 +824,146 @@ export class HelpEmbedBuilder {
             name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
             value:
               "Interactive goodbye system with channel selection, message customization, and real-time settings management for members leaving!",
+            inline: false,
+          },
+        );
+        break;
+
+      case "core":
+        embed.addFields(
+          {
+            name: `${EMOJIS.ACTIONS.HEART} 💎 How to Use`,
+            value: [
+              "```/core check```",
+              "```/core purchase amount:5```",
+              "```/core transfer user:@friend amount:2```",
+            ].join("\n"),
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.UI.MENU} 📝 Subcommands`,
+            value: [
+              "**check** - View your current Core balance and tier",
+              "**purchase** - Buy Core credits for avatar generation",
+              "**transfer** - Send Core credits to other users",
+            ].join("\n"),
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
+            value:
+              "Your Core balance, tier information, and transaction history. Core credits are used for AI avatar generation and can be purchased or transferred between users!",
+            inline: false,
+          },
+        );
+        break;
+
+      case "poll":
+        embed.addFields(
+          {
+            name: `${EMOJIS.UI.QUESTION} 📊 How to Use`,
+            value: [
+              "```/poll create```",
+              "```/poll list```",
+              "```/poll end poll-id:1234567890```",
+              "```/poll delete poll-id:1234567890```",
+            ].join("\n"),
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.UI.MENU} 📝 Subcommands`,
+            value: [
+              "**create** - Open an interactive form to create a new poll",
+              "**list** - List all active polls in the server (with pagination)",
+              "**end** - End an active poll early",
+              "**delete** - Delete a poll permanently",
+            ].join("\n"),
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.FEATURES.SECURITY} 🔐 Permissions`,
+            value:
+              "• **Create Polls** - Anyone can create polls\n• **Manage Polls** - Poll creators and admins can close polls",
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
+            value:
+              "Interactive poll creation form, real-time voting with progress bars, and automatic closing. Great for community decisions and feedback collection!",
+            inline: false,
+          },
+        );
+        break;
+
+      case "core-management":
+        embed.addFields(
+          {
+            name: `${EMOJIS.ACTIONS.HEART} 💎 How to Use`,
+            value: [
+              "```/core-management add user:@username amount:10```",
+              "```/core-management remove user:@username amount:5```",
+              "```/core-management set user:@username amount:100```",
+              "```/core-management tier user:@username tier:Core Basic```",
+              "```/core-management remove-tier user:@username```",
+              "```/core-management view user:@username```",
+            ].join("\n"),
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.UI.MENU} 📝 Subcommands`,
+            value: [
+              "**add** - Add Core credits to a user's account",
+              "**remove** - Remove Core credits from a user's account",
+              "**set** - Set a user's Core balance to a specific amount",
+              "**tier** - Set a user's Core membership tier",
+              "**remove-tier** - Remove a user's Core membership tier",
+              "**view** - View a user's Core account details",
+            ].join("\n"),
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.FEATURES.SECURITY} 🔐 Permissions`,
+            value: "• **Developer** access required",
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
+            value:
+              "Complete Core credit and tier management system for developers to add, remove, set, and monitor user Core balances and membership tiers across the entire bot!",
+            inline: false,
+          },
+        );
+        break;
+
+      case "verify":
+        embed.addFields(
+          {
+            name: `${EMOJIS.STATUS.SUCCESS} ✅ How to Use`,
+            value: [
+              "```/verify donation user:@username amount:5.00 ko-fi-url:https://ko-fi.com/s/abc123 notes:Monthly supporter```",
+              "```/verify subscription user:@username ko-fi-url:https://ko-fi.com/s/def456 notes:Premium subscriber```",
+              "```/verify manual user:@username credits:50 notes:Special event compensation```",
+            ].join("\n"),
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.UI.MENU} 📝 Subcommands`,
+            value: [
+              "**donation** - Verify a Ko-fi donation and grant Core credits",
+              "**subscription** - Verify a Ko-fi subscription and grant Core membership",
+              "**manual** - Manually add Core credits without Ko-fi verification",
+            ].join("\n"),
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.FEATURES.SECURITY} 🔐 Permissions`,
+            value: "• **Developer** access required",
+            inline: false,
+          },
+          {
+            name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
+            value:
+              "Manual verification system for Ko-fi donations and subscriptions, with automatic Core credit assignment and comprehensive transaction tracking for developers!",
             inline: false,
           },
         );

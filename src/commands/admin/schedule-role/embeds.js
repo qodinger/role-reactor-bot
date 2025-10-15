@@ -1,5 +1,5 @@
 import { EmbedBuilder } from "discord.js";
-import { THEME_COLOR } from "../../../config/theme.js";
+import { THEME_COLOR, EMOJIS } from "../../../config/theme.js";
 import {
   formatDateTime,
   formatDisplayId,
@@ -194,12 +194,12 @@ export function createScheduleDetailEmbed(schedule, guild) {
   if (schedule.type === "scheduled") {
     // One-time scheduled role
     const scheduleTime = new Date(schedule.scheduleTime);
-    scheduleIcon = "📅";
-    scheduleDetails = `**One-Time Schedule**\n⏰ **Assignment Time:** ${formatDateTime(scheduleTime)}`;
+    scheduleIcon = EMOJIS.TIME.CALENDAR;
+    scheduleDetails = `**One-Time Schedule**\n${EMOJIS.TIME.ALARM} **Assignment Time:** ${formatDateTime(scheduleTime)}`;
   } else {
     // Recurring schedule
-    scheduleIcon = "🔄";
-    scheduleDetails = `**Recurring Schedule**\n⏰ **Frequency:** ${formatRecurringScheduleDetails(schedule)}`;
+    scheduleIcon = EMOJIS.ACTIONS.REFRESH;
+    scheduleDetails = `**Recurring Schedule**\n${EMOJIS.TIME.ALARM} **Frequency:** ${formatRecurringScheduleDetails(schedule)}`;
   }
 
   const scheduleFields = [
@@ -248,10 +248,11 @@ export function createScheduleDetailEmbed(schedule, guild) {
     const now = new Date();
     const timeUntil =
       nextRun > now ? `in ${formatTimeRemaining(nextRun)}` : "**Overdue**";
-    const statusIcon = nextRun > now ? "⏰" : "⚠️";
+    const statusIcon =
+      nextRun > now ? EMOJIS.TIME.ALARM : EMOJIS.STATUS.WARNING;
     timingFields.push({
       name: `${statusIcon} **Next Run**`,
-      value: `${formatDateTime(nextRun)}\n⏰ *${timeUntil}*`,
+      value: `${formatDateTime(nextRun)}\n${EMOJIS.TIME.ALARM} *${timeUntil}*`,
       inline: true,
     });
   }

@@ -299,6 +299,36 @@ class ConnectionManager {
       await this.db
         .collection("user_experience")
         .createIndex({ guildId: 1, userId: 1 }, { unique: true });
+      await this.db
+        .collection("polls")
+        .createIndex({ id: 1 }, { unique: true });
+      await this.db.collection("polls").createIndex({ guildId: 1 });
+      await this.db.collection("polls").createIndex({ createdAt: 1 });
+      await this.db
+        .collection("core_credits")
+        .createIndex({ userId: 1 }, { unique: true });
+      await this.db.collection("core_credits").createIndex({ lastUpdated: 1 });
+      await this.db
+        .collection("recurring_schedules")
+        .createIndex({ id: 1 }, { unique: true });
+      await this.db
+        .collection("recurring_schedules")
+        .createIndex({ guildId: 1 });
+      await this.db
+        .collection("recurring_schedules")
+        .createIndex({ isActive: 1 });
+      await this.db
+        .collection("recurring_schedules")
+        .createIndex({ endDate: 1 });
+      await this.db
+        .collection("scheduled_roles")
+        .createIndex({ id: 1 }, { unique: true });
+      await this.db.collection("scheduled_roles").createIndex({ guildId: 1 });
+      await this.db.collection("scheduled_roles").createIndex({ userId: 1 });
+      await this.db
+        .collection("scheduled_roles")
+        .createIndex({ scheduledTime: 1 });
+      await this.db.collection("scheduled_roles").createIndex({ isActive: 1 });
       this.logger.success("✅ Database indexes created successfully");
     } catch (error) {
       this.logger.warn("⚠️ Index creation failed (non-critical)", error);
@@ -881,6 +911,560 @@ class GuildSettingsRepository extends BaseRepository {
   }
 }
 
+class PollRepository extends BaseRepository {
+  constructor(db, cache, logger) {
+    super(db, "polls", cache, logger);
+  }
+
+  async getAll() {
+    try {
+      const cached = this.cache.get("polls_all");
+      if (cached) return cached;
+
+      const documents = await this.collection.find({}).toArray();
+      const polls = {};
+      for (const doc of documents) {
+        polls[doc.id] = doc;
+      }
+
+      this.cache.set("polls_all", polls);
+      return polls;
+    } catch (error) {
+      this.logger.error("Failed to get all polls", error);
+      return {};
+    }
+  }
+
+  async getById(pollId) {
+    try {
+      const cached = this.cache.get(`poll_${pollId}`);
+      if (cached) return cached;
+
+      const poll = await this.collection.findOne({ id: pollId });
+      if (poll) {
+        this.cache.set(`poll_${pollId}`, poll);
+      }
+      return poll;
+    } catch (error) {
+      this.logger.error(`Failed to get poll ${pollId}`, error);
+      return null;
+    }
+  }
+
+  async getByGuild(guildId) {
+    try {
+      const cached = this.cache.get(`polls_guild_${guildId}`);
+      if (cached) return cached;
+
+      const documents = await this.collection.find({ guildId }).toArray();
+      const polls = {};
+      for (const doc of documents) {
+        polls[doc.id] = doc;
+      }
+
+      this.cache.set(`polls_guild_${guildId}`, polls);
+      return polls;
+    } catch (error) {
+      this.logger.error(`Failed to get polls for guild ${guildId}`, error);
+      return {};
+    }
+  }
+
+  async getByMessageId(messageId) {
+    try {
+      const cached = this.cache.get(`poll_message_${messageId}`);
+      if (cached) return cached;
+
+      const poll = await this.collection.findOne({ messageId });
+      if (poll) {
+        this.cache.set(`poll_message_${messageId}`, poll);
+      }
+      return poll;
+    } catch (error) {
+      this.logger.error(`Failed to get poll by message ID ${messageId}`, error);
+      return null;
+    }
+  }
+
+  async create(pollData) {
+    try {
+      await this.collection.insertOne({
+        ...pollData,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      this.cache.clear();
+      return true;
+    } catch (error) {
+      this.logger.error("Failed to create poll", error);
+      return false;
+    }
+  }
+
+  async update(pollId, pollData) {
+    try {
+      await this.collection.updateOne(
+        { id: pollId },
+        { $set: { ...pollData, updatedAt: new Date() } },
+      );
+      this.cache.clear();
+      return true;
+    } catch (error) {
+      this.logger.error(`Failed to update poll ${pollId}`, error);
+      return false;
+    }
+  }
+
+  async delete(pollId) {
+    try {
+      await this.collection.deleteOne({ id: pollId });
+      this.cache.clear();
+      return true;
+    } catch (error) {
+      this.logger.error(`Failed to delete poll ${pollId}`, error);
+      return false;
+    }
+  }
+
+  async cleanupEndedPolls() {
+    try {
+      const now = new Date();
+      const result = await this.collection.deleteMany({
+        isActive: false,
+        endedAt: { $lt: new Date(now.getTime() - 24 * 60 * 60 * 1000) },
+      }); // Only delete ended polls older than 24 hours
+
+      if (result.deletedCount > 0) {
+        this.cache.clear();
+        this.logger.info(`Cleaned up ${result.deletedCount} ended polls`);
+      }
+
+      return result.deletedCount;
+    } catch (error) {
+      this.logger.error("Failed to cleanup ended polls", error);
+      return 0;
+    }
+  }
+}
+
+class CoreCreditsRepository extends BaseRepository {
+  constructor(db, cache, logger) {
+    super(db, "core_credits", cache, logger);
+  }
+
+  async getAll() {
+    try {
+      const cached = this.cache.get("core_credits_all");
+      if (cached) return cached;
+
+      const documents = await this.collection.find({}).toArray();
+      const coreCredits = {};
+      for (const doc of documents) {
+        coreCredits[doc.userId] = doc;
+      }
+
+      this.cache.set("core_credits_all", coreCredits);
+      return coreCredits;
+    } catch (error) {
+      this.logger.error("Failed to get all core credits", error);
+      return {};
+    }
+  }
+
+  async getByUserId(userId) {
+    try {
+      const cached = this.cache.get(`core_credits_${userId}`);
+      if (cached) return cached;
+
+      const userData = await this.collection.findOne({ userId });
+      if (userData) {
+        this.cache.set(`core_credits_${userId}`, userData);
+      }
+      return userData;
+    } catch (error) {
+      this.logger.error(`Failed to get core credits for user ${userId}`, error);
+      return null;
+    }
+  }
+
+  async setByUserId(userId, userData) {
+    try {
+      // Ensure userId is included in the document
+      const document = { ...userData, userId };
+
+      const result = await this.collection.replaceOne({ userId }, document, {
+        upsert: true,
+      });
+
+      // Update cache
+      this.cache.set(`core_credits_${userId}`, document);
+      this.cache.clear(); // Invalidate all cache
+
+      return result.acknowledged;
+    } catch (error) {
+      this.logger.error(`Failed to set core credits for user ${userId}`, error);
+      return false;
+    }
+  }
+
+  async updateCredits(userId, creditsChange) {
+    try {
+      const result = await this.collection.updateOne(
+        { userId },
+        {
+          $inc: { credits: creditsChange },
+          $set: { lastUpdated: new Date().toISOString() },
+        },
+        { upsert: true },
+      );
+
+      // Invalidate cache
+      this.cache.clear();
+
+      return result.acknowledged;
+    } catch (error) {
+      this.logger.error(`Failed to update credits for user ${userId}`, error);
+      return false;
+    }
+  }
+
+  async deleteByUserId(userId) {
+    try {
+      const result = await this.collection.deleteOne({ userId });
+
+      // Invalidate cache
+      this.cache.clear();
+
+      return result.deletedCount > 0;
+    } catch (error) {
+      this.logger.error(
+        `Failed to delete core credits for user ${userId}`,
+        error,
+      );
+      return false;
+    }
+  }
+}
+
+class RecurringSchedulesRepository extends BaseRepository {
+  constructor(db, cache, logger) {
+    super(db, "recurring_schedules", cache, logger);
+  }
+
+  async getAll() {
+    try {
+      const cached = this.cache.get("recurring_schedules_all");
+      if (cached) return cached;
+
+      const documents = await this.collection.find({}).toArray();
+      const schedules = {};
+      for (const doc of documents) {
+        schedules[doc.id] = doc;
+      }
+
+      this.cache.set("recurring_schedules_all", schedules);
+      return schedules;
+    } catch (error) {
+      this.logger.error("Failed to get all recurring schedules", error);
+      return {};
+    }
+  }
+
+  async getById(scheduleId) {
+    try {
+      const cached = this.cache.get(`recurring_schedule_${scheduleId}`);
+      if (cached) return cached;
+
+      const schedule = await this.collection.findOne({ id: scheduleId });
+      if (schedule) {
+        this.cache.set(`recurring_schedule_${scheduleId}`, schedule);
+      }
+      return schedule;
+    } catch (error) {
+      this.logger.error(
+        `Failed to get recurring schedule ${scheduleId}`,
+        error,
+      );
+      return null;
+    }
+  }
+
+  async getByGuild(guildId) {
+    try {
+      const cached = this.cache.get(`recurring_schedules_guild_${guildId}`);
+      if (cached) return cached;
+
+      const documents = await this.collection.find({ guildId }).toArray();
+      const schedules = {};
+      for (const doc of documents) {
+        schedules[doc.id] = doc;
+      }
+
+      this.cache.set(`recurring_schedules_guild_${guildId}`, schedules);
+      return schedules;
+    } catch (error) {
+      this.logger.error(
+        `Failed to get recurring schedules for guild ${guildId}`,
+        error,
+      );
+      return {};
+    }
+  }
+
+  async create(scheduleData) {
+    try {
+      await this.collection.insertOne({
+        ...scheduleData,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      this.cache.clear();
+      return true;
+    } catch (error) {
+      this.logger.error("Failed to create recurring schedule", error);
+      return false;
+    }
+  }
+
+  async update(scheduleId, scheduleData) {
+    try {
+      await this.collection.updateOne(
+        { id: scheduleId },
+        { $set: { ...scheduleData, updatedAt: new Date() } },
+      );
+      this.cache.clear();
+      return true;
+    } catch (error) {
+      this.logger.error(
+        `Failed to update recurring schedule ${scheduleId}`,
+        error,
+      );
+      return false;
+    }
+  }
+
+  async delete(scheduleId) {
+    try {
+      const result = await this.collection.deleteOne({ id: scheduleId });
+      this.cache.clear();
+      return result.deletedCount > 0;
+    } catch (error) {
+      this.logger.error(
+        `Failed to delete recurring schedule ${scheduleId}`,
+        error,
+      );
+      return false;
+    }
+  }
+
+  async cleanupExpired() {
+    try {
+      const now = new Date();
+      const result = await this.collection.deleteMany({
+        $or: [
+          { endDate: { $lt: now } },
+          {
+            isActive: false,
+            updatedAt: {
+              $lt: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
+            },
+          },
+        ],
+      });
+
+      if (result.deletedCount > 0) {
+        this.cache.clear();
+        this.logger.info(
+          `Cleaned up ${result.deletedCount} expired recurring schedules`,
+        );
+      }
+
+      return result.deletedCount;
+    } catch (error) {
+      this.logger.error("Failed to cleanup expired recurring schedules", error);
+      return 0;
+    }
+  }
+}
+
+class ScheduledRolesRepository extends BaseRepository {
+  constructor(db, cache, logger) {
+    super(db, "scheduled_roles", cache, logger);
+  }
+
+  async getAll() {
+    try {
+      const cached = this.cache.get("scheduled_roles_all");
+      if (cached) return cached;
+
+      const documents = await this.collection.find({}).toArray();
+      const scheduledRoles = {};
+      for (const doc of documents) {
+        scheduledRoles[doc.id] = doc;
+      }
+
+      this.cache.set("scheduled_roles_all", scheduledRoles);
+      return scheduledRoles;
+    } catch (error) {
+      this.logger.error("Failed to get all scheduled roles", error);
+      return {};
+    }
+  }
+
+  async getById(scheduleId) {
+    try {
+      const cached = this.cache.get(`scheduled_role_${scheduleId}`);
+      if (cached) return cached;
+
+      const scheduledRole = await this.collection.findOne({ id: scheduleId });
+      if (scheduledRole) {
+        this.cache.set(`scheduled_role_${scheduleId}`, scheduledRole);
+      }
+      return scheduledRole;
+    } catch (error) {
+      this.logger.error(`Failed to get scheduled role ${scheduleId}`, error);
+      return null;
+    }
+  }
+
+  async getByGuild(guildId) {
+    try {
+      const cached = this.cache.get(`scheduled_roles_guild_${guildId}`);
+      if (cached) return cached;
+
+      const documents = await this.collection.find({ guildId }).toArray();
+      const scheduledRoles = {};
+      for (const doc of documents) {
+        scheduledRoles[doc.id] = doc;
+      }
+
+      this.cache.set(`scheduled_roles_guild_${guildId}`, scheduledRoles);
+      return scheduledRoles;
+    } catch (error) {
+      this.logger.error(
+        `Failed to get scheduled roles for guild ${guildId}`,
+        error,
+      );
+      return {};
+    }
+  }
+
+  async getByUser(guildId, userId) {
+    try {
+      const cached = this.cache.get(
+        `scheduled_roles_user_${guildId}_${userId}`,
+      );
+      if (cached) return cached;
+
+      const documents = await this.collection
+        .find({ guildId, userId })
+        .toArray();
+      const scheduledRoles = {};
+      for (const doc of documents) {
+        scheduledRoles[doc.id] = doc;
+      }
+
+      this.cache.set(
+        `scheduled_roles_user_${guildId}_${userId}`,
+        scheduledRoles,
+      );
+      return scheduledRoles;
+    } catch (error) {
+      this.logger.error(
+        `Failed to get scheduled roles for user ${userId} in guild ${guildId}`,
+        error,
+      );
+      return {};
+    }
+  }
+
+  async create(scheduledRoleData) {
+    try {
+      await this.collection.insertOne({
+        ...scheduledRoleData,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      this.cache.clear();
+      return true;
+    } catch (error) {
+      this.logger.error("Failed to create scheduled role", error);
+      return false;
+    }
+  }
+
+  async update(scheduleId, scheduledRoleData) {
+    try {
+      await this.collection.updateOne(
+        { id: scheduleId },
+        { $set: { ...scheduledRoleData, updatedAt: new Date() } },
+      );
+      this.cache.clear();
+      return true;
+    } catch (error) {
+      this.logger.error(`Failed to update scheduled role ${scheduleId}`, error);
+      return false;
+    }
+  }
+
+  async delete(scheduleId) {
+    try {
+      const result = await this.collection.deleteOne({ id: scheduleId });
+      this.cache.clear();
+      return result.deletedCount > 0;
+    } catch (error) {
+      this.logger.error(`Failed to delete scheduled role ${scheduleId}`, error);
+      return false;
+    }
+  }
+
+  async getUpcoming(limit = 10) {
+    try {
+      const now = new Date();
+      const documents = await this.collection
+        .find({
+          scheduledTime: { $gte: now },
+          isActive: true,
+        })
+        .sort({ scheduledTime: 1 })
+        .limit(limit)
+        .toArray();
+
+      return documents;
+    } catch (error) {
+      this.logger.error("Failed to get upcoming scheduled roles", error);
+      return [];
+    }
+  }
+
+  async cleanupExpired() {
+    try {
+      const now = new Date();
+      const result = await this.collection.deleteMany({
+        $or: [
+          { scheduledTime: { $lt: now } },
+          {
+            isActive: false,
+            updatedAt: { $lt: new Date(now.getTime() - 24 * 60 * 60 * 1000) },
+          },
+        ],
+      });
+
+      if (result.deletedCount > 0) {
+        this.cache.clear();
+        this.logger.info(
+          `Cleaned up ${result.deletedCount} expired scheduled roles`,
+        );
+      }
+
+      return result.deletedCount;
+    } catch (error) {
+      this.logger.error("Failed to cleanup expired scheduled roles", error);
+      return 0;
+    }
+  }
+}
+
 class DatabaseManager {
   constructor() {
     this.logger = getLogger();
@@ -894,6 +1478,10 @@ class DatabaseManager {
     this.userExperience = null;
     this.welcomeSettings = null;
     this.guildSettings = null;
+    this.polls = null;
+    this.coreCredits = null;
+    this.recurringSchedules = null;
+    this.scheduledRoles = null;
   }
 
   async connect() {
@@ -926,6 +1514,22 @@ class DatabaseManager {
           this.logger,
         );
         this.guildSettings = new GuildSettingsRepository(
+          db,
+          this.cacheManager,
+          this.logger,
+        );
+        this.polls = new PollRepository(db, this.cacheManager, this.logger);
+        this.coreCredits = new CoreCreditsRepository(
+          db,
+          this.cacheManager,
+          this.logger,
+        );
+        this.recurringSchedules = new RecurringSchedulesRepository(
+          db,
+          this.cacheManager,
+          this.logger,
+        );
+        this.scheduledRoles = new ScheduledRolesRepository(
           db,
           this.cacheManager,
           this.logger,

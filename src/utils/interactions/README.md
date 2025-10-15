@@ -97,7 +97,7 @@ export const handleMyCustomButton = async interaction => {
   const logger = getLogger();
 
   try {
-    await interaction.deferReply({ flags: 64 });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     // Your logic here
     await interaction.editReply({ content: "Success!" });
   } catch (error) {

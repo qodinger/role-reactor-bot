@@ -1,4 +1,5 @@
 import { getLogger } from "../../../utils/logger.js";
+import { EMOJIS } from "../../../config/theme.js";
 
 // ============================================================================
 // HEALTH UTILITY FUNCTIONS
@@ -44,7 +45,9 @@ export function formatDuration(milliseconds) {
 export function isHealthy(value) {
   if (typeof value === "string") {
     return (
-      value.includes("✅") || value.includes("Good") || value.includes("Ready")
+      value.includes(EMOJIS.STATUS.SUCCESS) ||
+      value.includes("Good") ||
+      value.includes("Ready")
     );
   }
   if (typeof value === "number") {
@@ -60,11 +63,11 @@ export function isHealthy(value) {
  */
 export function getHealthEmoji(value) {
   if (isHealthy(value)) {
-    return "✅";
-  } else if (value === "⚠️" || value.includes("High")) {
-    return "⚠️";
+    return EMOJIS.STATUS.SUCCESS;
+  } else if (value === EMOJIS.STATUS.WARNING || value.includes("High")) {
+    return EMOJIS.STATUS.WARNING;
   } else {
-    return "❌";
+    return EMOJIS.STATUS.ERROR;
   }
 }
 

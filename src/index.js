@@ -31,11 +31,14 @@ import { getPerformanceMonitor } from "./utils/monitoring/performanceMonitor.js"
 import { getLogger } from "./utils/logger.js";
 import { RoleScheduler } from "./features/temporaryRoles/RoleScheduler.js";
 import { getScheduler as getRoleExpirationScheduler } from "./features/temporaryRoles/RoleExpirationScheduler.js";
+// PollScheduler disabled - using native Discord polls only
+// import { PollScheduler } from "./features/polls/PollScheduler.js";
 import { getHealthCheckRunner } from "./utils/monitoring/healthCheck.js";
 import HealthServer from "./utils/monitoring/healthServer.js";
 import { getCommandHandler } from "./utils/core/commandHandler.js";
 import { getEventHandler } from "./utils/core/eventHandler.js";
 import { getVersion } from "./utils/discord/version.js";
+import { startWebhookServer } from "./server/webhookServer.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -112,6 +115,7 @@ function createClient() {
       GatewayIntentBits.GuildMessages,
       GatewayIntentBits.GuildMessageReactions,
       GatewayIntentBits.GuildVoiceStates,
+      GatewayIntentBits.GuildMessagePolls,
     ],
     partials: [Partials.Message, Partials.Channel, Partials.Reaction],
     makeCache: Options.cacheWithLimits(config.cacheLimits),
@@ -192,6 +196,18 @@ async function gracefulShutdown(client, healthServer) {
 
     if (global.tempRoleScheduler) {
       global.tempRoleScheduler.stop();
+    }
+
+    if (global.pollScheduler) {
+      global.pollScheduler.stop();
+    }
+
+    if (global.pollCleanupInterval) {
+      clearInterval(global.pollCleanupInterval);
+    }
+
+    if (global.subscriptionCleanupInterval) {
+      clearInterval(global.subscriptionCleanupInterval);
     }
 
     // Close Discord connection
@@ -526,18 +542,84 @@ async function main() {
       logger.info("🔄 Discord client reconnecting...");
     });
 
+    // Track guild changes
+    client.on("guildCreate", async guild => {
+      logger.info(`➕ Bot joined guild: ${guild.name} (${guild.id})`);
+    });
+
+    client.on("guildDelete", async guild => {
+      logger.info(`➖ Bot left guild: ${guild.name} (${guild.id})`);
+    });
+
     client.once("ready", () => {
       logger.success(`✅ ${client.user.tag} v${getVersion()} is ready!`);
+
+      // Start webhook server for Ko-fi integration
+      startWebhookServer();
 
       // Start background services
       const scheduler = new RoleScheduler(client);
       global.roleScheduler = scheduler; // Store globally for shutdown
       scheduler.start();
 
+      // Start automatic cleanup for generation history
+      import("./commands/general/avatar/utils/generationHistory.js").then(
+        ({ GenerationHistory }) => {
+          GenerationHistory.startAutoCleanup();
+        },
+      );
+
       // Start temporary role expiration scheduler
       const tempRoleScheduler = getRoleExpirationScheduler(client);
       global.tempRoleScheduler = tempRoleScheduler; // Store globally for shutdown
       tempRoleScheduler.start();
+
+      // Poll scheduler disabled - using native Discord polls only
+      // Native polls handle their own UI updates automatically
+      // const pollScheduler = new PollScheduler(client);
+      // global.pollScheduler = pollScheduler; // Store globally for shutdown
+      // pollScheduler.start();
+
+      // Start poll cleanup scheduler (runs every 6 hours)
+      const pollCleanupInterval = setInterval(
+        async () => {
+          try {
+            const storageManager = await getStorageManager();
+            const cleanedCount = await storageManager.cleanupEndedPolls();
+            if (cleanedCount > 0) {
+              logger.info(
+                `🧹 Poll cleanup: Removed ${cleanedCount} ended polls`,
+              );
+            }
+          } catch (error) {
+            logger.error("❌ Poll cleanup failed:", error);
+          }
+        },
+        6 * 60 * 60 * 1000,
+      ); // 6 hours
+
+      global.pollCleanupInterval = pollCleanupInterval; // Store globally for shutdown
+
+      // Start subscription cleanup scheduler (runs every 24 hours)
+      const subscriptionCleanupInterval = setInterval(
+        async () => {
+          try {
+            const { checkExpiredSubscriptions } = await import(
+              "./webhooks/kofi.js"
+            );
+            const expiredCount = await checkExpiredSubscriptions();
+            if (expiredCount > 0) {
+              logger.info(
+                `🧹 Subscription cleanup: Removed ${expiredCount} expired Core memberships`,
+              );
+            }
+          } catch (error) {
+            logger.error("❌ Subscription cleanup failed:", error);
+          }
+        },
+        24 * 60 * 60 * 1000, // 24 hours
+      );
+      global.subscriptionCleanupInterval = subscriptionCleanupInterval; // Store globally for shutdown
 
       healthCheckRunner.run(client);
       performanceMonitor.startMonitoring();

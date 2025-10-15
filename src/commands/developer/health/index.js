@@ -1,4 +1,4 @@
-import { SlashCommandBuilder } from "discord.js";
+import { MessageFlags, SlashCommandBuilder } from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 import { handleHealthCheck } from "./handlers.js";
@@ -12,7 +12,7 @@ export const data = new SlashCommandBuilder()
   .setDescription(
     "🔒 [DEVELOPER ONLY] Check the bot's health and performance status",
   )
-  .setDefaultMemberPermissions(0n)
+  .setDefaultMemberPermissions(0n) // Visible to all, but restricted by isDeveloper() check
   .setDMPermission(false);
 
 // ============================================================================
@@ -42,7 +42,7 @@ export async function execute(interaction, client) {
 
 async function deferInteraction(interaction) {
   try {
-    await interaction.deferReply({ flags: 64 }); // ephemeral flag
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     return true; // Successfully deferred
   } catch (deferError) {
     if (
@@ -77,7 +77,7 @@ async function handleCommandError(interaction, _error) {
               "An unexpected error occurred while checking bot health.",
           }),
         ],
-        flags: 64,
+        flags: MessageFlags.Ephemeral,
       });
     }
   } catch (replyError) {

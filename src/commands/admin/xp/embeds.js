@@ -73,7 +73,7 @@ export function createXpSettingsEmbed(interaction, xpSettings, levelUpChannel) {
       inline: true,
     },
     {
-      name: `${EMOJIS.UI.TIME} Cooldowns`,
+      name: `${EMOJIS.TIME.ALARM} Cooldowns`,
       value: `Message: ${xpSettings.messageCooldown}s | Command: ${xpSettings.commandCooldown}s`,
       inline: true,
     },

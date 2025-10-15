@@ -141,10 +141,9 @@ class Config {
     return {
       MessageManager: 200, // Increased from 100
       UserManager: 1000, // Increased from 500
-      GuildManager: 100, // Increased from 50
-      ChannelManager: 200, // Increased from 100
+      // Note: GuildManager, ChannelManager, and RoleManager cannot be overridden
+      // They are managed internally by discord.js
       GuildMemberManager: 500, // Increased from 200
-      RoleManager: 200, // Increased from 100
       EmojiManager: 100, // Increased from 50
       // Add new cache managers
       ApplicationCommandManager: 50,
@@ -340,11 +339,103 @@ class Config {
    */
   get externalLinks() {
     return {
+      name: "Role Reactor Bot",
       guide: "https://rolereactor.app/docs",
       github: "https://github.com/qodinger/role-reactor-bot",
       support: "https://discord.gg/D8tYkU75Ry",
       sponsor: "https://rolereactor.app/sponsor",
       invite: null, // Will be generated dynamically by the bot
+    };
+  }
+
+  /**
+   * Get AI model configuration
+   * @returns {Object} AI model configuration object
+   */
+  get aiModels() {
+    return {
+      // Primary AI provider (openrouter or openai)
+      primary: process.env.AI_PRIMARY_PROVIDER || "openrouter",
+
+      // Model configurations
+      providers: {
+        openrouter: {
+          name: "OpenRouter",
+          baseUrl: "https://openrouter.ai/api/v1/chat/completions",
+          apiKey: process.env.OPENROUTER_API_KEY,
+          models: {
+            image: {
+              primary: "google/gemini-2.5-flash-image-preview",
+            },
+          },
+        },
+        openai: {
+          name: "OpenAI",
+          baseUrl: "https://api.openai.com/v1",
+          apiKey: process.env.OPENAI_API_KEY,
+          models: {
+            image: {
+              primary: "dall-e-3",
+            },
+          },
+        },
+        stability: {
+          name: "Stability AI",
+          baseUrl: "https://api.stability.ai/v2beta/stable-image/generate/sd3",
+          apiKey: process.env.STABILITY_API_KEY,
+          models: {
+            image: {
+              primary: "sd3.5-flash", // Fastest and cheapest
+              large: "sd3.5-large", // Highest quality
+              medium: "sd3.5-medium", // Balanced
+              turbo: "sd3.5-large-turbo", // Quality + Speed
+            },
+          },
+        },
+      },
+    };
+  }
+
+  /**
+   * Get Core pricing configuration
+   * @returns {Object} Core pricing configuration object
+   */
+  get corePricing() {
+    return {
+      // AI generation cost per image (Stability AI SD 3.5 Flash)
+      aiCostPerImage: 0.025, // $0.025 per image with SD 3.5 Flash
+
+      // Donation rates (Cores per $1) - Your preferred rates
+      donation: {
+        rate: 10, // 10 Cores per $1
+        minimum: parseFloat(process.env.KOFI_MINIMUM_DONATION) || 1, // Minimum donation amount (default $1)
+      },
+
+      // Subscription tiers (monthly) - Your preferred rates
+      subscriptions: {
+        "Core Basic": {
+          price: 10,
+          cores: 150, // 15.0 Cores per $1
+          description: "Basic Core membership",
+        },
+        "Core Premium": {
+          price: 25,
+          cores: 400, // 16.0 Cores per $1
+          description: "Premium Core membership",
+        },
+        "Core Elite": {
+          price: 50,
+          cores: 850, // 17.0 Cores per $1
+          description: "Elite Core membership",
+        },
+      },
+
+      // Core system settings
+      coreSystem: {
+        minimumSubscription: 10, // Minimum $10 for Core membership
+        aiServiceCost: 1, // 1 Core per AI service
+        priorityProcessing: true, // Core members get priority
+      },
     };
   }
 
@@ -361,6 +452,8 @@ class Config {
       partials: this.partials,
       cacheLimits: this.cacheLimits,
       rateLimits: this.rateLimits,
+      aiModels: this.aiModels,
+      corePricing: this.corePricing,
     };
   }
 

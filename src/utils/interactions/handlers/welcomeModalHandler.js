@@ -6,6 +6,7 @@ import { hasAdminPermissions } from "../../discord/permissions.js";
 import { createWelcomeConfigPageEmbed } from "../../../commands/admin/welcome/modals.js";
 import { createWelcomeConfigPageComponents } from "../../../commands/admin/welcome/components.js";
 import { isValidMessage } from "../../validation/welcomeValidation.js";
+import { EMOJIS } from "../../../config/theme.js";
 
 /**
  * Handle welcome configuration modal submission
@@ -53,7 +54,9 @@ export async function handleWelcomeConfigModal(interaction) {
 
     const newSettings = {
       ...currentSettings, // Preserve all existing settings
-      message: messageInput || "Welcome **{user}** to **{server}**! 🎉",
+      message:
+        messageInput ||
+        `Welcome **{user}** to **{server}**! ${EMOJIS.ACTIONS.WELCOME}`,
       updatedAt: new Date(),
     };
 

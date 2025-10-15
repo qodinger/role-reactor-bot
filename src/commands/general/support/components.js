@@ -16,9 +16,9 @@ export function createSupportButtons() {
   if (links.support) {
     buttons.push(
       new ButtonBuilder()
-        .setLabel("Discord Support")
+        .setLabel("Support Server")
         .setURL(links.support)
-        .setEmoji(EMOJIS.STATUS.INFO)
+        .setEmoji(EMOJIS.ACTIONS.SUPPORT)
         .setStyle(ButtonStyle.Link),
     );
   }

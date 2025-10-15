@@ -1,4 +1,6 @@
+import { MessageFlags } from "discord.js";
 import { getLogger } from "../../logger.js";
+import { EMOJIS } from "../../../config/theme.js";
 
 /**
  * Help interaction handlers
@@ -31,8 +33,8 @@ export const handleHelpInteraction = async interaction => {
     if (!interaction.replied && !interaction.deferred) {
       try {
         await interaction.reply({
-          content: "❌ An error occurred while processing your help request.",
-          flags: 64,
+          content: `${EMOJIS.STATUS.ERROR} An error occurred while processing your help request.`,
+          flags: MessageFlags.Ephemeral,
         });
       } catch (replyError) {
         logger.error("Error sending help error reply", replyError);

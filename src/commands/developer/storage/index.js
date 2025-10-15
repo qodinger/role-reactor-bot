@@ -10,7 +10,7 @@ import { handleStorageCheck } from "./handlers.js";
 export const data = new SlashCommandBuilder()
   .setName("storage")
   .setDescription("🔒 [DEVELOPER ONLY] Show storage configuration status")
-  .setDefaultMemberPermissions(0n)
+  .setDefaultMemberPermissions(0n) // Visible to all, but restricted by isDeveloper() check
   .setDMPermission(false);
 
 // ============================================================================

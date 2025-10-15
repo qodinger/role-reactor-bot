@@ -1,10 +1,14 @@
 import { getLogger } from "../../../utils/logger.js";
 import { create8BallEmbed, createErrorEmbed } from "./embeds.js";
+import { EMOJIS } from "../../../config/theme.js";
 
 export async function execute(interaction, _client) {
   const logger = getLogger();
 
   try {
+    // Defer immediately to prevent timeout
+    await interaction.deferReply({ ephemeral: false });
+
     const question = interaction.options.getString("question");
 
     // Smart response analysis
@@ -13,56 +17,119 @@ export async function execute(interaction, _client) {
     // Enhanced responses with smart categorization
     const responseCategories = {
       veryPositive: [
-        { text: "It is absolutely certain!", emoji: "✨" },
-        { text: "The stars have aligned perfectly!", emoji: "🌟" },
-        { text: "Without any doubt whatsoever!", emoji: "💫" },
-        { text: "Yes - this is your destiny!", emoji: "✅" },
-        { text: "The universe is on your side!", emoji: "🎯" },
-        { text: "This is written in the stars!", emoji: "🔮" },
-        { text: "Absolutely, without question!", emoji: "🎪" },
-        { text: "The future looks incredibly bright!", emoji: "🌈" },
-        { text: "Yes! This is your moment!", emoji: "🎉" },
-        { text: "All signs point to spectacular success!", emoji: "🚀" },
+        {
+          text: "It is absolutely certain!",
+          emoji: EMOJIS.EIGHTBALL.VERY_POSITIVE,
+        },
+        {
+          text: "The stars have aligned perfectly!",
+          emoji: EMOJIS.EIGHTBALL.STARS,
+        },
+        {
+          text: "Without any doubt whatsoever!",
+          emoji: EMOJIS.EIGHTBALL.CRYSTAL,
+        },
+        {
+          text: "Yes - this is your destiny!",
+          emoji: EMOJIS.EIGHTBALL.DESTINY,
+        },
+        {
+          text: "The universe is on your side!",
+          emoji: EMOJIS.EIGHTBALL.UNIVERSE,
+        },
+        {
+          text: "This is written in the stars!",
+          emoji: EMOJIS.EIGHTBALL.STARS,
+        },
+        {
+          text: "Absolutely, without question!",
+          emoji: EMOJIS.EIGHTBALL.MAGIC,
+        },
+        {
+          text: "The future looks incredibly bright!",
+          emoji: EMOJIS.EIGHTBALL.ENERGY,
+        },
+        { text: "Yes! This is your moment!", emoji: EMOJIS.EIGHTBALL.FORTUNE },
+        {
+          text: "All signs point to spectacular success!",
+          emoji: EMOJIS.EIGHTBALL.COSMIC,
+        },
       ],
       positive: [
-        { text: "It is certain.", emoji: "✨" },
-        { text: "It is decidedly so.", emoji: "🌟" },
-        { text: "Without a doubt.", emoji: "💫" },
-        { text: "Yes - definitely.", emoji: "✅" },
-        { text: "You may rely on it.", emoji: "🎯" },
-        { text: "As I see it, yes.", emoji: "🔮" },
-        { text: "Most likely.", emoji: "🎪" },
-        { text: "Outlook good.", emoji: "🌈" },
-        { text: "Yes.", emoji: "🎉" },
-        { text: "Signs point to yes.", emoji: "🚀" },
+        { text: "It is certain.", emoji: EMOJIS.EIGHTBALL.POSITIVE },
+        { text: "It is decidedly so.", emoji: EMOJIS.EIGHTBALL.STARS },
+        { text: "Without a doubt.", emoji: EMOJIS.EIGHTBALL.CRYSTAL },
+        { text: "Yes - definitely.", emoji: EMOJIS.EIGHTBALL.MAGIC },
+        { text: "You may rely on it.", emoji: EMOJIS.EIGHTBALL.DESTINY },
+        { text: "As I see it, yes.", emoji: EMOJIS.EIGHTBALL.FATE },
+        { text: "Most likely.", emoji: EMOJIS.EIGHTBALL.FORTUNE },
+        { text: "Outlook good.", emoji: EMOJIS.EIGHTBALL.ENERGY },
+        { text: "Yes.", emoji: EMOJIS.EIGHTBALL.POSITIVE },
+        { text: "Signs point to yes.", emoji: EMOJIS.EIGHTBALL.COSMIC },
       ],
       neutral: [
-        { text: "Reply hazy, try again.", emoji: "🌫️" },
-        { text: "Ask again later.", emoji: "⏰" },
-        { text: "Better not tell you now.", emoji: "🤐" },
-        { text: "Cannot predict now.", emoji: "❓" },
-        { text: "Concentrate and ask again.", emoji: "🧘" },
-        { text: "The answer is unclear at this time.", emoji: "🔮" },
-        { text: "Time will reveal the truth.", emoji: "⏳" },
-        { text: "The mists of fate are thick today.", emoji: "🌫️" },
+        { text: "Reply hazy, try again.", emoji: EMOJIS.EIGHTBALL.NEUTRAL },
+        { text: "Ask again later.", emoji: EMOJIS.EIGHTBALL.MYSTICAL },
+        { text: "Better not tell you now.", emoji: EMOJIS.EIGHTBALL.ENIGMA },
+        { text: "Cannot predict now.", emoji: EMOJIS.EIGHTBALL.MYSTERY },
+        { text: "Concentrate and ask again.", emoji: EMOJIS.EIGHTBALL.WISDOM },
+        {
+          text: "The answer is unclear at this time.",
+          emoji: EMOJIS.EIGHTBALL.FATE,
+        },
+        {
+          text: "Time will reveal the truth.",
+          emoji: EMOJIS.EIGHTBALL.PROPHECY,
+        },
+        {
+          text: "The mists of fate are thick today.",
+          emoji: EMOJIS.EIGHTBALL.NEUTRAL,
+        },
       ],
       negative: [
-        { text: "Don't count on it.", emoji: "💔" },
-        { text: "My reply is no.", emoji: "❌" },
-        { text: "My sources say no.", emoji: "📰" },
-        { text: "Outlook not so good.", emoji: "☁️" },
-        { text: "Very doubtful.", emoji: "🤨" },
-        { text: "The signs are not favorable.", emoji: "🌧️" },
-        { text: "This path may be challenging.", emoji: "⛰️" },
+        { text: "Don't count on it.", emoji: EMOJIS.EIGHTBALL.NEGATIVE },
+        { text: "My reply is no.", emoji: EMOJIS.EIGHTBALL.NEGATIVE },
+        { text: "My sources say no.", emoji: EMOJIS.EIGHTBALL.NEGATIVE },
+        { text: "Outlook not so good.", emoji: EMOJIS.EIGHTBALL.NEGATIVE },
+        { text: "Very doubtful.", emoji: EMOJIS.EIGHTBALL.ENIGMA },
+        {
+          text: "The signs are not favorable.",
+          emoji: EMOJIS.EIGHTBALL.NEGATIVE,
+        },
+        {
+          text: "This path may be challenging.",
+          emoji: EMOJIS.EIGHTBALL.NEGATIVE,
+        },
       ],
       veryNegative: [
-        { text: "Absolutely not - avoid this path!", emoji: "💔" },
-        { text: "The stars strongly advise against this!", emoji: "❌" },
-        { text: "This would be a grave mistake!", emoji: "📰" },
-        { text: "The future looks very bleak!", emoji: "☁️" },
-        { text: "Extremely doubtful - steer clear!", emoji: "🤨" },
-        { text: "The cosmic forces warn against this!", emoji: "🌧️" },
-        { text: "This path leads to certain failure!", emoji: "⛰️" },
+        {
+          text: "Absolutely not - avoid this path!",
+          emoji: EMOJIS.EIGHTBALL.VERY_NEGATIVE,
+        },
+        {
+          text: "The stars strongly advise against this!",
+          emoji: EMOJIS.EIGHTBALL.VERY_NEGATIVE,
+        },
+        {
+          text: "This would be a grave mistake!",
+          emoji: EMOJIS.EIGHTBALL.VERY_NEGATIVE,
+        },
+        {
+          text: "The future looks very bleak!",
+          emoji: EMOJIS.EIGHTBALL.NEGATIVE,
+        },
+        {
+          text: "Extremely doubtful - steer clear!",
+          emoji: EMOJIS.EIGHTBALL.ENIGMA,
+        },
+        {
+          text: "The cosmic forces warn against this!",
+          emoji: EMOJIS.EIGHTBALL.VERY_NEGATIVE,
+        },
+        {
+          text: "This path leads to certain failure!",
+          emoji: EMOJIS.EIGHTBALL.VERY_NEGATIVE,
+        },
       ],
     };
 
@@ -82,11 +149,11 @@ export async function execute(interaction, _client) {
       interaction.user,
     );
 
-    await interaction.reply({ embeds: [embed] });
+    await interaction.editReply({ embeds: [embed] });
     logger.logCommand("8ball", interaction.user.id, Date.now(), true);
   } catch (error) {
     logger.error("Error in 8ball command", error);
-    await interaction.reply({
+    await interaction.editReply({
       embeds: [createErrorEmbed()],
     });
   }
