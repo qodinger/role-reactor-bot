@@ -30,9 +30,16 @@ globs: CHANGELOG.md
 - **Changed:** Changes to existing functionality
 - **Deprecated:** Features marked for removal in future versions
 - **Removed:** Features removed in this version
-- **Fixed:** Bug fixes and improvements
+- **Fixed:** Bug fixes and improvements for **released features only**
 - **Security:** Security-related changes
 - **Performance:** Performance improvements and optimizations
+
+### Important Categorization Rules
+
+- **Fixed Section:** Only include fixes for features that have been released to users
+- **Unreleased Features:** New features go in "Added" section, not "Fixed" section
+- **Developer Commands:** Do not include internal developer tools in user-facing changelog
+- **Breaking Changes:** Always document breaking changes prominently
 
 ## 3. Writing Guidelines
 
@@ -92,6 +99,13 @@ globs: CHANGELOG.md
 3. **Update:** Add release date and clear [Unreleased] section
 4. **Commit:** Include changelog updates in release commit
 
+### Release Date Accuracy
+
+- **Use Git History:** Always verify release dates using `git log --grep="version"` or `git show <commit-hash> --format="%ad" --date=short`
+- **Actual Commit Dates:** Use the date from the version bump commit, not arbitrary dates
+- **Format:** Use YYYY-MM-DD format consistently
+- **Verification:** Double-check dates against actual git commit history before finalizing
+
 ## 5. Content Organization
 
 ### Grouping Related Changes
@@ -146,24 +160,36 @@ globs: CHANGELOG.md
 - **Ensure all user-visible changes are documented**
 - **Include breaking changes prominently**
 
+### What NOT to Include
+
+- **Developer Commands:** Internal tools like `/core-management`, `/health`, `/performance`, `/storage`
+- **Technical Implementation:** Database migrations, code refactoring, internal architecture changes
+- **Unreleased Feature Fixes:** Don't put "fixes" for features that haven't been released yet
+- **Internal Security:** Developer-only security improvements that don't affect users
+- **Code Quality:** Linting fixes, formatting changes, documentation updates
+
 ## 7. Examples
 
 ### Good Changelog Entry
 
 ```markdown
-## [1.2.0] - 2025-01-28
+## [1.2.0] - 2025-10-15
 
 ### Added
 
+- AI Avatar Generation: Complete AI-powered avatar generation system with `/avatar` command
+- Avatar Content Filter: Advanced content filtering with 97.6% accuracy for inappropriate content detection
+- Core Credit System: New credit-based economy for avatar generation with Ko-fi integration
+- Core Command: New `/core` command with clean UI and Core Energy branding
 - Poll System: Create and manage native Discord polls with `/poll` command
 - Poll Commands: `/poll create`, `/poll list`, `/poll end`, `/poll delete` for full poll management
-- Interactive Poll Creation: Easy-to-use forms for creating polls with custom duration and vote types
 
 ### Fixed
 
 - Command Timeouts: Fixed "Unknown interaction" errors that occurred when commands took too long to respond
 - Database Commands: Improved response times for /leaderboard and /level commands
-- All Commands: Enhanced reliability and response times across all bot commands
+- Help System Security: Fixed developer commands being visible to non-developers in "All Commands" view
+- Role Parser: Fixed role parsing to properly strip @ symbol from role names (e.g., "@Gamer" → "Gamer")
 ```
 
 ### Bad Changelog Entry
@@ -176,15 +202,15 @@ globs: CHANGELOG.md
 - Poll System: Complete native Discord poll system with interactive creation and management
 - Poll Data Storage: MongoDB integration for storing poll data with automatic cleanup
 - Poll Event Handling: Real-time poll vote tracking with messagePollVoteAdd and messagePollVoteRemove events
-- Poll Scheduler: Automated poll cleanup system for ended polls
-- Poll Theme Integration: Centralized emoji and color system for poll UI components
+- Core Management: Developer command `/core-management` for managing user Core credits
+- Developer Command Security: Added permission-based filtering to hide developer commands from non-developers
 
 ### Fixed
 
-- Command Interaction Timeouts: Added immediate deferral to prevent "Unknown interaction" errors across all commands
-- High-Priority Commands: Fixed /leaderboard and /level commands with database operations to prevent timeouts
-- Error Response Handling: Updated all commands to use editReply() instead of reply() after deferral
-- MessageFlags Integration: Added proper MessageFlags imports for ephemeral responses
+- Poll Command Help: Fixed misleading help examples that showed non-existent parameters
+- Core Command UI: Redesigned with clean, compact layouts and Core Energy branding
+- Database Migration: Successfully migrated existing XP data from files to MongoDB
+- Linting Errors: Fixed string concatenation and variable usage issues
 ```
 
 ## 8. Maintenance Guidelines
@@ -220,6 +246,11 @@ globs: CHANGELOG.md
 - **Don't use present tense for completed changes**
 - **Don't mix technical and user-focused descriptions**
 - **Don't forget to update [Unreleased] section**
+- **Don't include developer commands in user-facing changelog**
+- **Don't put "fixes" for unreleased features in Fixed section**
+- **Don't use arbitrary dates - always verify with git history**
+- **Don't include database migrations or internal architecture changes**
+- **Don't mention "renamed" commands if the old command was never released**
 
 ## 10. Integration with Development
 

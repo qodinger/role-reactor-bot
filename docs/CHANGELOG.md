@@ -9,23 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- AI Avatar Generation: Complete AI-powered avatar generation system with `/avatar` command
+- Avatar Content Filter: Advanced content filtering with 97.6% accuracy for inappropriate content detection
+- Avatar Style Options: Multiple style choices including color_style, mood, and art_style parameters
+- Core Credit System: New credit-based economy for avatar generation with Ko-fi integration
+- Core Command: New `/core` command with clean UI and Core Energy branding
+- Core Tier Benefits: Priority processing and increased rate limits for Core subscribers
 - Poll System: Create and manage native Discord polls with `/poll` command
 - Poll Commands: `/poll create`, `/poll list`, `/poll end`, `/poll delete` for full poll management
 - Interactive Poll Creation: Easy-to-use forms for creating polls with custom duration and vote types
-- Poll Management: View all server polls with pagination and filter options
 
 ### Fixed
 
 - Command Timeouts: Fixed "Unknown interaction" errors that occurred when commands took too long to respond
 - Database Commands: Improved response times for /leaderboard and /level commands
-- Heavy Processing Commands: Fixed timeout issues with /8ball and /temp-roles commands
-- All Commands: Enhanced reliability and response times across all bot commands
+- Role Parser: Fixed role parsing to properly strip @ symbol from role names (e.g., "@Gamer" → "Gamer")
 - Button Interactions: Fixed "This interaction failed" errors on various system buttons
-- Welcome System: Improved button response reliability
-- Goodbye System: Enhanced button interaction stability
-- Leaderboard: Fixed timeframe switching button issues
 
-## [1.1.0] - 2025-01-27
+## [1.1.0] - 2025-10-05
 
 ### Added
 
@@ -40,16 +41,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Two-Step Configuration: Channel select → modal configuration flow for better UX
 - Welcome System Improvements: Enhanced welcome system with better button layout and organization
 - Welcome System Test: Real role assignment testing in welcome system test functionality
-- Documentation: Added comprehensive README files for goodbye and welcome commands
-- Improved Logging: Enhanced error tracking and debugging information
-- Better Error Messages: More helpful error messages for troubleshooting
 - Role List Pagination: Added page navigation for role lists (4 items per page)
 - Server Validation: Improved server-specific data handling
 
 ### Removed
 
 - Serverinfo Command: Removed `/serverinfo` command and all related files to reduce bot complexity and remove dependency on presence data
-- Debug Console Statements: Removed debug console.log statements from production code for cleaner logging
 
 ### Changed
 
@@ -57,11 +54,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Welcome Button Layout: Reorganized button layout with Reset button moved to Configure page
 - Welcome Test Functionality: Improved test accuracy by using real interaction.member instead of mock data
 - Goodbye Message Format: Updated to modern format with bold user/server names and improved layout
-- Logging Architecture: Migrated from console.log to structured logger with configurable log levels
-- Delete Command Logic: Enhanced delete command with detailed mapping information and fallback debugging
-- Database Queries: Updated role-reactions list to use paginated queries for better performance
-- Error Handling: Improved error messages with structured data for better debugging
-- Code Quality: Cleaned up debug statements and improved logging consistency throughout the application
 
 ### Fixed
 
@@ -75,7 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Role Reactions Setup Permission Error: Fixed Discord API Error 50013 (Missing Permissions) in role-reactions setup command
 - Channel Permission Validation: Added proper channel-specific permission checks for SendMessages and EmbedLinks
 
-## [1.0.2] - 2025-01-22
+## [1.0.2] - 2025-09-16
 
 ### Added
 
