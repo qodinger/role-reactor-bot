@@ -54,21 +54,19 @@ describe("parseRoleString", () => {
     // Role mentions with spaces
     {
       input: "💻 : @Coder",
-      expected: [
-        { emoji: "💻", roleName: "@Coder", roleId: null, limit: null },
-      ],
+      expected: [{ emoji: "💻", roleName: "Coder", roleId: null, limit: null }],
     },
     {
       input: "🎮 : @Gamer : 20",
-      expected: [{ emoji: "🎮", roleName: "@Gamer", roleId: null, limit: 20 }],
+      expected: [{ emoji: "🎮", roleName: "Gamer", roleId: null, limit: 20 }],
     },
     {
       input: "💻:@Coder : 10",
-      expected: [{ emoji: "💻", roleName: "@Coder", roleId: null, limit: 10 }],
+      expected: [{ emoji: "💻", roleName: "Coder", roleId: null, limit: 10 }],
     },
     {
       input: "🎮 : @Gamer: 15",
-      expected: [{ emoji: "🎮", roleName: "@Gamer", roleId: null, limit: 15 }],
+      expected: [{ emoji: "🎮", roleName: "Gamer", roleId: null, limit: 15 }],
     },
 
     // Role mentions with IDs
@@ -154,8 +152,8 @@ describe("parseRoleString", () => {
     {
       input: "💻:@Coder : 10; 🎮:@Gamer : 20",
       expected: [
-        { emoji: "💻", roleName: "@Coder", roleId: null, limit: 10 },
-        { emoji: "🎮", roleName: "@Gamer", roleId: null, limit: 20 },
+        { emoji: "💻", roleName: "Coder", roleId: null, limit: 10 },
+        { emoji: "🎮", roleName: "Gamer", roleId: null, limit: 20 },
       ],
     },
     {
