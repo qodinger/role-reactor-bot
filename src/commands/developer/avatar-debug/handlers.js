@@ -63,12 +63,12 @@ async function handleStatsCommand(interaction) {
   const stats = await GenerationHistory.getGenerationStats(hours);
 
   const embed = new EmbedBuilder()
-    .setTitle(`${EMOJIS.STATS} Avatar Generation Statistics`)
+    .setTitle(`Avatar Generation Statistics`)
     .setDescription(`**Last ${stats.timeRange}**`)
     .setColor(THEME.PRIMARY)
     .addFields(
       {
-        name: "📊 Overview",
+        name: "Overview",
         value: [
           `**Total Attempts:** ${stats.totalAttempts}`,
           `**Successful:** ${stats.successfulGenerations} (${stats.successRate}%)`,
@@ -78,7 +78,7 @@ async function handleStatsCommand(interaction) {
         inline: true,
       },
       {
-        name: "⏱️ Performance",
+        name: "Performance",
         value: [
           `**Avg Processing Time:** ${stats.averageProcessingTime}ms`,
           `**Success Rate:** ${stats.successRate}%`,
@@ -105,7 +105,7 @@ async function handleUserCommand(interaction) {
 
   if (!userHistory || userHistory.generations.length === 0) {
     const embed = new EmbedBuilder()
-      .setTitle(`${EMOJIS.INFO} No Generation History`)
+      .setTitle(`No Generation History`)
       .setDescription(`No generation history found for ${user.displayName}.`)
       .setColor(THEME.SECONDARY)
       .setTimestamp();
@@ -115,11 +115,11 @@ async function handleUserCommand(interaction) {
   }
 
   const embed = new EmbedBuilder()
-    .setTitle(`${EMOJIS.USER} Generation History - ${user.displayName}`)
+    .setTitle(`Generation History - ${user.displayName}`)
     .setDescription(`**${userHistory.generations.length} recent generations**`)
     .setColor(THEME.PRIMARY)
     .addFields({
-      name: "📊 Summary",
+      name: "Summary",
       value: [
         `**Total Attempts:** ${userHistory.totalAttempts}`,
         `**Successful:** ${userHistory.successfulGenerations}`,
@@ -136,9 +136,10 @@ async function handleUserCommand(interaction) {
     .map((gen, index) => {
       const timestamp = new Date(gen.timestamp).toLocaleString();
       const status = gen.success ? EMOJIS.SUCCESS : EMOJIS.ERROR;
+      const generationId = gen.id || `gen_${index + 1}`;
 
       return (
-        `**${index + 1}.** ${status} ${timestamp}\n` +
+        `**${index + 1}.** ${status} **${generationId}** ${timestamp}\n` +
         `**Prompt:** ${gen.prompt.substring(0, 40)}...\n` +
         `**Time:** ${gen.processingTime}ms | **Tier:** ${gen.userTier}\n`
       );
@@ -161,7 +162,7 @@ async function handleUserCommand(interaction) {
  */
 function createErrorEmbed(title, description) {
   return new EmbedBuilder()
-    .setTitle(`${EMOJIS.ERROR} ${title}`)
+    .setTitle(`${title}`)
     .setDescription(description)
     .setColor(THEME.ERROR)
     .setTimestamp();

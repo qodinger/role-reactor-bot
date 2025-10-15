@@ -19,6 +19,59 @@ app.get("/health", (req, res) => {
   });
 });
 
+// Test webhook endpoint
+app.get("/webhook/test", (req, res) => {
+  const logger = getLogger();
+
+  logger.info("🧪 Webhook test endpoint accessed", {
+    ip: req.ip,
+    userAgent: req.get("User-Agent"),
+    timestamp: new Date().toISOString(),
+  });
+
+  res.json({
+    status: "success",
+    message: "Webhook API is working!",
+    timestamp: new Date().toISOString(),
+    endpoints: {
+      health: "/health",
+      kofi: "/webhook/kofi",
+      test: "/webhook/test",
+    },
+    server: {
+      port: PORT,
+      environment: process.env.NODE_ENV || "development",
+    },
+  });
+});
+
+// Test webhook POST endpoint
+app.post("/webhook/test", (req, res) => {
+  const logger = getLogger();
+
+  logger.info("🧪 Webhook test POST endpoint accessed", {
+    ip: req.ip,
+    userAgent: req.get("User-Agent"),
+    body: req.body,
+    headers: req.headers,
+    timestamp: new Date().toISOString(),
+  });
+
+  res.json({
+    status: "success",
+    message: "Webhook POST endpoint is working!",
+    received: {
+      method: req.method,
+      body: req.body,
+      headers: {
+        contentType: req.get("Content-Type"),
+        userAgent: req.get("User-Agent"),
+      },
+    },
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // Ko-fi webhook endpoint
 app.post("/webhook/kofi", handleKoFiWebhook);
 
@@ -36,7 +89,10 @@ app.use((req, res) => {
 export function startWebhookServer() {
   app.listen(PORT, () => {
     logger.info(`Webhook server running on port ${PORT}`);
-    logger.info(`Ko-fi webhook URL: http://localhost:${PORT}/webhook/kofi`);
+    logger.info(`Available endpoints:`);
+    logger.info(`  Health: http://localhost:${PORT}/health`);
+    logger.info(`  Test: http://localhost:${PORT}/webhook/test`);
+    logger.info(`  Ko-fi: http://localhost:${PORT}/webhook/kofi`);
   });
 }
 

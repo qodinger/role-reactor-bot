@@ -40,7 +40,7 @@ export async function createDetailedCoreManagementEmbed({
 }) {
   const embed = new EmbedBuilder()
     .setColor(getEmbedColor(type))
-    .setTitle(`${getEmbedTitle(type)} ${CORE_EMOJI} Core Energy`)
+    .setTitle(`${getEmbedTitle(type)} Core Energy`)
     .setDescription(
       getEmbedDescription(type, targetUser, amount, oldAmount, newAmount),
     )
@@ -54,8 +54,8 @@ export async function createDetailedCoreManagementEmbed({
   if (type === "view") {
     embed.addFields(
       {
-        name: `${CORE_EMOJI} Current Balance`,
-        value: `**${newAmount} ${CORE_EMOJI}**`,
+        name: `Current Balance`,
+        value: `**${CORE_EMOJI} ${newAmount}**`,
         inline: true,
       },
       {
@@ -84,18 +84,18 @@ export async function createDetailedCoreManagementEmbed({
   } else {
     embed.addFields(
       {
-        name: `${CORE_EMOJI} Previous Balance`,
-        value: `**${oldAmount} ${CORE_EMOJI}**`,
+        name: `Previous Balance`,
+        value: `**${CORE_EMOJI} ${oldAmount}**`,
         inline: true,
       },
       {
-        name: `${getOperationEmoji(type)} ${getOperationText(type)}`,
-        value: `**${amount} ${CORE_EMOJI}**`,
+        name: `${getOperationText(type)}`,
+        value: `**${CORE_EMOJI} ${amount}**`,
         inline: true,
       },
       {
-        name: `${CORE_EMOJI} New Balance`,
-        value: `**${newAmount} ${CORE_EMOJI}**`,
+        name: `New Balance`,
+        value: `**${CORE_EMOJI} ${newAmount}**`,
         inline: true,
       },
     );
@@ -142,46 +142,30 @@ function getEmbedColor(type) {
 function getEmbedTitle(type) {
   switch (type) {
     case "add":
-      return "✅ Added";
+      return "Added";
     case "remove":
-      return "➖ Removed";
+      return "Removed";
     case "set":
-      return "🔧 Set";
+      return "Set";
     case "view":
-      return "👁️ Viewing";
+      return "Viewing";
     default:
       return "Core Management";
   }
 }
 
-function getEmbedDescription(type, targetUser, amount, oldAmount, newAmount) {
-  const change = newAmount - oldAmount;
-  const changeText = change > 0 ? `+${change}` : change.toString();
-
+function getEmbedDescription(type, targetUser, amount, _oldAmount, _newAmount) {
   switch (type) {
     case "add":
-      return `Successfully added **${amount} ${CORE_EMOJI}** to ${targetUser}'s account.\n**Change**: ${changeText} ${CORE_EMOJI}`;
+      return `Successfully added **${amount} ${CORE_EMOJI}** to ${targetUser}'s account.`;
     case "remove":
-      return `Successfully removed **${amount} ${CORE_EMOJI}** from ${targetUser}'s account.\n**Change**: ${changeText} ${CORE_EMOJI}`;
+      return `Successfully removed **${amount} ${CORE_EMOJI}** from ${targetUser}'s account.`;
     case "set":
-      return `Successfully set ${targetUser}'s Core credits to **${amount} ${CORE_EMOJI}**.\n**Change**: ${changeText} ${CORE_EMOJI}`;
+      return `Successfully set ${targetUser}'s Core credits to **${amount} ${CORE_EMOJI}**.`;
     case "view":
       return `Viewing ${targetUser}'s Core credit information.`;
     default:
       return "Core credit management operation completed.";
-  }
-}
-
-function getOperationEmoji(type) {
-  switch (type) {
-    case "add":
-      return "➕";
-    case "remove":
-      return "➖";
-    case "set":
-      return "🔧";
-    default:
-      return "📊";
   }
 }
 

@@ -48,7 +48,10 @@ role-reactions/
 ## Usage Examples
 
 ```
-/role-reactions setup title:"Choose Your Roles" description:"React to get roles!" roles:"🎮 @Gamer, 🎨 @Artist, 📚 @Reader" color:"Pastel Blue"
+/role-reactions setup title:"Choose Your Roles" description:"React to get roles!" roles:"🎮:Gamer,🎨:Artist,💻:Developer" color:"Pastel Blue"
+/role-reactions setup title:"Role Selection" description:"Pick your roles!" roles:"🎮 @Gamer, 🎨 @Artist, 📚 @Reader" color:"Pastel Green"
+/role-reactions setup title:"Limited Roles" description:"Limited availability!" roles:"🎮:Gamer:10,🎨:Artist:5,💻:Developer" color:"Pastel Purple"
+/role-reactions setup title:"Quoted Names" description:"Special role names!" roles:"🎮 \"Gaming Enthusiast\", 🎨 \"Creative Artist\", 💻 \"Code Master\"" color:"Pastel Blue"
 /role-reactions list
 /role-reactions update message_id:"1234567890" title:"Updated Title" color:"Pastel Green"
 /role-reactions delete message_id:"1234567890"
@@ -65,7 +68,7 @@ role-reactions/
 - Interactive role assignment via emoji reactions
 - Customizable embed titles, descriptions, and colors
 - Pastel color palette with visual emoji indicators
-- Role format: "emoji @role" or "emoji rolename"
+- Role format: Multiple formats supported (emoji:role, emoji @role, emoji "role name", emoji <@&id>, emoji:role:limit)
 - Automatic reaction addition to messages
 - Paginated list view (4 items per page) with navigation buttons
 - Update functionality for modifying existing messages
@@ -80,6 +83,6 @@ role-reactions/
 ## Notes
 
 - Ensure the bot's role is above target roles in the hierarchy
-- Role format supports both role mentions (@role) and role names
+- Role format supports multiple formats: role names, role mentions (@role), quoted names ("role name"), role IDs (<@&id>), and user limits (:10)
 - Color choices are centralized in utils.js for easy maintenance
 - Messages persist until manually deleted or bot loses access

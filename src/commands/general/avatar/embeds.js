@@ -96,17 +96,12 @@ export function createCreditEmbed(
   return new EmbedBuilder()
     .setColor(THEME.WARNING)
     .setDescription(
-      `You need **${creditsNeeded} ${CORE_EMOJI}** to generate an AI avatar!\n**Your Balance**: ${userData.credits} ${CORE_EMOJI} • **Cost**: ${creditsNeeded} ${CORE_EMOJI} per generation`,
+      `You need **${creditsNeeded} ${CORE_EMOJI}** to generate an AI avatar!\n\n**Your Balance**: ${userData.credits} ${CORE_EMOJI} • **Cost**: ${creditsNeeded} ${CORE_EMOJI} per generation`,
     )
     .addFields([
       {
-        name: `${EMOJIS.ACTIONS.REFRESH} Get Cores`,
+        name: `Get Cores`,
         value: `Donate on [Ko-fi](https://ko-fi.com/rolereactor) • Use \`/core pricing\``,
-        inline: false,
-      },
-      {
-        name: `${CORE_EMOJI} Core Energy`,
-        value: `1 ${CORE_EMOJI} = 1 AI Avatar • High-quality anime art • 10-30 second generation`,
         inline: false,
       },
     ])
