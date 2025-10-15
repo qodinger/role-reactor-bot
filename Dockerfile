@@ -1,12 +1,19 @@
 # Multi-stage build for better security
 FROM node:22-alpine AS base
 
-# Install security updates and pnpm
+# Install Canvas dependencies and build tools
 RUN apk add --no-cache --update \
     ca-certificates \
-    && npm install -g pnpm@latest \
-    && apk del --purge \
-    && apk cache clean
+    build-base \
+    cairo-dev \
+    pango-dev \
+    jpeg-dev \
+    giflib-dev \
+    librsvg-dev \
+    python3 \
+    make \
+    g++ \
+    && npm install -g pnpm@latest
 
 # Set working directory
 WORKDIR /usr/src/app
@@ -14,14 +21,21 @@ WORKDIR /usr/src/app
 # Copy package files
 COPY package.json pnpm-lock.yaml ./
 
-# Install dependencies
+# Install dependencies (including canvas compilation)
 RUN pnpm install --frozen-lockfile --prod
 
 # Production stage
 FROM node:22-alpine AS production
 
-# Install security updates
-RUN apk add --no-cache --update ca-certificates bash \
+# Install Canvas runtime dependencies
+RUN apk add --no-cache --update \
+    ca-certificates \
+    bash \
+    cairo \
+    pango \
+    jpeg \
+    giflib \
+    librsvg \
     && apk del --purge \
     && apk cache clean
 
