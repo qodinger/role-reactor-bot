@@ -47,7 +47,9 @@ export async function handlePollEnd(interaction, client, _deferred = false) {
     // Check if user owns this poll or has admin permissions
     if (
       poll.creatorId !== interaction.user.id &&
-      (!interaction.member || !interaction.member.permissions || !interaction.member.permissions.has("Administrator"))
+      (!interaction.member ||
+        !interaction.member.permissions ||
+        !interaction.member.permissions.has("Administrator"))
     ) {
       return await interaction.editReply(
         errorEmbed({
@@ -954,8 +956,9 @@ export async function handlePollDelete(
 
     // Check if user can delete this poll
     const isCreator = poll.creatorId === interaction.user.id;
-    const isAdmin = interaction.member && 
-      interaction.member.permissions && 
+    const isAdmin =
+      interaction.member &&
+      interaction.member.permissions &&
       interaction.member.permissions.has(PermissionFlagsBits.ManageMessages);
 
     if (!isCreator && !isAdmin) {

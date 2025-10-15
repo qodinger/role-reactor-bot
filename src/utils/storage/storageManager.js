@@ -180,6 +180,27 @@ class DatabaseProvider {
   async cleanupEndedPolls() {
     return this.dbManager.polls.cleanupEndedPolls();
   }
+
+  // Core Credits methods
+  async getAllCoreCredits() {
+    return this.dbManager.coreCredits.getAll();
+  }
+
+  async getCoreCredits(userId) {
+    return this.dbManager.coreCredits.getByUserId(userId);
+  }
+
+  async setCoreCredits(userId, userData) {
+    return this.dbManager.coreCredits.setByUserId(userId, userData);
+  }
+
+  async updateCoreCredits(userId, creditsChange) {
+    return this.dbManager.coreCredits.updateCredits(userId, creditsChange);
+  }
+
+  async deleteCoreCredits(userId) {
+    return this.dbManager.coreCredits.deleteByUserId(userId);
+  }
 }
 
 class StorageManager {
@@ -489,6 +510,12 @@ class StorageManager {
         }
         return map;
       }
+      // Use database for core_credit collection
+      if (collection === "core_credit") {
+        // Get all core credits from database
+        const allCoreCredits = await this.provider.getAllCoreCredits();
+        return allCoreCredits;
+      }
       // For other collections, use file-based storage
       const fileProvider = new FileProvider(this.logger);
       return await fileProvider.read(collection);
@@ -506,6 +533,14 @@ class StorageManager {
           if (guildId && userId) {
             await this.provider.setUserExperience(guildId, userId, userData);
           }
+        }
+        return true;
+      }
+      // Use database for core_credit collection
+      if (collection === "core_credit") {
+        // Update all core credit data in database
+        for (const [userId, userData] of Object.entries(data)) {
+          await this.provider.setCoreCredits(userId, userData);
         }
         return true;
       }

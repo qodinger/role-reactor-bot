@@ -405,6 +405,19 @@ class ExperienceManager {
   async canEarnXP(guildId, userId) {
     await this.initialize();
 
+    // Check if XP system is enabled for this guild
+    const { getDatabaseManager } = await import(
+      "../../utils/storage/databaseManager.js"
+    );
+    const dbManager = await getDatabaseManager();
+
+    if (dbManager.guildSettings) {
+      const guildSettings = await dbManager.guildSettings.getByGuild(guildId);
+      if (!guildSettings.experienceSystem.enabled) {
+        return false;
+      }
+    }
+
     const userData = await this.getUserData(guildId, userId);
     const now = new Date();
     const lastEarned = userData.lastEarned
@@ -428,7 +441,7 @@ class ExperienceManager {
    * @returns {object|null} Awarded XP data or null if cooldown active
    */
   async awardMessageXP(guildId, userId) {
-    // Check if XP system is enabled for this guild
+    // Check if message XP is enabled for this guild
     const { getDatabaseManager } = await import(
       "../../utils/storage/databaseManager.js"
     );
@@ -436,10 +449,7 @@ class ExperienceManager {
 
     if (dbManager.guildSettings) {
       const guildSettings = await dbManager.guildSettings.getByGuild(guildId);
-      if (
-        !guildSettings.experienceSystem.enabled ||
-        !guildSettings.experienceSystem.messageXP
-      ) {
+      if (!guildSettings.experienceSystem.messageXP) {
         return null;
       }
     }
@@ -525,6 +535,19 @@ class ExperienceManager {
   async canEarnCommandXP(guildId, userId) {
     await this.initialize();
 
+    // Check if XP system is enabled for this guild
+    const { getDatabaseManager } = await import(
+      "../../utils/storage/databaseManager.js"
+    );
+    const dbManager = await getDatabaseManager();
+
+    if (dbManager.guildSettings) {
+      const guildSettings = await dbManager.guildSettings.getByGuild(guildId);
+      if (!guildSettings.experienceSystem.enabled) {
+        return false;
+      }
+    }
+
     const userData = await this.getUserData(guildId, userId);
     const now = new Date();
     const lastCommandEarned = userData.lastCommandEarned
@@ -553,7 +576,7 @@ class ExperienceManager {
       `🎯 ExperienceManager: Awarding command XP for user ${userId} in guild ${guildId} for command ${commandName}`,
     );
 
-    // Check if XP system is enabled for this guild
+    // Check if command XP is enabled for this guild
     const { getDatabaseManager } = await import(
       "../../utils/storage/databaseManager.js"
     );
@@ -561,17 +584,16 @@ class ExperienceManager {
 
     if (dbManager.guildSettings) {
       const guildSettings = await dbManager.guildSettings.getByGuild(guildId);
-      if (
-        !guildSettings.experienceSystem.enabled ||
-        !guildSettings.experienceSystem.commandXP
-      ) {
+      if (!guildSettings.experienceSystem.commandXP) {
         return null;
       }
     }
 
-    // Check cooldown first
+    // Check cooldown and enabled status
     if (!(await this.canEarnCommandXP(guildId, userId))) {
-      this.logger.info(`⏰ User ${userId} is on cooldown for command XP`);
+      this.logger.info(
+        `⏰ User ${userId} is on cooldown for command XP or XP system is disabled`,
+      );
       return null;
     }
 

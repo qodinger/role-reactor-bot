@@ -31,12 +31,12 @@ export function isDeveloper(userId) {
  */
 export function hasAdminPermissions(member) {
   if (!member) return false;
-  
+
   // Check if permissions property exists and has the has method
-  if (!member.permissions || typeof member.permissions.has !== 'function') {
+  if (!member.permissions || typeof member.permissions.has !== "function") {
     return false;
   }
-  
+
   return member.permissions.has(PermissionFlagsBits.Administrator);
 }
 
@@ -47,12 +47,12 @@ export function hasAdminPermissions(member) {
  */
 export function hasManageRolesPermission(member) {
   if (!member) return false;
-  
+
   // Check if permissions property exists and has the has method
-  if (!member.permissions || typeof member.permissions.has !== 'function') {
+  if (!member.permissions || typeof member.permissions.has !== "function") {
     return false;
   }
-  
+
   return member.permissions.has(PermissionFlagsBits.ManageRoles);
 }
 
