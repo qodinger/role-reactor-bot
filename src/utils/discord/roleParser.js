@@ -25,7 +25,7 @@ export function parseRoleString(roleString) {
     if (!str) continue;
 
     const emojiMatch = str.match(
-      /^(<a?:.+?:\d+>|[\p{Emoji_Presentation}\p{Emoji}\uFE0F])/u,
+      /^(<a?:.+?:\d+>|[\p{Emoji_Presentation}\p{Emoji}\uFE0F]+)/u,
     );
     if (!emojiMatch) {
       errors.push(`Invalid or missing emoji in part: "${part}"`);
