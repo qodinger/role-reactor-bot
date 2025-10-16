@@ -309,11 +309,27 @@ async function processDonation(data) {
       `🔍 Discord User ID: ${finalDiscordUserId} (from webhook: ${discordUserId}, from message: ${extractDiscordUserId(message)})`,
     );
 
-    if (!finalDiscordUserId) {
+    // Allow test mode for Ko-fi testing (when no real Discord user ID is provided)
+    const isTestMode =
+      !finalDiscordUserId &&
+      (fromName === "Jo Example" ||
+        fromName === "Test User" ||
+        message?.includes("test"));
+
+    if (!finalDiscordUserId && !isTestMode) {
       logger.warn(
         `❌ No Discord user ID found for donation from ${fromName}. Message: ${message}`,
       );
       return { success: false, error: "No Discord user ID found" };
+    }
+
+    // Use test user ID for Ko-fi testing
+    const userIdForProcessing = finalDiscordUserId || "test-user-12345";
+
+    if (isTestMode) {
+      logger.info(
+        `🧪 Test mode detected for donation from ${fromName} - using test user ID: ${userIdForProcessing}`,
+      );
     }
 
     // ===== CALCULATE CREDITS =====
@@ -349,8 +365,8 @@ async function processDonation(data) {
     const coreCredits = (await storage.get("core_credit")) || {};
 
     // Initialize user data if it doesn't exist
-    if (!coreCredits[finalDiscordUserId]) {
-      coreCredits[finalDiscordUserId] = {
+    if (!coreCredits[userIdForProcessing]) {
+      coreCredits[userIdForProcessing] = {
         credits: 0,
         isCore: false,
         totalGenerated: 0,
@@ -359,7 +375,7 @@ async function processDonation(data) {
       };
     }
 
-    const userData = coreCredits[finalDiscordUserId];
+    const userData = coreCredits[userIdForProcessing];
 
     // Ensure credits is a number
     if (userData.credits === null || userData.credits === undefined) {
@@ -390,11 +406,21 @@ async function processDonation(data) {
     await storage.set("core_credit", coreCredits);
 
     logger.info(
-      `✅ Added ${credits} credits to user ${finalDiscordUserId} (${discordUsername}) from donation of $${donationAmount}`,
+      `✅ Added ${credits} credits to user ${userIdForProcessing} (${discordUsername || fromName}) from donation of $${donationAmount}`,
     );
 
     // ===== SEND CONFIRMATION =====
-    await sendDonationConfirmation(finalDiscordUserId, credits, donationAmount);
+    if (!isTestMode) {
+      await sendDonationConfirmation(
+        userIdForProcessing,
+        credits,
+        donationAmount,
+      );
+    } else {
+      logger.info(
+        `🧪 Test mode: Skipping DM confirmation for test user ${userIdForProcessing}`,
+      );
+    }
 
     return {
       success: true,
@@ -447,18 +473,34 @@ async function processSubscription(data) {
     // Check if subscription is public (respect privacy settings)
     if (!isPublic) {
       logger.info(`Skipping private subscription from ${fromName}`);
-      return;
+      return { success: true, message: "Private subscription skipped" };
     }
 
     // Use Discord user ID from webhook if available, otherwise find by email
     const finalDiscordUserId =
       discordUserId || (await findDiscordUserByEmail(email));
 
-    if (!finalDiscordUserId) {
+    // Allow test mode for Ko-fi testing (when no real Discord user ID is provided)
+    const isTestMode =
+      !finalDiscordUserId &&
+      (fromName === "Jo Example" ||
+        fromName === "Test User" ||
+        email?.includes("example.com"));
+
+    if (!finalDiscordUserId && !isTestMode) {
       logger.warn(
         `Could not find Discord user for subscription from ${fromName} (${email})`,
       );
-      return;
+      return { success: false, error: "Discord user not found" };
+    }
+
+    // Use test user ID for Ko-fi testing
+    const userIdForProcessing = finalDiscordUserId || "test-user-12345";
+
+    if (isTestMode) {
+      logger.info(
+        `🧪 Test mode detected for subscription from ${fromName} - using test user ID: ${userIdForProcessing}`,
+      );
     }
 
     // Core status is stored globally, so no need to check specific guilds
@@ -469,8 +511,8 @@ async function processSubscription(data) {
     const coreCredits = (await storage.get("core_credit")) || {};
 
     // Initialize user data if it doesn't exist (global, not per guild)
-    if (!coreCredits[finalDiscordUserId]) {
-      coreCredits[finalDiscordUserId] = {
+    if (!coreCredits[userIdForProcessing]) {
+      coreCredits[userIdForProcessing] = {
         credits: 0,
         isCore: false,
         totalGenerated: 0,
@@ -479,7 +521,7 @@ async function processSubscription(data) {
       };
     }
 
-    const userData = coreCredits[finalDiscordUserId];
+    const userData = coreCredits[userIdForProcessing];
 
     // Ensure credits is a number, not null
     if (userData.credits === null || userData.credits === undefined) {
@@ -553,9 +595,9 @@ async function processSubscription(data) {
     // Reject subscriptions under minimum
     if (monthlyCredits === 0) {
       logger.warn(
-        `❌ Subscription rejected: ${finalDiscordUserId} (${discordUsername}) - Amount $${subscriptionAmount} below $${corePricing.coreSystem.minimumSubscription} minimum`,
+        `❌ Subscription rejected: ${userIdForProcessing} (${discordUsername || fromName}) - Amount $${subscriptionAmount} below $${corePricing.coreSystem.minimumSubscription} minimum`,
       );
-      return;
+      return { success: false, error: "Subscription amount below minimum" };
     }
 
     // Add monthly credits (scaled based on subscription amount + bonus)
@@ -584,29 +626,35 @@ async function processSubscription(data) {
 
     if (isFirstSubscriptionPayment) {
       logger.info(
-        `🎉 NEW Core member: ${finalDiscordUserId} (${discordUsername}) - ${tierName || "Core"} subscription started! ($${subscriptionAmount}/month = ${monthlyCredits} Cores monthly)`,
+        `🎉 NEW Core member: ${userIdForProcessing} (${discordUsername || fromName}) - ${tierName || "Core"} subscription started! ($${subscriptionAmount}/month = ${monthlyCredits} Cores monthly)`,
       );
     } else if (tierChanged) {
       logger.info(
-        `🔄 TIER CHANGE COMPLETE: ${finalDiscordUserId} (${discordUsername}) upgraded from ${previousTier} to ${detectedTier} - Added ${monthlyCredits} Cores ($${subscriptionAmount}/month)`,
+        `🔄 TIER CHANGE COMPLETE: ${userIdForProcessing} (${discordUsername || fromName}) upgraded from ${previousTier} to ${detectedTier} - Added ${monthlyCredits} Cores ($${subscriptionAmount}/month)`,
       );
     } else {
       logger.info(
-        `💰 Monthly Core credits: Added ${monthlyCredits} Cores to ${finalDiscordUserId} (${discordUsername}) from ${tierName || "Core"} subscription ($${subscriptionAmount}/month)`,
+        `💰 Monthly Core credits: Added ${monthlyCredits} Cores to ${userIdForProcessing} (${discordUsername || fromName}) from ${tierName || "Core"} subscription ($${subscriptionAmount}/month)`,
       );
     }
 
     // Send confirmation DM to user
-    await sendSubscriptionConfirmation(
-      finalDiscordUserId,
-      tierName,
-      isFirstSubscriptionPayment,
-      subscriptionAmount,
-      monthlyCredits,
-      tierChanged,
-      previousTier,
-      detectedTier,
-    );
+    if (!isTestMode) {
+      await sendSubscriptionConfirmation(
+        userIdForProcessing,
+        tierName,
+        isFirstSubscriptionPayment,
+        subscriptionAmount,
+        monthlyCredits,
+        tierChanged,
+        previousTier,
+        detectedTier,
+      );
+    } else {
+      logger.info(
+        `🧪 Test mode: Skipping DM confirmation for test user ${userIdForProcessing}`,
+      );
+    }
 
     return {
       success: true,
@@ -657,7 +705,7 @@ async function processShopOrder(data) {
     // Check if shop order is public (respect privacy settings)
     if (!isPublic) {
       logger.info(`Skipping private shop order from ${fromName}`);
-      return;
+      return { success: true, message: "Private shop order skipped" };
     }
 
     // Use Discord user ID from webhook if available, otherwise find by email
@@ -668,7 +716,7 @@ async function processShopOrder(data) {
       logger.warn(
         `Could not find Discord user for shop order from ${fromName} (${email})`,
       );
-      return;
+      return { success: false, error: "Discord user not found" };
     }
 
     // Calculate credits based on amount (shop orders get credits too) - $0.05 per credit
@@ -769,7 +817,7 @@ async function processSubscriptionCancellation(data) {
       logger.warn(
         `Could not find Discord user for cancelled subscription from ${fromName || email}`,
       );
-      return;
+      return { success: false, error: "Discord user not found" };
     }
 
     // Core status is stored globally, so no need to check specific guilds
