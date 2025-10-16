@@ -20,7 +20,7 @@ export async function handleKoFiWebhook(req, res) {
       return res.status(405).send("Method Not Allowed");
     }
 
-    // Validate content type
+    // Validate content type - Ko-fi only sends application/x-www-form-urlencoded
     const contentType = req.headers["content-type"];
     if (
       !contentType ||
@@ -31,6 +31,7 @@ export async function handleKoFiWebhook(req, res) {
     }
 
     // ===== STEP 2: EXTRACT AND VALIDATE DATA =====
+    // Ko-fi sends data as form-urlencoded with a 'data' field containing JSON string
     const { data } = req.body;
 
     if (!data) {

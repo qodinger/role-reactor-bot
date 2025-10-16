@@ -34,11 +34,11 @@ import { getScheduler as getRoleExpirationScheduler } from "./features/temporary
 // PollScheduler disabled - using native Discord polls only
 // import { PollScheduler } from "./features/polls/PollScheduler.js";
 import { getHealthCheckRunner } from "./utils/monitoring/healthCheck.js";
-import HealthServer from "./utils/monitoring/healthServer.js";
+// Health server functionality moved to unified API server
 import { getCommandHandler } from "./utils/core/commandHandler.js";
 import { getEventHandler } from "./utils/core/eventHandler.js";
 import { getVersion } from "./utils/discord/version.js";
-import { startWebhookServer } from "./server/webhookServer.js";
+import { startWebhookServer } from "./server/index.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -179,15 +179,13 @@ function createClient() {
   return client;
 }
 
-async function gracefulShutdown(client, healthServer) {
+async function gracefulShutdown(client) {
   const logger = getLogger();
   logger.info("🔄 Initiating graceful shutdown...");
 
   try {
     // Stop accepting new requests
-    if (healthServer) {
-      healthServer.stop();
-    }
+    // Health server is now part of the unified API server
 
     // Stop schedulers
     if (global.roleScheduler) {
@@ -434,8 +432,6 @@ async function loadEvents(client, eventsPath) {
 async function main() {
   const logger = getLogger();
   let client = null;
-  let healthServer = null;
-
   try {
     // Wait for Docker environment to stabilize
     await waitForDockerStartup();
@@ -443,9 +439,7 @@ async function main() {
     validateEnvironment();
     logger.info(`🚀 Starting Role Reactor Bot v${getVersion()}...`);
 
-    // Initialize health server
-    healthServer = new HealthServer();
-    healthServer.start();
+    // Health server functionality is now part of the unified API server
 
     // Initialize core systems
     await getStorageManager();
@@ -525,7 +519,7 @@ async function main() {
     }
 
     // Setup shutdown handlers
-    const shutdown = () => gracefulShutdown(client, healthServer);
+    const shutdown = () => gracefulShutdown(client);
     process.on("SIGTERM", shutdown);
     process.on("SIGINT", shutdown);
 
@@ -636,13 +630,7 @@ async function main() {
       }
     }
 
-    if (healthServer) {
-      try {
-        healthServer.stop();
-      } catch (stopError) {
-        logger.error("Error stopping health server:", stopError);
-      }
-    }
+    // Health server is now part of the unified API server
 
     process.exit(1);
   }
