@@ -56,13 +56,13 @@ export class CreditManager {
 
     const previousCount = userData.totalGenerated;
 
-    // ===== CREDIT DEDUCTION LOGIC =====
-    // FIFO Order: Subscription credits first, then bonus credits
+    // ===== CORE DEDUCTION LOGIC =====
+    // FIFO Order: Subscription Cores first, then bonus Cores
     let remainingToDeduct = creditsNeeded;
     let subscriptionDeducted = 0;
     let bonusDeducted = 0;
 
-    // Step 1: Deduct from subscription credits first
+    // Step 1: Deduct from subscription Cores first
     if (userData.subscriptionCredits && userData.subscriptionCredits > 0) {
       subscriptionDeducted = Math.min(
         remainingToDeduct,
@@ -72,7 +72,7 @@ export class CreditManager {
       remainingToDeduct -= subscriptionDeducted;
     }
 
-    // Step 2: Deduct from bonus credits if still needed
+    // Step 2: Deduct from bonus Cores if still needed
     if (
       remainingToDeduct > 0 &&
       userData.bonusCredits &&
@@ -83,7 +83,7 @@ export class CreditManager {
       remainingToDeduct -= bonusDeducted;
     }
 
-    // Step 3: Update total credits
+    // Step 3: Update total Cores
     userData.credits -= creditsNeeded;
     userData.totalGenerated += 1;
     userData.lastUpdated = new Date().toISOString();

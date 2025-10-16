@@ -413,6 +413,11 @@ class Config {
 
       // Subscription tiers (monthly) - Your preferred rates
       subscriptions: {
+        Bronze: {
+          price: 5,
+          cores: 50, // 10.0 Cores per $1 (test tier)
+          description: "Bronze test membership - INTERNAL TESTING ONLY",
+        },
         "Core Basic": {
           price: 10,
           cores: 150, // 15.0 Cores per $1
@@ -432,7 +437,7 @@ class Config {
 
       // Core system settings
       coreSystem: {
-        minimumSubscription: 10, // Minimum $10 for Core membership
+        minimumSubscription: 5, // Minimum $5 for Core membership (includes Bronze test tier)
         aiServiceCost: 1, // 1 Core per AI service
         priorityProcessing: true, // Core members get priority
       },

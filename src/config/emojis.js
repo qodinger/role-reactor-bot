@@ -65,6 +65,8 @@ class EmojiConfig {
       "Core Basic": this.customEmojis.coreBasicBadge,
       "Core Premium": this.customEmojis.corePremiumBadge,
       "Core Elite": this.customEmojis.coreEliteBadge,
+      // Bronze tier is for internal testing only - not displayed to users
+      Bronze: "🧪", // Test emoji for internal testing tier
     };
 
     return badges[tier] || "⭐";

@@ -7,7 +7,7 @@ import { createLoadingSkeleton } from "./utils/imageUtils.js";
 import { GenerationHistory } from "./utils/generationHistory.js";
 import {
   createErrorEmbed,
-  createCreditEmbed,
+  createCoreEmbed,
   createHelpEmbed,
   createLoadingEmbed,
   createSuccessEmbed,
@@ -68,13 +68,13 @@ export async function handleAvatarGeneration(interaction, _client) {
     const { userData, creditsNeeded } = creditInfo;
 
     if (userData.credits < creditsNeeded) {
-      const creditEmbed = createCreditEmbed(
+      const coreEmbed = createCoreEmbed(
         interaction,
         userData,
         creditsNeeded,
         prompt,
       );
-      return await interaction.editReply({ embeds: [creditEmbed] });
+      return await interaction.editReply({ embeds: [coreEmbed] });
     }
 
     // Create static loading image

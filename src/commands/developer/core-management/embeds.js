@@ -96,13 +96,13 @@ export async function createDetailedCoreManagementEmbed({
       if (isSubscriptionUser) {
         embed.addFields({
           name: `💎 Credit Breakdown`,
-          value: `• **Subscription**: ${subscriptionCredits} ${CORE_EMOJI} (monthly allowance)\n• **Bonus**: ${bonusCredits} ${CORE_EMOJI} (donation credits, never expires)`,
+          value: `• **Subscription**: ${subscriptionCredits} ${CORE_EMOJI} (monthly allowance)\n• **Bonus**: ${bonusCredits} ${CORE_EMOJI} (donation Cores, never expires)`,
           inline: false,
         });
       } else {
         embed.addFields({
           name: `💎 Credit Type`,
-          value: `• **Donation Credits**: ${bonusCredits} ${CORE_EMOJI} (never expires)`,
+          value: `• **Donation Cores**: ${bonusCredits} ${CORE_EMOJI} (never expires)`,
           inline: false,
         });
       }
@@ -138,7 +138,7 @@ export async function createDetailedCoreManagementEmbed({
     if (type === "add-donation" && donationDetails) {
       embed.addFields({
         name: `💰 Donation Details`,
-        value: `**Amount**: $${donationDetails.amount}\n**Credits Calculated**: ${donationDetails.creditsCalculated} ${CORE_EMOJI} (10 per $1)\n${donationDetails.koFiUrl ? `**Ko-fi URL**: [View Donation](${donationDetails.koFiUrl})` : ""}`,
+        value: `**Amount**: $${donationDetails.amount}\n**Cores Calculated**: ${donationDetails.coresCalculated} ${CORE_EMOJI} (10 per $1)\n${donationDetails.koFiUrl ? `**Ko-fi URL**: [View Donation](${donationDetails.koFiUrl})` : ""}`,
         inline: false,
       });
     }
@@ -181,6 +181,10 @@ function getEmbedColor(type) {
       return THEME.PRIMARY;
     case "view":
       return THEME.SECONDARY;
+    case "add-donation":
+      return THEME.SUCCESS;
+    case "cancel-subscription":
+      return THEME.ERROR;
     default:
       return THEME.PRIMARY;
   }
@@ -196,7 +200,7 @@ function getEmbedDescription(
 ) {
   const username = targetUser?.username || targetUser?.tag || "Unknown User";
   const creditTypeText =
-    creditType === "bonus" ? "bonus credits (donation credits)" : "credits";
+    creditType === "bonus" ? "bonus Cores (donation Cores)" : "Cores";
 
   switch (type) {
     case "add":
@@ -208,7 +212,9 @@ function getEmbedDescription(
     case "view":
       return `Displaying ${username}'s Core account information and credit breakdown.`;
     case "add-donation":
-      return `Successfully verified Ko-fi donation and added **${amount} ${CORE_EMOJI}** bonus credits to ${username}'s Core account.`;
+      return `Successfully verified Ko-fi donation and added **${amount} ${CORE_EMOJI}** bonus Cores to ${username}'s Core account.`;
+    case "cancel-subscription":
+      return `Successfully cancelled ${username}'s Core subscription and removed Core membership status.`;
     default:
       return "Core account management operation completed successfully.";
   }
@@ -224,6 +230,8 @@ function getOperationText(type) {
       return "Set To";
     case "add-donation":
       return "Donation Verified";
+    case "cancel-subscription":
+      return "Subscription Cancelled";
     default:
       return "Operation";
   }

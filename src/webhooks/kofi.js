@@ -137,12 +137,13 @@ export async function handleKoFiWebhook(req, res) {
     });
 
     // ===== STEP 5: PROCESS WEBHOOK BASED ON TYPE =====
+    // IMPORTANT: Ko-fi webhook limitations
+    // Ko-fi only sends webhooks for payment events, NOT for subscription cancellations, pauses, or resumes
+    // See: https://help.ko-fi.com/hc/en-us/articles/360004162298-Does-Ko-fi-have-an-API-or-webhook
+    // Subscription cancellations must be detected via periodic cleanup (checkExpiredSubscriptions)
     const validWebhookTypes = [
       "Donation",
       "Subscription",
-      "Subscription Cancelled",
-      "Subscription Paused",
-      "Subscription Resumed",
       "Refund",
       "Commission",
       "Poll",
@@ -168,18 +169,6 @@ export async function handleKoFiWebhook(req, res) {
         case "Subscription":
           processingResult = await processSubscription(webhookData);
           processedType = "Subscription";
-          break;
-        case "Subscription Cancelled":
-          processingResult = await processSubscriptionCancellation(webhookData);
-          processedType = "Subscription Cancellation";
-          break;
-        case "Subscription Paused":
-          processingResult = await processSubscriptionPaused(webhookData);
-          processedType = "Subscription Paused";
-          break;
-        case "Subscription Resumed":
-          processingResult = await processSubscriptionResumed(webhookData);
-          processedType = "Subscription Resumed";
           break;
         case "Refund":
           processingResult = await processRefund(webhookData);
@@ -365,9 +354,9 @@ async function processDonation(data) {
       );
     }
 
-    // ===== CALCULATE CREDITS =====
+    // ===== CALCULATE CORES =====
     const corePricing = config.corePricing;
-    const credits = Math.floor(donationAmount * corePricing.donation.rate);
+    const cores = Math.floor(donationAmount * corePricing.donation.rate);
 
     // Validate minimum donation
     if (donationAmount < corePricing.donation.minimum) {
@@ -390,10 +379,10 @@ async function processDonation(data) {
     }
 
     logger.info(
-      `💳 Donation processing: $${donationAmount} = ${credits} Cores (${corePricing.donation.rate} Cores per $1)`,
+      `💳 Donation processing: $${donationAmount} = ${cores} Cores (${corePricing.donation.rate} Cores per $1)`,
     );
 
-    // ===== UPDATE USER CREDITS =====
+    // ===== UPDATE USER CORES =====
     const storage = await getStorageManager();
     const coreCredits = (await storage.get("core_credit")) || {};
 
@@ -405,9 +394,9 @@ async function processDonation(data) {
         totalGenerated: 0,
         lastUpdated: new Date().toISOString(),
         koFiDonations: [],
-        // New fields for subscription-based credit system
-        subscriptionCredits: 0, // Credits from monthly subscription allowance
-        bonusCredits: 0, // Credits from donations (preserved during reset)
+        // New fields for subscription-based Core system
+        subscriptionCredits: 0, // Cores from monthly subscription allowance
+        bonusCredits: 0, // Cores from donations (preserved during reset)
       };
     }
 
@@ -418,23 +407,23 @@ async function processDonation(data) {
       userData.credits = 0;
     }
 
-    // ===== DONATION CREDIT LOGIC =====
-    // Handle credits based on user's subscription status
+    // ===== DONATION CORE LOGIC =====
+    // Handle Cores based on user's subscription status
     // Only donations and subscriptions are supported (shop orders removed)
     if (userData.koFiSubscription?.isActive) {
-      // Subscription user: Add as bonus credits (preserved during monthly reset)
-      userData.bonusCredits = (userData.bonusCredits || 0) + credits;
-      userData.credits += credits;
-      userData.totalGenerated += credits;
+      // Subscription user: Add as bonus Cores (preserved during monthly reset)
+      userData.bonusCredits = (userData.bonusCredits || 0) + cores;
+      userData.credits += cores;
+      userData.totalGenerated += cores;
       logger.info(
-        `💎 Subscription user donation: Added ${credits} bonus credits (total bonus: ${userData.bonusCredits}, total credits: ${userData.credits})`,
+        `💎 Subscription user donation: Added ${cores} bonus Cores (total bonus: ${userData.bonusCredits}, total Cores: ${userData.credits})`,
       );
     } else {
-      // Free user: Add credits normally (no monthly reset)
-      userData.credits += credits;
-      userData.totalGenerated += credits;
+      // Free user: Add Cores normally (no monthly reset)
+      userData.credits += cores;
+      userData.totalGenerated += cores;
       logger.info(
-        `🆓 Free user donation: Added ${credits} credits (total: ${userData.credits})`,
+        `🆓 Free user donation: Added ${cores} Cores (total: ${userData.credits})`,
       );
     }
 
@@ -444,7 +433,7 @@ async function processDonation(data) {
     userData.koFiDonations = userData.koFiDonations || [];
     userData.koFiDonations.push({
       amount: donationAmount,
-      credits,
+      credits: cores,
       fromName,
       discordUsername,
       email,
@@ -459,14 +448,14 @@ async function processDonation(data) {
     await storage.set("core_credit", coreCredits);
 
     logger.info(
-      `✅ Added ${credits} credits to user ${userIdForProcessing} (${discordUsername || fromName}) from donation of $${donationAmount}`,
+      `✅ Added ${cores} Cores to user ${userIdForProcessing} (${discordUsername || fromName}) from donation of $${donationAmount}`,
     );
 
     // ===== SEND CONFIRMATION =====
     if (!isTestMode) {
       await sendDonationConfirmation(
         userIdForProcessing,
-        credits,
+        cores,
         donationAmount,
       );
     } else {
@@ -477,8 +466,8 @@ async function processDonation(data) {
 
     return {
       success: true,
-      message: `Successfully processed donation: $${donationAmount} = ${credits} Cores`,
-      credits,
+      message: `Successfully processed donation: $${donationAmount} = ${cores} Cores`,
+      credits: cores,
       amount: donationAmount,
     };
   } catch (error) {
@@ -589,9 +578,9 @@ async function processSubscription(data) {
         totalGenerated: 0,
         lastUpdated: new Date().toISOString(),
         koFiSubscription: null,
-        // New fields for subscription-based credit system
-        subscriptionCredits: 0, // Credits from monthly subscription allowance
-        bonusCredits: 0, // Credits from donations (preserved during reset)
+        // New fields for subscription-based Core system
+        subscriptionCredits: 0, // Cores from monthly subscription allowance
+        bonusCredits: 0, // Cores from donations (preserved during reset)
       };
     }
 
@@ -632,6 +621,10 @@ async function processSubscription(data) {
       } else if (subscriptionAmount >= 10) {
         detectedTier = "Core Basic";
         detectionMethod = "Amount-based ($10+)";
+      } else if (subscriptionAmount >= 5) {
+        detectedTier = "Bronze";
+        detectionMethod =
+          "Amount-based ($5+) - Test Tier (INTERNAL TESTING ONLY)";
       }
     }
 
@@ -674,28 +667,28 @@ async function processSubscription(data) {
       return { success: false, error: "Subscription amount below minimum" };
     }
 
-    // ===== SUBSCRIPTION CREDIT LOGIC =====
-    // For subscriptions, we need to handle credits differently:
-    // - First payment: Set credits to monthly amount
-    // - Subsequent payments: Reset to monthly allowance + preserve bonus credits
-    // - Bonus credits come from donations and are preserved (shop orders removed)
+    // ===== SUBSCRIPTION CORE LOGIC =====
+    // For subscriptions, we need to handle Cores differently:
+    // - First payment: Set Cores to monthly amount
+    // - Subsequent payments: Reset to monthly allowance + preserve bonus Cores
+    // - Bonus Cores come from donations and are preserved (shop orders removed)
 
     if (isFirstSubscriptionPayment) {
-      // First subscription payment: Set credits to monthly amount
+      // First subscription payment: Set Cores to monthly amount
       userData.credits = monthlyCredits;
       userData.subscriptionCredits = monthlyCredits; // Track subscription allowance
-      userData.bonusCredits = 0; // Track bonus credits from donations/shop
+      userData.bonusCredits = 0; // Track bonus Cores from donations/shop
       logger.info(
-        `🎉 First subscription payment: Set credits to ${monthlyCredits} (monthly allowance)`,
+        `🎉 First subscription payment: Set Cores to ${monthlyCredits} (monthly allowance)`,
       );
     } else {
-      // Subsequent subscription payments: Reset subscription allowance, preserve bonus credits
-      const bonusCredits = userData.bonusCredits || 0; // Preserve bonus credits
+      // Subsequent subscription payments: Reset subscription allowance, preserve bonus Cores
+      const bonusCredits = userData.bonusCredits || 0; // Preserve bonus Cores
       userData.credits = monthlyCredits + bonusCredits;
       userData.subscriptionCredits = monthlyCredits; // Reset subscription allowance
       // userData.bonusCredits remains the same (preserved)
       logger.info(
-        `🔄 Monthly subscription renewal: Reset subscription allowance to ${monthlyCredits}, preserved ${bonusCredits} bonus credits (total: ${userData.credits})`,
+        `🔄 Monthly subscription renewal: Reset subscription allowance to ${monthlyCredits}, preserved ${bonusCredits} bonus Cores (total: ${userData.credits})`,
       );
     }
 
@@ -783,100 +776,6 @@ async function processSubscription(data) {
   }
 }
 
-async function processSubscriptionCancellation(data) {
-  try {
-    // Log subscription cancellation details
-    logger.info("❌ Processing Subscription Cancellation Webhook:");
-    logger.info("📊 Cancellation Data:", JSON.stringify(data, null, 2));
-
-    logger.info("🚫 Cancellation Details:", {
-      email: data.email,
-      fromName: data.from_name,
-      discordUserId: data.discord_userid,
-      discordUsername: data.discord_username,
-      timestamp: data.timestamp,
-      kofiTransactionId: data.kofi_transaction_id,
-      url: data.url,
-    });
-
-    const {
-      email,
-      from_name: fromName,
-      discord_userid: discordUserId,
-      discord_username: discordUsername,
-    } = data;
-
-    // Find Discord user by email or use provided Discord ID
-    const finalDiscordUserId =
-      discordUserId || (await findDiscordUserByEmail(email));
-    if (!finalDiscordUserId) {
-      logger.warn(
-        `Could not find Discord user for cancelled subscription from ${fromName || email}`,
-      );
-      return { success: false, error: "Discord user not found" };
-    }
-
-    // Core status is stored globally, so no need to check specific guilds
-    // The bot just needs to be running to process webhooks
-
-    // Get centralized credit data
-    const storage = await getStorageManager();
-    const coreCredits = (await storage.get("core_credit")) || {};
-
-    // Initialize user data if it doesn't exist (global, not per guild)
-    if (!coreCredits[finalDiscordUserId]) {
-      coreCredits[finalDiscordUserId] = {
-        credits: 0,
-        isCore: false,
-        totalGenerated: 0,
-        lastUpdated: new Date().toISOString(),
-        koFiSubscription: null,
-      };
-    }
-
-    const userData = coreCredits[finalDiscordUserId];
-
-    // Ensure credits is a number, not null
-    if (userData.credits === null || userData.credits === undefined) {
-      userData.credits = 0;
-    }
-
-    // Remove Core status and tier (they lose Core membership benefits)
-    userData.isCore = false;
-    userData.coreTier = null;
-    userData.lastUpdated = new Date().toISOString();
-
-    // Update subscription status
-    if (userData.koFiSubscription) {
-      userData.koFiSubscription.isActive = false;
-      userData.koFiSubscription.cancelledAt = new Date().toISOString();
-      userData.koFiSubscription.cancelledBy = fromName || "Unknown";
-    }
-
-    // Save centralized credit data
-    await storage.set("core_credit", coreCredits);
-
-    logger.info(
-      `❌ CORE MEMBERSHIP CANCELLED: Removed Core status and tier for user ${finalDiscordUserId} (${discordUsername || fromName}) - Monthly Coffee subscription cancelled`,
-    );
-
-    // Send cancellation notification
-    await sendSubscriptionCancellationNotification(
-      finalDiscordUserId,
-      fromName,
-    );
-
-    return {
-      success: true,
-      message: `Successfully cancelled subscription for user ${finalDiscordUserId}`,
-      userId: finalDiscordUserId,
-    };
-  } catch (error) {
-    logger.error("❌ Error processing subscription cancellation:", error);
-    return { success: false, error: error.message };
-  }
-}
-
 // Helper functions
 function extractDiscordUserId(message) {
   // Look for Discord user ID in message (format: "Discord: 123456789012345678")
@@ -930,16 +829,6 @@ async function sendSubscriptionConfirmation(
   }
 }
 
-async function sendSubscriptionCancellationNotification(
-  discordUserId,
-  fromName,
-) {
-  // Send DM to user about subscription cancellation
-  logger.info(
-    `❌ Would send DM to ${discordUserId}: Core membership cancelled - Monthly Coffee subscription ended by ${fromName || "user"}`,
-  );
-}
-
 async function sendMinimumDonationMessage(
   discordUserId,
   donationAmount,
@@ -952,86 +841,6 @@ async function sendMinimumDonationMessage(
 }
 
 // ===== ADDITIONAL WEBHOOK TYPE HANDLERS =====
-
-async function processSubscriptionPaused(data) {
-  try {
-    logger.info("⏸️ Processing Subscription Paused Webhook:");
-    logger.info("📊 Paused Data:", JSON.stringify(data, null, 2));
-
-    const { from_name: fromName, email, discord_userid: discordUserId } = data;
-    const finalDiscordUserId =
-      discordUserId || (await findDiscordUserByEmail(email));
-
-    if (!finalDiscordUserId) {
-      logger.warn(
-        `Could not find Discord user for paused subscription from ${fromName}`,
-      );
-      return { success: false, error: "Discord user not found" };
-    }
-
-    const storage = await getStorageManager();
-    const coreCredits = (await storage.get("core_credit")) || {};
-
-    if (coreCredits[finalDiscordUserId]?.koFiSubscription) {
-      coreCredits[finalDiscordUserId].koFiSubscription.isPaused = true;
-      coreCredits[finalDiscordUserId].koFiSubscription.pausedAt =
-        new Date().toISOString();
-      coreCredits[finalDiscordUserId].lastUpdated = new Date().toISOString();
-
-      await storage.set("core_credit", coreCredits);
-
-      logger.info(
-        `⏸️ Subscription paused for user ${finalDiscordUserId} (${fromName})`,
-      );
-      return { success: true, message: "Subscription paused successfully" };
-    }
-
-    return { success: false, error: "No active subscription found" };
-  } catch (error) {
-    logger.error("❌ Error processing subscription pause:", error);
-    return { success: false, error: error.message };
-  }
-}
-
-async function processSubscriptionResumed(data) {
-  try {
-    logger.info("▶️ Processing Subscription Resumed Webhook:");
-    logger.info("📊 Resumed Data:", JSON.stringify(data, null, 2));
-
-    const { from_name: fromName, email, discord_userid: discordUserId } = data;
-    const finalDiscordUserId =
-      discordUserId || (await findDiscordUserByEmail(email));
-
-    if (!finalDiscordUserId) {
-      logger.warn(
-        `Could not find Discord user for resumed subscription from ${fromName}`,
-      );
-      return { success: false, error: "Discord user not found" };
-    }
-
-    const storage = await getStorageManager();
-    const coreCredits = (await storage.get("core_credit")) || {};
-
-    if (coreCredits[finalDiscordUserId]?.koFiSubscription) {
-      coreCredits[finalDiscordUserId].koFiSubscription.isPaused = false;
-      coreCredits[finalDiscordUserId].koFiSubscription.resumedAt =
-        new Date().toISOString();
-      coreCredits[finalDiscordUserId].lastUpdated = new Date().toISOString();
-
-      await storage.set("core_credit", coreCredits);
-
-      logger.info(
-        `▶️ Subscription resumed for user ${finalDiscordUserId} (${fromName})`,
-      );
-      return { success: true, message: "Subscription resumed successfully" };
-    }
-
-    return { success: false, error: "No subscription found to resume" };
-  } catch (error) {
-    logger.error("❌ Error processing subscription resume:", error);
-    return { success: false, error: error.message };
-  }
-}
 
 async function processRefund(data) {
   try {
@@ -1193,7 +1002,16 @@ async function processUpdate(data) {
 
 /**
  * Check for expired subscriptions and remove Core status
- * This should be called periodically to clean up cancelled subscriptions
+ *
+ * IMPORTANT: This is the ONLY way to detect subscription cancellations!
+ * Ko-fi does NOT send webhook notifications for subscription cancellations, pauses, or resumes.
+ *
+ * This function should be called periodically (recommended: every 24 hours) to:
+ * 1. Clean up subscriptions marked as inactive
+ * 2. Detect expired subscriptions (no payment for 7+ days)
+ * 3. Remove Core status from users with cancelled subscriptions
+ *
+ * @returns {Promise<number>} Number of expired subscriptions cleaned up
  */
 export async function checkExpiredSubscriptions() {
   try {
@@ -1217,13 +1035,14 @@ export async function checkExpiredSubscriptions() {
             `🧹 Cleaned up expired Core membership for user ${userId} (subscription inactive)`,
           );
         }
-        // Check if subscription hasn't been processed in over 35 days (grace period)
+        // Check if subscription hasn't been processed in over 7 days (grace period)
+        // Reduced from 35 days to 7 days for more responsive cancellation detection
         else if (subscription.lastProcessed) {
           const lastProcessed = new Date(subscription.lastProcessed);
           const daysSinceLastProcessed =
             (now - lastProcessed) / (1000 * 60 * 60 * 24);
 
-          if (daysSinceLastProcessed > 35) {
+          if (daysSinceLastProcessed > 7) {
             userData.isCore = false;
             userData.koFiSubscription.isActive = false;
             userData.koFiSubscription.cancelledAt = new Date().toISOString();

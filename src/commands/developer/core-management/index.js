@@ -10,22 +10,22 @@ import { handleCoreManagement } from "./handlers.js";
 export const data = new SlashCommandBuilder()
   .setName("core-management")
   .setDescription(
-    "🔒 [DEVELOPER ONLY] Manage user bonus credits (donation credits only)",
+    "🔒 [DEVELOPER ONLY] Manage user bonus Cores (donation Cores only)",
   )
   .addSubcommand(subcommand =>
     subcommand
       .setName("add")
-      .setDescription("🔒 [DEVELOPER ONLY] Add bonus credits to a user")
+      .setDescription("🔒 [DEVELOPER ONLY] Add bonus Cores to a user")
       .addUserOption(option =>
         option
           .setName("user")
-          .setDescription("The user to add bonus credits to")
+          .setDescription("The user to add bonus Cores to")
           .setRequired(true),
       )
       .addIntegerOption(option =>
         option
           .setName("amount")
-          .setDescription("Amount of bonus credits to add")
+          .setDescription("Amount of bonus Cores to add")
           .setRequired(true)
           .setMinValue(1)
           .setMaxValue(10000),
@@ -33,7 +33,7 @@ export const data = new SlashCommandBuilder()
       .addStringOption(option =>
         option
           .setName("reason")
-          .setDescription("Reason for adding bonus credits")
+          .setDescription("Reason for adding bonus Cores")
           .setRequired(false)
           .setMaxLength(200),
       ),
@@ -41,17 +41,17 @@ export const data = new SlashCommandBuilder()
   .addSubcommand(subcommand =>
     subcommand
       .setName("remove")
-      .setDescription("🔒 [DEVELOPER ONLY] Remove bonus credits from a user")
+      .setDescription("🔒 [DEVELOPER ONLY] Remove bonus Cores from a user")
       .addUserOption(option =>
         option
           .setName("user")
-          .setDescription("The user to remove bonus credits from")
+          .setDescription("The user to remove bonus Cores from")
           .setRequired(true),
       )
       .addIntegerOption(option =>
         option
           .setName("amount")
-          .setDescription("Amount of bonus credits to remove")
+          .setDescription("Amount of bonus Cores to remove")
           .setRequired(true)
           .setMinValue(1)
           .setMaxValue(10000),
@@ -59,7 +59,7 @@ export const data = new SlashCommandBuilder()
       .addStringOption(option =>
         option
           .setName("reason")
-          .setDescription("Reason for removing bonus credits")
+          .setDescription("Reason for removing bonus Cores")
           .setRequired(false)
           .setMaxLength(200),
       ),
@@ -68,18 +68,18 @@ export const data = new SlashCommandBuilder()
     subcommand
       .setName("set")
       .setDescription(
-        "🔒 [DEVELOPER ONLY] Set a user's bonus credits to a specific amount",
+        "🔒 [DEVELOPER ONLY] Set a user's bonus Cores to a specific amount",
       )
       .addUserOption(option =>
         option
           .setName("user")
-          .setDescription("The user to set bonus credits for")
+          .setDescription("The user to set bonus Cores for")
           .setRequired(true),
       )
       .addIntegerOption(option =>
         option
           .setName("amount")
-          .setDescription("Amount of bonus credits to set")
+          .setDescription("Amount of bonus Cores to set")
           .setRequired(true)
           .setMinValue(0)
           .setMaxValue(10000),
@@ -87,7 +87,7 @@ export const data = new SlashCommandBuilder()
       .addStringOption(option =>
         option
           .setName("reason")
-          .setDescription("Reason for setting bonus credits")
+          .setDescription("Reason for setting bonus Cores")
           .setRequired(false)
           .setMaxLength(200),
       ),
@@ -96,12 +96,12 @@ export const data = new SlashCommandBuilder()
     subcommand
       .setName("view")
       .setDescription(
-        "🔒 [DEVELOPER ONLY] View a user's credit information and breakdown",
+        "🔒 [DEVELOPER ONLY] View a user's Core information and breakdown",
       )
       .addUserOption(option =>
         option
           .setName("user")
-          .setDescription("The user to view credits for")
+          .setDescription("The user to view Cores for")
           .setRequired(true),
       ),
   )
@@ -109,12 +109,12 @@ export const data = new SlashCommandBuilder()
     subcommand
       .setName("add-donation")
       .setDescription(
-        "🔒 [DEVELOPER ONLY] Verify a Ko-fi donation and grant bonus credits",
+        "🔒 [DEVELOPER ONLY] Verify a Ko-fi donation and grant bonus Cores",
       )
       .addUserOption(option =>
         option
           .setName("user")
-          .setDescription("The user to grant bonus credits to")
+          .setDescription("The user to grant bonus Cores to")
           .setRequired(true),
       )
       .addNumberOption(option =>
@@ -135,6 +135,26 @@ export const data = new SlashCommandBuilder()
         option
           .setName("reason")
           .setDescription("Reason for verification (optional)")
+          .setRequired(false)
+          .setMaxLength(200),
+      ),
+  )
+  .addSubcommand(subcommand =>
+    subcommand
+      .setName("cancel-subscription")
+      .setDescription(
+        "🔒 [DEVELOPER ONLY] Manually cancel a user's Core subscription",
+      )
+      .addUserOption(option =>
+        option
+          .setName("user")
+          .setDescription("The user to cancel Core subscription for")
+          .setRequired(true),
+      )
+      .addStringOption(option =>
+        option
+          .setName("reason")
+          .setDescription("Reason for cancellation (optional)")
           .setRequired(false)
           .setMaxLength(200),
       ),

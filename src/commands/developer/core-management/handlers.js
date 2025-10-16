@@ -71,6 +71,9 @@ export async function handleCoreManagement(
       case "add-donation":
         await handleAddDonation(interaction, targetUser, deferred);
         break;
+      case "cancel-subscription":
+        await handleCancelSubscription(interaction, targetUser, deferred);
+        break;
       default: {
         const response = {
           content: "❌ **Unknown Subcommand**\nPlease use a valid subcommand.",
@@ -114,19 +117,19 @@ async function handleAddDonation(interaction, targetUser, deferred) {
       bonusCredits: 0,
     };
 
-    // Calculate credits from donation amount (10 credits per $1)
-    const creditsToAdd = Math.floor(amount * 10);
+    // Calculate Cores from donation amount (10 Cores per $1)
+    const coresToAdd = Math.floor(amount * 10);
 
-    // Add credits as bonus credits (donation credits)
-    const oldBonusCredits = userData.bonusCredits || 0;
-    const newBonusCredits = oldBonusCredits + creditsToAdd;
-    const oldTotalCredits = userData.credits;
-    const newTotalCredits = oldTotalCredits + creditsToAdd;
+    // Add Cores as bonus Cores (donation Cores)
+    const oldBonusCores = userData.bonusCredits || 0;
+    const newBonusCores = oldBonusCores + coresToAdd;
+    const oldTotalCores = userData.credits;
+    const newTotalCores = oldTotalCores + coresToAdd;
 
     // Update user data
-    userData.bonusCredits = newBonusCredits;
-    userData.credits = newTotalCredits;
-    userData.totalGenerated = (userData.totalGenerated || 0) + creditsToAdd;
+    userData.bonusCredits = newBonusCores;
+    userData.credits = newTotalCores;
+    userData.totalGenerated = (userData.totalGenerated || 0) + coresToAdd;
     userData.lastUpdated = new Date().toISOString();
 
     // Add verification record
@@ -134,7 +137,7 @@ async function handleAddDonation(interaction, targetUser, deferred) {
     userData.verifications.push({
       type: "donation",
       amount,
-      credits: creditsToAdd,
+      credits: coresToAdd,
       koFiUrl,
       reason,
       verifiedBy: interaction.user.username,
@@ -149,9 +152,9 @@ async function handleAddDonation(interaction, targetUser, deferred) {
     const embed = await createDetailedCoreManagementEmbed({
       type: "add-donation",
       targetUser,
-      amount: creditsToAdd,
-      oldAmount: oldBonusCredits,
-      newAmount: newBonusCredits,
+      amount: coresToAdd,
+      oldAmount: oldBonusCores,
+      newAmount: newBonusCores,
       reason: `Ko-fi donation: $${amount}${koFiUrl ? ` | ${koFiUrl}` : ""}`,
       operator: interaction.user,
       userData,
@@ -159,7 +162,7 @@ async function handleAddDonation(interaction, targetUser, deferred) {
       donationDetails: {
         amount,
         koFiUrl,
-        creditsCalculated: creditsToAdd,
+        coresCalculated: coresToAdd,
       },
     });
 
@@ -172,11 +175,11 @@ async function handleAddDonation(interaction, targetUser, deferred) {
     logger.info("Donation verification completed successfully", {
       targetUserId: targetUser.id,
       amount,
-      creditsAdded: creditsToAdd,
-      oldBonusCredits,
-      newBonusCredits,
-      oldTotalCredits,
-      newTotalCredits,
+      coresAdded: coresToAdd,
+      oldBonusCores,
+      newBonusCores,
+      oldTotalCores,
+      newTotalCores,
       operatorId: interaction.user.id,
       koFiUrl,
       reason,
@@ -205,15 +208,15 @@ async function handleAddCores(interaction, targetUser, deferred) {
       bonusCredits: 0,
     };
 
-    // Only manage bonus credits (donation credits)
-    const oldBonusCredits = userData.bonusCredits || 0;
-    const newBonusCredits = oldBonusCredits + amount;
-    const oldTotalCredits = userData.credits;
-    const newTotalCredits = oldTotalCredits + amount;
+    // Only manage bonus Cores (donation Cores)
+    const oldBonusCores = userData.bonusCredits || 0;
+    const newBonusCores = oldBonusCores + amount;
+    const oldTotalCores = userData.credits;
+    const newTotalCores = oldTotalCores + amount;
 
-    // Update user data - only bonus credits
-    userData.bonusCredits = newBonusCredits;
-    userData.credits = newTotalCredits;
+    // Update user data - only bonus Cores
+    userData.bonusCredits = newBonusCores;
+    userData.credits = newTotalCores;
     userData.lastUpdated = new Date().toISOString();
 
     // Save to storage
@@ -225,8 +228,8 @@ async function handleAddCores(interaction, targetUser, deferred) {
       type: "add",
       targetUser,
       amount,
-      oldAmount: oldBonusCredits,
-      newAmount: newBonusCredits,
+      oldAmount: oldBonusCores,
+      newAmount: newBonusCores,
       reason,
       operator: interaction.user,
       creditType: "bonus",
@@ -238,18 +241,18 @@ async function handleAddCores(interaction, targetUser, deferred) {
       await interaction.reply({ embeds: [embed], flags: 64 });
     }
 
-    logger.info("Bonus credits added successfully", {
+    logger.info("Bonus Cores added successfully", {
       targetUserId: targetUser.id,
       amount,
-      oldBonusCredits,
-      newBonusCredits,
-      oldTotalCredits,
-      newTotalCredits,
+      oldBonusCores,
+      newBonusCores,
+      oldTotalCores,
+      newTotalCores,
       operatorId: interaction.user.id,
       reason,
     });
   } catch (error) {
-    logger.error("Error adding bonus credits:", error);
+    logger.error("Error adding bonus Cores:", error);
     await handleCoreManagementError(interaction, error, deferred);
   }
 }
@@ -272,15 +275,15 @@ async function handleRemoveCores(interaction, targetUser, deferred) {
       bonusCredits: 0,
     };
 
-    // Only manage bonus credits (donation credits)
-    const oldBonusCredits = userData.bonusCredits || 0;
-    const newBonusCredits = Math.max(0, oldBonusCredits - amount);
-    const oldTotalCredits = userData.credits;
-    const newTotalCredits = Math.max(0, oldTotalCredits - amount);
+    // Only manage bonus Cores (donation Cores)
+    const oldBonusCores = userData.bonusCredits || 0;
+    const newBonusCores = Math.max(0, oldBonusCores - amount);
+    const oldTotalCores = userData.credits;
+    const newTotalCores = Math.max(0, oldTotalCores - amount);
 
-    // Update user data - only bonus credits
-    userData.bonusCredits = newBonusCredits;
-    userData.credits = newTotalCredits;
+    // Update user data - only bonus Cores
+    userData.bonusCredits = newBonusCores;
+    userData.credits = newTotalCores;
     userData.lastUpdated = new Date().toISOString();
 
     // Save to storage
@@ -292,8 +295,8 @@ async function handleRemoveCores(interaction, targetUser, deferred) {
       type: "remove",
       targetUser,
       amount,
-      oldAmount: oldBonusCredits,
-      newAmount: newBonusCredits,
+      oldAmount: oldBonusCores,
+      newAmount: newBonusCores,
       reason,
       operator: interaction.user,
       creditType: "bonus",
@@ -305,18 +308,18 @@ async function handleRemoveCores(interaction, targetUser, deferred) {
       await interaction.reply({ embeds: [embed], flags: 64 });
     }
 
-    logger.info("Bonus credits removed successfully", {
+    logger.info("Bonus Cores removed successfully", {
       targetUserId: targetUser.id,
       amount,
-      oldBonusCredits,
-      newBonusCredits,
-      oldTotalCredits,
-      newTotalCredits,
+      oldBonusCores,
+      newBonusCores,
+      oldTotalCores,
+      newTotalCores,
       operatorId: interaction.user.id,
       reason,
     });
   } catch (error) {
-    logger.error("Error removing bonus credits:", error);
+    logger.error("Error removing bonus Cores:", error);
     await handleCoreManagementError(interaction, error, deferred);
   }
 }
@@ -339,15 +342,15 @@ async function handleSetCores(interaction, targetUser, deferred) {
       bonusCredits: 0,
     };
 
-    // Only manage bonus credits (donation credits)
-    const oldBonusCredits = userData.bonusCredits || 0;
+    // Only manage bonus Cores (donation Cores)
+    const oldBonusCores = userData.bonusCredits || 0;
     const subscriptionCredits = userData.subscriptionCredits || 0;
-    const newBonusCredits = amount;
-    const newTotalCredits = subscriptionCredits + newBonusCredits;
+    const newBonusCores = amount;
+    const newTotalCores = subscriptionCredits + newBonusCores;
 
-    // Update user data - only bonus credits
-    userData.bonusCredits = newBonusCredits;
-    userData.credits = newTotalCredits;
+    // Update user data - only bonus Cores
+    userData.bonusCredits = newBonusCores;
+    userData.credits = newTotalCores;
     userData.lastUpdated = new Date().toISOString();
 
     // Save to storage
@@ -359,8 +362,8 @@ async function handleSetCores(interaction, targetUser, deferred) {
       type: "set",
       targetUser,
       amount,
-      oldAmount: oldBonusCredits,
-      newAmount: newBonusCredits,
+      oldAmount: oldBonusCores,
+      newAmount: newBonusCores,
       reason,
       operator: interaction.user,
       creditType: "bonus",
@@ -372,18 +375,18 @@ async function handleSetCores(interaction, targetUser, deferred) {
       await interaction.reply({ embeds: [embed], flags: 64 });
     }
 
-    logger.info("Bonus credits set successfully", {
+    logger.info("Bonus Cores set successfully", {
       targetUserId: targetUser.id,
       amount,
-      oldBonusCredits,
-      newBonusCredits,
+      oldBonusCores,
+      newBonusCores,
       subscriptionCredits,
-      newTotalCredits,
+      newTotalCores,
       operatorId: interaction.user.id,
       reason,
     });
   } catch (error) {
-    logger.error("Error setting bonus credits:", error);
+    logger.error("Error setting bonus Cores:", error);
     await handleCoreManagementError(interaction, error, deferred);
   }
 }
@@ -422,7 +425,7 @@ async function handleViewCores(interaction, targetUser, deferred) {
       await interaction.reply({ embeds: [embed], flags: 64 });
     }
 
-    logger.info("Core credits viewed successfully", {
+    logger.info("Core Cores viewed successfully", {
       targetUserId: targetUser.id,
       totalCredits: userData.credits,
       subscriptionCredits: userData.subscriptionCredits || 0,
@@ -430,7 +433,7 @@ async function handleViewCores(interaction, targetUser, deferred) {
       operatorId: interaction.user.id,
     });
   } catch (error) {
-    logger.error("Error viewing core credits:", error);
+    logger.error("Error viewing Core Cores:", error);
     await handleCoreManagementError(interaction, error, deferred);
   }
 }
@@ -445,7 +448,7 @@ async function handleCoreManagementError(interaction, error, deferred) {
   try {
     const errorResponse = {
       content:
-        "❌ **Core Management Failed**\nAn error occurred while managing Core credits. Please try again later.",
+        "❌ **Core Management Failed**\nAn error occurred while managing Core Cores. Please try again later.",
       flags: 64,
     };
 
@@ -456,5 +459,109 @@ async function handleCoreManagementError(interaction, error, deferred) {
     }
   } catch (replyError) {
     logger.error("Failed to send core management error response:", replyError);
+  }
+}
+
+/**
+ * Handle manual subscription cancellation
+ * @param {import('discord.js').CommandInteraction} interaction - The interaction
+ * @param {import('discord.js').User} targetUser - The user to cancel subscription for
+ * @param {boolean} deferred - Whether the interaction was deferred
+ */
+async function handleCancelSubscription(interaction, targetUser, deferred) {
+  const reason =
+    interaction.options.getString("reason") ||
+    "Manual cancellation by developer";
+
+  try {
+    const storage = await getStorageManager();
+    const coreCredits = (await storage.get("core_credit")) || {};
+
+    const userData = coreCredits[targetUser.id] || {
+      credits: 0,
+      isCore: false,
+      totalGenerated: 0,
+      lastUpdated: new Date().toISOString(),
+      subscriptionCredits: 0,
+      bonusCredits: 0,
+    };
+
+    // Check if user has an active subscription
+    if (!userData.isCore || !userData.koFiSubscription?.isActive) {
+      const embed = await createDetailedCoreManagementEmbed({
+        type: "cancel-subscription",
+        targetUser,
+        amount: 0,
+        oldAmount: 0,
+        newAmount: 0,
+        reason: "No active subscription found",
+        operator: interaction.user,
+        userData,
+        creditType: "subscription",
+        showCreditBreakdown: false,
+      });
+
+      if (deferred) {
+        await interaction.editReply({ embeds: [embed] });
+      } else {
+        await interaction.reply({ embeds: [embed], flags: 64 });
+      }
+      return;
+    }
+
+    // Store previous state for logging
+    const previousCoreStatus = userData.isCore;
+    const previousTier = userData.coreTier;
+    const previousSubscriptionCredits = userData.subscriptionCredits || 0;
+
+    // Cancel the subscription
+    userData.isCore = false;
+    userData.coreTier = null;
+    userData.subscriptionCredits = 0;
+    userData.lastUpdated = new Date().toISOString();
+
+    // Update subscription status
+    if (userData.koFiSubscription) {
+      userData.koFiSubscription.isActive = false;
+      userData.koFiSubscription.cancelledAt = new Date().toISOString();
+      userData.koFiSubscription.cancelledBy = interaction.user.username;
+      userData.koFiSubscription.cancellationReason = reason;
+    }
+
+    // Save to storage
+    coreCredits[targetUser.id] = userData;
+    await storage.set("core_credit", coreCredits);
+
+    // Create success embed
+    const embed = await createDetailedCoreManagementEmbed({
+      type: "cancel-subscription",
+      targetUser,
+      amount: 0,
+      oldAmount: previousSubscriptionCredits,
+      newAmount: 0,
+      reason: `Manual cancellation: ${reason}`,
+      operator: interaction.user,
+      userData,
+      creditType: "subscription",
+      showCreditBreakdown: true,
+    });
+
+    if (deferred) {
+      await interaction.editReply({ embeds: [embed] });
+    } else {
+      await interaction.reply({ embeds: [embed], flags: 64 });
+    }
+
+    logger.info("Manual subscription cancellation completed successfully", {
+      targetUserId: targetUser.id,
+      previousCoreStatus,
+      previousTier,
+      previousSubscriptionCredits,
+      operatorId: interaction.user.id,
+      reason,
+    });
+  } catch (error) {
+    logger.error("Error cancelling subscription:", error);
+    await handleCoreManagementError(interaction, error, deferred);
   }
 }
