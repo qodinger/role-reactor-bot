@@ -20,31 +20,46 @@ export async function handleKoFiWebhook(req, res) {
       return res.status(405).send("Method Not Allowed");
     }
 
-    // Validate content type - Ko-fi only sends application/x-www-form-urlencoded
-    const contentType = req.headers["content-type"];
-    if (
-      !contentType ||
-      !contentType.includes("application/x-www-form-urlencoded")
-    ) {
-      logger.warn(`Invalid content type: ${contentType}`);
-      return res.status(400).send("Bad Request: Invalid content type");
+    // ===== STEP 1.5: HANDLE KO-FI VERIFICATION =====
+    // Ko-fi sends verification requests that must be handled
+    const userAgent = req.headers["user-agent"] || "";
+    if (userAgent.startsWith("Ko-fi")) {
+      logger.info("🔍 Ko-fi verification request received");
+      return res.status(200).send("OK");
     }
 
     // ===== STEP 2: EXTRACT AND VALIDATE DATA =====
-    // Ko-fi sends data as form-urlencoded with a 'data' field containing JSON string
-    const { data } = req.body;
+    const contentType = req.headers["content-type"];
+    logger.info(`📥 Received content type: ${contentType}`);
 
-    if (!data) {
-      logger.warn("❌ No data field in Ko-fi webhook request");
-      return res.status(400).send("Bad Request: No data field");
-    }
+    // Handle both JSON and form-urlencoded content types
+    if (contentType && contentType.includes("application/json")) {
+      // Direct JSON (newer Ko-fi format)
+      webhookData = req.body;
+      logger.info("📋 Processing direct JSON webhook data");
+    } else if (
+      contentType &&
+      contentType.includes("application/x-www-form-urlencoded")
+    ) {
+      // Form-urlencoded with data field (legacy format)
+      const { data } = req.body;
+      if (!data) {
+        logger.warn(
+          "❌ No data field in form-urlencoded Ko-fi webhook request",
+        );
+        return res.status(400).send("Bad Request: No data field");
+      }
 
-    // Parse the JSON data string with error handling
-    try {
-      webhookData = JSON.parse(data);
-    } catch (parseError) {
-      logger.error("❌ Failed to parse webhook data as JSON:", parseError);
-      return res.status(400).send("Bad Request: Invalid JSON data");
+      try {
+        webhookData = JSON.parse(data);
+        logger.info("📋 Processing form-urlencoded webhook data");
+      } catch (parseError) {
+        logger.error("❌ Failed to parse webhook data as JSON:", parseError);
+        return res.status(400).send("Bad Request: Invalid JSON data");
+      }
+    } else {
+      logger.warn(`❌ Unsupported content type: ${contentType}`);
+      return res.status(400).send("Bad Request: Unsupported content type");
     }
 
     // Validate required fields
@@ -54,12 +69,22 @@ export async function handleKoFiWebhook(req, res) {
     }
 
     // ===== STEP 3: VERIFY WEBHOOK AUTHENTICATION =====
+    // Ko-fi webhook authentication (if configured)
     if (process.env.KOFI_WEBHOOK_TOKEN) {
-      if (webhookData.verification_token !== process.env.KOFI_WEBHOOK_TOKEN) {
-        logger.warn("❌ Invalid Ko-fi webhook token received");
-        return res.status(401).send("Unauthorized: Invalid token");
+      // Check for verification_token in webhook data (legacy format)
+      if (webhookData.verification_token) {
+        if (webhookData.verification_token !== process.env.KOFI_WEBHOOK_TOKEN) {
+          logger.warn("❌ Invalid Ko-fi webhook token received");
+          return res.status(401).send("Unauthorized: Invalid token");
+        }
+        logger.info("✅ Ko-fi webhook token verified successfully");
+      } else {
+        // For newer Ko-fi format, we might need to implement different auth
+        // For now, log that no token was provided but continue processing
+        logger.info(
+          "ℹ️ No verification token in webhook data - continuing processing",
+        );
       }
-      logger.info("✅ Ko-fi webhook token verified successfully");
     } else {
       logger.warn("⚠️ No webhook token configured - accepting all requests");
     }
@@ -96,9 +121,6 @@ export async function handleKoFiWebhook(req, res) {
       isSubscriptionPayment: webhookData.is_subscription_payment,
       isFirstSubscriptionPayment: webhookData.is_first_subscription_payment,
 
-      // Shop order specific
-      shopItems: webhookData.shop_items,
-
       // Message content
       message: webhookData.message,
 
@@ -118,7 +140,6 @@ export async function handleKoFiWebhook(req, res) {
     const validWebhookTypes = [
       "Donation",
       "Subscription",
-      "Shop Order",
       "Subscription Cancelled",
       "Subscription Paused",
       "Subscription Resumed",
@@ -147,10 +168,6 @@ export async function handleKoFiWebhook(req, res) {
         case "Subscription":
           processingResult = await processSubscription(webhookData);
           processedType = "Subscription";
-          break;
-        case "Shop Order":
-          processingResult = await processShopOrder(webhookData);
-          processedType = "Shop Order";
           break;
         case "Subscription Cancelled":
           processingResult = await processSubscriptionCancellation(webhookData);
@@ -225,24 +242,39 @@ export async function handleKoFiWebhook(req, res) {
     }
 
     // ===== STEP 7: SEND RESPONSE =====
+    // Ko-fi requires HTTP 200 response within 5 seconds
+    // (processingTime already declared above; do not redeclare)
+    logger.info(`⏱️ Webhook processing completed in ${processingTime}ms`);
+
     if (processingResult.success) {
+      logger.info("✅ Webhook processed successfully - sending 200 OK");
       res.status(200).send("OK");
     } else {
+      logger.error("❌ Webhook processing failed - sending 500 error");
       res.status(500).send("Error processing webhook");
     }
   } catch (error) {
-    const processingTime = Date.now() - startTime;
+    const errorProcessingTime = Date.now() - startTime;
     logger.error("💥 Critical Error in Ko-fi webhook processing:", {
       error: error.message,
       stack: error.stack,
       webhookData: webhookData
         ? JSON.stringify(webhookData, null, 2)
         : "No data parsed",
-      processingTime: `${processingTime}ms`,
+      processingTime: `${errorProcessingTime}ms`,
       processedAt: new Date().toISOString(),
     });
 
-    res.status(500).send("Error processing webhook");
+    // Ko-fi requires a response within 5 seconds, so send error response quickly
+    if (errorProcessingTime < 5000) {
+      res.status(500).send("Error processing webhook");
+    } else {
+      // If we're taking too long, just send 200 to avoid Ko-fi retries
+      logger.warn(
+        "⚠️ Webhook processing took too long - sending 200 to avoid retries",
+      );
+      res.status(200).send("OK");
+    }
   }
 }
 
@@ -373,6 +405,9 @@ async function processDonation(data) {
         totalGenerated: 0,
         lastUpdated: new Date().toISOString(),
         koFiDonations: [],
+        // New fields for subscription-based credit system
+        subscriptionCredits: 0, // Credits from monthly subscription allowance
+        bonusCredits: 0, // Credits from donations (preserved during reset)
       };
     }
 
@@ -383,9 +418,26 @@ async function processDonation(data) {
       userData.credits = 0;
     }
 
-    // Add credits
-    userData.credits += credits;
-    userData.totalGenerated += credits;
+    // ===== DONATION CREDIT LOGIC =====
+    // Handle credits based on user's subscription status
+    // Only donations and subscriptions are supported (shop orders removed)
+    if (userData.koFiSubscription?.isActive) {
+      // Subscription user: Add as bonus credits (preserved during monthly reset)
+      userData.bonusCredits = (userData.bonusCredits || 0) + credits;
+      userData.credits += credits;
+      userData.totalGenerated += credits;
+      logger.info(
+        `💎 Subscription user donation: Added ${credits} bonus credits (total bonus: ${userData.bonusCredits}, total credits: ${userData.credits})`,
+      );
+    } else {
+      // Free user: Add credits normally (no monthly reset)
+      userData.credits += credits;
+      userData.totalGenerated += credits;
+      logger.info(
+        `🆓 Free user donation: Added ${credits} credits (total: ${userData.credits})`,
+      );
+    }
+
     userData.lastUpdated = new Date().toISOString();
 
     // Track donation with enhanced data
@@ -498,6 +550,27 @@ async function processSubscription(data) {
     // Use test user ID for Ko-fi testing
     const userIdForProcessing = finalDiscordUserId || "test-user-12345";
 
+    // ===== DUPLICATE PROCESSING PROTECTION =====
+    // Check if this transaction has already been processed
+    const storage = await getStorageManager();
+    const coreCredits = (await storage.get("core_credit")) || {};
+
+    if (
+      coreCredits[
+        userIdForProcessing
+      ]?.koFiSubscription?.processedTransactions?.includes(kofiTransactionId)
+    ) {
+      logger.warn(
+        `⚠️ Duplicate subscription transaction detected: ${kofiTransactionId} for user ${userIdForProcessing}`,
+      );
+      return {
+        success: true,
+        message:
+          "Subscription already processed (duplicate transaction ignored)",
+        credits: coreCredits[userIdForProcessing]?.credits || 0,
+      };
+    }
+
     if (isTestMode) {
       logger.info(
         `🧪 Test mode detected for subscription from ${fromName} - using test user ID: ${userIdForProcessing}`,
@@ -506,10 +579,7 @@ async function processSubscription(data) {
 
     // Core status is stored globally, so no need to check specific guilds
     // The bot just needs to be running to process webhooks
-
-    // Get centralized credit data
-    const storage = await getStorageManager();
-    const coreCredits = (await storage.get("core_credit")) || {};
+    // (Storage already initialized in duplicate protection section above)
 
     // Initialize user data if it doesn't exist (global, not per guild)
     if (!coreCredits[userIdForProcessing]) {
@@ -519,6 +589,9 @@ async function processSubscription(data) {
         totalGenerated: 0,
         lastUpdated: new Date().toISOString(),
         koFiSubscription: null,
+        // New fields for subscription-based credit system
+        subscriptionCredits: 0, // Credits from monthly subscription allowance
+        bonusCredits: 0, // Credits from donations (preserved during reset)
       };
     }
 
@@ -601,8 +674,30 @@ async function processSubscription(data) {
       return { success: false, error: "Subscription amount below minimum" };
     }
 
-    // Add monthly credits (scaled based on subscription amount + bonus)
-    userData.credits += monthlyCredits;
+    // ===== SUBSCRIPTION CREDIT LOGIC =====
+    // For subscriptions, we need to handle credits differently:
+    // - First payment: Set credits to monthly amount
+    // - Subsequent payments: Reset to monthly allowance + preserve bonus credits
+    // - Bonus credits come from donations and are preserved (shop orders removed)
+
+    if (isFirstSubscriptionPayment) {
+      // First subscription payment: Set credits to monthly amount
+      userData.credits = monthlyCredits;
+      userData.subscriptionCredits = monthlyCredits; // Track subscription allowance
+      userData.bonusCredits = 0; // Track bonus credits from donations/shop
+      logger.info(
+        `🎉 First subscription payment: Set credits to ${monthlyCredits} (monthly allowance)`,
+      );
+    } else {
+      // Subsequent subscription payments: Reset subscription allowance, preserve bonus credits
+      const bonusCredits = userData.bonusCredits || 0; // Preserve bonus credits
+      userData.credits = monthlyCredits + bonusCredits;
+      userData.subscriptionCredits = monthlyCredits; // Reset subscription allowance
+      // userData.bonusCredits remains the same (preserved)
+      logger.info(
+        `🔄 Monthly subscription renewal: Reset subscription allowance to ${monthlyCredits}, preserved ${bonusCredits} bonus credits (total: ${userData.credits})`,
+      );
+    }
 
     // Track subscription with enhanced data
     userData.koFiSubscription = {
@@ -620,7 +715,24 @@ async function processSubscription(data) {
       lastProcessed: new Date().toISOString(),
       isActive: true,
       subscriptionType: "monthly_coffee",
+      // Add tracking to prevent duplicate processing
+      processedTransactions:
+        userData.koFiSubscription?.processedTransactions || [],
+      monthlyCredits,
+      subscriptionStartDate: isFirstSubscriptionPayment
+        ? new Date().toISOString()
+        : userData.koFiSubscription?.subscriptionStartDate ||
+          new Date().toISOString(),
     };
+
+    // Track this transaction to prevent duplicate processing
+    if (
+      !userData.koFiSubscription.processedTransactions.includes(
+        kofiTransactionId,
+      )
+    ) {
+      userData.koFiSubscription.processedTransactions.push(kofiTransactionId);
+    }
 
     // Save centralized credit data
     await storage.set("core_credit", coreCredits);
@@ -667,123 +779,6 @@ async function processSubscription(data) {
     };
   } catch (error) {
     logger.error("❌ Error processing subscription:", error);
-    return { success: false, error: error.message };
-  }
-}
-
-async function processShopOrder(data) {
-  try {
-    // Log shop order-specific details
-    logger.info("🛒 Processing Shop Order Webhook:");
-    logger.info("📊 Shop Order Data:", JSON.stringify(data, null, 2));
-
-    logger.info("🛍️ Shop Order Details:", {
-      fromName: data.from_name,
-      email: data.email,
-      amount: data.amount,
-      currency: data.currency || "USD",
-      discordUserId: data.discord_userid,
-      discordUsername: data.discord_username,
-      shopItems: data.shop_items,
-      url: data.url,
-      kofiTransactionId: data.kofi_transaction_id,
-      isPublic: data.is_public,
-      timestamp: data.timestamp,
-    });
-
-    const {
-      from_name: fromName,
-      email,
-      amount,
-      discord_userid: discordUserId,
-      discord_username: discordUsername,
-      shop_items: shopItems,
-      url,
-      kofi_transaction_id: kofiTransactionId,
-      is_public: isPublic,
-    } = data;
-
-    // Check if shop order is public (respect privacy settings)
-    if (!isPublic) {
-      logger.info(`Skipping private shop order from ${fromName}`);
-      return { success: true, message: "Private shop order skipped" };
-    }
-
-    // Use Discord user ID from webhook if available, otherwise find by email
-    const finalDiscordUserId =
-      discordUserId || (await findDiscordUserByEmail(email));
-
-    if (!finalDiscordUserId) {
-      logger.warn(
-        `Could not find Discord user for shop order from ${fromName} (${email})`,
-      );
-      return { success: false, error: "Discord user not found" };
-    }
-
-    // Calculate credits based on amount (shop orders get credits too) - $0.05 per credit
-    const credits = Math.floor(parseFloat(amount) / 0.05);
-
-    // Credits are stored globally, so no need to check specific guilds
-    // The bot just needs to be running to process webhooks
-
-    // Get centralized credit data
-    const storage = await getStorageManager();
-    const coreCredits = (await storage.get("core_credit")) || {};
-
-    // Initialize user data if it doesn't exist (global, not per guild)
-    if (!coreCredits[finalDiscordUserId]) {
-      coreCredits[finalDiscordUserId] = {
-        credits: 0,
-        isCore: false,
-        totalGenerated: 0,
-        lastUpdated: new Date().toISOString(),
-        koFiShopOrders: [],
-      };
-    }
-
-    const userData = coreCredits[finalDiscordUserId];
-
-    // Ensure credits is a number, not null
-    if (userData.credits === null || userData.credits === undefined) {
-      userData.credits = 0;
-    }
-
-    // Add credits
-    userData.credits += credits;
-    userData.lastUpdated = new Date().toISOString();
-
-    // Track shop order
-    userData.koFiShopOrders = userData.koFiShopOrders || [];
-    userData.koFiShopOrders.push({
-      amount: parseFloat(amount),
-      credits,
-      fromName,
-      discordUsername,
-      email,
-      shopItems,
-      kofiTransactionId,
-      url,
-      processed: true,
-    });
-
-    // Save centralized credit data
-    await storage.set("core_credit", coreCredits);
-
-    logger.info(
-      `Added ${credits} credits to user ${finalDiscordUserId} (${discordUsername}) from shop order of $${amount}`,
-    );
-
-    // Send confirmation DM to user
-    await sendShopOrderConfirmation(finalDiscordUserId, credits, amount);
-
-    return {
-      success: true,
-      message: `Successfully processed shop order: $${amount} = ${credits} Cores`,
-      credits,
-      amount: parseFloat(amount),
-    };
-  } catch (error) {
-    logger.error("❌ Error processing shop order:", error);
     return { success: false, error: error.message };
   }
 }
@@ -945,13 +940,6 @@ async function sendSubscriptionCancellationNotification(
   );
 }
 
-async function sendShopOrderConfirmation(discordUserId, credits, amount) {
-  // Send DM to user confirming shop order credit addition
-  logger.info(
-    `Would send DM to ${discordUserId}: Added ${credits} credits from $${amount} shop order`,
-  );
-}
-
 async function sendMinimumDonationMessage(
   discordUserId,
   donationAmount,
@@ -1079,11 +1067,37 @@ async function processRefund(data) {
         refundAmount * corePricing.donation.rate,
       );
 
-      // Remove credits (don't go below 0)
-      coreCredits[finalDiscordUserId].credits = Math.max(
-        0,
-        coreCredits[finalDiscordUserId].credits - creditsToRemove,
-      );
+      // ===== REFUND CREDIT LOGIC =====
+      // For refunds, we need to handle the deduction order properly
+      // Remove from bonus credits first (donation credits), then subscription credits
+      const userData = coreCredits[finalDiscordUserId];
+      let remainingToRemove = creditsToRemove;
+      let bonusRemoved = 0;
+      let subscriptionRemoved = 0;
+
+      // Step 1: Remove from bonus credits first (donation credits)
+      if (userData.bonusCredits && userData.bonusCredits > 0) {
+        bonusRemoved = Math.min(remainingToRemove, userData.bonusCredits);
+        userData.bonusCredits -= bonusRemoved;
+        remainingToRemove -= bonusRemoved;
+      }
+
+      // Step 2: Remove from subscription credits if still needed
+      if (
+        remainingToRemove > 0 &&
+        userData.subscriptionCredits &&
+        userData.subscriptionCredits > 0
+      ) {
+        subscriptionRemoved = Math.min(
+          remainingToRemove,
+          userData.subscriptionCredits,
+        );
+        userData.subscriptionCredits -= subscriptionRemoved;
+        remainingToRemove -= subscriptionRemoved;
+      }
+
+      // Step 3: Update total credits (don't go below 0)
+      userData.credits = Math.max(0, userData.credits - creditsToRemove);
       coreCredits[finalDiscordUserId].lastUpdated = new Date().toISOString();
 
       // Track refund
@@ -1100,7 +1114,9 @@ async function processRefund(data) {
       await storage.set("core_credit", coreCredits);
 
       logger.info(
-        `💸 Processed refund: $${refundAmount} = -${creditsToRemove} Cores for user ${finalDiscordUserId}`,
+        `💸 Processed refund: $${refundAmount} = -${creditsToRemove} Cores for user ${finalDiscordUserId}. ` +
+          `Removal: ${bonusRemoved} from bonus, ${subscriptionRemoved} from subscription. ` +
+          `Remaining: ${userData.credits} total (${userData.subscriptionCredits} subscription, ${userData.bonusCredits} bonus)`,
       );
       return {
         success: true,

@@ -1,10 +1,22 @@
 # Core Management Command
 
-A developer-only command for managing user Core credits in the Role Reactor Discord Bot.
+A developer-only command for managing user bonus credits (donation credits) in the Role Reactor Discord Bot.
 
 ## Overview
 
-The Core Management command allows developers to add, remove, set, and view user Core credits with proper logging and validation.
+The Core Management command allows developers to add, remove, set, and view user bonus credits, as well as verify Ko-fi donations with proper logging and validation. **Note**: This command only manages bonus credits (donation credits) and cannot modify subscription credits or tiers, which are automatically managed by the Ko-fi subscription system.
+
+## Credit System
+
+The bot uses a dual-credit system:
+
+- **Subscription Credits**: Automatically managed by monthly Ko-fi subscriptions, reset each month
+- **Bonus Credits**: Donation credits that never expire, managed by this command
+- **Subscription Tiers**: Automatically managed by Ko-fi webhooks, cannot be manually modified
+
+When users spend credits, the system uses subscription credits first (FIFO), then bonus credits. This ensures subscription credits are used before they reset monthly.
+
+**Important**: Tier management has been removed from this command to prevent conflicts with the automatic Ko-fi subscription system.
 
 ## Command Structure
 
@@ -14,43 +26,60 @@ The Core Management command allows developers to add, remove, set, and view user
 
 ## Subcommands
 
-### Add Cores
+### Add Bonus Credits
 
 ```
 /core-management add user:<User> amount:<Integer> [reason:<String>]
 ```
 
-- **user**: The user to add Core credits to (required)
-- **amount**: Amount of Core credits to add (1-10000) (required)
-- **reason**: Reason for adding Core credits (optional, max 200 chars)
+- **user**: The user to add bonus credits to (required)
+- **amount**: Amount of bonus credits to add (1-10000) (required)
+- **reason**: Reason for adding bonus credits (optional, max 200 chars)
 
-### Remove Cores
+### Remove Bonus Credits
 
 ```
 /core-management remove user:<User> amount:<Integer> [reason:<String>]
 ```
 
-- **user**: The user to remove Core credits from (required)
-- **amount**: Amount of Core credits to remove (1-10000) (required)
-- **reason**: Reason for removing Core credits (optional, max 200 chars)
+- **user**: The user to remove bonus credits from (required)
+- **amount**: Amount of bonus credits to remove (1-10000) (required)
+- **reason**: Reason for removing bonus credits (optional, max 200 chars)
 
-### Set Cores
+### Set Bonus Credits
 
 ```
 /core-management set user:<User> amount:<Integer> [reason:<String>]
 ```
 
-- **user**: The user to set Core credits for (required)
-- **amount**: Amount of Core credits to set (0-10000) (required)
-- **reason**: Reason for setting Core credits (optional, max 200 chars)
+- **user**: The user to set bonus credits for (required)
+- **amount**: Amount of bonus credits to set (0-10000) (required)
+- **reason**: Reason for setting bonus credits (optional, max 200 chars)
 
-### View Cores
+### View Credits
 
 ```
 /core-management view user:<User>
 ```
 
-- **user**: The user to view Core credits for (required)
+- **user**: The user to view credits for (required)
+
+### Verify Ko-fi Donation
+
+```
+/core-management add-donation user:<User> amount:<Number> [ko-fi-url:<String>] [reason:<String>]
+```
+
+- **user**: The user to grant bonus credits to (required)
+- **amount**: Donation amount in USD (0.01 - 10,000) (required)
+- **ko-fi-url**: Ko-fi donation URL (optional)
+- **reason**: Reason for verification (optional, max 200 chars)
+
+**Credit Calculation:**
+
+- Credits are calculated at $0.10 per credit (10 credits per $1) - matches Ko-fi donation rate
+- Example: $5 donation = 50 bonus credits
+- Credits are added as bonus credits (donation credits) that never expire
 
 ## Features
 
@@ -79,28 +108,34 @@ The Core Management command allows developers to add, remove, set, and view user
 
 ## Usage Examples
 
-### Adding Cores
+### Adding Bonus Credits
 
 ```
 /core-management add user:@username amount:100 reason:Compensation for bug report
 ```
 
-### Removing Cores
+### Removing Bonus Credits
 
 ```
 /core-management remove user:@username amount:50 reason:Refund for failed generation
 ```
 
-### Setting Cores
+### Setting Bonus Credits
 
 ```
 /core-management set user:@username amount:500 reason:Account migration
 ```
 
-### Viewing Cores
+### Viewing Credits
 
 ```
 /core-management view user:@username
+```
+
+### Verifying Ko-fi Donation
+
+```
+/core-management add-donation user:@username amount:5.00 ko-fi-url:https://ko-fi.com/s/abc123 reason:Monthly supporter
 ```
 
 ## Response Format
@@ -113,6 +148,7 @@ All operations return a detailed embed showing:
 - Reason (if provided)
 - Operator information
 - Timestamp
+- **Donation verification**: Additional details including donation amount, Ko-fi URL, and credit calculation
 
 ## Error Handling
 

@@ -66,17 +66,52 @@ export function createLoadingEmbed(prompt) {
  * Create success embed for avatar generation
  * @param {import('discord.js').CommandInteraction} interaction
  * @param {string} prompt - User's prompt
+ * @param {Object} deductionBreakdown - Credit deduction breakdown
  * @returns {import('discord.js').EmbedBuilder}
  */
-export function createSuccessEmbed(interaction, prompt) {
-  return new EmbedBuilder()
+export function createSuccessEmbed(
+  interaction,
+  prompt,
+  deductionBreakdown = null,
+) {
+  const embed = new EmbedBuilder()
     .setColor(THEME.SUCCESS)
     .setTitle(`${EMOJIS.STATUS.SUCCESS} Avatar Complete!`)
-    .setDescription(`**"${prompt}"**\n\n✨ *Your Avatar has been generated*`)
+    .setDescription(`**"${prompt}"**\n\n✨ *Your Avatar has been generated*`);
+
+  // Add credit deduction breakdown if available
+  if (deductionBreakdown) {
+    const { subscriptionDeducted, bonusDeducted, totalDeducted } =
+      deductionBreakdown;
+
+    if (subscriptionDeducted > 0 || bonusDeducted > 0) {
+      let deductionText = `**Credits Used**: ${totalDeducted} ${CORE_EMOJI}`;
+
+      if (subscriptionDeducted > 0 && bonusDeducted > 0) {
+        deductionText += `\n• ${subscriptionDeducted} from subscription, ${bonusDeducted} from bonus`;
+      } else if (subscriptionDeducted > 0) {
+        deductionText += `\n• ${subscriptionDeducted} from subscription credits`;
+      } else if (bonusDeducted > 0) {
+        deductionText += `\n• ${bonusDeducted} from bonus credits`;
+      }
+
+      embed.addFields([
+        {
+          name: "💎 Credit Usage",
+          value: deductionText,
+          inline: false,
+        },
+      ]);
+    }
+  }
+
+  embed
     .setFooter({
       text: `Generated for ${interaction.user.username} • Avatar Generator`,
     })
     .setTimestamp();
+
+  return embed;
 }
 
 /**
@@ -93,10 +128,22 @@ export function createCreditEmbed(
   creditsNeeded,
   _prompt,
 ) {
+  // Enhanced credit breakdown for better user understanding
+  const subscriptionCredits = userData.subscriptionCredits || 0;
+  const bonusCredits = userData.bonusCredits || 0;
+  const isSubscriptionUser = userData.koFiSubscription?.isActive;
+
+  let creditBreakdown = `**Your Balance**: ${userData.credits} ${CORE_EMOJI}`;
+
+  if (isSubscriptionUser) {
+    creditBreakdown += `\n• **Subscription**: ${subscriptionCredits} ${CORE_EMOJI} (monthly allowance)`;
+    creditBreakdown += `\n• **Bonus**: ${bonusCredits} ${CORE_EMOJI} (from donations, never expires)`;
+  }
+
   return new EmbedBuilder()
     .setColor(THEME.WARNING)
     .setDescription(
-      `You need **${creditsNeeded} ${CORE_EMOJI}** to generate an AI avatar!\n\n**Your Balance**: ${userData.credits} ${CORE_EMOJI} • **Cost**: ${creditsNeeded} ${CORE_EMOJI} per generation`,
+      `You need **${creditsNeeded} ${CORE_EMOJI}** to generate an AI avatar!\n\n${creditBreakdown}\n\n**Cost**: ${creditsNeeded} ${CORE_EMOJI} per generation`,
     )
     .addFields([
       {

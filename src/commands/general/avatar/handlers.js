@@ -134,8 +134,13 @@ export async function handleAvatarGeneration(interaction, _client) {
     }
 
     // Deduct credits only on success
+    let deductionBreakdown = null;
     if (generationSuccess) {
-      await CreditManager.deductCredits(interaction.user.id, creditsNeeded);
+      const result = await CreditManager.deductCredits(
+        interaction.user.id,
+        creditsNeeded,
+      );
+      deductionBreakdown = result.deductionBreakdown;
     }
 
     // Create final attachment
@@ -144,7 +149,11 @@ export async function handleAvatarGeneration(interaction, _client) {
     });
 
     // Send final result with success embed
-    const successEmbed = createSuccessEmbed(interaction, prompt);
+    const successEmbed = createSuccessEmbed(
+      interaction,
+      prompt,
+      deductionBreakdown,
+    );
     await interaction.editReply({
       embeds: [successEmbed],
       files: [attachment],

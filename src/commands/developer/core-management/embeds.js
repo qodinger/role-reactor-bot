@@ -37,6 +37,9 @@ export async function createDetailedCoreManagementEmbed({
   reason,
   operator,
   userData = null,
+  creditType = "bonus",
+  showCreditBreakdown = false,
+  donationDetails = null,
 }) {
   // Ensure description is always set
   const description = getEmbedDescription(
@@ -45,6 +48,7 @@ export async function createDetailedCoreManagementEmbed({
     amount,
     oldAmount,
     newAmount,
+    creditType,
   );
   console.log("Generated description:", description);
   console.log("Type:", type, "TargetUser:", targetUser?.username);
@@ -83,40 +87,31 @@ export async function createDetailedCoreManagementEmbed({
       },
     );
 
+    // Add credit breakdown if available
+    if (showCreditBreakdown && userData) {
+      const subscriptionCredits = userData.subscriptionCredits || 0;
+      const bonusCredits = userData.bonusCredits || 0;
+      const isSubscriptionUser = userData.koFiSubscription?.isActive;
+
+      if (isSubscriptionUser) {
+        embed.addFields({
+          name: `💎 Credit Breakdown`,
+          value: `• **Subscription**: ${subscriptionCredits} ${CORE_EMOJI} (monthly allowance)\n• **Bonus**: ${bonusCredits} ${CORE_EMOJI} (donation credits, never expires)`,
+          inline: false,
+        });
+      } else {
+        embed.addFields({
+          name: `💎 Credit Type`,
+          value: `• **Donation Credits**: ${bonusCredits} ${CORE_EMOJI} (never expires)`,
+          inline: false,
+        });
+      }
+    }
+
     if (userData?.lastUpdated) {
       embed.addFields({
         name: `Last Updated`,
         value: `<t:${Math.floor(new Date(userData.lastUpdated).getTime() / 1000)}:R>`,
-        inline: false,
-      });
-    }
-  } else if (type === "remove-tier") {
-    // Special handling for tier removal
-    embed.addFields(
-      {
-        name: `Previous Tier`,
-        value: userData?.coreTier
-          ? `${emojiConfig.getTierBadge(userData.coreTier)} ${userData.coreTier}`
-          : "None",
-        inline: true,
-      },
-      {
-        name: `New Tier`,
-        value: "None",
-        inline: true,
-      },
-      {
-        name: `Core Status`,
-        value: "❌ Inactive",
-        inline: true,
-      },
-    );
-
-    // Add reason if provided
-    if (reason && reason !== "No reason provided") {
-      embed.addFields({
-        name: `Reason`,
-        value: reason,
         inline: false,
       });
     }
@@ -138,6 +133,15 @@ export async function createDetailedCoreManagementEmbed({
         inline: true,
       },
     );
+
+    // Add donation details if available
+    if (type === "add-donation" && donationDetails) {
+      embed.addFields({
+        name: `💰 Donation Details`,
+        value: `**Amount**: $${donationDetails.amount}\n**Credits Calculated**: ${donationDetails.creditsCalculated} ${CORE_EMOJI} (10 per $1)\n${donationDetails.koFiUrl ? `**Ko-fi URL**: [View Donation](${donationDetails.koFiUrl})` : ""}`,
+        inline: false,
+      });
+    }
 
     // Add reason if provided
     if (reason && reason !== "No reason provided") {
@@ -177,31 +181,34 @@ function getEmbedColor(type) {
       return THEME.PRIMARY;
     case "view":
       return THEME.SECONDARY;
-    case "tier":
-      return THEME.SUCCESS;
-    case "remove-tier":
-      return THEME.WARNING;
     default:
       return THEME.PRIMARY;
   }
 }
 
-function getEmbedDescription(type, targetUser, amount, _oldAmount, _newAmount) {
+function getEmbedDescription(
+  type,
+  targetUser,
+  amount,
+  _oldAmount,
+  _newAmount,
+  creditType = "bonus",
+) {
   const username = targetUser?.username || targetUser?.tag || "Unknown User";
+  const creditTypeText =
+    creditType === "bonus" ? "bonus credits (donation credits)" : "credits";
 
   switch (type) {
     case "add":
-      return `Successfully added **${amount} ${CORE_EMOJI}** to ${username}'s Core account.`;
+      return `Successfully added **${amount} ${CORE_EMOJI}** ${creditTypeText} to ${username}'s Core account.`;
     case "remove":
-      return `Successfully removed **${amount} ${CORE_EMOJI}** from ${username}'s Core account.`;
+      return `Successfully removed **${amount} ${CORE_EMOJI}** ${creditTypeText} from ${username}'s Core account.`;
     case "set":
-      return `Successfully set ${username}'s Core balance to **${amount} ${CORE_EMOJI}**.`;
+      return `Successfully set ${username}'s ${creditTypeText} to **${amount} ${CORE_EMOJI}**.`;
     case "view":
-      return `Displaying ${username}'s Core account information and statistics.`;
-    case "tier":
-      return `Successfully updated ${username}'s Core membership tier.`;
-    case "remove-tier":
-      return `Successfully removed ${username}'s Core membership tier.`;
+      return `Displaying ${username}'s Core account information and credit breakdown.`;
+    case "add-donation":
+      return `Successfully verified Ko-fi donation and added **${amount} ${CORE_EMOJI}** bonus credits to ${username}'s Core account.`;
     default:
       return "Core account management operation completed successfully.";
   }
@@ -215,6 +222,8 @@ function getOperationText(type) {
       return "Removed";
     case "set":
       return "Set To";
+    case "add-donation":
+      return "Donation Verified";
     default:
       return "Operation";
   }
