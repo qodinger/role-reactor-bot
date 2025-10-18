@@ -1,13 +1,3 @@
-/**
- * @fileoverview API routes for the unified server
- *
- * Provides general API endpoints and status information.
- *
- * @author Tyecode
- * @version 1.0.0
- * @license MIT
- */
-
 import { getLogger } from "../../utils/logger.js";
 
 const logger = getLogger();

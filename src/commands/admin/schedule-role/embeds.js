@@ -400,3 +400,214 @@ function getOrdinalSuffix(day) {
       return "th";
   }
 }
+
+/**
+ * Creates an embed for schedule update confirmation
+ * @param {Object} data - Update result data
+ * @param {Object} updateOptions - Fields that were updated
+ * @param {Object} guild - Discord guild object
+ * @returns {EmbedBuilder}
+ */
+export function createScheduleUpdateEmbed(data, updateOptions, guild) {
+  const { original, updated, changes } = data;
+  const embed = new EmbedBuilder()
+    .setColor(THEME.SUCCESS)
+    .setTitle(`${EMOJIS.STATUS.SUCCESS} Schedule Updated Successfully`)
+    .setDescription(
+      `Schedule \`${original.scheduleId.substring(0, 8)}...\` has been updated.`,
+    )
+    .setTimestamp();
+
+  // Add fields showing what was changed
+  const changesList = [];
+
+  if (changes.schedule) {
+    const oldTime =
+      original.type === "one-time"
+        ? formatScheduleTime(original.scheduleTime)
+        : formatRecurringSchedule(original.schedule);
+    const newTime =
+      original.type === "one-time"
+        ? formatScheduleTime(updated.scheduleTime)
+        : formatRecurringSchedule(updated.schedule);
+    changesList.push(`**Schedule**: \`${oldTime}\` → \`${newTime}\``);
+  }
+
+  if (changes.duration) {
+    changesList.push(
+      `**Duration**: \`${original.duration}\` → \`${updated.duration}\``,
+    );
+  }
+
+  if (changes.users) {
+    const oldUsers = original.userIds.length;
+    const newUsers = updated.userIds.length;
+    changesList.push(
+      `**Users**: \`${oldUsers} users\` → \`${newUsers} users\``,
+    );
+  }
+
+  if (changes.role) {
+    const oldRole =
+      guild.roles.cache.get(original.roleId)?.name || "Unknown Role";
+    const newRole =
+      guild.roles.cache.get(updated.roleId)?.name || "Unknown Role";
+    changesList.push(`**Role**: \`${oldRole}\` → \`${newRole}\``);
+  }
+
+  if (changes.reason !== null) {
+    const oldReason = original.reason || "No reason";
+    const newReason = updated.reason || "No reason";
+    changesList.push(`**Reason**: \`${oldReason}\` → \`${newReason}\``);
+  }
+
+  if (changesList.length > 0) {
+    embed.addFields({
+      name: "📝 Changes Made",
+      value: changesList.join("\n"),
+      inline: false,
+    });
+  }
+
+  // Add updated schedule details
+  const scheduleDetails = [];
+  scheduleDetails.push(`**Type**: ${formatScheduleType(updated.type)}`);
+  scheduleDetails.push(`**Duration**: ${updated.duration}`);
+  scheduleDetails.push(`**Users**: ${updated.userIds.length} user(s)`);
+  scheduleDetails.push(
+    `**Role**: ${guild.roles.cache.get(updated.roleId)?.name || "Unknown Role"}`,
+  );
+
+  if (updated.reason) {
+    scheduleDetails.push(`**Reason**: ${updated.reason}`);
+  }
+
+  embed.addFields({
+    name: "📋 Updated Schedule Details",
+    value: scheduleDetails.join("\n"),
+    inline: false,
+  });
+
+  // Add next run time for recurring schedules
+  if (updated.type !== "one-time" && updated.nextRun) {
+    embed.addFields({
+      name: "⏰ Next Run",
+      value: `<t:${Math.floor(new Date(updated.nextRun).getTime() / 1000)}:F>`,
+      inline: true,
+    });
+  } else if (updated.type === "one-time") {
+    embed.addFields({
+      name: "⏰ Scheduled Time",
+      value: `<t:${Math.floor(new Date(updated.scheduleTime).getTime() / 1000)}:F>`,
+      inline: true,
+    });
+  }
+
+  embed.setFooter({
+    text: `Updated by ${guild.members.cache.get(updated.updatedBy)?.displayName || "Unknown User"}`,
+    iconURL: guild.members.cache
+      .get(updated.updatedBy)
+      ?.user.displayAvatarURL(),
+  });
+
+  return embed;
+}
+
+/**
+ * Creates an embed for bulk schedule cancellation confirmation
+ * @param {Object} data - Bulk cancellation result data
+ * @param {Object} guild - Discord guild object
+ * @returns {EmbedBuilder}
+ */
+export function createBulkCancelEmbed(data, guild) {
+  const { results, summary, reason, cancelledBy } = data;
+  const embed = new EmbedBuilder()
+    .setColor(summary.failed > 0 ? THEME.WARNING : THEME.SUCCESS)
+    .setTitle(`${EMOJIS.STATUS.SUCCESS} Bulk Cancellation Completed`)
+    .setDescription(`Processed ${summary.total} schedule(s) for cancellation.`)
+    .setTimestamp();
+
+  // Add summary
+  const summaryText = [];
+  if (summary.successful > 0) {
+    summaryText.push(`✅ **Successful**: ${summary.successful}`);
+  }
+  if (summary.failed > 0) {
+    summaryText.push(`❌ **Failed**: ${summary.failed}`);
+  }
+  if (summary.notFound > 0) {
+    summaryText.push(`🔍 **Not Found**: ${summary.notFound}`);
+  }
+
+  embed.addFields({
+    name: "📊 Summary",
+    value: summaryText.join("\n"),
+    inline: false,
+  });
+
+  // Add successful cancellations
+  if (results.successful.length > 0) {
+    const successfulList = results.successful
+      .map(item => `• \`${item.scheduleId.substring(0, 8)}...\``)
+      .join("\n");
+
+    embed.addFields({
+      name: "✅ Successfully Cancelled",
+      value:
+        successfulList.length > 1000
+          ? successfulList.substring(0, 1000) + "..."
+          : successfulList,
+      inline: false,
+    });
+  }
+
+  // Add failed cancellations
+  if (results.failed.length > 0) {
+    const failedList = results.failed
+      .map(
+        item => `• \`${item.scheduleId.substring(0, 8)}...\` - ${item.error}`,
+      )
+      .join("\n");
+
+    embed.addFields({
+      name: "❌ Failed to Cancel",
+      value:
+        failedList.length > 1000
+          ? failedList.substring(0, 1000) + "..."
+          : failedList,
+      inline: false,
+    });
+  }
+
+  // Add not found schedules
+  if (results.notFound.length > 0) {
+    const notFoundList = results.notFound
+      .map(id => `• \`${id.substring(0, 8)}...\``)
+      .join("\n");
+
+    embed.addFields({
+      name: "🔍 Not Found",
+      value:
+        notFoundList.length > 1000
+          ? notFoundList.substring(0, 1000) + "..."
+          : notFoundList,
+      inline: false,
+    });
+  }
+
+  // Add reason if provided
+  if (reason && reason !== "Bulk cancellation") {
+    embed.addFields({
+      name: "📝 Reason",
+      value: reason,
+      inline: false,
+    });
+  }
+
+  embed.setFooter({
+    text: `Cancelled by ${guild.members.cache.get(cancelledBy)?.displayName || "Unknown User"}`,
+    iconURL: guild.members.cache.get(cancelledBy)?.user.displayAvatarURL(),
+  });
+
+  return embed;
+}

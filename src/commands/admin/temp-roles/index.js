@@ -7,6 +7,7 @@ import { hasAdminPermissions } from "../../../utils/discord/permissions.js";
 import { getLogger } from "../../../utils/logger.js";
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 import { handleAssign, handleList, handleRemove } from "./handlers.js";
+import { handleDeferral } from "./deferral.js";
 
 export const data = new SlashCommandBuilder()
   .setName("temp-roles")
@@ -98,8 +99,14 @@ export async function execute(interaction, client) {
   const logger = getLogger();
 
   try {
-    // Defer immediately to prevent timeout
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    // Use aggressive deferral to prevent timeout
+    const deferSuccess = await handleDeferral(interaction);
+    if (!deferSuccess) {
+      logger.warn("Failed to defer interaction, skipping execution", {
+        interactionId: interaction.id,
+      });
+      return;
+    }
 
     // Validate user permissions
     if (!hasAdminPermissions(interaction.member)) {
@@ -141,8 +148,9 @@ export async function execute(interaction, client) {
       error,
     );
 
-    if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply(
+    // Always use editReply since we defer at the start
+    if (interaction.deferred) {
+      await interaction.editReply(
         errorEmbed({
           title: "Error",
           description: "Failed to process temp-roles command.",
@@ -150,8 +158,9 @@ export async function execute(interaction, client) {
             "Please try again or contact support if the issue persists.",
         }),
       );
-    } else if (interaction.deferred) {
-      await interaction.editReply(
+    } else {
+      // Fallback to reply if somehow not deferred
+      await interaction.reply(
         errorEmbed({
           title: "Error",
           description: "Failed to process temp-roles command.",

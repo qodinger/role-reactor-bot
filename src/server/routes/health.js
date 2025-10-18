@@ -1,13 +1,3 @@
-/**
- * @fileoverview Health check routes for the API server
- *
- * Provides health check endpoints for monitoring and Docker health checks.
- *
- * @author Tyecode
- * @version 1.0.0
- * @license MIT
- */
-
 import fs from "fs";
 import { getLogger } from "../../utils/logger.js";
 

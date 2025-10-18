@@ -1,14 +1,4 @@
 /**
- * @fileoverview CORS middleware for the API server
- *
- * Provides cross-origin resource sharing configuration for external API access.
- *
- * @author Tyecode
- * @version 1.0.0
- * @license MIT
- */
-
-/**
  * CORS middleware configuration
  * @param {import('express').Request} req - Express request object
  * @param {import('express').Response} res - Express response object

@@ -1,13 +1,3 @@
-/**
- * @fileoverview Webhook routes for the API server
- *
- * Provides webhook testing, verification, and handling endpoints.
- *
- * @author Tyecode
- * @version 1.0.0
- * @license MIT
- */
-
 import { getLogger } from "../../utils/logger.js";
 
 const logger = getLogger();

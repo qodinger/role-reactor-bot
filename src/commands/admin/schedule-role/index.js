@@ -2,12 +2,18 @@ import { SlashCommandBuilder, PermissionFlagsBits } from "discord.js";
 import { hasAdminPermissions } from "../../../utils/discord/permissions.js";
 import { getLogger } from "../../../utils/logger.js";
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";
-import { handleScheduleRole, handleCancel, handleView } from "./handlers.js";
+import {
+  handleScheduleRole,
+  handleCancel,
+  handleView,
+  handleUpdate,
+  handleBulkCancel,
+} from "./handlers.js";
 import { handleList } from "./list.js";
 
 // Import refactored utility modules
 import { validateInteraction, validateBotMember } from "./validation.js";
-import { handleDeferral, sendResponse } from "./deferral.js";
+import { sendResponse } from "./deferral.js";
 import { handleCommandError } from "./errorHandling.js";
 
 // ============================================================================
@@ -94,6 +100,68 @@ export const data = new SlashCommandBuilder()
           .setRequired(true),
       ),
   )
+  .addSubcommand(subcommand =>
+    subcommand
+      .setName("update")
+      .setDescription("Update an existing schedule")
+      .addStringOption(option =>
+        option
+          .setName("id")
+          .setDescription(
+            "Schedule ID to update (shortened format like 2802a998...7f7a)",
+          )
+          .setRequired(true),
+      )
+      .addStringOption(option =>
+        option
+          .setName("schedule")
+          .setDescription(
+            "New schedule time (e.g., 'tomorrow 9am', 'monday 6pm')",
+          )
+          .setRequired(false),
+      )
+      .addStringOption(option =>
+        option
+          .setName("duration")
+          .setDescription("New duration (e.g., 1h, 2d, 1w)")
+          .setRequired(false),
+      )
+      .addStringOption(option =>
+        option
+          .setName("users")
+          .setDescription("New comma-separated list of user IDs or mentions")
+          .setRequired(false),
+      )
+      .addRoleOption(option =>
+        option
+          .setName("role")
+          .setDescription("New role to assign")
+          .setRequired(false),
+      )
+      .addStringOption(option =>
+        option
+          .setName("reason")
+          .setDescription("New reason for the role assignment")
+          .setRequired(false),
+      ),
+  )
+  .addSubcommand(subcommand =>
+    subcommand
+      .setName("bulk-cancel")
+      .setDescription("Cancel multiple schedules at once")
+      .addStringOption(option =>
+        option
+          .setName("ids")
+          .setDescription("Comma-separated list of schedule IDs to cancel")
+          .setRequired(true),
+      )
+      .addStringOption(option =>
+        option
+          .setName("reason")
+          .setDescription("Reason for bulk cancellation")
+          .setRequired(false),
+      ),
+  )
   .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles);
 
 // ============================================================================
@@ -109,6 +177,9 @@ export async function execute(interaction) {
       return;
     }
 
+    // Note: Deferral is now skipped for schedule-role commands due to Discord API slowness
+    // Commands are handled directly without deferral
+
     // Validate interaction
     const validation = validateInteraction(interaction);
     if (!validation.success) {
@@ -121,30 +192,21 @@ export async function execute(interaction) {
       return await sendResponse(
         interaction,
         errorEmbed(botMemberValidation.errorResponse),
-        false,
+        false, // Not deferred
       );
-    }
-
-    // Handle deferral
-    const deferResult = await handleDeferral(interaction);
-    if (!deferResult.success) {
-      if (deferResult.isExpired) {
-        logger.warn("Interaction expired during deferral");
-      }
-      return;
     }
 
     // Check permissions
     await checkPermissions(interaction);
 
     const subcommand = interaction.options.getSubcommand();
-    await routeSubcommand(interaction, subcommand, true); // Always deferred at this point
+    await routeSubcommand(interaction, subcommand, false); // Not deferred
   } catch (error) {
     await handleCommandError(
       interaction,
       error,
       "schedule-role command",
-      false,
+      false, // Not deferred
     );
   }
 }
@@ -185,12 +247,20 @@ async function routeSubcommand(interaction, subcommand, deferred) {
       logger.debug("Calling handleView");
       await handleView(interaction, deferred);
       break;
+    case "update":
+      logger.debug("Calling handleUpdate");
+      await handleUpdate(interaction, deferred);
+      break;
+    case "bulk-cancel":
+      logger.debug("Calling handleBulkCancel");
+      await handleBulkCancel(interaction, deferred);
+      break;
     default: {
       logger.warn("Invalid subcommand", { subcommand });
       const errorResponse = errorEmbed({
         title: "Invalid Subcommand",
         description:
-          "Please use 'create' to schedule a role, 'list' to view schedules, 'view' to see details, or 'cancel' to cancel a schedule.",
+          "Please use 'create' to schedule a role, 'list' to view schedules, 'view' to see details, 'update' to modify a schedule, 'cancel' to cancel a schedule, or 'bulk-cancel' to cancel multiple schedules.",
       });
       await sendResponse(interaction, errorResponse, deferred);
       break;

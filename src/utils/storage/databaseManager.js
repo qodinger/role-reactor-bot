@@ -158,12 +158,12 @@ class ConnectionManager {
           this.config.options.maxIdleTimeMS || 60000,
         ),
         serverSelectionTimeoutMS: Math.max(
-          15000,
-          this.config.options.serverSelectionTimeoutMS || 15000,
+          30000, // Increased from 15000 for DNS resolution
+          this.config.options.serverSelectionTimeoutMS || 30000,
         ),
         connectTimeoutMS: Math.max(
-          15000,
-          this.config.options.connectTimeoutMS || 15000,
+          30000, // Increased from 15000 for DNS resolution
+          this.config.options.connectTimeoutMS || 30000,
         ),
         socketTimeoutMS: Math.max(
           60000,
@@ -189,8 +189,8 @@ class ConnectionManager {
       const timeout = new Promise((_, reject) => {
         timeoutId = setTimeout(
           () =>
-            reject(new Error("MongoDB connection timeout after 15 seconds")),
-          15000,
+            reject(new Error("MongoDB connection timeout after 30 seconds")),
+          30000, // Increased timeout for DNS resolution
         );
       });
 
@@ -208,6 +208,23 @@ class ConnectionManager {
     } catch (error) {
       this.logger.error("❌ Failed to connect to MongoDB", error);
       this.isConnected = false;
+
+      // Enhanced error handling for different types of connection issues
+      if (error.message.includes("querySrv ETIMEOUT")) {
+        this.logger.warn(
+          "🌐 DNS resolution timeout - this may be a temporary network issue",
+        );
+        // Increase delay for DNS-related errors
+        this.reconnectDelay = Math.min(this.reconnectDelay * 1.5, 30000);
+      } else if (error.message.includes("ETIMEOUT")) {
+        this.logger.warn("⏱️ Connection timeout - network may be slow");
+        this.reconnectDelay = Math.min(this.reconnectDelay * 1.2, 20000);
+      } else if (error.message.includes("ENOTFOUND")) {
+        this.logger.warn(
+          "🔍 DNS lookup failed - check MongoDB URI configuration",
+        );
+        this.reconnectDelay = Math.min(this.reconnectDelay * 2, 60000);
+      }
 
       // Attempt reconnection if we haven't exceeded max attempts
       if (this.reconnectAttempts < this.maxReconnectAttempts) {
@@ -1356,8 +1373,9 @@ class ScheduledRolesRepository extends BaseRepository {
       );
       if (cached) return cached;
 
+      // Find schedules where userId is in the userIds array
       const documents = await this.collection
-        .find({ guildId, userId })
+        .find({ guildId, userIds: { $in: [userId] } })
         .toArray();
       const scheduledRoles = {};
       for (const doc of documents) {
@@ -1380,11 +1398,16 @@ class ScheduledRolesRepository extends BaseRepository {
 
   async create(scheduledRoleData) {
     try {
-      await this.collection.insertOne({
-        ...scheduledRoleData,
+      // Map scheduleId to id for database compatibility
+      const { scheduleId, ...restData } = scheduledRoleData;
+      const document = {
+        id: scheduleId, // Map scheduleId to id field for unique index
+        ...restData,
         createdAt: new Date(),
         updatedAt: new Date(),
-      });
+      };
+
+      await this.collection.insertOne(document);
       this.cache.clear();
       return true;
     } catch (error) {

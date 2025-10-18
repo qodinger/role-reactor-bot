@@ -16,44 +16,6 @@ export function extractScheduleOptions(interaction) {
   };
 }
 
-export async function validateScheduleInputs(interaction, options) {
-  // Validate role
-  if (!options.role) {
-    return {
-      valid: false,
-      error: errorEmbed({
-        title: "Invalid Role",
-        description: "Please select a valid role to assign.",
-      }),
-    };
-  }
-
-  if (options.role.managed || (options.role.tags && options.role.tags.botId)) {
-    return {
-      valid: false,
-      error: errorEmbed({
-        title: "Invalid Role",
-        description:
-          "Cannot assign managed roles or bot roles as temporary roles.",
-      }),
-    };
-  }
-
-  // Validate users
-  const userIds = parseUserInput(options.users);
-  if (userIds.length === 0) {
-    return {
-      valid: false,
-      error: errorEmbed({
-        title: "Invalid Users",
-        description: "Please provide valid user mentions or IDs.",
-      }),
-    };
-  }
-
-  return { valid: true, userIds };
-}
-
 export function parseUserInput(usersInput) {
   return usersInput
     .split(",")

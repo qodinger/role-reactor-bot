@@ -160,20 +160,24 @@ function createClient() {
   });
 
   // Add connection monitoring
-  client.on("ready", () => {
+  client.on("clientReady", () => {
     const logger = getLogger();
     logger.info(`🚀 Bot connected with ${client.guilds.cache.size} guilds`);
 
-    // Log cache statistics
-    logger.debug("Cache statistics:", {
-      guilds: client.guilds.cache.size,
-      users: client.users.cache.size,
-      channels: client.channels.cache.size,
-      roles: client.guilds.cache.reduce(
-        (total, guild) => total + guild.roles.cache.size,
-        0,
-      ),
-    });
+    // Log cache statistics (non-blocking to avoid rate limits)
+    setTimeout(() => {
+      try {
+        logger.debug("Cache statistics:", {
+          guilds: client.guilds.cache.size,
+          users: client.users.cache.size,
+          channels: client.channels.cache.size,
+          // Avoid iterating through guilds to prevent API calls
+          roles: "N/A (avoiding API calls during startup)",
+        });
+      } catch (error) {
+        logger.debug("Cache statistics logging failed:", error.message);
+      }
+    }, 5000); // Delay by 5 seconds to avoid startup rate limits
   });
 
   return client;
@@ -545,11 +549,16 @@ async function main() {
       logger.info(`➖ Bot left guild: ${guild.name} (${guild.id})`);
     });
 
-    client.once("ready", () => {
+    client.once("ready", async () => {
       logger.success(`✅ ${client.user.tag} v${getVersion()} is ready!`);
 
       // Start webhook server for Ko-fi integration
-      startWebhookServer();
+      try {
+        await startWebhookServer();
+      } catch (error) {
+        logger.error("❌ Failed to start webhook server:", error);
+        // Continue bot operation even if webhook server fails
+      }
 
       // Start background services
       const scheduler = new RoleScheduler(client);

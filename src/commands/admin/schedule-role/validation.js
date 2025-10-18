@@ -6,7 +6,7 @@ import { getLogger } from "../../../utils/logger.js";
  * @param {number} maxAge - Maximum age in milliseconds (default: 3000)
  * @returns {Object} Validation result with success boolean and error message
  */
-export function validateInteraction(interaction, maxAge = 3000) {
+export function validateInteraction(interaction, maxAge = 2000) {
   const logger = getLogger();
 
   // Check if already acknowledged
@@ -152,26 +152,4 @@ function parseUserInput(usersInput) {
       const match = user.match(/<@!?(\d+)>/);
       return match ? match[1] : user;
     });
-}
-
-/**
- * Creates a standardized error response for interaction validation failures
- * @param {string} error - Error message
- * @param {Object} interaction - Discord interaction object
- * @returns {Object} Error response object
- */
-export function createValidationErrorResponse(error, interaction) {
-  const logger = getLogger();
-
-  logger.warn("Interaction validation failed", {
-    error,
-    interactionId: interaction.id,
-    user: interaction.user.username,
-  });
-
-  return {
-    title: "Interaction Error",
-    description: error,
-    solution: "Please try the command again.",
-  };
 }

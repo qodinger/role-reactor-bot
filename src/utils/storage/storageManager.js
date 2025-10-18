@@ -216,7 +216,30 @@ class DatabaseProvider {
   }
 
   async createRecurringSchedule(scheduleData) {
-    return this.dbManager.recurringSchedules.create(scheduleData);
+    try {
+      return await this.dbManager.recurringSchedules.create(scheduleData);
+    } catch (error) {
+      this.logger.error(
+        "Failed to create recurring schedule in database",
+        error,
+      );
+      // Fallback to file storage if database fails
+      if (
+        this.dbManager &&
+        this.dbManager.connectionManager &&
+        !this.dbManager.connectionManager.isConnected
+      ) {
+        this.logger.warn(
+          "Database unavailable, falling back to file storage for recurring schedule",
+        );
+        const fileProvider = new FileProvider(this.logger);
+        const existingData =
+          (await fileProvider.read("recurring_schedules")) || {};
+        existingData[scheduleData.scheduleId] = scheduleData;
+        return await fileProvider.write("recurring_schedules", existingData);
+      }
+      throw error;
+    }
   }
 
   async updateRecurringSchedule(scheduleId, scheduleData) {
@@ -249,7 +272,26 @@ class DatabaseProvider {
   }
 
   async createScheduledRole(scheduledRoleData) {
-    return this.dbManager.scheduledRoles.create(scheduledRoleData);
+    try {
+      return await this.dbManager.scheduledRoles.create(scheduledRoleData);
+    } catch (error) {
+      this.logger.error("Failed to create scheduled role in database", error);
+      // Fallback to file storage if database fails
+      if (
+        this.dbManager &&
+        this.dbManager.connectionManager &&
+        !this.dbManager.connectionManager.isConnected
+      ) {
+        this.logger.warn(
+          "Database unavailable, falling back to file storage for scheduled role",
+        );
+        const fileProvider = new FileProvider(this.logger);
+        const existingData = (await fileProvider.read("scheduled_roles")) || {};
+        existingData[scheduledRoleData.scheduleId] = scheduledRoleData;
+        return await fileProvider.write("scheduled_roles", existingData);
+      }
+      throw error;
+    }
   }
 
   async updateScheduledRole(scheduleId, scheduledRoleData) {

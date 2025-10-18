@@ -1,13 +1,3 @@
-/**
- * @fileoverview Error handling middleware for the API server
- *
- * Provides centralized error handling and logging for all API routes.
- *
- * @author Tyecode
- * @version 1.0.0
- * @license MIT
- */
-
 import { getLogger } from "../../utils/logger.js";
 
 const logger = getLogger();

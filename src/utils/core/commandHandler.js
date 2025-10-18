@@ -256,7 +256,7 @@ class CommandHandler {
 
     try {
       // Check if interaction is already handled
-      if (interaction.replied || interaction.deferred) {
+      if (interaction.replied || interaction.deferred || interaction._handled) {
         this.logger.warn(
           `⚠️ Interaction already handled for command: ${commandName}`,
         );
@@ -424,7 +424,11 @@ class CommandHandler {
           "❌ You're using commands too quickly. Please wait a moment.";
       }
 
-      if (!interaction.replied && !interaction.deferred) {
+      if (
+        !interaction.replied &&
+        !interaction.deferred &&
+        !interaction._handled
+      ) {
         await interaction.reply({
           content: errorMessage,
           flags: 64,
@@ -434,6 +438,16 @@ class CommandHandler {
           content: errorMessage,
           flags: 64,
         });
+      } else {
+        this.logger.warn(
+          "Cannot send error response - interaction already handled",
+          {
+            interactionId: interaction.id,
+            replied: interaction.replied,
+            deferred: interaction.deferred,
+            handled: interaction._handled,
+          },
+        );
       }
     } catch (replyError) {
       this.logger.error("Failed to send error response", replyError);

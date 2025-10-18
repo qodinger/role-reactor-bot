@@ -1,13 +1,3 @@
-/**
- * @fileoverview Server module exports
- *
- * Provides clean exports for all server-related functionality.
- *
- * @author Tyecode
- * @version 1.0.0
- * @license MIT
- */
-
 // Main server functions
 export {
   startWebhookServer,

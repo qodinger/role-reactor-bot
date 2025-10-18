@@ -114,6 +114,58 @@ export class InteractionManager {
    */
   async handleCommandInteraction(interaction, client) {
     try {
+      this.logger.debug("Processing command interaction", {
+        commandName: interaction.commandName,
+        interactionId: interaction.id,
+        userId: interaction.user.id,
+        guildId: interaction.guildId,
+      });
+
+      // Special handling for schedule-role command - skip deferral due to Discord API slowness
+      if (interaction.commandName === "schedule-role") {
+        this.logger.debug(
+          "Skipping deferral for schedule-role due to Discord API slowness",
+          {
+            interactionId: interaction.id,
+          },
+        );
+        // Mark as handled to prevent command handler from processing
+        interaction._handled = true;
+
+        // Handle the command directly without deferral
+        try {
+          this.logger.debug("Executing schedule-role command directly", {
+            interactionId: interaction.id,
+            subcommand: interaction.options.getSubcommand(),
+          });
+
+          const { execute } = await import(
+            "../../commands/admin/schedule-role/index.js"
+          );
+          await execute(interaction);
+
+          this.logger.debug("Schedule-role command executed successfully", {
+            interactionId: interaction.id,
+          });
+        } catch (error) {
+          this.logger.error(
+            "Error executing schedule-role command directly",
+            error,
+          );
+          // Try to send error response
+          try {
+            await interaction.reply({
+              content:
+                "❌ An error occurred while processing the command. Please try again.",
+              flags: 64,
+            });
+          } catch (replyError) {
+            this.logger.error("Failed to send error response", replyError);
+          }
+        }
+        return;
+      }
+
       // Normal command handling for other commands
       const { getCommandHandler } = await import("../core/commandHandler.js");
       const commandHandler = getCommandHandler();

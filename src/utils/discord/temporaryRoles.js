@@ -412,11 +412,12 @@ export async function scheduleTemporaryRole(
       createdAt: new Date().toISOString(),
     };
 
-    // Store in scheduled roles collection
-    await storageManager.write("scheduled_roles", {
-      ...((await storageManager.read("scheduled_roles")) || {}),
-      [scheduleId]: scheduledRole,
-    });
+    // Optimized: Use direct database write instead of read-modify-write
+    const success = await storageManager.createScheduledRole(scheduledRole);
+    if (!success) {
+      logger.error("Failed to create scheduled role in database");
+      return null;
+    }
 
     logger.info(
       `Scheduled temporary role ${roleId} for ${userIds.length} users in guild ${guildId}`,
@@ -468,11 +469,13 @@ export async function createRecurringRoleSchedule(
       nextRun: calculateNextRun(schedule),
     };
 
-    // Store in recurring schedules collection
-    await storageManager.write("recurring_schedules", {
-      ...((await storageManager.read("recurring_schedules")) || {}),
-      [scheduleId]: recurringSchedule,
-    });
+    // Optimized: Use direct database write instead of read-modify-write
+    const success =
+      await storageManager.createRecurringSchedule(recurringSchedule);
+    if (!success) {
+      logger.error("Failed to create recurring schedule in database");
+      return null;
+    }
 
     logger.info(
       `Created recurring role schedule ${scheduleId} for role ${roleId} in guild ${guildId}`,
@@ -489,7 +492,7 @@ export async function createRecurringRoleSchedule(
  * @param {Object} schedule
  * @returns {Date}
  */
-function calculateNextRun(schedule) {
+export function calculateNextRun(schedule) {
   const now = new Date();
   const nextRun = new Date(now);
 
@@ -523,6 +526,39 @@ function calculateNextRun(schedule) {
   }
 
   return nextRun;
+}
+
+/**
+ * Updates an existing schedule
+ * @param {string} scheduleId - Schedule ID to update
+ * @param {Object} updateData - Data to update
+ * @returns {Promise<boolean>}
+ */
+export async function updateSchedule(scheduleId, updateData) {
+  const logger = getLogger();
+  try {
+    const storageManager = await getStorageManager();
+
+    // Determine if it's a scheduled role or recurring schedule
+    const existingSchedule = await findScheduleById(scheduleId);
+    if (!existingSchedule) {
+      logger.error("Schedule not found for update", { scheduleId });
+      return false;
+    }
+
+    // Update based on schedule type
+    if (existingSchedule.type === "one-time") {
+      return await storageManager.updateScheduledRole(scheduleId, updateData);
+    } else {
+      return await storageManager.updateRecurringSchedule(
+        scheduleId,
+        updateData,
+      );
+    }
+  } catch (error) {
+    logger.error("Failed to update schedule", error);
+    return false;
+  }
 }
 
 /**

@@ -8,7 +8,7 @@ import {
   getInvitePermissionName,
 } from "../utils/discord/invite.js";
 
-export const name = "ready";
+export const name = "clientReady";
 export const once = true;
 
 function createWelcomeBox(titleText, gradientType) {

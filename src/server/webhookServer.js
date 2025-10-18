@@ -1,18 +1,3 @@
-/**
- * @fileoverview Unified API Server for Role Reactor Bot
- *
- * This module provides a unified Express.js server that handles:
- * - Health checks and monitoring
- * - Webhook endpoints (Ko-fi, testing, verification)
- * - General API endpoints
- * - CORS support for external access
- * - Centralized error handling and logging
- *
- * @author Tyecode
- * @version 1.0.0
- * @license MIT
- */
-
 import express from "express";
 import { handleKoFiWebhook } from "../webhooks/kofi.js";
 import { getLogger } from "../utils/logger.js";
@@ -36,6 +21,8 @@ import {
   serverConfig,
   validateConfig,
   getStartupInfo,
+  checkPortAvailability,
+  findAvailablePort,
 } from "./config/serverConfig.js";
 
 const logger = getLogger();
@@ -92,10 +79,10 @@ function initializeErrorHandling() {
 
 /**
  * Start the unified API server
- * @returns {import('http').Server} The HTTP server instance
+ * @returns {Promise<import('http').Server>} The HTTP server instance
  * @throws {Error} If server fails to start
  */
-export function startWebhookServer() {
+export async function startWebhookServer() {
   try {
     // Validate configuration
     const configValidation = validateConfig();
@@ -103,6 +90,35 @@ export function startWebhookServer() {
       const errorMessage = `Configuration validation failed: ${configValidation.errors.join(", ")}`;
       logger.error(`❌ ${errorMessage}`);
       throw new Error(errorMessage);
+    }
+
+    // Check port availability before starting server
+    logger.info(
+      `🔍 Checking port availability for port ${serverConfig.port}...`,
+    );
+    const portCheck = await checkPortAvailability(serverConfig.port);
+
+    if (!portCheck.available) {
+      logger.warn(portCheck.message);
+      logger.info(portCheck.suggestion);
+
+      // Try to find an available port
+      logger.info(`🔍 Searching for an available port...`);
+      const availablePort = await findAvailablePort(serverConfig.port, 10);
+
+      if (availablePort) {
+        logger.info(`✅ Found available port: ${availablePort}`);
+        logger.info(
+          `💡 Starting server on port ${availablePort} instead of ${serverConfig.port}`,
+        );
+        serverConfig.port = availablePort;
+      } else {
+        const errorMessage = `❌ No available ports found. Please free up port ${serverConfig.port} or set a different port with API_PORT environment variable.`;
+        logger.error(errorMessage);
+        throw new Error(errorMessage);
+      }
+    } else {
+      logger.info(portCheck.message);
     }
 
     // Initialize server components

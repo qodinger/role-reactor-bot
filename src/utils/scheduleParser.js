@@ -46,6 +46,11 @@ export function parseOneTimeSchedule(scheduleInput) {
       return parseNextFormat(input.substring(5));
     }
 
+    // Handle "this" formats
+    if (input.startsWith("this ")) {
+      return parseThisFormat(input.substring(5));
+    }
+
     // Handle day names (e.g., "monday 2pm", "friday 9am")
     const dayMatch = input.match(
       /^(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+(.+)$/i,
@@ -240,6 +245,33 @@ function parseNextFormat(input) {
     const nextMonth = new Date();
     nextMonth.setMonth(nextMonth.getMonth() + 1);
     return nextMonth;
+  }
+
+  return null;
+}
+
+function parseThisFormat(input) {
+  const inputLower = input.toLowerCase().trim();
+
+  // Handle "this monday", "this friday 2pm", etc.
+  const dayMatch = inputLower.match(
+    /^(monday|tuesday|wednesday|thursday|friday|saturday|sunday)(?:\s+(.+))?$/i,
+  );
+  if (dayMatch) {
+    const dayName = dayMatch[1];
+    const timeStr = dayMatch[2] || "";
+    return parseDayAndTime(dayName, timeStr, false); // false = this occurrence
+  }
+
+  // Handle "this week", "this month"
+  if (inputLower === "week") {
+    const thisWeek = new Date();
+    return thisWeek;
+  }
+
+  if (inputLower === "month") {
+    const thisMonth = new Date();
+    return thisMonth;
   }
 
   return null;
@@ -483,15 +515,15 @@ function parseCustomSchedule(details) {
 export function getScheduleHelpText(type) {
   switch (type) {
     case "one-time":
-      return "For one-time schedules, use formats:\n• Shorthand: `2m`, `5h`, `1d`, `2w`\n• Relative: `in 2 minutes`, `in 1 hour`\n• Absolute: `tomorrow 8am`, `friday 2pm`\n• Keywords: `now`, `tonight`, `morning`";
+      return "For one-time schedules, use formats:\n• Shorthand: `2m`, `5h`, `1d`, `2w`\n• Relative: `in 2 minutes`, `in 1 hour`\n• Absolute: `tomorrow 8am`, `friday 2pm`\n• Keywords: `now`, `tonight`, `morning`\n• Natural: `next tuesday`, `this friday`, `next week`";
     case "daily":
-      return "For daily schedules, use format: `9am`, `2:30pm`, `14:30`";
+      return "For daily schedules, use format: `9am`, `2:30pm`, `14:30`\n• 24-hour format: `09:00`, `14:30`\n• 12-hour format: `9am`, `2:30pm`";
     case "weekly":
-      return "For weekly schedules, use format: `monday 9am`, `friday 6pm`";
+      return "For weekly schedules, use format: `monday 9am`, `friday 6pm`\n• Days: monday, tuesday, wednesday, thursday, friday, saturday, sunday\n• Time: `9am`, `2:30pm`, `14:30`";
     case "monthly":
-      return "For monthly schedules, use format: `15 2pm`, `1 9am` (day of month + time)";
+      return "For monthly schedules, use format: `15 2pm`, `1 9am` (day of month + time)\n• Day: 1-31 (day of month)\n• Time: `9am`, `2:30pm`, `14:30`";
     case "custom":
-      return "For custom intervals, use minutes: `60` (1 hour), `1440` (1 day)";
+      return "For custom intervals, use minutes: `60` (1 hour), `1440` (1 day)\n• Minimum: 1 minute\n• Maximum: 10080 minutes (1 week)";
     default:
       return "Invalid schedule type.";
   }

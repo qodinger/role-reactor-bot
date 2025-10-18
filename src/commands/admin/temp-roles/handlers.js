@@ -1,4 +1,3 @@
-import { MessageFlags } from "discord.js";
 import pLimit from "p-limit";
 import { getLogger } from "../../../utils/logger.js";
 
@@ -41,7 +40,7 @@ export async function handleAssign(interaction, client) {
   const startTime = Date.now();
 
   try {
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    // Note: Deferral is already handled in the main execute function
 
     // Validate bot permissions
     if (!botHasRequiredPermissions(interaction.guild)) {
@@ -197,7 +196,7 @@ export async function handleList(interaction, client) {
   const logger = getLogger();
 
   try {
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    // Note: Deferral is already handled in the main execute function
 
     // Check bot permissions
     if (!botHasRequiredPermissions(interaction.guild)) {
@@ -311,7 +310,7 @@ export async function handleRemove(interaction, client) {
   const logger = getLogger();
 
   try {
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    // Note: Deferral is already handled in the main execute function
 
     // Validate bot permissions
     if (!botHasRequiredPermissions(interaction.guild)) {

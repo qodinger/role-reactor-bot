@@ -1,12 +1,7 @@
-/**
- * @fileoverview Server configuration for the unified API server
- *
- * Centralizes server configuration and environment variable handling.
- *
- * @author Tyecode
- * @version 1.0.0
- * @license MIT
- */
+import net from "net";
+import { getLogger } from "../../utils/logger.js";
+
+const logger = getLogger();
 
 /**
  * Server configuration object
@@ -58,6 +53,90 @@ export const serverConfig = {
     description: "Unified API server for Role Reactor Discord Bot",
   },
 };
+
+/**
+ * Check if a port is available
+ * @param {number} port - Port number to check
+ * @returns {Promise<boolean>} True if port is available, false otherwise
+ */
+export async function isPortAvailable(port) {
+  return new Promise(resolve => {
+    const server = net.createServer();
+
+    server.listen(port, () => {
+      server.once("close", () => {
+        resolve(true);
+      });
+      server.close();
+    });
+
+    server.on("error", () => {
+      resolve(false);
+    });
+  });
+}
+
+/**
+ * Find an available port starting from the configured port
+ * @param {number} startPort - Starting port number
+ * @param {number} maxAttempts - Maximum number of ports to try
+ * @returns {Promise<number|null>} Available port number or null if none found
+ */
+export async function findAvailablePort(startPort, maxAttempts = 10) {
+  for (let i = 0; i < maxAttempts; i++) {
+    const port = startPort + i;
+    const available = await isPortAvailable(port);
+
+    if (available) {
+      logger.debug(`✅ Port ${port} is available`);
+      return port;
+    } else {
+      logger.debug(`❌ Port ${port} is in use`);
+    }
+  }
+
+  logger.error(
+    `❌ No available ports found in range ${startPort}-${startPort + maxAttempts - 1}`,
+  );
+  return null;
+}
+
+/**
+ * Check port availability and suggest alternatives
+ * @param {number} port - Port to check
+ * @returns {Promise<Object>} Port check result with suggestions
+ */
+export async function checkPortAvailability(port) {
+  const available = await isPortAvailable(port);
+
+  if (available) {
+    return {
+      available: true,
+      port,
+      message: `✅ Port ${port} is available`,
+    };
+  }
+
+  // Find alternative ports
+  const alternatives = [];
+  for (let i = 1; i <= 5; i++) {
+    const altPort = port + i;
+    if (await isPortAvailable(altPort)) {
+      alternatives.push(altPort);
+    }
+  }
+
+  return {
+    available: false,
+    port,
+    alternatives,
+    message: `❌ Port ${port} is already in use`,
+    suggestion:
+      alternatives.length > 0
+        ? `💡 Try these available ports: ${alternatives.join(", ")}`
+        : `💡 Set a different port with API_PORT environment variable`,
+  };
+}
 
 /**
  * Validate server configuration

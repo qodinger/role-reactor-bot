@@ -18,7 +18,7 @@ import { handleCommandError } from "./errorHandling.js";
 // LIST HANDLERS
 // ============================================================================
 
-export async function handleList(interaction, deferred = true) {
+export async function handleList(interaction, deferred = false) {
   const logger = getLogger();
 
   try {

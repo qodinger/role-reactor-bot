@@ -1,20 +1,20 @@
 import { MessageFlags } from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
 
+const logger = getLogger();
+
 /**
- * Safely defers a reply with timeout protection
- * @param {Object} interaction - Discord interaction object
+ * Safely defer a reply with aggressive timeout handling
+ * @param {Object} interaction - Discord interaction
  * @param {Object} options - Defer options
- * @param {number} timeoutMs - Timeout in milliseconds (default: 100)
- * @returns {Object} Result with success boolean and error message
+ * @param {number} timeoutMs - Timeout in milliseconds
+ * @returns {Promise<Object>} Result with success boolean
  */
 export async function safeDeferReply(
   interaction,
   options = { flags: MessageFlags.Ephemeral },
   timeoutMs = 100, // Extremely aggressive timeout for slow Discord API
 ) {
-  const logger = getLogger();
-
   try {
     // Add pre-deferral timing check
     logger.debug("Pre-deferral check:", {
@@ -153,85 +153,25 @@ export async function safeDeferReply(
 }
 
 /**
- * Handles deferral with fallback for already acknowledged interactions
- * @param {Object} interaction - Discord interaction object
- * @returns {Object} Result with success boolean and deferred status
+ * Handle deferral with fallback mechanisms
+ * @param {Object} interaction - Discord interaction
+ * @returns {Promise<boolean>} Success status
  */
 export async function handleDeferral(interaction) {
-  const logger = getLogger();
+  const deferResult = await safeDeferReply(interaction);
 
-  try {
-    // Check if already acknowledged
-    if (interaction.replied || interaction.deferred) {
-      logger.debug("Interaction already acknowledged", {
-        interactionId: interaction.id,
-        replied: interaction.replied,
-        deferred: interaction.deferred,
-      });
-      return { success: true, alreadyAcknowledged: true };
-    }
+  if (!deferResult.success) {
+    logger.warn("Failed to defer interaction", {
+      interactionId: interaction.id,
+      error: deferResult.error,
+      isExpired: deferResult.isExpired,
+    });
 
-    // Attempt to defer
-    const deferResult = await safeDeferReply(interaction);
-    if (deferResult.success) {
-      return { success: true, alreadyAcknowledged: false };
-    }
-
-    // Handle deferral failure
+    // Mark interaction as handled to prevent further processing
     if (deferResult.isExpired) {
-      logger.warn("Interaction expired during deferral", {
-        interactionId: interaction.id,
-      });
-      return { success: false, error: "Interaction expired" };
+      interaction._handled = true;
     }
-
-    return { success: false, error: deferResult.error };
-  } catch (error) {
-    logger.error("Unexpected error in deferral handling", {
-      error: error.message,
-      interactionId: interaction.id,
-    });
-    return { success: false, error: error.message };
   }
-}
 
-/**
- * Sends a response with proper handling for deferred vs non-deferred interactions
- * @param {Object} interaction - Discord interaction object
- * @param {Object} response - Response object
- * @param {boolean} deferred - Whether interaction was deferred
- * @returns {Promise<void>}
- */
-export async function sendResponse(interaction, response, deferred) {
-  const logger = getLogger();
-
-  try {
-    logger.debug("Attempting to send response", {
-      interactionId: interaction.id,
-      deferred,
-      responseKeys: Object.keys(response),
-      hasEmbeds: !!response.embeds,
-      embedsCount: response.embeds?.length || 0,
-    });
-
-    if (deferred) {
-      await interaction.editReply(response);
-      logger.debug("Successfully sent deferred response", {
-        interactionId: interaction.id,
-      });
-    } else {
-      await interaction.reply({ ...response, flags: 64 });
-      logger.debug("Successfully sent immediate response", {
-        interactionId: interaction.id,
-      });
-    }
-  } catch (error) {
-    logger.error("Failed to send response", {
-      error: error.message,
-      interactionId: interaction.id,
-      deferred,
-      responseKeys: Object.keys(response),
-    });
-    throw error;
-  }
+  return deferResult.success;
 }
