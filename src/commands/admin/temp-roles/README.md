@@ -12,12 +12,13 @@ temp-roles/
 ├── handlers.js       # Core logic for assign/list/remove flows
 ├── embeds.js         # Discord embed creation for all views
 ├── utils.js          # Helpers (validation, processing, logging)
+├── deferral.js       # Aggressive deferral utilities (legacy, unused)
 └── README.md         # This documentation
 ```
 
 ## Architecture
 
-- **`index.js`**: Defines `/temp-roles` with subcommands (`assign`, `list`, `remove`), routes to handlers, validates permissions, and defers interactions.
+- **`index.js`**: Defines `/temp-roles` with subcommands (`assign`, `list`, `remove`), routes to handlers, validates permissions, and executes interactions directly without deferral.
 - **`handlers.js`**: Implements business logic for assigning, listing, and removing temporary roles; orchestrates embeds and utils.
 - **`embeds.js`**: Builds all rich embeds used across subcommands for assignments, listings, and removals.
 - **`utils.js`**: Validation functions, role processing, user handling, time calculations, and logging utilities.
@@ -74,6 +75,14 @@ temp-roles/
 
 **Limits**: Minimum 1 minute, Maximum 1 year
 
+## Interaction Handling
+
+- **Direct Execution**: Commands execute immediately without deferral to prevent timeout issues
+- **Double-Reply Prevention**: All error handlers check interaction state before replying
+- **Ephemeral Responses**: All responses use `MessageFlags.Ephemeral` for better user experience
+- **Timeout Resilience**: Eliminates "Unknown interaction" and "Interaction has already been acknowledged" errors
+- **Immediate Feedback**: Users receive instant responses without "thinking" state delays
+
 ## Error Handling
 
 - Validates user and bot permissions before execution
@@ -81,6 +90,7 @@ temp-roles/
 - Graceful handling of Discord API errors and rate limits
 - Defensive validation of role hierarchy and bot capabilities
 - Comprehensive logging for debugging and audit trails
+- Prevents double replies with interaction state checking
 
 ## User Experience
 
@@ -168,3 +178,12 @@ The bot automatically handles temporary role expiration:
 - **Improved Function Calls**: Fixed `processUserList` parameter passing and async handling
 - **Enhanced Data Extraction**: Proper handling of user objects from validation results
 - **Better Error Messages**: More accurate error reporting with actual user information instead of `<@Unknown>`
+
+### ⚡ Interaction Timeout Fixes (Latest)
+
+- **Removed Deferral System**: Eliminated aggressive deferral pattern that was causing timeouts
+- **Direct Execution**: Commands now execute immediately without deferral to prevent "Unknown interaction" errors
+- **Double-Reply Prevention**: Added interaction state checks to prevent "Interaction has already been acknowledged" errors
+- **MessageFlags.Ephemeral**: Updated to use proper Discord.js flags instead of deprecated `ephemeral` property
+- **Timeout Resilience**: Commands now work reliably even with slow Discord API responses
+- **Immediate User Feedback**: Users receive instant responses without "thinking" state delays

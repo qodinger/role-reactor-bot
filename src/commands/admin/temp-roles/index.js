@@ -1,9 +1,12 @@
-import { SlashCommandBuilder, PermissionFlagsBits } from "discord.js";
+import {
+  SlashCommandBuilder,
+  PermissionFlagsBits,
+  MessageFlags,
+} from "discord.js";
 import { hasAdminPermissions } from "../../../utils/discord/permissions.js";
 import { getLogger } from "../../../utils/logger.js";
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 import { handleAssign, handleList, handleRemove } from "./handlers.js";
-import { handleDeferral } from "./deferral.js";
 
 export const data = new SlashCommandBuilder()
   .setName("temp-roles")
@@ -95,25 +98,22 @@ export async function execute(interaction, client) {
   const logger = getLogger();
 
   try {
-    // Use aggressive deferral to prevent timeout
-    const deferSuccess = await handleDeferral(interaction);
-    if (!deferSuccess) {
-      logger.warn("Failed to defer interaction, skipping execution", {
-        interactionId: interaction.id,
-      });
-      return;
-    }
+    // Skip deferral for temp-roles to prevent timeout issues
+    // Execute command directly with immediate response
 
     // Validate user permissions
     if (!hasAdminPermissions(interaction.member)) {
-      return interaction.editReply(
-        errorEmbed({
-          title: "Permission Denied",
-          description:
-            "You need Administrator permissions to manage temporary roles.",
-          solution: "Contact a server administrator for assistance.",
-        }),
-      );
+      return interaction.reply({
+        embeds: [
+          errorEmbed({
+            title: "Permission Denied",
+            description:
+              "You need Administrator permissions to manage temporary roles.",
+            solution: "Contact a server administrator for assistance.",
+          }),
+        ],
+        flags: MessageFlags.Ephemeral,
+      });
     }
 
     const subcommand = interaction.options.getSubcommand();
@@ -130,13 +130,16 @@ export async function execute(interaction, client) {
         break;
 
       default:
-        await interaction.editReply(
-          errorEmbed({
-            title: "Unknown Subcommand",
-            description: `The subcommand "${subcommand}" is not recognized.`,
-            solution: "Use assign, list, or remove as subcommands.",
-          }),
-        );
+        await interaction.reply({
+          embeds: [
+            errorEmbed({
+              title: "Unknown Subcommand",
+              description: `The subcommand "${subcommand}" is not recognized.`,
+              solution: "Use assign, list, or remove as subcommands.",
+            }),
+          ],
+          flags: MessageFlags.Ephemeral,
+        });
     }
   } catch (error) {
     logger.error(
@@ -144,26 +147,19 @@ export async function execute(interaction, client) {
       error,
     );
 
-    // Always use editReply since we defer at the start
-    if (interaction.deferred) {
-      await interaction.editReply(
-        errorEmbed({
-          title: "Error",
-          description: "Failed to process temp-roles command.",
-          solution:
-            "Please try again or contact support if the issue persists.",
-        }),
-      );
-    } else {
-      // Fallback to reply if somehow not deferred
-      await interaction.reply(
-        errorEmbed({
-          title: "Error",
-          description: "Failed to process temp-roles command.",
-          solution:
-            "Please try again or contact support if the issue persists.",
-        }),
-      );
+    // Only reply if we haven't already replied
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.reply({
+        embeds: [
+          errorEmbed({
+            title: "Error",
+            description: "Failed to process temp-roles command.",
+            solution:
+              "Please try again or contact support if the issue persists.",
+          }),
+        ],
+        flags: MessageFlags.Ephemeral,
+      });
     }
   }
 }

@@ -49,28 +49,31 @@ export async function handleAssign(interaction, client) {
         .map(formatPermissionName)
         .join(", ");
 
-      return interaction.editReply(
-        errorEmbed({
-          title: "Missing Bot Permissions",
-          description: `I need the following permissions to assign temporary roles: **${permissionNames}**`,
-          solution:
-            "Please ask a server administrator to grant me these permissions and try again.",
-          fields: [
-            {
-              name: "🔧 How to Fix",
-              value:
-                "Go to Server Settings → Roles → Find my role → Enable the missing permissions",
-              inline: false,
-            },
-            {
-              name: "📋 Required Permissions",
-              value:
-                "• Manage Roles (to assign roles to members)\n• Send Messages (to notify users about role assignment)",
-              inline: false,
-            },
-          ],
-        }),
-      );
+      return interaction.reply({
+        embeds: [
+          errorEmbed({
+            title: "Missing Bot Permissions",
+            description: `I need the following permissions to assign temporary roles: **${permissionNames}**`,
+            solution:
+              "Please ask a server administrator to grant me these permissions and try again.",
+            fields: [
+              {
+                name: "🔧 How to Fix",
+                value:
+                  "Go to Server Settings → Roles → Find my role → Enable the missing permissions",
+                inline: false,
+              },
+              {
+                name: "📋 Required Permissions",
+                value:
+                  "• Manage Roles (to assign roles to members)\n• Send Messages (to notify users about role assignment)",
+                inline: false,
+              },
+            ],
+          }),
+        ],
+        flags: 64,
+      });
     }
 
     // Get command options
@@ -86,25 +89,31 @@ export async function handleAssign(interaction, client) {
     // Validate role
     const roleValidation = validateRole(role, interaction.guild);
     if (!roleValidation.valid) {
-      return interaction.editReply(
-        errorEmbed({
-          title: "Invalid Role",
-          description: roleValidation.error,
-          solution: roleValidation.solution,
-        }),
-      );
+      return interaction.reply({
+        embeds: [
+          errorEmbed({
+            title: "Invalid Role",
+            description: roleValidation.error,
+            solution: roleValidation.solution,
+          }),
+        ],
+        flags: 64,
+      });
     }
 
     // Validate duration
     const durationValidation = validateDuration(durationString);
     if (!durationValidation.valid) {
-      return interaction.editReply(
-        errorEmbed({
-          title: "Invalid Duration",
-          description: durationValidation.error,
-          solution: durationValidation.solution,
-        }),
-      );
+      return interaction.reply({
+        embeds: [
+          errorEmbed({
+            title: "Invalid Duration",
+            description: durationValidation.error,
+            solution: durationValidation.solution,
+          }),
+        ],
+        flags: 64,
+      });
     }
 
     const durationMs = parseDuration(durationString);
@@ -117,13 +126,16 @@ export async function handleAssign(interaction, client) {
     // Process user list
     const userValidation = await processUserList(usersString, interaction);
     if (!userValidation.valid) {
-      return interaction.editReply(
-        errorEmbed({
-          title: "Invalid Users",
-          description: userValidation.error,
-          solution: userValidation.solution,
-        }),
-      );
+      return interaction.reply({
+        embeds: [
+          errorEmbed({
+            title: "Invalid Users",
+            description: userValidation.error,
+            solution: userValidation.solution,
+          }),
+        ],
+        flags: 64,
+      });
     }
 
     const { validUsers } = userValidation;
@@ -160,7 +172,7 @@ export async function handleAssign(interaction, client) {
       results,
       client,
     );
-    await interaction.editReply({ embeds: [embed] });
+    await interaction.reply({ embeds: [embed], flags: 64 });
 
     // Log activity
     logTempRoleAssignment(
@@ -175,14 +187,18 @@ export async function handleAssign(interaction, client) {
   } catch (error) {
     logger.error("Error in handleAssign:", error);
 
-    if (interaction.deferred) {
-      await interaction.editReply(
-        errorEmbed({
-          title: "Error",
-          description: "Failed to assign temporary roles.",
-          solution: "Please try again or contact support.",
-        }),
-      );
+    // Only reply if we haven't already replied
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.reply({
+        embeds: [
+          errorEmbed({
+            title: "Error",
+            description: "Failed to assign temporary roles.",
+            solution: "Please try again or contact support.",
+          }),
+        ],
+        flags: 64,
+      });
     }
   }
 }
@@ -205,28 +221,31 @@ export async function handleList(interaction, client) {
         .map(formatPermissionName)
         .join(", ");
 
-      return interaction.editReply(
-        errorEmbed({
-          title: "Missing Bot Permissions",
-          description: `I need the following permissions to view temporary roles: **${permissionNames}**`,
-          solution:
-            "Please ask a server administrator to grant me these permissions and try again.",
-          fields: [
-            {
-              name: "🔧 How to Fix",
-              value:
-                "Go to Server Settings → Roles → Find my role → Enable the missing permissions",
-              inline: false,
-            },
-            {
-              name: "📋 Required Permissions",
-              value:
-                "• View Channels (to access server information)\n• Read Message History (to view role information)",
-              inline: false,
-            },
-          ],
-        }),
-      );
+      return interaction.reply({
+        embeds: [
+          errorEmbed({
+            title: "Missing Bot Permissions",
+            description: `I need the following permissions to view temporary roles: **${permissionNames}**`,
+            solution:
+              "Please ask a server administrator to grant me these permissions and try again.",
+            fields: [
+              {
+                name: "🔧 How to Fix",
+                value:
+                  "Go to Server Settings → Roles → Find my role → Enable the missing permissions",
+                inline: false,
+              },
+              {
+                name: "📋 Required Permissions",
+                value:
+                  "• View Channels (to access server information)\n• Read Message History (to view role information)",
+                inline: false,
+              },
+            ],
+          }),
+        ],
+        flags: 64,
+      });
     }
 
     const targetUser = interaction.options.getUser("user");
@@ -256,15 +275,18 @@ export async function handleList(interaction, client) {
         ? `No temporary roles found for ${targetUser.displayName}.`
         : "No temporary roles found in this server.";
 
-      return interaction.editReply(
-        errorEmbed({
-          title: "No Temporary Roles Found",
-          description: message,
-          solution: targetUser
-            ? "Try checking another user or assign some temporary roles first."
-            : "Use `temp-roles assign` to create some temporary role assignments!",
-        }),
-      );
+      return interaction.reply({
+        embeds: [
+          errorEmbed({
+            title: "No Temporary Roles Found",
+            description: message,
+            solution: targetUser
+              ? "Try checking another user or assign some temporary roles first."
+              : "Use `temp-roles assign` to create some temporary role assignments!",
+          }),
+        ],
+        flags: 64,
+      });
     }
 
     // Process roles for display
@@ -282,7 +304,7 @@ export async function handleList(interaction, client) {
       client,
     );
 
-    await interaction.editReply({ embeds: [embed] });
+    await interaction.reply({ embeds: [embed], flags: 64 });
 
     // Log activity
     logTempRolesListing(
@@ -294,14 +316,18 @@ export async function handleList(interaction, client) {
   } catch (error) {
     logger.error("Error in handleList:", error);
 
-    if (interaction.deferred) {
-      await interaction.editReply(
-        errorEmbed({
-          title: "Error",
-          description: "Failed to list temporary roles.",
-          solution: "Please try again or contact support.",
-        }),
-      );
+    // Only reply if we haven't already replied
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.reply({
+        embeds: [
+          errorEmbed({
+            title: "Error",
+            description: "Failed to list temporary roles.",
+            solution: "Please try again or contact support.",
+          }),
+        ],
+        flags: 64,
+      });
     }
   }
 }
@@ -319,28 +345,31 @@ export async function handleRemove(interaction, client) {
         .map(formatPermissionName)
         .join(", ");
 
-      return interaction.editReply(
-        errorEmbed({
-          title: "Missing Bot Permissions",
-          description: `I need the following permissions to remove temporary roles: **${permissionNames}**`,
-          solution:
-            "Please ask a server administrator to grant me these permissions and try again.",
-          fields: [
-            {
-              name: "🔧 How to Fix",
-              value:
-                "Go to Server Settings → Roles → Find my role → Enable the missing permissions",
-              inline: false,
-            },
-            {
-              name: "📋 Required Permissions",
-              value:
-                "• Manage Roles (to remove roles from members)\n• Send Messages (to notify users about role removal)",
-              inline: false,
-            },
-          ],
-        }),
-      );
+      return interaction.reply({
+        embeds: [
+          errorEmbed({
+            title: "Missing Bot Permissions",
+            description: `I need the following permissions to remove temporary roles: **${permissionNames}**`,
+            solution:
+              "Please ask a server administrator to grant me these permissions and try again.",
+            fields: [
+              {
+                name: "🔧 How to Fix",
+                value:
+                  "Go to Server Settings → Roles → Find my role → Enable the missing permissions",
+                inline: false,
+              },
+              {
+                name: "📋 Required Permissions",
+                value:
+                  "• Manage Roles (to remove roles from members)\n• Send Messages (to notify users about role removal)",
+                inline: false,
+              },
+            ],
+          }),
+        ],
+        flags: 64,
+      });
     }
 
     // Get command options
@@ -355,13 +384,16 @@ export async function handleRemove(interaction, client) {
       interaction,
     );
     if (!userProcessingResult.valid) {
-      return interaction.editReply(
-        errorEmbed({
-          title: "Invalid User List",
-          description: userProcessingResult.error,
-          solution: userProcessingResult.solution,
-        }),
-      );
+      return interaction.reply({
+        embeds: [
+          errorEmbed({
+            title: "Invalid User List",
+            description: userProcessingResult.error,
+            solution: userProcessingResult.solution,
+          }),
+        ],
+        flags: 64,
+      });
     }
 
     const { validUsers: targetUsers } = userProcessingResult;
@@ -369,13 +401,16 @@ export async function handleRemove(interaction, client) {
     // Validate role
     const roleValidation = validateRole(role, interaction.guild);
     if (!roleValidation.valid) {
-      return interaction.editReply(
-        errorEmbed({
-          title: "Invalid Role",
-          description: roleValidation.error,
-          solution: roleValidation.solution,
-        }),
-      );
+      return interaction.reply({
+        embeds: [
+          errorEmbed({
+            title: "Invalid Role",
+            description: roleValidation.error,
+            solution: roleValidation.solution,
+          }),
+        ],
+        flags: 64,
+      });
     }
 
     // Process removals for all users
@@ -413,7 +448,7 @@ export async function handleRemove(interaction, client) {
       client,
     );
 
-    await interaction.editReply({ embeds: [embed] });
+    await interaction.reply({ embeds: [embed], flags: 64 });
 
     // Log the removal activity
     const successCount = processedResults.filter(r => r.success).length;
@@ -425,14 +460,18 @@ export async function handleRemove(interaction, client) {
   } catch (error) {
     logger.error("Error in handleRemove:", error);
 
-    if (interaction.deferred) {
-      await interaction.editReply(
-        errorEmbed({
-          title: "Error",
-          description: "Failed to remove temporary roles.",
-          solution: "Please try again or contact support.",
-        }),
-      );
+    // Only reply if we haven't already replied
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.reply({
+        embeds: [
+          errorEmbed({
+            title: "Error",
+            description: "Failed to remove temporary roles.",
+            solution: "Please try again or contact support.",
+          }),
+        ],
+        flags: 64,
+      });
     }
   }
 }
