@@ -1,11 +1,14 @@
 import { EmbedBuilder } from "discord.js";
-import { THEME_COLOR, EMOJIS } from "../../../config/theme.js";
+import { THEME_COLOR, EMOJIS, THEME } from "../../../config/theme.js";
 import {
   formatDateTime,
   formatDisplayId,
   formatStatus,
   formatRecurringScheduleDetails,
   formatTimeRemaining,
+  formatScheduleTime,
+  formatRecurringSchedule,
+  getOrdinalSuffix,
 } from "./utils.js";
 
 // ============================================================================
@@ -387,20 +390,6 @@ function formatScheduleDetails(schedule, type) {
   }
 }
 
-function getOrdinalSuffix(day) {
-  if (day > 3 && day < 21) return "th";
-  switch (day % 10) {
-    case 1:
-      return "st";
-    case 2:
-      return "nd";
-    case 3:
-      return "rd";
-    default:
-      return "th";
-  }
-}
-
 /**
  * Creates an embed for schedule update confirmation
  * @param {Object} data - Update result data
@@ -555,7 +544,7 @@ export function createBulkCancelEmbed(data, guild) {
       name: "✅ Successfully Cancelled",
       value:
         successfulList.length > 1000
-          ? successfulList.substring(0, 1000) + "..."
+          ? `${successfulList.substring(0, 1000)}...`
           : successfulList,
       inline: false,
     });
@@ -573,7 +562,7 @@ export function createBulkCancelEmbed(data, guild) {
       name: "❌ Failed to Cancel",
       value:
         failedList.length > 1000
-          ? failedList.substring(0, 1000) + "..."
+          ? `${failedList.substring(0, 1000)}...`
           : failedList,
       inline: false,
     });
@@ -589,7 +578,7 @@ export function createBulkCancelEmbed(data, guild) {
       name: "🔍 Not Found",
       value:
         notFoundList.length > 1000
-          ? notFoundList.substring(0, 1000) + "..."
+          ? `${notFoundList.substring(0, 1000)}...`
           : notFoundList,
       inline: false,
     });

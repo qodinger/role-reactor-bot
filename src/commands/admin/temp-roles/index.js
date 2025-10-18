@@ -1,8 +1,4 @@
-import {
-  SlashCommandBuilder,
-  PermissionFlagsBits,
-  MessageFlags,
-} from "discord.js";
+import { SlashCommandBuilder, PermissionFlagsBits } from "discord.js";
 import { hasAdminPermissions } from "../../../utils/discord/permissions.js";
 import { getLogger } from "../../../utils/logger.js";
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";

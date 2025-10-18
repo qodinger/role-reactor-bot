@@ -1,5 +1,3 @@
-import { errorEmbed } from "../../../utils/discord/responseMessages.js";
-
 // ============================================================================
 // INPUT PROCESSING & VALIDATION
 // ============================================================================
@@ -168,4 +166,15 @@ export function getOrdinalSuffix(day) {
     default:
       return "th";
   }
+}
+
+export function formatScheduleTime(scheduleTime) {
+  if (!scheduleTime) return "Not scheduled";
+  const date = new Date(scheduleTime);
+  return date.toLocaleString();
+}
+
+export function formatRecurringSchedule(schedule) {
+  if (!schedule) return "Not scheduled";
+  return typeof schedule === "string" ? schedule : JSON.stringify(schedule);
 }
