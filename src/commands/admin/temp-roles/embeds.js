@@ -24,87 +24,63 @@ export function createTempRoleEmbed(
   client,
 ) {
   const embed = new EmbedBuilder()
-    .setTitle("🎭 Temporary Role Assignment")
+    .setTitle(`${EMOJIS.STATUS.SUCCESS} Role Assigned`)
     .setDescription(
-      `Successfully assigned the **${role.name}** role to ${users.length} user${users.length !== 1 ? "s" : ""}`,
+      `**${role.name}** role assigned to **${users.length}** user${users.length !== 1 ? "s" : ""}`,
     )
     .setColor(role.color || THEME.SUCCESS)
-    .setThumbnail(role.iconURL() || null)
     .setTimestamp()
     .setFooter({
       text: "Role Reactor • Temporary Roles",
       iconURL: client.user.displayAvatarURL(),
     });
 
-  // Main information section
+  // Duration and expiration info
   embed.addFields([
     {
-      name: "🎭 Role Details",
-      value: [
-        `**Name:** ${role.name}`,
-        `**Mention:** ${role.toString()}`,
-        `**Color:** ${role.hexColor}`,
-        `**Position:** ${role.position}`,
-      ].join("\n"),
-      inline: true,
-    },
-    {
-      name: "⏰ Assignment Info",
-      value: [
-        `**Duration:** ${formatDuration(durationString)}`,
-        `**Users:** ${users.length} user${users.length !== 1 ? "s" : ""}`,
-        `**Expires:** <t:${Math.floor((Date.now() + parseDuration(durationString)) / 1000)}:R>`,
-        `**Reason:** ${reason}`,
-      ].join("\n"),
-      inline: true,
+      name: `${EMOJIS.TIME.ALARM} Duration`,
+      value: `${formatDuration(durationString)} • Expires <t:${Math.floor((Date.now() + parseDuration(durationString)) / 1000)}:R>`,
+      inline: false,
     },
   ]);
 
-  // Add notification status if there are results
+  // Add results if available
   if (results && results.length > 0) {
-    const dmSentCount = results.filter(r => r.success && r.dmSent).length;
     const successCount = results.filter(r => r.success).length;
     const failureCount = results.filter(r => !r.success).length;
-    const updateCount = results.filter(r => r.success && r.wasUpdate).length;
-    const newCount = successCount - updateCount;
+    const dmSentCount = results.filter(r => r.success && r.dmSent).length;
 
-    // Results summary with better formatting
-    let resultsText = `✅ **${successCount}** successful`;
-    if (updateCount > 0) {
-      resultsText += ` (${newCount} new, ${updateCount} updated)`;
-    }
+    // Simple results summary
+    let resultsText = `${EMOJIS.STATUS.SUCCESS} **${successCount}** successful`;
     if (failureCount > 0) {
-      resultsText += `\n❌ **${failureCount}** failed`;
+      resultsText += ` • ${EMOJIS.STATUS.ERROR} **${failureCount}** failed`;
     }
 
     embed.addFields({
-      name: "📊 Assignment Results",
+      name: `${EMOJIS.UI.PROGRESS} Results`,
       value: resultsText,
-      inline: true,
+      inline: false,
     });
 
     // Notification status
-    const notificationText =
-      dmSentCount > 0
-        ? `📨 **${dmSentCount}** DM${dmSentCount !== 1 ? "s" : ""} sent`
-        : "📭 No notifications sent";
+    if (dmSentCount > 0) {
+      embed.addFields({
+        name: `${EMOJIS.ACTIONS.MESSAGE} Notifications`,
+        value: `**${dmSentCount}** DM${dmSentCount !== 1 ? "s" : ""} sent`,
+        inline: false,
+      });
+    }
 
-    embed.addFields({
-      name: "📬 Notifications",
-      value: notificationText,
-      inline: true,
-    });
-
-    // Add detailed results if there are any failures
+    // Add detailed failures if any
     if (failureCount > 0) {
       const failedResults = results.filter(r => !r.success);
       const failureText = failedResults
         .map(r => `• <@${r.user.id}>: ${r.error}`)
         .join("\n")
-        .slice(0, 1000); // Limit to Discord field limit
+        .slice(0, 1000);
 
       embed.addFields({
-        name: "❌ Failed Assignments",
+        name: `${EMOJIS.STATUS.ERROR} Failed`,
         value: failureText || "No details available",
         inline: false,
       });
@@ -129,14 +105,13 @@ export function createTempRolesListEmbed(
   client,
 ) {
   const embed = new EmbedBuilder()
-    .setTitle("🎭 Temporary Roles")
+    .setTitle(`${EMOJIS.UI.MENU} Temporary Roles`)
     .setDescription(
       targetUser
-        ? `Active temporary roles for **${targetUser.username}**`
-        : `Found **${processedRoles.length}** active temporary role${processedRoles.length !== 1 ? "s" : ""} in this server.`,
+        ? `Active roles for **${targetUser.username}**`
+        : `**${processedRoles.length}** active role${processedRoles.length !== 1 ? "s" : ""} in this server`,
     )
     .setColor(THEME.PRIMARY)
-    .setThumbnail(guild.iconURL())
     .setTimestamp()
     .setFooter({
       text: "Role Reactor • Temporary Roles",
@@ -145,8 +120,8 @@ export function createTempRolesListEmbed(
 
   if (processedRoles.length === 0) {
     embed.addFields({
-      name: "📭 No Active Roles",
-      value: "There are currently no active temporary roles in this server.",
+      name: `${EMOJIS.UI.EMPTY} No Active Roles`,
+      value: "No temporary roles found",
       inline: false,
     });
   } else {
@@ -176,12 +151,12 @@ export function createTempRolesListEmbed(
               ? EMOJIS.STATUS.WARNING
               : EMOJIS.TIME.ALARM;
 
-            return `${statusEmoji} **${role.roleInfo.name}** - Expires ${timeRemaining}`;
+            return `${statusEmoji} **${role.roleInfo.name}** • ${timeRemaining}`;
           })
           .join("\n");
 
         embed.addFields({
-          name: `${EMOJIS.UI.USER} ${user.username} (${roles.length} role${roles.length !== 1 ? "s" : ""})`,
+          name: `${EMOJIS.UI.USER} ${user.username} (${roles.length})`,
           value: roleList,
           inline: false,
         });
@@ -193,14 +168,16 @@ export function createTempRolesListEmbed(
           const timeRemaining = role.timeRemaining;
           const isExpiringSoon =
             timeRemaining.includes("minute") && parseInt(timeRemaining) <= 5;
-          const statusEmoji = isExpiringSoon ? "⚠️" : "⏰";
+          const statusEmoji = isExpiringSoon
+            ? EMOJIS.STATUS.WARNING
+            : EMOJIS.TIME.ALARM;
 
-          return `${statusEmoji} **${role.roleInfo.name}** - Expires ${timeRemaining}`;
+          return `${statusEmoji} **${role.roleInfo.name}** • ${timeRemaining}`;
         })
         .join("\n");
 
       embed.addFields({
-        name: `🎭 Active Roles (${processedRoles.length})`,
+        name: `${EMOJIS.FEATURES.ROLES} Active Roles (${processedRoles.length})`,
         value: roleList,
         inline: false,
       });
@@ -237,7 +214,7 @@ export function createTempRoleRemovedEmbed(
       : "Expired";
 
   return new EmbedBuilder()
-    .setTitle("🗑️ Temporary Role Removed")
+    .setTitle(`${EMOJIS.ACTIONS.DELETE} Temporary Role Removed`)
     .setDescription(
       `Successfully removed the **${targetRole.name}** role from **${targetUser.username}**.`,
     )
@@ -245,7 +222,7 @@ export function createTempRoleRemovedEmbed(
     .setThumbnail(targetUser.displayAvatarURL())
     .addFields([
       {
-        name: "👤 User Information",
+        name: `${EMOJIS.UI.USER} User Information`,
         value: [
           `**Username:** ${targetUser.username}`,
           `**ID:** \`${targetUser.id}\``,
@@ -254,7 +231,7 @@ export function createTempRoleRemovedEmbed(
         inline: true,
       },
       {
-        name: "🎭 Role Information",
+        name: `${EMOJIS.FEATURES.ROLES} Role Information`,
         value: [
           `**Name:** ${targetRole.name}`,
           `**ID:** \`${targetRole.id}\``,
@@ -263,7 +240,7 @@ export function createTempRoleRemovedEmbed(
         inline: true,
       },
       {
-        name: "👮 Removal Details",
+        name: `${EMOJIS.ACTIONS.REMOVE} Removal Details`,
         value: [
           `**Removed by:** ${removedBy.username}`,
           `**Reason:** ${reason || "No reason provided"}`,
@@ -272,7 +249,7 @@ export function createTempRoleRemovedEmbed(
         inline: false,
       },
       {
-        name: "⏰ Original Expiration",
+        name: `${EMOJIS.TIME.ALARM} Original Expiration`,
         value: [
           `**Would have expired:** <t:${Math.floor(expiresAt.getTime() / 1000)}:F>`,
           `**Time remaining:** ${timeRemaining}`,
@@ -307,7 +284,7 @@ export function createTempRoleRemovalEmbed(
   client,
 ) {
   const embed = new EmbedBuilder()
-    .setTitle("🗑️ Temporary Role Removal")
+    .setTitle(`${EMOJIS.ACTIONS.DELETE} Temporary Role Removal`)
     .setDescription(
       `Successfully removed the **${role.name}** role from ${users.length} user${users.length !== 1 ? "s" : ""}`,
     )
@@ -322,7 +299,7 @@ export function createTempRoleRemovalEmbed(
   // Main information section
   embed.addFields([
     {
-      name: "🎭 Role Details",
+      name: `${EMOJIS.FEATURES.ROLES} Role Details`,
       value: [
         `**Name:** ${role.name}`,
         `**Mention:** ${role.toString()}`,
@@ -332,7 +309,7 @@ export function createTempRoleRemovalEmbed(
       inline: true,
     },
     {
-      name: "👥 Removal Info",
+      name: `${EMOJIS.UI.USERS} Removal Info`,
       value: [
         `**Target Users:** ${users.length} user${users.length !== 1 ? "s" : ""}`,
         `**Removed by:** ${removedBy.username}`,
@@ -349,13 +326,13 @@ export function createTempRoleRemovalEmbed(
     const failureCount = results.filter(r => !r.success).length;
 
     // Results summary with better formatting
-    let resultsText = `✅ **${successCount}** successful`;
+    let resultsText = `${EMOJIS.STATUS.SUCCESS} **${successCount}** successful`;
     if (failureCount > 0) {
-      resultsText += `\n❌ **${failureCount}** failed`;
+      resultsText += `\n${EMOJIS.STATUS.ERROR} **${failureCount}** failed`;
     }
 
     embed.addFields({
-      name: "📊 Removal Results",
+      name: `${EMOJIS.UI.PROGRESS} Removal Results`,
       value: resultsText,
       inline: true,
     });
@@ -369,7 +346,7 @@ export function createTempRoleRemovalEmbed(
         .slice(0, 1000); // Limit to Discord field limit
 
       embed.addFields({
-        name: "❌ Failed Removals",
+        name: `${EMOJIS.STATUS.ERROR} Failed Removals`,
         value: failureText || "No details available",
         inline: false,
       });

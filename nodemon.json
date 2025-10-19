@@ -30,7 +30,9 @@
     "**/data/**"
   ],
   "ext": "js,json",
-  "delay": "3000",
+  "delay": "1000",
+  "killTimeout": 5000,
+  "signal": "SIGTERM",
   "restartable": "rs",
   "verbose": true,
   "env": {

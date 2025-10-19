@@ -286,35 +286,20 @@ class RoleExpirationScheduler {
   async sendExpirationNotification(member, role, guild) {
     try {
       const embed = new EmbedBuilder()
-        .setTitle("⏰ Temporary Role Expired!")
+        .setTitle("⏰ Role Expired")
         .setDescription(
-          `Your temporary **${role.name}** role in **${guild.name}** has expired and has been automatically removed.`,
+          `Your **${role.name}** role in **${guild.name}** has been automatically removed`,
         )
         .setColor(THEME.ERROR)
-        .setThumbnail(role.iconURL() || guild.iconURL())
         .addFields([
           {
-            name: "🎭 Role Details",
-            value: [
-              `**Name:** ${role.name}`,
-              `**Color:** ${role.hexColor}`,
-              `**Server:** ${guild.name}`,
-            ].join("\n"),
-            inline: true,
-          },
-          {
-            name: "⏰ Expiration Info",
-            value: [
-              `**Expired at:** <t:${Math.floor(Date.now() / 1000)}:F>`,
-              `**Status:** Automatically removed`,
-              `**Action:** Role has been removed from your account`,
-            ].join("\n"),
-            inline: true,
+            name: "📅 Expired",
+            value: `<t:${Math.floor(Date.now() / 1000)}:R>`,
+            inline: false,
           },
         ])
         .setFooter({
-          text: "Role Reactor • Temporary Roles",
-          iconURL: guild.iconURL(),
+          text: `Role Reactor • ${guild.name}`,
         })
         .setTimestamp();
 

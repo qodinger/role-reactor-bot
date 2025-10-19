@@ -1,6 +1,59 @@
 import { getStorageManager } from "../storage/storageManager.js";
 import { getDatabaseManager } from "../storage/databaseManager.js";
 import { getLogger } from "../logger.js";
+import { EmbedBuilder } from "discord.js";
+import { THEME, EMOJIS } from "../../config/theme.js";
+
+/**
+ * Send DM notification to user about role assignment
+ * @param {import("discord.js").GuildMember} member - The guild member
+ * @param {import("discord.js").Role} role - The role that was assigned
+ * @param {Date} expiresAt - When the role expires
+ * @param {import("discord.js").Guild} guild - The guild where the role was assigned
+ */
+async function sendAssignmentNotification(member, role, expiresAt, guild) {
+  const embed = new EmbedBuilder()
+    .setColor(role.color || THEME.SUCCESS)
+    .setTitle(`${EMOJIS.STATUS.SUCCESS} Role Assigned`)
+    .setDescription(
+      `You've been given the **${role.name}** role in **${guild.name}**`,
+    )
+    .addFields([
+      {
+        name: `${EMOJIS.TIME.ALARM} Duration`,
+        value: `${formatDurationMs(expiresAt.getTime() - Date.now())} • Expires <t:${Math.floor(expiresAt.getTime() / 1000)}:R>`,
+        inline: false,
+      },
+    ])
+    .setFooter({
+      text: `Role Reactor • ${guild.name}`,
+    })
+    .setTimestamp();
+
+  await member.user.send({ embeds: [embed] });
+}
+
+/**
+ * Format duration in milliseconds to human readable format
+ * @param {number} ms - Duration in milliseconds
+ * @returns {string} Formatted duration
+ */
+function formatDurationMs(ms) {
+  const seconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+
+  if (days > 0) {
+    return `${days}d ${hours % 24}h ${minutes % 60}m`;
+  } else if (hours > 0) {
+    return `${hours}h ${minutes % 60}m`;
+  } else if (minutes > 0) {
+    return `${minutes}m ${seconds % 60}s`;
+  } else {
+    return `${seconds}s`;
+  }
+}
 
 /**
  * Adds a temporary role to a user.
@@ -127,6 +180,7 @@ export async function addTemporaryRole(
  * @param {string} roleId - The role ID to assign
  * @param {Date} expiresAt - When the role should expire
  * @param {Object} client - Discord client instance
+ * @param {boolean} notify - Whether to send immediate DM notification
  * @param {boolean} notifyExpiry - Whether to notify on expiry
  * @returns {Promise<{success: number, failed: number, results: Array}>}
  */
@@ -136,6 +190,7 @@ export async function addTemporaryRolesForMultipleUsers(
   roleId,
   expiresAt,
   client = null,
+  notify = false,
   notifyExpiry = false,
 ) {
   const logger = getLogger();
@@ -218,6 +273,21 @@ export async function addTemporaryRolesForMultipleUsers(
           logger.info(
             `✅ Successfully assigned temporary role ${role.name} to user ${userId}`,
           );
+
+          // Send immediate DM notification if requested
+          if (notify) {
+            try {
+              await sendAssignmentNotification(member, role, expiresAt, guild);
+              logger.info(
+                `📧 Sent assignment notification to ${member.user.tag}`,
+              );
+            } catch (dmError) {
+              logger.warn(
+                `Failed to send assignment notification to ${member.user.tag}:`,
+                dmError.message,
+              );
+            }
+          }
 
           return { userId, success: true, message: "Role assigned" };
         } catch (discordError) {

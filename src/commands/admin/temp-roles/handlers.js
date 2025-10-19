@@ -82,7 +82,7 @@ export async function handleAssign(interaction, client, deferred = false) {
     const durationString = interaction.options.getString("duration");
     const reason =
       interaction.options.getString("reason") || "No reason provided";
-    // const notify = interaction.options.getBoolean("notify") || false; // Not used in new implementation
+    const notify = interaction.options.getBoolean("notify") || false;
     const notifyExpiry =
       interaction.options.getBoolean("notify-expiry") || false;
 
@@ -184,6 +184,7 @@ export async function handleAssign(interaction, client, deferred = false) {
       role.id,
       expiresAt,
       interaction.client,
+      notify,
       notifyExpiry,
     );
 

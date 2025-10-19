@@ -9,6 +9,8 @@
     "dev": "nodemon src/index.js",
     "dev:stable": "nodemon --config nodemon.json src/index.js",
     "dev:no-restart": "node src/index.js",
+    "start:safe": "./scripts/start-bot.sh",
+    "stop": "./scripts/stop-bot.sh",
     "build": "echo 'No build step required for Node.js bot'",
     "prebuild": "pnpm run lint && pnpm test",
     "type-check": "node -c src/index.js",
