@@ -6,7 +6,7 @@ import {
   bulkRemoveRoles,
   getCachedMember,
 } from "../../utils/discord/roleManager.js";
-import { THEME } from "../../config/theme.js";
+import { THEME, EMOJIS } from "../../config/theme.js";
 
 class RoleExpirationScheduler {
   constructor(client) {
@@ -286,14 +286,14 @@ class RoleExpirationScheduler {
   async sendExpirationNotification(member, role, guild) {
     try {
       const embed = new EmbedBuilder()
-        .setTitle("⏰ Role Expired")
+        .setTitle(`${EMOJIS.TIME.ALARM} Role Expired`)
         .setDescription(
           `Your **${role.name}** role in **${guild.name}** has been automatically removed`,
         )
         .setColor(THEME.ERROR)
         .addFields([
           {
-            name: "📅 Expired",
+            name: `${EMOJIS.TIME.CLOCK} Expired`,
             value: `<t:${Math.floor(Date.now() / 1000)}:R>`,
             inline: false,
           },

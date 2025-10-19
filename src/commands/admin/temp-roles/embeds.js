@@ -29,18 +29,34 @@ export function createTempRoleEmbed(
       `**${role.name}** role assigned to **${users.length}** user${users.length !== 1 ? "s" : ""}`,
     )
     .setColor(role.color || THEME.SUCCESS)
+    .setThumbnail(role.iconURL() || null)
     .setTimestamp()
     .setFooter({
       text: "Role Reactor • Temporary Roles",
       iconURL: client.user.displayAvatarURL(),
     });
 
-  // Duration and expiration info
+  // Role details and assignment info
   embed.addFields([
     {
-      name: `${EMOJIS.TIME.ALARM} Duration`,
-      value: `${formatDuration(durationString)} • Expires <t:${Math.floor((Date.now() + parseDuration(durationString)) / 1000)}:R>`,
-      inline: false,
+      name: `${EMOJIS.FEATURES.ROLES} Role Details`,
+      value: [
+        `**Name:** ${role.name}`,
+        `**Mention:** ${role.toString()}`,
+        `**Color:** ${role.hexColor}`,
+        `**Position:** ${role.position}`,
+      ].join("\n"),
+      inline: true,
+    },
+    {
+      name: `${EMOJIS.TIME.ALARM} Assignment Info`,
+      value: [
+        `**Duration:** ${formatDuration(durationString)}`,
+        `**Users:** ${users.length} user${users.length !== 1 ? "s" : ""}`,
+        `**Expires:** <t:${Math.floor((Date.now() + parseDuration(durationString)) / 1000)}:R>`,
+        `**Reason:** ${reason || "No reason provided"}`,
+      ].join("\n"),
+      inline: true,
     },
   ]);
 
@@ -48,28 +64,23 @@ export function createTempRoleEmbed(
   if (results && results.length > 0) {
     const successCount = results.filter(r => r.success).length;
     const failureCount = results.filter(r => !r.success).length;
-    const dmSentCount = results.filter(r => r.success && r.dmSent).length;
+    const updateCount = results.filter(r => r.success && r.wasUpdate).length;
+    const newCount = successCount - updateCount;
 
-    // Simple results summary
+    // Detailed results summary
     let resultsText = `${EMOJIS.STATUS.SUCCESS} **${successCount}** successful`;
+    if (updateCount > 0) {
+      resultsText += ` (${newCount} new, ${updateCount} updated)`;
+    }
     if (failureCount > 0) {
-      resultsText += ` • ${EMOJIS.STATUS.ERROR} **${failureCount}** failed`;
+      resultsText += `\n${EMOJIS.STATUS.ERROR} **${failureCount}** failed`;
     }
 
     embed.addFields({
-      name: `${EMOJIS.UI.PROGRESS} Results`,
+      name: `${EMOJIS.UI.PROGRESS} Assignment Results`,
       value: resultsText,
       inline: false,
     });
-
-    // Notification status
-    if (dmSentCount > 0) {
-      embed.addFields({
-        name: `${EMOJIS.ACTIONS.MESSAGE} Notifications`,
-        value: `**${dmSentCount}** DM${dmSentCount !== 1 ? "s" : ""} sent`,
-        inline: false,
-      });
-    }
 
     // Add detailed failures if any
     if (failureCount > 0) {
@@ -80,7 +91,7 @@ export function createTempRoleEmbed(
         .slice(0, 1000);
 
       embed.addFields({
-        name: `${EMOJIS.STATUS.ERROR} Failed`,
+        name: `${EMOJIS.STATUS.ERROR} Failed Assignments`,
         value: failureText || "No details available",
         inline: false,
       });
