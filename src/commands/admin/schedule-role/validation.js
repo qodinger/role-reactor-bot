@@ -6,7 +6,7 @@ import { getLogger } from "../../../utils/logger.js";
  * @param {number} maxAge - Maximum age in milliseconds (default: 3000)
  * @returns {Object} Validation result with success boolean and error message
  */
-export function validateInteraction(interaction, maxAge = 2000) {
+export function validateInteraction(interaction, maxAge = 3000) {
   const logger = getLogger();
 
   // Check if already acknowledged
@@ -127,6 +127,28 @@ export function validateScheduleOptions(options) {
     };
   }
 
+  // Validate duration format if provided
+  if (options.duration) {
+    const durationRegex = /^(\d+)([smhdw])$/i;
+    if (!durationRegex.test(options.duration)) {
+      return {
+        success: false,
+        errorResponse: {
+          title: "Invalid Duration Format",
+          description: "Duration must be in format like '3m', '1h', '2d', '1w'",
+          fields: [
+            {
+              name: "📝 Valid Examples",
+              value:
+                "• `3m` - 3 minutes\n• `1h` - 1 hour\n• `2d` - 2 days\n• `1w` - 1 week",
+              inline: false,
+            },
+          ],
+        },
+      };
+    }
+  }
+
   logger.debug("Schedule options validation successful", {
     userIdsCount: userIds.length,
     roleId: options.role.id,
@@ -140,16 +162,29 @@ export function validateScheduleOptions(options) {
 
 /**
  * Parses user input string into user IDs
- * @param {string} usersInput - Comma-separated user input
+ * @param {string} usersInput - User input separated by comma, semicolon, or space
  * @returns {Array} Array of user IDs
  */
 function parseUserInput(usersInput) {
   return usersInput
-    .split(",")
+    .split(/[,;\s]+/) // Split by comma, semicolon, or whitespace
     .map(user => user.trim())
     .filter(user => user.length > 0)
     .map(user => {
-      const match = user.match(/<@!?(\d+)>/);
-      return match ? match[1] : user;
+      // Match Discord mentions: <@123456789> or <@!123456789>
+      const mentionMatch = user.match(/<@!?(\d+)>/);
+      if (mentionMatch) {
+        return mentionMatch[1];
+      }
+      // If it's already a user ID (numeric), return as is
+      if (/^\d+$/.test(user)) {
+        return user;
+      }
+      // If it's a plain @username, extract the username part
+      if (user.startsWith("@") && !user.includes("<")) {
+        return user.substring(1);
+      }
+      // Return as is for other formats
+      return user;
     });
 }

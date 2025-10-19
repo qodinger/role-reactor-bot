@@ -98,48 +98,85 @@ export async function execute(interaction, client) {
   const logger = getLogger();
 
   try {
-    // Skip deferral for temp-roles to prevent timeout issues
-    // Execute command directly with immediate response
+    // Check interaction age first - Discord interactions expire after 3 seconds
+    const age = Date.now() - interaction.createdTimestamp;
+    if (age > 2500) {
+      // Leave 500ms buffer
+      logger.warn("Interaction too old to process", {
+        interactionId: interaction.id,
+        age,
+        maxAge: 3000,
+      });
+      return; // Don't try to respond to expired interactions
+    }
+
+    // Defer the interaction to prevent timeout
+    let deferred = false;
+    try {
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        deferred = true;
+        logger.debug("Deferred temp-roles interaction", {
+          interactionId: interaction.id,
+          age,
+        });
+      }
+    } catch (deferError) {
+      logger.warn("Failed to defer interaction, proceeding without deferral", {
+        interactionId: interaction.id,
+        error: deferError.message,
+      });
+    }
 
     // Validate user permissions
     if (!hasAdminPermissions(interaction.member)) {
-      return interaction.reply({
-        embeds: [
-          errorEmbed({
-            title: "Permission Denied",
-            description:
-              "You need Administrator permissions to manage temporary roles.",
-            solution: "Contact a server administrator for assistance.",
-          }),
-        ],
-        flags: MessageFlags.Ephemeral,
+      const response = errorEmbed({
+        title: "Permission Denied",
+        description:
+          "You need Administrator permissions to manage temporary roles.",
+        solution: "Contact a server administrator for assistance.",
       });
+
+      if (deferred) {
+        return interaction.editReply(response);
+      } else {
+        return interaction.reply({
+          ...response,
+          flags: MessageFlags.Ephemeral,
+        });
+      }
     }
 
     const subcommand = interaction.options.getSubcommand();
 
     switch (subcommand) {
       case "assign":
-        await handleAssign(interaction, client);
+        await handleAssign(interaction, client, deferred);
         break;
       case "list":
-        await handleList(interaction, client);
+        await handleList(interaction, client, deferred);
         break;
       case "remove":
-        await handleRemove(interaction, client);
+        await handleRemove(interaction, client, deferred);
         break;
 
-      default:
-        await interaction.reply({
-          embeds: [
-            errorEmbed({
-              title: "Unknown Subcommand",
-              description: `The subcommand "${subcommand}" is not recognized.`,
-              solution: "Use assign, list, or remove as subcommands.",
-            }),
-          ],
-          flags: MessageFlags.Ephemeral,
+      default: {
+        const response = errorEmbed({
+          title: "Unknown Subcommand",
+          description: `The subcommand "${subcommand}" is not recognized.`,
+          solution: "Use assign, list, or remove as subcommands.",
         });
+
+        if (deferred) {
+          await interaction.editReply(response);
+        } else {
+          await interaction.reply({
+            ...response,
+            flags: MessageFlags.Ephemeral,
+          });
+        }
+        break;
+      }
     }
   } catch (error) {
     logger.error(
@@ -149,17 +186,20 @@ export async function execute(interaction, client) {
 
     // Only reply if we haven't already replied
     if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({
-        embeds: [
-          errorEmbed({
-            title: "Error",
-            description: "Failed to process temp-roles command.",
-            solution:
-              "Please try again or contact support if the issue persists.",
-          }),
-        ],
-        flags: MessageFlags.Ephemeral,
+      const response = errorEmbed({
+        title: "Error",
+        description: "Failed to process temp-roles command.",
+        solution: "Please try again or contact support if the issue persists.",
       });
+
+      try {
+        await interaction.reply({ ...response, flags: MessageFlags.Ephemeral });
+      } catch (replyError) {
+        logger.error("Failed to send error response", {
+          interactionId: interaction.id,
+          error: replyError.message,
+        });
+      }
     }
   }
 }

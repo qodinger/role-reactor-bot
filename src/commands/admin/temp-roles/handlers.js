@@ -7,12 +7,10 @@ import {
   formatPermissionName,
 } from "../../../utils/discord/permissions.js";
 import {
-  addTemporaryRole,
+  addTemporaryRolesForMultipleUsers,
   getTemporaryRoles,
-  getUserTemporaryRoles,
-  removeTemporaryRole,
   parseDuration,
-} from "../../../utils/discord/temporaryRoles.js";
+} from "../../../utils/discord/tempRoles.js";
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 import {
   createTempRoleEmbed,
@@ -28,14 +26,15 @@ import {
   logTempRoleAssignment,
   logTempRolesListing,
 } from "./utils.js";
-import { THEME } from "../../../config/theme.js";
+// import { THEME } from "../../../config/theme.js"; // Not used in new implementation
 
 /**
  * Handle the assign temp role logic
  * @param {import('discord.js').CommandInteraction} interaction
  * @param {import('discord.js').Client} client
+ * @param {boolean} deferred - Whether the interaction was deferred
  */
-export async function handleAssign(interaction, client) {
+export async function handleAssign(interaction, client, deferred = false) {
   const logger = getLogger();
   const startTime = Date.now();
 
@@ -49,31 +48,32 @@ export async function handleAssign(interaction, client) {
         .map(formatPermissionName)
         .join(", ");
 
-      return interaction.reply({
-        embeds: [
-          errorEmbed({
-            title: "Missing Bot Permissions",
-            description: `I need the following permissions to assign temporary roles: **${permissionNames}**`,
-            solution:
-              "Please ask a server administrator to grant me these permissions and try again.",
-            fields: [
-              {
-                name: "🔧 How to Fix",
-                value:
-                  "Go to Server Settings → Roles → Find my role → Enable the missing permissions",
-                inline: false,
-              },
-              {
-                name: "📋 Required Permissions",
-                value:
-                  "• Manage Roles (to assign roles to members)\n• Send Messages (to notify users about role assignment)",
-                inline: false,
-              },
-            ],
-          }),
+      const response = errorEmbed({
+        title: "Missing Bot Permissions",
+        description: `I need the following permissions to assign temporary roles: **${permissionNames}**`,
+        solution:
+          "Please ask a server administrator to grant me these permissions and try again.",
+        fields: [
+          {
+            name: "🔧 How to Fix",
+            value:
+              "Go to Server Settings → Roles → Find my role → Enable the missing permissions",
+            inline: false,
+          },
+          {
+            name: "📋 Required Permissions",
+            value:
+              "• Manage Roles (to assign roles to members)\n• Send Messages (to notify users about role assignment)",
+            inline: false,
+          },
         ],
-        flags: 64,
       });
+
+      if (deferred) {
+        return interaction.editReply({ embeds: [response] });
+      } else {
+        return interaction.reply({ embeds: [response], flags: 64 });
+      }
     }
 
     // Get command options
@@ -82,38 +82,40 @@ export async function handleAssign(interaction, client) {
     const durationString = interaction.options.getString("duration");
     const reason =
       interaction.options.getString("reason") || "No reason provided";
-    const notify = interaction.options.getBoolean("notify") || false;
+    // const notify = interaction.options.getBoolean("notify") || false; // Not used in new implementation
     const notifyExpiry =
       interaction.options.getBoolean("notify-expiry") || false;
 
     // Validate role
     const roleValidation = validateRole(role, interaction.guild);
     if (!roleValidation.valid) {
-      return interaction.reply({
-        embeds: [
-          errorEmbed({
-            title: "Invalid Role",
-            description: roleValidation.error,
-            solution: roleValidation.solution,
-          }),
-        ],
-        flags: 64,
+      const response = errorEmbed({
+        title: "Invalid Role",
+        description: roleValidation.error,
+        solution: roleValidation.solution,
       });
+
+      if (deferred) {
+        return interaction.editReply({ embeds: [response] });
+      } else {
+        return interaction.reply({ embeds: [response], flags: 64 });
+      }
     }
 
     // Validate duration
     const durationValidation = validateDuration(durationString);
     if (!durationValidation.valid) {
-      return interaction.reply({
-        embeds: [
-          errorEmbed({
-            title: "Invalid Duration",
-            description: durationValidation.error,
-            solution: durationValidation.solution,
-          }),
-        ],
-        flags: 64,
+      const response = errorEmbed({
+        title: "Invalid Duration",
+        description: durationValidation.error,
+        solution: durationValidation.solution,
       });
+
+      if (deferred) {
+        return interaction.editReply({ embeds: [response] });
+      } else {
+        return interaction.reply({ embeds: [response], flags: 64 });
+      }
     }
 
     const durationMs = parseDuration(durationString);
@@ -126,42 +128,91 @@ export async function handleAssign(interaction, client) {
     // Process user list
     const userValidation = await processUserList(usersString, interaction);
     if (!userValidation.valid) {
-      return interaction.reply({
-        embeds: [
-          errorEmbed({
-            title: "Invalid Users",
-            description: userValidation.error,
-            solution: userValidation.solution,
-          }),
-        ],
-        flags: 64,
+      const response = errorEmbed({
+        title: "Invalid Users",
+        description: userValidation.error,
+        solution: userValidation.solution,
       });
+
+      if (deferred) {
+        return interaction.editReply({ embeds: [response] });
+      } else {
+        return interaction.reply({ embeds: [response], flags: 64 });
+      }
     }
 
     const { validUsers } = userValidation;
 
-    // Assign roles to users
-    const limiter = pLimit(3);
-    const assignmentPromises = validUsers.map(user =>
-      limiter(async () => {
-        try {
-          return await assignRoleAndDM(
-            user,
-            role,
-            durationMs,
-            reason,
-            interaction,
-            notify,
-            notifyExpiry,
-          );
-        } catch (error) {
-          logger.warn(`Failed to assign role to user ${user.id}:`, error);
-          return { success: false, user, error: error.message };
-        }
-      }),
+    // Check maximum user limit
+    const MAX_USERS = 10;
+    if (validUsers.length > MAX_USERS) {
+      const response = errorEmbed({
+        title: "Too Many Users",
+        description: `You can only assign roles to a maximum of **${MAX_USERS} users** at once.`,
+        solution: `Please reduce the number of users to ${MAX_USERS} or fewer. You can run the command multiple times if needed.`,
+      });
+
+      if (deferred) {
+        return interaction.editReply({ embeds: [response] });
+      } else {
+        return interaction.reply({ embeds: [response], flags: 64 });
+      }
+    }
+
+    logger.info("Starting role assignment", {
+      totalUsers: validUsers.length,
+      userIds: validUsers.map(u => u.id),
+      usernames: validUsers.map(u => u.username),
+      roleId: role.id,
+      roleName: role.name,
+    });
+
+    // Use the new multiple user function for efficiency
+    const userIds = validUsers.map(user => user.id);
+    const expiresAt = new Date(Date.now() + durationMs);
+
+    logger.info("Using multiple user assignment function", {
+      totalUsers: validUsers.length,
+      userIds,
+      roleId: role.id,
+      roleName: role.name,
+    });
+
+    const assignmentResult = await addTemporaryRolesForMultipleUsers(
+      interaction.guild.id,
+      userIds,
+      role.id,
+      expiresAt,
+      interaction.client,
+      notifyExpiry,
     );
 
-    const results = await Promise.all(assignmentPromises);
+    // Check if there was a system error (like too many users)
+    if (assignmentResult.error) {
+      const response = errorEmbed({
+        title: "Assignment Failed",
+        description: assignmentResult.error,
+        solution:
+          "Please try again with fewer users or contact support if the issue persists.",
+      });
+
+      if (deferred) {
+        return interaction.editReply({ embeds: [response] });
+      } else {
+        return interaction.reply({ embeds: [response], flags: 64 });
+      }
+    }
+
+    // Convert the result to the format expected by the embed
+    const results = validUsers.map((user, index) => {
+      const result = assignmentResult.results[index];
+      return {
+        success: result?.success || false,
+        user: user.username,
+        error: result?.error || null,
+        message: result?.message || null,
+      };
+    });
 
     // Create response embed
     const embed = createTempRoleEmbed(
@@ -172,7 +223,13 @@ export async function handleAssign(interaction, client) {
       results,
       client,
     );
-    await interaction.reply({ embeds: [embed], flags: 64 });
+
+    // Send response based on deferral status
+    if (deferred) {
+      await interaction.editReply({ embeds: [embed] });
+    } else {
+      await interaction.reply({ embeds: [embed], flags: 64 });
+    }
 
     // Log activity
     logTempRoleAssignment(
@@ -187,8 +244,18 @@ export async function handleAssign(interaction, client) {
   } catch (error) {
     logger.error("Error in handleAssign:", error);
 
-    // Only reply if we haven't already replied
-    if (!interaction.replied && !interaction.deferred) {
+    // Send error response based on deferral status
+    if (deferred) {
+      await interaction.editReply({
+        embeds: [
+          errorEmbed({
+            title: "Error",
+            description: "Failed to assign temporary roles.",
+            solution: "Please try again or contact support.",
+          }),
+        ],
+      });
+    } else if (!interaction.replied && !interaction.deferred) {
       await interaction.reply({
         embeds: [
           errorEmbed({
@@ -208,7 +275,7 @@ export async function handleAssign(interaction, client) {
  * @param {import('discord.js').CommandInteraction} interaction
  * @param {import('discord.js').Client} client
  */
-export async function handleList(interaction, client) {
+export async function handleList(interaction, client, deferred = false) {
   const logger = getLogger();
 
   try {
@@ -275,18 +342,19 @@ export async function handleList(interaction, client) {
         ? `No temporary roles found for ${targetUser.displayName}.`
         : "No temporary roles found in this server.";
 
-      return interaction.reply({
-        embeds: [
-          errorEmbed({
-            title: "No Temporary Roles Found",
-            description: message,
-            solution: targetUser
-              ? "Try checking another user or assign some temporary roles first."
-              : "Use `temp-roles assign` to create some temporary role assignments!",
-          }),
-        ],
-        flags: 64,
+      const response = errorEmbed({
+        title: "No Temporary Roles Found",
+        description: message,
+        solution: targetUser
+          ? "Try checking another user or assign some temporary roles first."
+          : "Use `temp-roles assign` to create some temporary role assignments!",
       });
+
+      if (deferred) {
+        return interaction.editReply(response);
+      } else {
+        return interaction.reply({ ...response, flags: 64 });
+      }
     }
 
     // Process roles for display
@@ -304,7 +372,11 @@ export async function handleList(interaction, client) {
       client,
     );
 
-    await interaction.reply({ embeds: [embed], flags: 64 });
+    if (deferred) {
+      await interaction.editReply({ embeds: [embed] });
+    } else {
+      await interaction.reply({ embeds: [embed], flags: 64 });
+    }
 
     // Log activity
     logTempRolesListing(
@@ -318,16 +390,20 @@ export async function handleList(interaction, client) {
 
     // Only reply if we haven't already replied
     if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({
-        embeds: [
-          errorEmbed({
-            title: "Error",
-            description: "Failed to list temporary roles.",
-            solution: "Please try again or contact support.",
-          }),
-        ],
-        flags: 64,
+      const response = errorEmbed({
+        title: "Error",
+        description: "Failed to list temporary roles.",
+        solution: "Please try again or contact support.",
       });
+
+      try {
+        await interaction.reply({ ...response, flags: 64 });
+      } catch (replyError) {
+        logger.error("Failed to send error response", {
+          interactionId: interaction.id,
+          error: replyError.message,
+        });
+      }
     }
   }
 }
@@ -486,147 +562,3 @@ export async function handleRemove(interaction, client) {
  * @param {boolean} notify - Whether to send DM notification
  * @param {boolean} notifyExpiry - Whether to send DM when role expires
  */
-async function assignRoleAndDM(
-  user,
-  role,
-  durationMs,
-  reason,
-  interaction,
-  notify = false,
-  notifyExpiry = false,
-) {
-  const logger = getLogger();
-
-  try {
-    const member = await interaction.guild.members.fetch(user.id);
-
-    // Check if user already has this role
-    let wasUpdate = false;
-    if (member.roles.cache.has(role.id)) {
-      // Check if it's already a temporary role
-      const existingTempRoles = await getUserTemporaryRoles(
-        interaction.guild.id,
-        user.id,
-      );
-      const existingTempRole = existingTempRoles.find(
-        tr => tr.roleId === role.id,
-      );
-
-      if (existingTempRole) {
-        // Update existing temporary role
-        logger.info(
-          `Updating existing temporary role for user ${user.id}, role ${role.id}`,
-        );
-        await removeTemporaryRole(interaction.guild.id, user.id, role.id);
-        wasUpdate = true;
-      } else {
-        // Convert permanent role to temporary
-        logger.info(
-          `Converting permanent role to temporary for user ${user.id}, role ${role.id}`,
-        );
-        wasUpdate = true;
-      }
-    }
-
-    // Debug logging for temporary role storage
-    logger.info(
-      `Storing temporary role - User: ${user.id}, Role: ${role.id}, Guild: ${interaction.guild.id}, Duration: ${durationMs}ms`,
-    );
-
-    const expiresAt = new Date(Date.now() + durationMs);
-    await addTemporaryRole(
-      interaction.guild.id,
-      user.id,
-      role.id,
-      expiresAt,
-      interaction.client,
-      notifyExpiry,
-    );
-
-    logger.info(`Temporary role stored successfully`);
-
-    // Only add the role if user doesn't already have it
-    if (!member.roles.cache.has(role.id)) {
-      await member.roles.add(role, `Temporary role - ${reason}`);
-    }
-
-    // Try to send DM if requested
-    let dmSent = false;
-    if (notify) {
-      try {
-        const expiresAt = new Date(Date.now() + durationMs);
-        await user.send({
-          embeds: [
-            {
-              title: wasUpdate
-                ? "🔄 Temporary Role Updated"
-                : "🎭 Temporary Role Assigned",
-              description: wasUpdate
-                ? `Your **${role.name}** role in **${interaction.guild.name}** has been updated with a new expiration time.`
-                : `You have been assigned the **${role.name}** role in **${interaction.guild.name}**.`,
-              color: THEME.SUCCESS,
-              thumbnail: {
-                url: role.iconURL() || interaction.guild.iconURL(),
-              },
-              fields: [
-                {
-                  name: "🎭 Role Information",
-                  value: [
-                    `**Name:** ${role.name}`,
-                    `**Color:** ${role.hexColor}`,
-                    `**Server:** ${interaction.guild.name}`,
-                  ].join("\n"),
-                  inline: true,
-                },
-                {
-                  name: "⏰ Assignment Details",
-                  value: [
-                    `**Duration:** ${formatDuration(durationMs)}`,
-                    `**Expires:** <t:${Math.floor(expiresAt.getTime() / 1000)}:R>`,
-                    `**Assigned by:** ${interaction.user.username}`,
-                  ].join("\n"),
-                  inline: true,
-                },
-                {
-                  name: "📝 Reason",
-                  value: reason,
-                  inline: false,
-                },
-              ],
-              footer: {
-                text: "Role Reactor • Temporary Roles",
-                icon_url: interaction.guild.iconURL(),
-              },
-              timestamp: new Date().toISOString(),
-            },
-          ],
-        });
-        dmSent = true;
-      } catch (dmError) {
-        logger.warn(`Could not send DM to user ${user.tag}:`, dmError.message);
-      }
-    }
-
-    return { success: true, user, dmSent, wasUpdate };
-  } catch (error) {
-    logger.error(`Error assigning role to ${user.tag}:`, error);
-    return { success: false, user, error: error.message };
-  }
-}
-
-/**
- * Format duration from milliseconds to human readable
- * @param {number} ms
- * @returns {string}
- */
-function formatDuration(ms) {
-  const seconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-
-  if (days > 0) return `${days}d ${hours % 24}h`;
-  if (hours > 0) return `${hours}h ${minutes % 60}m`;
-  if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
-  return `${seconds}s`;
-}

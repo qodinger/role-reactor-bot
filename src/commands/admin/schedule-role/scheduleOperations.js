@@ -4,7 +4,7 @@ import {
   createRecurringRoleSchedule,
   findScheduleById,
   cancelSchedule,
-} from "../../../utils/discord/temporaryRoles.js";
+} from "../../../utils/discord/scheduleRoles.js";
 import {
   parseOneTimeSchedule,
   parseRecurringSchedule,
@@ -350,7 +350,7 @@ export async function updateScheduleById(
         updateData.schedule = parsedSchedule;
         // Recalculate next run time
         const { calculateNextRun } = await import(
-          "../../../utils/discord/temporaryRoles.js"
+          "../../../utils/discord/scheduleRoles.js"
         );
         updateData.nextRun = calculateNextRun(parsedSchedule);
       }
@@ -403,7 +403,7 @@ export async function updateScheduleById(
 
     // Update the schedule in the database
     const { updateSchedule } = await import(
-      "../../../utils/discord/temporaryRoles.js"
+      "../../../utils/discord/scheduleRoles.js"
     );
     const success = await updateSchedule(
       existingSchedule.scheduleId,

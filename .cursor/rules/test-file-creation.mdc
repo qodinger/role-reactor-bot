@@ -1,0 +1,513 @@
+# Test File Creation Standards
+
+This rule defines the standards and best practices for creating test files in the Role Reactor Discord Bot project. It covers file structure, naming conventions, test organization, mocking strategies, and common patterns to ensure consistent and maintainable test coverage.
+
+## 1. File Structure and Naming
+
+### Directory Organization
+
+- **Unit Tests**: `tests/unit/` - Test individual functions and modules in isolation
+- **Integration Tests**: `tests/integration/` - Test interactions between multiple modules
+- **End-to-End Tests**: `tests/e2e/` - Test complete workflows and user scenarios
+- **Test Files**: Use `.test.js` extension for all test files
+
+### File Naming Conventions
+
+- **Unit Tests**: `moduleName.test.js` (e.g., `roleManager.test.js`)
+- **Integration Tests**: `featureName.test.js` (e.g., `discord-api.test.js`)
+- **E2E Tests**: `workflowName.test.js` (e.g., `role-management.test.js`)
+- Use descriptive names that clearly indicate what is being tested
+
+### Test File Structure
+
+```javascript
+// 1. Jest imports
+import {
+  jest,
+  describe,
+  test,
+  expect,
+  beforeEach,
+  afterEach,
+  beforeAll,
+  afterAll,
+} from "@jest/globals";
+
+// 2. Environment setup (if needed)
+// Environment variables are set in tests/setup.js
+
+// 3. Module imports
+import { functionToTest } from "../../src/path/to/module.js";
+
+// 4. Mock definitions (if needed)
+// Use dynamic imports or minimal mocking to avoid module resolution issues
+
+// 5. Test suite definition
+describe("Module or Feature Name", () => {
+  // Test cases
+});
+```
+
+## 2. Import Patterns
+
+### Jest Imports
+
+Always import Jest globals explicitly:
+
+```javascript
+import {
+  jest,
+  describe,
+  test,
+  expect,
+  beforeEach,
+  afterEach,
+  beforeAll,
+  afterAll,
+} from "@jest/globals";
+```
+
+### Module Imports
+
+- Use relative paths from test file location
+- For unit tests in `tests/unit/`: use `../../src/`
+- For integration tests in `tests/integration/`: use `../../src/`
+- For E2E tests in `tests/e2e/`: use `../../src/`
+- Always include `.js` extension for ES modules
+
+### Dynamic Imports
+
+Use dynamic imports for modules that might cause module resolution issues:
+
+```javascript
+let moduleFunction;
+
+beforeAll(async () => {
+  const module = await import("../../src/utils/module.js");
+  moduleFunction = module.exportedFunction;
+});
+```
+
+## 3. Test Organization
+
+### Describe Blocks
+
+- **Top Level**: Module or feature name being tested
+- **Second Level**: Group related test cases by functionality
+- **Third Level**: Specific scenarios or edge cases
+
+```javascript
+describe("RoleManager", () => {
+  describe("parseRoleString", () => {
+    test("should parse basic role string", () => {
+      // Test implementation
+    });
+
+    test("should handle edge cases", () => {
+      // Test implementation
+    });
+  });
+
+  describe("validateRole", () => {
+    test("should validate correct role data", () => {
+      // Test implementation
+    });
+  });
+});
+```
+
+### Test Case Naming
+
+Use descriptive test names that clearly indicate the expected behavior:
+
+- ✅ `should parse daily schedule with 24-hour format`
+- ✅ `should handle role assignment errors gracefully`
+- ✅ `should validate user permissions correctly`
+- ❌ `test parsing`
+- ❌ `should work`
+
+## 4. Mocking Strategies
+
+### Environment Variables
+
+- **Don't mock environment variables** - they are set in `tests/setup.js`
+- The setup file provides: `DISCORD_TOKEN`, `CLIENT_ID`, `MONGODB_URI`, `PORT`, `NODE_ENV`
+
+### Module Mocking
+
+- **Minimal mocking approach**: Only mock what's absolutely necessary
+- **Avoid complex mocks**: They often cause module resolution issues
+- **Use dynamic imports**: For modules that import config or other complex dependencies
+
+### Mock Patterns
+
+```javascript
+// Good: Simple function mock
+jest.mock("../../src/utils/logger.js", () => ({
+  getLogger: () => ({
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+  }),
+}));
+
+// Good: Mock with return values
+jest.mock("../../src/utils/storage/storageManager.js", () => ({
+  getStorageManager: jest.fn(() => ({
+    getData: jest.fn().mockResolvedValue({}),
+    setData: jest.fn().mockResolvedValue(true),
+  })),
+}));
+
+// Avoid: Complex mocks that import other modules
+// This often causes module resolution issues
+```
+
+## 5. Test Data and Fixtures
+
+### Test Data Organization
+
+- Use descriptive variable names for test data
+- Group related test cases in arrays when testing multiple scenarios
+- Use realistic test data that matches production patterns
+
+```javascript
+const testCases = [
+  {
+    input: "💻 Coder",
+    expected: [{ emoji: "💻", roleName: "Coder", roleId: null, limit: null }],
+    description: "basic role string",
+  },
+  {
+    input: "🎮:Gamer:20",
+    expected: [{ emoji: "🎮", roleName: "Gamer", roleId: null, limit: 20 }],
+    description: "role string with limit",
+  },
+];
+```
+
+### Mock Objects
+
+Create realistic mock objects that match Discord.js patterns:
+
+```javascript
+const mockGuild = {
+  id: "123456789012345678",
+  name: "Test Guild",
+  roles: {
+    cache: new Map([
+      ["role1", { id: "role1", name: "Developer", color: "#FF0000" }],
+    ]),
+  },
+  members: {
+    cache: new Map([
+      ["member1", { id: "member1", user: { username: "TestUser" } }],
+    ]),
+  },
+};
+```
+
+## 6. Test Lifecycle Management
+
+### Setup and Teardown
+
+```javascript
+describe("Test Suite", () => {
+  let mockData;
+
+  beforeAll(() => {
+    // One-time setup for the entire test suite
+    mockData = createMockData();
+  });
+
+  beforeEach(() => {
+    // Setup before each test
+    jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    // Cleanup after each test
+    jest.clearAllMocks();
+  });
+
+  afterAll(() => {
+    // Cleanup after all tests
+    jest.clearAllTimers();
+    if (global.gc) {
+      global.gc();
+    }
+  });
+});
+```
+
+### Memory Management
+
+- Always clear mocks between tests
+- Use `jest.clearAllTimers()` for timer cleanup
+- Force garbage collection if available
+- Use `timer.unref()` for timers that shouldn't keep the process alive
+
+## 7. Assertion Patterns
+
+### Basic Assertions
+
+```javascript
+// Equality
+expect(result).toBe(expected);
+expect(result).toEqual(expected);
+
+// Type checking
+expect(result).toBeInstanceOf(Date);
+expect(typeof result).toBe("string");
+
+// Array/Collection assertions
+expect(array).toHaveLength(3);
+expect(array).toContain(item);
+expect(array).toEqual(expect.arrayContaining([item1, item2]));
+
+// Object assertions
+expect(object).toHaveProperty("key");
+expect(object).toMatchObject({ key: "value" });
+```
+
+### Async Testing
+
+```javascript
+// Promise resolution
+await expect(asyncFunction()).resolves.toBe(expected);
+
+// Promise rejection
+await expect(asyncFunction()).rejects.toThrow("Error message");
+
+// Async/await pattern
+test("should handle async operations", async () => {
+  const result = await asyncFunction();
+  expect(result).toBe(expected);
+});
+```
+
+## 8. Error Handling Tests
+
+### Error Scenarios
+
+Always test error conditions and edge cases:
+
+```javascript
+test("should handle invalid input gracefully", () => {
+  expect(() => {
+    functionWithValidation("invalid input");
+  }).toThrow("Invalid input provided");
+});
+
+test("should return null for invalid data", () => {
+  const result = parseFunction("invalid");
+  expect(result).toBeNull();
+});
+```
+
+### Network/API Errors
+
+```javascript
+test("should handle API errors gracefully", async () => {
+  const error = new Error("API Error");
+  error.code = 500;
+
+  jest.spyOn(apiClient, "request").mockRejectedValue(error);
+
+  const result = await functionThatCallsAPI();
+  expect(result).toBeNull();
+});
+```
+
+## 9. Performance Testing
+
+### Timing Assertions
+
+```javascript
+test("should complete within acceptable time", async () => {
+  const startTime = Date.now();
+
+  await performOperation();
+
+  const duration = Date.now() - startTime;
+  expect(duration).toBeLessThan(1000); // Less than 1 second
+});
+```
+
+### Memory Usage
+
+```javascript
+test("should not leak memory", () => {
+  const initialMemory = process.memoryUsage().heapUsed;
+
+  // Perform operations that might leak memory
+
+  const finalMemory = process.memoryUsage().heapUsed;
+  expect(finalMemory - initialMemory).toBeLessThan(1024 * 1024); // Less than 1MB
+});
+```
+
+## 10. Integration Test Patterns
+
+### Database Integration
+
+```javascript
+describe("Database Integration", () => {
+  test("should save and retrieve data", async () => {
+    const testData = { id: "test", value: "data" };
+
+    await saveData(testData);
+    const retrieved = await getData("test");
+
+    expect(retrieved).toEqual(testData);
+  });
+});
+```
+
+### API Integration
+
+```javascript
+describe("Discord API Integration", () => {
+  test("should handle role assignment", async () => {
+    const mockMember = createMockMember();
+    const mockRole = createMockRole();
+
+    const result = await assignRole(mockMember, mockRole);
+
+    expect(result).toBe(true);
+    expect(mockMember.roles.add).toHaveBeenCalledWith(mockRole);
+  });
+});
+```
+
+## 11. E2E Test Patterns
+
+### Workflow Testing
+
+```javascript
+describe("Role Management Workflow", () => {
+  test("should complete full role assignment workflow", async () => {
+    // 1. Setup
+    const guild = createMockGuild();
+    const member = createMockMember();
+    const role = createMockRole();
+
+    // 2. Execute workflow
+    await setupRoleChannel(guild);
+    await createRoleMessage(guild, role);
+    await assignRoleToMember(member, role);
+
+    // 3. Verify results
+    expect(member.roles.has(role.id)).toBe(true);
+    expect(guild.channels.cache.has("role-channel")).toBe(true);
+  });
+});
+```
+
+## 12. Common Anti-patterns to Avoid
+
+### ❌ Don't Do This
+
+```javascript
+// Hardcoded environment variables
+process.env.DISCORD_TOKEN = "test-token";
+
+// Complex module mocks that import other modules
+jest.mock("../../src/config/config.js", () => ({
+  // Complex mock that imports other modules
+}));
+
+// Vague test names
+test("works", () => {
+  expect(true).toBe(true);
+});
+
+// Missing cleanup
+test("creates timers", () => {
+  setTimeout(() => {}, 1000);
+  // Timer not cleaned up
+});
+```
+
+### ✅ Do This Instead
+
+```javascript
+// Use setup file for environment variables
+// Environment variables are set in tests/setup.js
+
+// Simple, focused mocks
+jest.mock("../../src/utils/logger.js", () => ({
+  getLogger: () => ({ info: jest.fn() }),
+}));
+
+// Descriptive test names
+test("should parse role string with emoji and name", () => {
+  const result = parseRoleString("💻 Coder");
+  expect(result).toEqual([{ emoji: "💻", roleName: "Coder" }]);
+});
+
+// Proper cleanup
+afterEach(() => {
+  jest.clearAllTimers();
+});
+```
+
+## 13. Test Coverage Guidelines
+
+### What to Test
+
+- **Unit Tests**: Individual functions, edge cases, error conditions
+- **Integration Tests**: Module interactions, database operations, API calls
+- **E2E Tests**: Complete user workflows, critical business logic
+
+### Coverage Targets
+
+- **Unit Tests**: 90%+ line coverage for utility functions
+- **Integration Tests**: Cover all major module interactions
+- **E2E Tests**: Cover critical user workflows
+
+### Test Categories
+
+- **Happy Path**: Normal operation with valid inputs
+- **Edge Cases**: Boundary conditions, empty inputs, maximum values
+- **Error Cases**: Invalid inputs, network failures, permission errors
+- **Performance**: Response times, memory usage, resource cleanup
+
+## 14. Debugging and Maintenance
+
+### Test Debugging
+
+- Use descriptive test names and descriptions
+- Add console.log statements temporarily for debugging
+- Use Jest's `--verbose` flag for detailed output
+- Use `--detectOpenHandles` to find memory leaks
+
+### Test Maintenance
+
+- Keep tests simple and focused
+- Update tests when changing implementation
+- Remove obsolete tests
+- Refactor tests when they become complex
+
+### Documentation
+
+- Add JSDoc comments for complex test utilities
+- Document test data structures
+- Explain complex test scenarios
+- Keep test README updated
+
+## 15. Best Practices Summary
+
+1. **Use the setup file** for environment variables
+2. **Minimize mocking** to avoid module resolution issues
+3. **Use dynamic imports** for problematic modules
+4. **Write descriptive test names** that explain the expected behavior
+5. **Test both success and failure scenarios**
+6. **Clean up resources** properly in afterEach/afterAll
+7. **Use realistic test data** that matches production patterns
+8. **Group related tests** logically with describe blocks
+9. **Avoid complex mocks** that import other modules
+10. **Follow the established patterns** from existing test files
+
+This rule ensures consistent, maintainable, and reliable test coverage across the entire Role Reactor Discord Bot project.

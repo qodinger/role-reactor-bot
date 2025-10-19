@@ -30,12 +30,12 @@ export function createOneTimeScheduleEmbed(result, options) {
       },
       {
         name: "⏱️ Duration",
-        value: options.duration,
+        value: options.duration || "Permanent",
         inline: true,
       },
       {
         name: "👥 Users",
-        value: `${options.users.split(",").length} user(s)`,
+        value: `${options.userIds ? options.userIds.length : options.users.split(",").length} user(s)`,
         inline: true,
       },
       {
@@ -45,7 +45,7 @@ export function createOneTimeScheduleEmbed(result, options) {
       },
       {
         name: "📝 Reason",
-        value: options.reason,
+        value: options.reason || "No reason provided",
         inline: true,
       },
       {
@@ -77,12 +77,12 @@ export function createRecurringScheduleEmbed(result, options, parsedSchedule) {
       },
       {
         name: "⏱️ Duration",
-        value: options.duration,
+        value: options.duration || "Permanent",
         inline: true,
       },
       {
         name: "👥 Users",
-        value: `${options.users.split(",").length} user(s)`,
+        value: `${options.userIds ? options.userIds.length : options.users.split(",").length} user(s)`,
         inline: true,
       },
       {
@@ -92,7 +92,7 @@ export function createRecurringScheduleEmbed(result, options, parsedSchedule) {
       },
       {
         name: "📝 Reason",
-        value: options.reason,
+        value: options.reason || "No reason provided",
         inline: true,
       },
       {
@@ -403,7 +403,7 @@ export function createScheduleUpdateEmbed(data, updateOptions, guild) {
     .setColor(THEME.SUCCESS)
     .setTitle(`${EMOJIS.STATUS.SUCCESS} Schedule Updated Successfully`)
     .setDescription(
-      `Schedule \`${original.scheduleId.substring(0, 8)}...\` has been updated.`,
+      `Schedule \`${formatDisplayId(original.scheduleId)}\` has been updated.`,
     )
     .setTimestamp();
 
@@ -537,7 +537,7 @@ export function createBulkCancelEmbed(data, guild) {
   // Add successful cancellations
   if (results.successful.length > 0) {
     const successfulList = results.successful
-      .map(item => `• \`${item.scheduleId.substring(0, 8)}...\``)
+      .map(item => `• \`${formatDisplayId(item.scheduleId)}\``)
       .join("\n");
 
     embed.addFields({
@@ -553,9 +553,7 @@ export function createBulkCancelEmbed(data, guild) {
   // Add failed cancellations
   if (results.failed.length > 0) {
     const failedList = results.failed
-      .map(
-        item => `• \`${item.scheduleId.substring(0, 8)}...\` - ${item.error}`,
-      )
+      .map(item => `• \`${formatDisplayId(item.scheduleId)}\` - ${item.error}`)
       .join("\n");
 
     embed.addFields({
@@ -571,7 +569,7 @@ export function createBulkCancelEmbed(data, guild) {
   // Add not found schedules
   if (results.notFound.length > 0) {
     const notFoundList = results.notFound
-      .map(id => `• \`${id.substring(0, 8)}...\``)
+      .map(id => `• \`${formatDisplayId(id)}\``)
       .join("\n");
 
     embed.addFields({

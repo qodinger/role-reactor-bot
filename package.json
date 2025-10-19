@@ -89,8 +89,7 @@
     "gradient-string": "^3.0.0",
     "mongodb": "^6.17.0",
     "ora": "^8.2.0",
-    "p-limit": "6.2.0",
-    "uuid": "11.1.0"
+    "p-limit": "6.2.0"
   },
   "devDependencies": {
     "@babel/core": "^7.28.0",

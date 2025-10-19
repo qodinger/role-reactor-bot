@@ -428,74 +428,158 @@ export function parseRecurringSchedule(type, details) {
 }
 
 function parseDailySchedule(details) {
-  const timeMatch = details.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i);
-  if (!timeMatch) return null;
+  // Try 12-hour format first (with AM/PM)
+  let timeMatch = details.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i);
 
-  let hour = parseInt(timeMatch[1]);
-  const minute = timeMatch[2] ? parseInt(timeMatch[2]) : 0;
-  const period = timeMatch[3].toLowerCase();
+  if (timeMatch) {
+    let hour = parseInt(timeMatch[1]);
+    const minute = timeMatch[2] ? parseInt(timeMatch[2]) : 0;
+    const period = timeMatch[3].toLowerCase();
 
-  if (period === "pm" && hour !== 12) hour += 12;
-  if (period === "am" && hour === 12) hour = 0;
+    if (period === "pm" && hour !== 12) hour += 12;
+    if (period === "am" && hour === 12) hour = 0;
 
-  return {
-    type: "daily",
-    hour,
-    minute,
-  };
+    return {
+      type: "daily",
+      hour,
+      minute,
+    };
+  }
+
+  // Try 24-hour format (HH:MM or H:MM)
+  timeMatch = details.match(/^(\d{1,2}):(\d{2})$/);
+  if (timeMatch) {
+    const hour = parseInt(timeMatch[1]);
+    const minute = parseInt(timeMatch[2]);
+
+    // Validate hour and minute ranges
+    if (hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) {
+      return {
+        type: "daily",
+        hour,
+        minute,
+      };
+    }
+  }
+
+  return null;
 }
 
 function parseWeeklySchedule(details) {
-  const dayMatch = details.match(
+  // Try 12-hour format first (with AM/PM)
+  let dayMatch = details.match(
     /(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+(?:at\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i,
   );
-  if (!dayMatch) return null;
 
-  const dayNames = [
-    "sunday",
-    "monday",
-    "tuesday",
-    "wednesday",
-    "thursday",
-    "friday",
-    "saturday",
-  ];
-  const dayOfWeek = dayNames.indexOf(dayMatch[1].toLowerCase());
-  let hour = parseInt(dayMatch[2]);
-  const minute = dayMatch[3] ? parseInt(dayMatch[3]) : 0;
-  const period = dayMatch[4].toLowerCase();
+  if (dayMatch) {
+    const dayNames = [
+      "sunday",
+      "monday",
+      "tuesday",
+      "wednesday",
+      "thursday",
+      "friday",
+      "saturday",
+    ];
+    const dayOfWeek = dayNames.indexOf(dayMatch[1].toLowerCase());
+    let hour = parseInt(dayMatch[2]);
+    const minute = dayMatch[3] ? parseInt(dayMatch[3]) : 0;
+    const period = dayMatch[4].toLowerCase();
 
-  if (period === "pm" && hour !== 12) hour += 12;
-  if (period === "am" && hour === 12) hour = 0;
+    if (period === "pm" && hour !== 12) hour += 12;
+    if (period === "am" && hour === 12) hour = 0;
 
-  return {
-    type: "weekly",
-    dayOfWeek,
-    hour,
-    minute,
-  };
+    return {
+      type: "weekly",
+      dayOfWeek,
+      hour,
+      minute,
+    };
+  }
+
+  // Try 24-hour format (Day HH:MM or Day H:MM)
+  dayMatch = details.match(
+    /(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+(?:at\s+)?(\d{1,2}):(\d{2})$/i,
+  );
+
+  if (dayMatch) {
+    const dayNames = [
+      "sunday",
+      "monday",
+      "tuesday",
+      "wednesday",
+      "thursday",
+      "friday",
+      "saturday",
+    ];
+    const dayOfWeek = dayNames.indexOf(dayMatch[1].toLowerCase());
+    const hour = parseInt(dayMatch[2]);
+    const minute = parseInt(dayMatch[3]);
+
+    // Validate hour and minute ranges
+    if (hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) {
+      return {
+        type: "weekly",
+        dayOfWeek,
+        hour,
+        minute,
+      };
+    }
+  }
+
+  return null;
 }
 
 function parseMonthlySchedule(details) {
-  const monthMatch = details.match(
+  // Try 12-hour format first (with AM/PM)
+  let monthMatch = details.match(
     /(\d{1,2})\s+(?:at\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i,
   );
-  if (!monthMatch) return null;
 
-  const dayOfMonth = parseInt(monthMatch[1]);
-  let hour = parseInt(monthMatch[2]);
-  const minute = monthMatch[3] ? parseInt(monthMatch[3]) : 0;
-  const period = monthMatch[4].toLowerCase();
+  if (monthMatch) {
+    const dayOfMonth = parseInt(monthMatch[1]);
+    let hour = parseInt(monthMatch[2]);
+    const minute = monthMatch[3] ? parseInt(monthMatch[3]) : 0;
+    const period = monthMatch[4].toLowerCase();
 
-  if (period === "pm" && hour !== 12) hour += 12;
-  if (period === "am" && hour === 12) hour = 0;
+    if (period === "pm" && hour !== 12) hour += 12;
+    if (period === "am" && hour === 12) hour = 0;
 
-  return {
-    type: "monthly",
-    dayOfMonth,
-    hour,
-    minute,
-  };
+    return {
+      type: "monthly",
+      dayOfMonth,
+      hour,
+      minute,
+    };
+  }
+
+  // Try 24-hour format (Day HH:MM or Day H:MM)
+  monthMatch = details.match(/(\d{1,2})\s+(?:at\s+)?(\d{1,2}):(\d{2})$/);
+
+  if (monthMatch) {
+    const dayOfMonth = parseInt(monthMatch[1]);
+    const hour = parseInt(monthMatch[2]);
+    const minute = parseInt(monthMatch[3]);
+
+    // Validate ranges
+    if (
+      dayOfMonth >= 1 &&
+      dayOfMonth <= 31 &&
+      hour >= 0 &&
+      hour <= 23 &&
+      minute >= 0 &&
+      minute <= 59
+    ) {
+      return {
+        type: "monthly",
+        dayOfMonth,
+        hour,
+        minute,
+      };
+    }
+  }
+
+  return null;
 }
 
 function parseCustomSchedule(details) {
@@ -517,11 +601,11 @@ export function getScheduleHelpText(type) {
     case "one-time":
       return "For one-time schedules, use formats:\n• Shorthand: `2m`, `5h`, `1d`, `2w`\n• Relative: `in 2 minutes`, `in 1 hour`\n• Absolute: `tomorrow 8am`, `friday 2pm`\n• Keywords: `now`, `tonight`, `morning`\n• Natural: `next tuesday`, `this friday`, `next week`";
     case "daily":
-      return "For daily schedules, use format: `9am`, `2:30pm`, `14:30`\n• 24-hour format: `09:00`, `14:30`\n• 12-hour format: `9am`, `2:30pm`";
+      return "For daily schedules, use time format:\n• 12-hour format: `9am`, `2:30pm`, `12pm`\n• 24-hour format: `09:00`, `14:30`, `23:59`\n• Examples: `9am`, `2:30pm`, `14:30`, `09:00`";
     case "weekly":
-      return "For weekly schedules, use format: `monday 9am`, `friday 6pm`\n• Days: monday, tuesday, wednesday, thursday, friday, saturday, sunday\n• Time: `9am`, `2:30pm`, `14:30`";
+      return "For weekly schedules, use format: `day time`\n• Days: monday, tuesday, wednesday, thursday, friday, saturday, sunday\n• 12-hour format: `monday 9am`, `friday 2:30pm`\n• 24-hour format: `monday 09:00`, `friday 14:30`\n• Examples: `monday 9am`, `friday 6pm`, `wednesday 14:30`";
     case "monthly":
-      return "For monthly schedules, use format: `15 2pm`, `1 9am` (day of month + time)\n• Day: 1-31 (day of month)\n• Time: `9am`, `2:30pm`, `14:30`";
+      return "For monthly schedules, use format: `day time` (day of month + time)\n• Day: 1-31 (day of month)\n• 12-hour format: `15 2pm`, `1 9am`\n• 24-hour format: `15 14:30`, `1 09:00`\n• Examples: `15 2pm`, `1 9am`, `31 14:30`";
     case "custom":
       return "For custom intervals, use minutes: `60` (1 hour), `1440` (1 day)\n• Minimum: 1 minute\n• Maximum: 10080 minutes (1 week)";
     default:

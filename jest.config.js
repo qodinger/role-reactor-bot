@@ -30,8 +30,8 @@ export default {
     "!**/tests/**",
   ],
 
-  // Setup files - temporarily disabled to fix module resolution
-  // setupFilesAfterEnv: ["<rootDir>/tests/setup.js"],
+  // Setup files
+  setupFilesAfterEnv: ["<rootDir>/tests/setup.js"],
 
   // Transform configuration
   transform: {},
@@ -64,8 +64,8 @@ export default {
   // Detect open handles to find leaks
   detectOpenHandles: true,
 
-  // Module name mapping for better resolution
-  moduleNameMapper: {
-    "^(\\.{1,2}/.*)\\.js$": "$1",
-  },
+  // Module name mapping for better resolution - disabled to fix import issues
+  // moduleNameMapper: {
+  //   "^(\\.{1,2}/.*)\\.js$": "$1",
+  // },
 };

@@ -26,8 +26,7 @@ export async function handleScheduleRole(interaction, deferred = false) {
   const logger = getLogger();
 
   try {
-    // Note: Deferral is now skipped for schedule-role commands due to Discord API slowness
-    // This handler works without deferral
+    // Handle schedule role creation with proper deferral support
 
     // Extract and validate options
     const options = extractScheduleOptions(interaction);
@@ -97,7 +96,7 @@ export async function handleScheduleRole(interaction, deferred = false) {
       interaction,
       {
         embeds: [embed],
-        ephemeral: false,
+        flags: 0, // Not ephemeral
       },
       deferred,
     );
@@ -218,7 +217,7 @@ export async function handleView(interaction, deferred = false) {
       interaction,
       {
         embeds: [embed],
-        ephemeral: false,
+        flags: 0, // Not ephemeral
       },
       deferred,
     );

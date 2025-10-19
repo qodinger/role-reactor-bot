@@ -23,7 +23,8 @@ src/utils/
 │   ├── roleValidator.js
 │   ├── security.js
 │   ├── slashCommandOptions.js
-│   ├── temporaryRoles.js
+│   ├── tempRoles.js
+│   ├── scheduleRoles.js
 │   └── version.js
 ├── logger.js
 ├── monitoring/

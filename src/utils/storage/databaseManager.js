@@ -300,16 +300,78 @@ class ConnectionManager {
     }, this.reconnectDelay * this.reconnectAttempts);
   }
 
+  async _dropOldIndexes() {
+    try {
+      this.logger.info("🗑️ Dropping old conflicting indexes...");
+
+      // Drop old id_1 indexes that conflict with scheduleId_1
+      const collections = ["recurring_schedules", "scheduled_roles"];
+
+      for (const collectionName of collections) {
+        try {
+          const collection = this.db.collection(collectionName);
+          const indexes = await collection.listIndexes().toArray();
+
+          for (const index of indexes) {
+            // Drop indexes that use 'id' field instead of 'scheduleId'
+            if (
+              index.name === "id_1" ||
+              (index.key && index.key.id === 1 && !index.key.scheduleId)
+            ) {
+              this.logger.info(
+                `Dropping old index: ${index.name} from ${collectionName}`,
+              );
+              await collection.dropIndex(index.name);
+            }
+          }
+        } catch (error) {
+          // Ignore errors when dropping indexes (they might not exist)
+          this.logger.debug(
+            `No old indexes to drop in ${collectionName}:`,
+            error.message,
+          );
+        }
+      }
+
+      // Drop old temporary_roles indexes that conflict with new multi-user format
+      try {
+        const tempRolesCollection = this.db.collection("temporary_roles");
+        const indexes = await tempRolesCollection.listIndexes().toArray();
+
+        for (const index of indexes) {
+          if (index.name === "guildId_1_userId_1_roleId_1") {
+            this.logger.info(
+              `Dropping old index: ${index.name} from temporary_roles`,
+            );
+            await tempRolesCollection.dropIndex("guildId_1_userId_1_roleId_1");
+          }
+        }
+      } catch (error) {
+        this.logger.debug(
+          "No old temporary_roles indexes to drop:",
+          error.message,
+        );
+      }
+
+      this.logger.info("✅ Old indexes cleanup completed");
+    } catch (error) {
+      this.logger.warn("⚠️ Old index cleanup failed (non-critical)", error);
+    }
+  }
+
   async _createIndexes() {
     try {
       this.logger.info("🔧 Creating database indexes...");
+
+      // Drop old indexes that might conflict
+      await this._dropOldIndexes();
+
       await this.db
         .collection("role_mappings")
         .createIndex({ messageId: 1 }, { unique: true });
       await this.db.collection("temporary_roles").createIndex({ expiresAt: 1 });
-      await this.db
-        .collection("temporary_roles")
-        .createIndex({ guildId: 1, userId: 1, roleId: 1 }, { unique: true });
+      await this.db.collection("temporary_roles").createIndex({ guildId: 1 });
+      await this.db.collection("temporary_roles").createIndex({ roleId: 1 });
       await this.db
         .collection("welcome_settings")
         .createIndex({ guildId: 1 }, { unique: true });
@@ -327,7 +389,7 @@ class ConnectionManager {
       await this.db.collection("core_credits").createIndex({ lastUpdated: 1 });
       await this.db
         .collection("recurring_schedules")
-        .createIndex({ id: 1 }, { unique: true });
+        .createIndex({ scheduleId: 1 }, { unique: true });
       await this.db
         .collection("recurring_schedules")
         .createIndex({ guildId: 1 });
@@ -339,7 +401,7 @@ class ConnectionManager {
         .createIndex({ endDate: 1 });
       await this.db
         .collection("scheduled_roles")
-        .createIndex({ id: 1 }, { unique: true });
+        .createIndex({ scheduleId: 1 }, { unique: true });
       await this.db.collection("scheduled_roles").createIndex({ guildId: 1 });
       await this.db.collection("scheduled_roles").createIndex({ userId: 1 });
       await this.db
@@ -473,11 +535,26 @@ class TemporaryRoleRepository extends BaseRepository {
     const tempRoles = {};
     for (const doc of documents) {
       if (!tempRoles[doc.guildId]) tempRoles[doc.guildId] = {};
-      if (!tempRoles[doc.guildId][doc.userId])
-        tempRoles[doc.guildId][doc.userId] = {};
-      tempRoles[doc.guildId][doc.userId][doc.roleId] = {
-        expiresAt: doc.expiresAt,
-      };
+
+      // Handle new format with userIds array
+      if (doc.userIds && Array.isArray(doc.userIds)) {
+        for (const userId of doc.userIds) {
+          if (!tempRoles[doc.guildId][userId])
+            tempRoles[doc.guildId][userId] = {};
+          tempRoles[doc.guildId][userId][doc.roleId] = {
+            expiresAt: doc.expiresAt,
+            notifyExpiry: doc.notifyExpiry || false,
+          };
+        }
+      } else {
+        // Handle old format with single userId
+        if (!tempRoles[doc.guildId][doc.userId])
+          tempRoles[doc.guildId][doc.userId] = {};
+        tempRoles[doc.guildId][doc.userId][doc.roleId] = {
+          expiresAt: doc.expiresAt,
+          notifyExpiry: doc.notifyExpiry || false,
+        };
+      }
     }
     this.cache.set(cacheKey, tempRoles);
     return tempRoles;
@@ -489,6 +566,20 @@ class TemporaryRoleRepository extends BaseRepository {
       { $set: { expiresAt, notifyExpiry, updatedAt: new Date() } },
       { upsert: true },
     );
+    this.cache.clear();
+  }
+
+  async addMultiple(guildId, userIds, roleId, expiresAt, notifyExpiry = false) {
+    // Create a single document with userIds array for efficiency
+    await this.collection.insertOne({
+      guildId,
+      userIds, // Array of user IDs
+      roleId,
+      expiresAt,
+      notifyExpiry,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
     this.cache.clear();
   }
 

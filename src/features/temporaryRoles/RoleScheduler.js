@@ -3,8 +3,8 @@ import { getStorageManager } from "../../utils/storage/storageManager.js";
 import {
   processScheduledRoles,
   processRecurringSchedules,
-  addTemporaryRole,
-} from "../../utils/discord/temporaryRoles.js";
+} from "../../utils/discord/scheduleRoles.js";
+import { addTemporaryRole } from "../../utils/discord/tempRoles.js";
 
 /**
  * Role Scheduler for handling scheduled and recurring temporary roles
@@ -120,60 +120,11 @@ export class RoleScheduler {
       // Then check for expired recurring schedule roles and update their status
       await this.processExpiredRecurringScheduleRoles();
 
-      // Then clean up expired temporary roles
-      const storageManager = await getStorageManager();
-      const temporaryRoles = await storageManager.getTemporaryRoles();
-      const now = new Date();
-      let expiredCount = 0;
-
-      for (const [guildId, guildRoles] of Object.entries(temporaryRoles)) {
-        for (const [userId, userRoles] of Object.entries(guildRoles)) {
-          for (const [roleId, roleData] of Object.entries(userRoles)) {
-            const expiresAt = new Date(roleData.expiresAt);
-
-            if (expiresAt <= now) {
-              this.logger.info(
-                `🕐 Removing expired temporary role ${roleId} from user ${userId} in guild ${guildId}`,
-              );
-
-              try {
-                // Remove the Discord role
-                const guild = this.client.guilds.cache.get(guildId);
-                if (guild) {
-                  const member = await guild.members.fetch(userId);
-                  const role = guild.roles.cache.get(roleId);
-
-                  if (member && role && member.roles.cache.has(roleId)) {
-                    await member.roles.remove(role, "Temporary role expired");
-                    this.logger.info(
-                      `✅ Removed expired role ${role.name} from user ${userId}`,
-                    );
-                  }
-                }
-
-                // Remove from storage
-                await storageManager.removeTemporaryRole(
-                  guildId,
-                  userId,
-                  roleId,
-                );
-                expiredCount++;
-              } catch (error) {
-                this.logger.error(
-                  `❌ Failed to remove expired role ${roleId} from user ${userId}:`,
-                  error.message,
-                );
-              }
-            }
-          }
-        }
-      }
-
-      if (expiredCount > 0) {
-        this.logger.info(
-          `🧹 Cleaned up ${expiredCount} expired temporary roles`,
-        );
-      }
+      // Note: Expired temporary roles are handled by RoleExpirationScheduler
+      // which includes proper DM notifications for users who set notifyExpiry: true
+      this.logger.debug(
+        "Temporary role expiration handled by RoleExpirationScheduler",
+      );
     } catch (error) {
       this.logger.error("Error processing expired temporary roles:", error);
     }
@@ -531,23 +482,32 @@ export class RoleScheduler {
         `Executing recurring schedule ${scheduleId} for ${userIds.length} users`,
       );
 
-      // Calculate expiration time
-      const durationMs = this.parseDuration(duration);
-      if (!durationMs) {
-        this.logger.error(
-          `Invalid duration for recurring schedule ${scheduleId}: ${duration}`,
+      // Handle permanent vs temporary roles
+      let results;
+      if (duration && duration !== null) {
+        // Calculate expiration time for temporary roles
+        const durationMs = this.parseDuration(duration);
+        if (!durationMs) {
+          this.logger.error(
+            `Invalid duration for recurring schedule ${scheduleId}: ${duration}`,
+          );
+          return;
+        }
+
+        const expiresAt = new Date(Date.now() + durationMs);
+
+        // Assign temporary roles to all users
+        results = await Promise.allSettled(
+          userIds.map(userId =>
+            addTemporaryRole(guildId, userId, roleId, expiresAt, this.client),
+          ),
         );
-        return;
+      } else {
+        // Assign permanent roles to all users
+        results = await Promise.allSettled(
+          userIds.map(userId => this.addPermanentRole(guildId, userId, roleId)),
+        );
       }
-
-      const expiresAt = new Date(Date.now() + durationMs);
-
-      // Assign roles to all users
-      const results = await Promise.allSettled(
-        userIds.map(userId =>
-          addTemporaryRole(guildId, userId, roleId, expiresAt, this.client),
-        ),
-      );
 
       // Process results
       const successful = results.filter(
@@ -576,6 +536,55 @@ export class RoleScheduler {
         `Error executing recurring schedule ${recurringSchedule.scheduleId}:`,
         error,
       );
+    }
+  }
+
+  /**
+   * Add a permanent role to a user
+   * @param {string} guildId
+   * @param {string} userId
+   * @param {string} roleId
+   * @returns {Promise<boolean>}
+   */
+  async addPermanentRole(guildId, userId, roleId) {
+    const logger = this.logger;
+    try {
+      // Get the guild and member
+      const guild = this.client.guilds.cache.get(guildId);
+      if (!guild) {
+        logger.error(
+          `Guild ${guildId} not found for permanent role assignment`,
+        );
+        return false;
+      }
+
+      const member = await guild.members.fetch(userId);
+      if (!member) {
+        logger.error(`Member ${userId} not found in guild ${guildId}`);
+        return false;
+      }
+
+      const role = guild.roles.cache.get(roleId);
+      if (!role) {
+        logger.error(`Role ${roleId} not found in guild ${guildId}`);
+        return false;
+      }
+
+      // Check if user already has the role
+      if (member.roles.cache.has(roleId)) {
+        logger.info(`User ${userId} already has role ${role.name}`);
+        return true; // Consider this a success
+      }
+
+      // Assign the role
+      await member.roles.add(role, "Recurring schedule role assignment");
+      logger.info(
+        `✅ Successfully assigned permanent role ${role.name} to user ${userId}`,
+      );
+      return true;
+    } catch (error) {
+      logger.error(`Failed to assign permanent role to user ${userId}:`, error);
+      return false;
     }
   }
 

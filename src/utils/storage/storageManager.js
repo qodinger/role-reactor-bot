@@ -215,45 +215,6 @@ class DatabaseProvider {
     return this.dbManager.recurringSchedules.getByGuild(guildId);
   }
 
-  async createRecurringSchedule(scheduleData) {
-    try {
-      return await this.dbManager.recurringSchedules.create(scheduleData);
-    } catch (error) {
-      this.logger.error(
-        "Failed to create recurring schedule in database",
-        error,
-      );
-      // Fallback to file storage if database fails
-      if (
-        this.dbManager &&
-        this.dbManager.connectionManager &&
-        !this.dbManager.connectionManager.isConnected
-      ) {
-        this.logger.warn(
-          "Database unavailable, falling back to file storage for recurring schedule",
-        );
-        const fileProvider = new FileProvider(this.logger);
-        const existingData =
-          (await fileProvider.read("recurring_schedules")) || {};
-        existingData[scheduleData.scheduleId] = scheduleData;
-        return await fileProvider.write("recurring_schedules", existingData);
-      }
-      throw error;
-    }
-  }
-
-  async updateRecurringSchedule(scheduleId, scheduleData) {
-    return this.dbManager.recurringSchedules.update(scheduleId, scheduleData);
-  }
-
-  async deleteRecurringSchedule(scheduleId) {
-    return this.dbManager.recurringSchedules.delete(scheduleId);
-  }
-
-  async cleanupExpiredRecurringSchedules() {
-    return this.dbManager.recurringSchedules.cleanupExpired();
-  }
-
   // Scheduled Roles methods
   async getAllScheduledRoles() {
     return this.dbManager.scheduledRoles.getAll();
@@ -309,12 +270,30 @@ class DatabaseProvider {
   async cleanupExpiredScheduledRoles() {
     return this.dbManager.scheduledRoles.cleanupExpired();
   }
+
+  // Recurring Schedules methods
+  async createRecurringSchedule(scheduleData) {
+    return this.dbManager.recurringSchedules.create(scheduleData);
+  }
+
+  async updateRecurringSchedule(scheduleId, scheduleData) {
+    return this.dbManager.recurringSchedules.update(scheduleId, scheduleData);
+  }
+
+  async deleteRecurringSchedule(scheduleId) {
+    return this.dbManager.recurringSchedules.delete(scheduleId);
+  }
+
+  async cleanupExpiredRecurringSchedules() {
+    return this.dbManager.recurringSchedules.cleanupExpired();
+  }
 }
 
 class StorageManager {
   constructor() {
     this.logger = getLogger();
     this.provider = null;
+    this.dbManager = null;
     this.isInitialized = false;
   }
 
@@ -548,6 +527,7 @@ class StorageManager {
     try {
       const dbManager = await getDatabaseManager();
       if (dbManager && dbManager.connectionManager.db) {
+        this.dbManager = dbManager; // Store dbManager for direct access
         this.provider = new DatabaseProvider(dbManager, this.logger);
         this.logger.success("✅ Database storage enabled");
 
@@ -894,6 +874,67 @@ class StorageManager {
     // Fallback to file storage
     const fileProvider = new FileProvider(this.logger);
     return fileProvider.write(key, data);
+  }
+
+  // Recurring Schedules methods
+  async createRecurringSchedule(scheduleData) {
+    if (this.provider instanceof DatabaseProvider) {
+      return await this.provider.createRecurringSchedule(scheduleData);
+    } else {
+      // Use file storage directly
+      const fileProvider = new FileProvider(this.logger);
+      const existingData =
+        (await fileProvider.read("recurring_schedules")) || {};
+      existingData[scheduleData.scheduleId] = scheduleData;
+      return await fileProvider.write("recurring_schedules", existingData);
+    }
+  }
+
+  async updateRecurringSchedule(scheduleId, scheduleData) {
+    if (this.provider instanceof DatabaseProvider) {
+      return await this.provider.updateRecurringSchedule(
+        scheduleId,
+        scheduleData,
+      );
+    } else {
+      // Fallback to file storage
+      const fileProvider = new FileProvider(this.logger);
+      const existingData =
+        (await fileProvider.read("recurring_schedules")) || {};
+      if (existingData[scheduleId]) {
+        existingData[scheduleId] = {
+          ...existingData[scheduleId],
+          ...scheduleData,
+        };
+        return await fileProvider.write("recurring_schedules", existingData);
+      }
+      return false;
+    }
+  }
+
+  async deleteRecurringSchedule(scheduleId) {
+    if (this.provider instanceof DatabaseProvider) {
+      return await this.provider.deleteRecurringSchedule(scheduleId);
+    } else {
+      // Fallback to file storage
+      const fileProvider = new FileProvider(this.logger);
+      const existingData =
+        (await fileProvider.read("recurring_schedules")) || {};
+      if (existingData[scheduleId]) {
+        delete existingData[scheduleId];
+        return await fileProvider.write("recurring_schedules", existingData);
+      }
+      return false;
+    }
+  }
+
+  async cleanupExpiredRecurringSchedules() {
+    if (this.provider instanceof DatabaseProvider) {
+      return await this.provider.cleanupExpiredRecurringSchedules();
+    } else {
+      // Fallback to file storage - no cleanup needed for file storage
+      return true;
+    }
   }
 }
 

@@ -112,44 +112,50 @@ class RoleExpirationScheduler {
     const rolesToCleanup = [];
 
     for (const expiredRole of expiredRoles) {
-      const { userId, roleId } = expiredRole;
+      const { roleId, notifyExpiry } = expiredRole;
 
-      try {
-        const member = await getCachedMember(guild, userId);
-        const role = guild.roles.cache.get(roleId);
+      // Handle both old format (single userId) and new format (userIds array)
+      const userIds = expiredRole.userIds || [expiredRole.userId];
 
-        if (!member) {
-          this.logger.warn(
-            `Member ${userId} not found in guild ${guild.name}, marking for cleanup.`,
+      for (const userId of userIds) {
+        try {
+          const member = await getCachedMember(guild, userId);
+          const role = guild.roles.cache.get(roleId);
+
+          if (!member) {
+            this.logger.warn(
+              `Member ${userId} not found in guild ${guild.name}, marking for cleanup.`,
+            );
+            rolesToCleanup.push({ ...expiredRole, userId });
+            continue;
+          }
+
+          if (!role) {
+            this.logger.warn(
+              `Role ${roleId} not found in guild ${guild.name}, marking for cleanup.`,
+            );
+            rolesToCleanup.push({ ...expiredRole, userId });
+            continue;
+          }
+
+          if (member.roles.cache.has(role.id)) {
+            roleRemovals.push({
+              member,
+              role,
+              notifyExpiry,
+              userId, // Store userId for individual processing
+            });
+          } else {
+            // Role already removed, just clean up database
+            rolesToCleanup.push({ ...expiredRole, userId });
+          }
+        } catch (error) {
+          this.logger.error(
+            `Error processing expired role ${roleId} for user ${userId}:`,
+            error,
           );
-          rolesToCleanup.push(expiredRole);
-          continue;
+          rolesToCleanup.push({ ...expiredRole, userId });
         }
-
-        if (!role) {
-          this.logger.warn(
-            `Role ${roleId} not found in guild ${guild.name}, marking for cleanup.`,
-          );
-          rolesToCleanup.push(expiredRole);
-          continue;
-        }
-
-        if (member.roles.cache.has(role.id)) {
-          roleRemovals.push({
-            member,
-            role,
-            notifyExpiry: expiredRole.notifyExpiry,
-          });
-        } else {
-          // Role already removed, just clean up database
-          rolesToCleanup.push(expiredRole);
-        }
-      } catch (error) {
-        this.logger.error(
-          `Error processing expired role ${roleId} for user ${userId}:`,
-          error,
-        );
-        rolesToCleanup.push(expiredRole);
       }
     }
 
@@ -211,14 +217,58 @@ class RoleExpirationScheduler {
   async cleanupExpiredRolesFromDB(expiredRoles) {
     const databaseManager = await getDatabaseManager();
 
-    // Bulk delete from database
-    const deletePromises = expiredRoles.map(expiredRole =>
-      databaseManager.temporaryRoles.delete(
-        expiredRole.guildId,
-        expiredRole.userId,
-        expiredRole.roleId,
-      ),
-    );
+    // Group roles by document ID to handle both old and new formats
+    const rolesToDelete = new Map();
+
+    for (const expiredRole of expiredRoles) {
+      const key = `${expiredRole.guildId}-${expiredRole.roleId}`;
+
+      if (expiredRole.userIds && Array.isArray(expiredRole.userIds)) {
+        // New format: single document with userIds array
+        if (!rolesToDelete.has(key)) {
+          rolesToDelete.set(key, {
+            guildId: expiredRole.guildId,
+            roleId: expiredRole.roleId,
+            userIds: [...expiredRole.userIds],
+            isNewFormat: true,
+          });
+        }
+      } else {
+        // Old format: individual documents per user
+        if (!rolesToDelete.has(key)) {
+          rolesToDelete.set(key, {
+            guildId: expiredRole.guildId,
+            roleId: expiredRole.roleId,
+            userIds: [],
+            isNewFormat: false,
+          });
+        }
+        rolesToDelete.get(key).userIds.push(expiredRole.userId);
+      }
+    }
+
+    // Delete from database
+    const deletePromises = Array.from(rolesToDelete.values()).map(roleData => {
+      if (roleData.isNewFormat) {
+        // Delete the entire document for new format
+        return databaseManager.temporaryRoles.collection.deleteOne({
+          guildId: roleData.guildId,
+          roleId: roleData.roleId,
+          userIds: { $exists: true },
+        });
+      } else {
+        // Delete individual documents for old format
+        return Promise.all(
+          roleData.userIds.map(userId =>
+            databaseManager.temporaryRoles.delete(
+              roleData.guildId,
+              userId,
+              roleData.roleId,
+            ),
+          ),
+        );
+      }
+    });
 
     try {
       await Promise.all(deletePromises);

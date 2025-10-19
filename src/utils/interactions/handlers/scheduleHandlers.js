@@ -35,7 +35,7 @@ export const handleCancelSchedule = async interaction => {
     // Import required modules
     const { EmbedBuilder } = await import("discord.js");
     const { cancelScheduledRole } = await import(
-      "../../discord/temporaryRoles.js"
+      "../../discord/scheduleRoles.js"
     );
 
     // Cancel the scheduled role
@@ -96,7 +96,7 @@ export const handleViewSchedule = async interaction => {
     // Import required modules
     const { EmbedBuilder } = await import("discord.js");
     const { getScheduledRoles, getRecurringSchedules } = await import(
-      "../../discord/temporaryRoles.js"
+      "../../discord/scheduleRoles.js"
     );
 
     // Get schedule details

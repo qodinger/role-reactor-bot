@@ -13,7 +13,7 @@ import { handleList } from "./list.js";
 
 // Import refactored utility modules
 import { validateInteraction, validateBotMember } from "./validation.js";
-import { sendResponse } from "./deferral.js";
+import { sendResponse, handleDeferral } from "./deferral.js";
 import { handleCommandError } from "./errorHandling.js";
 
 // ============================================================================
@@ -22,15 +22,17 @@ import { handleCommandError } from "./errorHandling.js";
 
 export const data = new SlashCommandBuilder()
   .setName("schedule-role")
-  .setDescription("Schedule a role assignment")
+  .setDescription("Schedule a role assignment - permanent or temporary")
   .addSubcommand(subcommand =>
     subcommand
       .setName("create")
-      .setDescription("Create a new role schedule")
+      .setDescription("Create a new role schedule - permanent or temporary")
       .addStringOption(option =>
         option
           .setName("users")
-          .setDescription("Comma-separated list of user IDs or mentions")
+          .setDescription(
+            "User IDs or mentions separated by comma, semicolon, or space",
+          )
           .setRequired(true),
       )
       .addRoleOption(option =>
@@ -63,8 +65,10 @@ export const data = new SlashCommandBuilder()
       .addStringOption(option =>
         option
           .setName("duration")
-          .setDescription("How long the role should last (e.g., 1h, 2d, 1w)")
-          .setRequired(true),
+          .setDescription(
+            "How long the role should last (e.g., 1h, 2d, 1w) - Leave empty for permanent roles",
+          )
+          .setRequired(false),
       )
       .addStringOption(option =>
         option
@@ -85,7 +89,7 @@ export const data = new SlashCommandBuilder()
       .addStringOption(option =>
         option
           .setName("id")
-          .setDescription("Schedule ID (shortened format like 2802a998...7f7a)")
+          .setDescription("Schedule ID (short format like SRA1B2C3)")
           .setRequired(true),
       ),
   )
@@ -96,7 +100,7 @@ export const data = new SlashCommandBuilder()
       .addStringOption(option =>
         option
           .setName("id")
-          .setDescription("Schedule ID (shortened format like 2802a998...7f7a)")
+          .setDescription("Schedule ID (short format like SRA1B2C3)")
           .setRequired(true),
       ),
   )
@@ -107,9 +111,7 @@ export const data = new SlashCommandBuilder()
       .addStringOption(option =>
         option
           .setName("id")
-          .setDescription(
-            "Schedule ID to update (shortened format like 2802a998...7f7a)",
-          )
+          .setDescription("Schedule ID to update (short format like SRA1B2C3)")
           .setRequired(true),
       )
       .addStringOption(option =>
@@ -170,6 +172,7 @@ export const data = new SlashCommandBuilder()
 
 export async function execute(interaction) {
   const logger = getLogger();
+  let deferResult = { success: false }; // Default value
 
   try {
     if (!interaction.isRepliable()) {
@@ -177,13 +180,30 @@ export async function execute(interaction) {
       return;
     }
 
-    // Note: Deferral is now skipped for schedule-role commands due to Discord API slowness
-    // Commands are handled directly without deferral
-
-    // Validate interaction
+    // Validate interaction first to avoid unnecessary work
     const validation = validateInteraction(interaction);
     if (!validation.success) {
+      logger.warn("Interaction validation failed", {
+        interactionId: interaction.id,
+        error: validation.error,
+      });
       return;
+    }
+
+    // Always defer the interaction to prevent timeout during database operations
+    deferResult = await handleDeferral(interaction);
+    logger.debug("Deferral result", {
+      interactionId: interaction.id,
+      success: deferResult.success,
+      error: deferResult.error,
+      alreadyAcknowledged: deferResult.alreadyAcknowledged,
+    });
+
+    if (!deferResult.success) {
+      logger.warn("Failed to defer interaction, proceeding without deferral", {
+        interactionId: interaction.id,
+        error: deferResult.error,
+      });
     }
 
     // Validate bot member
@@ -192,7 +212,7 @@ export async function execute(interaction) {
       return await sendResponse(
         interaction,
         errorEmbed(botMemberValidation.errorResponse),
-        false, // Not deferred
+        deferResult.deferred || deferResult.success, // Use actual deferral status
       );
     }
 
@@ -200,13 +220,16 @@ export async function execute(interaction) {
     await checkPermissions(interaction);
 
     const subcommand = interaction.options.getSubcommand();
-    await routeSubcommand(interaction, subcommand, false); // Not deferred
+    // Use deferral result for status
+    const isDeferred = deferResult.success && deferResult.deferred;
+
+    await routeSubcommand(interaction, subcommand, isDeferred);
   } catch (error) {
     await handleCommandError(
       interaction,
       error,
       "schedule-role command",
-      false, // Not deferred
+      deferResult?.success || false, // Use actual deferral status
     );
   }
 }

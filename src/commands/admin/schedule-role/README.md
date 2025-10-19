@@ -53,8 +53,8 @@ schedule-role/
 /schedule-role create users:"123,456" role:@Member type:"one-time" schedule:"tomorrow 9am" duration:"2h" reason:"Event access"
 /schedule-role create users:"@User" role:@VIP type:"weekly" schedule:"monday 6pm" duration:"1d"
 /schedule-role list
-/schedule-role view id:2802a998...7f7a
-/schedule-role cancel id:2802a998...7f7a
+/schedule-role view id:SRA1B2C3
+/schedule-role cancel id:RSD4E5F6
 ```
 
 ## Permissions Required

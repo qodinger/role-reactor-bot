@@ -4,6 +4,12 @@
  */
 
 import { jest } from "@jest/globals";
+
+// Environment variables are set in tests/setup.js
+
+// Mocks removed - using setup file for environment variables
+
+// Import mocked modules
 import { getLogger } from "../../src/utils/logger.js";
 import {
   addRoleToUser,
@@ -22,24 +28,7 @@ import {
   validateCommandInputs,
 } from "../../src/utils/discord/inputUtils.js";
 
-// Mock the storage manager to prevent database calls
-jest.mock("../../src/utils/storage/storageManager.js", () => ({
-  getStorageManager: jest.fn(() => ({
-    getTemporaryRoles: jest.fn().mockResolvedValue({}),
-    addTemporaryRole: jest.fn().mockResolvedValue(true),
-    removeTemporaryRole: jest.fn().mockResolvedValue(true),
-    getSupporters: jest.fn().mockResolvedValue({}),
-    setSupporters: jest.fn().mockResolvedValue(true),
-  })),
-}));
-
-// Mock the temporaryRoles module to prevent database calls
-jest.mock("../../src/utils/discord/temporaryRoles.js", () => ({
-  getUserTemporaryRoles: jest.fn().mockResolvedValue([]),
-  addTemporaryRole: jest.fn().mockResolvedValue(true),
-  removeTemporaryRole: jest.fn().mockResolvedValue(true),
-  getTemporaryRoles: jest.fn().mockResolvedValue([]),
-}));
+// All mocks removed - using setup file for environment variables
 
 // Mock functions for testing
 const hasPermission = (member, permission) => {

@@ -79,8 +79,15 @@ export function formatDateTime(date) {
 }
 
 export function formatDisplayId(id) {
-  if (!id || id.length < 16) return id;
-  return `${id.substring(0, 8)}...${id.substring(id.length - 4)}`;
+  if (!id) return "Unknown";
+
+  // If it's a short ID (SRXXXXXX or RSXXXXXX), return as is
+  if (id.match(/^[SR]{2}[A-Za-z0-9]{6}$/)) {
+    return id;
+  }
+
+  // For any other format, return as is (should only be short IDs now)
+  return id;
 }
 
 export function formatStatus(status, scheduleTime = null) {

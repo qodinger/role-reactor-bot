@@ -2,7 +2,7 @@ import { EmbedBuilder } from "discord.js";
 import {
   formatDuration,
   parseDuration,
-} from "../../../utils/discord/temporaryRoles.js";
+} from "../../../utils/discord/tempRoles.js";
 import { THEME, EMOJIS } from "../../../config/theme.js";
 
 /**

@@ -3,7 +3,7 @@ import {
   parseDuration,
   removeTemporaryRole,
   getUserTemporaryRoles,
-} from "../../../utils/discord/temporaryRoles.js";
+} from "../../../utils/discord/tempRoles.js";
 
 // ============================================================================
 // VALIDATION FUNCTIONS
@@ -107,20 +107,30 @@ export async function processUserList(usersString, interaction) {
     return {
       valid: false,
       error: "No users provided.",
-      solution: "Provide user IDs or mentions separated by commas.",
+      solution:
+        "Provide user IDs or mentions separated by commas, semicolons, or spaces.",
     };
   }
 
+  // Split by comma, semicolon, or multiple spaces
   const userList = usersString
-    .split(",")
+    .split(/[,;]|\s{2,}/)
     .map(user => user.trim())
     .filter(user => user.length > 0);
+
+  const logger = getLogger();
+  logger.info("Processing user list", {
+    usersString,
+    userList,
+    userCount: userList.length,
+  });
 
   if (userList.length === 0) {
     return {
       valid: false,
       error: "No valid users found in the provided list.",
-      solution: "Provide user IDs or mentions separated by commas.",
+      solution:
+        "Provide user IDs or mentions separated by commas, semicolons, or spaces.",
     };
   }
 
@@ -130,14 +140,18 @@ export async function processUserList(usersString, interaction) {
   for (const userStr of userList) {
     let userId = null;
 
+    logger.info("Processing user string", { userStr });
+
     // Check if it's a mention (<@123456789>)
     const mentionMatch = userStr.match(/<@!?(\d+)>/);
     if (mentionMatch) {
       userId = mentionMatch[1];
+      logger.info("Found mention", { userStr, userId });
     }
     // Check if it's a plain user ID
     else if (/^\d{17,19}$/.test(userStr)) {
       userId = userStr;
+      logger.info("Found user ID", { userStr, userId });
     }
 
     if (userId) {
@@ -145,13 +159,35 @@ export async function processUserList(usersString, interaction) {
         const user = await interaction.client.users.fetch(userId);
         const member = await interaction.guild.members.fetch(userId);
 
+        logger.info("Successfully fetched user and member", {
+          userId,
+          username: user.username,
+          memberId: member.id,
+        });
+
         if (!validUsers.find(u => u.id === user.id)) {
           validUsers.push({ user, member });
+          logger.info("Added user to valid users", {
+            userId,
+            username: user.username,
+            totalValidUsers: validUsers.length,
+          });
+        } else {
+          logger.info("User already in valid users list", {
+            userId,
+            username: user.username,
+          });
         }
-      } catch (_error) {
+      } catch (error) {
+        logger.info("Failed to fetch user or member", {
+          userStr,
+          userId,
+          error: error.message,
+        });
         invalidUsers.push(userStr);
       }
     } else {
+      logger.info("Invalid user format", { userStr });
       invalidUsers.push(userStr);
     }
   }
@@ -166,13 +202,20 @@ export async function processUserList(usersString, interaction) {
   }
 
   if (invalidUsers.length > 0) {
-    const logger = getLogger();
     logger.warn(
       `Invalid users in temp role assignment: ${invalidUsers.join(", ")}`,
     );
   }
 
-  return { valid: true, validUsers: validUsers.map(v => v.user) };
+  const finalValidUsers = validUsers.map(v => v.user);
+  logger.info("Final user processing result", {
+    totalValidUsers: finalValidUsers.length,
+    validUserIds: finalValidUsers.map(u => u.id),
+    validUsernames: finalValidUsers.map(u => u.username),
+    invalidUsers,
+  });
+
+  return { valid: true, validUsers: finalValidUsers };
 }
 
 /**
