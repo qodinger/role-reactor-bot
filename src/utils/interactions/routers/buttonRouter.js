@@ -99,7 +99,6 @@ export async function routeButtonInteraction(interaction, _client) {
       return;
     }
 
-
     // Route specific button types
     switch (customId) {
       // Welcome system buttons
