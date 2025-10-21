@@ -50,7 +50,6 @@ export function getCommandCategory(commandName) {
   if (
     commandName.includes("role-reactions") ||
     commandName.includes("temp-roles") ||
-    commandName.includes("schedule-role") ||
     commandName.includes("welcome") ||
     commandName.includes("goodbye") ||
     commandName.includes("xp")

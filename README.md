@@ -144,47 +144,6 @@ Assign temporary roles that auto-expire with smart notifications:
 - `1d` - 1 day
 - `1w` - 1 week
 
-### Schedule Role System
-
-Schedule future role assignments with natural language parsing:
-
-**One-time schedules:**
-
-```
-/schedule-role create users:"@username" role:@EventRole type:"one-time" schedule:"tomorrow 9am" duration:"2h" reason:"Event access"
-/schedule-role create users:"@user1, @user2" role:@VIP type:"one-time" schedule:"friday 6pm" duration:"1d"
-```
-
-**Recurring schedules:**
-
-```
-/schedule-role create users:"@username" role:@WeeklyRole type:"weekly" schedule:"monday 9am" duration:"1d"
-/schedule-role create users:"@username" role:@MonthlyRole type:"monthly" schedule:"1st 10am" duration:"2h"
-```
-
-**Manage schedules:**
-
-```
-/schedule-role list
-/schedule-role view id:"2802a998...7f7a"
-/schedule-role cancel id:"2802a998...7f7a"
-```
-
-**Schedule types:**
-
-- `one-time` - Single assignment at specified time
-- `daily` - Every day at specified time
-- `weekly` - Every week on specified day/time
-- `monthly` - Every month on specified day/time
-- `custom` - Custom interval (e.g., every 3 days)
-
-**Natural language examples:**
-
-- `"tomorrow 9am"` - Tomorrow at 9:00 AM
-- `"monday 6pm"` - Next Monday at 6:00 PM
-- `"15 2pm"` - 15th of this month at 2:00 PM
-- `"120"` - In 120 minutes
-
 ### Welcome System
 
 Automatically welcome new members with customizable messages and auto-role assignment:
@@ -287,10 +246,6 @@ The XP system is **disabled by default** and must be enabled by server administr
 | `/temp-roles assign`     | Assign temporary roles (supports bulk)   | Manage Roles  |
 | `/temp-roles list`       | List temporary roles                     | Manage Roles  |
 | `/temp-roles remove`     | Remove temporary roles (supports bulk)   | Manage Roles  |
-| `/schedule-role create`  | Schedule future role assignments         | Manage Roles  |
-| `/schedule-role list`    | List scheduled and recurring roles       | Manage Roles  |
-| `/schedule-role view`    | View details of a specific schedule      | Manage Roles  |
-| `/schedule-role cancel`  | Cancel a scheduled or recurring role     | Manage Roles  |
 | `/welcome setup`         | Configure welcome system                 | Manage Server |
 | `/welcome settings`      | View welcome system settings             | Manage Server |
 | `/goodbye setup`         | Configure goodbye system                 | Manage Server |

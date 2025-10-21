@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Removed
+
+- Schedule Role System: Removed `/schedule-role` command and all related functionality due to low usage and maintenance complexity
+- Schedule Role Database: Removed `scheduled_roles` and `recurring_schedules` collections
+- Schedule Role Background Processing: Removed RoleScheduler and all schedule execution logic
+- Schedule Role Help Documentation: Removed all schedule-role references from help system
+
+### Changed
+
+- Webhook Server: Updated server architecture and default port configuration
+- Core Management: Streamlined credit management with merged verification system
+- Temp-Roles Database: Optimized for multi-user temporary role assignments
+- Help System: Improved command categorization and descriptions
+
+### Fixed
+
+- Database Index Conflicts: Resolved MongoDB duplicate key errors in temp-roles
+- Interaction Stability: Fixed bot stability issues and interaction timeouts
+- Ko-fi Webhook Processing: Resolved webhook processing limitations
+- Member Permission Errors: Fixed permission checking across commands
+- Canvas Dependencies: Resolved Docker build issues
+- Code Quality: Fixed linting and formatting issues
+
 ## [1.2.0] - 2025-10-15
 
 ### Added

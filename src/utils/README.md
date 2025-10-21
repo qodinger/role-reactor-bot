@@ -24,7 +24,6 @@ src/utils/
 │   ├── security.js
 │   ├── slashCommandOptions.js
 │   ├── tempRoles.js
-│   ├── scheduleRoles.js
 │   └── version.js
 ├── logger.js
 ├── monitoring/

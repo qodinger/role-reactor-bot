@@ -1,6 +1,6 @@
 # Help Command Structure
 
-This directory contains the restructured help command that follows the same organizational pattern as the `schedule-role` command.
+This directory contains the restructured help command that follows a modular organizational pattern.
 
 ## File Structure
 

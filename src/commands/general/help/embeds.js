@@ -97,8 +97,6 @@ export class HelpEmbedBuilder {
             `${EMOJIS.NUMBERS.TWO} Members click reactions to get roles instantly`,
             `${EMOJIS.NUMBERS.THREE} Use \`/temp-roles assign\` for time-limited access`,
             `${EMOJIS.NUMBERS.FOUR} Track everything with \`/temp-roles list\``,
-            `${EMOJIS.NUMBERS.FIVE} Schedule roles with \`/schedule-role\` for future events`,
-            `${EMOJIS.NUMBERS.SIX} Create schedules with \`/schedule-role\` (one-time or recurring)`,
           ].join("\n"),
           inline: false,
         },
@@ -543,57 +541,6 @@ export class HelpEmbedBuilder {
             name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
             value:
               "An invite link to add Role Reactor Bot to your server. The link is sent as an ephemeral message, so only you can see it. Share it with others to invite the bot!",
-            inline: false,
-          },
-        );
-        break;
-
-      case "schedule-role":
-        embed.addFields(
-          {
-            name: `${EMOJIS.ACTIONS.VIEW} 📋 How to Use`,
-            value:
-              '```/schedule-role create users:@user1,@user2 role:@RoleName type:one-time schedule:"tomorrow 9am" duration:2h```\n```/schedule-role list```',
-            inline: false,
-          },
-          {
-            name: `${EMOJIS.UI.MENU} 📝 What You Need`,
-            value: [
-              "**create** - Create a new role schedule",
-              "**list** - View all active scheduled and recurring roles",
-              "**users** - Comma-separated list of users (@mentions or IDs)",
-              "**role** - The role to assign",
-              "**type** - One-time, daily, weekly, monthly, or custom interval",
-              "**schedule** - When to assign (format depends on type)",
-              "**duration** - How long the role should last",
-              "**reason** - Optional reason for the assignment",
-            ].join("\n"),
-            inline: false,
-          },
-          {
-            name: `${EMOJIS.FEATURES.SECURITY} 🔐 Permissions`,
-            value: "• **Manage Roles** permission required",
-            inline: false,
-          },
-          {
-            name: `${EMOJIS.STATUS.INFO} 👀 Schedule Types`,
-            value: [
-              '**One-time:** "tomorrow 9am", "in 2 hours", "2024-01-15 14:30"',
-              "**Daily:** '9am', '2:30pm', '14:30'",
-              "**Weekly:** 'monday 9am', 'friday 6pm'",
-              "**Monthly:** '15 2pm', '1 9am' (day of month + time)",
-              "**Custom:** '60' (every 60 minutes), '1440' (every 24 hours)",
-            ].join("\n"),
-            inline: false,
-          },
-          {
-            name: `${EMOJIS.STATUS.INFO} 💡 Quick Examples`,
-            value: [
-              "```/schedule-role create users:@user1,@user2 role:@MeetingRole type:one-time schedule:tomorrow 2pm duration:3h```",
-              "```/schedule-role create users:@user1,@user2 role:@WeeklyRole type:weekly schedule:monday 9am duration:8h```",
-              "```/schedule-role create users:@user1,@user2 role:@DailyRole type:daily schedule:6pm duration:12h```",
-              "```/schedule-role list```",
-            ].join("\n"),
             inline: false,
           },
         );

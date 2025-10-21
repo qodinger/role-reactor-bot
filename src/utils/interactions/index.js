@@ -21,7 +21,6 @@ export {
 // Export handlers for direct use if needed
 export * from "./handlers/welcomeHandlers.js";
 export * from "./handlers/xpHandlers.js";
-export * from "./handlers/scheduleHandlers.js";
 export * from "./handlers/leaderboardHandlers.js";
 export * from "./handlers/sponsorHandlers.js";
 export * from "./handlers/helpHandlers.js";

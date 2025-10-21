@@ -99,23 +99,6 @@ export async function routeButtonInteraction(interaction, _client) {
       return;
     }
 
-    if (
-      customId.startsWith("cancel_schedule_") ||
-      customId.startsWith("view_schedule_") ||
-      customId.startsWith("modify_schedule_")
-    ) {
-      const { handleCancelSchedule, handleViewSchedule, handleModifySchedule } =
-        await import("../handlers/scheduleHandlers.js");
-
-      if (customId.startsWith("cancel_schedule_")) {
-        await handleCancelSchedule(interaction);
-      } else if (customId.startsWith("view_schedule_")) {
-        await handleViewSchedule(interaction);
-      } else if (customId.startsWith("modify_schedule_")) {
-        await handleModifySchedule(interaction);
-      }
-      return;
-    }
 
     // Route specific button types
     switch (customId) {

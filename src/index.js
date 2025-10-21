@@ -29,7 +29,6 @@ import config from "./config/config.js";
 import { getStorageManager } from "./utils/storage/storageManager.js";
 import { getPerformanceMonitor } from "./utils/monitoring/performanceMonitor.js";
 import { getLogger } from "./utils/logger.js";
-import { RoleScheduler } from "./features/temporaryRoles/RoleScheduler.js";
 import { getScheduler as getRoleExpirationScheduler } from "./features/temporaryRoles/RoleExpirationScheduler.js";
 // PollScheduler disabled - using native Discord polls only
 // import { PollScheduler } from "./features/polls/PollScheduler.js";
@@ -192,9 +191,6 @@ async function gracefulShutdown(client) {
     // Health server is now part of the unified API server
 
     // Stop schedulers
-    if (global.roleScheduler) {
-      global.roleScheduler.stop();
-    }
 
     if (global.tempRoleScheduler) {
       global.tempRoleScheduler.stop();
@@ -560,10 +556,7 @@ async function main() {
         // Continue bot operation even if webhook server fails
       }
 
-      // Start background services
-      const scheduler = new RoleScheduler(client);
-      global.roleScheduler = scheduler; // Store globally for shutdown
-      scheduler.start();
+      // Background services (RoleScheduler removed - schedule-role feature discontinued)
 
       // Start automatic cleanup for generation history
       import("./commands/general/avatar/utils/generationHistory.js").then(

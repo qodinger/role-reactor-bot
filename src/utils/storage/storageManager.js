@@ -201,92 +201,6 @@ class DatabaseProvider {
   async deleteCoreCredits(userId) {
     return this.dbManager.coreCredits.deleteByUserId(userId);
   }
-
-  // Recurring Schedules methods
-  async getAllRecurringSchedules() {
-    return this.dbManager.recurringSchedules.getAll();
-  }
-
-  async getRecurringScheduleById(scheduleId) {
-    return this.dbManager.recurringSchedules.getById(scheduleId);
-  }
-
-  async getRecurringSchedulesByGuild(guildId) {
-    return this.dbManager.recurringSchedules.getByGuild(guildId);
-  }
-
-  // Scheduled Roles methods
-  async getAllScheduledRoles() {
-    return this.dbManager.scheduledRoles.getAll();
-  }
-
-  async getScheduledRoleById(scheduleId) {
-    return this.dbManager.scheduledRoles.getById(scheduleId);
-  }
-
-  async getScheduledRolesByGuild(guildId) {
-    return this.dbManager.scheduledRoles.getByGuild(guildId);
-  }
-
-  async getScheduledRolesByUser(guildId, userId) {
-    return this.dbManager.scheduledRoles.getByUser(guildId, userId);
-  }
-
-  async createScheduledRole(scheduledRoleData) {
-    try {
-      return await this.dbManager.scheduledRoles.create(scheduledRoleData);
-    } catch (error) {
-      this.logger.error("Failed to create scheduled role in database", error);
-      // Fallback to file storage if database fails
-      if (
-        this.dbManager &&
-        this.dbManager.connectionManager &&
-        !this.dbManager.connectionManager.isConnected
-      ) {
-        this.logger.warn(
-          "Database unavailable, falling back to file storage for scheduled role",
-        );
-        const fileProvider = new FileProvider(this.logger);
-        const existingData = (await fileProvider.read("scheduled_roles")) || {};
-        existingData[scheduledRoleData.scheduleId] = scheduledRoleData;
-        return await fileProvider.write("scheduled_roles", existingData);
-      }
-      throw error;
-    }
-  }
-
-  async updateScheduledRole(scheduleId, scheduledRoleData) {
-    return this.dbManager.scheduledRoles.update(scheduleId, scheduledRoleData);
-  }
-
-  async deleteScheduledRole(scheduleId) {
-    return this.dbManager.scheduledRoles.delete(scheduleId);
-  }
-
-  async getUpcomingScheduledRoles(limit = 10) {
-    return this.dbManager.scheduledRoles.getUpcoming(limit);
-  }
-
-  async cleanupExpiredScheduledRoles() {
-    return this.dbManager.scheduledRoles.cleanupExpired();
-  }
-
-  // Recurring Schedules methods
-  async createRecurringSchedule(scheduleData) {
-    return this.dbManager.recurringSchedules.create(scheduleData);
-  }
-
-  async updateRecurringSchedule(scheduleId, scheduleData) {
-    return this.dbManager.recurringSchedules.update(scheduleId, scheduleData);
-  }
-
-  async deleteRecurringSchedule(scheduleId) {
-    return this.dbManager.recurringSchedules.delete(scheduleId);
-  }
-
-  async cleanupExpiredRecurringSchedules() {
-    return this.dbManager.recurringSchedules.cleanupExpired();
-  }
 }
 
 class StorageManager {
@@ -780,14 +694,6 @@ class StorageManager {
 
         return allCoreCredits;
       }
-      // Use database for recurring_schedules collection
-      if (collection === "recurring_schedules") {
-        return await this.provider.getAllRecurringSchedules();
-      }
-      // Use database for scheduled_roles collection
-      if (collection === "scheduled_roles") {
-        return await this.provider.getAllScheduledRoles();
-      }
       // For other collections, use file-based storage
       const fileProvider = new FileProvider(this.logger);
       return await fileProvider.read(collection);
@@ -828,26 +734,6 @@ class StorageManager {
         await this.updateJsonBackup(data);
         return true;
       }
-      // Use database for recurring_schedules collection
-      if (collection === "recurring_schedules") {
-        // Update all recurring schedules in database
-        for (const [, scheduleData] of Object.entries(data)) {
-          // eslint-disable-next-line no-unused-vars
-          const { _id, ...cleanScheduleData } = scheduleData;
-          await this.provider.createRecurringSchedule(cleanScheduleData);
-        }
-        return true;
-      }
-      // Use database for scheduled_roles collection
-      if (collection === "scheduled_roles") {
-        // Update all scheduled roles in database
-        for (const [, scheduledRoleData] of Object.entries(data)) {
-          // eslint-disable-next-line no-unused-vars
-          const { _id, ...cleanScheduledRoleData } = scheduledRoleData;
-          await this.provider.createScheduledRole(cleanScheduledRoleData);
-        }
-        return true;
-      }
       // For other collections, use file-based storage
       const fileProvider = new FileProvider(this.logger);
       return await fileProvider.write(collection, data);
@@ -874,67 +760,6 @@ class StorageManager {
     // Fallback to file storage
     const fileProvider = new FileProvider(this.logger);
     return fileProvider.write(key, data);
-  }
-
-  // Recurring Schedules methods
-  async createRecurringSchedule(scheduleData) {
-    if (this.provider instanceof DatabaseProvider) {
-      return await this.provider.createRecurringSchedule(scheduleData);
-    } else {
-      // Use file storage directly
-      const fileProvider = new FileProvider(this.logger);
-      const existingData =
-        (await fileProvider.read("recurring_schedules")) || {};
-      existingData[scheduleData.scheduleId] = scheduleData;
-      return await fileProvider.write("recurring_schedules", existingData);
-    }
-  }
-
-  async updateRecurringSchedule(scheduleId, scheduleData) {
-    if (this.provider instanceof DatabaseProvider) {
-      return await this.provider.updateRecurringSchedule(
-        scheduleId,
-        scheduleData,
-      );
-    } else {
-      // Fallback to file storage
-      const fileProvider = new FileProvider(this.logger);
-      const existingData =
-        (await fileProvider.read("recurring_schedules")) || {};
-      if (existingData[scheduleId]) {
-        existingData[scheduleId] = {
-          ...existingData[scheduleId],
-          ...scheduleData,
-        };
-        return await fileProvider.write("recurring_schedules", existingData);
-      }
-      return false;
-    }
-  }
-
-  async deleteRecurringSchedule(scheduleId) {
-    if (this.provider instanceof DatabaseProvider) {
-      return await this.provider.deleteRecurringSchedule(scheduleId);
-    } else {
-      // Fallback to file storage
-      const fileProvider = new FileProvider(this.logger);
-      const existingData =
-        (await fileProvider.read("recurring_schedules")) || {};
-      if (existingData[scheduleId]) {
-        delete existingData[scheduleId];
-        return await fileProvider.write("recurring_schedules", existingData);
-      }
-      return false;
-    }
-  }
-
-  async cleanupExpiredRecurringSchedules() {
-    if (this.provider instanceof DatabaseProvider) {
-      return await this.provider.cleanupExpiredRecurringSchedules();
-    } else {
-      // Fallback to file storage - no cleanup needed for file storage
-      return true;
-    }
   }
 }
 
