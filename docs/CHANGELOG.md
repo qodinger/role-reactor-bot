@@ -21,12 +21,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- XP Command Interface: Simplified XP command from `/xp setup` and `/xp settings` subcommands to single `/xp` command with interactive button configuration
 - Role-Reactions Color System: Updated color options with cyberpunk-themed colors and improved consistency
 - Core Management: Merged `/verify` command into `/core-management` for streamlined credit management
 - Webhook Server: Updated server architecture and default port configuration
 
 ### Fixed
 
+- XP Button Navigation: Fixed "back_to_settings" button error that occurred after XP command simplification
 - Welcome System Embeds: Redesigned welcome embeds and resolved interaction errors for better user experience
 - Goodbye System Embeds: Redesigned goodbye embeds and resolved interaction errors for improved functionality
 - Database Index Conflicts: Resolved MongoDB duplicate key errors in temp-roles
