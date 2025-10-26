@@ -1,5 +1,4 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
-import { EMOJIS } from "../../../config/theme.js";
 import config from "../../../config/config.js";
 
 /**
@@ -18,7 +17,6 @@ export function createSupportButtons() {
       new ButtonBuilder()
         .setLabel("Support Server")
         .setURL(links.support)
-        .setEmoji(EMOJIS.ACTIONS.SUPPORT)
         .setStyle(ButtonStyle.Link),
     );
   }
@@ -29,7 +27,6 @@ export function createSupportButtons() {
       new ButtonBuilder()
         .setLabel("GitHub Repository")
         .setURL(links.github)
-        .setEmoji(EMOJIS.ACTIONS.LINK)
         .setStyle(ButtonStyle.Link),
     );
   }

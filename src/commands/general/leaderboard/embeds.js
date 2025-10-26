@@ -1,5 +1,5 @@
 import { EmbedBuilder } from "discord.js";
-import { THEME_COLOR, EMOJIS } from "../../../config/theme.js";
+import { THEME_COLOR } from "../../../config/theme.js";
 
 /**
  * Create the leaderboard embed
@@ -17,7 +17,7 @@ export function createLeaderboardEmbed(
 ) {
   const embed = new EmbedBuilder()
     .setColor(THEME_COLOR)
-    .setTitle(`${EMOJIS.FEATURES.EXPERIENCE} ${getLeaderboardTitle(type)}`)
+    .setTitle(getLeaderboardTitle(type))
     .setDescription(`Top ${limit} users in ${interaction.guild.name}`)
     .setTimestamp();
 
@@ -37,7 +37,7 @@ export function createLeaderboardEmbed(
 
   embed.addFields([
     {
-      name: `${EMOJIS.UI.TROPHY} Rankings`,
+      name: "Rankings",
       value: leaderboardText || "No data available",
       inline: false,
     },
@@ -46,7 +46,7 @@ export function createLeaderboardEmbed(
   // Add footer with additional info
   const totalUsers = leaderboardData.length;
   embed.setFooter({
-    text: `${EMOJIS.FEATURES.EXPERIENCE} Showing ${totalUsers} users • Use /leaderboard to see more`,
+    text: `Showing ${totalUsers} users • Use /leaderboard to see more`,
     iconURL: interaction.guild.iconURL(),
   });
 

@@ -2,51 +2,68 @@
 
 ## Overview
 
-The `/sponsor` command provides information about supporting the bot's development to help keep it free and running for everyone.
+The Sponsor command provides information about supporting the bot's development to help keep it free and running for everyone.
 
-## Structure
+## File Structure
 
-- **`index.js`**: Main command definition and execution flow
-- **`handlers.js`**: Core command logic and response handling
-- **`embeds.js`**: Discord embed creation for sponsor information
-- **`components.js`**: Interactive button component for sponsor link
-- **`utils.js`**: Utility functions and helper methods
-- **`README.md`**: This documentation file
+```
+sponsor/
+├── index.js              # Command definition and entry point
+├── handlers.js           # Main command handlers and response processing
+├── embeds.js             # Discord embed creation for sponsor information
+├── components.js         # Interactive components (button for sponsor link)
+├── utils.js              # Utility functions and helper methods
+└── README.md             # This documentation
+```
 
-## Features
+## Architecture
 
-- **Development Support Information**: Explains why support is needed to keep the bot free
-- **Support Options**: Shows how to contribute to bot development
-- **Interactive Button**: Direct link to sponsor page
-- **Professional Presentation**: Clean, informative embed design
-- **User Attribution**: Shows who requested the sponsor information
+Following the modular pattern established by other commands:
 
-## Usage
+- **`index.js`**: Command definition and main execution flow
+- **`handlers.js`**: Core business logic and interaction processing
+- **`embeds.js`**: Discord embed creation and formatting with simple, official styling
+- **`components.js`**: Interactive UI components (button for external sponsor link)
+- **`utils.js`**: Helper functions and utility methods
 
-```bash
+## Usage Examples
+
+```
 /sponsor
 ```
 
-## Response
+## Permissions Required
 
-The command returns a comprehensive embed showing:
+- None (public command)
+- All users can access
 
-- Why support is needed to keep the bot free
-- How to support the bot development
-- Information about donation options
-- Interactive button for sponsor page
-- Professional presentation with clear development goals
+## Key Features
 
-## Permissions
+- Development support information explaining why support is needed
+- Clear information about donation options and contribution methods
+- Interactive button for direct access to sponsor page
+- Simple and official design with clean, professional presentation
+- User attribution and timestamp
 
-- **Required**: None (public command)
-- **Default**: All users can access
+## Why Support?
 
-## Technical Details
+- **Development** - Support new features and improvements
+- **Maintenance** - Keep servers running and updated
+- **Bug Fixes** - Ensure the bot stays reliable
+- **Keep It Free** - Help maintain the bot's free services
+- **Innovation** - Enable new ideas and capabilities
 
-- Uses Discord.js EmbedBuilder for rich formatting
-- Implements proper error handling and logging
-- Follows consistent embed design patterns
-- Includes user attribution and timestamp
-- Interactive button for external link (sponsor page)
-- Dynamic button generation based on available external links
+## How to Support
+
+- **Any Amount** - Give what you can afford
+- **One-Time or Regular** - Donate once or set up recurring
+- **No Pressure** - Support only if you want to
+- **Every Bit Helps** - Even small donations make a difference
+- **No Commitment** - Cancel anytime
+
+## Dependencies
+
+- Discord.js
+- Theme configuration for colors and styling
+- External links configuration
+- UI components for consistent design

@@ -1,47 +1,78 @@
 # Leaderboard Command
 
-A command to display server experience leaderboards with interactive time filters.
+## Overview
 
-## Structure
+The Leaderboard command displays server experience leaderboards with different ranking types to help users see who are the most active members in the server.
 
-- `index.js` - Main command definition and exports
-- `handlers.js` - Core command logic and experience data handling
-- `embeds.js` - Discord embed creation and leaderboard display
-- `components.js` - Interactive button components for time filters
-- `utils.js` - Helper functions for formatting and validation
-- `README.md` - This documentation file
-
-## Features
-
-- **Experience Leaderboard**: Shows top 10 most active members
-- **Time Filters**: All Time, Daily, Weekly, and Monthly views
-- **Interactive Buttons**: Easy switching between time periods
-- **Medal System**: Gold, Silver, Bronze medals for top 3
-- **XP Display**: Formatted experience points with proper localization
-
-## Usage
+## File Structure
 
 ```
-/leaderboard [timeframe]
+leaderboard/
+├── index.js              # Command definition and entry point
+├── handlers.js           # Main command handlers and experience data handling
+├── embeds.js             # Discord embed creation and leaderboard display
+├── components.js         # Interactive button components for time filters
+├── utils.js              # Helper functions for formatting and validation
+└── README.md             # This documentation
 ```
 
-- `timeframe` (optional): Choose between "all", "daily", "weekly", or "monthly"
-- Defaults to "all time" if no timeframe specified
+## Architecture
 
-## Timeframe Options
+Following the modular pattern established by other commands:
 
-- **🏆 All Time**: Complete server experience history
-- **📅 Daily**: Today's experience gains
-- **📊 Weekly**: This week's experience gains
-- **📈 Monthly**: This month's experience gains
+- **`index.js`**: Command definition and main execution flow
+- **`handlers.js`**: Core business logic and experience data handling
+- **`embeds.js`**: Discord embed creation and formatting with simple, official styling
+- **`components.js`**: Interactive UI components (buttons for time filters)
+- **`utils.js`**: Helper functions for formatting and validation
 
-## Leaderboard Display
+## Usage Examples
 
-- **Top 10 Members**: Shows the most active users
-- **Medal System**: 🥇🥈🥉 for top 3, numbers for others
-- **XP Formatting**: Large numbers properly formatted with commas
-- **User Mentions**: Clickable user references
-- **Server Context**: Shows guild name in footer
+```
+/leaderboard [limit] [type]
+```
+
+- `limit` (optional): Number of users to show (1-25, default: 10)
+- `type` (optional): Choose from xp, level, messages, voice (default: xp)
+
+## Permissions Required
+
+- None (public command)
+- All users can access
+
+## Key Features
+
+- Multiple leaderboard types (XP, Level, Messages, Voice Time)
+- Configurable display limit (1-25 users)
+- Clean ranking display with position indicators
+- Simple and official design with professional presentation
+- Interactive time filter buttons for different periods
+
+## Leaderboard Types
+
+### XP Leaderboard (Default)
+
+- Shows users ranked by total experience points
+- Displays XP amount and calculated level
+- Most comprehensive ranking system
+
+### Level Leaderboard
+
+- Shows users ranked by their current level
+- Focuses on level achievement rather than raw XP
+- Clean level-based ranking
+
+### Messages Leaderboard
+
+- Shows users ranked by total messages sent
+- Displays message count with proper formatting
+- Activity-based ranking
+
+### Voice Time Leaderboard
+
+- Shows users ranked by voice channel time
+- Displays time in hours and minutes format
+- Voice activity tracking
 
 ## Interactive Elements
 
@@ -49,10 +80,9 @@ A command to display server experience leaderboards with interactive time filter
 - **Active State**: Current timeframe button highlighted
 - **User-Specific**: Each user gets their own button set
 
-## Technical Details
+## Dependencies
 
-- Uses Discord.js SlashCommandBuilder
-- Integrates with ExperienceManager for data
-- Implements proper error handling
-- Follows the modular command structure pattern
-- Supports dynamic timeframe switching
+- Discord.js
+- Theme configuration for colors and styling
+- ExperienceManager for data handling
+- Utility functions for calculations and formatting

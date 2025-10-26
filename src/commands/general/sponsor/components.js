@@ -1,5 +1,4 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
-import { EMOJIS } from "../../../config/theme.js";
 import config from "../../../config/config.js";
 
 /**
@@ -18,7 +17,6 @@ export function createSponsorButtons() {
       new ButtonBuilder()
         .setLabel("Become a Sponsor")
         .setURL(links.sponsor)
-        .setEmoji(EMOJIS.ACTIONS.HEART)
         .setStyle(ButtonStyle.Link),
     );
   }

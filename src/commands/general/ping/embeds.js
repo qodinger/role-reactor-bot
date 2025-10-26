@@ -1,5 +1,5 @@
 import { EmbedBuilder } from "discord.js";
-import { EMOJIS, THEME, UI_COMPONENTS } from "../../../config/theme.js";
+import { THEME, UI_COMPONENTS } from "../../../config/theme.js";
 import { getLatencyIndicator } from "./utils.js";
 
 export function createPingEmbed(
@@ -15,21 +15,21 @@ export function createPingEmbed(
 ) {
   const embed = new EmbedBuilder()
     .setColor(statusColor)
-    .setTitle(`${EMOJIS.ACTIONS.QUICK} Bot Status Check`)
+    .setTitle("Bot Status Check")
     .setDescription(`**${statusEmoji} ${statusDescription}**`)
     .addFields(
       {
-        name: `${EMOJIS.STATUS.LOADING} Discord API Latency`,
+        name: "Discord API Latency",
         value: `\`${apiLatency}ms\` ${getLatencyIndicator(apiLatency)}`,
         inline: true,
       },
       {
-        name: `${EMOJIS.ACTIONS.QUICK} Response Time`,
+        name: "Response Time",
         value: `\`${latency}ms\` ${getLatencyIndicator(latency)}`,
         inline: true,
       },
       {
-        name: `${EMOJIS.STATUS.ONLINE} Bot Uptime`,
+        name: "Bot Uptime",
         value: `\`${uptimeString}\``,
         inline: true,
       },
@@ -45,7 +45,7 @@ export function createPingEmbed(
   // Add helpful tips based on status
   if (apiLatency >= 400) {
     embed.addFields({
-      name: `${EMOJIS.STATUS.WARNING} Tips for Better Performance`,
+      name: "Tips for Better Performance",
       value: [
         "• **Check your internet connection** - Try refreshing Discord",
         "• **Use a wired connection** - Wi-Fi can cause delays",
@@ -56,7 +56,7 @@ export function createPingEmbed(
     });
   } else if (apiLatency >= 200) {
     embed.addFields({
-      name: `${EMOJIS.STATUS.INFO} Performance Tips`,
+      name: "Performance Tips",
       value: [
         "• Your connection is working fine",
         "• Consider using a wired connection for better performance",
@@ -66,16 +66,16 @@ export function createPingEmbed(
     });
   } else {
     embed.addFields({
-      name: `${EMOJIS.STATUS.SUCCESS} Great Performance!`,
+      name: "Great Performance!",
       value:
-        "Your connection is excellent! Everything should be working smoothly. 🎉",
+        "Your connection is excellent! Everything should be working smoothly.",
       inline: false,
     });
   }
 
   // Add server information
   embed.addFields({
-    name: `${EMOJIS.FEATURES.ROLES} Server Info`,
+    name: "Server Info",
     value: [
       `**Servers**: ${client.guilds.cache.size} servers`,
       `**Users**: ${client.users.cache.size} users`,
@@ -90,7 +90,7 @@ export function createPingEmbed(
 export function createErrorEmbed(user) {
   return new EmbedBuilder()
     .setColor(THEME.ERROR)
-    .setTitle(`${EMOJIS.STATUS.ERROR} Connection Check Failed`)
+    .setTitle("Connection Check Failed")
     .setDescription(
       "Sorry! I couldn't check the connection status right now.\n\n" +
         "This might be due to:\n" +

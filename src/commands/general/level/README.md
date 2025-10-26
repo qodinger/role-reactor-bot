@@ -1,25 +1,30 @@
 # Level Command
 
-A command to display user level profiles with detailed experience information and progress tracking.
+## Overview
 
-## Structure
+The Level command displays user level profiles with detailed experience information and progress tracking to help users understand their XP status and activity.
 
-- `index.js` - Main command definition and exports
-- `handlers.js` - Core command logic and experience data handling
-- `embeds.js` - Discord embed creation and level profile display
-- `utils.js` - Helper functions for calculations and rank determination
-- `README.md` - This documentation file
+## File Structure
 
-## Features
+```
+level/
+├── index.js              # Command definition and entry point
+├── handlers.js           # Main command handlers and experience data handling
+├── embeds.js             # Discord embed creation and level profile display
+├── utils.js              # Helper functions for calculations and rank determination
+└── README.md             # This documentation
+```
 
-- **Level Profile**: Comprehensive user level information
-- **Progress Tracking**: Visual progress bar and XP breakdown
-- **Rank System**: Dynamic rank titles based on level
-- **Server Ranking**: Position in server experience leaderboard
-- **Activity Statistics**: Messages, commands, and roles earned
-- **XP Breakdown**: Detailed explanation of XP sources
+## Architecture
 
-## Usage
+Following the modular pattern established by other commands:
+
+- **`index.js`**: Command definition and main execution flow
+- **`handlers.js`**: Core business logic and experience data handling
+- **`embeds.js`**: Discord embed creation and formatting with simple, official styling
+- **`utils.js`**: Helper functions for calculations and rank determination
+
+## Usage Examples
 
 ```
 /level [user]
@@ -28,14 +33,50 @@ A command to display user level profiles with detailed experience information an
 - `user` (optional): The user whose level to check
 - If no user specified, shows your own level profile
 
+## Permissions Required
+
+- None (public command)
+- All users can access
+
+## Key Features
+
+- Comprehensive user level information and progress tracking
+- Visual progress bar and XP breakdown display
+- Dynamic rank titles based on level achievement
+- Server ranking position in experience leaderboard
+- Simple and official design with clean, professional presentation
+
 ## Rank System
 
-- **🥇 Legend** (Level 50+): Crown emoji, Gold color
-- **⭐ Veteran** (Level 30+): Star emoji, Orange color
-- **🚀 Experienced** (Level 20+): Rocket emoji, Purple color
-- **🎭 Regular** (Level 10+): Roles emoji, Blue color
-- **🚀 Active** (Level 5+): Rocket emoji, Red color
-- **⭐ Newcomer** (Level 1-4): Star emoji, Green color
+### Legend (Level 50+)
+
+- **Color**: Gold
+- **Description**: Highest achievement level
+
+### Veteran (Level 30+)
+
+- **Color**: Orange
+- **Description**: Experienced community member
+
+### Experienced (Level 20+)
+
+- **Color**: Purple
+- **Description**: Active community participant
+
+### Regular (Level 10+)
+
+- **Color**: Blue
+- **Description**: Regular server member
+
+### Active (Level 5+)
+
+- **Color**: Red
+- **Description**: Active newcomer
+
+### Newcomer (Level 1-4)
+
+- **Color**: Green
+- **Description**: New to the server
 
 ## Profile Information
 
@@ -51,29 +92,21 @@ A command to display user level profiles with detailed experience information an
 ### Progress Bar
 
 - Visual representation of level progress
-- 20-character bar with filled and empty blocks
+- 15-character bar with filled and empty blocks
 - Percentage completion display
-
-### Activity Statistics
-
-- **Messages Sent**: Total messages in server
-- **Commands Used**: Commands executed
-- **Roles Earned**: Roles obtained through reactions
-- **Server Rank**: Position in experience leaderboard
+- Configurable width for different display preferences
 
 ### XP Breakdown
 
-- **Message XP**: 15-25 XP per message (60s cooldown) - _Configurable_
-- **Command XP**: 8 XP per command (30s cooldown) - _Configurable, applies to all commands_
-- **Role XP**: 50 XP per role assignment - _Configurable_
+- **Message XP**: 15-25 XP per message (60s cooldown) - Configurable
+- **Command XP**: 8 XP per command (30s cooldown) - Configurable, applies to all commands
+- **Role XP**: 50 XP per role assignment - Configurable
 
-_XP amounts are dynamically pulled from the server's XP settings configuration._
+XP amounts are dynamically pulled from the server's XP settings configuration.
 
-## Technical Details
+## Dependencies
 
-- Uses Discord.js SlashCommandBuilder
-- Integrates with ExperienceManager for data
-- Implements proper error handling
-- Follows the modular command structure pattern
-- Supports preAwardXP for real-time XP updates
-- Dynamic color and emoji selection based on level
+- Discord.js
+- Theme configuration for colors and styling
+- ExperienceManager for data handling
+- Utility functions for calculations and formatting
