@@ -9,8 +9,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Comprehensive Test Coverage: Added unit tests for role-reactions, goodbye, and welcome command functionality
-- Role-Reactions Color System: Enhanced color options with cyberpunk-themed colors and improved consistency
 - Temp-Roles Removal Notifications: Added `notify` option to `/temp-roles remove` command to send DM notifications to users when their roles are manually removed
 - Temp-Roles Notification System: Comprehensive notification system with removal details including who removed the role, reason, and timestamp
 
@@ -23,10 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Role-Reactions Color System: Updated color options with cyberpunk-themed colors and improved consistency
+- Core Management: Merged `/verify` command into `/core-management` for streamlined credit management
 - Webhook Server: Updated server architecture and default port configuration
-- Core Management: Streamlined credit management with merged verification system
-- Temp-Roles Database: Optimized for multi-user temporary role assignments
-- Help System: Improved command categorization and descriptions
 
 ### Fixed
 
@@ -37,7 +34,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Ko-fi Webhook Processing: Resolved webhook processing limitations
 - Member Permission Errors: Fixed permission checking across commands
 - Canvas Dependencies: Resolved Docker build issues
-- Code Quality: Fixed linting and formatting issues
 
 ## [1.2.0] - 2025-10-15
 
