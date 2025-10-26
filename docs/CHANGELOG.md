@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Temp-Roles Removal Notifications: Added `notify` option to `/temp-roles remove` command to send DM notifications to users when their roles are manually removed
+- Temp-Roles Notification System: Comprehensive notification system with removal details including who removed the role, reason, and timestamp
+
 ### Removed
 
 - Schedule Role System: Removed `/schedule-role` command and all related functionality due to low usage and maintenance complexity
