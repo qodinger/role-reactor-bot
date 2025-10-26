@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Comprehensive Test Coverage: Added unit tests for role-reactions, goodbye, and welcome command functionality
+- Role-Reactions Color System: Enhanced color options with cyberpunk-themed colors and improved consistency
 - Temp-Roles Removal Notifications: Added `notify` option to `/temp-roles remove` command to send DM notifications to users when their roles are manually removed
 - Temp-Roles Notification System: Comprehensive notification system with removal details including who removed the role, reason, and timestamp
 
@@ -28,6 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Welcome System Embeds: Redesigned welcome embeds and resolved interaction errors for better user experience
+- Goodbye System Embeds: Redesigned goodbye embeds and resolved interaction errors for improved functionality
 - Database Index Conflicts: Resolved MongoDB duplicate key errors in temp-roles
 - Interaction Stability: Fixed bot stability issues and interaction timeouts
 - Ko-fi Webhook Processing: Resolved webhook processing limitations
