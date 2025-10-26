@@ -302,7 +302,7 @@ export class HelpEmbedBuilder {
         embed.addFields(
           {
             name: `${EMOJIS.FEATURES.FUN} 🎱 How to Use`,
-            value: '```/8ball question:"Will I succeed in my career?"```',
+            value: "```/8ball question:Will I succeed in my career?```",
             inline: false,
           },
           {
@@ -330,19 +330,20 @@ export class HelpEmbedBuilder {
         embed.addFields(
           {
             name: `${EMOJIS.FEATURES.USER} 🖼️ How to Use`,
-            value: "```/avatar [user:@username]```",
+            value:
+              "```/avatar prompt:cyberpunk hacker with neon hair color_style:vibrant```",
             inline: false,
           },
           {
             name: `${EMOJIS.UI.MENU} 📝 What You Need`,
             value:
-              "**user** *(optional)* - Check a specific member's avatar (leave empty to see your own)",
+              "**prompt** *(required)* - Describe the avatar you want to generate (e.g., 'cyberpunk hacker with neon hair')\n**color_style** *(optional)* - Choose a color palette (vibrant, pastel, monochrome, neon, warm, cool)\n**mood** *(optional)* - Choose the character's mood (happy, serious, mysterious, cute, cool, elegant)",
             inline: false,
           },
           {
             name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
             value:
-              "High-quality avatar images with download buttons for both regular and animated versions. Great for sharing profile pictures!",
+              "A unique AI-generated anime-style avatar based on your description, with download options and generation details. Uses advanced AI to create custom avatars tailored to your specifications!",
             inline: false,
           },
         );
@@ -550,29 +551,13 @@ export class HelpEmbedBuilder {
         embed.addFields(
           {
             name: `${EMOJIS.FEATURES.EXPERIENCE} 📊 How to Use`,
-            value: [
-              "```/xp setup enabled:true message-xp:true command-xp:true role-xp:true voice-xp:true```",
-              "```/xp settings```",
-            ].join("\n"),
+            value: "```/xp```",
             inline: false,
           },
           {
-            name: `${EMOJIS.UI.MENU} 📝 Subcommands`,
-            value: [
-              "**setup** - Configure the XP system with various options",
-              "**settings** - View and manage the XP system settings",
-            ].join("\n"),
-            inline: false,
-          },
-          {
-            name: `${EMOJIS.UI.MENU} 📝 Setup Options`,
-            value: [
-              "**enabled** *(optional)* - Enable or disable the XP system",
-              "**message-xp** *(optional)* - Enable XP for sending messages",
-              "**command-xp** *(optional)* - Enable XP for using commands",
-              "**role-xp** *(optional)* - Enable XP for role assignments",
-              "**voice-xp** *(optional)* - Enable XP for voice chat participation",
-            ].join("\n"),
+            name: `${EMOJIS.UI.MENU} 📝 What You Need`,
+            value:
+              "No parameters needed - just run the command to access the XP system settings!",
             inline: false,
           },
           {
@@ -583,11 +568,11 @@ export class HelpEmbedBuilder {
           {
             name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
             value: [
-              "Current XP system status with interactive buttons to:",
+              "Interactive XP system management interface with buttons to:",
               "• Toggle the entire XP system on/off",
               "• Enable/disable message XP, command XP, role XP, and voice XP individually",
               "• View current XP amounts, cooldowns, and settings",
-              "• Access configuration help",
+              "• Access configuration help and reset options",
             ].join("\n"),
             inline: false,
           },
@@ -643,7 +628,7 @@ export class HelpEmbedBuilder {
           {
             name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
             value:
-              "Detailed level information including current XP, progress to next level, messages sent, commands used, voice time, and roles earned. Perfect for tracking your growth!",
+              "Detailed level information including current XP, progress to next level, and rank. Perfect for tracking your growth and comparing with other members!",
             inline: false,
           },
         );
@@ -717,7 +702,7 @@ export class HelpEmbedBuilder {
           {
             name: `${EMOJIS.FEATURES.WELCOME} 🎉 How to Use`,
             value: [
-              '```/welcome setup channel:#welcome message:"Welcome {user} to {server}! 🎉" auto-role:@Member enabled:true```',
+              "```/welcome setup channel:#welcome message:Welcome {user} to {server}! 🎉 auto-role:@Member enabled:true```",
               "```/welcome settings```",
             ].join("\n"),
             inline: false,
@@ -749,7 +734,7 @@ export class HelpEmbedBuilder {
           {
             name: `${EMOJIS.FEATURES.WELCOME} 👋 How to Use`,
             value: [
-              '```/goodbye setup channel:#general message:"**{user}** left the server\\nThanks for being part of **{server}**! 👋" enabled:true```',
+              "```/goodbye setup channel:#general message:**{user}** left the server! Thanks for being part of **{server}**! 👋 enabled:true```",
               "```/goodbye settings```",
             ].join("\n"),
             inline: false,
@@ -780,19 +765,14 @@ export class HelpEmbedBuilder {
         embed.addFields(
           {
             name: `${EMOJIS.ACTIONS.HEART} 💎 How to Use`,
-            value: [
-              "```/core check```",
-              "```/core purchase amount:5```",
-              "```/core transfer user:@friend amount:2```",
-            ].join("\n"),
+            value: ["```/core balance```", "```/core pricing```"].join("\n"),
             inline: false,
           },
           {
             name: `${EMOJIS.UI.MENU} 📝 Subcommands`,
             value: [
-              "**check** - View your current Core balance and tier",
-              "**purchase** - Buy Core credits for avatar generation",
-              "**transfer** - Send Core credits to other users",
+              "**balance** - View your current Core balance and tier status",
+              "**pricing** - View Core pricing, membership benefits, and donation options",
             ].join("\n"),
             inline: false,
           },
@@ -877,40 +857,6 @@ export class HelpEmbedBuilder {
             name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
             value:
               "Complete Core credit and tier management system for developers to add, remove, set, and monitor user Core balances and membership tiers across the entire bot!",
-            inline: false,
-          },
-        );
-        break;
-
-      case "verify":
-        embed.addFields(
-          {
-            name: `${EMOJIS.STATUS.SUCCESS} ✅ How to Use`,
-            value: [
-              "```/verify donation user:@username amount:5.00 ko-fi-url:https://ko-fi.com/s/abc123 notes:Monthly supporter```",
-              "```/verify subscription user:@username ko-fi-url:https://ko-fi.com/s/def456 notes:Premium subscriber```",
-              "```/verify manual user:@username credits:50 notes:Special event compensation```",
-            ].join("\n"),
-            inline: false,
-          },
-          {
-            name: `${EMOJIS.UI.MENU} 📝 Subcommands`,
-            value: [
-              "**donation** - Verify a Ko-fi donation and grant Core credits",
-              "**subscription** - Verify a Ko-fi subscription and grant Core membership",
-              "**manual** - Manually add Core credits without Ko-fi verification",
-            ].join("\n"),
-            inline: false,
-          },
-          {
-            name: `${EMOJIS.FEATURES.SECURITY} 🔐 Permissions`,
-            value: "• **Developer** access required",
-            inline: false,
-          },
-          {
-            name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
-            value:
-              "Manual verification system for Ko-fi donations and subscriptions, with automatic Core credit assignment and comprehensive transaction tracking for developers!",
             inline: false,
           },
         );

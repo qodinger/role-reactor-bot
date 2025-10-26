@@ -48,11 +48,11 @@ export function create8BallEmbed(question, selectedResponse, category, user) {
 
   return new EmbedBuilder()
     .setColor(embedColor)
-    .setTitle(`${EMOJIS.EIGHTBALL.BALL} Magic 8-Ball`)
+    .setTitle(`Magic 8-Ball`)
     .setDescription(`*${description}*`)
     .addFields([
       {
-        name: `${EMOJIS.EIGHTBALL.ENIGMA} Your Question`,
+        name: `Your Question`,
         value: `*"${question}"*`,
         inline: false,
       },
@@ -68,23 +68,23 @@ export function create8BallEmbed(question, selectedResponse, category, user) {
     })
     .setTimestamp()
     .setAuthor({
-      name: `${EMOJIS.EIGHTBALL.MAGIC} Mystical Oracle`,
+      name: `Mystical Oracle`,
     });
 }
 
 export function createErrorEmbed() {
   return new EmbedBuilder()
     .setColor(THEME.ERROR) // Soft coral
-    .setTitle(`${EMOJIS.EIGHTBALL.BALL} Magic 8-Ball Error`)
+    .setTitle(`Magic 8-Ball Error`)
     .setDescription("*The cosmic forces are temporarily unavailable...*")
     .addFields([
       {
-        name: `${EMOJIS.EIGHTBALL.VERY_NEGATIVE} What Happened?`,
+        name: `What Happened?`,
         value: "The mystical energies are disrupted. Please try again later.",
         inline: false,
       },
       {
-        name: `${EMOJIS.EIGHTBALL.MAGIC} Oracle Status`,
+        name: `Oracle Status`,
         value: "The 8-ball needs a moment to realign with the universe.",
         inline: false,
       },
