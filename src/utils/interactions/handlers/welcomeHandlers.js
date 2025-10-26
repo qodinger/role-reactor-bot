@@ -13,7 +13,7 @@ import {
   processWelcomeMessage,
   createWelcomeEmbed,
 } from "../../discord/welcomeUtils.js";
-import { THEME, THEME_COLOR, EMOJIS } from "../../../config/theme.js";
+import { THEME, EMOJIS } from "../../../config/theme.js";
 
 /**
  * Handle welcome configure button interaction
@@ -121,13 +121,17 @@ export async function handleWelcomeConfigureMessage(interaction) {
       `Error in handleWelcomeConfigureMessage: ${error.message}`,
       error,
     );
-    await interaction.reply(
-      errorEmbed({
-        title: "Configuration Error",
-        description:
-          "An error occurred while opening the welcome message configuration.",
-      }),
-    );
+    // Only reply if we haven't already replied
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.reply(
+        errorEmbed({
+          title: "Configuration Error",
+          description:
+            "An error occurred while opening the welcome message configuration.",
+        }),
+        { flags: MessageFlags.Ephemeral },
+      );
+    }
   }
 }
 
@@ -168,7 +172,7 @@ export async function handleWelcomeSelectChannel(interaction) {
       title: `${EMOJIS.ACTIONS.WRITING} Select Welcome Channel`,
       description:
         "Choose where to send welcome messages for new members joining your server.",
-      color: THEME_COLOR,
+      color: THEME.PRIMARY,
       fields: [
         {
           name: `${EMOJIS.ACTIONS.INSTRUCTIONS} What This Does`,
@@ -330,7 +334,7 @@ export async function handleWelcomeReset(interaction) {
       channelId: null,
       message: `Welcome **{user}** to **{server}**! ${EMOJIS.ACTIONS.WELCOME}`,
       embedEnabled: true,
-      embedColor: THEME_COLOR,
+      embedColor: THEME.PRIMARY,
       embedTitle: `${EMOJIS.ACTIONS.WAVE} Welcome to {server}!`,
       embedDescription: "Thanks for joining our community!",
       embedThumbnail: true,
@@ -528,18 +532,18 @@ export async function handleWelcomeTest(interaction) {
     // Create direct link to the sent message if available
     let messageLink = "";
     if (sentMessage) {
-      messageLink = `\n\n${EMOJIS.ACTIONS.LINK} [**View Test Message**](${sentMessage.url})`;
+      messageLink = `\n\n[**View Test Message**](${sentMessage.url})`;
     }
 
     await interaction.editReply({
       embeds: [
         {
-          title: `${EMOJIS.ACTIONS.TEST_RESULTS} Welcome System Test Results`,
+          title: "Welcome System Test Results",
           description: `Test completed in ${welcomeChannel.toString()}${messageLink}\n\n${testResults.join("\n")}`,
           color: THEME.SUCCESS,
           fields: [
             {
-              name: `${EMOJIS.ACTIONS.TEST_DETAILS} Test Details`,
+              name: "Test Details",
               value: `**Format:** ${settings.embedEnabled ? "Embed" : "Text"}\n**Channel:** ${welcomeChannel.toString()}\n**Message:** ${settings.message || "Default message"}`,
               inline: false,
             },
@@ -846,7 +850,7 @@ export async function handleWelcomeConfigureRole(interaction) {
       title: "Configure Welcome Auto-Role",
       description:
         "Select a role from the dropdown below to automatically assign to new members, or use the 'Clear Auto-Role' button to remove the current one.",
-      color: THEME_COLOR,
+      color: THEME.PRIMARY,
       fields: [
         {
           name: "Select Role",
