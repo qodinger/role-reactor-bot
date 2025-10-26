@@ -51,12 +51,12 @@ export function createGoodbyeConfigPageEmbed(
     : null;
 
   return {
-    title: `${EMOJIS.ACTIONS.SETTINGS} Configure Goodbye System`,
-    description: "Set up your goodbye message and channel in one place.",
+    title: "Goodbye Configuration",
+    description: "Configure your goodbye system settings",
     color: THEME.PRIMARY,
     fields: [
       {
-        name: `${EMOJIS.UI.MENU} Current Settings`,
+        name: "Current Settings",
         value: [
           `**Channel:** ${currentChannel ? currentChannel.toString() : "Not set"}`,
           `**Message:** ${currentSettings.message ? "Custom message set" : "Using default"}`,
@@ -65,17 +65,17 @@ export function createGoodbyeConfigPageEmbed(
         inline: false,
       },
       {
-        name: `${EMOJIS.ACTIONS.SETTINGS} Configuration Options`,
+        name: "Configuration Options",
         value: [
-          `• ${EMOJIS.UI.CHANNELS} **Select Channel** - Choose where goodbye messages are sent`,
-          `• ${EMOJIS.ACTIONS.EDIT} **Configure Message** - Customize the goodbye message content`,
-          `• ${EMOJIS.ACTIONS.DELETE} **Reset** - Reset all goodbye system settings to defaults`,
+          `• **Select Channel** - Choose where goodbye messages are sent`,
+          `• **Configure Message** - Customize the goodbye message content`,
+          `• **Reset** - Reset all goodbye system settings to defaults`,
         ].join("\n"),
         inline: false,
       },
     ],
     footer: {
-      text: "Configure your goodbye system step by step",
+      text: "Role Reactor • Goodbye System",
     },
   };
 }

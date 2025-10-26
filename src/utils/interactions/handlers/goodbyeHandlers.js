@@ -9,7 +9,7 @@ import { getLogger } from "../../logger.js";
 import { getDatabaseManager } from "../../storage/databaseManager.js";
 import { errorEmbed } from "../../discord/responseMessages.js";
 import { hasAdminPermissions } from "../../discord/permissions.js";
-import { EMOJIS, THEME_COLOR } from "../../../config/theme.js";
+import { EMOJIS, THEME } from "../../../config/theme.js";
 import { createGoodbyeSettingsEmbed } from "../../../commands/admin/goodbye/embeds.js";
 import { createGoodbyeSettingsComponents } from "../../../commands/admin/goodbye/components.js";
 import {
@@ -94,14 +94,9 @@ export async function handleGoodbyeConfigureMessage(interaction) {
   const logger = getLogger();
 
   try {
-    // Defer the interaction immediately to prevent timeout
-    if (!interaction.replied && !interaction.deferred) {
-      await interaction.deferUpdate();
-    }
-
-    // Check permissions
+    // Check permissions first before any interaction handling
     if (!hasAdminPermissions(interaction.member)) {
-      return interaction.editReply({
+      return interaction.reply({
         embeds: [
           errorEmbed({
             title: "Permission Denied",
@@ -110,6 +105,7 @@ export async function handleGoodbyeConfigureMessage(interaction) {
             solution: "Contact a server administrator for assistance.",
           }),
         ],
+        flags: 64,
       });
     }
 
@@ -134,13 +130,22 @@ export async function handleGoodbyeConfigureMessage(interaction) {
       "Error displaying goodbye message configuration modal:",
       error,
     );
-    await interaction.reply(
-      errorEmbed({
-        title: "Error",
-        description: "Failed to display goodbye message configuration modal.",
-        solution: "Please try again or contact support if the issue persists.",
-      }),
-    );
+
+    // Only reply if we haven't already replied
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.reply({
+        embeds: [
+          errorEmbed({
+            title: "Error",
+            description:
+              "Failed to display goodbye message configuration modal.",
+            solution:
+              "Please try again or contact support if the issue persists.",
+          }),
+        ],
+        flags: 64,
+      });
+    }
   }
 }
 
@@ -188,7 +193,7 @@ export async function handleGoodbyeSelectChannel(interaction) {
       title: "Select a channel for goodbye messages",
       description:
         "Choose where goodbye messages will be sent when members leave your server.",
-      color: THEME_COLOR,
+      color: THEME.PRIMARY,
       fields: [
         {
           name: `${EMOJIS.ACTIONS.INSTRUCTIONS} Instructions`,
@@ -251,13 +256,20 @@ export async function handleGoodbyeSelectChannel(interaction) {
   } catch (error) {
     logger.error("Error displaying channel configuration:", error);
 
-    await interaction.reply(
-      errorEmbed({
-        title: "Error",
-        description: "Failed to display channel configuration.",
-        solution: "Please try again or contact support if the issue persists.",
-      }),
-    );
+    // Only reply if we haven't already replied
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.reply({
+        embeds: [
+          errorEmbed({
+            title: "Error",
+            description: "Failed to display channel configuration.",
+            solution:
+              "Please try again or contact support if the issue persists.",
+          }),
+        ],
+        flags: 64,
+      });
+    }
   }
 }
 
@@ -282,7 +294,7 @@ export async function handleGoodbyeReset(interaction) {
       );
     }
 
-    await interaction.deferUpdate();
+    await interaction.deferReply({ ephemeral: true });
 
     const dbManager = await getDatabaseManager();
 
@@ -293,7 +305,7 @@ export async function handleGoodbyeReset(interaction) {
       channelId: null,
       message: `**{user}** left the server\nThanks for being part of **{server}**! ${EMOJIS.ACTIONS.WAVE}`,
       embedEnabled: true,
-      embedColor: THEME_COLOR,
+      embedColor: THEME.PRIMARY,
       embedTitle: `${EMOJIS.ACTIONS.GOODBYE} Goodbye from {server}!`,
       embedDescription: "Thanks for being part of our community!",
       embedThumbnail: true,
@@ -602,18 +614,18 @@ export async function handleGoodbyeTest(interaction) {
     // Create direct link to the sent message if available
     let messageLink = "";
     if (sentMessage) {
-      messageLink = `\n\n${EMOJIS.ACTIONS.LINK} [**View Test Message**](${sentMessage.url})`;
+      messageLink = `\n\n[**View Test Message**](${sentMessage.url})`;
     }
 
     await interaction.editReply({
       embeds: [
         {
-          title: `${EMOJIS.ACTIONS.GOODBYE} Goodbye System Test Results`,
+          title: "Goodbye System Test Results",
           description: `Test completed in ${goodbyeChannel.toString()}${messageLink}\n\n**Message Test:** ${messageResult}`,
-          color: THEME_COLOR,
+          color: THEME.SUCCESS,
           fields: [
             {
-              name: `${EMOJIS.ACTIONS.TEST_DETAILS} Test Details`,
+              name: "Test Details",
               value: `**Format:** ${settings.embedEnabled ? "Embed" : "Text"}\n**Channel:** ${goodbyeChannel.toString()}\n**Message:** ${settings.message || "Default message"}`,
               inline: false,
             },

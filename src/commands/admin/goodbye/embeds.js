@@ -1,5 +1,5 @@
 import { EmbedBuilder } from "discord.js";
-import { THEME_COLOR, EMOJIS } from "../../../config/theme.js";
+import { THEME, EMOJIS } from "../../../config/theme.js";
 
 /**
  * Create goodbye settings embed
@@ -14,51 +14,60 @@ export function createGoodbyeSettingsEmbed(
   goodbyeChannel,
 ) {
   const embed = new EmbedBuilder()
-    .setTitle(`${EMOJIS.FEATURES.ROLES} Goodbye System Settings`)
+    .setTitle("Goodbye System")
     .setDescription(
-      `Current goodbye system configuration for **${interaction.guild.name}**`,
+      `Configure goodbye messages for **${interaction.guild.name}**`,
     )
-    .setColor(THEME_COLOR)
+    .setColor(THEME.PRIMARY)
     .setTimestamp()
     .setFooter({
       text: "Role Reactor • Goodbye System",
       iconURL: interaction.client.user.displayAvatarURL(),
     });
 
-  // Add configuration fields
+  // Configuration fields
   embed.addFields([
     {
-      name: `${EMOJIS.STATUS.SUCCESS} Status`,
+      name: "Status",
       value: settings.enabled
-        ? `${EMOJIS.STATUS.SUCCESS} **Enabled**`
-        : `${EMOJIS.STATUS.ERROR} **Disabled**`,
+        ? `${EMOJIS.STATUS.SUCCESS} Enabled`
+        : `${EMOJIS.STATUS.ERROR} Disabled`,
       inline: true,
     },
     {
-      name: `${EMOJIS.UI.CHANNELS} Channel`,
+      name: "Channel",
       value: goodbyeChannel
         ? `${goodbyeChannel}`
-        : `${EMOJIS.STATUS.ERROR} **Not Set**`,
+        : `${EMOJIS.STATUS.ERROR} Not Set`,
       inline: true,
     },
     {
-      name: `${EMOJIS.ACTIONS.EDIT} Format`,
+      name: "Format",
       value: settings.embedEnabled
-        ? `${EMOJIS.UI.MENU} **Embed**`
-        : `${EMOJIS.UI.MESSAGE} **Text**`,
+        ? `${EMOJIS.UI.MENU} Embed`
+        : `${EMOJIS.UI.MESSAGE} Text`,
       inline: true,
-    },
-    {
-      name: `${EMOJIS.UI.MESSAGE} Message`,
-      value: settings.message || "No custom message set",
-      inline: false,
     },
   ]);
 
-  // Add placeholder information
+  // Message field
+  if (settings.message) {
+    embed.addFields([
+      {
+        name: "Message",
+        value:
+          settings.message.length > 1000
+            ? `${settings.message.substring(0, 1000)}...`
+            : settings.message,
+        inline: false,
+      },
+    ]);
+  }
+
+  // Placeholders information
   embed.addFields([
     {
-      name: `${EMOJIS.UI.INFO} Available Placeholders`,
+      name: "Available Placeholders",
       value: [
         "`{user}` - Mentions the user who left",
         "`{user.name}` - Username of the user who left",

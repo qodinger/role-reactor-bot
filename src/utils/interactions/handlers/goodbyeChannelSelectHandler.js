@@ -25,19 +25,20 @@ export async function handleGoodbyeChannelSelect(interaction) {
       );
     }
 
+    await interaction.deferUpdate();
+
     const selectedChannelId = interaction.values[0];
     const selectedChannel =
       interaction.guild.channels.cache.get(selectedChannelId);
 
     if (!selectedChannel) {
-      return interaction.reply(
+      return interaction.editReply(
         errorEmbed({
           title: "Channel Not Found",
           description:
             "The selected channel no longer exists or is not accessible.",
           solution: "Please try selecting a different channel.",
         }),
-        { flags: MessageFlags.Ephemeral },
       );
     }
 
@@ -69,10 +70,9 @@ export async function handleGoodbyeChannelSelect(interaction) {
       updatedSettings,
     );
 
-    await interaction.reply({
+    await interaction.editReply({
       embeds: [embed],
       components,
-      flags: MessageFlags.Ephemeral,
     });
 
     logger.info(
