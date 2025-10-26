@@ -9,7 +9,6 @@ import { getDynamicHelpData } from "./data.js";
 import { EMOJIS } from "../../../config/theme.js";
 import config from "../../../config/config.js";
 import { getLogger } from "../../../utils/logger.js";
-import { getDefaultInviteLink } from "../../../utils/discord/invite.js";
 
 /**
  * Builder class for creating help UI components
@@ -102,7 +101,7 @@ export class ComponentBuilder {
 
       return new StringSelectMenuBuilder()
         .setCustomId("help_category_select")
-        .setPlaceholder(`${EMOJIS.ACTIONS.SEARCH} Choose a command category...`)
+        .setPlaceholder(`Choose a command category...`)
         .addOptions(options);
     } catch (error) {
       const logger = getLogger();
@@ -110,7 +109,7 @@ export class ComponentBuilder {
       // Fallback to basic menu
       return new StringSelectMenuBuilder()
         .setCustomId("help_category_select")
-        .setPlaceholder(`${EMOJIS.ACTIONS.SEARCH} Choose a command category...`)
+        .setPlaceholder(`Choose a command category...`)
         .addOptions([
           {
             label: "General",
@@ -129,18 +128,38 @@ export class ComponentBuilder {
    */
   static createViewToggleButtons() {
     const row = new ActionRowBuilder();
+
+    // Internal buttons
     row.addComponents(
       new ButtonBuilder()
         .setCustomId("help_view_overview")
         .setLabel("Overview")
-        .setEmoji(EMOJIS.ACTIONS.VIEW)
         .setStyle(ButtonStyle.Secondary),
       new ButtonBuilder()
         .setCustomId("help_view_all")
         .setLabel("All Commands")
-        .setEmoji(EMOJIS.ACTIONS.SEARCH)
         .setStyle(ButtonStyle.Secondary),
     );
+
+    // External link buttons
+    const links = config.externalLinks;
+    if (links.guide) {
+      row.addComponents(
+        new ButtonBuilder()
+          .setLabel("Guide")
+          .setURL(links.guide)
+          .setStyle(ButtonStyle.Link),
+      );
+    }
+    if (links.github) {
+      row.addComponents(
+        new ButtonBuilder()
+          .setLabel("GitHub")
+          .setURL(links.github)
+          .setStyle(ButtonStyle.Link),
+      );
+    }
+
     return row;
   }
 
@@ -150,67 +169,9 @@ export class ComponentBuilder {
    * @param {import('discord.js').Client} client
    * @returns {Promise<import('discord.js').ActionRowBuilder>}
    */
-  static async createCommandButtons(_category = null, client = null) {
-    const row = new ActionRowBuilder();
-
-    // Determine invite link
-    let inviteURL = null;
-    if (client) {
-      inviteURL = client.inviteLink;
-      if (!inviteURL) {
-        try {
-          inviteURL = await getDefaultInviteLink(client);
-        } catch {
-          inviteURL = null;
-        }
-      }
-    }
-
-    // External links
-    const buttons = [];
-    const links = config.externalLinks;
-    if (links.guide) {
-      buttons.push(
-        new ButtonBuilder()
-          .setLabel("Guide")
-          .setURL(links.guide)
-          .setEmoji(EMOJIS.CATEGORIES.GENERAL)
-          .setStyle(ButtonStyle.Link),
-      );
-    }
-    if (links.github) {
-      buttons.push(
-        new ButtonBuilder()
-          .setLabel("GitHub")
-          .setURL(links.github)
-          .setEmoji(EMOJIS.ACTIONS.LINK)
-          .setStyle(ButtonStyle.Link),
-      );
-    }
-    if (links.support) {
-      buttons.push(
-        new ButtonBuilder()
-          .setLabel("Support")
-          .setURL(links.support)
-          .setEmoji(EMOJIS.STATUS.INFO)
-          .setStyle(ButtonStyle.Link),
-      );
-    }
-    if (inviteURL) {
-      buttons.push(
-        new ButtonBuilder()
-          .setLabel("Invite")
-          .setURL(inviteURL)
-          .setEmoji(EMOJIS.ACTIONS.INVITE)
-          .setStyle(ButtonStyle.Link),
-      );
-    }
-    if (buttons.length === 0) {
-      return undefined;
-    }
-    row.addComponents(...buttons);
-
-    return row;
+  static async createCommandButtons(_category = null, _client = null) {
+    // No longer needed - buttons moved to createViewToggleButtons
+    return undefined;
   }
 
   /**
@@ -223,7 +184,6 @@ export class ComponentBuilder {
       new ButtonBuilder()
         .setCustomId("help_back_main")
         .setLabel("Back to Help")
-        .setEmoji(EMOJIS.ACTIONS.BACK)
         .setStyle(ButtonStyle.Secondary),
     );
     return row;

@@ -1,5 +1,5 @@
 import { EmbedBuilder, PermissionFlagsBits } from "discord.js";
-import { THEME_COLOR, EMOJIS, UI_COMPONENTS } from "../../../config/theme.js";
+import { THEME_COLOR, UI_COMPONENTS } from "../../../config/theme.js";
 import { getDynamicHelpData } from "./data.js";
 import config from "../../../config/config.js";
 import { getLogger } from "../../../utils/logger.js";
@@ -53,8 +53,8 @@ export class HelpEmbedBuilder {
       )
       .setDescription(
         [
-          `${EMOJIS.FEATURES.ROLES} **Easy role management through reactions!**`,
-          `🎯 **Simple Setup** • 🎨 **Beautiful UI** • ⚡ **Instant Roles**`,
+          `**Easy role management through reactions!**`,
+          `Simple Setup • Beautiful UI • Instant Roles`,
           ``,
           `Use the dropdown to browse categories or the buttons to switch views.`,
         ].join("\n"),
@@ -69,38 +69,18 @@ export class HelpEmbedBuilder {
         ),
       );
 
-    // Overview stats and quick start
+    // Quick start section
     try {
-      const { COMMAND_METADATA, COMMAND_CATEGORIES } =
-        getDynamicHelpData(client);
-      const totalCommands = Object.keys(COMMAND_METADATA).length;
-      const totalCategories = Object.keys(COMMAND_CATEGORIES).length;
-      const topCommands = HelpEmbedBuilder.getTopCommandsSummary(
-        COMMAND_METADATA,
-        6,
-      );
-
-      embed.addFields(
-        {
-          name: `${EMOJIS.STATUS.INFO} Overview`,
-          value: [
-            `Commands: **${totalCommands}** • Categories: **${totalCategories}**`,
-            `Popular: ${topCommands || "N/A"}`,
-          ].join("\n"),
-          inline: false,
-        },
-
-        {
-          name: `${EMOJIS.ACTIONS.QUICK} Quick Start`,
-          value: [
-            `${EMOJIS.NUMBERS.ONE} Use \`/role-reactions setup\` to create role selections`,
-            `${EMOJIS.NUMBERS.TWO} Members click reactions to get roles instantly`,
-            `${EMOJIS.NUMBERS.THREE} Use \`/temp-roles assign\` for time-limited access`,
-            `${EMOJIS.NUMBERS.FOUR} Track everything with \`/temp-roles list\``,
-          ].join("\n"),
-          inline: false,
-        },
-      );
+      embed.addFields({
+        name: `Quick Start`,
+        value: [
+          `1. Use \`/role-reactions setup\` to create role selections`,
+          `2. Members click reactions to get roles instantly`,
+          `3. Use \`/temp-roles assign\` for time-limited access`,
+          `4. Track everything with \`/temp-roles list\``,
+        ].join("\n"),
+        inline: false,
+      });
     } catch {
       // Fall back silently if dynamic data unavailable
     }
@@ -116,7 +96,7 @@ export class HelpEmbedBuilder {
    */
   static createAllCommandsEmbed(client, member = null) {
     const embed = new EmbedBuilder()
-      .setTitle(`${EMOJIS.ACTIONS.SEARCH} All Commands`)
+      .setTitle(`All Commands`)
       .setColor(THEME_COLOR)
       .setTimestamp();
 
@@ -163,7 +143,7 @@ export class HelpEmbedBuilder {
         const value = chunk
           .map(([cmdName, meta]) => {
             const lineMeta = meta || {};
-            return `${lineMeta?.emoji || EMOJIS.ACTIONS.HELP} \`/${cmdName}\` — ${lineMeta?.shortDesc || "No description available"}`;
+            return `\`/${cmdName}\` — ${lineMeta?.shortDesc || "No description available"}`;
           })
           .join("\n\n");
         embed.addFields({ name: `Commands ${label}`, value, inline: false });
@@ -192,9 +172,7 @@ export class HelpEmbedBuilder {
     if (!metadata) return "";
     const commands = Object.entries(metadata)
       .slice(0, limit)
-      .map(
-        ([name, meta]) => `${meta?.emoji || EMOJIS.ACTIONS.HELP} \`/${name}\``,
-      );
+      .map(([name, _meta]) => `\`/${name}\``);
     return commands.join(" • ");
   }
 
@@ -215,7 +193,7 @@ export class HelpEmbedBuilder {
       if (!category) return null;
 
       const embed = new EmbedBuilder()
-        .setTitle(`${category.emoji} ${category.name} Commands`)
+        .setTitle(`${category.name} Commands`)
         .setDescription(
           [
             category.description,
@@ -238,7 +216,7 @@ export class HelpEmbedBuilder {
         const meta = COMMAND_METADATA[cmdName];
         if (meta) {
           embed.addFields({
-            name: `${meta.emoji} \`/${cmdName}\``,
+            name: `\`/${cmdName}\``,
             value: meta.shortDesc,
             inline: false,
           });
@@ -261,10 +239,8 @@ export class HelpEmbedBuilder {
    */
   static createCommandDetailEmbed(command, client) {
     try {
-      const { COMMAND_METADATA } = getDynamicHelpData(client);
-      const meta = COMMAND_METADATA[command.data.name];
       const embed = new EmbedBuilder()
-        .setTitle(`${meta?.emoji || EMOJIS.ACTIONS.HELP} /${command.data.name}`)
+        .setTitle(`/${command.data.name}`)
         .setDescription(command.data.description || "No description available.")
         .setColor(THEME_COLOR)
         .setTimestamp()
@@ -284,7 +260,7 @@ export class HelpEmbedBuilder {
       logger.error("Error creating command detail embed:", error);
       // Return a basic embed as fallback
       return new EmbedBuilder()
-        .setTitle(`${EMOJIS.ACTIONS.HELP} /${command.data.name}`)
+        .setTitle(`/${command.data.name}`)
         .setDescription(command.data.description || "No description available.")
         .setColor(THEME_COLOR)
         .setTimestamp();
@@ -301,24 +277,24 @@ export class HelpEmbedBuilder {
       case "8ball":
         embed.addFields(
           {
-            name: `${EMOJIS.FEATURES.FUN} 🎱 How to Use`,
+            name: `How to Use`,
             value: "```/8ball question:Will I succeed in my career?```",
             inline: false,
           },
           {
-            name: `${EMOJIS.UI.MENU} 📝 What You Need`,
+            name: `What You Need`,
             value:
               "**question** - Ask the intelligent magic 8-ball anything you want to know!",
             inline: false,
           },
           {
-            name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
+            name: `What You'll See`,
             value:
               "An intelligent response from the mystical oracle with 5 smart categories: Very Positive, Positive, Neutral, Negative, and Very Negative. The 8-ball analyzes your question's sentiment and context to provide more relevant answers!",
             inline: false,
           },
           {
-            name: `${EMOJIS.FEATURES.FUN} 🧠 Smart Features`,
+            name: `Smart Features`,
             value:
               "**Sentiment Analysis** - Detects positive/negative keywords in your question\n**Context Awareness** - Recognizes personal, urgent, and emotional questions\n**Smart Weighting** - Adjusts response probabilities based on question type\n**5 Response Levels** - From exceptional fortune to dangerous warnings",
             inline: false,
@@ -329,19 +305,19 @@ export class HelpEmbedBuilder {
       case "avatar":
         embed.addFields(
           {
-            name: `${EMOJIS.FEATURES.USER} 🖼️ How to Use`,
+            name: `How to Use`,
             value:
               "```/avatar prompt:cyberpunk hacker with neon hair color_style:vibrant```",
             inline: false,
           },
           {
-            name: `${EMOJIS.UI.MENU} 📝 What You Need`,
+            name: `What You Need`,
             value:
               "**prompt** *(required)* - Describe the avatar you want to generate (e.g., 'cyberpunk hacker with neon hair')\n**color_style** *(optional)* - Choose a color palette (vibrant, pastel, monochrome, neon, warm, cool)\n**mood** *(optional)* - Choose the character's mood (happy, serious, mysterious, cute, cool, elegant)",
             inline: false,
           },
           {
-            name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
+            name: `What You'll See`,
             value:
               "A unique AI-generated anime-style avatar based on your description, with download options and generation details. Uses advanced AI to create custom avatars tailored to your specifications!",
             inline: false,
@@ -352,7 +328,7 @@ export class HelpEmbedBuilder {
       case "role-reactions":
         embed.addFields(
           {
-            name: `${EMOJIS.FEATURES.ROLES} 🎯 How to Use`,
+            name: `How to Use`,
             value: [
               "```/role-reactions setup title:Choose Your Roles description:React to get roles! roles:🎮:@Gamer, 🎨:@Artist```",
               "```/role-reactions setup title:Game Roles description:Pick your role! roles:🎮:Gamer, 🎨:Artist```",
@@ -363,7 +339,7 @@ export class HelpEmbedBuilder {
             inline: false,
           },
           {
-            name: `${EMOJIS.UI.MENU} 📝 Subcommands`,
+            name: `Subcommands`,
             value: [
               "**setup** - Create a new role-reaction message",
               "**list** - List all role-reaction messages",
@@ -373,18 +349,18 @@ export class HelpEmbedBuilder {
             inline: false,
           },
           {
-            name: `${EMOJIS.FEATURES.SECURITY} 🔐 Permissions`,
+            name: `Permissions`,
             value: "• **Manage Roles** permission required",
             inline: false,
           },
           {
-            name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
+            name: `What You'll See`,
             value:
               "Interactive role assignment via emoji reactions with customizable embeds, automatic reaction addition, and comprehensive management tools!",
             inline: false,
           },
           {
-            name: `${EMOJIS.UI.INFO} 💡 Role Format Tips`,
+            name: `Role Format Tips`,
             value: [
               "• **@RoleName** - Use @ symbol (e.g., `@Gamer`)",
               "• **RoleName** - Use role name directly (e.g., `Gamer`)",
@@ -399,7 +375,7 @@ export class HelpEmbedBuilder {
       case "temp-roles":
         embed.addFields(
           {
-            name: `${EMOJIS.FEATURES.TEMPORARY} ⏰ How to Use`,
+            name: `How to Use`,
             value: [
               "```/temp-roles assign users:@user1,@user2 role:@EventRole duration:2h reason:Tournament participation```",
               "```/temp-roles list user:@user1```",
@@ -408,7 +384,7 @@ export class HelpEmbedBuilder {
             inline: false,
           },
           {
-            name: `${EMOJIS.UI.MENU} 📝 Subcommands`,
+            name: `Subcommands`,
             value: [
               "**assign** - Assign temporary roles to users that expire after a set duration",
               "**list** - List active temporary roles for a user or all users",
@@ -417,12 +393,12 @@ export class HelpEmbedBuilder {
             inline: false,
           },
           {
-            name: `${EMOJIS.FEATURES.SECURITY} 🔐 Permissions`,
+            name: `Permissions`,
             value: "• **Manage Roles** permission required",
             inline: false,
           },
           {
-            name: `${EMOJIS.TIME.TIMER} ⏱️ Time Examples`,
+            name: `Time Examples`,
             value: [
               "`30m` - 30 minutes (perfect for quick events)",
               "`2h` - 2 hours (great for tournaments)",
@@ -433,7 +409,7 @@ export class HelpEmbedBuilder {
             inline: false,
           },
           {
-            name: `${EMOJIS.STATUS.INFO} 🎉 Perfect For`,
+            name: `Perfect For`,
             value:
               "Events, tournaments, giveaways, VIP access, beta testing, or any temporary special access!",
             inline: false,
@@ -444,18 +420,18 @@ export class HelpEmbedBuilder {
       case "help":
         embed.addFields(
           {
-            name: `${EMOJIS.ACTIONS.HELP} ❓ How to Use`,
+            name: `How to Use`,
             value: "```/help [command]```",
             inline: false,
           },
           {
-            name: `${EMOJIS.UI.MENU} 📝 What You Need`,
+            name: `What You Need`,
             value:
               "**command** *(optional)* - Get detailed help for a specific command",
             inline: false,
           },
           {
-            name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
+            name: `What You'll See`,
             value:
               "Detailed instructions, examples, and everything you need to know about using the bot effectively!",
             inline: false,
@@ -466,18 +442,18 @@ export class HelpEmbedBuilder {
       case "health":
         embed.addFields(
           {
-            name: `${EMOJIS.STATUS.SUCCESS} 💚 How to Use`,
+            name: `How to Use`,
             value: "```/health```",
             inline: false,
           },
           {
-            name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
+            name: `What You'll See`,
             value:
               "Bot uptime, memory usage, server count, and overall health status - perfect for checking if everything is running smoothly!",
             inline: false,
           },
           {
-            name: `${EMOJIS.FEATURES.SECURITY} 🔐 Who Can Use`,
+            name: `Who Can Use`,
             value: "• Developer only",
             inline: false,
           },
@@ -487,18 +463,18 @@ export class HelpEmbedBuilder {
       case "performance":
         embed.addFields(
           {
-            name: `${EMOJIS.FEATURES.MONITORING} 📊 How to Use`,
+            name: `How to Use`,
             value: "```/performance```",
             inline: false,
           },
           {
-            name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
+            name: `What You'll See`,
             value:
               "Command usage statistics, event processing metrics, and performance data - great for understanding how your community uses the bot!",
             inline: false,
           },
           {
-            name: `${EMOJIS.FEATURES.SECURITY} 🔐 Who Can Use`,
+            name: `Who Can Use`,
             value: "• Developer only",
             inline: false,
           },
@@ -508,18 +484,18 @@ export class HelpEmbedBuilder {
       case "storage":
         embed.addFields(
           {
-            name: `${EMOJIS.FEATURES.BACKUP} 💾 How to Use`,
+            name: `How to Use`,
             value: "```/storage```",
             inline: false,
           },
           {
-            name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
+            name: `What You'll See`,
             value:
               "Database connection status, local file storage info, and sync status - ensures your role data is safe and backed up!",
             inline: false,
           },
           {
-            name: `${EMOJIS.FEATURES.SECURITY} 🔐 Who Can Use`,
+            name: `Who Can Use`,
             value: "• Developer only",
             inline: false,
           },
@@ -529,17 +505,17 @@ export class HelpEmbedBuilder {
       case "invite":
         embed.addFields(
           {
-            name: `${EMOJIS.ACTIONS.LINK} How to Use`,
+            name: `How to Use`,
             value: "```/invite```",
             inline: false,
           },
           {
-            name: `${EMOJIS.UI.MENU} 📝 What You Need`,
+            name: `What You Need`,
             value: "No parameters needed - just run the command!",
             inline: false,
           },
           {
-            name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
+            name: `What You'll See`,
             value:
               "An invite link to add Role Reactor Bot to your server. The link is sent as an ephemeral message, so only you can see it. Share it with others to invite the bot!",
             inline: false,
@@ -550,23 +526,23 @@ export class HelpEmbedBuilder {
       case "xp":
         embed.addFields(
           {
-            name: `${EMOJIS.FEATURES.EXPERIENCE} 📊 How to Use`,
+            name: `How to Use`,
             value: "```/xp```",
             inline: false,
           },
           {
-            name: `${EMOJIS.UI.MENU} 📝 What You Need`,
+            name: `What You Need`,
             value:
               "No parameters needed - just run the command to access the XP system settings!",
             inline: false,
           },
           {
-            name: `${EMOJIS.FEATURES.SECURITY} 🔐 Permissions`,
+            name: `Permissions`,
             value: "• **Manage Server** permission required",
             inline: false,
           },
           {
-            name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
+            name: `What You'll See`,
             value: [
               "Interactive XP system management interface with buttons to:",
               "• Toggle the entire XP system on/off",
@@ -577,7 +553,7 @@ export class HelpEmbedBuilder {
             inline: false,
           },
           {
-            name: `${EMOJIS.STATUS.INFO} 💡 Quick Actions`,
+            name: `Quick Actions`,
             value: [
               "Use the buttons to quickly toggle features on/off",
               "All changes are applied immediately",
@@ -591,12 +567,12 @@ export class HelpEmbedBuilder {
       case "leaderboard":
         embed.addFields(
           {
-            name: `${EMOJIS.FEATURES.EXPERIENCE} 🏆 How to Use`,
+            name: `How to Use`,
             value: "```/leaderboard [limit:10] [type:xp]```",
             inline: false,
           },
           {
-            name: `${EMOJIS.UI.MENU} 📝 What You Need`,
+            name: `What You Need`,
             value: [
               "**limit** *(optional)* - Number of users to show (1-25, default: 10)",
               "**type** *(optional)* - Choose from: xp, level, messages, voice (default: xp)",
@@ -604,7 +580,7 @@ export class HelpEmbedBuilder {
             inline: false,
           },
           {
-            name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
+            name: `What You'll See`,
             value:
               "A beautiful leaderboard showing top users by XP, level, messages, or voice time. Choose from different ranking types to see who's most active in your server!",
             inline: false,
@@ -615,18 +591,18 @@ export class HelpEmbedBuilder {
       case "level":
         embed.addFields(
           {
-            name: `${EMOJIS.FEATURES.EXPERIENCE} 📊 How to Use`,
+            name: `How to Use`,
             value: "```/level [user:@username]```",
             inline: false,
           },
           {
-            name: `${EMOJIS.UI.MENU} 📝 What You Need`,
+            name: `What You Need`,
             value:
               "**user** *(optional)* - Check a specific member's level (leave empty to see your own)",
             inline: false,
           },
           {
-            name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
+            name: `What You'll See`,
             value:
               "Detailed level information including current XP, progress to next level, and rank. Perfect for tracking your growth and comparing with other members!",
             inline: false,
@@ -637,17 +613,17 @@ export class HelpEmbedBuilder {
       case "ping":
         embed.addFields(
           {
-            name: `${EMOJIS.STATUS.SUCCESS} 🏓 How to Use`,
+            name: `How to Use`,
             value: "```/ping```",
             inline: false,
           },
           {
-            name: `${EMOJIS.UI.MENU} 📝 What You Need`,
+            name: `What You Need`,
             value: "No parameters needed - just run the command!",
             inline: false,
           },
           {
-            name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
+            name: `What You'll See`,
             value:
               "Bot latency information including API latency, heartbeat, and overall connection status. Great for checking if the bot is running smoothly!",
             inline: false,
@@ -658,17 +634,17 @@ export class HelpEmbedBuilder {
       case "sponsor":
         embed.addFields(
           {
-            name: `${EMOJIS.FEATURES.SUPPORT} 💝 How to Use`,
+            name: `How to Use`,
             value: "```/sponsor```",
             inline: false,
           },
           {
-            name: `${EMOJIS.UI.MENU} 📝 What You Need`,
+            name: `What You Need`,
             value: "No parameters needed - just run the command!",
             inline: false,
           },
           {
-            name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
+            name: `What You'll See`,
             value:
               "Information about supporting the bot's development to help keep it free and running for everyone, including why support is needed, how to contribute, and an interactive 'Become a Sponsor' button!",
             inline: false,
@@ -679,17 +655,17 @@ export class HelpEmbedBuilder {
       case "support":
         embed.addFields(
           {
-            name: `${EMOJIS.FEATURES.SUPPORT} 🆘 How to Use`,
+            name: `How to Use`,
             value: "```/support```",
             inline: false,
           },
           {
-            name: `${EMOJIS.UI.MENU} 📝 What You Need`,
+            name: `What You Need`,
             value: "No parameters needed - just run the command!",
             inline: false,
           },
           {
-            name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
+            name: `What You'll See`,
             value:
               "Support information including how to get help, report issues, suggest features, and interactive buttons for Discord support server and GitHub repository!",
             inline: false,
@@ -700,7 +676,7 @@ export class HelpEmbedBuilder {
       case "welcome":
         embed.addFields(
           {
-            name: `${EMOJIS.FEATURES.WELCOME} 🎉 How to Use`,
+            name: `How to Use`,
             value: [
               "```/welcome setup channel:#welcome message:Welcome {user} to {server}! 🎉 auto-role:@Member enabled:true```",
               "```/welcome settings```",
@@ -708,7 +684,7 @@ export class HelpEmbedBuilder {
             inline: false,
           },
           {
-            name: `${EMOJIS.UI.MENU} 📝 Subcommands`,
+            name: `Subcommands`,
             value: [
               "**setup** - Configure the welcome system with channel, message, and auto-role",
               "**settings** - View and manage current welcome system settings",
@@ -716,12 +692,12 @@ export class HelpEmbedBuilder {
             inline: false,
           },
           {
-            name: `${EMOJIS.FEATURES.SECURITY} 🔐 Permissions`,
+            name: `Permissions`,
             value: "• **Manage Server** permission required",
             inline: false,
           },
           {
-            name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
+            name: `What You'll See`,
             value:
               "Interactive welcome system with channel selection, message customization, auto-role assignment, and real-time settings management for new members!",
             inline: false,
@@ -732,7 +708,7 @@ export class HelpEmbedBuilder {
       case "goodbye":
         embed.addFields(
           {
-            name: `${EMOJIS.FEATURES.WELCOME} 👋 How to Use`,
+            name: `How to Use`,
             value: [
               "```/goodbye setup channel:#general message:**{user}** left the server! Thanks for being part of **{server}**! 👋 enabled:true```",
               "```/goodbye settings```",
@@ -740,7 +716,7 @@ export class HelpEmbedBuilder {
             inline: false,
           },
           {
-            name: `${EMOJIS.UI.MENU} 📝 Subcommands`,
+            name: `Subcommands`,
             value: [
               "**setup** - Configure the goodbye system with channel and message",
               "**settings** - View and manage current goodbye system settings",
@@ -748,12 +724,12 @@ export class HelpEmbedBuilder {
             inline: false,
           },
           {
-            name: `${EMOJIS.FEATURES.SECURITY} 🔐 Permissions`,
+            name: `Permissions`,
             value: "• **Manage Server** permission required",
             inline: false,
           },
           {
-            name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
+            name: `What You'll See`,
             value:
               "Interactive goodbye system with channel selection, message customization, and real-time settings management for members leaving!",
             inline: false,
@@ -764,12 +740,12 @@ export class HelpEmbedBuilder {
       case "core":
         embed.addFields(
           {
-            name: `${EMOJIS.ACTIONS.HEART} 💎 How to Use`,
+            name: `How to Use`,
             value: ["```/core balance```", "```/core pricing```"].join("\n"),
             inline: false,
           },
           {
-            name: `${EMOJIS.UI.MENU} 📝 Subcommands`,
+            name: `Subcommands`,
             value: [
               "**balance** - View your current Core balance and tier status",
               "**pricing** - View Core pricing, membership benefits, and donation options",
@@ -777,7 +753,7 @@ export class HelpEmbedBuilder {
             inline: false,
           },
           {
-            name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
+            name: `What You'll See`,
             value:
               "Your Core balance, tier information, and transaction history. Core credits are used for AI avatar generation and can be purchased or transferred between users!",
             inline: false,
@@ -788,7 +764,7 @@ export class HelpEmbedBuilder {
       case "poll":
         embed.addFields(
           {
-            name: `${EMOJIS.UI.QUESTION} 📊 How to Use`,
+            name: `How to Use`,
             value: [
               "```/poll create```",
               "```/poll list```",
@@ -798,7 +774,7 @@ export class HelpEmbedBuilder {
             inline: false,
           },
           {
-            name: `${EMOJIS.UI.MENU} 📝 Subcommands`,
+            name: `Subcommands`,
             value: [
               "**create** - Open an interactive form to create a new poll",
               "**list** - List all active polls in the server (with pagination)",
@@ -808,13 +784,13 @@ export class HelpEmbedBuilder {
             inline: false,
           },
           {
-            name: `${EMOJIS.FEATURES.SECURITY} 🔐 Permissions`,
+            name: `Permissions`,
             value:
               "• **Create Polls** - Anyone can create polls\n• **Manage Polls** - Poll creators and admins can close polls",
             inline: false,
           },
           {
-            name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
+            name: `What You'll See`,
             value:
               "Interactive poll creation form, real-time voting with progress bars, and automatic closing. Great for community decisions and feedback collection!",
             inline: false,
@@ -825,7 +801,7 @@ export class HelpEmbedBuilder {
       case "core-management":
         embed.addFields(
           {
-            name: `${EMOJIS.ACTIONS.HEART} 💎 How to Use`,
+            name: `How to Use`,
             value: [
               "```/core-management add user:@username amount:10```",
               "```/core-management remove user:@username amount:5```",
@@ -837,7 +813,7 @@ export class HelpEmbedBuilder {
             inline: false,
           },
           {
-            name: `${EMOJIS.UI.MENU} 📝 Subcommands`,
+            name: `Subcommands`,
             value: [
               "**add** - Add Core credits to a user's account",
               "**remove** - Remove Core credits from a user's account",
@@ -849,12 +825,12 @@ export class HelpEmbedBuilder {
             inline: false,
           },
           {
-            name: `${EMOJIS.FEATURES.SECURITY} 🔐 Permissions`,
+            name: `Permissions`,
             value: "• **Developer** access required",
             inline: false,
           },
           {
-            name: `${EMOJIS.STATUS.INFO} 👀 What You'll See`,
+            name: `What You'll See`,
             value:
               "Complete Core credit and tier management system for developers to add, remove, set, and monitor user Core balances and membership tiers across the entire bot!",
             inline: false,

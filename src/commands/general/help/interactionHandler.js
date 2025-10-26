@@ -1,6 +1,5 @@
 import { MessageFlags } from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
-import { EMOJIS } from "../../../config/theme.js";
 import { routeHelpInteraction } from "./handlers.js";
 
 /**
@@ -37,7 +36,7 @@ export class InteractionHandler {
   async handleInteractionError(interaction, _error) {
     if (!interaction.replied && !interaction.deferred) {
       await interaction.reply({
-        content: `${EMOJIS.STATUS.ERROR} An error occurred while processing your request.`,
+        content: `An error occurred while processing your request.`,
         flags: MessageFlags.Ephemeral,
       });
     }
