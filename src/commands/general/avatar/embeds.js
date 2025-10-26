@@ -1,5 +1,5 @@
 import { EmbedBuilder } from "discord.js";
-import { EMOJIS, THEME, UI_COMPONENTS } from "../../../config/theme.js";
+import { THEME, UI_COMPONENTS } from "../../../config/theme.js";
 import { emojiConfig } from "../../../config/emojis.js";
 
 const CORE_EMOJI = emojiConfig.customEmojis.core;
@@ -14,7 +14,7 @@ const CORE_EMOJI = emojiConfig.customEmojis.core;
 export function createErrorEmbed(interaction, title, description) {
   return new EmbedBuilder()
     .setColor(THEME.ERROR)
-    .setTitle(`${EMOJIS.STATUS.ERROR} ${title}`)
+    .setTitle(title)
     .setDescription(description)
     .setFooter(
       UI_COMPONENTS.createFooter(
@@ -35,7 +35,7 @@ export function createErrorEmbed(interaction, title, description) {
 export function createWarningEmbed(interaction, title, description) {
   return new EmbedBuilder()
     .setColor(THEME.WARNING)
-    .setTitle(`${EMOJIS.STATUS.WARNING} ${title}`)
+    .setTitle(title)
     .setDescription(description)
     .setFooter(
       UI_COMPONENTS.createFooter(
@@ -54,7 +54,7 @@ export function createWarningEmbed(interaction, title, description) {
 export function createLoadingEmbed(prompt) {
   return new EmbedBuilder()
     .setColor(THEME.PRIMARY)
-    .setTitle(`${EMOJIS.UI.PROGRESS} Generating Avatar...`)
+    .setTitle("Generating Avatar...")
     .setDescription(`**"${prompt}"**`)
     .setFooter({
       text: "Avatar Generator • This may take 10-60 seconds",
@@ -76,8 +76,8 @@ export function createSuccessEmbed(
 ) {
   const embed = new EmbedBuilder()
     .setColor(THEME.SUCCESS)
-    .setTitle(`${EMOJIS.STATUS.SUCCESS} Avatar Complete!`)
-    .setDescription(`**"${prompt}"**\n\n✨ *Your Avatar has been generated*`);
+    .setTitle("Avatar Complete!")
+    .setDescription(`**"${prompt}"**\n\nYour Avatar has been generated`);
 
   // Add credit deduction breakdown if available
   if (deductionBreakdown) {
@@ -97,7 +97,7 @@ export function createSuccessEmbed(
 
       embed.addFields([
         {
-          name: "💎 Core Usage",
+          name: "Core Usage",
           value: deductionText,
           inline: false,
         },
@@ -142,7 +142,7 @@ export function createCoreEmbed(interaction, userData, creditsNeeded, _prompt) {
     )
     .addFields([
       {
-        name: `Get Cores`,
+        name: "Get Cores",
         value: `Donate on [Ko-fi](https://ko-fi.com/rolereactor) • Use \`/core pricing\``,
         inline: false,
       },
@@ -168,12 +168,12 @@ export function createHelpEmbed() {
     )
     .addFields([
       {
-        name: `${EMOJIS.ACTIONS.TIPS} Pro Tips`,
+        name: "Pro Tips",
         value: `Describe your avatar however you want! Include character details, backgrounds, environments, or any creative elements.\n**Examples**: "cool boy with spiky hair", "cute girl in red dress", "anime girl in a forest", "cyberpunk hacker in neon city", "mysterious character with glasses", "beautiful sunset portrait"\n**Note**: Single character focus works best for profile pictures`,
         inline: false,
       },
       {
-        name: `${EMOJIS.UI.INFO} Style Options`,
+        name: "Style Options",
         value: `**Color**: vibrant, pastel, monochrome • **Mood**: happy, serious, cute • **Art**: studio, manga, modern, lofi`,
         inline: false,
       },

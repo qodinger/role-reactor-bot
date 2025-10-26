@@ -15,7 +15,9 @@ export const data = new SlashCommandBuilder()
   .addSubcommand(subcommand =>
     subcommand
       .setName("add")
-      .setDescription("🔒 [DEVELOPER ONLY] Add bonus Cores to a user")
+      .setDescription(
+        "🔒 [DEVELOPER ONLY] Add bonus Cores (donation Cores only)",
+      )
       .addUserOption(option =>
         option
           .setName("user")
@@ -41,7 +43,9 @@ export const data = new SlashCommandBuilder()
   .addSubcommand(subcommand =>
     subcommand
       .setName("remove")
-      .setDescription("🔒 [DEVELOPER ONLY] Remove bonus Cores from a user")
+      .setDescription(
+        "🔒 [DEVELOPER ONLY] Remove bonus Cores (donation Cores only)",
+      )
       .addUserOption(option =>
         option
           .setName("user")
@@ -68,7 +72,7 @@ export const data = new SlashCommandBuilder()
     subcommand
       .setName("set")
       .setDescription(
-        "🔒 [DEVELOPER ONLY] Set a user's bonus Cores to a specific amount",
+        "🔒 [DEVELOPER ONLY] Set bonus Cores (donation Cores only, not subscription Cores)",
       )
       .addUserOption(option =>
         option

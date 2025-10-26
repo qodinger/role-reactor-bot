@@ -233,6 +233,8 @@ async function handleAddCores(interaction, targetUser, deferred) {
       reason,
       operator: interaction.user,
       creditType: "bonus",
+      oldTotalCores,
+      newTotalCores,
     });
 
     if (deferred) {
@@ -300,6 +302,8 @@ async function handleRemoveCores(interaction, targetUser, deferred) {
       reason,
       operator: interaction.user,
       creditType: "bonus",
+      oldTotalCores,
+      newTotalCores,
     });
 
     if (deferred) {
@@ -367,6 +371,8 @@ async function handleSetCores(interaction, targetUser, deferred) {
       reason,
       operator: interaction.user,
       creditType: "bonus",
+      oldTotalCores: userData.credits,
+      newTotalCores,
     });
 
     if (deferred) {

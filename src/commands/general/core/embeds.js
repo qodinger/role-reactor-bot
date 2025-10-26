@@ -14,6 +14,8 @@ const { customEmojis } = emojiConfig;
  */
 export function createBalanceEmbed(userData, username, avatarURL) {
   const tierDisplay = formatTierDisplay(userData);
+  const subscriptionCredits = userData.subscriptionCredits || 0;
+  const bonusCredits = userData.bonusCredits || 0;
 
   return {
     color: THEME.PRIMARY,
@@ -28,9 +30,14 @@ export function createBalanceEmbed(userData, username, avatarURL) {
         inline: true,
       },
       {
-        name: `Balance`,
+        name: `Total Balance`,
         value: `${customEmojis.core} ${userData.credits}`,
         inline: true,
+      },
+      {
+        name: `Core Breakdown`,
+        value: `Subscription: ${subscriptionCredits} ${customEmojis.core}\nBonus: ${bonusCredits} ${customEmojis.core}`,
+        inline: false,
       },
       {
         name: `Get More Cores`,
