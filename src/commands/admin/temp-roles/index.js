@@ -91,6 +91,14 @@ export const data = new SlashCommandBuilder()
           .setName("reason")
           .setDescription("Reason for removing the temporary role")
           .setRequired(false),
+      )
+      .addBooleanOption(opt =>
+        opt
+          .setName("notify")
+          .setDescription(
+            "Send DM notification to users about role removal (default: false)",
+          )
+          .setRequired(false),
       ),
   );
 

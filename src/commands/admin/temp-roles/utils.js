@@ -112,11 +112,31 @@ export async function processUserList(usersString, interaction) {
     };
   }
 
-  // Split by comma, semicolon, or multiple spaces
-  const userList = usersString
-    .split(/[,;]|\s{2,}/)
+  // Split by comma, semicolon, or spaces, and also handle mentions without spaces
+  let userList = usersString
+    .split(/[,;]|\s+/)
     .map(user => user.trim())
     .filter(user => user.length > 0);
+
+  // Handle cases where mentions are concatenated without spaces (e.g., @user1@user2)
+  const expandedUserList = [];
+  for (const userStr of userList) {
+    // Check if this string contains multiple mentions without spaces
+    const mentions = userStr.match(/<@!?\d+>/g);
+    if (mentions && mentions.length > 1) {
+      // Split by mentions and add each mention separately
+      const parts = userStr.split(/(<@!?\d+>)/);
+      for (const part of parts) {
+        if (part.trim() && part.match(/<@!?\d+>/)) {
+          expandedUserList.push(part.trim());
+        }
+      }
+    } else {
+      expandedUserList.push(userStr);
+    }
+  }
+
+  userList = expandedUserList;
 
   const logger = getLogger();
   logger.info("Processing user list", {

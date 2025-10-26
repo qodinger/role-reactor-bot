@@ -10,8 +10,13 @@ import {
   addTemporaryRolesForMultipleUsers,
   getTemporaryRoles,
   parseDuration,
+  removeTemporaryRole,
+  sendRemovalNotification,
 } from "../../../utils/discord/tempRoles.js";
-import { errorEmbed } from "../../../utils/discord/responseMessages.js";
+import {
+  errorEmbed,
+  infoEmbed,
+} from "../../../utils/discord/responseMessages.js";
 import {
   createTempRoleEmbed,
   createTempRolesListEmbed,
@@ -22,9 +27,6 @@ import {
   validateDuration,
   processUserList,
   processTempRoles,
-  removeRoleFromUser,
-  logTempRoleAssignment,
-  logTempRolesListing,
 } from "./utils.js";
 // import { THEME } from "../../../config/theme.js"; // Not used in new implementation
 
@@ -36,7 +38,6 @@ import {
  */
 export async function handleAssign(interaction, client, deferred = false) {
   const logger = getLogger();
-  const startTime = Date.now();
 
   try {
     // Note: Deferral is already handled in the main execute function
@@ -216,6 +217,15 @@ export async function handleAssign(interaction, client, deferred = false) {
     });
 
     // Create response embed
+    logger.debug("Creating temp role embed with data:", {
+      roleName: role?.name,
+      roleId: role?.id,
+      usersCount: validUsers?.length,
+      durationString,
+      reason,
+      resultsCount: results?.length,
+    });
+
     const embed = createTempRoleEmbed(
       role,
       validUsers,
@@ -225,6 +235,14 @@ export async function handleAssign(interaction, client, deferred = false) {
       client,
     );
 
+    // Debug embed before sending
+    logger.debug("Embed data before sending:", {
+      title: embed.data.title,
+      description: embed.data.description,
+      fieldsCount: embed.data.fields?.length || 0,
+      color: embed.data.color,
+    });
+
     // Send response based on deferral status
     if (deferred) {
       await interaction.editReply({ embeds: [embed] });
@@ -233,14 +251,8 @@ export async function handleAssign(interaction, client, deferred = false) {
     }
 
     // Log activity
-    logTempRoleAssignment(
-      interaction.user,
-      role,
-      validUsers,
-      durationString,
-      reason,
-      results,
-      Date.now() - startTime,
+    logger.info(
+      `Temporary role assignment completed by ${interaction.user.tag} in ${interaction.guild.name}: ${assignmentResult.success} successful, ${assignmentResult.failed} failed`,
     );
   } catch (error) {
     logger.error("Error in handleAssign:", error);
@@ -343,7 +355,7 @@ export async function handleList(interaction, client, deferred = false) {
         ? `No temporary roles found for ${targetUser.displayName}.`
         : "No temporary roles found in this server.";
 
-      const response = errorEmbed({
+      const response = infoEmbed({
         title: "No Temporary Roles Found",
         description: message,
         solution: targetUser
@@ -380,11 +392,8 @@ export async function handleList(interaction, client, deferred = false) {
     }
 
     // Log activity
-    logTempRolesListing(
-      interaction.user,
-      targetUser,
-      filteredRoles.length,
-      interaction.guild,
+    logger.info(
+      `Temporary roles listing completed by ${interaction.user.tag} in ${interaction.guild.name}: ${filteredRoles.length} roles found`,
     );
   } catch (error) {
     logger.error("Error in handleList:", error);
@@ -409,7 +418,7 @@ export async function handleList(interaction, client, deferred = false) {
   }
 }
 
-export async function handleRemove(interaction, client) {
+export async function handleRemove(interaction, client, deferred = false) {
   const logger = getLogger();
 
   try {
@@ -422,31 +431,32 @@ export async function handleRemove(interaction, client) {
         .map(formatPermissionName)
         .join(", ");
 
-      return interaction.reply({
-        embeds: [
-          errorEmbed({
-            title: "Missing Bot Permissions",
-            description: `I need the following permissions to remove temporary roles: **${permissionNames}**`,
-            solution:
-              "Please ask a server administrator to grant me these permissions and try again.",
-            fields: [
-              {
-                name: "🔧 How to Fix",
-                value:
-                  "Go to Server Settings → Roles → Find my role → Enable the missing permissions",
-                inline: false,
-              },
-              {
-                name: "📋 Required Permissions",
-                value:
-                  "• Manage Roles (to remove roles from members)\n• Send Messages (to notify users about role removal)",
-                inline: false,
-              },
-            ],
-          }),
+      const response = errorEmbed({
+        title: "Missing Bot Permissions",
+        description: `I need the following permissions to remove temporary roles: **${permissionNames}**`,
+        solution:
+          "Please ask a server administrator to grant me these permissions and try again.",
+        fields: [
+          {
+            name: "🔧 How to Fix",
+            value:
+              "Go to Server Settings → Roles → Find my role → Enable the missing permissions",
+            inline: false,
+          },
+          {
+            name: "📋 Required Permissions",
+            value:
+              "• Manage Roles (to remove roles from members)\n• Send Messages (to notify users about role removal)",
+            inline: false,
+          },
         ],
-        flags: 64,
       });
+
+      if (deferred) {
+        return interaction.editReply({ embeds: [response] });
+      } else {
+        return interaction.reply({ embeds: [response], flags: 64 });
+      }
     }
 
     // Get command options
@@ -454,6 +464,7 @@ export async function handleRemove(interaction, client) {
     const role = interaction.options.getRole("role");
     const reason =
       interaction.options.getString("reason") || "No reason provided";
+    const notify = interaction.options.getBoolean("notify") || false;
 
     // Process user list (same as assign command)
     const userProcessingResult = await processUserList(
@@ -461,16 +472,17 @@ export async function handleRemove(interaction, client) {
       interaction,
     );
     if (!userProcessingResult.valid) {
-      return interaction.reply({
-        embeds: [
-          errorEmbed({
-            title: "Invalid User List",
-            description: userProcessingResult.error,
-            solution: userProcessingResult.solution,
-          }),
-        ],
-        flags: 64,
+      const response = errorEmbed({
+        title: "Invalid User List",
+        description: userProcessingResult.error,
+        solution: userProcessingResult.solution,
       });
+
+      if (deferred) {
+        return interaction.editReply({ embeds: [response] });
+      } else {
+        return interaction.reply({ embeds: [response], flags: 64 });
+      }
     }
 
     const { validUsers: targetUsers } = userProcessingResult;
@@ -478,16 +490,17 @@ export async function handleRemove(interaction, client) {
     // Validate role
     const roleValidation = validateRole(role, interaction.guild);
     if (!roleValidation.valid) {
-      return interaction.reply({
-        embeds: [
-          errorEmbed({
-            title: "Invalid Role",
-            description: roleValidation.error,
-            solution: roleValidation.solution,
-          }),
-        ],
-        flags: 64,
+      const response = errorEmbed({
+        title: "Invalid Role",
+        description: roleValidation.error,
+        solution: roleValidation.solution,
       });
+
+      if (deferred) {
+        return interaction.editReply({ embeds: [response] });
+      } else {
+        return interaction.reply({ embeds: [response], flags: 64 });
+      }
     }
 
     // Process removals for all users
@@ -495,15 +508,62 @@ export async function handleRemove(interaction, client) {
     const removalPromises = targetUsers.map(user =>
       limiter(async () => {
         try {
-          return await removeRoleFromUser(
-            user,
-            role,
-            interaction.guild,
-            reason,
+          // Check if user has the temporary role
+          const member = await interaction.guild.members.fetch(user.id);
+          if (!member.roles.cache.has(role.id)) {
+            logger.info(`User ${user.id} does not have role ${role.id}`);
+            return {
+              success: false,
+              userId: user.id,
+              error: "User does not have this role.",
+            };
+          }
+
+          // Remove from temporary roles database
+          const removed = await removeTemporaryRole(
+            interaction.guild.id,
+            user.id,
+            role.id,
           );
+
+          if (removed) {
+            // Remove the actual Discord role
+            await member.roles.remove(role, reason);
+
+            // Send notification if requested
+            if (notify) {
+              try {
+                await sendRemovalNotification(
+                  member,
+                  role,
+                  interaction.guild,
+                  reason,
+                  interaction.user,
+                );
+                logger.info(`📧 Sent removal notification to user ${user.id}`);
+              } catch (notificationError) {
+                logger.warn(
+                  `Failed to send removal notification to user ${user.id}:`,
+                  notificationError,
+                );
+                // Don't fail the removal if notification fails
+              }
+            }
+
+            logger.info(
+              `✅ Successfully removed temporary role ${role.name} from user ${user.id}`,
+            );
+            return { success: true, userId: user.id };
+          } else {
+            return {
+              success: false,
+              userId: user.id,
+              error: "Role not found in temporary roles database.",
+            };
+          }
         } catch (error) {
           logger.warn(`Failed to remove role from user ${user.id}:`, error);
-          return { success: false, user, error: error.message };
+          return { success: false, userId: user.id, error: error.message };
         }
       }),
     );
@@ -512,7 +572,7 @@ export async function handleRemove(interaction, client) {
     const processedResults = results.map(r =>
       r.status === "fulfilled"
         ? r.value
-        : { success: false, user: null, error: r.reason },
+        : { success: false, userId: null, error: r.reason },
     );
 
     // Create success embed with results
@@ -525,7 +585,11 @@ export async function handleRemove(interaction, client) {
       client,
     );
 
-    await interaction.reply({ embeds: [embed], flags: 64 });
+    if (deferred) {
+      await interaction.editReply({ embeds: [embed] });
+    } else {
+      await interaction.reply({ embeds: [embed], flags: 64 });
+    }
 
     // Log the removal activity
     const successCount = processedResults.filter(r => r.success).length;

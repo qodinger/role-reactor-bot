@@ -485,7 +485,7 @@ export async function handleWelcomeTest(interaction) {
           // Try actual role assignment
           try {
             await testMember.roles.add(autoRole, "Welcome System - Test");
-            roleTestDetails = `${EMOJIS.STATUS.SUCCESS} Role assigned successfully`;
+            roleTestDetails = `✅ Role assigned successfully`;
           } catch (error) {
             roleTestDetails = `${EMOJIS.STATUS.ERROR} Role assignment failed: ${error.message}`;
           }
