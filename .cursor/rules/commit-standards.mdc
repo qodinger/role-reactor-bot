@@ -1,0 +1,910 @@
+---
+description: commit
+alwaysApply: false
+---
+# Commit Standards
+
+This rule defines the standards and best practices for commit messages, commit practices, and version control workflow in the Role Reactor Discord Bot project.
+
+## 1. Commit Message Format
+
+### Conventional Commits
+
+- **Format**: `<type>[optional scope]: <description>`
+- **Follow**: [Conventional Commits](https://www.conventionalcommits.org/) specification
+- **Language**: English only
+- **Case**: Use lowercase for type and scope, sentence case for description
+
+### Commit Types
+
+#### **feat**: New features or functionality
+
+```bash
+feat: add AI avatar generation system
+feat(xp): implement level-up notifications
+feat(polls): add poll creation with custom duration
+```
+
+#### **fix**: Bug fixes and error corrections
+
+```bash
+fix: resolve interaction timeout errors
+fix(xp): fix button navigation after command refactor
+fix(embeds): correct embed color consistency
+```
+
+#### **docs**: Documentation changes only
+
+```bash
+docs: update README with new setup instructions
+docs(changelog): add XP command simplification
+docs(api): document new webhook endpoints
+```
+
+#### **style**: Code formatting, whitespace, semicolons (no logic changes)
+
+```bash
+style: format code with prettier
+style(embeds): remove unused imports
+style: fix linting errors
+```
+
+#### **refactor**: Code restructuring without changing functionality
+
+```bash
+refactor: simplify XP command structure
+refactor(handlers): consolidate duplicate logic
+refactor: extract common validation functions
+```
+
+#### **perf**: Performance improvements
+
+```bash
+perf: optimize database queries
+perf(embeds): reduce embed creation time
+perf: implement caching for role lookups
+```
+
+#### **test**: Adding or updating tests
+
+```bash
+test: add unit tests for role parser
+test(xp): add integration tests for XP system
+test: update test coverage for temp-roles
+```
+
+#### **chore**: Maintenance tasks, dependency updates
+
+```bash
+chore: update discord.js to v14.15.0
+chore(deps): bump axios from 1.4.0 to 1.5.0
+chore: update deployment scripts
+```
+
+#### **ci**: Continuous integration changes
+
+```bash
+ci: add automated testing workflow
+ci: update GitHub Actions configuration
+ci: fix deployment pipeline
+```
+
+#### **build**: Build system or external dependencies
+
+```bash
+build: update webpack configuration
+build: add Docker multi-stage builds
+build: optimize bundle size
+```
+
+### Scope Guidelines
+
+#### **Use Scopes For:**
+
+- **Commands**: `feat(xp)`, `fix(temp-roles)`, `refactor(welcome)`
+- **Systems**: `feat(embeds)`, `fix(database)`, `perf(interactions)`
+- **Components**: `feat(buttons)`, `fix(modals)`, `refactor(routers)`
+- **Infrastructure**: `chore(docker)`, `ci(github)`, `build(webpack)`
+
+#### **Don't Use Scopes For:**
+
+- **General changes**: `feat: add new feature` (not `feat(general)`)
+- **Multiple systems**: `fix: resolve multiple issues` (not `fix(multiple)`)
+- **Documentation**: `docs: update README` (not `docs(readme)`)
+
+### Description Guidelines
+
+#### **Good Descriptions:**
+
+- ✅ **Clear and concise**: "add AI avatar generation system"
+- ✅ **Action-oriented**: "fix interaction timeout errors"
+- ✅ **Specific**: "implement level-up notifications for XP system"
+- ✅ **Present tense**: "add", "fix", "implement", "update"
+
+#### **Bad Descriptions:**
+
+- ❌ **Vague**: "fix stuff", "update things", "changes"
+- ❌ **Past tense**: "added", "fixed", "implemented"
+- ❌ **Too long**: "This commit adds a comprehensive AI-powered avatar generation system with multiple style options and content filtering"
+- ❌ **Technical jargon**: "refactor handler architecture for improved maintainability"
+
+## 2. Commit Body Standards
+
+### When to Use Commit Body
+
+- **Complex changes**: Explain the reasoning behind the change
+- **Breaking changes**: Document what breaks and migration steps
+- **Multiple changes**: List all significant changes
+- **Context needed**: Provide background information
+
+### Commit Body Format
+
+```bash
+feat: add AI avatar generation system
+
+- Implement AI-powered avatar generation with multiple style options
+- Add content filtering with 97.6% accuracy for inappropriate content
+- Integrate Ko-fi credit system for avatar generation
+- Add comprehensive error handling and rate limiting
+
+BREAKING CHANGE: Avatar command now requires Core credits instead of free generation
+```
+
+### Breaking Changes
+
+- **Format**: `BREAKING CHANGE: <description>`
+- **Required**: For any commit that breaks existing functionality
+- **Location**: At the end of commit body
+- **Description**: Explain what breaks and how to migrate
+
+## 3. Commit Practices
+
+### Atomic Commits
+
+- **One logical change per commit**
+- **Complete and working**: Each commit should leave the codebase in a working state
+- **Focused**: Address one specific issue or feature
+
+#### **Good Atomic Commits:**
+
+```bash
+feat(xp): add level-up notification system
+fix(temp-roles): resolve database index conflicts
+refactor(embeds): consolidate embed creation functions
+```
+
+#### **Bad Non-Atomic Commits:**
+
+```bash
+feat: add XP system, fix temp-roles, update embeds, and refactor handlers
+fix: resolve multiple issues across different systems
+chore: update dependencies and fix linting errors and update documentation
+```
+
+### Commit Frequency
+
+- **Regular commits**: Commit working changes frequently
+- **Feature branches**: Commit progress regularly, not just at completion
+- **Bug fixes**: Commit fixes immediately when resolved
+- **Documentation**: Commit docs updates with related code changes
+
+### Commit Size Guidelines
+
+- **Small commits**: 1-50 lines changed (preferred)
+- **Medium commits**: 50-200 lines changed (acceptable)
+- **Large commits**: 200+ lines changed (review carefully)
+- **Massive commits**: 500+ lines changed (consider splitting)
+
+## 4. Branch and Workflow Standards
+
+### Branch Naming
+
+- **Feature branches**: `feat/feature-name` (e.g., `feat/ai-avatars`)
+- **Bug fix branches**: `fix/issue-description` (e.g., `fix/xp-timeout`)
+- **Hotfix branches**: `hotfix/critical-issue` (e.g., `hotfix/security-patch`)
+- **Refactor branches**: `refactor/component-name` (e.g., `refactor/xp-handlers`)
+
+### Commit Workflow
+
+1. **Create feature branch** from main
+2. **Make atomic commits** with clear messages
+3. **Test changes** before committing
+4. **Run pre-commit hooks** (linting, formatting)
+5. **Push regularly** to backup work
+6. **Create pull request** when feature is complete
+7. **Squash commits** if needed during review
+8. **Merge to main** after approval
+
+### Pre-commit Requirements
+
+- **Linting**: All code must pass ESLint checks
+- **Formatting**: All code must pass Prettier formatting
+- **Tests**: All tests must pass (when applicable)
+- **Build**: Project must build successfully
+
+## 5. Version Control Best Practices
+
+### File Organization
+
+- **Logical grouping**: Group related changes together
+- **Consistent structure**: Follow established project patterns
+- **Clear separation**: Separate concerns into different files
+- **Documentation**: Update docs with code changes
+
+### Commit Messages for Different Scenarios
+
+#### **New Feature Development:**
+
+```bash
+feat: add initial feature structure
+feat: implement core functionality
+feat: add user interface components
+feat: integrate with existing systems
+test: add comprehensive test coverage
+docs: update documentation for new feature
+```
+
+#### **Bug Fix Process:**
+
+```bash
+fix: identify and isolate the issue
+fix: implement the solution
+test: add regression tests
+docs: update changelog with fix details
+```
+
+#### **Refactoring Process:**
+
+```bash
+refactor: extract common functionality
+refactor: simplify complex logic
+refactor: improve code organization
+test: update tests for refactored code
+docs: update documentation for changes
+```
+
+#### **Documentation Updates:**
+
+```bash
+docs: update README with new features
+docs(changelog): add recent changes
+docs(api): document new endpoints
+docs: fix typos and improve clarity
+```
+
+## 6. Quality Standards
+
+### Commit Message Quality
+
+- **Clarity**: Clear what the commit does
+- **Consistency**: Follow established patterns
+- **Completeness**: Include all necessary information
+- **Accuracy**: Describe what actually changed
+
+### Code Quality
+
+- **Working code**: Each commit should leave the codebase functional
+- **Tested changes**: Test changes before committing
+- **Clean code**: Follow project coding standards
+- **Documentation**: Update docs with significant changes
+
+### Review Standards
+
+- **Self-review**: Review your own commits before pushing
+- **Peer review**: Get feedback on significant changes
+- **Automated checks**: Ensure all automated checks pass
+- **Manual testing**: Test changes manually when possible
+
+## 7. Common Mistakes to Avoid
+
+### Commit Message Mistakes
+
+- ❌ **Unclear messages**: "fix stuff", "update things"
+- ❌ **Wrong type**: Using "feat" for bug fixes
+- ❌ **Missing scope**: Not using scope when it would be helpful
+- ❌ **Too verbose**: Overly long descriptions
+- ❌ **Past tense**: Using "added" instead of "add"
+
+### Commit Practice Mistakes
+
+- ❌ **Non-atomic commits**: Multiple unrelated changes
+- ❌ **Incomplete commits**: Committing broken code
+- ❌ **Massive commits**: Too many changes at once
+- ❌ **Missing tests**: Not testing changes before commit
+- ❌ **Skipping pre-commit**: Not running quality checks
+
+### Workflow Mistakes
+
+- ❌ **Committing to main**: Making changes directly on main branch
+- ❌ **Inconsistent branching**: Not following branch naming conventions
+- ❌ **Missing documentation**: Not updating docs with code changes
+- ❌ **Ignoring feedback**: Not addressing review comments
+
+## 8. Tools and Automation
+
+### Pre-commit Hooks
+
+- **ESLint**: Code linting and style checking
+- **Prettier**: Code formatting
+- **Jest**: Test execution
+- **Commitlint**: Commit message validation
+
+### Git Configuration
+
+```bash
+# Set up commit message template
+git config commit.template .gitmessage
+
+# Set up pre-commit hooks
+npm install --save-dev husky lint-staged
+
+# Configure commit message validation
+npm install --save-dev @commitlint/cli @commitlint/config-conventional
+```
+
+### IDE Integration
+
+- **VS Code**: Use GitLens extension for better git integration
+- **Commitizen**: Use `cz` command for conventional commits
+- **Git hooks**: Configure pre-commit hooks in IDE
+
+## 9. Examples
+
+### Good Commit Examples
+
+#### **Feature Addition:**
+
+```bash
+feat(xp): add level-up notification system
+
+- Implement automatic level-up notifications
+- Add configurable notification channels
+- Support custom level-up messages
+- Integrate with existing XP system
+
+Closes #123
+```
+
+#### **Bug Fix:**
+
+```bash
+fix(temp-roles): resolve database index conflicts
+
+- Fix MongoDB duplicate key errors
+- Add proper error handling for conflicts
+- Implement retry logic for failed operations
+- Update error messages for better debugging
+
+Fixes #456
+```
+
+#### **Refactoring:**
+
+```bash
+refactor(embeds): consolidate embed creation functions
+
+- Extract common embed creation logic
+- Reduce code duplication across commands
+- Improve maintainability and consistency
+- Update all commands to use new functions
+```
+
+#### **Documentation:**
+
+```bash
+docs: update README with new setup instructions
+
+- Add Docker setup instructions
+- Update environment variable documentation
+- Include troubleshooting section
+- Fix outdated command examples
+```
+
+### Bad Commit Examples
+
+#### **Poor Messages:**
+
+```bash
+# Too vague
+fix: stuff
+
+# Wrong type
+feat: fix bug
+
+# Too verbose
+feat: implement comprehensive AI-powered avatar generation system with multiple style options, content filtering, Ko-fi integration, and extensive error handling
+
+# Past tense
+feat: added new feature
+```
+
+#### **Non-Atomic Commits:**
+
+```bash
+# Multiple unrelated changes
+feat: add XP system, fix temp-roles, update embeds, refactor handlers
+
+# Incomplete changes
+feat: start implementing avatar system
+
+# Too many changes
+feat: completely rewrite entire bot architecture
+```
+
+## 10. Integration with Development
+
+### During Development
+
+- **Commit frequently**: Don't wait until feature is complete
+- **Use descriptive messages**: Make it clear what each commit does
+- **Test before commit**: Ensure changes work before committing
+- **Update documentation**: Keep docs current with code changes
+
+### Before Release
+
+- **Review commit history**: Ensure all commits follow standards
+- **Squash if needed**: Combine related commits for cleaner history
+- **Update changelog**: Document all significant changes
+- **Tag releases**: Use semantic versioning for releases
+
+### Team Collaboration
+
+- **Consistent standards**: All team members follow same rules
+- **Code reviews**: Review commits for quality and standards
+- **Documentation**: Keep team updated on standards
+- **Training**: Ensure all developers understand standards
+
+This commit standard ensures consistent, clear, and maintainable version control practices throughout the Role Reactor Discord Bot project.
+# Commit Standards
+
+This rule defines the standards and best practices for commit messages, commit practices, and version control workflow in the Role Reactor Discord Bot project.
+
+## 1. Commit Message Format
+
+### Conventional Commits
+
+- **Format**: `<type>[optional scope]: <description>`
+- **Follow**: [Conventional Commits](https://www.conventionalcommits.org/) specification
+- **Language**: English only
+- **Case**: Use lowercase for type and scope, sentence case for description
+
+### Commit Types
+
+#### **feat**: New features or functionality
+
+```bash
+feat: add AI avatar generation system
+feat(xp): implement level-up notifications
+feat(polls): add poll creation with custom duration
+```
+
+#### **fix**: Bug fixes and error corrections
+
+```bash
+fix: resolve interaction timeout errors
+fix(xp): fix button navigation after command refactor
+fix(embeds): correct embed color consistency
+```
+
+#### **docs**: Documentation changes only
+
+```bash
+docs: update README with new setup instructions
+docs(changelog): add XP command simplification
+docs(api): document new webhook endpoints
+```
+
+#### **style**: Code formatting, whitespace, semicolons (no logic changes)
+
+```bash
+style: format code with prettier
+style(embeds): remove unused imports
+style: fix linting errors
+```
+
+#### **refactor**: Code restructuring without changing functionality
+
+```bash
+refactor: simplify XP command structure
+refactor(handlers): consolidate duplicate logic
+refactor: extract common validation functions
+```
+
+#### **perf**: Performance improvements
+
+```bash
+perf: optimize database queries
+perf(embeds): reduce embed creation time
+perf: implement caching for role lookups
+```
+
+#### **test**: Adding or updating tests
+
+```bash
+test: add unit tests for role parser
+test(xp): add integration tests for XP system
+test: update test coverage for temp-roles
+```
+
+#### **chore**: Maintenance tasks, dependency updates
+
+```bash
+chore: update discord.js to v14.15.0
+chore(deps): bump axios from 1.4.0 to 1.5.0
+chore: update deployment scripts
+```
+
+#### **ci**: Continuous integration changes
+
+```bash
+ci: add automated testing workflow
+ci: update GitHub Actions configuration
+ci: fix deployment pipeline
+```
+
+#### **build**: Build system or external dependencies
+
+```bash
+build: update webpack configuration
+build: add Docker multi-stage builds
+build: optimize bundle size
+```
+
+### Scope Guidelines
+
+#### **Use Scopes For:**
+
+- **Commands**: `feat(xp)`, `fix(temp-roles)`, `refactor(welcome)`
+- **Systems**: `feat(embeds)`, `fix(database)`, `perf(interactions)`
+- **Components**: `feat(buttons)`, `fix(modals)`, `refactor(routers)`
+- **Infrastructure**: `chore(docker)`, `ci(github)`, `build(webpack)`
+
+#### **Don't Use Scopes For:**
+
+- **General changes**: `feat: add new feature` (not `feat(general)`)
+- **Multiple systems**: `fix: resolve multiple issues` (not `fix(multiple)`)
+- **Documentation**: `docs: update README` (not `docs(readme)`)
+
+### Description Guidelines
+
+#### **Good Descriptions:**
+
+- ✅ **Clear and concise**: "add AI avatar generation system"
+- ✅ **Action-oriented**: "fix interaction timeout errors"
+- ✅ **Specific**: "implement level-up notifications for XP system"
+- ✅ **Present tense**: "add", "fix", "implement", "update"
+
+#### **Bad Descriptions:**
+
+- ❌ **Vague**: "fix stuff", "update things", "changes"
+- ❌ **Past tense**: "added", "fixed", "implemented"
+- ❌ **Too long**: "This commit adds a comprehensive AI-powered avatar generation system with multiple style options and content filtering"
+- ❌ **Technical jargon**: "refactor handler architecture for improved maintainability"
+
+## 2. Commit Body Standards
+
+### When to Use Commit Body
+
+- **Complex changes**: Explain the reasoning behind the change
+- **Breaking changes**: Document what breaks and migration steps
+- **Multiple changes**: List all significant changes
+- **Context needed**: Provide background information
+
+### Commit Body Format
+
+```bash
+feat: add AI avatar generation system
+
+- Implement AI-powered avatar generation with multiple style options
+- Add content filtering with 97.6% accuracy for inappropriate content
+- Integrate Ko-fi credit system for avatar generation
+- Add comprehensive error handling and rate limiting
+
+BREAKING CHANGE: Avatar command now requires Core credits instead of free generation
+```
+
+### Breaking Changes
+
+- **Format**: `BREAKING CHANGE: <description>`
+- **Required**: For any commit that breaks existing functionality
+- **Location**: At the end of commit body
+- **Description**: Explain what breaks and how to migrate
+
+## 3. Commit Practices
+
+### Atomic Commits
+
+- **One logical change per commit**
+- **Complete and working**: Each commit should leave the codebase in a working state
+- **Focused**: Address one specific issue or feature
+
+#### **Good Atomic Commits:**
+
+```bash
+feat(xp): add level-up notification system
+fix(temp-roles): resolve database index conflicts
+refactor(embeds): consolidate embed creation functions
+```
+
+#### **Bad Non-Atomic Commits:**
+
+```bash
+feat: add XP system, fix temp-roles, update embeds, and refactor handlers
+fix: resolve multiple issues across different systems
+chore: update dependencies and fix linting errors and update documentation
+```
+
+### Commit Frequency
+
+- **Regular commits**: Commit working changes frequently
+- **Feature branches**: Commit progress regularly, not just at completion
+- **Bug fixes**: Commit fixes immediately when resolved
+- **Documentation**: Commit docs updates with related code changes
+
+### Commit Size Guidelines
+
+- **Small commits**: 1-50 lines changed (preferred)
+- **Medium commits**: 50-200 lines changed (acceptable)
+- **Large commits**: 200+ lines changed (review carefully)
+- **Massive commits**: 500+ lines changed (consider splitting)
+
+## 4. Branch and Workflow Standards
+
+### Branch Naming
+
+- **Feature branches**: `feat/feature-name` (e.g., `feat/ai-avatars`)
+- **Bug fix branches**: `fix/issue-description` (e.g., `fix/xp-timeout`)
+- **Hotfix branches**: `hotfix/critical-issue` (e.g., `hotfix/security-patch`)
+- **Refactor branches**: `refactor/component-name` (e.g., `refactor/xp-handlers`)
+
+### Commit Workflow
+
+1. **Create feature branch** from main
+2. **Make atomic commits** with clear messages
+3. **Test changes** before committing
+4. **Run pre-commit hooks** (linting, formatting)
+5. **Push regularly** to backup work
+6. **Create pull request** when feature is complete
+7. **Squash commits** if needed during review
+8. **Merge to main** after approval
+
+### Pre-commit Requirements
+
+- **Linting**: All code must pass ESLint checks
+- **Formatting**: All code must pass Prettier formatting
+- **Tests**: All tests must pass (when applicable)
+- **Build**: Project must build successfully
+
+## 5. Version Control Best Practices
+
+### File Organization
+
+- **Logical grouping**: Group related changes together
+- **Consistent structure**: Follow established project patterns
+- **Clear separation**: Separate concerns into different files
+- **Documentation**: Update docs with code changes
+
+### Commit Messages for Different Scenarios
+
+#### **New Feature Development:**
+
+```bash
+feat: add initial feature structure
+feat: implement core functionality
+feat: add user interface components
+feat: integrate with existing systems
+test: add comprehensive test coverage
+docs: update documentation for new feature
+```
+
+#### **Bug Fix Process:**
+
+```bash
+fix: identify and isolate the issue
+fix: implement the solution
+test: add regression tests
+docs: update changelog with fix details
+```
+
+#### **Refactoring Process:**
+
+```bash
+refactor: extract common functionality
+refactor: simplify complex logic
+refactor: improve code organization
+test: update tests for refactored code
+docs: update documentation for changes
+```
+
+#### **Documentation Updates:**
+
+```bash
+docs: update README with new features
+docs(changelog): add recent changes
+docs(api): document new endpoints
+docs: fix typos and improve clarity
+```
+
+## 6. Quality Standards
+
+### Commit Message Quality
+
+- **Clarity**: Clear what the commit does
+- **Consistency**: Follow established patterns
+- **Completeness**: Include all necessary information
+- **Accuracy**: Describe what actually changed
+
+### Code Quality
+
+- **Working code**: Each commit should leave the codebase functional
+- **Tested changes**: Test changes before committing
+- **Clean code**: Follow project coding standards
+- **Documentation**: Update docs with significant changes
+
+### Review Standards
+
+- **Self-review**: Review your own commits before pushing
+- **Peer review**: Get feedback on significant changes
+- **Automated checks**: Ensure all automated checks pass
+- **Manual testing**: Test changes manually when possible
+
+## 7. Common Mistakes to Avoid
+
+### Commit Message Mistakes
+
+- ❌ **Unclear messages**: "fix stuff", "update things"
+- ❌ **Wrong type**: Using "feat" for bug fixes
+- ❌ **Missing scope**: Not using scope when it would be helpful
+- ❌ **Too verbose**: Overly long descriptions
+- ❌ **Past tense**: Using "added" instead of "add"
+
+### Commit Practice Mistakes
+
+- ❌ **Non-atomic commits**: Multiple unrelated changes
+- ❌ **Incomplete commits**: Committing broken code
+- ❌ **Massive commits**: Too many changes at once
+- ❌ **Missing tests**: Not testing changes before commit
+- ❌ **Skipping pre-commit**: Not running quality checks
+
+### Workflow Mistakes
+
+- ❌ **Committing to main**: Making changes directly on main branch
+- ❌ **Inconsistent branching**: Not following branch naming conventions
+- ❌ **Missing documentation**: Not updating docs with code changes
+- ❌ **Ignoring feedback**: Not addressing review comments
+
+## 8. Tools and Automation
+
+### Pre-commit Hooks
+
+- **ESLint**: Code linting and style checking
+- **Prettier**: Code formatting
+- **Jest**: Test execution
+- **Commitlint**: Commit message validation
+
+### Git Configuration
+
+```bash
+# Set up commit message template
+git config commit.template .gitmessage
+
+# Set up pre-commit hooks
+npm install --save-dev husky lint-staged
+
+# Configure commit message validation
+npm install --save-dev @commitlint/cli @commitlint/config-conventional
+```
+
+### IDE Integration
+
+- **VS Code**: Use GitLens extension for better git integration
+- **Commitizen**: Use `cz` command for conventional commits
+- **Git hooks**: Configure pre-commit hooks in IDE
+
+## 9. Examples
+
+### Good Commit Examples
+
+#### **Feature Addition:**
+
+```bash
+feat(xp): add level-up notification system
+
+- Implement automatic level-up notifications
+- Add configurable notification channels
+- Support custom level-up messages
+- Integrate with existing XP system
+
+Closes #123
+```
+
+#### **Bug Fix:**
+
+```bash
+fix(temp-roles): resolve database index conflicts
+
+- Fix MongoDB duplicate key errors
+- Add proper error handling for conflicts
+- Implement retry logic for failed operations
+- Update error messages for better debugging
+
+Fixes #456
+```
+
+#### **Refactoring:**
+
+```bash
+refactor(embeds): consolidate embed creation functions
+
+- Extract common embed creation logic
+- Reduce code duplication across commands
+- Improve maintainability and consistency
+- Update all commands to use new functions
+```
+
+#### **Documentation:**
+
+```bash
+docs: update README with new setup instructions
+
+- Add Docker setup instructions
+- Update environment variable documentation
+- Include troubleshooting section
+- Fix outdated command examples
+```
+
+### Bad Commit Examples
+
+#### **Poor Messages:**
+
+```bash
+# Too vague
+fix: stuff
+
+# Wrong type
+feat: fix bug
+
+# Too verbose
+feat: implement comprehensive AI-powered avatar generation system with multiple style options, content filtering, Ko-fi integration, and extensive error handling
+
+# Past tense
+feat: added new feature
+```
+
+#### **Non-Atomic Commits:**
+
+```bash
+# Multiple unrelated changes
+feat: add XP system, fix temp-roles, update embeds, refactor handlers
+
+# Incomplete changes
+feat: start implementing avatar system
+
+# Too many changes
+feat: completely rewrite entire bot architecture
+```
+
+## 10. Integration with Development
+
+### During Development
+
+- **Commit frequently**: Don't wait until feature is complete
+- **Use descriptive messages**: Make it clear what each commit does
+- **Test before commit**: Ensure changes work before committing
+- **Update documentation**: Keep docs current with code changes
+
+### Before Release
+
+- **Review commit history**: Ensure all commits follow standards
+- **Squash if needed**: Combine related commits for cleaner history
+- **Update changelog**: Document all significant changes
+- **Tag releases**: Use semantic versioning for releases
+
+### Team Collaboration
+
+- **Consistent standards**: All team members follow same rules
+- **Code reviews**: Review commits for quality and standards
+- **Documentation**: Keep team updated on standards
+- **Training**: Ensure all developers understand standards
+
+This commit standard ensures consistent, clear, and maintainable version control practices throughout the Role Reactor Discord Bot project.
