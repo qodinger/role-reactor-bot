@@ -1,25 +1,32 @@
 # Invite Command
 
-A command that provides users with the bot's invite link and information about its features.
+## Overview
 
-## Structure
+The Invite command provides users with the bot's invite link and information about its features to help them add the bot to their servers.
 
-- `index.js` - Main command definition and exports
-- `handlers.js` - Core command logic and invite link generation
-- `embeds.js` - Discord embed creation and bot information display
-- `components.js` - Interactive button components for invite and support
-- `utils.js` - Helper functions for invite link generation and validation
-- `README.md` - This documentation file
+## File Structure
 
-## Features
+```
+invite/
+├── index.js              # Command definition and entry point
+├── handlers.js           # Main command handlers and invite link generation
+├── embeds.js             # Discord embed creation and bot information display
+├── components.js         # Interactive button components for invite and support
+├── utils.js              # Helper functions for invite link generation and validation
+└── README.md             # This documentation
+```
 
-- **Bot Invite Link**: Generates and displays the bot's invite link
-- **Feature Showcase**: Highlights key bot capabilities and benefits
-- **Interactive Buttons**: Direct links to invite bot and support server
-- **Dynamic Content**: Adapts to bot name and avatar
-- **Privacy-Focused**: Emphasizes data privacy and security
+## Architecture
 
-## Usage
+Following the modular pattern established by other commands:
+
+- **`index.js`**: Command definition and main execution flow
+- **`handlers.js`**: Core business logic and invite link generation
+- **`embeds.js`**: Discord embed creation and formatting with simple, official styling
+- **`components.js`**: Interactive UI components (buttons for invite and support links)
+- **`utils.js`**: Helper functions for invite link generation and validation
+
+## Usage Examples
 
 ```
 /invite
@@ -27,26 +34,31 @@ A command that provides users with the bot's invite link and information about i
 
 No parameters required - simply displays the bot's invite information.
 
+## Permissions Required
+
+- None (public command)
+- All users can access
+
+## Key Features
+
+- Bot invite link generation and display
+- Interactive buttons for invite and support access
+- Simple and official design with clean presentation
+
 ## Information Displayed
 
-- **Bot Introduction**: Friendly greeting and bot description
-- **Key Features**:
-  - One-click role assignment
-  - Event role management
-  - Security and privacy
-  - Reliability and monitoring
-- **Invite Link**: Direct link to add bot to server
-- **Support Server**: Link to get help and support
+### Bot Introduction
 
-## Interactive Elements
+- Friendly greeting and concise bot description
 
-- **Invite Button**: Direct link to add bot to user's server
-- **Support Button**: Link to support server for assistance
+### Interactive Elements
 
-## Technical Details
+- **Invite Button** - Direct link to add bot to user's server
+- **Support Button** - Link to support server for assistance
 
-- Uses Discord.js SlashCommandBuilder
-- Dynamically generates invite links
-- Implements proper error handling
-- Follows the modular command structure pattern
-- Supports both cached and generated invite links
+## Dependencies
+
+- Discord.js
+- Theme configuration for colors and styling
+- External links configuration
+- UI components for consistent design

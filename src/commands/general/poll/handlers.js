@@ -100,12 +100,10 @@ export async function handlePollEnd(interaction, client, _deferred = false) {
     await storageManager.updatePoll(pollId, updatedPoll);
 
     await interaction.editReply({
-      content: `${EMOJIS.STATUS.SUCCESS} **Poll Ended Successfully!**\n\nThe poll has been ended early and results are now final.`,
+      content: `**Poll Ended Successfully!**\n\nThe poll has been ended early and results are now final.`,
     });
 
-    logger.info(
-      `${EMOJIS.STATUS.SUCCESS} Poll ended: ${pollId} by ${interaction.user.tag}`,
-    );
+    logger.info(`Poll ended: ${pollId} by ${interaction.user.tag}`);
   } catch (error) {
     logger.error("Error in handlePollEnd:", error);
     await interaction.editReply(
@@ -164,13 +162,11 @@ async function createPollFromData(interaction, pollData) {
 
     // Send confirmation to the user who created the poll
     await interaction.editReply({
-      content: `${EMOJIS.STATUS.SUCCESS} **Poll Created Successfully!**\nThe poll has been posted in this channel for everyone to vote.`,
+      content: `**Poll Created Successfully!**\nThe poll has been posted in this channel for everyone to vote.`,
       flags: MessageFlags.Ephemeral,
     });
 
-    logger.info(
-      `${EMOJIS.STATUS.SUCCESS} Native Discord poll created successfully: ${pollMessage.id}`,
-    );
+    logger.info(`Native Discord poll created successfully: ${pollMessage.id}`);
   } catch (pollError) {
     logger.error("Native poll creation failed:", pollError);
     return await interaction.editReply(
@@ -205,7 +201,7 @@ async function createPollFromData(interaction, pollData) {
 
   const executionTime = Date.now() - startTime;
   logger.info(
-    `${EMOJIS.STATUS.SUCCESS} Poll created: ${pollId} by ${interaction.user.tag} (${executionTime}ms)`,
+    `Poll created: ${pollId} by ${interaction.user.tag} (${executionTime}ms)`,
   );
 }
 
@@ -370,7 +366,7 @@ export async function handlePollCreationButton(interaction, _client) {
     } else if (customId === "poll_cancel_creation") {
       await interaction.deferUpdate();
       await interaction.editReply({
-        content: `${EMOJIS.STATUS.ERROR} Poll creation cancelled.`,
+        content: `Poll creation cancelled.`,
         embeds: [],
         components: [],
       });
@@ -639,13 +635,13 @@ async function createPollCard(interaction, poll, pollNumber) {
     `**${pollNumberStr}.** ${truncatedQuestion}`,
     ``,
     `${statusColor} **Status:** ${timeRemaining}`,
-    `${EMOJIS.UI.ID} **ID:** \`${poll.id}\``,
-    `${EMOJIS.UI.USER} **Creator:** ${creatorName}`,
-    `${EMOJIS.TIME.CLOCK} **Duration:** ${durationText}`,
+    `**ID:** \`${poll.id}\``,
+    `**Creator:** ${creatorName}`,
+    `**Duration:** ${durationText}`,
     `${typeIcon} **Type:** ${typeText}`,
-    `${EMOJIS.UI.MENU} **Options:** ${poll.options.length}`,
+    `**Options:** ${poll.options.length}`,
     ``,
-    `${EMOJIS.ACTIONS.LINK} [View Poll](https://discord.com/channels/${interaction.guild.id}/${poll.channelId}/${poll.messageId})`,
+    `[View Poll](https://discord.com/channels/${interaction.guild.id}/${poll.channelId}/${poll.messageId})`,
   ].join("\n");
 
   return pollCard;
@@ -670,7 +666,7 @@ export async function handlePollList(interaction, _client, _deferred = false) {
         `[PollList] Already slow at start (${initialTime}ms), sending quick response`,
       );
       return await interaction.editReply({
-        content: `${EMOJIS.UI.EMPTY} **No Polls Found**\n\nThere are currently no polls in this server.\nCreate a new poll using \`/poll create\` to get started!`,
+        content: `**No Polls Found**\n\nThere are currently no polls in this server.\nCreate a new poll using \`/poll create\` to get started!`,
         flags: MessageFlags.Ephemeral,
       });
     }
@@ -722,9 +718,7 @@ export async function handlePollList(interaction, _client, _deferred = false) {
         pollsToUpdate.map(poll => storageManager.updatePoll(poll.id, poll)),
       )
         .then(() => {
-          logger.info(
-            `${EMOJIS.STATUS.SUCCESS} Updated ${pollsToUpdate.length} expired polls`,
-          );
+          logger.info(`Updated ${pollsToUpdate.length} expired polls`);
         })
         .catch(error => {
           logger.error("Failed to update expired polls:", error);
@@ -735,9 +729,7 @@ export async function handlePollList(interaction, _client, _deferred = false) {
     const pollsToShow = showEnded ? allPolls : activePolls;
 
     if (pollsToShow.length === 0) {
-      const title = showEnded
-        ? `${EMOJIS.UI.PROGRESS} Polls`
-        : `${EMOJIS.UI.PROGRESS} Active Polls`;
+      const title = showEnded ? `Polls` : `Active Polls`;
       const description = showEnded
         ? `**No polls found in this server.**\n\nCreate your first poll using \`/poll create\` to get started!`
         : `**No active polls found.**\n\nCreate a new poll using \`/poll create\` to get started!`;
@@ -747,7 +739,7 @@ export async function handlePollList(interaction, _client, _deferred = false) {
         .setDescription(description)
         .setColor(THEME.TEXT_MUTED)
         .addFields({
-          name: `${EMOJIS.UI.LIGHT_BULB} Quick Start`,
+          name: `Quick Start`,
           value:
             "• Use `/poll create` to create a new poll\n• Set duration from 1 hour to 7 days\n• Choose single or multiple choice voting\n• Add emojis to make polls more engaging",
           inline: false,
@@ -766,7 +758,7 @@ export async function handlePollList(interaction, _client, _deferred = false) {
         );
         try {
           const result = await interaction.editReply({
-            content: `${EMOJIS.UI.EMPTY} **No Active Polls Found**\n\nThere are currently no active polls in this server.\nCreate a new poll using \`/poll create\` to get started!`,
+            content: `**No Active Polls Found**\n\nThere are currently no active polls in this server.\nCreate a new poll using \`/poll create\` to get started!`,
             flags: MessageFlags.Ephemeral,
           });
           return result;
@@ -789,7 +781,7 @@ export async function handlePollList(interaction, _client, _deferred = false) {
         );
         // Fallback to simple text reply
         return await interaction.editReply({
-          content: `${EMOJIS.UI.EMPTY} **No Active Polls Found**\n\nThere are currently no active polls in this server.\nCreate a new poll using \`/poll create\` to get started!`,
+          content: `**No Active Polls Found**\n\nThere are currently no active polls in this server.\nCreate a new poll using \`/poll create\` to get started!`,
           flags: MessageFlags.Ephemeral,
         });
       }
@@ -803,9 +795,7 @@ export async function handlePollList(interaction, _client, _deferred = false) {
     const pagePolls = pollsToShow.slice(startIndex, endIndex);
 
     // Create beautiful main embed with modern design
-    const title = showEnded
-      ? `${EMOJIS.UI.PROGRESS} Polls`
-      : `${EMOJIS.UI.PROGRESS} Active Polls`;
+    const title = showEnded ? `Polls` : `Active Polls`;
     const pollCount = showEnded ? allPolls.length : activePolls.length;
     const activeCount = activePolls.length;
     const endedCount = endedPolls.length;
@@ -906,7 +896,7 @@ export async function handlePollList(interaction, _client, _deferred = false) {
 
     const executionTime = Date.now() - startTime;
     logger.info(
-      `${EMOJIS.STATUS.SUCCESS} Poll list displayed: ${pagePolls.length} polls (${executionTime}ms)`,
+      `Poll list displayed: ${pagePolls.length} polls (${executionTime}ms)`,
     );
 
     return await interaction.editReply({
@@ -994,17 +984,17 @@ export async function handlePollDelete(
 
     const executionTime = Date.now() - startTime;
     logger.info(
-      `${EMOJIS.STATUS.SUCCESS} Poll deleted: ${pollId} by ${interaction.user.tag} (${executionTime}ms)`,
+      `Poll deleted: ${pollId} by ${interaction.user.tag} (${executionTime}ms)`,
     );
 
     // Provide appropriate feedback based on what was successfully deleted
     let responseMessage;
     if (messageDeleted && dbDeleted) {
-      responseMessage = `${EMOJIS.STATUS.SUCCESS} **Poll Deleted Successfully**\nPoll \`${pollId}\` has been completely removed from both the channel and database.`;
+      responseMessage = `**Poll Deleted Successfully**\nPoll \`${pollId}\` has been completely removed from both the channel and database.`;
     } else if (dbDeleted) {
-      responseMessage = `${EMOJIS.STATUS.WARNING} **Poll Partially Deleted**\nPoll \`${pollId}\` has been removed from the database, but the message could not be deleted from the channel (it may have been already deleted or you may lack permissions).`;
+      responseMessage = `**Poll Partially Deleted**\nPoll \`${pollId}\` has been removed from the database, but the message could not be deleted from the channel (it may have been already deleted or you may lack permissions).`;
     } else {
-      responseMessage = `${EMOJIS.STATUS.ERROR} **Poll Deletion Failed**\nFailed to delete poll \`${pollId}\` from the database. Please try again or contact support.`;
+      responseMessage = `**Poll Deletion Failed**\nFailed to delete poll \`${pollId}\` from the database. Please try again or contact support.`;
     }
 
     return await interaction.editReply({
@@ -1086,9 +1076,7 @@ export async function handlePollListButton(interaction, _client) {
           pollsToUpdate.map(poll => storageManager.updatePoll(poll.id, poll)),
         )
           .then(() => {
-            logger.info(
-              `${EMOJIS.STATUS.SUCCESS} Updated ${pollsToUpdate.length} expired polls`,
-            );
+            logger.info(`Updated ${pollsToUpdate.length} expired polls`);
           })
           .catch(error => {
             logger.error("Failed to update expired polls:", error);
@@ -1111,7 +1099,7 @@ export async function handlePollListButton(interaction, _client) {
           .setDescription(description)
           .setColor(THEME.TEXT_MUTED)
           .addFields({
-            name: `${EMOJIS.UI.QUESTION} Quick Start`,
+            name: `Quick Start`,
             value:
               "• Use `/poll create` to create a new poll\n• Set duration from 1 hour to 7 days\n• Choose single or multiple choice voting\n• Add emojis to make polls more engaging",
             inline: false,
@@ -1136,9 +1124,7 @@ export async function handlePollListButton(interaction, _client) {
       const pagePolls = pollsToShow.slice(startIndex, endIndex);
 
       // Create beautiful main embed with modern design
-      const title = showEnded
-        ? `${EMOJIS.UI.PROGRESS} Polls`
-        : `${EMOJIS.UI.PROGRESS} Active Polls`;
+      const title = showEnded ? `Polls` : `Active Polls`;
       const pollCount = showEnded ? allPolls.length : activePolls.length;
       const activeCount = activePolls.length;
       const endedCount = endedPolls.length;

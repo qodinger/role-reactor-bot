@@ -73,18 +73,13 @@ export function createPollCreationModal() {
  * Create poll creation menu with selection dropdowns
  * @returns {Object} Object containing embed and components
  */
-export function createPollCreationMenu(client) {
+export function createPollCreationMenu(_client) {
   const embed = new EmbedBuilder()
-    .setTitle(`${EMOJIS.UI.PROGRESS} Create a Poll`)
+    .setTitle(`Create a Poll`)
     .setDescription(
       "Configure your poll settings using the dropdowns below, then click **Continue to Details** to fill in the poll information.",
     )
-    .setColor(THEME.PRIMARY)
-    .setTimestamp()
-    .setFooter({
-      text: "Role Reactor • Poll System",
-      iconURL: client.user.displayAvatarURL(),
-    });
+    .setColor(THEME.PRIMARY);
 
   // Duration selection (Discord native polls support 1 hour to 7 days max)
   const durationSelect = new StringSelectMenuBuilder()
@@ -210,19 +205,14 @@ export function createPollCreationMenu(client) {
 export function createPollCreationMenuWithSelections(
   selections,
   _interaction,
-  client,
+  _client,
 ) {
   const embed = new EmbedBuilder()
-    .setTitle(`${EMOJIS.UI.PROGRESS} Create a Poll`)
+    .setTitle(`Create a Poll`)
     .setDescription(
       "Configure your poll settings using the dropdowns below, then click **Continue to Details** to fill in the poll information.",
     )
-    .setColor(THEME.PRIMARY)
-    .setTimestamp()
-    .setFooter({
-      text: "Role Reactor • Poll System",
-      iconURL: client.user.displayAvatarURL(),
-    });
+    .setColor(THEME.PRIMARY);
 
   // Add current selections to description
   if (selections.duration || selections.allowMultiple !== undefined) {

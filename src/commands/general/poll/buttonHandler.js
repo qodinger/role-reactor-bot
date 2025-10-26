@@ -200,7 +200,7 @@ async function handleVoteButton(
     // Remove vote
     poll.votes[userId] = poll.votes[userId].filter(idx => idx !== optionIdx);
     logger.info(
-      `${EMOJIS.STATUS.SUCCESS} Vote removed: ${interaction.user.tag} removed vote for "${option}" in poll ${poll.id}`,
+      `Vote removed: ${interaction.user.tag} removed vote for "${option}" in poll ${poll.id}`,
     );
   } else {
     // Check if multiple voting is allowed
@@ -212,7 +212,7 @@ async function handleVoteButton(
     // Add vote
     poll.votes[userId].push(optionIdx);
     logger.info(
-      `${EMOJIS.STATUS.SUCCESS} Vote added: ${interaction.user.tag} voted for "${option}" in poll ${poll.id}`,
+      `Vote added: ${interaction.user.tag} voted for "${option}" in poll ${poll.id}`,
     );
   }
 
@@ -262,7 +262,7 @@ async function handleDeleteButton(interaction, poll, storageManager) {
 
   if (!isCreator && !isAdmin) {
     return await interaction.editReply({
-      content: `${EMOJIS.STATUS.ERROR} You can only delete polls you created or if you have Manage Messages permission.`,
+      content: `You can only delete polls you created or if you have Manage Messages permission.`,
     });
   }
 
@@ -276,9 +276,7 @@ async function handleDeleteButton(interaction, poll, storageManager) {
   // Remove from storage
   await storageManager.deletePoll(poll.id);
 
-  logger.info(
-    `${EMOJIS.STATUS.SUCCESS} Poll deleted: ${poll.id} by ${interaction.user.tag}`,
-  );
+  logger.info(`Poll deleted: ${poll.id} by ${interaction.user.tag}`);
 }
 
 /**
@@ -294,7 +292,7 @@ async function handleEndPollButton(interaction, poll, storageManager) {
 
   if (!isCreator && !isAdmin) {
     return await interaction.editReply({
-      content: `${EMOJIS.STATUS.ERROR} You don't have permission to end this poll. Only the creator or users with Manage Messages permission can end polls.`,
+      content: `You don't have permission to end this poll. Only the creator or users with Manage Messages permission can end polls.`,
     });
   }
 
@@ -401,7 +399,7 @@ function createUpdatedComponents(poll, userId = null) {
  */
 function createUpdatedPollEmbed(poll) {
   const embed = new EmbedBuilder()
-    .setTitle(`${EMOJIS.UI.PROGRESS} ${poll.question}`)
+    .setTitle(`${poll.question}`)
     .setDescription(
       `Select ${poll.allowMultiple ? "one or more answers" : "one answer"} by clicking the buttons below`,
     )
@@ -463,7 +461,7 @@ function createUpdatedPollEmbed(poll) {
     ? `${EMOJIS.STATUS.SUCCESS} Active`
     : `${EMOJIS.STATUS.ERROR} Ended`;
   embed.addFields({
-    name: `${EMOJIS.UI.PROGRESS} Poll Status`,
+    name: `Poll Status`,
     value: `**Total Votes:** ${totalVotes}\n**Time Remaining:** ${remainingTime}\n**Status:** ${status}`,
     inline: false,
   });
@@ -543,7 +541,7 @@ async function notifyPollEnded(interaction, poll) {
     const pollMessageLink = `https://discord.com/channels/${poll.guildId}/${poll.channelId}/${poll.messageId}`;
 
     const notificationEmbed = new EmbedBuilder()
-      .setTitle(`${EMOJIS.TIME.ALARM} Poll Ended: ${poll.question}`)
+      .setTitle(`Poll Ended: ${poll.question}`)
       .setDescription(
         `The poll has ended and is no longer accepting votes.\n\n${EMOJIS.ACTIONS.LINK} [View Original Poll](${pollMessageLink})`,
       )
@@ -554,7 +552,7 @@ async function notifyPollEnded(interaction, poll) {
       });
 
     await channel.send({
-      content: `${EMOJIS.UI.PROGRESS} **Poll Results**`,
+      content: `**Poll Results**`,
       embeds: [notificationEmbed, resultsEmbed],
     });
 
@@ -569,7 +567,7 @@ async function notifyPollEnded(interaction, poll) {
  */
 function createResultsEmbed(poll) {
   const embed = new EmbedBuilder()
-    .setTitle(`${EMOJIS.UI.PROGRESS} Poll Results: ${poll.question}`)
+    .setTitle(`Poll Results: ${poll.question}`)
     .setColor(THEME.SUCCESS)
     .setTimestamp();
 

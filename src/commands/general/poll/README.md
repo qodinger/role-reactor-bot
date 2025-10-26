@@ -1,4 +1,4 @@
-# Native Poll Command
+# Poll Command
 
 ## Overview
 
@@ -16,6 +16,7 @@ The Poll command uses Discord's native polling system to create interactive poll
 - **Poll Management**: List, delete, and end polls
 - **No Custom UI**: No buttons, embeds, or custom components - pure Discord native
 - **Simplified Codebase**: Removed complex voting logic and custom UI components
+- **Simple and Official Design**: Clean, professional styling without excessive emojis
 
 ## File Structure
 
@@ -26,190 +27,133 @@ poll/
 ├── modals.js             # Modal and select menu components for poll creation
 ├── modalHandler.js       # Modal submission handlers
 ├── buttonHandler.js      # Button interaction handlers (pagination)
+├── utils.js              # Utility functions for poll processing
 └── README.md             # This documentation
 ```
 
-## Command Usage
+## Architecture
 
-### Create Poll
+### Command Structure
+
+- **Main Command**: `/poll` with subcommands for different operations
+- **Subcommands**: `create`, `list`, `end`, `delete`
+- **Modal System**: Two-step creation process with configuration and details
+- **Native Integration**: Uses Discord's built-in poll API for maximum compatibility
+
+### Data Flow
+
+1. **Creation**: User selects duration and vote type → Modal for details → Native poll creation
+2. **Management**: Poll data stored in database with Discord message references
+3. **Voting**: Handled entirely by Discord's native system
+4. **Results**: Real-time updates through Discord's poll interface
+
+## Usage Examples
+
+### Creating a Poll
 
 ```
 /poll create
 ```
 
-Opens a modern modal interface with:
+- Opens interactive modal for poll configuration
+- Select duration (1 hour to 7 days)
+- Choose single or multiple choice voting
+- Enter poll question and options
+- Creates native Discord poll
 
-- **Step 1**: Select duration (1 hour to 7 days) and vote type (single/multiple choice)
-- **Step 2**: Enter poll question and options with optional emojis
-
-### List Polls
-
-```
-/poll list [--show-ended]
-```
-
-- Shows active polls by default
-- Use `--show-ended` to include completed polls
-- Paginated display with 6 polls per page
-
-### Delete Poll
+### Listing Polls
 
 ```
-/poll delete poll-id:1234567890123456789
+/poll list
+/poll list page:2
+/poll list show-ended:true
 ```
 
-- Deletes both the Discord message and database record
-- Only poll creator or admins can delete polls
+- Shows all polls in the server
+- Paginated display with navigation
+- Optional inclusion of ended polls
+- Click to view original poll messages
 
-### End Poll
+### Managing Polls
 
 ```
-/poll end poll-id:1234567890123456789
+/poll end poll-id:abc123
+/poll delete poll-id:abc123
 ```
 
-- Immediately ends an active poll
-- Only poll creator or admins can end polls
+- End polls early (creator or admin only)
+- Delete polls completely (creator or admin only)
+- Automatic cleanup of expired polls
 
-## Poll Creation Process
-
-### Step 1: Duration and Type Selection
-
-- **Duration Options**: 1 hour, 2 hours, 6 hours, 12 hours, 1 day, 2 days, 3 days, 5 days, 7 days
-- **Vote Type**: Single choice or Multiple choice
-- **Visual Selection**: Emoji-enhanced dropdown menus
-
-### Step 2: Question and Options
-
-- **Question**: Poll question (max 300 characters)
-- **Options**: Up to 10 options, separated by `|` or newlines (max 55 chars each)
-- **Emojis**: Optional emojis can be added to options (e.g., "🍎 Apple|🍌 Banana")
-- **Placeholder**: Helpful examples provided in the input fields
-
-## Native Poll System
-
-### How Native Polls Work
-
-1. Users click on their desired option(s) in the poll
-2. Discord handles all voting logic and UI updates automatically
-3. Real-time results are shown with animated progress bars
-4. Users can change their votes by clicking different options
-5. Click on vote counts to see detailed participant lists
-
-### Native Poll Features
-
-- **Automatic UI**: Discord handles all visual elements and interactions
-- **Real-time Updates**: Results update instantly as users vote
-- **Animated Progress**: Smooth progress bars show vote percentages
-- **Detailed Results**: Click vote counts to see who voted for what
-- **No Bot Dependencies**: Polls work even if the bot is offline
-
-## Poll Lifecycle
-
-1. **Creation**: Poll is created with specified options and settings
-2. **Active**: Users can vote on the poll
-3. **Expiration**: Poll automatically expires after the specified duration
-4. **Cleanup**: Expired polls are cleaned up automatically
-
-## Storage
-
-Polls are stored using the existing storage system with MongoDB integration:
-
-- **Primary Storage**: MongoDB database (if configured)
-- **Fallback Storage**: File-based storage in `data/polls.json`
-- **Automatic Sync**: Data syncs between file and database storage
-- **Message ID Tracking**: Uses Discord message ID as poll identifier
-- **Automatic Cleanup**: Expired polls are cleaned up after 24 hours
-
-## Permissions
-
-### Required Bot Permissions
-
-- `SendMessages`: Send poll messages
-- `EmbedLinks`: Create rich embeds
-- `AddReactions`: Add emoji reactions
-- `ReadMessageHistory`: Read message history
+## Permissions Required
 
 ### User Permissions
 
-- **Create Polls**: Any user can create polls (general command)
-- **Vote**: Any user can vote on polls
-- **Delete Polls**: Only poll creator or users with `Administrator` permission
-- **End Polls**: Only poll creator or users with `Administrator` permission
-- **View Polls**: Any user can view poll list and results
+- **Create**: Send Messages permission
+- **List**: Send Messages permission (public)
+- **End/Delete**: Poll creator or Manage Messages permission
 
-## Error Handling
+### Bot Permissions
 
-- **Invalid Options**: Validates poll options and emojis
-- **Permission Errors**: Checks user permissions before allowing actions
-- **Rate Limiting**: Handles Discord API rate limits gracefully
-- **Storage Errors**: Graceful fallback if storage operations fail
+- **Send Messages**: Required for all operations
+- **Embed Links**: Required for poll display
+- **Manage Messages**: Required for poll deletion
 
-## Examples
+## Key Features
 
-### Simple Poll Creation
+### Native Discord Integration
 
-1. Run `/poll create`
-2. Select duration (e.g., "1 day") and vote type (e.g., "Single choice")
-3. Enter question: "What should we have for lunch?"
-4. Enter options: "Pizza|Burger|Salad|Sushi"
-5. Submit to create the poll
+- Uses Discord's built-in poll system
+- Identical UI to manual polls
+- Real-time vote counting and animations
+- Automatic expiration handling
 
-### Poll with Emojis
+### Modern Creation Interface
 
-1. Run `/poll create`
-2. Select duration and vote type
-3. Enter question: "Which feature should we prioritize?"
-4. Enter options: "🚀 Feature A|💡 Feature B|🔧 Feature C"
-5. Submit to create the poll
+- Two-step modal process
+- Duration selection (1 hour to 7 days)
+- Vote type configuration (single/multiple)
+- Option management with emojis
 
-### Multiple Choice Poll
+### Poll Management
 
-1. Run `/poll create`
-2. Select duration (e.g., "3 days") and vote type "Multiple choice"
-3. Enter question: "What are your favorite colors?"
-4. Enter options: "Red|Blue|Green|Yellow|Purple|Orange"
-5. Submit to create the poll
+- List all server polls with pagination
+- End polls early for immediate results
+- Delete polls with proper cleanup
+- Automatic expiration processing
 
-## Integration
+### Simple and Official Design
 
-The poll system integrates with:
+- Clean, professional styling
+- Minimal emoji usage for better readability
+- Consistent with other bot commands
+- Focus on functionality over decoration
 
-- **Storage System**: Uses the existing storage manager with MongoDB support
-- **Permission System**: Uses the existing permission validation
-- **Logging System**: Uses the existing logger for debugging
-- **Theme System**: Uses centralized emojis and colors from `theme.js`
-- **Database System**: Full MongoDB integration with automatic sync
+## Poll Configuration
 
-## Technical Details
+### Duration Options
 
-### Poll Data Structure
+- **1 hour**: Standard quick polls
+- **2-12 hours**: Extended engagement
+- **1-3 days**: Community decisions
+- **5-7 days**: Long-term voting (Discord maximum)
 
-```javascript
-{
-  id: "message_id",           // Discord message ID
-  question: "Poll question",   // Poll question text
-  options: [...],             // Array of poll options
-  duration: 24,               // Duration in hours
-  allowMultiple: false,       // Single or multiple choice
-  creatorId: "user_id",       // Creator's Discord ID
-  guildId: "guild_id",        // Guild ID
-  channelId: "channel_id",    // Channel ID
-  isActive: true,             // Poll status
-  createdAt: "timestamp",     // Creation timestamp
-  endsAt: "timestamp"         // Expiration timestamp
-}
-```
+### Vote Types
 
-### Rate Limiting
+- **Single Choice**: Users select one option
+- **Multiple Choice**: Users can select multiple options
+- **Custom Emojis**: Add visual appeal to options
 
-- **Per User**: 5 polls per user per hour
-- **Per Server**: 50 active polls per server maximum
-- **API Limits**: Respects Discord's rate limits
+### Poll Limits
 
-## Maintenance
+- **Options**: 2-10 options maximum
+- **Characters**: 55 characters per option
+- **Duration**: 1 hour to 7 days maximum
+- **Votes**: Unlimited (Discord native limits)
 
-- **Automatic Cleanup**: Expired polls are cleaned up after 24 hours
-- **Message Deletion**: Poll data is automatically removed when Discord message is deleted
-- **Database Sync**: Automatic sync between file and database storage
-- **Error Recovery**: Graceful handling of API errors and timeouts
-- **Performance**: Optimized for large numbers of polls and votes
+## Dependencies
+
+- Discord.js
+- Theme configuration for colors and styling
+- Storage manager for poll data persistence
+- Logger for operation tracking
