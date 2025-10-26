@@ -288,10 +288,10 @@ export async function routeButtonInteraction(interaction, _client) {
         break;
       }
       case "back_to_settings": {
-        const { handleSettings } = await import(
+        const { handleXpCommand } = await import(
           "../../../commands/admin/xp/handlers.js"
         );
-        await handleSettings(interaction, interaction.client);
+        await handleXpCommand(interaction, interaction.client);
         break;
       }
 

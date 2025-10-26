@@ -2,7 +2,7 @@
 
 ## Overview
 
-The XP command allows administrators to configure and manage the XP system for their server using subcommands.
+The XP command allows administrators to configure and manage the XP system for their server with a simplified, single-command interface.
 
 ## File Structure
 
@@ -20,41 +20,47 @@ xp/
 
 Following the modular pattern established by other admin commands:
 
-- **`index.js`**: Command definition with subcommands, permission validation, and main execution flow
-- **`handlers.js`**: Core business logic for setup and settings subcommands
+- **`index.js`**: Command definition, permission validation, and main execution flow
+- **`handlers.js`**: Core business logic for XP system management
 - **`embeds.js`**: Discord embed creation and formatting
 - **`components.js`**: Interactive UI components (buttons, select menus)
 - **`utils.js`**: Helper functions, validation, and logging utilities
 
-## Subcommands
+## Command Usage
 
-### `/xp setup`
+### `/xp`
 
-Configure the XP system with various options:
+A simplified single command that displays current XP system settings and provides interactive buttons for configuration.
 
-- `enabled` - Enable or disable the XP system
-- `message-xp` - Enable XP for sending messages
-- `command-xp` - Enable XP for using commands
-- `role-xp` - Enable XP for role assignments
+**Features:**
 
-### `/xp settings`
-
-View and manage the XP system settings with interactive buttons.
+- **Real-time settings display** - Shows current XP configuration
+- **Interactive configuration** - Use buttons to enable/disable features
+- **Level-up management** - Configure level-up messages and channels
+- **XP source configuration** - Manage different XP sources (messages, commands, roles, voice)
+- **Permission-based access** - Only administrators can configure
 
 ## Key Features
 
-- Subcommand-based configuration
-- Interactive buttons for enabling/disabling XP features
-- Real-time settings display
-- Permission-based access control
-- Comprehensive error handling
+- **Simplified interface** - Single command instead of multiple subcommands
+- **Interactive buttons** - Easy configuration through Discord UI
+- **Real-time settings display** - See current configuration at a glance
+- **Permission-based access control** - Secure admin-only access
+- **Comprehensive error handling** - Graceful error recovery
+- **Database integration** - Persistent settings storage
 
 ## Usage
 
 ```
-/xp setup enabled:true message-xp:true command-xp:true role-xp:true
-/xp settings
+/xp
 ```
+
+The command will display current XP settings with interactive buttons for:
+
+- **Configure** - General XP system configuration
+- **Level-Up Messages** - Configure level-up notifications
+- **Enable/Disable** - Toggle XP system on/off
+- **XP Sources** - Configure different XP earning methods
 
 ## Permissions Required
 

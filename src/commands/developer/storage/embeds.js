@@ -1,5 +1,5 @@
 import { EmbedBuilder } from "discord.js";
-import { THEME, EMOJIS } from "../../../config/theme.js";
+import { THEME } from "../../../config/theme.js";
 import { getStorageManager } from "../../../utils/storage/storageManager.js";
 import { getDatabaseManager } from "../../../utils/storage/databaseManager.js";
 
@@ -9,8 +9,8 @@ import { getDatabaseManager } from "../../../utils/storage/databaseManager.js";
 
 export async function createStorageEmbed(client, user) {
   const embed = new EmbedBuilder()
-    .setColor(THEME.DEVELOPER)
-    .setTitle(`${EMOJIS.FEATURES.BACKUP} Storage Status`)
+    .setColor(THEME.PRIMARY)
+    .setTitle("Storage Status")
     .setDescription("Current storage configuration and statistics")
     .setFooter({
       text: `Requested by ${user.tag}`,
@@ -30,22 +30,22 @@ export async function createStorageEmbed(client, user) {
     // Storage Type and Status
     embed.addFields(
       {
-        name: `${EMOJIS.STATUS.ONLINE} Storage Type`,
+        name: "Storage Type",
         value: storageType,
         inline: true,
       },
       {
-        name: `${EMOJIS.STATUS.ONLINE} Database Status`,
+        name: "Database Status",
         value: dbHealth.status,
         inline: true,
       },
       {
-        name: `${EMOJIS.ACTIONS.VIEW} Role Mappings`,
+        name: "Role Mappings",
         value: `${storageStats.roleMappings} active mappings`,
         inline: true,
       },
       {
-        name: `${EMOJIS.FEATURES.TEMPORARY} Temporary Roles`,
+        name: "Temporary Roles",
         value: `${storageStats.tempRoles} active temporary roles`,
         inline: true,
       },
@@ -53,7 +53,7 @@ export async function createStorageEmbed(client, user) {
 
     // Data Retention Information
     embed.addFields({
-      name: `${EMOJIS.FEATURES.BACKUP} Data Retention`,
+      name: "Data Retention",
       value: [
         "• **Role mappings**: Until manually removed",
         "• **Temporary roles**: Auto-expire",
@@ -71,7 +71,7 @@ export async function createStorageEmbed(client, user) {
     );
     if (recommendations.length > 0) {
       embed.addFields({
-        name: `${EMOJIS.STATUS.INFO} Recommendations`,
+        name: "Recommendations",
         value: recommendations.join("\n"),
         inline: false,
       });
@@ -80,7 +80,7 @@ export async function createStorageEmbed(client, user) {
     // Database Details (if available)
     if (dbHealth.details) {
       embed.addFields({
-        name: `${EMOJIS.FEATURES.MONITORING} Database Details`,
+        name: "Database Details",
         value: dbHealth.details,
         inline: false,
       });
@@ -90,7 +90,7 @@ export async function createStorageEmbed(client, user) {
     const performance = await getStoragePerformance(storageManager);
     if (performance) {
       embed.addFields({
-        name: `${EMOJIS.FEATURES.MONITORING} Performance Metrics`,
+        name: "Performance Metrics",
         value: [
           `**Read Operations**: ${performance.readOps}/min`,
           `**Write Operations**: ${performance.writeOps}/min`,
@@ -103,7 +103,7 @@ export async function createStorageEmbed(client, user) {
   } catch (_error) {
     // Fallback if storage systems are unavailable
     embed.addFields({
-      name: `${EMOJIS.STATUS.ERROR} Storage Systems Unavailable`,
+      name: "Storage Systems Unavailable",
       value:
         "Unable to retrieve storage information. Please check system logs.",
       inline: false,
@@ -111,7 +111,7 @@ export async function createStorageEmbed(client, user) {
 
     // Basic system info as fallback
     embed.addFields({
-      name: `${EMOJIS.FEATURES.MONITORING} Basic System Info`,
+      name: "Basic System Info",
       value: [
         `**Platform**: ${process.platform}`,
         `**Node Version**: ${process.version}`,

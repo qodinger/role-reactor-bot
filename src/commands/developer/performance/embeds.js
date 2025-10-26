@@ -1,5 +1,5 @@
 import { EmbedBuilder } from "discord.js";
-import { THEME_COLOR } from "../../../config/theme.js";
+import { THEME } from "../../../config/theme.js";
 import { getPerformanceMonitor } from "../../../utils/monitoring/performanceMonitor.js";
 
 // ============================================================================
@@ -10,8 +10,8 @@ const SLOW_OPERATION_THRESHOLD = 500; // ms
 
 export async function createPerformanceEmbed(client) {
   const embed = new EmbedBuilder()
-    .setTitle("📊 Bot Performance Metrics")
-    .setColor(THEME_COLOR)
+    .setTitle("Bot Performance Metrics")
+    .setColor(THEME.PRIMARY)
     .setTimestamp()
     .setFooter({
       text: "Role Reactor • Performance Monitor",
@@ -25,17 +25,17 @@ export async function createPerformanceEmbed(client) {
     // Overall Performance Summary
     embed.addFields(
       {
-        name: "⏱️ Uptime",
+        name: "Uptime",
         value: performanceSummary.uptime,
         inline: true,
       },
       {
-        name: "🎯 Total Events",
+        name: "Total Events",
         value: performanceSummary.events.total.toString(),
         inline: true,
       },
       {
-        name: "⚡ Total Commands",
+        name: "Total Commands",
         value: performanceSummary.commands.total.toString(),
         inline: true,
       },
@@ -44,17 +44,17 @@ export async function createPerformanceEmbed(client) {
     // Performance Metrics
     embed.addFields(
       {
-        name: "🚀 Event Performance",
+        name: "Event Performance",
         value: `Avg: ${performanceSummary.events.avgDuration}`,
         inline: true,
       },
       {
-        name: "⚡ Command Performance",
+        name: "Command Performance",
         value: `Avg: ${performanceSummary.commands.avgDuration}`,
         inline: true,
       },
       {
-        name: "🔄 Event Rate",
+        name: "Event Rate",
         value: `${performanceSummary.events.rate}/min`,
         inline: true,
       },
@@ -66,7 +66,7 @@ export async function createPerformanceEmbed(client) {
 
     if (slowCommands.length > 0) {
       embed.addFields({
-        name: "🐌 Slow Commands",
+        name: "Slow Commands",
         value: formatSlowOperations(slowCommands),
         inline: false,
       });
@@ -74,7 +74,7 @@ export async function createPerformanceEmbed(client) {
 
     if (slowEvents.length > 0) {
       embed.addFields({
-        name: "🐌 Slow Events",
+        name: "Slow Events",
         value: formatSlowOperations(slowEvents),
         inline: false,
       });
@@ -83,7 +83,7 @@ export async function createPerformanceEmbed(client) {
     // Memory and System Info
     const memoryUsage = process.memoryUsage();
     embed.addFields({
-      name: "💾 Memory Usage",
+      name: "Memory Usage",
       value: [
         `**Heap Used**: ${formatMemory(memoryUsage.heapUsed)}`,
         `**Heap Total**: ${formatMemory(memoryUsage.heapTotal)}`,
@@ -101,7 +101,7 @@ export async function createPerformanceEmbed(client) {
     );
     if (recommendations.length > 0) {
       embed.addFields({
-        name: "💡 Recommendations",
+        name: "Recommendations",
         value: recommendations.join("\n"),
         inline: false,
       });
@@ -109,7 +109,7 @@ export async function createPerformanceEmbed(client) {
   } catch (_error) {
     // Fallback if performance monitor is unavailable
     embed.addFields({
-      name: "⚠️ Performance Monitor Unavailable",
+      name: "Performance Monitor Unavailable",
       value:
         "Performance metrics are currently unavailable. Basic system information is shown below.",
       inline: false,
@@ -118,7 +118,7 @@ export async function createPerformanceEmbed(client) {
     // Basic system info as fallback
     const memoryUsage = process.memoryUsage();
     embed.addFields({
-      name: "💾 Basic System Info",
+      name: "Basic System Info",
       value: [
         `**Memory**: ${formatMemory(memoryUsage.heapUsed)}`,
         `**Uptime**: ${formatUptime(process.uptime())}`,

@@ -17,7 +17,7 @@ export function createCoreManagementEmbed(
 ) {
   const embed = new EmbedBuilder()
     .setColor(getEmbedColor(type))
-    .setTitle(`${title} ${CORE_EMOJI}`)
+    .setTitle(title)
     .setDescription(description)
     .setTimestamp();
 
@@ -58,7 +58,7 @@ export async function createDetailedCoreManagementEmbed({
   console.log("Final description:", finalDescription);
 
   const embed = new EmbedBuilder()
-    .setColor(getEmbedColor(type))
+    .setColor(THEME.PRIMARY)
     .setDescription(finalDescription)
     .setThumbnail(targetUser.displayAvatarURL({ dynamic: true, size: 256 }))
     .setFooter({

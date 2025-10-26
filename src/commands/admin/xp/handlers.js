@@ -23,20 +23,23 @@ import { EMOJIS } from "../../../config/theme.js";
 import { updateXpSettings } from "./utils.js";
 
 /**
- * Handle XP system setup
+ * Handle XP command (simplified single command)
  * @param {import('discord.js').CommandInteraction} interaction
  * @param {import('discord.js').Client} client
  */
-export async function handleSetup(interaction, _client) {
+export async function handleXpCommand(interaction, _client) {
   const logger = getLogger();
   const startTime = Date.now();
+
+  // Defer immediately to prevent timeout
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   try {
     // Get database manager
     const dbManager = await getDatabaseManager();
 
     if (!dbManager.guildSettings) {
-      return interaction.reply(
+      return interaction.editReply(
         errorEmbed({
           title: "Database Error",
           description: "Guild settings repository is not available.",
@@ -49,137 +52,6 @@ export async function handleSetup(interaction, _client) {
     // Get current settings
     let settings;
     try {
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(
-          () => reject(new Error("Database operation timed out")),
-          3000,
-        );
-      });
-
-      settings = await Promise.race([
-        dbManager.guildSettings.getByGuild(interaction.guild.id),
-        timeoutPromise,
-      ]);
-    } catch (error) {
-      logger.error(
-        `Failed to retrieve guild settings for guild ${interaction.guild.id}`,
-        error,
-      );
-      return interaction.reply(
-        errorEmbed({
-          title: "Database Error",
-          description: "Failed to retrieve guild settings from database.",
-          solution:
-            "Please try again or contact support if the issue persists.",
-        }),
-      );
-    }
-
-    // Defer reply
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-
-    // Get options
-    const enabled = interaction.options.getBoolean("enabled");
-    const messageXp = interaction.options.getBoolean("message-xp");
-    const commandXp = interaction.options.getBoolean("command-xp");
-    const roleXp = interaction.options.getBoolean("role-xp");
-    const voiceXp = interaction.options.getBoolean("voice-xp");
-
-    // Update settings if any options were provided
-    let updated = false;
-    const xpSettings = settings.experienceSystem;
-
-    if (enabled !== null) {
-      xpSettings.enabled = enabled;
-      updated = true;
-    }
-    if (messageXp !== null) {
-      xpSettings.messageXP = messageXp;
-      updated = true;
-    }
-    if (commandXp !== null) {
-      xpSettings.commandXP = commandXp;
-      updated = true;
-    }
-    if (roleXp !== null) {
-      xpSettings.roleXP = roleXp;
-      updated = true;
-    }
-    if (voiceXp !== null) {
-      xpSettings.voiceXP = voiceXp;
-      updated = true;
-    }
-
-    if (updated) {
-      await updateXpSettings(interaction.guild.id, xpSettings, dbManager);
-    }
-
-    // Get level-up channel
-    const levelUpChannel = xpSettings.levelUpChannel
-      ? interaction.guild.channels.cache.get(xpSettings.levelUpChannel)
-      : null;
-
-    // Create settings embed and components
-    const embed = createXpSettingsEmbed(
-      interaction,
-      xpSettings,
-      levelUpChannel,
-    );
-    const components = createXpSettingsComponents(xpSettings);
-
-    await interaction.editReply({
-      embeds: [embed],
-      components,
-    });
-
-    const duration = Date.now() - startTime;
-    logger.info(
-      `XP setup completed for guild ${interaction.guild.name} by user ${interaction.user.tag} in ${duration}ms`,
-    );
-  } catch (error) {
-    const duration = Date.now() - startTime;
-    logger.error(`Error in XP setup after ${duration}ms`, error);
-    await interaction.editReply(
-      errorEmbed({
-        title: "Error",
-        description: "Failed to configure XP system.",
-        solution: "Please try again or contact support if the issue persists.",
-      }),
-    );
-  }
-}
-
-/**
- * Handle XP settings display
- * @param {import('discord.js').CommandInteraction} interaction
- * @param {import('discord.js').Client} client
- */
-export async function handleSettings(interaction, _client) {
-  const logger = getLogger();
-  const startTime = Date.now();
-
-  // Defer immediately to prevent timeout
-  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-
-  try {
-    // Get database manager and settings AFTER deferring reply
-    const dbManager = await getDatabaseManager();
-
-    // Check if guild settings repository is available
-    if (!dbManager.guildSettings) {
-      return interaction.editReply(
-        errorEmbed({
-          title: "Database Error",
-          description: "Guild settings repository is not available.",
-          solution:
-            "Please restart the bot or contact support if the issue persists.",
-        }),
-      );
-    }
-
-    let settings;
-    try {
-      // Add timeout for database operations - reduced to 3 seconds to stay within Discord limits
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(
           () => reject(new Error("Database operation timed out")),

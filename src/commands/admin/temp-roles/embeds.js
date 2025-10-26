@@ -39,7 +39,7 @@ export function createTempRoleEmbed(
   const embed = new EmbedBuilder()
     .setTitle("Temporary Role Assignment")
     .setDescription(description)
-    .setColor(role.color || THEME.SUCCESS)
+    .setColor(THEME.PRIMARY)
     .setThumbnail(role.iconURL() || null)
     .setTimestamp()
     .setFooter({
@@ -242,7 +242,7 @@ export function createTempRoleRemovedEmbed(
     .setDescription(
       `Successfully removed the **${targetRole.name}** role from **${targetUser.username}**.`,
     )
-    .setColor(THEME.SUCCESS)
+    .setColor(THEME.PRIMARY)
     .setThumbnail(targetUser.displayAvatarURL())
     .addFields([
       {
@@ -312,7 +312,7 @@ export function createTempRoleRemovalEmbed(
     .setDescription(
       `Successfully removed the **${role.name}** role from ${users.length} user${users.length !== 1 ? "s" : ""}`,
     )
-    .setColor(role.color || THEME.SUCCESS)
+    .setColor(THEME.PRIMARY)
     .setThumbnail(role.iconURL() || null)
     .setTimestamp()
     .setFooter({

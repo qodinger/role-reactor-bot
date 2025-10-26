@@ -7,7 +7,7 @@ import { THEME, EMOJIS } from "../../../config/theme.js";
 
 export async function createHealthEmbed(client, startTime) {
   const embed = new EmbedBuilder()
-    .setTitle("🏥 Bot Health Status")
+    .setTitle("Bot Health Status")
     .setTimestamp()
     .setFooter({
       text: "Role Reactor • Health Check",
@@ -20,19 +20,19 @@ export async function createHealthEmbed(client, startTime) {
   // Determine overall status
   const status = determineOverallStatus(checks);
 
-  embed.setColor(status.color);
+  embed.setColor(THEME.PRIMARY);
   embed.setDescription(status.description);
 
   // Overall Status
   embed.addFields({
-    name: "📊 Overall Status",
+    name: "Overall Status",
     value: `${status.emoji} **${status.status.toUpperCase()}**`,
     inline: false,
   });
 
   // System Health
   embed.addFields({
-    name: "🔧 System Health",
+    name: "System Health",
     value: [
       `**Bot Status**: ${checks.bot_ready}`,
       `**WebSocket**: ${checks.websocket}`,
@@ -45,7 +45,7 @@ export async function createHealthEmbed(client, startTime) {
 
   // Performance Metrics
   embed.addFields({
-    name: "⚡ Performance Metrics",
+    name: "Performance Metrics",
     value: [
       `**Response Time**: ${Date.now() - startTime}ms`,
       `**WebSocket Ping**: ${checks.ping}ms`,
@@ -58,7 +58,7 @@ export async function createHealthEmbed(client, startTime) {
 
   // Process Information
   embed.addFields({
-    name: "🖥️ Process Info",
+    name: "Process Info",
     value: [
       `**Node Version**: ${process.version}`,
       `**Platform**: ${process.platform}`,
