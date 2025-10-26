@@ -12,7 +12,8 @@ describe("Goodbye - Core Functionality", () => {
           };
         }
 
-        if (channel.type !== 0) { // GUILD_TEXT
+        if (channel.type !== 0) {
+          // GUILD_TEXT
           return {
             valid: false,
             error: `The channel **${channel.name}** is not a text channel.`,
@@ -27,7 +28,8 @@ describe("Goodbye - Core Functionality", () => {
           return {
             valid: false,
             error: `I don't have permission to send messages in **${channel.name}**.`,
-            solution: "Please grant me 'Send Messages' permission in the selected channel.",
+            solution:
+              "Please grant me 'Send Messages' permission in the selected channel.",
           };
         }
 
@@ -66,7 +68,8 @@ describe("Goodbye - Core Functionality", () => {
           };
         }
 
-        if (channel.type !== 0) { // GUILD_TEXT
+        if (channel.type !== 0) {
+          // GUILD_TEXT
           return {
             valid: false,
             error: `The channel **${channel.name}** is not a text channel.`,
@@ -110,7 +113,8 @@ describe("Goodbye - Core Functionality", () => {
           };
         }
 
-        if (channel.type !== 0) { // GUILD_TEXT
+        if (channel.type !== 0) {
+          // GUILD_TEXT
           return {
             valid: false,
             error: `The channel **${channel.name}** is not a text channel.`,
@@ -125,7 +129,8 @@ describe("Goodbye - Core Functionality", () => {
           return {
             valid: false,
             error: `I don't have permission to send messages in **${channel.name}**.`,
-            solution: "Please grant me 'Send Messages' permission in the selected channel.",
+            solution:
+              "Please grant me 'Send Messages' permission in the selected channel.",
           };
         }
 
@@ -248,14 +253,29 @@ describe("Goodbye - Core Functionality", () => {
         let processedMessage = message;
 
         // Replace placeholders
-        processedMessage = processedMessage.replace(/\{user\}/g, `<@${user.id}>`);
-        processedMessage = processedMessage.replace(/\{user\.name\}/g, user.username);
+        processedMessage = processedMessage.replace(
+          /\{user\}/g,
+          `<@${user.id}>`,
+        );
+        processedMessage = processedMessage.replace(
+          /\{user\.name\}/g,
+          user.username,
+        );
         processedMessage = processedMessage.replace(/\{user\.tag\}/g, user.tag);
         processedMessage = processedMessage.replace(/\{user\.id\}/g, user.id);
         processedMessage = processedMessage.replace(/\{server\}/g, guild.name);
-        processedMessage = processedMessage.replace(/\{server\.id\}/g, guild.id);
-        processedMessage = processedMessage.replace(/\{memberCount\}/g, memberCount.toString());
-        processedMessage = processedMessage.replace(/\{memberCount\.ordinal\}/g, getOrdinal(memberCount));
+        processedMessage = processedMessage.replace(
+          /\{server\.id\}/g,
+          guild.id,
+        );
+        processedMessage = processedMessage.replace(
+          /\{memberCount\}/g,
+          memberCount.toString(),
+        );
+        processedMessage = processedMessage.replace(
+          /\{memberCount\.ordinal\}/g,
+          getOrdinal(memberCount),
+        );
 
         return processedMessage;
       };
@@ -277,8 +297,14 @@ describe("Goodbye - Core Functionality", () => {
       };
       const memberCount = 150;
 
-      const message = "Goodbye {user}! You were the {memberCount.ordinal} member of {server}.";
-      const result = processGoodbyeMessage(message, mockUser, mockGuild, memberCount);
+      const message =
+        "Goodbye {user}! You were the {memberCount.ordinal} member of {server}.";
+      const result = processGoodbyeMessage(
+        message,
+        mockUser,
+        mockGuild,
+        memberCount,
+      );
 
       expect(result).toContain("<@123456789>");
       expect(result).toContain("150th");
@@ -292,14 +318,29 @@ describe("Goodbye - Core Functionality", () => {
         let processedMessage = message;
 
         // Replace placeholders
-        processedMessage = processedMessage.replace(/\{user\}/g, `<@${user.id}>`);
-        processedMessage = processedMessage.replace(/\{user\.name\}/g, user.username);
+        processedMessage = processedMessage.replace(
+          /\{user\}/g,
+          `<@${user.id}>`,
+        );
+        processedMessage = processedMessage.replace(
+          /\{user\.name\}/g,
+          user.username,
+        );
         processedMessage = processedMessage.replace(/\{user\.tag\}/g, user.tag);
         processedMessage = processedMessage.replace(/\{user\.id\}/g, user.id);
         processedMessage = processedMessage.replace(/\{server\}/g, guild.name);
-        processedMessage = processedMessage.replace(/\{server\.id\}/g, guild.id);
-        processedMessage = processedMessage.replace(/\{memberCount\}/g, memberCount.toString());
-        processedMessage = processedMessage.replace(/\{memberCount\.ordinal\}/g, getOrdinal(memberCount));
+        processedMessage = processedMessage.replace(
+          /\{server\.id\}/g,
+          guild.id,
+        );
+        processedMessage = processedMessage.replace(
+          /\{memberCount\}/g,
+          memberCount.toString(),
+        );
+        processedMessage = processedMessage.replace(
+          /\{memberCount\.ordinal\}/g,
+          getOrdinal(memberCount),
+        );
 
         return processedMessage;
       };
@@ -322,7 +363,12 @@ describe("Goodbye - Core Functionality", () => {
       const memberCount = 150;
 
       const message = "Goodbye! Thanks for visiting.";
-      const result = processGoodbyeMessage(message, mockUser, mockGuild, memberCount);
+      const result = processGoodbyeMessage(
+        message,
+        mockUser,
+        mockGuild,
+        memberCount,
+      );
 
       expect(result).toBe("Goodbye! Thanks for visiting.");
     });
@@ -334,14 +380,29 @@ describe("Goodbye - Core Functionality", () => {
         let processedMessage = message;
 
         // Replace placeholders
-        processedMessage = processedMessage.replace(/\{user\}/g, `<@${user.id}>`);
-        processedMessage = processedMessage.replace(/\{user\.name\}/g, user.username);
+        processedMessage = processedMessage.replace(
+          /\{user\}/g,
+          `<@${user.id}>`,
+        );
+        processedMessage = processedMessage.replace(
+          /\{user\.name\}/g,
+          user.username,
+        );
         processedMessage = processedMessage.replace(/\{user\.tag\}/g, user.tag);
         processedMessage = processedMessage.replace(/\{user\.id\}/g, user.id);
         processedMessage = processedMessage.replace(/\{server\}/g, guild.name);
-        processedMessage = processedMessage.replace(/\{server\.id\}/g, guild.id);
-        processedMessage = processedMessage.replace(/\{memberCount\}/g, memberCount.toString());
-        processedMessage = processedMessage.replace(/\{memberCount\.ordinal\}/g, getOrdinal(memberCount));
+        processedMessage = processedMessage.replace(
+          /\{server\.id\}/g,
+          guild.id,
+        );
+        processedMessage = processedMessage.replace(
+          /\{memberCount\}/g,
+          memberCount.toString(),
+        );
+        processedMessage = processedMessage.replace(
+          /\{memberCount\.ordinal\}/g,
+          getOrdinal(memberCount),
+        );
 
         return processedMessage;
       };
@@ -355,7 +416,12 @@ describe("Goodbye - Core Functionality", () => {
       const result1 = processGoodbyeMessage(null, null, null, null);
       expect(result1).toBe("Goodbye!");
 
-      const result2 = processGoodbyeMessage(undefined, undefined, undefined, undefined);
+      const result2 = processGoodbyeMessage(
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+      );
       expect(result2).toBe("Goodbye!");
     });
   });
@@ -366,14 +432,47 @@ describe("Goodbye - Core Functionality", () => {
         if (settings.embedEnabled && settings.embedColor) {
           // Check if color is a valid hex color or Discord color constant
           const validColors = [
-            "DEFAULT", "WHITE", "AQUA", "GREEN", "BLUE", "YELLOW", "PURPLE", "LUMINOUS_VIVID_PINK", "GOLD", "ORANGE", "RED", "GREY", "DARKER_GREY", "NAVY", "DARK_AQUA", "DARK_GREEN", "DARK_BLUE", "DARK_PURPLE", "DARK_VIVID_PINK", "DARK_GOLD", "DARK_ORANGE", "DARK_RED", "DARK_GREY", "LIGHT_GREY", "DARK_NAVY", "BLURPLE", "GREYPLE", "DARK_BUT_NOT_BLACK", "NOT_QUITE_BLACK", "RANDOM"
+            "DEFAULT",
+            "WHITE",
+            "AQUA",
+            "GREEN",
+            "BLUE",
+            "YELLOW",
+            "PURPLE",
+            "LUMINOUS_VIVID_PINK",
+            "GOLD",
+            "ORANGE",
+            "RED",
+            "GREY",
+            "DARKER_GREY",
+            "NAVY",
+            "DARK_AQUA",
+            "DARK_GREEN",
+            "DARK_BLUE",
+            "DARK_PURPLE",
+            "DARK_VIVID_PINK",
+            "DARK_GOLD",
+            "DARK_ORANGE",
+            "DARK_RED",
+            "DARK_GREY",
+            "LIGHT_GREY",
+            "DARK_NAVY",
+            "BLURPLE",
+            "GREYPLE",
+            "DARK_BUT_NOT_BLACK",
+            "NOT_QUITE_BLACK",
+            "RANDOM",
           ];
-          
-          if (!validColors.includes(settings.embedColor) && !/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(settings.embedColor)) {
+
+          if (
+            !validColors.includes(settings.embedColor) &&
+            !/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(settings.embedColor)
+          ) {
             return {
               valid: false,
               error: `Invalid embed color: **${settings.embedColor}**`,
-              solution: "Use a valid hex color (e.g., #FF0000) or Discord color constant.",
+              solution:
+                "Use a valid hex color (e.g., #FF0000) or Discord color constant.",
             };
           }
         }
@@ -398,14 +497,47 @@ describe("Goodbye - Core Functionality", () => {
       const validateEmbedSettings = settings => {
         if (settings.embedEnabled && settings.embedColor) {
           const validColors = [
-            "DEFAULT", "WHITE", "AQUA", "GREEN", "BLUE", "YELLOW", "PURPLE", "LUMINOUS_VIVID_PINK", "GOLD", "ORANGE", "RED", "GREY", "DARKER_GREY", "NAVY", "DARK_AQUA", "DARK_GREEN", "DARK_BLUE", "DARK_PURPLE", "DARK_VIVID_PINK", "DARK_GOLD", "DARK_ORANGE", "DARK_RED", "DARK_GREY", "LIGHT_GREY", "DARK_NAVY", "BLURPLE", "GREYPLE", "DARK_BUT_NOT_BLACK", "NOT_QUITE_BLACK", "RANDOM"
+            "DEFAULT",
+            "WHITE",
+            "AQUA",
+            "GREEN",
+            "BLUE",
+            "YELLOW",
+            "PURPLE",
+            "LUMINOUS_VIVID_PINK",
+            "GOLD",
+            "ORANGE",
+            "RED",
+            "GREY",
+            "DARKER_GREY",
+            "NAVY",
+            "DARK_AQUA",
+            "DARK_GREEN",
+            "DARK_BLUE",
+            "DARK_PURPLE",
+            "DARK_VIVID_PINK",
+            "DARK_GOLD",
+            "DARK_ORANGE",
+            "DARK_RED",
+            "DARK_GREY",
+            "LIGHT_GREY",
+            "DARK_NAVY",
+            "BLURPLE",
+            "GREYPLE",
+            "DARK_BUT_NOT_BLACK",
+            "NOT_QUITE_BLACK",
+            "RANDOM",
           ];
-          
-          if (!validColors.includes(settings.embedColor) && !/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(settings.embedColor)) {
+
+          if (
+            !validColors.includes(settings.embedColor) &&
+            !/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(settings.embedColor)
+          ) {
             return {
               valid: false,
               error: `Invalid embed color: **${settings.embedColor}**`,
-              solution: "Use a valid hex color (e.g., #FF0000) or Discord color constant.",
+              solution:
+                "Use a valid hex color (e.g., #FF0000) or Discord color constant.",
             };
           }
         }

@@ -12,7 +12,8 @@ describe("Welcome - Core Functionality", () => {
           };
         }
 
-        if (channel.type !== 0) { // GUILD_TEXT
+        if (channel.type !== 0) {
+          // GUILD_TEXT
           return {
             valid: false,
             error: `The channel **${channel.name}** is not a text channel.`,
@@ -27,7 +28,8 @@ describe("Welcome - Core Functionality", () => {
           return {
             valid: false,
             error: `I don't have permission to send messages in **${channel.name}**.`,
-            solution: "Please grant me 'Send Messages' permission in the selected channel.",
+            solution:
+              "Please grant me 'Send Messages' permission in the selected channel.",
           };
         }
 
@@ -66,7 +68,8 @@ describe("Welcome - Core Functionality", () => {
           };
         }
 
-        if (channel.type !== 0) { // GUILD_TEXT
+        if (channel.type !== 0) {
+          // GUILD_TEXT
           return {
             valid: false,
             error: `The channel **${channel.name}** is not a text channel.`,
@@ -110,7 +113,8 @@ describe("Welcome - Core Functionality", () => {
           };
         }
 
-        if (channel.type !== 0) { // GUILD_TEXT
+        if (channel.type !== 0) {
+          // GUILD_TEXT
           return {
             valid: false,
             error: `The channel **${channel.name}** is not a text channel.`,
@@ -125,7 +129,8 @@ describe("Welcome - Core Functionality", () => {
           return {
             valid: false,
             error: `I don't have permission to send messages in **${channel.name}**.`,
-            solution: "Please grant me 'Send Messages' permission in the selected channel.",
+            solution:
+              "Please grant me 'Send Messages' permission in the selected channel.",
           };
         }
 
@@ -248,14 +253,29 @@ describe("Welcome - Core Functionality", () => {
         let processedMessage = message;
 
         // Replace placeholders
-        processedMessage = processedMessage.replace(/\{user\}/g, `<@${user.id}>`);
-        processedMessage = processedMessage.replace(/\{user\.name\}/g, user.username);
+        processedMessage = processedMessage.replace(
+          /\{user\}/g,
+          `<@${user.id}>`,
+        );
+        processedMessage = processedMessage.replace(
+          /\{user\.name\}/g,
+          user.username,
+        );
         processedMessage = processedMessage.replace(/\{user\.tag\}/g, user.tag);
         processedMessage = processedMessage.replace(/\{user\.id\}/g, user.id);
         processedMessage = processedMessage.replace(/\{server\}/g, guild.name);
-        processedMessage = processedMessage.replace(/\{server\.id\}/g, guild.id);
-        processedMessage = processedMessage.replace(/\{memberCount\}/g, memberCount.toString());
-        processedMessage = processedMessage.replace(/\{memberCount\.ordinal\}/g, getOrdinal(memberCount));
+        processedMessage = processedMessage.replace(
+          /\{server\.id\}/g,
+          guild.id,
+        );
+        processedMessage = processedMessage.replace(
+          /\{memberCount\}/g,
+          memberCount.toString(),
+        );
+        processedMessage = processedMessage.replace(
+          /\{memberCount\.ordinal\}/g,
+          getOrdinal(memberCount),
+        );
 
         return processedMessage;
       };
@@ -277,8 +297,14 @@ describe("Welcome - Core Functionality", () => {
       };
       const memberCount = 150;
 
-      const message = "Welcome {user}! You are the {memberCount.ordinal} member of {server}.";
-      const result = processWelcomeMessage(message, mockUser, mockGuild, memberCount);
+      const message =
+        "Welcome {user}! You are the {memberCount.ordinal} member of {server}.";
+      const result = processWelcomeMessage(
+        message,
+        mockUser,
+        mockGuild,
+        memberCount,
+      );
 
       expect(result).toContain("<@123456789>");
       expect(result).toContain("150th");
@@ -292,14 +318,29 @@ describe("Welcome - Core Functionality", () => {
         let processedMessage = message;
 
         // Replace placeholders
-        processedMessage = processedMessage.replace(/\{user\}/g, `<@${user.id}>`);
-        processedMessage = processedMessage.replace(/\{user\.name\}/g, user.username);
+        processedMessage = processedMessage.replace(
+          /\{user\}/g,
+          `<@${user.id}>`,
+        );
+        processedMessage = processedMessage.replace(
+          /\{user\.name\}/g,
+          user.username,
+        );
         processedMessage = processedMessage.replace(/\{user\.tag\}/g, user.tag);
         processedMessage = processedMessage.replace(/\{user\.id\}/g, user.id);
         processedMessage = processedMessage.replace(/\{server\}/g, guild.name);
-        processedMessage = processedMessage.replace(/\{server\.id\}/g, guild.id);
-        processedMessage = processedMessage.replace(/\{memberCount\}/g, memberCount.toString());
-        processedMessage = processedMessage.replace(/\{memberCount\.ordinal\}/g, getOrdinal(memberCount));
+        processedMessage = processedMessage.replace(
+          /\{server\.id\}/g,
+          guild.id,
+        );
+        processedMessage = processedMessage.replace(
+          /\{memberCount\}/g,
+          memberCount.toString(),
+        );
+        processedMessage = processedMessage.replace(
+          /\{memberCount\.ordinal\}/g,
+          getOrdinal(memberCount),
+        );
 
         return processedMessage;
       };
@@ -322,7 +363,12 @@ describe("Welcome - Core Functionality", () => {
       const memberCount = 150;
 
       const message = "Welcome! Thanks for joining.";
-      const result = processWelcomeMessage(message, mockUser, mockGuild, memberCount);
+      const result = processWelcomeMessage(
+        message,
+        mockUser,
+        mockGuild,
+        memberCount,
+      );
 
       expect(result).toBe("Welcome! Thanks for joining.");
     });
@@ -334,14 +380,29 @@ describe("Welcome - Core Functionality", () => {
         let processedMessage = message;
 
         // Replace placeholders
-        processedMessage = processedMessage.replace(/\{user\}/g, `<@${user.id}>`);
-        processedMessage = processedMessage.replace(/\{user\.name\}/g, user.username);
+        processedMessage = processedMessage.replace(
+          /\{user\}/g,
+          `<@${user.id}>`,
+        );
+        processedMessage = processedMessage.replace(
+          /\{user\.name\}/g,
+          user.username,
+        );
         processedMessage = processedMessage.replace(/\{user\.tag\}/g, user.tag);
         processedMessage = processedMessage.replace(/\{user\.id\}/g, user.id);
         processedMessage = processedMessage.replace(/\{server\}/g, guild.name);
-        processedMessage = processedMessage.replace(/\{server\.id\}/g, guild.id);
-        processedMessage = processedMessage.replace(/\{memberCount\}/g, memberCount.toString());
-        processedMessage = processedMessage.replace(/\{memberCount\.ordinal\}/g, getOrdinal(memberCount));
+        processedMessage = processedMessage.replace(
+          /\{server\.id\}/g,
+          guild.id,
+        );
+        processedMessage = processedMessage.replace(
+          /\{memberCount\}/g,
+          memberCount.toString(),
+        );
+        processedMessage = processedMessage.replace(
+          /\{memberCount\.ordinal\}/g,
+          getOrdinal(memberCount),
+        );
 
         return processedMessage;
       };
@@ -355,7 +416,12 @@ describe("Welcome - Core Functionality", () => {
       const result1 = processWelcomeMessage(null, null, null, null);
       expect(result1).toBe("Welcome!");
 
-      const result2 = processWelcomeMessage(undefined, undefined, undefined, undefined);
+      const result2 = processWelcomeMessage(
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+      );
       expect(result2).toBe("Welcome!");
     });
   });
@@ -371,7 +437,8 @@ describe("Welcome - Core Functionality", () => {
           return {
             valid: false,
             error: `The role **${role.name}** is managed by Discord or an integration and cannot be assigned.`,
-            solution: "Choose a different role that is not managed by Discord or integrations.",
+            solution:
+              "Choose a different role that is not managed by Discord or integrations.",
           };
         }
 
@@ -379,7 +446,8 @@ describe("Welcome - Core Functionality", () => {
           return {
             valid: false,
             error: `The role **${role.name}** is a bot role and cannot be assigned.`,
-            solution: "Choose a different role that is not associated with a bot.",
+            solution:
+              "Choose a different role that is not associated with a bot.",
           };
         }
 
@@ -388,7 +456,8 @@ describe("Welcome - Core Functionality", () => {
           return {
             valid: false,
             error: `The role **${role.name}** is higher than or equal to my highest role in the hierarchy.`,
-            solution: "Move my role above this role in Server Settings → Roles, or choose a lower role.",
+            solution:
+              "Move my role above this role in Server Settings → Roles, or choose a lower role.",
           };
         }
 
@@ -426,7 +495,8 @@ describe("Welcome - Core Functionality", () => {
           return {
             valid: false,
             error: `The role **${role.name}** is managed by Discord or an integration and cannot be assigned.`,
-            solution: "Choose a different role that is not managed by Discord or integrations.",
+            solution:
+              "Choose a different role that is not managed by Discord or integrations.",
           };
         }
 
@@ -465,7 +535,8 @@ describe("Welcome - Core Functionality", () => {
           return {
             valid: false,
             error: `The role **${role.name}** is a bot role and cannot be assigned.`,
-            solution: "Choose a different role that is not associated with a bot.",
+            solution:
+              "Choose a different role that is not associated with a bot.",
           };
         }
 
@@ -505,7 +576,8 @@ describe("Welcome - Core Functionality", () => {
           return {
             valid: false,
             error: `The role **${role.name}** is higher than or equal to my highest role in the hierarchy.`,
-            solution: "Move my role above this role in Server Settings → Roles, or choose a lower role.",
+            solution:
+              "Move my role above this role in Server Settings → Roles, or choose a lower role.",
           };
         }
 
@@ -556,14 +628,47 @@ describe("Welcome - Core Functionality", () => {
       const validateEmbedSettings = settings => {
         if (settings.embedEnabled && settings.embedColor) {
           const validColors = [
-            "DEFAULT", "WHITE", "AQUA", "GREEN", "BLUE", "YELLOW", "PURPLE", "LUMINOUS_VIVID_PINK", "GOLD", "ORANGE", "RED", "GREY", "DARKER_GREY", "NAVY", "DARK_AQUA", "DARK_GREEN", "DARK_BLUE", "DARK_PURPLE", "DARK_VIVID_PINK", "DARK_GOLD", "DARK_ORANGE", "DARK_RED", "DARK_GREY", "LIGHT_GREY", "DARK_NAVY", "BLURPLE", "GREYPLE", "DARK_BUT_NOT_BLACK", "NOT_QUITE_BLACK", "RANDOM"
+            "DEFAULT",
+            "WHITE",
+            "AQUA",
+            "GREEN",
+            "BLUE",
+            "YELLOW",
+            "PURPLE",
+            "LUMINOUS_VIVID_PINK",
+            "GOLD",
+            "ORANGE",
+            "RED",
+            "GREY",
+            "DARKER_GREY",
+            "NAVY",
+            "DARK_AQUA",
+            "DARK_GREEN",
+            "DARK_BLUE",
+            "DARK_PURPLE",
+            "DARK_VIVID_PINK",
+            "DARK_GOLD",
+            "DARK_ORANGE",
+            "DARK_RED",
+            "DARK_GREY",
+            "LIGHT_GREY",
+            "DARK_NAVY",
+            "BLURPLE",
+            "GREYPLE",
+            "DARK_BUT_NOT_BLACK",
+            "NOT_QUITE_BLACK",
+            "RANDOM",
           ];
-          
-          if (!validColors.includes(settings.embedColor) && !/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(settings.embedColor)) {
+
+          if (
+            !validColors.includes(settings.embedColor) &&
+            !/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(settings.embedColor)
+          ) {
             return {
               valid: false,
               error: `Invalid embed color: **${settings.embedColor}**`,
-              solution: "Use a valid hex color (e.g., #FF0000) or Discord color constant.",
+              solution:
+                "Use a valid hex color (e.g., #FF0000) or Discord color constant.",
             };
           }
         }
@@ -588,14 +693,47 @@ describe("Welcome - Core Functionality", () => {
       const validateEmbedSettings = settings => {
         if (settings.embedEnabled && settings.embedColor) {
           const validColors = [
-            "DEFAULT", "WHITE", "AQUA", "GREEN", "BLUE", "YELLOW", "PURPLE", "LUMINOUS_VIVID_PINK", "GOLD", "ORANGE", "RED", "GREY", "DARKER_GREY", "NAVY", "DARK_AQUA", "DARK_GREEN", "DARK_BLUE", "DARK_PURPLE", "DARK_VIVID_PINK", "DARK_GOLD", "DARK_ORANGE", "DARK_RED", "DARK_GREY", "LIGHT_GREY", "DARK_NAVY", "BLURPLE", "GREYPLE", "DARK_BUT_NOT_BLACK", "NOT_QUITE_BLACK", "RANDOM"
+            "DEFAULT",
+            "WHITE",
+            "AQUA",
+            "GREEN",
+            "BLUE",
+            "YELLOW",
+            "PURPLE",
+            "LUMINOUS_VIVID_PINK",
+            "GOLD",
+            "ORANGE",
+            "RED",
+            "GREY",
+            "DARKER_GREY",
+            "NAVY",
+            "DARK_AQUA",
+            "DARK_GREEN",
+            "DARK_BLUE",
+            "DARK_PURPLE",
+            "DARK_VIVID_PINK",
+            "DARK_GOLD",
+            "DARK_ORANGE",
+            "DARK_RED",
+            "DARK_GREY",
+            "LIGHT_GREY",
+            "DARK_NAVY",
+            "BLURPLE",
+            "GREYPLE",
+            "DARK_BUT_NOT_BLACK",
+            "NOT_QUITE_BLACK",
+            "RANDOM",
           ];
-          
-          if (!validColors.includes(settings.embedColor) && !/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(settings.embedColor)) {
+
+          if (
+            !validColors.includes(settings.embedColor) &&
+            !/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(settings.embedColor)
+          ) {
             return {
               valid: false,
               error: `Invalid embed color: **${settings.embedColor}**`,
-              solution: "Use a valid hex color (e.g., #FF0000) or Discord color constant.",
+              solution:
+                "Use a valid hex color (e.g., #FF0000) or Discord color constant.",
             };
           }
         }
