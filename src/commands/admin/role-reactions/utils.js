@@ -13,15 +13,16 @@ export function parallelLimit(limit = 3) {
 
 export function getColorChoices() {
   return [
-    { name: "🔵 Pastel Blue", value: "#87CEEB" },
-    { name: "🟢 Pastel Green", value: "#98FB98" },
-    { name: "🔴 Pastel Red", value: "#F08080" },
-    { name: "🟡 Pastel Yellow", value: "#F0E68C" },
-    { name: "🟣 Pastel Purple", value: "#DDA0DD" },
-    { name: "🟠 Pastel Orange", value: "#FFAB91" },
-    { name: "🩷 Pastel Pink", value: "#FFB6C1" },
-    { name: "🩵 Pastel Cyan", value: "#AFEEEE" },
-    { name: "🟤 Pastel Brown", value: "#D2B48C" },
-    { name: "🔘 Pastel Gray", value: "#D3D3D3" },
+    { name: "Default", value: "#9b8bf0" },
+    { name: "Neon Blue", value: "#00BFFF" },
+    { name: "Matrix Green", value: "#00FF00" },
+    { name: "Cyber Red", value: "#FF0040" },
+    { name: "Electric Yellow", value: "#FFFF00" },
+    { name: "Quantum Purple", value: "#8A2BE2" },
+    { name: "Plasma Orange", value: "#FF4500" },
+    { name: "Synth Pink", value: "#FF1493" },
+    { name: "Hologram Cyan", value: "#00FFFF" },
+    { name: "Steel Brown", value: "#8B4513" },
+    { name: "Chrome Gray", value: "#C0C0C0" },
   ];
 }

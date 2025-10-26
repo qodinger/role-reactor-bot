@@ -4,7 +4,7 @@ import {
   ButtonBuilder,
   ButtonStyle,
 } from "discord.js";
-import { THEME_COLOR, THEME } from "../../../config/theme.js";
+import { THEME, EMOJIS } from "../../../config/theme.js";
 import { getLogger } from "../../../utils/logger.js";
 
 // Setup Roles embed
@@ -16,12 +16,12 @@ export function createSetupRolesEmbed(
   client,
 ) {
   const embed = new EmbedBuilder()
-    .setTitle(title)
-    .setDescription(description)
-    .setColor(color)
+    .setTitle(title || "Role Reactions") // Simplified title
+    .setDescription(description || "Click reactions to get roles") // Simplified description
+    .setColor(color || THEME.PRIMARY) // Use THEME.PRIMARY
     .setTimestamp()
     .setFooter({
-      text: "Role Reactor • Click reactions to get roles!",
+      text: "Role Reactor • Role Reactions",
       iconURL: client.user.displayAvatarURL(),
     });
 
@@ -34,14 +34,13 @@ export function createSetupRolesEmbed(
 
   embed.addFields([
     {
-      name: "🎭 Available Roles",
-      value: roleList,
+      name: "Available Roles", // Removed emoji
+      value: roleList || "No roles available",
       inline: false,
     },
     {
-      name: "💡 How to Use",
-      value:
-        "Members can click the reactions below to get or remove roles instantly!",
+      name: "Instructions", // Removed emoji
+      value: "Click the reactions below to get or remove roles instantly.",
       inline: false,
     },
   ]);
@@ -70,21 +69,21 @@ export function createListRolesEmbed(
     : startIndex + itemsPerPage;
 
   const embed = new EmbedBuilder()
-    .setTitle("🎭 Role-Reaction Messages")
+    .setTitle("Role Reaction Messages") // Simplified title
     .setDescription(
       `Found **${totalItems}** role-reaction message${totalItems !== 1 ? "s" : ""} in this server.`,
     )
-    .setColor(THEME_COLOR)
+    .setColor(THEME.PRIMARY) // Use THEME.PRIMARY
     .setTimestamp()
     .setFooter({
-      text: `Role Reactor • Page ${page}/${totalPages} • Click reactions to get roles!`,
+      text: `Role Reactor • Page ${page}/${totalPages}`,
       iconURL: client.user.displayAvatarURL(),
     });
 
   if (guildMappings.length === 0) {
     embed.addFields([
       {
-        name: "📋 Messages",
+        name: "Messages", // Removed emoji
         value: "No role-reaction messages found in this server.",
         inline: false,
       },
@@ -126,7 +125,7 @@ export function createListRolesEmbed(
 
   embed.addFields([
     {
-      name: `📋 Messages (${startIndex + 1}-${Math.min(endIndex, totalItems)} of ${totalItems})`,
+      name: `Messages (${startIndex + 1}-${Math.min(endIndex, totalItems)} of ${totalItems})`, // Removed emoji
       value: truncatedValue,
       inline: false,
     },
@@ -153,7 +152,7 @@ export function createPaginationButtons(
     .setCustomId(prevCustomId)
     .setLabel("Previous")
     .setStyle(ButtonStyle.Secondary)
-    .setEmoji("⬅️")
+    .setEmoji(EMOJIS.ACTIONS.BACK) // Use theme emoji
     .setDisabled(currentPage <= 1);
 
   // Next button
@@ -163,7 +162,7 @@ export function createPaginationButtons(
     .setCustomId(nextCustomId)
     .setLabel("Next")
     .setStyle(ButtonStyle.Secondary)
-    .setEmoji("➡️")
+    .setEmoji(EMOJIS.ACTIONS.FORWARD) // Use theme emoji
     .setDisabled(currentPage >= totalPages);
 
   // Page info button (disabled, just for display)
@@ -183,12 +182,12 @@ export function createPaginationButtons(
 // Update Roles embed
 export function createUpdatedRolesEmbed(updatedMapping, roleMapping, client) {
   const embed = new EmbedBuilder()
-    .setTitle(updatedMapping.title || "Role Selection")
-    .setDescription(updatedMapping.description || "React to get a role!")
-    .setColor(updatedMapping.color || THEME?.INFO || THEME_COLOR)
+    .setTitle(updatedMapping.title || "Role Selection") // Simplified title
+    .setDescription(updatedMapping.description || "React to get a role!") // Simplified description
+    .setColor(updatedMapping.color || THEME.PRIMARY) // Use THEME.PRIMARY
     .setTimestamp()
     .setFooter({
-      text: "Role Reactor • Self-Assignable Roles",
+      text: "Role Reactor • Role Reactions",
       iconURL: client.user.displayAvatarURL(),
     });
 
@@ -202,7 +201,7 @@ export function createUpdatedRolesEmbed(updatedMapping, roleMapping, client) {
 
   embed.addFields([
     {
-      name: "🎭 Available Roles",
+      name: "Available Roles", // Removed emoji
       value: roleList || "No roles available",
       inline: false,
     },

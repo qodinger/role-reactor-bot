@@ -353,8 +353,8 @@ export class HelpEmbedBuilder {
           {
             name: `${EMOJIS.FEATURES.ROLES} 🎯 How to Use`,
             value: [
-              "```/role-reactions setup title:Choose Your Roles description:React to get roles! roles:🎮 @Gamer, 🎨 @Artist```",
-              "```/role-reactions setup title:Game Roles description:Pick your role! roles:🎮 Gamer, 🎨 Artist```",
+              "```/role-reactions setup title:Choose Your Roles description:React to get roles! roles:🎮:@Gamer, 🎨:@Artist```",
+              "```/role-reactions setup title:Game Roles description:Pick your role! roles:🎮:Gamer, 🎨:Artist```",
               "```/role-reactions list```",
               "```/role-reactions update message_id:1234567890 title:Updated Title```",
               "```/role-reactions delete message_id:1234567890```",

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Role Reactions command lets administrators create, manage, and maintain role-reaction messages where users can click emoji reactions to assign or remove roles. It consolidates all role-reaction functionality under a single command with multiple subcommands.
+The Role Reactions command lets administrators create, manage, and maintain role-reaction messages where users can click emoji reactions to assign or remove roles.
 
 ## File Structure
 
@@ -21,68 +21,78 @@ role-reactions/
 
 ## Architecture
 
-### **Core Files**
+Following the modular pattern established by other admin commands:
 
-- **`index.js`**: Defines `/role-reactions` with subcommands (`setup`, `list`, `delete`, `update`), routes to handlers, validates permissions, and defers interactions.
-- **`handlers.js`**: Main command handlers that orchestrate the business logic flow using utility modules.
-- **`embeds.js`**: Builds all rich embeds used across subcommands for setup, listing, and updates.
-- **`utils.js`**: Core utilities for role processing, role mapping functions, and color choices.
-
-### **Utility Modules**
-
-- **`validation.js`**: Interaction validation, bot member availability checks, and standardized error responses.
-- **`deferral.js`**: Safe interaction deferral with timeout protection for both commands and button updates.
-- **`permissions.js`**: Comprehensive permission validation for guild-level and channel-level permissions.
-- **`messageOperations.js`**: Message creation, reaction handling, role input processing, and role mapping persistence.
+- **`index.js`**: Command definition, permission validation, and main execution flow
+- **`handlers.js`**: Core business logic, database operations, and interaction processing
+- **`embeds.js`**: Discord embed creation and formatting
+- **`utils.js`**: Helper functions, validation, and color choices
+- **`validation.js`**: Interaction validation and bot member checks
+- **`deferral.js`**: Safe interaction deferral with timeout protection
+- **`permissions.js`**: Guild and channel permission validation
+- **`messageOperations.js`**: Message creation, reaction handling, and role mapping
 
 ## Subcommands
 
-- **`/role-reactions setup`**: Create a new role-reaction message.
-  - Options: `title` (string, required), `description` (string, required), `roles` (string, required), `color` (choice, optional)
-- **`/role-reactions list`**: List all role-reaction messages in the server.
-- **`/role-reactions delete`**: Delete a role-reaction message by ID.
-  - Options: `message_id` (string, required)
-- **`/role-reactions update`**: Update an existing role-reaction message.
-  - Options: `message_id` (string, required), `title` (string, optional), `description` (string, optional), `roles` (string, optional), `color` (choice, optional)
+- **`/role-reactions setup`**: Create a new role-reaction message
+  - Options: `title` (required), `description` (required), `roles` (required), `color` (optional)
+- **`/role-reactions list`**: List all role-reaction messages in the server
+- **`/role-reactions delete`**: Delete a role-reaction message by ID
+  - Options: `message_id` (required)
+- **`/role-reactions update`**: Update an existing role-reaction message
+  - Options: `message_id` (required), `title` (optional), `description` (optional), `roles` (optional), `color` (optional)
 
 ## Usage Examples
 
 ```
-/role-reactions setup title:"Choose Your Roles" description:"React to get roles!" roles:"🎮:Gamer,🎨:Artist,💻:Developer" color:"Pastel Blue"
-/role-reactions setup title:"Role Selection" description:"Pick your roles!" roles:"🎮 @Gamer, 🎨 @Artist, 📚 @Reader" color:"Pastel Green"
-/role-reactions setup title:"Limited Roles" description:"Limited availability!" roles:"🎮:Gamer:10,🎨:Artist:5,💻:Developer" color:"Pastel Purple"
-/role-reactions setup title:"Quoted Names" description:"Special role names!" roles:"🎮 \"Gaming Enthusiast\", 🎨 \"Creative Artist\", 💻 \"Code Master\"" color:"Pastel Blue"
+/role-reactions setup title:"Choose Your Roles" description:"React to get roles!" roles:"🎮:Gamer,🎨:Artist,💻:Developer" color:"Neon Blue"
+/role-reactions setup title:"Role Selection" description:"Pick your roles!" roles:"🎮 @Gamer, 🎨 @Artist, 📚 @Reader" color:"Matrix Green"
+/role-reactions setup title:"Limited Roles" description:"Limited availability!" roles:"🎮:Gamer:10,🎨:Artist:5,💻:Developer" color:"Quantum Purple"
+/role-reactions setup title:"Quoted Names" description:"Special role names!" roles:"🎮 \"Gaming Enthusiast\", 🎨 \"Creative Artist\", 💻 \"Code Master\"" color:"Default"
 /role-reactions list
-/role-reactions update message_id:"1234567890" title:"Updated Title" color:"Pastel Green"
+/role-reactions update message_id:"1234567890" title:"Updated Title" color:"Cyber Red"
 /role-reactions delete message_id:"1234567890"
 ```
 
 ## Permissions Required
 
-- `ManageRoles` for command usage
-- Bot requires appropriate role hierarchy and permissions to assign/remove roles
-- Bot needs `AddReactions` and `ManageMessages` permissions in target channels
+- `ManageRoles` permission
+- Admin role or equivalent
 
 ## Key Features
 
 - Interactive role assignment via emoji reactions
 - Customizable embed titles, descriptions, and colors
-- Pastel color palette with visual emoji indicators
-- Role format: Multiple formats supported (emoji:role, emoji @role, emoji "role name", emoji <@&id>, emoji:role:limit)
+- Cyberpunk color palette with futuristic themes
+- Multiple role format support (emoji:role, emoji @role, emoji "role name")
 - Automatic reaction addition to messages
-- Paginated list view (4 items per page) with navigation buttons
+- Paginated list view with navigation buttons
 - Update functionality for modifying existing messages
 
-## Error Handling
+## Available Colors
 
-- Validates user and bot permissions before execution
-- Clear error messages for invalid message IDs, missing roles, or format errors
-- Defensive handling of Discord API errors and rate limits
-- Graceful handling of missing channels or deleted messages
+- **Default** - Bot's theme color (soft lavender)
+- **Neon Blue** - Bright cyberpunk blue
+- **Matrix Green** - Iconic Matrix digital rain color
+- **Cyber Red** - Aggressive cyberpunk red
+- **Electric Yellow** - Pure electric yellow
+- **Quantum Purple** - Mystical quantum purple
+- **Plasma Orange** - Hot plasma orange
+- **Synth Pink** - Synthetic digital pink
+- **Hologram Cyan** - Holographic cyan
+- **Steel Brown** - Industrial steel brown
+- **Chrome Gray** - Polished chrome gray
 
-## Notes
+## Role Format
 
-- Ensure the bot's role is above target roles in the hierarchy
-- Role format supports multiple formats: role names, role mentions (@role), quoted names ("role name"), role IDs (<@&id>), and user limits (:10)
-- Color choices are centralized in utils.js for easy maintenance
-- Messages persist until manually deleted or bot loses access
+- `emoji:role` - Simple format (🎮:Gamer)
+- `emoji:@role` - Role mention format (🎮:@Gamer)
+- `emoji:"Role Name"` - Quoted role names (🎮:"Gaming Enthusiast")
+- `emoji:role:limit` - With user limit (🎮:Gamer:10)
+
+## Dependencies
+
+- Discord.js
+- Database manager for role mappings
+- Theme configuration for colors and emojis
+- Permission validation utilities

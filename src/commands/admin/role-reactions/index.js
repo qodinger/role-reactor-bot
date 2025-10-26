@@ -38,7 +38,7 @@ export const data = new SlashCommandBuilder()
         opt
           .setName("roles")
           .setDescription(
-            'Emoji:role pairs. Supports: 🎮:Gamer, 🎮 @Gamer, 🎮 "Role Name", 🎮:Gamer:10',
+            'Emoji:role pairs separated by commas. Format: emoji:role, emoji:@role, emoji:"Role Name"',
           )
           .setRequired(true),
       )
@@ -87,7 +87,7 @@ export const data = new SlashCommandBuilder()
         opt
           .setName("roles")
           .setDescription(
-            'Emoji:role pairs. Supports: 🎮:Gamer, 🎮 @Gamer, 🎮 "Role Name", 🎮:Gamer:10',
+            'Emoji:role pairs separated by commas. Format: emoji:role, emoji:@role, emoji:"Role Name"',
           )
           .setRequired(false),
       )

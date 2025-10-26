@@ -71,26 +71,26 @@ const embedFactory = new EmbedFactory(THEME, EMOJIS);
 
 export function roleCreatedEmbed({ messageUrl, roleCount, channelId }) {
   const embed = embedFactory.create("SUCCESS", {
-    title: "Role Setup Complete",
+    title: "Role Setup Complete", // Simplified title
     description: `Your role-reaction message has been created successfully.`,
     fields: [
       {
-        name: "Message Location",
+        name: "Message Location", // Removed emoji
         value: `[Click here to view](${messageUrl})\nChannel: <#${channelId}>`,
         inline: false,
       },
       {
-        name: "Roles Configured",
+        name: "Roles Configured", // Removed emoji
         value: `${roleCount} role${roleCount !== 1 ? "s" : ""} available for self-assignment`,
         inline: true,
       },
       {
-        name: "Created",
+        name: "Created", // Removed emoji
         value: `<t:${Math.floor(Date.now() / 1000)}:R>`,
         inline: true,
       },
     ],
-    footer: "Role Reactor • Role Management",
+    footer: "Role Reactor • Role Reactions", // Updated footer to match other commands
   });
 
   const row = new ActionRowBuilder().addComponents(
@@ -113,12 +113,12 @@ export function roleUpdatedEmbed({ messageId, updates, changeCount = 0 }) {
 
   const fields = [
     {
-      name: "Message Reference",
+      name: "Message Reference", // Removed emoji
       value: `ID: \`${messageId}\``,
       inline: true,
     },
     {
-      name: "Updated",
+      name: "Updated", // Removed emoji
       value: `<t:${Math.floor(Date.now() / 1000)}:R>`,
       inline: true,
     },
@@ -126,24 +126,24 @@ export function roleUpdatedEmbed({ messageId, updates, changeCount = 0 }) {
 
   if (changeCount > 0) {
     fields.push({
-      name: "Changes Applied",
+      name: "Changes Applied", // Removed emoji
       value: `${changeCount} modification${changeCount !== 1 ? "s" : ""}`,
       inline: true,
     });
   }
 
   const embed = embedFactory.create("INFO", {
-    title: "Configuration Updated",
+    title: "Configuration Updated", // Simplified title
     description: `Your role-reaction message has been updated with the latest changes.`,
     fields: [
       ...fields,
       {
-        name: "What Changed",
+        name: "What Changed", // Removed emoji
         value: formattedUpdates,
         inline: false,
       },
     ],
-    footer: "Role Reactor • Role Management",
+    footer: "Role Reactor • Role Reactions", // Updated footer to match other commands
   });
 
   return {
@@ -155,12 +155,12 @@ export function roleUpdatedEmbed({ messageId, updates, changeCount = 0 }) {
 export function roleDeletedEmbed({ messageId, rolesRemoved = 0 }) {
   const fields = [
     {
-      name: "Deleted Message",
+      name: "Deleted Message", // Removed emoji
       value: `ID: \`${messageId}\``,
       inline: true,
     },
     {
-      name: "Removed",
+      name: "Removed", // Removed emoji
       value: `<t:${Math.floor(Date.now() / 1000)}:R>`,
       inline: true,
     },
@@ -168,17 +168,18 @@ export function roleDeletedEmbed({ messageId, rolesRemoved = 0 }) {
 
   if (rolesRemoved > 0) {
     fields.push({
-      name: "Roles Affected",
+      name: "Roles Affected", // Removed emoji
       value: `${rolesRemoved} role${rolesRemoved !== 1 ? "s" : ""} no longer self-assignable`,
       inline: false,
     });
   }
 
-  const embed = embedFactory.create("WARNING", {
-    title: "Role Configuration Removed",
+  const embed = embedFactory.create("SUCCESS", {
+    // Changed from WARNING to SUCCESS
+    title: "Role Configuration Removed", // Simplified title
     description: `The role-reaction message has been successfully removed from the system.`,
     fields,
-    footer: "Role Reactor • Role Management",
+    footer: "Role Reactor • Role Reactions", // Updated footer to match other commands
   });
 
   return {
@@ -198,7 +199,7 @@ export function errorEmbed({
   const allFields = [...fields];
   if (solution) {
     allFields.push({
-      name: `${EMOJIS.UI.STAR} Suggested Solution`,
+      name: "Suggested Solution", // Removed emoji
       value: solution,
       inline: false,
     });
@@ -226,7 +227,7 @@ export function infoEmbed({
   const allFields = [...fields];
   if (solution) {
     allFields.push({
-      name: `${EMOJIS.UI.STAR} Suggested Solution`,
+      name: "Suggested Solution", // Removed emoji
       value: solution,
       inline: false,
     });
@@ -352,7 +353,7 @@ export function roleAssignedEmbed({
       `**${userName}** has been assigned the **${roleName}** role.\n\n` +
       `Assignment Type: **${isTemporary ? "Temporary" : "Permanent"}**`,
     fields,
-    footer: "Role Reactor • Role Management",
+    footer: "Role Reactor • Role Reactions", // Updated footer to match other commands
   });
 
   return {
