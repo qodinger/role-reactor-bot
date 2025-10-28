@@ -14,12 +14,19 @@ import { EMOJIS } from "../../../config/theme.js";
 export function createWelcomeSettingsComponents(settings) {
   const buttonComponents = [];
 
+  // Toggle button - Primary style when disabled, Secondary when enabled
+  buttonComponents.push(
+    new ButtonBuilder()
+      .setCustomId("welcome_toggle")
+      .setLabel(settings.enabled ? "Disable" : "Enable")
+      .setStyle(settings.enabled ? ButtonStyle.Secondary : ButtonStyle.Primary),
+  );
+
   // Always show configure button
   buttonComponents.push(
     new ButtonBuilder()
       .setCustomId("welcome_configure")
       .setLabel("Configure")
-      .setEmoji(EMOJIS.ACTIONS.SETTINGS)
       .setStyle(ButtonStyle.Secondary),
   );
 
@@ -28,44 +35,28 @@ export function createWelcomeSettingsComponents(settings) {
     new ButtonBuilder()
       .setCustomId("welcome_configure_role")
       .setLabel("Auto-Role")
-      .setEmoji(EMOJIS.FEATURES.ROLES)
       .setStyle(ButtonStyle.Secondary),
   );
 
-  // Show toggle button (disabled if no channel and system is disabled)
-  const canToggle = settings.channelId || settings.enabled;
+  // Add format switch button
   buttonComponents.push(
-    new ButtonBuilder()
-      .setCustomId("welcome_toggle")
-      .setLabel(settings.enabled ? "Disable" : "Enable")
-      .setEmoji(settings.enabled ? EMOJIS.STATUS.ERROR : EMOJIS.STATUS.SUCCESS)
-      .setStyle(ButtonStyle.Secondary)
-      .setDisabled(!canToggle),
-  );
-
-  // Add format switch button and test button as a second row
-  const secondRowButtons = [
     new ButtonBuilder()
       .setCustomId("welcome_format")
       .setLabel(`Switch to ${settings.embedEnabled ? "Text" : "Embed"}`)
-      .setStyle(ButtonStyle.Secondary)
-      .setEmoji(EMOJIS.ACTIONS.REFRESH),
-  ];
+      .setStyle(ButtonStyle.Secondary),
+  );
 
   // Add test button if welcome system is enabled and channel is configured
   if (settings.enabled && settings.channelId) {
-    secondRowButtons.push(
+    buttonComponents.push(
       new ButtonBuilder()
         .setCustomId("welcome_test")
         .setLabel("Test Welcome")
-        .setEmoji(EMOJIS.ACTIONS.QUICK)
         .setStyle(ButtonStyle.Secondary),
     );
   }
 
-  const formatRow = new ActionRowBuilder().addComponents(...secondRowButtons);
-
-  return [new ActionRowBuilder().addComponents(...buttonComponents), formatRow];
+  return [new ActionRowBuilder().addComponents(...buttonComponents)];
 }
 
 /**
@@ -121,7 +112,6 @@ export function createChannelSelectComponents(guild, currentChannelId = null) {
 
   const backButton = new ButtonBuilder()
     .setCustomId("welcome_back_to_settings")
-    .setLabel("Back to Settings")
     .setEmoji(EMOJIS.ACTIONS.BACK)
     .setStyle(ButtonStyle.Secondary);
 
@@ -201,14 +191,12 @@ export function createRoleSelectComponents(guild, currentRoleId = null) {
 
     const backButton = new ButtonBuilder()
       .setCustomId("welcome_back_to_settings")
-      .setLabel("Back to Settings")
       .setEmoji(EMOJIS.ACTIONS.BACK)
       .setStyle(ButtonStyle.Secondary);
 
     const clearRoleButton = new ButtonBuilder()
       .setCustomId("welcome_clear_role")
       .setLabel("Clear Auto-Role")
-      .setEmoji(EMOJIS.ACTIONS.DELETE)
       .setStyle(ButtonStyle.Secondary);
 
     return [
@@ -238,7 +226,6 @@ export function createWelcomeConfigPageComponents(
     new ButtonBuilder()
       .setCustomId("welcome_select_channel")
       .setLabel("Select Channel")
-      .setEmoji(EMOJIS.UI.CHANNELS)
       .setStyle(ButtonStyle.Secondary),
   );
 
@@ -247,7 +234,6 @@ export function createWelcomeConfigPageComponents(
     new ButtonBuilder()
       .setCustomId("welcome_configure_message")
       .setLabel("Configure Message")
-      .setEmoji(EMOJIS.ACTIONS.SETTINGS)
       .setStyle(ButtonStyle.Secondary),
   );
 
@@ -256,21 +242,16 @@ export function createWelcomeConfigPageComponents(
     new ButtonBuilder()
       .setCustomId("welcome_reset")
       .setLabel("Reset")
-      .setEmoji(EMOJIS.ACTIONS.DELETE)
-      .setStyle(ButtonStyle.Secondary),
+      .setStyle(ButtonStyle.Danger),
   );
 
-  // Create first row with main configuration buttons
-  const firstRow = new ActionRowBuilder().addComponents(...buttonComponents);
-
-  // Create second row with back button
-  const secondRow = new ActionRowBuilder().addComponents(
+  // Add back button (icon only) as first button
+  buttonComponents.unshift(
     new ButtonBuilder()
       .setCustomId("welcome_back_to_settings")
-      .setLabel("Back to Settings")
-      .setEmoji(EMOJIS.ACTIONS.BACK)
-      .setStyle(ButtonStyle.Secondary),
+      .setStyle(ButtonStyle.Secondary)
+      .setEmoji(EMOJIS.ACTIONS.BACK),
   );
 
-  return [firstRow, secondRow];
+  return [new ActionRowBuilder().addComponents(...buttonComponents)];
 }

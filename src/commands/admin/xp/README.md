@@ -28,9 +28,9 @@ Following the modular pattern established by other admin commands:
 
 ## Command Usage
 
-### `/xp`
+### `/xp settings`
 
-A simplified single command that displays current XP system settings and provides interactive buttons for configuration.
+A subcommand that displays current XP system settings and provides interactive buttons for configuration.
 
 **Features:**
 

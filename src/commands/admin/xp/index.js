@@ -11,7 +11,12 @@ import { handleXpCommand } from "./handlers.js";
 export const data = new SlashCommandBuilder()
   .setName("xp")
   .setDescription("Manage the XP system settings and configuration")
-  .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild);
+  .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+  .addSubcommand(subcommand =>
+    subcommand
+      .setName("settings")
+      .setDescription("View and configure XP system settings"),
+  );
 
 // ============================================================================
 // MAIN EXECUTION
@@ -33,7 +38,21 @@ export async function execute(interaction, client) {
       );
     }
 
-    await handleXpCommand(interaction, client);
+    const subcommand = interaction.options.getSubcommand();
+
+    switch (subcommand) {
+      case "settings":
+        await handleXpCommand(interaction, client);
+        break;
+      default:
+        await interaction.reply(
+          errorEmbed({
+            title: "Unknown Subcommand",
+            description: "The requested subcommand is not available.",
+            solution: "Please use a valid subcommand.",
+          }),
+        );
+    }
   } catch (error) {
     logger.error("Error in xp command:", error);
     await interaction.reply(

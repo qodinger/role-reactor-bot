@@ -240,7 +240,6 @@ export async function handleGoodbyeSelectChannel(interaction) {
     const backButton = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId("goodbye_back_to_settings")
-        .setLabel("Back to Settings")
         .setStyle(ButtonStyle.Secondary)
         .setEmoji(EMOJIS.ACTIONS.BACK),
     );

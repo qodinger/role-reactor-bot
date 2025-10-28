@@ -527,13 +527,13 @@ export class HelpEmbedBuilder {
         embed.addFields(
           {
             name: `How to Use`,
-            value: "```/xp```",
+            value: "```/xp settings```",
             inline: false,
           },
           {
             name: `What You Need`,
             value:
-              "No parameters needed - just run the command to access the XP system settings!",
+              "No parameters needed - just run the subcommand to access the XP system settings!",
             inline: false,
           },
           {

@@ -290,6 +290,8 @@ export async function handleLevelUpConfig(interaction) {
   const logger = getLogger();
 
   try {
+    await interaction.deferUpdate();
+
     const dbManager = await getDatabaseManager();
     const settings = await dbManager.guildSettings.getByGuild(
       interaction.guild.id,
@@ -303,7 +305,7 @@ export async function handleLevelUpConfig(interaction) {
     const embed = createLevelUpEmbed(interaction, xpSettings, levelUpChannel);
     const components = createLevelUpComponents(xpSettings);
 
-    await interaction.update({
+    await interaction.editReply({
       embeds: [embed],
       components,
     });
@@ -393,11 +395,12 @@ export async function handleXpChannelConfig(interaction) {
     );
     const xpSettings = settings.experienceSystem;
 
-    const embed = createLevelUpEmbed(
-      interaction,
-      xpSettings,
-      null, // No channel selected yet
-    );
+    // Get current level-up channel if set
+    const currentChannel = xpSettings.levelUpChannel
+      ? interaction.guild.channels.cache.get(xpSettings.levelUpChannel)
+      : null;
+
+    const embed = createLevelUpEmbed(interaction, xpSettings, currentChannel);
     const channelSelectMenu = createChannelSelectMenu(
       textChannels,
       xpSettings.levelUpChannel,
@@ -407,7 +410,6 @@ export async function handleXpChannelConfig(interaction) {
     const backButton = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId("back_to_settings")
-        .setLabel("Back to Settings")
         .setStyle(ButtonStyle.Secondary)
         .setEmoji(EMOJIS.ACTIONS.BACK),
     );

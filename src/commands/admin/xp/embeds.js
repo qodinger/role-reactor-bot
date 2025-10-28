@@ -150,11 +150,7 @@ export function createLevelUpEmbed(interaction, xpSettings, levelUpChannel) {
       `Configure level-up notifications for **${interaction.guild.name}**`,
     )
     .setColor(THEME.PRIMARY)
-    .setTimestamp()
-    .setFooter({
-      text: "Role Reactor • Level-Up Messages",
-      iconURL: interaction.client.user.displayAvatarURL(),
-    });
+    .setTimestamp();
 
   // Add level-up configuration fields
   embed.addFields([
@@ -168,7 +164,7 @@ export function createLevelUpEmbed(interaction, xpSettings, levelUpChannel) {
     {
       name: "Channel",
       value: levelUpChannel
-        ? `${levelUpChannel}`
+        ? `${EMOJIS.STATUS.SUCCESS} ${levelUpChannel}`
         : `${EMOJIS.STATUS.ERROR} Not Set`,
       inline: true,
     },

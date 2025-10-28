@@ -1,7 +1,15 @@
 import { MessageFlags } from "discord.js";
 import { getLogger } from "../../logger.js";
-import { createXpSettingsEmbed } from "../../../commands/admin/xp/embeds.js";
-import { createXpSettingsComponents } from "../../../commands/admin/xp/components.js";
+import {
+  createXpSettingsEmbed,
+  createXpSourceEmbed,
+  createLevelUpEmbed,
+} from "../../../commands/admin/xp/embeds.js";
+import {
+  createXpSettingsComponents,
+  createXpSourceComponents,
+  createLevelUpComponents,
+} from "../../../commands/admin/xp/components.js";
 import { EMOJIS } from "../../../config/theme.js";
 
 /**
@@ -38,12 +46,12 @@ export const handleXPToggleMessage = async interaction => {
 
     await dbManager.guildSettings.set(interaction.guild.id, newSettings);
 
-    // Create updated embed and components
-    const embed = createXpSettingsEmbed(
+    // Create updated embed and components for XP Sources page
+    const embed = createXpSourceEmbed(
       interaction,
       newSettings.experienceSystem,
     );
-    const components = createXpSettingsComponents(newSettings.experienceSystem);
+    const components = createXpSourceComponents(newSettings.experienceSystem);
 
     await interaction.editReply({
       embeds: [embed],
@@ -88,12 +96,12 @@ export const handleXPToggleCommand = async interaction => {
 
     await dbManager.guildSettings.set(interaction.guild.id, newSettings);
 
-    // Create updated embed and components
-    const embed = createXpSettingsEmbed(
+    // Create updated embed and components for XP Sources page
+    const embed = createXpSourceEmbed(
       interaction,
       newSettings.experienceSystem,
     );
-    const components = createXpSettingsComponents(newSettings.experienceSystem);
+    const components = createXpSourceComponents(newSettings.experienceSystem);
 
     await interaction.editReply({
       embeds: [embed],
@@ -138,12 +146,12 @@ export const handleXPToggleRole = async interaction => {
 
     await dbManager.guildSettings.set(interaction.guild.id, newSettings);
 
-    // Create updated embed and components
-    const embed = createXpSettingsEmbed(
+    // Create updated embed and components for XP Sources page
+    const embed = createXpSourceEmbed(
       interaction,
       newSettings.experienceSystem,
     );
-    const components = createXpSettingsComponents(newSettings.experienceSystem);
+    const components = createXpSourceComponents(newSettings.experienceSystem);
 
     await interaction.editReply({
       embeds: [embed],
@@ -167,14 +175,10 @@ export const handleXPToggleVoice = async interaction => {
   const logger = getLogger();
 
   try {
+    await interaction.deferUpdate();
+
     const { getDatabaseManager } = await import(
       "../../storage/databaseManager.js"
-    );
-    const { createXpSettingsEmbed } = await import(
-      "../../../commands/admin/xp/embeds.js"
-    );
-    const { createXpSettingsComponents } = await import(
-      "../../../commands/admin/xp/components.js"
     );
 
     const dbManager = await getDatabaseManager();
@@ -192,14 +196,14 @@ export const handleXPToggleVoice = async interaction => {
 
     await dbManager.guildSettings.set(interaction.guild.id, newSettings);
 
-    // Create updated embed and components
-    const embed = createXpSettingsEmbed(
+    // Create updated embed and components for XP Sources page
+    const embed = createXpSourceEmbed(
       interaction,
       newSettings.experienceSystem,
     );
-    const components = createXpSettingsComponents(newSettings.experienceSystem);
+    const components = createXpSourceComponents(newSettings.experienceSystem);
 
-    await interaction.update({
+    await interaction.editReply({
       embeds: [embed],
       components,
     });
@@ -283,14 +287,10 @@ export const handleXPToggleLevelUp = async interaction => {
   const logger = getLogger();
 
   try {
+    await interaction.deferUpdate();
+
     const { getDatabaseManager } = await import(
       "../../storage/databaseManager.js"
-    );
-    const { createLevelUpEmbed } = await import(
-      "../../../commands/admin/xp/embeds.js"
-    );
-    const { createLevelUpComponents } = await import(
-      "../../../commands/admin/xp/components.js"
     );
 
     const dbManager = await getDatabaseManager();
@@ -323,7 +323,7 @@ export const handleXPToggleLevelUp = async interaction => {
     );
     const components = createLevelUpComponents(newSettings.experienceSystem);
 
-    await interaction.update({
+    await interaction.editReply({
       embeds: [embed],
       components,
     });
