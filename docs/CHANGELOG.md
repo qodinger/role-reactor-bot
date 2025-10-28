@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Temp-Roles Removal Notifications: Added `notify` option to `/temp-roles remove` command to send DM notifications to users when their roles are manually removed
 - Temp-Roles Notification System: Comprehensive notification system with removal details including who removed the role, reason, and timestamp
+- Webhook Verification API: Added webhook verification endpoint for improved security
+- PNG Fallback System: Implemented PNG fallback image system after removing Canvas dependency
+
+### Changed
+
+- XP Command Structure: Converted `/xp` command to use `/xp settings` subcommand pattern for consistency with other admin commands
+- Admin Command UI: Standardized button layouts across goodbye/welcome/xp commands with consistent ordering and styling
+- Button Design: Removed emojis from configuration buttons and made back buttons icon-only across all admin commands
+- Level-Up Messages Button: Updated to show "Enable"/"Disable" with primary/secondary color styling
+- Help Documentation: Updated XP command examples to reflect new subcommand structure
+- Welcome System Embeds: Redesigned welcome embeds and resolved interaction errors for better user experience
+- Goodbye System Embeds: Redesigned goodbye embeds and resolved interaction errors for improved functionality
+- General Command Embeds: Simplified invite, poll, 8ball, avatar, core, support, sponsor, ping, level, and leaderboard command embeds for cleaner design
+- Help System: Simplified button layout and removed redundant buttons for better user experience
+- Role-Reactions Color System: Updated color options with cyberpunk-themed colors and improved consistency
+- Core Management: Merged `/verify` command into `/core-management` for streamlined credit management
+- Temp-Roles Embeds: Enhanced embeds and simplified DM messages for better user experience
 
 ### Removed
 
@@ -18,24 +35,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Schedule Role Database: Removed `scheduled_roles` and `recurring_schedules` collections
 - Schedule Role Background Processing: Removed RoleScheduler and all schedule execution logic
 - Schedule Role Help Documentation: Removed all schedule-role references from help system
-
-### Changed
-
-- XP Command Interface: Simplified XP command from `/xp setup` and `/xp settings` subcommands to single `/xp` command with interactive button configuration
-- Role-Reactions Color System: Updated color options with cyberpunk-themed colors and improved consistency
-- Core Management: Merged `/verify` command into `/core-management` for streamlined credit management
-- Webhook Server: Updated server architecture and default port configuration
+- Level-Up Messages Footer: Removed footer from Level-Up Messages configuration page for cleaner design
 
 ### Fixed
 
+- Channel Display Logic: Fixed channel selection pages to properly show current channel status instead of always "Not Set"
 - XP Button Navigation: Fixed "back_to_settings" button error that occurred after XP command simplification
-- Welcome System Embeds: Redesigned welcome embeds and resolved interaction errors for better user experience
-- Goodbye System Embeds: Redesigned goodbye embeds and resolved interaction errors for improved functionality
 - Database Index Conflicts: Resolved MongoDB duplicate key errors in temp-roles
 - Interaction Stability: Fixed bot stability issues and interaction timeouts
 - Ko-fi Webhook Processing: Resolved webhook processing limitations
 - Member Permission Errors: Fixed permission checking across commands
-- Canvas Dependencies: Resolved Docker build issues
+- Help Command Examples: Fixed incorrect command examples in help system (removed quotes from parameters)
+- Role Parsing: Resolved role parsing issue with emoji variation selectors
 
 ## [1.2.0] - 2025-10-15
 
