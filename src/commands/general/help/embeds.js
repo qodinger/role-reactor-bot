@@ -313,7 +313,7 @@ export class HelpEmbedBuilder {
           {
             name: `What You Need`,
             value:
-              "**prompt** *(required)* - Describe the avatar you want to generate (e.g., 'cyberpunk hacker with neon hair')\n**color_style** *(optional)* - Choose a color palette (vibrant, pastel, monochrome, neon, warm, cool)\n**mood** *(optional)* - Choose the character's mood (happy, serious, mysterious, cute, cool, elegant)",
+              "**prompt** *(required)* - Describe the avatar you want to generate (e.g., 'cyberpunk hacker with neon hair')\n**color_style** *(optional)* - Choose a color palette (vibrant, pastel, monochrome, neon, warm, cool)\n**mood** *(optional)* - Choose the character's mood (happy, serious, mysterious, cute, cool, elegant)\n**art_style** *(optional)* - Choose the artistic style (studio, manga, modern, retro, realistic, chibi, lofi)",
             inline: false,
           },
           {
