@@ -1,16 +1,30 @@
 # Role Reactor Bot
 
 <div align="center">
-  <img src="./assets/banner.png" alt="Role Reactor Bot - React for Roles!" width="600">
+  <img src="./assets/banner.png" alt="Role Reactor Bot - React for Roles!" width="100%">
 </div>
 
 <div align="center">
 
-[![Node.js](https://img.shields.io/badge/Node.js-16+-green.svg)](https://nodejs.org/) [![Discord.js](https://img.shields.io/badge/Discord.js-14.14.1-blue.svg)](https://discord.js.org/) [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE) [![GitBook](https://img.shields.io/static/v1?message=Documented%20on%20GitBook&logo=gitbook&logoColor=ffffff&label=%20&labelColor=5c5c5c&color=3F89A1)](https://www.gitbook.com/preview?utm_source=gitbook_readme_badge&utm_medium=organic&utm_campaign=preview_documentation&utm_content=link)
+[![Node.js](https://img.shields.io/badge/Node.js-16+-green.svg)](https://nodejs.org/) [![Discord.js](https://img.shields.io/badge/Discord.js-14.14.1-blue.svg)](https://discord.js.org/) [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE) [![Documentation](https://img.shields.io/badge/Documentation-rolereactor.app-blue.svg)](https://rolereactor.app/docs)
 
 </div>
 
 ---
+
+## 📋 Table of Contents
+
+- [Features](#-features)
+- [Quick Start](#-quick-start)
+- [Usage](#-usage)
+- [Configuration](#-configuration)
+- [Troubleshooting](#-troubleshooting)
+- [Production Deployment](#-production-deployment)
+- [Monitoring](#-monitoring)
+- [User Experience](#-user-experience)
+- [Documentation](#-documentation)
+- [Changelog](#-changelog)
+- [Contributing](#-contributing)
 
 A production-ready Discord bot for self-assignable roles through reactions. Built with Discord.js v14, featuring enterprise-grade logging, health monitoring, and scalable MongoDB integration.
 
@@ -18,13 +32,14 @@ A production-ready Discord bot for self-assignable roles through reactions. Buil
 
 - **🎯 Self-Assignable Roles**: Users can assign/remove roles by reacting to messages
 - **⏰ Temporary Roles**: Auto-expire roles after a set time with smart notifications
-- **🚀 Schedule Role System**: Schedule future role assignments with natural language parsing
-- **🔄 Recurring Roles**: Create daily, weekly, monthly, or custom interval schedules
 - **🎉 Welcome System**: Auto-welcome new members with customizable messages and auto-role assignment
 - **👋 Goodbye System**: Auto-goodbye messages when members leave with customizable placeholders
 - **🧠 Smart 8ball**: Intelligent question analysis with sentiment detection and context-aware responses
 - **📊 XP System**: Configurable experience system with level progression and leaderboards
-- **👤 User Information**: Avatar display, server info, and user statistics
+- **🎨 AI Avatar Generation**: AI-powered avatar generation with multiple style options
+- **💎 Core Credit System**: Credit-based economy for avatar generation with Ko-fi integration
+- **📊 Poll System**: Create and manage native Discord polls with interactive forms
+- **👤 User Information**: Avatar display, level checking, and user statistics
 - **🛡️ Permission Controls**: Comprehensive permission checking
 - **🎨 Custom Emojis**: Support for Unicode and custom server emojis
 - **📊 Role Categories**: Organize roles into logical groups
@@ -96,21 +111,21 @@ Create role-reaction messages using the `/role-reactions setup` command:
 **Simple format:**
 
 ```
-/role-reactions setup title:"Server Roles" description:"Choose your roles by reacting!" roles:"🎮 @Gamer,🎨 @Artist,💻 @Developer"
+/role-reactions setup title:Choose Your Roles description:React to get roles! roles:🎮:@Gamer, 🎨:@Artist
 ```
 
 **With categories:**
 
 ```
-/role-reactions setup title:"Server Roles" description:"Choose your roles by reacting!" roles:"#Gaming\n🎮 @Gamer,🎲 @Board Games\n#Music\n🎵 @Music Lover,🎸 @Guitarist"
+/role-reactions setup title:Game Roles description:Pick your role! roles:🎮:Gamer, 🎨:Artist
 ```
 
 **Manage existing role-reaction messages:**
 
 ```
 /role-reactions list
-/role-reactions update message_id:"1234567890" title:"Updated Title"
-/role-reactions delete message_id:"1234567890"
+/role-reactions update message_id:1234567890 title:Updated Title
+/role-reactions delete message_id:1234567890
 ```
 
 ### Temporary Roles
@@ -120,13 +135,13 @@ Assign temporary roles that auto-expire with smart notifications:
 **Assign a temporary role:**
 
 ```
-/temp-roles assign users:"@username" role:@EventRole duration:"2h" reason:"Event participation" notify-expiry:true
+/temp-roles assign users:@user1,@user2 role:@EventRole duration:2h reason:Tournament participation
 ```
 
 **Bulk assignment:**
 
 ```
-/temp-roles assign users:"@user1, @user2, @user3" role:@VIP duration:"1d" reason:"Event access"
+/temp-roles assign users:@user1,@user2,@user3 role:@VIP duration:1d reason:Event access
 ```
 
 **Manage temporary roles:**
@@ -134,7 +149,7 @@ Assign temporary roles that auto-expire with smart notifications:
 ```
 /temp-roles list
 /temp-roles list user:@username
-/temp-roles remove users:"@username" role:@EventRole
+/temp-roles remove users:@username role:@EventRole
 ```
 
 **Duration formats:**
@@ -151,7 +166,7 @@ Automatically welcome new members with customizable messages and auto-role assig
 **Setup welcome system:**
 
 ```
-/welcome setup channel:#welcome message:"Welcome {user} to {server}! You are member #{memberCount.ordinal}!" auto-role:@Member enabled:true embed:true
+/welcome setup channel:#welcome message:Welcome {user} to {server}! 🎉 auto-role:@Member enabled:true
 ```
 
 **View settings:**
@@ -167,7 +182,7 @@ Automatically send goodbye messages when members leave with customizable placeho
 **Setup goodbye system:**
 
 ```
-/goodbye setup channel:#general message:"**{user}** left the server\nThanks for being part of **{server}**! 👋" enabled:true embed:true
+/goodbye setup channel:#general message:**{user}** left the server! Thanks for being part of **{server}**! 👋 enabled:true
 ```
 
 **View settings:**
@@ -192,27 +207,50 @@ The XP system is **disabled by default** and must be enabled by server administr
 - **Messages**: 15-25 XP every 60 seconds
 - **Commands**: 3-15 XP every 30 seconds (varies by command)
 - **Role Assignments**: 50 XP per role
+- **Voice Activity**: 10 XP every 60 seconds
 
 **Admin Commands:**
 
-- `/xp settings` - View current XP system status and toggle features
+- `/xp settings` - View current XP system status and configure features with interactive buttons
 
 **Default Settings:**
 
 - System: Disabled
 - Message XP: 15-25 XP (60s cooldown)
-- Command XP: 8 XP base + bonuses (30s cooldown)
+- Command XP: 3-15 XP (30s cooldown)
 - Role XP: 50 XP per role
+- Voice XP: 10 XP (60s cooldown)
 
-**Note:** XP system configuration is now simplified with button-driven toggles. All settings use optimized default values that work well for most servers.
+**Note:** XP system configuration uses a simplified button-driven interface. All settings use optimized default values that work well for most servers.
 
 ### General Commands
+
+**AI Avatar Generation:**
+
+```
+/avatar prompt:cyberpunk hacker with neon hair color_style:vibrant
+```
+
+**Core Credit System:**
+
+```
+/core balance
+/core pricing
+```
+
+**Poll System:**
+
+```
+/poll create
+/poll list
+/poll end poll-id:1234567890
+/poll delete poll-id:1234567890
+```
 
 **Smart 8ball with intelligent responses:**
 
 ```
-/8ball question:"Will I pass my exam?"
-/8ball question:"How do I learn programming?"
+/8ball question:Will I succeed in my career?
 ```
 
 **User information and statistics:**
@@ -254,25 +292,28 @@ The XP system is **disabled by default** and must be enabled by server administr
 
 #### Developer Commands
 
-| Command        | Description                                  | Permissions |
-| -------------- | -------------------------------------------- | ----------- |
-| `/health`      | 🔒 [DEVELOPER ONLY] Check bot health status  | Developer   |
-| `/performance` | 🔒 [DEVELOPER ONLY] View performance metrics | Developer   |
-| `/storage`     | 🔒 [DEVELOPER ONLY] Show storage status      | Developer   |
+| Command            | Description                                  | Permissions |
+| ------------------ | -------------------------------------------- | ----------- |
+| `/health`          | 🔒 [DEVELOPER ONLY] Check bot health status  | Developer   |
+| `/performance`     | 🔒 [DEVELOPER ONLY] View performance metrics | Developer   |
+| `/storage`         | 🔒 [DEVELOPER ONLY] Show storage status      | Developer   |
+| `/core-management` | 🔒 [DEVELOPER ONLY] Manage user Core credits | Developer   |
 
 #### General Commands
 
-| Command        | Description                                    | Permissions |
-| -------------- | ---------------------------------------------- | ----------- |
-| `/help`        | Display comprehensive bot help and information | None        |
-| `/ping`        | Check bot latency and status                   | None        |
-| `/invite`      | Get bot invite link with proper permissions    | None        |
-| `/support`     | Get support server and GitHub links            | None        |
-| `/sponsor`     | Support bot development (donations)            | None        |
-| `/8ball`       | Ask the magic 8ball with intelligent responses | None        |
-| `/avatar`      | Display user avatar in high resolution         | None        |
-| `/level`       | Check user XP level and statistics             | None        |
-| `/leaderboard` | View server XP leaderboard                     | None        |
+| Command        | Description                                     | Permissions |
+| -------------- | ----------------------------------------------- | ----------- |
+| `/help`        | Display comprehensive bot help and information  | None        |
+| `/ping`        | Check bot latency and status                    | None        |
+| `/invite`      | Get bot invite link with proper permissions     | None        |
+| `/support`     | Get support server and GitHub links             | None        |
+| `/sponsor`     | Support bot development (donations)             | None        |
+| `/8ball`       | Ask the magic 8ball with intelligent responses  | None        |
+| `/avatar`      | Generate AI-powered avatars with custom prompts | None        |
+| `/core`        | Check Core balance and view pricing             | None        |
+| `/poll`        | Create and manage native Discord polls          | None        |
+| `/level`       | Check user XP level and statistics              | None        |
+| `/leaderboard` | View server XP leaderboard                      | None        |
 
 ## 🔧 Configuration
 
@@ -299,6 +340,29 @@ Required Discord bot permissions:
 - **Read Message History**: To access reaction events
 - **View Channel**: To read channel content
 - **Send Messages**: To send welcome messages
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+- **Bot not responding**: Check permissions and ensure bot is online
+- **Roles not assigning**: Verify bot role is higher than target roles
+- **Database errors**: Check MongoDB connection and credentials
+- **Command not found**: Ensure slash commands are deployed (`pnpm run deploy:prod`)
+- **Avatar generation fails**: Check Core credits balance and AI service status
+- **XP not tracking**: Verify XP system is enabled in `/xp settings`
+
+### Performance Issues
+
+- **Slow responses**: Check server resources and database connection
+- **Memory usage high**: Monitor with `/performance` command
+- **Rate limiting**: Bot automatically handles Discord rate limits
+
+### Getting Help
+
+- Check the [GitHub Issues](https://github.com/qodinger/role-reactor-bot/issues) for known problems
+- Join our [Support Server](https://discord.gg/your-support-server) for real-time help
+- Review the [Deployment Guide](./docs/DEPLOYMENT.md) for setup issues
 
 ## 🚀 Production Deployment
 
@@ -351,8 +415,9 @@ The bot includes comprehensive health monitoring:
 
 ### Recent Improvements
 
-- **🧠 Smart 8ball**: Intelligent question analysis with sentiment detection and context-aware responses
-- **📅 Schedule Role System**: Natural language scheduling with recurring role assignments
+- **🎨 AI Avatar Generation**: AI-powered avatar creation with multiple style options and content filtering
+- **💎 Core Credit System**: Credit-based economy for avatar generation with Ko-fi integration
+- **📊 Poll System**: Native Discord poll creation and management with interactive forms
 - **🔄 Bulk Operations**: Multi-user support for temporary role assignments and removals
 - **🎨 Modern UI**: Redesigned embeds with interactive buttons and better visual hierarchy
 - **📝 Enhanced Help**: Comprehensive help system with autocomplete and interactive navigation
@@ -366,7 +431,9 @@ The bot includes comprehensive health monitoring:
 - **Interactive Help**: Dropdown menus, buttons, and autocomplete for easy navigation
 - **Smart Responses**: Context-aware 8ball responses based on question analysis
 - **Bulk Management**: Multi-user operations for efficient role management
-- **Natural Language**: Human-readable time formats for scheduling
+- **AI Avatar Generation**: Custom avatar creation with multiple style options
+- **Poll Management**: Interactive poll creation and management with native Discord polls
+- **Core Credit System**: Credit-based economy with Ko-fi integration
 - **Permission Checks**: Automatic permission validation with helpful feedback
 - **Error Recovery**: Graceful error handling with retry mechanisms
 - **Performance Tips**: Contextual advice based on connection status
@@ -375,6 +442,10 @@ The bot includes comprehensive health monitoring:
 
 - **[🚀 Deployment Guide](./docs/DEPLOYMENT.md)** - Production deployment instructions
 - **[🤝 Contributing Guidelines](./docs/CONTRIBUTING.md)** - How to contribute to the project
+
+## 📝 Changelog
+
+See [CHANGELOG.md](./docs/CHANGELOG.md) for detailed version history and updates.
 
 ## 🤝 Contributing
 
