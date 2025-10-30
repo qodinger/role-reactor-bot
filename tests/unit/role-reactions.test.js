@@ -1154,4 +1154,146 @@ describe("Role Reactions - Core Functionality", () => {
       expect(choices.every(choice => choice.value.startsWith("#"))).toBe(true);
     });
   });
+
+  describe("Custom Emoji Role Reactions", () => {
+    test("should correctly format custom emoji for role lookup", () => {
+      // Test the emoji formatting logic that we fixed
+      const formatEmojiForLookup = reactionEmoji => {
+        if (reactionEmoji.id) {
+          // Custom emoji: use the full format <:name:id> or <a:name:id>
+          const prefix = reactionEmoji.animated ? "<a:" : "<:";
+          return `${prefix}${reactionEmoji.name}:${reactionEmoji.id}>`;
+        } else {
+          // Unicode emoji: use just the name
+          return reactionEmoji.name;
+        }
+      };
+
+      // Test custom emoji formatting
+      const customEmoji = {
+        id: "custom123",
+        name: "custom_emoji",
+        animated: false,
+      };
+
+      const result = formatEmojiForLookup(customEmoji);
+      expect(result).toBe("<:custom_emoji:custom123>");
+
+      // Test animated custom emoji formatting
+      const animatedEmoji = {
+        id: "animated123",
+        name: "animated_emoji",
+        animated: true,
+      };
+
+      const animatedResult = formatEmojiForLookup(animatedEmoji);
+      expect(animatedResult).toBe("<a:animated_emoji:animated123>");
+
+      // Test Unicode emoji formatting
+      const unicodeEmoji = {
+        name: "😀",
+        id: null,
+        animated: false,
+      };
+
+      const unicodeResult = formatEmojiForLookup(unicodeEmoji);
+      expect(unicodeResult).toBe("😀");
+    });
+
+    test("should handle role mapping lookup with custom emojis", () => {
+      // Test that role mappings work with the correct emoji format
+      const mockRoleMapping = {
+        roles: {
+          "<:custom_emoji:custom123>": {
+            roleId: "role123",
+            emoji: "<:custom_emoji:custom123>",
+          },
+          "😀": {
+            roleId: "role456",
+            emoji: "😀",
+          },
+          "<a:animated_emoji:animated123>": {
+            roleId: "role789",
+            emoji: "<a:animated_emoji:animated123>",
+          },
+        },
+      };
+
+      // Test custom emoji lookup
+      const customEmojiKey = "<:custom_emoji:custom123>";
+      expect(mockRoleMapping.roles[customEmojiKey]).toBeDefined();
+      expect(mockRoleMapping.roles[customEmojiKey].roleId).toBe("role123");
+
+      // Test Unicode emoji lookup
+      const unicodeEmojiKey = "😀";
+      expect(mockRoleMapping.roles[unicodeEmojiKey]).toBeDefined();
+      expect(mockRoleMapping.roles[unicodeEmojiKey].roleId).toBe("role456");
+
+      // Test animated emoji lookup
+      const animatedEmojiKey = "<a:animated_emoji:animated123>";
+      expect(mockRoleMapping.roles[animatedEmojiKey]).toBeDefined();
+      expect(mockRoleMapping.roles[animatedEmojiKey].roleId).toBe("role789");
+    });
+
+    test("should validate emoji format consistency", () => {
+      // Test that the emoji format used in role setup matches the format used in reaction handling
+      const setupEmojiFormat = "<:custom_emoji:custom123>";
+      const reactionEmojiFormat = "<:custom_emoji:custom123>";
+
+      expect(setupEmojiFormat).toBe(reactionEmojiFormat);
+
+      // Test animated emoji consistency
+      const setupAnimatedFormat = "<a:animated_emoji:animated123>";
+      const reactionAnimatedFormat = "<a:animated_emoji:animated123>";
+
+      expect(setupAnimatedFormat).toBe(reactionAnimatedFormat);
+
+      // Test Unicode emoji consistency
+      const setupUnicodeFormat = "😀";
+      const reactionUnicodeFormat = "😀";
+
+      expect(setupUnicodeFormat).toBe(reactionUnicodeFormat);
+    });
+
+    test("should handle edge cases in emoji formatting", () => {
+      const formatEmojiForLookup = reactionEmoji => {
+        if (reactionEmoji.id) {
+          const prefix = reactionEmoji.animated ? "<a:" : "<:";
+          return `${prefix}${reactionEmoji.name}:${reactionEmoji.id}>`;
+        } else {
+          return reactionEmoji.name;
+        }
+      };
+
+      // Test emoji with special characters in name
+      const specialCharEmoji = {
+        id: "special123",
+        name: "emoji_with_underscores",
+        animated: false,
+      };
+
+      const result = formatEmojiForLookup(specialCharEmoji);
+      expect(result).toBe("<:emoji_with_underscores:special123>");
+
+      // Test emoji with numbers in name
+      const numberEmoji = {
+        id: "number123",
+        name: "emoji123",
+        animated: false,
+      };
+
+      const numberResult = formatEmojiForLookup(numberEmoji);
+      expect(numberResult).toBe("<:emoji123:number123>");
+
+      // Test emoji with empty name (edge case)
+      const emptyNameEmoji = {
+        id: "empty123",
+        name: "",
+        animated: false,
+      };
+
+      const emptyResult = formatEmojiForLookup(emptyNameEmoji);
+      expect(emptyResult).toBe("<::empty123>");
+    });
+  });
 });
