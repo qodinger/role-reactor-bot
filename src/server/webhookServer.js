@@ -6,6 +6,10 @@ import { getLogger } from "../utils/logger.js";
 import { corsMiddleware } from "./middleware/cors.js";
 import { requestLogger } from "./middleware/requestLogger.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
+import {
+  webhookRateLimiter,
+  kofiWebhookRateLimiter,
+} from "./middleware/rateLimiter.js";
 
 // Import route handlers
 import { healthCheck, dockerHealthCheck } from "./routes/health.js";
@@ -57,11 +61,11 @@ function initializeRoutes() {
     }
   }
 
-  // Webhook routes
-  app.get("/webhook/test", testWebhookGet);
-  app.post("/webhook/test", testWebhookPost);
-  app.post("/webhook/verify", verifyWebhookToken);
-  app.post("/webhook/kofi", handleKoFiWebhook);
+  // Webhook routes with rate limiting
+  app.get("/webhook/test", webhookRateLimiter, testWebhookGet);
+  app.post("/webhook/test", webhookRateLimiter, testWebhookPost);
+  app.post("/webhook/verify", webhookRateLimiter, verifyWebhookToken);
+  app.post("/webhook/kofi", kofiWebhookRateLimiter, handleKoFiWebhook);
 
   // API routes
   app.get("/api/status", apiStatus);

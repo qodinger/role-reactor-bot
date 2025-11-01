@@ -73,11 +73,38 @@ export async function handleKoFiWebhook(req, res) {
     if (process.env.KOFI_WEBHOOK_TOKEN) {
       // Check for verification_token in webhook data (legacy format)
       if (webhookData.verification_token) {
-        if (webhookData.verification_token !== process.env.KOFI_WEBHOOK_TOKEN) {
-          logger.warn("❌ Invalid Ko-fi webhook token received");
+        const providedToken = webhookData.verification_token;
+        const expectedToken = process.env.KOFI_WEBHOOK_TOKEN;
+
+        // Allow known test tokens ONLY in development mode (security fix for production)
+        const isDevelopment = process.env.NODE_ENV === "development";
+        const testTokens = [
+          "zapier-webhook-token",
+          "test-webhook-token",
+          "webhook-test",
+        ];
+
+        const isTestToken =
+          isDevelopment && testTokens.includes(providedToken.toLowerCase());
+        const isValidToken = providedToken === expectedToken;
+
+        if (!isValidToken && !isTestToken) {
+          logger.warn("❌ Invalid Ko-fi webhook token received", {
+            providedToken: `${providedToken.substring(0, 10)}...`,
+            expectedLength: expectedToken.length,
+            providedLength: providedToken.length,
+            environment: process.env.NODE_ENV || "production",
+          });
           return res.status(401).send("Unauthorized: Invalid token");
         }
-        logger.info("✅ Ko-fi webhook token verified successfully");
+
+        if (isTestToken) {
+          logger.info(
+            "🧪 Test webhook token detected - allowing for testing purposes (development mode only)",
+          );
+        } else {
+          logger.info("✅ Ko-fi webhook token verified successfully");
+        }
       } else {
         // For newer Ko-fi format, we might need to implement different auth
         // For now, log that no token was provided but continue processing
@@ -397,10 +424,19 @@ async function processDonation(data) {
         // New fields for subscription-based Core system
         subscriptionCredits: 0, // Cores from monthly subscription allowance
         bonusCredits: 0, // Cores from donations (preserved during reset)
+        username: discordUsername || fromName || null, // Discord username if available
       };
     }
 
     const userData = coreCredits[userIdForProcessing];
+
+    // Update username if we have a newer one (don't overwrite with null)
+    if (discordUsername && discordUsername !== userData.username) {
+      userData.username = discordUsername;
+    } else if (!userData.username && fromName) {
+      // Fallback to fromName if username is not set
+      userData.username = fromName;
+    }
 
     // Ensure credits is a number
     if (userData.credits === null || userData.credits === undefined) {
@@ -581,10 +617,19 @@ async function processSubscription(data) {
         // New fields for subscription-based Core system
         subscriptionCredits: 0, // Cores from monthly subscription allowance
         bonusCredits: 0, // Cores from donations (preserved during reset)
+        username: discordUsername || fromName || null, // Discord username if available
       };
     }
 
     const userData = coreCredits[userIdForProcessing];
+
+    // Update username if we have a newer one (don't overwrite with null)
+    if (discordUsername && discordUsername !== userData.username) {
+      userData.username = discordUsername;
+    } else if (!userData.username && fromName) {
+      // Fallback to fromName if username is not set
+      userData.username = fromName;
+    }
 
     // Ensure credits is a number, not null
     if (userData.credits === null || userData.credits === undefined) {

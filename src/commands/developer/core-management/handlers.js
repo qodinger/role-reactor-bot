@@ -115,7 +115,18 @@ async function handleAddDonation(interaction, targetUser, deferred) {
       lastUpdated: new Date().toISOString(),
       subscriptionCredits: 0,
       bonusCredits: 0,
+      username: targetUser.username || targetUser.globalName || null,
     };
+
+    // Update username if available
+    if (targetUser.username && targetUser.username !== userData.username) {
+      userData.username = targetUser.username;
+    } else if (
+      !userData.username &&
+      (targetUser.username || targetUser.globalName)
+    ) {
+      userData.username = targetUser.username || targetUser.globalName;
+    }
 
     // Calculate Cores from donation amount (10 Cores per $1)
     const coresToAdd = Math.floor(amount * 10);
@@ -206,7 +217,18 @@ async function handleAddCores(interaction, targetUser, deferred) {
       lastUpdated: new Date().toISOString(),
       subscriptionCredits: 0,
       bonusCredits: 0,
+      username: targetUser.username || targetUser.globalName || null,
     };
+
+    // Update username if available
+    if (targetUser.username && targetUser.username !== userData.username) {
+      userData.username = targetUser.username;
+    } else if (
+      !userData.username &&
+      (targetUser.username || targetUser.globalName)
+    ) {
+      userData.username = targetUser.username || targetUser.globalName;
+    }
 
     // Only manage bonus Cores (donation Cores)
     const oldBonusCores = userData.bonusCredits || 0;
@@ -410,7 +432,18 @@ async function handleViewCores(interaction, targetUser, deferred) {
       lastUpdated: new Date().toISOString(),
       subscriptionCredits: 0,
       bonusCredits: 0,
+      username: targetUser.username || targetUser.globalName || null,
     };
+
+    // Update username if available
+    if (targetUser.username && targetUser.username !== userData.username) {
+      userData.username = targetUser.username;
+    } else if (
+      !userData.username &&
+      (targetUser.username || targetUser.globalName)
+    ) {
+      userData.username = targetUser.username || targetUser.globalName;
+    }
 
     // Create view embed with credit breakdown
     const embed = await createDetailedCoreManagementEmbed({
@@ -490,7 +523,18 @@ async function handleCancelSubscription(interaction, targetUser, deferred) {
       lastUpdated: new Date().toISOString(),
       subscriptionCredits: 0,
       bonusCredits: 0,
+      username: targetUser.username || targetUser.globalName || null,
     };
+
+    // Update username if available
+    if (targetUser.username && targetUser.username !== userData.username) {
+      userData.username = targetUser.username;
+    } else if (
+      !userData.username &&
+      (targetUser.username || targetUser.globalName)
+    ) {
+      userData.username = targetUser.username || targetUser.globalName;
+    }
 
     // Check if user has an active subscription
     if (!userData.isCore || !userData.koFiSubscription?.isActive) {

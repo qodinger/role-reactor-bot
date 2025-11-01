@@ -44,7 +44,17 @@ export async function execute(reaction, user, client) {
     }
 
     const rolesObj = roleMapping.roles ? roleMapping.roles : roleMapping;
-    const emoji = reaction.emoji.name;
+
+    // Handle both custom emojis and Unicode emojis
+    let emoji;
+    if (reaction.emoji.id) {
+      // Custom emoji: use the full format <:name:id>
+      emoji = `<:${reaction.emoji.name}:${reaction.emoji.id}>`;
+    } else {
+      // Unicode emoji: use just the name
+      emoji = reaction.emoji.name;
+    }
+
     const roleConfig = rolesObj[emoji];
     if (!roleConfig) {
       return;

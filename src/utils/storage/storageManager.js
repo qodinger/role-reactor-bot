@@ -707,6 +707,9 @@ class StorageManager {
     // For core_credit, always try to use MongoDB if available
     if (collection === "core_credit") {
       await this.ensureMongoDBForCoreCredits();
+      this.logger.debug(
+        `🔍 Provider check for core_credit: ${this.provider?.constructor?.name || "null"}`,
+      );
     }
 
     if (this.provider instanceof DatabaseProvider) {
@@ -723,12 +726,32 @@ class StorageManager {
       }
       // Use database for core_credit collection
       if (collection === "core_credit") {
+        this.logger.info(
+          `💾 Saving core_credit data to MongoDB: ${Object.keys(data).length} user(s)`,
+        );
         // Update all core credit data in database (exclude MongoDB internal fields)
         for (const [userId, userData] of Object.entries(data)) {
           // eslint-disable-next-line no-unused-vars
           const { _id, ...cleanUserData } = userData;
-          await this.provider.setCoreCredits(userId, cleanUserData);
+          this.logger.debug(
+            `💾 Saving user ${userId} to MongoDB: ${cleanUserData.credits} credits`,
+          );
+          const result = await this.provider.setCoreCredits(
+            userId,
+            cleanUserData,
+          );
+          if (result) {
+            this.logger.debug(
+              `✅ Successfully saved user ${userId} to MongoDB`,
+            );
+          } else {
+            this.logger.error(`❌ Failed to save user ${userId} to MongoDB`);
+          }
         }
+
+        this.logger.info(
+          `✅ Saved ${Object.keys(data).length} user(s) to MongoDB core_credits collection`,
+        );
 
         // Update JSON file as backup
         await this.updateJsonBackup(data);
@@ -740,6 +763,11 @@ class StorageManager {
     }
 
     // Fallback to file storage when MongoDB is not available
+    if (collection === "core_credit") {
+      this.logger.warn(
+        "⚠️ MongoDB not available, falling back to file storage for core_credit",
+      );
+    }
     return await this.provider.write(collection, data);
   }
 
@@ -754,6 +782,15 @@ class StorageManager {
   }
 
   async set(key, data) {
+    // Handle core_credit specially to ensure MongoDB storage
+    if (key === "core_credit") {
+      this.logger.debug(
+        `💾 storage.set("core_credit") called with ${Object.keys(data).length} user(s), routing to write()`,
+      );
+      // Use write method which handles MongoDB storage for core_credit
+      return this.write(key, data);
+    }
+
     if (this.provider && this.provider.set) {
       return this.provider.set(key, data);
     }
