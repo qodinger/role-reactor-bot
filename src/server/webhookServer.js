@@ -36,6 +36,12 @@ const app = express();
  * Initialize server middleware
  */
 function initializeMiddleware() {
+  // Configure Express to trust proxy headers (required for ngrok, reverse proxies, etc.)
+  // Trust only the first proxy hop (most secure - prevents IP spoofing while allowing reverse proxies)
+  // This allows express-rate-limit to correctly identify client IPs from X-Forwarded-For header
+  // Use 'trust proxy: 1' instead of 'true' to only trust the first proxy (more secure)
+  app.set("trust proxy", 1);
+
   // Basic Express middleware
   app.use(express.json({ limit: "10mb" }));
   app.use(express.urlencoded({ extended: true, limit: "10mb" }));
@@ -130,8 +136,8 @@ export async function startWebhookServer() {
     initializeRoutes();
     initializeErrorHandling();
 
-    // Start server
-    const server = app.listen(serverConfig.port, () => {
+    // Start server - bind to 0.0.0.0 to allow external connections (required for webhooks)
+    const server = app.listen(serverConfig.port, "0.0.0.0", () => {
       const startupInfo = getStartupInfo();
 
       logger.info(`🚀 Unified API server started successfully`);

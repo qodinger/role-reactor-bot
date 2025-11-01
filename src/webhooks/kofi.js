@@ -11,112 +11,79 @@ export async function handleKoFiWebhook(req, res) {
   let processingResult = { success: false, error: null };
 
   try {
-    // ===== STEP 1: VALIDATE REQUEST =====
-    logger.info("🔔 Ko-fi Webhook Received - Starting Processing");
+    // ===== STEP 1: LOG REQUEST =====
+    logger.info("🔔 Ko-fi Webhook Received - Starting Processing", {
+      method: req.method,
+      url: req.url,
+      ip: req.ip || req.connection?.remoteAddress,
+      timestamp: new Date().toISOString(),
+    });
 
-    // Validate request method
-    if (req.method !== "POST") {
-      logger.warn(`Invalid request method: ${req.method}`);
-      return res.status(405).send("Method Not Allowed");
-    }
-
-    // ===== STEP 1.5: HANDLE KO-FI VERIFICATION =====
-    // Ko-fi sends verification requests that must be handled
-    const userAgent = req.headers["user-agent"] || "";
-    if (userAgent.startsWith("Ko-fi")) {
-      logger.info("🔍 Ko-fi verification request received");
+    // Handle GET requests (health checks) - just return OK
+    if (req.method === "GET") {
       return res.status(200).send("OK");
     }
 
-    // ===== STEP 2: EXTRACT AND VALIDATE DATA =====
-    const contentType = req.headers["content-type"];
-    logger.info(`📥 Received content type: ${contentType}`);
+    // Only process POST requests
+    if (req.method !== "POST") {
+      return res.status(405).send("Method Not Allowed");
+    }
+
+    // ===== STEP 2: EXTRACT WEBHOOK DATA =====
+    const contentType = req.headers["content-type"] || "";
 
     // Handle both JSON and form-urlencoded content types
-    if (contentType && contentType.includes("application/json")) {
-      // Direct JSON (newer Ko-fi format)
+    if (contentType.includes("application/json")) {
       webhookData = req.body;
-      logger.info("📋 Processing direct JSON webhook data");
-    } else if (
-      contentType &&
-      contentType.includes("application/x-www-form-urlencoded")
-    ) {
-      // Form-urlencoded with data field (legacy format)
+    } else if (contentType.includes("application/x-www-form-urlencoded")) {
       const { data } = req.body;
       if (!data) {
-        logger.warn(
-          "❌ No data field in form-urlencoded Ko-fi webhook request",
-        );
-        return res.status(400).send("Bad Request: No data field");
+        logger.warn("❌ No data field in form-urlencoded request");
+        return res.status(200).send("OK");
       }
-
       try {
         webhookData = JSON.parse(data);
-        logger.info("📋 Processing form-urlencoded webhook data");
       } catch (parseError) {
         logger.error("❌ Failed to parse webhook data as JSON:", parseError);
-        return res.status(400).send("Bad Request: Invalid JSON data");
+        return res.status(200).send("OK");
       }
     } else {
       logger.warn(`❌ Unsupported content type: ${contentType}`);
-      return res.status(400).send("Bad Request: Unsupported content type");
+      return res.status(200).send("OK");
     }
 
-    // Validate required fields
-    if (!webhookData.type) {
-      logger.warn("❌ Missing required field: type");
-      return res.status(400).send("Bad Request: Missing type field");
-    }
-
-    // ===== STEP 3: VERIFY WEBHOOK AUTHENTICATION =====
-    // Ko-fi webhook authentication (if configured)
+    // ===== STEP 3: VERIFY TOKEN (ONLY SECURITY CHECK) =====
     if (process.env.KOFI_WEBHOOK_TOKEN) {
-      // Check for verification_token in webhook data (legacy format)
-      if (webhookData.verification_token) {
-        const providedToken = webhookData.verification_token;
-        const expectedToken = process.env.KOFI_WEBHOOK_TOKEN;
+      const expectedToken = process.env.KOFI_WEBHOOK_TOKEN;
 
-        // Allow known test tokens ONLY in development mode (security fix for production)
-        const isDevelopment = process.env.NODE_ENV === "development";
-        const testTokens = [
-          "zapier-webhook-token",
-          "test-webhook-token",
-          "webhook-test",
-        ];
-
-        const isTestToken =
-          isDevelopment && testTokens.includes(providedToken.toLowerCase());
-        const isValidToken = providedToken === expectedToken;
-
-        if (!isValidToken && !isTestToken) {
-          logger.warn("❌ Invalid Ko-fi webhook token received", {
-            providedToken: `${providedToken.substring(0, 10)}...`,
-            expectedLength: expectedToken.length,
-            providedLength: providedToken.length,
-            environment: process.env.NODE_ENV || "production",
-          });
-          return res.status(401).send("Unauthorized: Invalid token");
-        }
-
-        if (isTestToken) {
-          logger.info(
-            "🧪 Test webhook token detected - allowing for testing purposes (development mode only)",
-          );
-        } else {
-          logger.info("✅ Ko-fi webhook token verified successfully");
-        }
-      } else {
-        // For newer Ko-fi format, we might need to implement different auth
-        // For now, log that no token was provided but continue processing
-        logger.info(
-          "ℹ️ No verification token in webhook data - continuing processing",
-        );
+      // Check if token is provided in webhook data
+      if (!webhookData.verification_token) {
+        logger.warn("❌ Webhook token required but not provided", {
+          hasTokenConfig: true,
+          webhookDataKeys: Object.keys(webhookData),
+        });
+        return res.status(200).send("OK");
       }
-    } else {
-      logger.warn("⚠️ No webhook token configured - accepting all requests");
+
+      const providedToken = webhookData.verification_token;
+
+      if (providedToken !== expectedToken) {
+        logger.warn("❌ Invalid webhook token", {
+          providedToken: `${providedToken.substring(0, 10)}...`,
+        });
+        return res.status(200).send("OK");
+      }
+
+      logger.info("✅ Webhook token verified");
     }
 
-    // ===== STEP 4: COMPREHENSIVE DATA LOGGING =====
+    // ===== STEP 4: VALIDATE WEBHOOK DATA =====
+    if (!webhookData || !webhookData.type) {
+      logger.warn("❌ Missing required field: type");
+      return res.status(200).send("OK");
+    }
+
+    // ===== STEP 5: LOG WEBHOOK DATA =====
     logger.info("📋 Full Webhook Data:", JSON.stringify(webhookData, null, 2));
 
     // Enhanced logging with all available fields
@@ -148,6 +115,11 @@ export async function handleKoFiWebhook(req, res) {
       isSubscriptionPayment: webhookData.is_subscription_payment,
       isFirstSubscriptionPayment: webhookData.is_first_subscription_payment,
 
+      // Shop order specific
+      shopItems: webhookData.shop_items
+        ? `${webhookData.shop_items.length} items`
+        : "N/A",
+
       // Message content
       message: webhookData.message,
 
@@ -163,7 +135,7 @@ export async function handleKoFiWebhook(req, res) {
           : "Standard fields only",
     });
 
-    // ===== STEP 5: PROCESS WEBHOOK BASED ON TYPE =====
+    // ===== STEP 6: PROCESS WEBHOOK BASED ON TYPE =====
     // IMPORTANT: Ko-fi webhook limitations
     // Ko-fi only sends webhooks for payment events, NOT for subscription cancellations, pauses, or resumes
     // See: https://help.ko-fi.com/hc/en-us/articles/360004162298-Does-Ko-fi-have-an-API-or-webhook
@@ -171,8 +143,9 @@ export async function handleKoFiWebhook(req, res) {
     const validWebhookTypes = [
       "Donation",
       "Subscription",
-      "Refund",
       "Commission",
+      "Shop Order", // Shop orders from Ko-fi shop
+      "Refund",
       "Poll",
       "Goal",
       "Update",
@@ -205,6 +178,10 @@ export async function handleKoFiWebhook(req, res) {
           processingResult = await processCommission(webhookData);
           processedType = "Commission";
           break;
+        case "Shop Order":
+          processingResult = await processShopOrder(webhookData);
+          processedType = "Shop Order";
+          break;
         case "Poll":
           processingResult = await processPoll(webhookData);
           processedType = "Poll";
@@ -230,7 +207,7 @@ export async function handleKoFiWebhook(req, res) {
       }
     }
 
-    // ===== STEP 6: LOG PROCESSING RESULTS =====
+    // ===== STEP 7: LOG PROCESSING RESULTS =====
     const processingTime = Date.now() - startTime;
 
     if (processingResult.success) {
@@ -257,7 +234,7 @@ export async function handleKoFiWebhook(req, res) {
       });
     }
 
-    // ===== STEP 7: SEND RESPONSE =====
+    // ===== STEP 8: SEND RESPONSE =====
     // Ko-fi requires HTTP 200 response within 5 seconds
     // (processingTime already declared above; do not redeclare)
     logger.info(`⏱️ Webhook processing completed in ${processingTime}ms`);
@@ -997,6 +974,52 @@ async function processCommission(data) {
     return { success: true, message: "Commission logged (no credits awarded)" };
   } catch (error) {
     logger.error("❌ Error processing commission:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+async function processShopOrder(data) {
+  try {
+    logger.info("🛒 Processing Shop Order Webhook:");
+    logger.info("📊 Shop Order Data:", JSON.stringify(data, null, 2));
+
+    // Log shop order details
+    const shopItems = data.shop_items || [];
+    const itemCodes = shopItems.map(item => item.direct_link_code).join(", ");
+
+    logger.info("🛒 Shop Order Details:", {
+      fromName: data.from_name,
+      amount: data.amount,
+      currency: data.currency || "USD",
+      email: data.email,
+      isPublic: data.is_public,
+      itemCount: shopItems.length,
+      itemCodes: itemCodes || "No codes",
+      kofiTransactionId: data.kofi_transaction_id,
+      timestamp: data.timestamp,
+    });
+
+    // Check privacy settings - respect is_public field
+    if (!data.is_public) {
+      logger.info(`🔒 Skipping private shop order from ${data.from_name}`);
+      return {
+        success: true,
+        message: "Private shop order skipped (privacy respected)",
+      };
+    }
+
+    // Shop orders are logged but don't currently award credits
+    // This can be extended in the future if shop integration is needed
+    logger.info(
+      `🛒 Shop order received from ${data.from_name}: $${data.amount} (${shopItems.length} items)`,
+    );
+
+    return {
+      success: true,
+      message: `Shop order logged: $${data.amount} for ${shopItems.length} items`,
+    };
+  } catch (error) {
+    logger.error("❌ Error processing shop order:", error);
     return { success: false, error: error.message };
   }
 }
