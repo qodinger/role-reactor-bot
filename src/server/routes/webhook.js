@@ -1,4 +1,5 @@
 import { getLogger } from "../../utils/logger.js";
+import { handleKoFiWebhook } from "../../webhooks/kofi.js";
 
 const logger = getLogger();
 
@@ -33,6 +34,8 @@ export function testWebhookGet(req, res) {
 
 /**
  * Test webhook POST endpoint
+ * Detects Ko-fi webhooks and forwards them to the actual handler,
+ * otherwise returns test response
  * @param {import('express').Request} req - Express request object
  * @param {import('express').Response} res - Express response object
  */
@@ -45,6 +48,30 @@ export function testWebhookPost(req, res) {
     timestamp: new Date().toISOString(),
   });
 
+  // Check if this looks like a Ko-fi webhook
+  const body = req.body || {};
+  const isKofiWebhook =
+    body.type &&
+    (body.type === "Donation" ||
+      body.type === "Subscription" ||
+      body.type === "Refund" ||
+      body.type === "Update") &&
+    (body.amount !== undefined || body.from_name !== undefined);
+
+  if (isKofiWebhook) {
+    logger.info(
+      "🔀 Detected Ko-fi webhook in test endpoint, forwarding to handler...",
+      {
+        type: body.type,
+        fromName: body.from_name,
+        amount: body.amount,
+      },
+    );
+    // Forward to actual Ko-fi webhook handler
+    return handleKoFiWebhook(req, res);
+  }
+
+  // Otherwise, return test response
   res.json({
     status: "success",
     message: "Webhook POST endpoint is working!",
