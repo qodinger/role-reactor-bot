@@ -7,10 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.1] - 2025-11-02
+
 ### Fixed
 
 - Role Reactions: Custom emojis (including animated) now correctly grant and remove roles. This fix ensures reactions using server emojis work the same as standard Unicode emojis, with no setup changes required.
 - Core Credits Storage: Fixed issue where core credits were saved to local files but not immediately synchronized to MongoDB database, ensuring credits persist correctly after donations and subscriptions
+- Ko-fi Webhooks: Fixed webhook reception issues in production by binding server to 0.0.0.0, configuring trust proxy, and simplifying webhook handler to properly process all Ko-fi webhook events
 
 ## [1.3.0] - 2025-10-28
 
