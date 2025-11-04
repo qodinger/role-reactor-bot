@@ -1,15 +1,3 @@
-/**
- * @fileoverview Centralized Error Handler for Role Reactor Bot
- *
- * Provides comprehensive error handling for Discord API errors, database errors,
- * command execution errors, and validation errors. Includes user-friendly error
- * messages and retry mechanisms for transient errors.
- *
- * @author Tyecode
- * @version Dynamic (see package.json)
- * @license MIT
- */
-
 import { getLogger } from "../logger.js";
 
 /**

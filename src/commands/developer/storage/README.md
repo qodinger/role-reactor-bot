@@ -4,15 +4,38 @@
 
 The `/storage` command provides comprehensive storage system monitoring and configuration status. This command is restricted to developers only and offers detailed insights into the bot's storage infrastructure, including database health, file storage status, and data retention policies.
 
-## Structure
+## File Structure
 
-- **`index.js`**: Main command definition and execution flow
+```
+storage/
+├── index.js              # Command definition and entry point
+├── handlers.js           # Core storage check logic and permission validation
+├── embeds.js             # Discord embed creation for storage status display
+├── utils.js              # Utility functions for storage analysis and validation
+└── README.md             # This documentation
+```
+
+## Architecture
+
+Following the modular pattern established by other developer commands:
+
+- **`index.js`**: Command definition and main execution flow
 - **`handlers.js`**: Core storage check logic and permission validation
-- **`embeds.js`**: Discord embed creation for storage status display
-- **`utils.js`**: Utility functions for storage analysis and validation
-- **`README.md`**: This documentation file
+- **`embeds.js`**: Discord embed creation and formatting
+- **`utils.js`**: Helper functions for storage analysis and validation
 
-## Features
+## Usage Examples
+
+```
+/storage
+```
+
+## Permissions Required
+
+- Developer role (configured in bot settings)
+- Default: No permissions (restricted access)
+
+## Key Features
 
 - **Storage Type Detection**: Automatically identifies database vs. file storage
 - **Database Health Monitoring**: Real-time database connection status
@@ -22,13 +45,7 @@ The `/storage` command provides comprehensive storage system monitoring and conf
 - **Performance Metrics**: Storage operation performance indicators
 - **Fallback Information**: Basic system info when storage systems unavailable
 
-## Usage
-
-```bash
-/storage
-```
-
-## Response
+## Response Details
 
 The command returns a comprehensive embed showing:
 
@@ -38,19 +55,6 @@ The command returns a comprehensive embed showing:
 - Storage recommendations and optimization tips
 - Database details and performance metrics
 - System information fallback
-
-## Permissions
-
-- **Required**: Developer role (configured in bot settings)
-- **Default**: No permissions (restricted access)
-
-## Technical Details
-
-- Integrates with storage and database management systems
-- Provides real-time health monitoring and status reporting
-- Implements comprehensive error handling and fallback mechanisms
-- Features automatic recommendation generation based on system state
-- Includes detailed logging for debugging and monitoring
 
 ## Storage Types Supported
 
@@ -65,13 +69,13 @@ The command returns a comprehensive embed showing:
 - **System Logs**: 30-day retention with automatic cleanup
 - **Cache Data**: 5-minute TTL with automatic refresh
 
-## Error Handling
+## Technical Details
 
-- Graceful fallback for unavailable storage systems
-- Permission validation with clear error messages
-- Comprehensive logging for debugging and monitoring
-- User-friendly error responses for non-developers
-- Automatic detection and reporting of storage issues
+- Integrates with storage and database management systems
+- Provides real-time health monitoring and status reporting
+- Implements comprehensive error handling and fallback mechanisms
+- Features automatic recommendation generation based on system state
+- Includes detailed logging for debugging and monitoring
 
 ## Monitoring Capabilities
 
@@ -80,3 +84,18 @@ The command returns a comprehensive embed showing:
 - Performance bottleneck identification
 - Storage efficiency metrics calculation
 - Automatic alert generation for critical issues
+
+## Error Handling
+
+- Graceful fallback for unavailable storage systems
+- Permission validation with clear error messages
+- Comprehensive logging for debugging and monitoring
+- User-friendly error responses for non-developers
+- Automatic detection and reporting of storage issues
+
+## Dependencies
+
+- Discord.js
+- Theme configuration for colors and styling
+- Permission validation utilities
+- Storage and database management systems

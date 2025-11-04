@@ -1,17 +1,3 @@
-/**
- * @fileoverview Main entry point for the Role Reactor Bot
- *
- * This module initializes and starts the Discord bot with all necessary systems:
- * - Discord client configuration with proper intents and partials
- * - Command and event loading from directories
- * - System initialization (storage, performance monitoring, health checks)
- * - Graceful shutdown handling
- *
- * @author Tyecode
- * @version Dynamic (see package.json)
- * @license MIT
- */
-
 // Load environment variables first
 import "../scripts/load-env.js";
 

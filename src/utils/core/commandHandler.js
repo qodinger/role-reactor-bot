@@ -1,15 +1,3 @@
-/**
- * @fileoverview Command Handler for Role Reactor Bot
- *
- * Manages command registration, execution, caching, and statistics.
- * Provides centralized command processing with permission checking,
- * rate limiting, and performance monitoring.
- *
- * @author Tyecode
- * @version Dynamic (see package.json)
- * @license MIT
- */
-
 import { Collection } from "discord.js";
 import { getEventHandler } from "./eventHandler.js";
 import { getLogger } from "../logger.js";

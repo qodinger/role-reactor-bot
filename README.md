@@ -31,7 +31,8 @@ A production-ready Discord bot for self-assignable roles through reactions. Buil
 ## ✨ Features
 
 - **🎯 Self-Assignable Roles**: Users can assign/remove roles by reacting to messages
-- **⏰ Temporary Roles**: Auto-expire roles after a set time with smart notifications
+- **⏰ Temporary Roles**: Auto-expire roles after a set time with smart notifications and voice restriction enforcement
+- **📅 Schedule Roles**: Schedule automatic role assignments and removals with one-time or recurring schedules, including voice restriction enforcement
 - **🎉 Welcome System**: Auto-welcome new members with customizable messages and auto-role assignment
 - **👋 Goodbye System**: Auto-goodbye messages when members leave with customizable placeholders
 - **🧠 Smart 8ball**: Intelligent question analysis with sentiment detection and context-aware responses
@@ -130,7 +131,7 @@ Create role-reaction messages using the `/role-reactions setup` command:
 
 ### Temporary Roles
 
-Assign temporary roles that auto-expire with smart notifications:
+Assign temporary roles that auto-expire with smart notifications and voice restriction enforcement:
 
 **Assign a temporary role:**
 
@@ -158,6 +159,53 @@ Assign temporary roles that auto-expire with smart notifications:
 - `2h` - 2 hours
 - `1d` - 1 day
 - `1w` - 1 week
+
+**Voice Restrictions:**
+
+When assigning restrictive roles (roles with `Connect` or `Speak` permissions disabled), the bot automatically enforces voice restrictions:
+
+- **Disconnects** users from voice channels if the role has `Connect` permission disabled
+- **Mutes** users if the role has `Speak` permission disabled
+- Requires bot permissions: `Move Members` (for disconnecting) and `Mute Members` (for muting)
+
+### Schedule Roles
+
+Schedule automatic role assignments and removals with voice restriction enforcement:
+
+**One-time schedule:**
+
+```
+/schedule-role create action:assign role:@EventRole users:@user1,@user2 schedule-type:one-time schedule:"tomorrow 8am"
+```
+
+**Recurring schedule with voice restrictions:**
+
+```
+/schedule-role create action:assign role:@RestrictedRole users:@user1 schedule-type:daily schedule:"9am" reason:"Night shift restriction"
+/schedule-role create action:remove role:@RestrictedRole users:@user1 schedule-type:daily schedule:"8am" reason:"Lift restrictions"
+```
+
+**Target members by role:**
+
+```
+/schedule-role create action:assign role:@PremiumRole users:@VerifiedRole schedule-type:daily schedule:"9am"
+```
+
+**Manage schedules:**
+
+```
+/schedule-role list page:1
+/schedule-role view schedule-id:"abc123-def456-ghi789"
+/schedule-role cancel schedule-id:"abc123-def456-ghi789"
+```
+
+**Voice Restrictions:**
+
+When assigning restrictive roles (roles with `Connect` or `Speak` permissions disabled), the bot automatically:
+
+- **Disconnects** users from voice channels if the role has `Connect` permission disabled
+- **Mutes** users if the role has `Speak` permission disabled
+- Requires bot permissions: `Move Members` (for disconnecting) and `Mute Members` (for muting)
 
 ### Welcome System
 
@@ -284,6 +332,10 @@ The XP system is **disabled by default** and must be enabled by server administr
 | `/temp-roles assign`     | Assign temporary roles (supports bulk)   | Manage Roles  |
 | `/temp-roles list`       | List temporary roles                     | Manage Roles  |
 | `/temp-roles remove`     | Remove temporary roles (supports bulk)   | Manage Roles  |
+| `/schedule-role create`  | Schedule role assignments/removals       | Manage Roles  |
+| `/schedule-role list`    | List active schedules                    | Manage Roles  |
+| `/schedule-role view`    | View schedule details                    | Manage Roles  |
+| `/schedule-role cancel`  | Cancel a schedule                        | Manage Roles  |
 | `/welcome setup`         | Configure welcome system                 | Manage Server |
 | `/welcome settings`      | View welcome system settings             | Manage Server |
 | `/goodbye setup`         | Configure goodbye system                 | Manage Server |
@@ -340,6 +392,8 @@ Required Discord bot permissions:
 - **Read Message History**: To access reaction events
 - **View Channel**: To read channel content
 - **Send Messages**: To send welcome messages
+- **Move Members**: To disconnect users from voice channels (for voice restrictions)
+- **Mute Members**: To mute users in voice channels (for voice restrictions)
 
 ## 🔧 Troubleshooting
 
@@ -361,7 +415,7 @@ Required Discord bot permissions:
 ### Getting Help
 
 - Check the [GitHub Issues](https://github.com/qodinger/role-reactor-bot/issues) for known problems
-- Join our [Support Server](https://discord.gg/your-support-server) for real-time help
+- Join our [Support Server](https://discord.gg/D8tYkU75Ry) for real-time help
 - Review the [Deployment Guide](./docs/DEPLOYMENT.md) for setup issues
 
 ## 🚀 Production Deployment

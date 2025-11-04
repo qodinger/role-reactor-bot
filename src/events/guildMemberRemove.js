@@ -1,14 +1,3 @@
-/**
- * @fileoverview Guild Member Remove Event Handler
- *
- * This module handles the guildMemberRemove event, which is triggered when a member
- * leaves a Discord server. It processes goodbye messages and logs the departure.
- *
- * @author Tyecode
- * @version Dynamic (see package.json)
- * @license MIT
- */
-
 import { getLogger } from "../utils/logger.js";
 import { getDatabaseManager } from "../utils/storage/databaseManager.js";
 import {

@@ -1,14 +1,8 @@
 # 8ball Command
 
+## Overview
+
 An intelligent magic 8-ball command that provides context-aware responses to user questions using advanced sentiment analysis and smart weighting.
-
-## Features
-
-- **Smart Analysis**: Analyzes question sentiment, type, and context
-- **Intelligent Responses**: 5 response categories with weighted selection
-- **Context Awareness**: Personal, urgent, and emotional question detection
-- **Simple and Official Design**: Clean embed design with category-specific themes
-- **Rich Formatting**: Proper Discord embed styling
 
 ## File Structure
 
@@ -22,6 +16,13 @@ An intelligent magic 8-ball command that provides context-aware responses to use
 ```
 
 ## Architecture
+
+Following the modular pattern established by other general commands:
+
+- **`index.js`**: Command definition and main execution flow
+- **`handlers.js`**: Core command logic, smart analysis, and response generation
+- **`embeds.js`**: Discord embed creation and formatting
+- **`utils.js`**: Helper functions for randomization
 
 ### Command Structure
 
@@ -45,19 +46,11 @@ An intelligent magic 8-ball command that provides context-aware responses to use
 /8ball question:Will I have a good day today?
 ```
 
-- Analyzes question sentiment
-- Selects appropriate response category
-- Displays response in clean embed
-
 ### Personal Question
 
 ```
 /8ball question:Should I ask my crush out?
 ```
-
-- Detects personal nature of question
-- May adjust response weighting
-- Provides thoughtful response
 
 ### Urgent Question
 
@@ -65,13 +58,7 @@ An intelligent magic 8-ball command that provides context-aware responses to use
 /8ball question:Should I quit my job right now?
 ```
 
-- Recognizes urgency indicators
-- Provides balanced response
-- Considers emotional context
-
 ## Permissions Required
-
-### User Permissions
 
 - **Execute**: Send Messages permission
 - **Public**: All users can access
@@ -82,6 +69,12 @@ An intelligent magic 8-ball command that provides context-aware responses to use
 - **Embed Links**: Required for rich embed display
 
 ## Key Features
+
+- **Smart Analysis**: Analyzes question sentiment, type, and context
+- **Intelligent Responses**: 5 response categories with weighted selection
+- **Context Awareness**: Personal, urgent, and emotional question detection
+- **Simple and Official Design**: Clean embed design with category-specific themes
+- **Rich Formatting**: Proper Discord embed styling
 
 ### Smart Question Analysis
 
@@ -97,13 +90,6 @@ An intelligent magic 8-ball command that provides context-aware responses to use
 - **Neutral**: Uncertain or unclear responses
 - **Negative**: Challenging or difficult responses
 - **Very Negative**: Strong warnings or cautions
-
-### Simple and Official Design
-
-- Clean, professional embed styling
-- Minimal emoji usage for better readability
-- Consistent with other bot commands
-- Focus on functionality over decoration
 
 ## Response Categories
 

@@ -1,14 +1,3 @@
-/**
- * @fileoverview Jest configuration for Role Reactor Bot
- *
- * Configures Jest for testing with ES modules,
- * proper mocking, and coverage reporting.
- *
- * @author Tyecode
- * @version 0.1.0
- * @license MIT
- */
-
 export default {
   // Test environment
   testEnvironment: "node",

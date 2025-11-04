@@ -26,33 +26,14 @@ Following the modular pattern established by other admin commands:
 - **`components.js`**: Interactive UI components (buttons, select menus)
 - **`utils.js`**: Helper functions, validation, and logging utilities
 
-## Command Usage
+## Subcommands
 
-### `/xp settings`
+- **`/xp settings`**: View and manage XP system settings with interactive buttons
 
-A subcommand that displays current XP system settings and provides interactive buttons for configuration.
-
-**Features:**
-
-- **Real-time settings display** - Shows current XP configuration
-- **Interactive configuration** - Use buttons to enable/disable features
-- **Level-up management** - Configure level-up messages and channels
-- **XP source configuration** - Manage different XP sources (messages, commands, roles, voice)
-- **Permission-based access** - Only administrators can configure
-
-## Key Features
-
-- **Simplified interface** - Single command instead of multiple subcommands
-- **Interactive buttons** - Easy configuration through Discord UI
-- **Real-time settings display** - See current configuration at a glance
-- **Permission-based access control** - Secure admin-only access
-- **Comprehensive error handling** - Graceful error recovery
-- **Database integration** - Persistent settings storage
-
-## Usage
+## Usage Examples
 
 ```
-/xp
+/xp settings
 ```
 
 The command will display current XP settings with interactive buttons for:
@@ -66,6 +47,23 @@ The command will display current XP settings with interactive buttons for:
 
 - `ManageGuild` permission
 - Admin role or equivalent
+
+## Key Features
+
+- **Simplified interface** - Single command instead of multiple subcommands
+- **Interactive buttons** - Easy configuration through Discord UI
+- **Real-time settings display** - See current configuration at a glance
+- **Permission-based access control** - Secure admin-only access
+- **Comprehensive error handling** - Graceful error recovery
+- **Database integration** - Persistent settings storage
+
+### XP System Features
+
+- **Real-time settings display** - Shows current XP configuration
+- **Interactive configuration** - Use buttons to enable/disable features
+- **Level-up management** - Configure level-up messages and channels
+- **XP source configuration** - Manage different XP sources (messages, commands, roles, voice)
+- **Permission-based access** - Only administrators can configure
 
 ## Dependencies
 

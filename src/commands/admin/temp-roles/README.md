@@ -58,6 +58,7 @@ Following the modular pattern established by other admin commands:
 - Comprehensive validation and error handling
 - Role ownership validation
 - BSON error prevention
+- Voice restrictions: Automatically enforces Connect/Speak restrictions when assigning restrictive roles to users in voice channels
 
 ## Dependencies
 
