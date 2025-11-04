@@ -1,6 +1,6 @@
 import { Events } from "discord.js";
 import { getLogger } from "../utils/logger.js";
-import { enforceVoiceRestrictions } from "../utils/discord/voiceRestrictions.js";
+import { enforceVoiceRestrictions as defaultEnforceVoiceRestrictions } from "../utils/discord/voiceRestrictions.js";
 
 /**
  * Handle guild member updates (including role changes)
@@ -8,8 +8,10 @@ import { enforceVoiceRestrictions } from "../utils/discord/voiceRestrictions.js"
  * @param {import("discord.js").GuildMember} oldMember - Previous member state
  * @param {import("discord.js").GuildMember} newMember - New member state
  * @param {import("discord.js").Client} _client - Discord client (passed by event handler, unused)
+ * @param {Object} [options] - Optional parameters
+ * @param {Function} [options.enforceVoiceRestrictions] - Voice restrictions function (for testing)
  */
-export async function execute(oldMember, newMember, _client) {
+export async function execute(oldMember, newMember, _client, options = {}) {
   const logger = getLogger();
 
   try {
@@ -45,6 +47,10 @@ export async function execute(oldMember, newMember, _client) {
       logger.debug(
         `Role change detected for ${newMember.user.tag} in voice channel ${newMember.voice.channel.name} - enforcing voice restrictions`,
       );
+
+      // Allow dependency injection for testing
+      const enforceVoiceRestrictions =
+        options.enforceVoiceRestrictions || defaultEnforceVoiceRestrictions;
 
       // Enforce voice restrictions based on current roles
       const result = await enforceVoiceRestrictions(

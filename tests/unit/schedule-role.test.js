@@ -680,7 +680,7 @@ describe("Schedule Role - Schedule Parsing", () => {
 
   describe("parseRecurringSchedule - Daily", () => {
     it("should parse daily schedule (9am)", () => {
-      const result = parseRecurringSchedule("9am", "daily");
+      const result = parseRecurringSchedule("daily", "9am");
       expect(result).toBeDefined();
       expect(result.type).toBe("daily");
       expect(result.hour).toBe(9);
@@ -688,7 +688,7 @@ describe("Schedule Role - Schedule Parsing", () => {
     });
 
     it("should parse daily schedule (14:30)", () => {
-      const result = parseRecurringSchedule("14:30", "daily");
+      const result = parseRecurringSchedule("daily", "14:30");
       expect(result).toBeDefined();
       expect(result.type).toBe("daily");
       expect(result.hour).toBe(14);
@@ -696,7 +696,7 @@ describe("Schedule Role - Schedule Parsing", () => {
     });
 
     it("should parse daily schedule (2:30pm)", () => {
-      const result = parseRecurringSchedule("2:30pm", "daily");
+      const result = parseRecurringSchedule("daily", "2:30pm");
       expect(result).toBeDefined();
       expect(result.type).toBe("daily");
       expect(result.hour).toBe(14);
@@ -704,14 +704,14 @@ describe("Schedule Role - Schedule Parsing", () => {
     });
 
     it("should return null for invalid daily format", () => {
-      const result = parseRecurringSchedule("invalid", "daily");
+      const result = parseRecurringSchedule("daily", "invalid");
       expect(result).toBeNull();
     });
   });
 
   describe("parseRecurringSchedule - Weekly", () => {
     it("should parse weekly schedule (monday 9am)", () => {
-      const result = parseRecurringSchedule("monday 9am", "weekly");
+      const result = parseRecurringSchedule("weekly", "monday 9am");
       expect(result).toBeDefined();
       expect(result.type).toBe("weekly");
       expect(result.dayOfWeek).toBe(1); // Monday
@@ -719,7 +719,7 @@ describe("Schedule Role - Schedule Parsing", () => {
     });
 
     it("should parse weekly schedule (friday 14:30)", () => {
-      const result = parseRecurringSchedule("friday 14:30", "weekly");
+      const result = parseRecurringSchedule("weekly", "friday 14:30");
       expect(result).toBeDefined();
       expect(result.type).toBe("weekly");
       expect(result.dayOfWeek).toBe(5); // Friday
@@ -728,14 +728,14 @@ describe("Schedule Role - Schedule Parsing", () => {
     });
 
     it("should return null for invalid weekly format", () => {
-      const result = parseRecurringSchedule("invalid", "weekly");
+      const result = parseRecurringSchedule("weekly", "invalid");
       expect(result).toBeNull();
     });
   });
 
   describe("parseRecurringSchedule - Monthly", () => {
     it("should parse monthly schedule (15 9am)", () => {
-      const result = parseRecurringSchedule("15 9am", "monthly");
+      const result = parseRecurringSchedule("monthly", "15 9am");
       expect(result).toBeDefined();
       expect(result.type).toBe("monthly");
       expect(result.dayOfMonth).toBe(15);
@@ -743,7 +743,7 @@ describe("Schedule Role - Schedule Parsing", () => {
     });
 
     it("should parse monthly schedule (1 14:30)", () => {
-      const result = parseRecurringSchedule("1 14:30", "monthly");
+      const result = parseRecurringSchedule("monthly", "1 14:30");
       expect(result).toBeDefined();
       expect(result.type).toBe("monthly");
       expect(result.dayOfMonth).toBe(1);
@@ -752,7 +752,7 @@ describe("Schedule Role - Schedule Parsing", () => {
     });
 
     it("should return null for invalid monthly format", () => {
-      const result = parseRecurringSchedule("invalid", "monthly");
+      const result = parseRecurringSchedule("monthly", "invalid");
       expect(result).toBeNull();
     });
   });

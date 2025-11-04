@@ -185,29 +185,47 @@ export async function enforceVoiceRestrictions(
     `Speak restriction check for ${member.user.tag} in ${channel.name}: hasRestrictiveSpeakRole=${hasRestrictiveSpeakRole}, roleName=${speakRoleName || "none"}`,
   );
 
-  if (hasRestrictiveSpeakRole && hasMuteMembers) {
-    // Only mute if not already muted
-    if (!member.voice.mute && !member.voice.selfMute) {
-      try {
-        await member.voice.setMute(
-          true,
-          `${reason}: Restrictive role "${speakRoleName}" - Speak disabled`,
+  if (hasRestrictiveSpeakRole) {
+    if (hasMuteMembers) {
+      // Only mute if not already muted
+      if (!member.voice.mute && !member.voice.selfMute) {
+        try {
+          await member.voice.setMute(
+            true,
+            `${reason}: Restrictive role "${speakRoleName}" - Speak disabled`,
+          );
+          logger.info(
+            `🔇 Muted ${member.user.tag} in voice channel ${channel.name} due to restrictive role "${speakRoleName}" (Speak disabled)`,
+          );
+          return { disconnected: false, muted: true };
+        } catch (muteError) {
+          logger.warn(
+            `Failed to mute ${member.user.tag} in voice channel:`,
+            muteError.message,
+          );
+          return {
+            disconnected: false,
+            muted: false,
+            error: muteError.message,
+          };
+        }
+      } else {
+        logger.debug(
+          `User ${member.user.tag} already muted (voice.mute=${member.voice.mute}, voice.selfMute=${member.voice.selfMute}) - keeping muted due to restrictive role`,
         );
-        logger.info(
-          `🔇 Muted ${member.user.tag} in voice channel ${channel.name} due to restrictive role "${speakRoleName}" (Speak disabled)`,
-        );
-        return { disconnected: false, muted: true };
-      } catch (muteError) {
-        logger.warn(
-          `Failed to mute ${member.user.tag} in voice channel:`,
-          muteError.message,
-        );
-        return { disconnected: false, muted: false, error: muteError.message };
       }
     } else {
-      logger.debug(
-        `User ${member.user.tag} already muted (voice.mute=${member.voice.mute}, voice.selfMute=${member.voice.selfMute}) - keeping muted due to restrictive role`,
+      logger.error(
+        `❌ Cannot mute ${member.user.tag} - bot missing MuteMembers permission. ` +
+          `Enable "Mute Members" permission in Server Settings → Roles → [Bot's Role] → General Permissions. ` +
+          `Speak restrictions require muting, not disconnecting.`,
       );
+      return {
+        disconnected: false,
+        muted: false,
+        error: "Missing MuteMembers permission",
+        needsPermission: true,
+      };
     }
   }
 

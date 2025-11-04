@@ -225,7 +225,7 @@ export async function validateSchedule(scheduleType, scheduleInput) {
         scheduledAt: parsedDate,
       };
     } else if (scheduleType === "daily") {
-      const parsed = parseRecurringSchedule(scheduleInput, "daily");
+      const parsed = parseRecurringSchedule("daily", scheduleInput);
       if (!parsed) {
         return {
           valid: false,
@@ -239,7 +239,7 @@ export async function validateSchedule(scheduleType, scheduleInput) {
         scheduleConfig: parsed,
       };
     } else if (scheduleType === "weekly") {
-      const parsed = parseRecurringSchedule(scheduleInput, "weekly");
+      const parsed = parseRecurringSchedule("weekly", scheduleInput);
       if (!parsed) {
         return {
           valid: false,
@@ -255,7 +255,7 @@ export async function validateSchedule(scheduleType, scheduleInput) {
         scheduleConfig: parsed,
       };
     } else if (scheduleType === "monthly") {
-      const parsed = parseRecurringSchedule(scheduleInput, "monthly");
+      const parsed = parseRecurringSchedule("monthly", scheduleInput);
       if (!parsed) {
         return {
           valid: false,

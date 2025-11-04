@@ -53,8 +53,8 @@ export default {
   // Detect open handles to find leaks
   detectOpenHandles: true,
 
-  // Module name mapping for better resolution - disabled to fix import issues
-  // moduleNameMapper: {
-  //   "^(\\.{1,2}/.*)\\.js$": "$1",
-  // },
+  // Module name mapping for better resolution
+  moduleNameMapper: {
+    "^src/(.*)$": "<rootDir>/src/$1",
+  },
 };
