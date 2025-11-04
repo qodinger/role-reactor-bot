@@ -24,8 +24,14 @@ const logger = getLogger();
  * Handle avatar generation
  * @param {import('discord.js').CommandInteraction} interaction
  * @param {import('discord.js').Client} client
+ * @param {Object} options - Optional dependencies for testing
+ * @param {Function} options.getStorageManager - Optional storage manager getter
  */
-export async function handleAvatarGeneration(interaction, _client) {
+export async function handleAvatarGeneration(
+  interaction,
+  _client,
+  options = {},
+) {
   const startTime = Date.now();
 
   logger.debug(
@@ -61,9 +67,10 @@ export async function handleAvatarGeneration(interaction, _client) {
       return await interaction.editReply({ embeds: [helpEmbed] });
     }
 
-    // Check user credits
+    // Check user credits (pass options for dependency injection)
     const creditInfo = await CreditManager.checkUserCredits(
       interaction.user.id,
+      options,
     );
     const { userData, creditsNeeded } = creditInfo;
 
@@ -139,6 +146,7 @@ export async function handleAvatarGeneration(interaction, _client) {
       const result = await CreditManager.deductCredits(
         interaction.user.id,
         creditsNeeded,
+        options,
       );
       deductionBreakdown = result.deductionBreakdown;
     }

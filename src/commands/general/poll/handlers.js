@@ -7,7 +7,7 @@ import {
   MessageFlags,
 } from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
-import { getStorageManager } from "../../../utils/storage/storageManager.js";
+import { getStorageManager as defaultGetStorageManager } from "../../../utils/storage/storageManager.js";
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 import { THEME, EMOJIS } from "../../../config/theme.js";
 import { parsePollOptions } from "./utils.js";
@@ -23,13 +23,23 @@ const logger = getLogger();
  * Handle poll ending by poll owners
  * @param {import('discord.js').ChatInputCommandInteraction} interaction - The interaction
  * @param {import('discord.js').Client} client - The Discord client
+ * @param {boolean} _deferred - Whether the interaction was deferred
+ * @param {Object} options - Optional dependencies for testing
+ * @param {Function} options.getStorageManager - Optional storage manager getter
  */
-export async function handlePollEnd(interaction, client, _deferred = false) {
+export async function handlePollEnd(
+  interaction,
+  client,
+  _deferred = false,
+  options = {},
+) {
   try {
     // Get command options
     const pollId = interaction.options.getString("poll-id");
 
-    // Get storage manager
+    // Allow dependency injection for testing
+    const getStorageManager =
+      options.getStorageManager || defaultGetStorageManager;
     const storageManager = await getStorageManager();
     const poll = await storageManager.getPollById(pollId);
 
@@ -178,7 +188,9 @@ async function createPollFromData(interaction, pollData) {
   }
 
   // Store basic poll metadata for management
-  const storageManager = await getStorageManager();
+  // Note: createPollFromData is called from handlePollCreateFromModal
+  // which doesn't support dependency injection yet, so we use the default
+  const storageManager = await defaultGetStorageManager();
 
   const pollId = pollMessage.id;
 
@@ -651,8 +663,16 @@ async function createPollCard(interaction, poll, pollNumber) {
  * Handle poll listing with beautiful embed design
  * @param {import("discord.js").CommandInteraction} interaction - The interaction object
  * @param {import("discord.js").Client} _client - The Discord client
+ * @param {boolean} _deferred - Whether the interaction was deferred
+ * @param {Object} options - Optional dependencies for testing
+ * @param {Function} options.getStorageManager - Optional storage manager getter
  */
-export async function handlePollList(interaction, _client, _deferred = false) {
+export async function handlePollList(
+  interaction,
+  _client,
+  _deferred = false,
+  options = {},
+) {
   const startTime = Date.now();
 
   try {
@@ -671,6 +691,9 @@ export async function handlePollList(interaction, _client, _deferred = false) {
       });
     }
 
+    // Allow dependency injection for testing
+    const getStorageManager =
+      options.getStorageManager || defaultGetStorageManager;
     const storageManager = await getStorageManager();
     const guildPolls = await storageManager.getPollsByGuild(
       interaction.guild.id,
@@ -931,7 +954,9 @@ export async function handlePollDelete(
 
   try {
     const pollId = interaction.options.getString("poll-id");
-    const storageManager = await getStorageManager();
+    // Note: handlePollDelete is called from command interactions
+    // which don't support dependency injection yet, so we use the default
+    const storageManager = await defaultGetStorageManager();
     const poll = await storageManager.getPollById(pollId);
 
     if (!poll) {
@@ -1032,7 +1057,9 @@ export async function handlePollListButton(interaction, _client) {
       await interaction.deferUpdate();
 
       // Get the same data as handlePollList but directly
-      const storageManager = await getStorageManager();
+      // Note: handlePollListButton is called from button interactions
+      // which don't support dependency injection yet, so we use the default
+      const storageManager = await defaultGetStorageManager();
       const guildPolls = await storageManager.getPollsByGuild(
         interaction.guild.id,
       );

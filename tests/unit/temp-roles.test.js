@@ -1,3 +1,70 @@
+import { describe, test, expect, jest } from "@jest/globals";
+
+// IMPORTANT: Mocks must be defined BEFORE importing the module under test
+// Mock MongoDB directly to prevent real connections
+jest.mock("mongodb", () => {
+  const mockMongoClient = {
+    connect: jest.fn().mockResolvedValue({
+      db: jest.fn().mockReturnValue({
+        collection: jest.fn().mockReturnValue({
+          find: jest.fn(),
+          updateOne: jest.fn(),
+          deleteOne: jest.fn(),
+        }),
+      }),
+      close: jest.fn().mockResolvedValue(undefined),
+    }),
+    close: jest.fn().mockResolvedValue(undefined),
+  };
+  return {
+    MongoClient: jest.fn(() => mockMongoClient),
+  };
+});
+
+// Mock database manager to prevent MongoDB connections
+const mockDbManager = {
+  guildSettings: { exists: true },
+  welcomeSettings: { exists: true },
+  goodbyeSettings: {},
+  connectionManager: {
+    db: { collection: jest.fn() },
+    connect: jest.fn().mockResolvedValue(undefined),
+  },
+  connect: jest.fn().mockResolvedValue(undefined),
+  logger: { warn: jest.fn(), error: jest.fn(), info: jest.fn() },
+};
+
+jest.mock("src/utils/storage/databaseManager.js", () => ({
+  getDatabaseManager: jest.fn().mockResolvedValue(mockDbManager),
+  DatabaseManager: jest.fn(() => mockDbManager),
+}));
+
+// Mock storage manager to prevent MongoDB connections
+const mockStorageManager = {
+  read: jest.fn().mockResolvedValue({}),
+  write: jest.fn().mockResolvedValue(true),
+  get: jest.fn().mockResolvedValue({}),
+  save: jest.fn().mockResolvedValue(true),
+  delete: jest.fn().mockResolvedValue(true),
+  initialize: jest.fn().mockResolvedValue(undefined),
+  isInitialized: true,
+};
+
+jest.mock("src/utils/storage/storageManager.js", () => ({
+  getStorageManager: jest.fn().mockResolvedValue(mockStorageManager),
+  StorageManager: jest.fn(() => mockStorageManager),
+}));
+
+// Mock logger
+jest.mock("src/utils/logger.js", () => ({
+  getLogger: jest.fn(() => ({
+    info: jest.fn(),
+    error: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
+  })),
+}));
+
 // Test file for temp-roles functionality
 
 describe("Temp Roles - Core Functionality", () => {

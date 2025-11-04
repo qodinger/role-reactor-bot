@@ -1,5 +1,5 @@
 import { getLogger } from "../../../utils/logger.js";
-import { getDatabaseManager } from "../../../utils/storage/databaseManager.js";
+import { getDatabaseManager as defaultGetDatabaseManager } from "../../../utils/storage/databaseManager.js";
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 import { createLevelEmbed } from "./embeds.js";
 
@@ -7,13 +7,18 @@ import { createLevelEmbed } from "./embeds.js";
  * Handle the level display
  * @param {import('discord.js').CommandInteraction} interaction
  * @param {import('discord.js').Client} client
+ * @param {Object} options - Optional dependencies for testing
+ * @param {Function} options.getDatabaseManager - Optional database manager getter
+ * @param {Function} options.getExperienceManager - Optional experience manager getter
  */
-export async function handleLevel(interaction, _client) {
+export async function handleLevel(interaction, _client, options = {}) {
   const logger = getLogger();
   const startTime = Date.now();
 
   try {
-    // Get database manager
+    // Allow dependency injection for testing
+    const getDatabaseManager =
+      options.getDatabaseManager || defaultGetDatabaseManager;
     const dbManager = await getDatabaseManager();
 
     if (!dbManager.guildSettings) {
@@ -56,10 +61,11 @@ export async function handleLevel(interaction, _client) {
       );
     }
 
-    // Get experience manager
-    const { getExperienceManager } = await import(
-      "../../../features/experience/ExperienceManager.js"
-    );
+    // Allow dependency injection for testing
+    const getExperienceManager =
+      options.getExperienceManager ||
+      (await import("../../../features/experience/ExperienceManager.js"))
+        .getExperienceManager;
     const experienceManager = await getExperienceManager();
 
     // Get user data

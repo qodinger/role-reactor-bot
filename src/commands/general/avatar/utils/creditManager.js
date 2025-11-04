@@ -1,4 +1,4 @@
-import { getStorageManager } from "../../../../utils/storage/storageManager.js";
+import { getStorageManager as defaultGetStorageManager } from "../../../../utils/storage/storageManager.js";
 import { getLogger } from "../../../../utils/logger.js";
 
 const logger = getLogger();
@@ -10,9 +10,14 @@ export class CreditManager {
   /**
    * Check user's credit balance and determine credits needed
    * @param {string} userId - User ID
+   * @param {Object} options - Optional dependencies for testing
+   * @param {Function} options.getStorageManager - Optional storage manager getter
    * @returns {Promise<Object>} Credit information
    */
-  static async checkUserCredits(userId) {
+  static async checkUserCredits(userId, options = {}) {
+    // Allow dependency injection for testing
+    const getStorageManager =
+      options.getStorageManager || defaultGetStorageManager;
     const storage = await getStorageManager();
     const coreCredits = (await storage.get("core_credit")) || {};
 
@@ -39,9 +44,14 @@ export class CreditManager {
    * Uses FIFO order: Subscription credits first, then bonus credits
    * @param {string} userId - User ID
    * @param {number} creditsNeeded - Credits to deduct
+   * @param {Object} options - Optional dependencies for testing
+   * @param {Function} options.getStorageManager - Optional storage manager getter
    * @returns {Promise<Object>} Updated user data with deduction breakdown
    */
-  static async deductCredits(userId, creditsNeeded) {
+  static async deductCredits(userId, creditsNeeded, options = {}) {
+    // Allow dependency injection for testing
+    const getStorageManager =
+      options.getStorageManager || defaultGetStorageManager;
     const storage = await getStorageManager();
     const coreCredits = (await storage.get("core_credit")) || {};
 

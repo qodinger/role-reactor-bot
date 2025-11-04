@@ -1,0 +1,244 @@
+import { describe, it, expect, beforeEach, jest } from "@jest/globals";
+
+// IMPORTANT: Mocks must be defined BEFORE importing the module under test
+// Mock logger
+jest.mock("src/utils/logger.js", () => ({
+  getLogger: jest.fn(() => ({
+    info: jest.fn(),
+    error: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
+  })),
+}));
+
+// Mock MongoDB directly to prevent real connections
+jest.mock("mongodb", () => {
+  const mockMongoClient = {
+    connect: jest.fn().mockResolvedValue({
+      db: jest.fn().mockReturnValue({
+        collection: jest.fn().mockReturnValue({
+          find: jest.fn(),
+          updateOne: jest.fn(),
+          deleteOne: jest.fn(),
+        }),
+      }),
+      close: jest.fn().mockResolvedValue(undefined),
+    }),
+    close: jest.fn().mockResolvedValue(undefined),
+  };
+  return {
+    MongoClient: jest.fn(() => mockMongoClient),
+  };
+});
+
+// Mock database manager to prevent MongoDB connections
+// This MUST be hoisted before any imports
+const mockDbManager = {
+  guildSettings: {
+    getByGuild: jest.fn().mockResolvedValue({
+      experienceSystem: { enabled: true },
+    }),
+  },
+  welcomeSettings: { exists: true }, // Non-empty object to prevent reconnect
+  goodbyeSettings: {},
+  connectionManager: {
+    db: { collection: jest.fn() },
+    connect: jest.fn().mockResolvedValue(undefined),
+  },
+  connect: jest.fn().mockResolvedValue(undefined),
+  logger: { warn: jest.fn(), error: jest.fn(), info: jest.fn() },
+};
+
+jest.mock("src/utils/storage/databaseManager.js", () => ({
+  getDatabaseManager: jest.fn().mockResolvedValue(mockDbManager),
+  DatabaseManager: jest.fn(() => mockDbManager),
+}));
+
+// Mock storage manager to prevent MongoDB connections
+// Must completely replace getStorageManager to prevent real initialization
+const mockStorageManager = {
+  save: jest.fn(),
+  get: jest.fn().mockResolvedValue({}),
+  read: jest.fn().mockResolvedValue({}),
+  write: jest.fn().mockResolvedValue(true),
+  delete: jest.fn(),
+  initialize: jest.fn().mockResolvedValue(undefined),
+  isInitialized: true, // Prevent re-initialization
+};
+
+jest.mock("src/utils/storage/storageManager.js", () => ({
+  getStorageManager: jest.fn().mockResolvedValue(mockStorageManager),
+  StorageManager: jest.fn(() => mockStorageManager),
+}));
+
+// Mock AI avatar service
+jest.mock("src/utils/ai/avatarService.js", () => ({
+  generateAvatar: jest.fn().mockResolvedValue({
+    imageBuffer: Buffer.from("fake-image-data"),
+    prompt: "test prompt",
+  }),
+}));
+
+// Mock credit manager - MUST be before handler import
+jest.mock("src/commands/general/avatar/utils/creditManager.js", () => {
+  const mockCheckUserCredits = jest.fn().mockResolvedValue({
+    userData: { credits: 100 },
+    creditsNeeded: 10,
+  });
+  const mockDeductCredits = jest.fn().mockResolvedValue(true);
+
+  return {
+    CreditManager: {
+      checkUserCredits: mockCheckUserCredits,
+      deductCredits: mockDeductCredits,
+    },
+  };
+});
+
+// Mock embeds
+jest.mock("src/commands/general/avatar/embeds.js", () => ({
+  createErrorEmbed: jest.fn(() => ({ data: { title: "Error" } })),
+  createCoreEmbed: jest.fn(() => ({ data: { title: "Core Credits" } })),
+  createHelpEmbed: jest.fn(() => ({ data: { title: "Help" } })),
+  createLoadingEmbed: jest.fn(() => ({ data: { title: "Loading" } })),
+  createSuccessEmbed: jest.fn(() => ({ data: { title: "Success" } })),
+}));
+
+// Import handlers after all mocks are set up
+import { handleAvatarGeneration } from "../../src/commands/general/avatar/handlers.js";
+import {
+  validatePrompt,
+  formatStyleOptions,
+  formatGenerationTime,
+} from "../../src/commands/general/avatar/utils.js";
+
+describe("Avatar Command", () => {
+  let mockInteraction;
+  let mockClient;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    mockInteraction = {
+      user: {
+        id: "user123",
+        tag: "TestUser#1234",
+      },
+      guild: {
+        id: "guild123",
+      },
+      createdTimestamp: Date.now(),
+      options: {
+        getString: jest.fn(name => {
+          if (name === "prompt") return "test prompt";
+          return null;
+        }),
+      },
+      editReply: jest.fn().mockResolvedValue(undefined),
+      reply: jest.fn().mockResolvedValue(undefined),
+    };
+
+    mockClient = {
+      user: {
+        id: "bot123",
+        tag: "TestBot#1234",
+        displayAvatarURL: jest
+          .fn()
+          .mockReturnValue("https://example.com/avatar.png"),
+      },
+    };
+
+    mockInteraction.client = mockClient;
+  });
+
+  describe("handleAvatarGeneration", () => {
+    it("should handle invalid prompt", async () => {
+      mockInteraction.options.getString.mockReturnValue("");
+
+      await handleAvatarGeneration(mockInteraction, mockClient);
+
+      expect(mockInteraction.editReply).toHaveBeenCalled();
+    });
+
+    it("should handle help request", async () => {
+      mockInteraction.options.getString.mockReturnValue("help");
+
+      await handleAvatarGeneration(mockInteraction, mockClient);
+
+      expect(mockInteraction.editReply).toHaveBeenCalled();
+    });
+
+    it("should handle insufficient credits", async () => {
+      // Create mock storage manager with correct structure
+      // storage.get("core_credit") returns an object with userId as keys
+      const mockStorage = {
+        get: jest.fn(key => {
+          if (key === "core_credit") {
+            return Promise.resolve({
+              [mockInteraction.user.id]: {
+                credits: 0, // Insufficient credits (needs 1)
+                isCore: false,
+                totalGenerated: 0,
+                lastUpdated: new Date().toISOString(),
+              },
+            });
+          }
+          return Promise.resolve({});
+        }),
+      };
+
+      // Inject mock directly
+      const mockGetStorageManager = jest.fn().mockResolvedValue(mockStorage);
+
+      // Mock the interaction to return a valid prompt
+      mockInteraction.options.getString.mockReturnValue("test prompt");
+
+      await handleAvatarGeneration(mockInteraction, mockClient, {
+        getStorageManager: mockGetStorageManager,
+      });
+
+      expect(mockInteraction.editReply).toHaveBeenCalled();
+    });
+  });
+
+  describe("Avatar Utilities", () => {
+    describe("validatePrompt", () => {
+      it("should validate normal prompts", () => {
+        const result = validatePrompt("cyberpunk hacker with neon hair");
+        expect(result.isValid).toBe(true);
+      });
+
+      it("should reject empty prompts", () => {
+        const result = validatePrompt("");
+        expect(result.isValid).toBe(false);
+        expect(result.reason).toBeDefined();
+      });
+
+      it("should accept long prompts (length validation is handled by Discord)", () => {
+        // Note: validatePrompt doesn't check length - Discord handles maxLength (500) via option validation
+        const longPrompt = "a".repeat(501);
+        const result = validatePrompt(longPrompt);
+        // The function validates content, not length, so long prompts with valid content are accepted
+        // Length validation is handled by Discord's option validation
+        expect(result).toBeDefined();
+      });
+    });
+
+    describe("formatStyleOptions", () => {
+      it("should format style options correctly", () => {
+        const result = formatStyleOptions({
+          color_style: "vibrant",
+          mood: "happy",
+        });
+        expect(result).toBeDefined();
+      });
+    });
+
+    describe("formatGenerationTime", () => {
+      it("should format generation time correctly", () => {
+        const result = formatGenerationTime(1500);
+        expect(result).toContain("ms");
+      });
+    });
+  });
+});

@@ -1,5 +1,5 @@
 import { getLogger } from "../../../utils/logger.js";
-import { getDatabaseManager } from "../../../utils/storage/databaseManager.js";
+import { getDatabaseManager as defaultGetDatabaseManager } from "../../../utils/storage/databaseManager.js";
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 import { createLeaderboardEmbed } from "./embeds.js";
 
@@ -7,13 +7,19 @@ import { createLeaderboardEmbed } from "./embeds.js";
  * Handle the leaderboard display
  * @param {import('discord.js').CommandInteraction} interaction
  * @param {import('discord.js').Client} client
+ * @param {Object} options - Optional dependencies for testing
+ * @param {Function} options.getDatabaseManager - Optional database manager getter
+ * @param {Function} options.getExperienceManager - Optional experience manager getter
+ * @param {Function} options.getStorageManager - Optional storage manager getter
  */
-export async function handleLeaderboard(interaction, _client) {
+export async function handleLeaderboard(interaction, _client, options = {}) {
   const logger = getLogger();
   const startTime = Date.now();
 
   try {
-    // Get database manager
+    // Allow dependency injection for testing
+    const getDatabaseManager =
+      options.getDatabaseManager || defaultGetDatabaseManager;
     const dbManager = await getDatabaseManager();
 
     if (!dbManager.guildSettings) {
@@ -46,10 +52,11 @@ export async function handleLeaderboard(interaction, _client) {
     const limit = interaction.options.getInteger("limit") || 10;
     const type = interaction.options.getString("type") || "xp";
 
-    // Get experience manager
-    const { getExperienceManager } = await import(
-      "../../../features/experience/ExperienceManager.js"
-    );
+    // Allow dependency injection for testing
+    const getExperienceManager =
+      options.getExperienceManager ||
+      (await import("../../../features/experience/ExperienceManager.js"))
+        .getExperienceManager;
     const experienceManager = await getExperienceManager();
 
     // Get leaderboard data
@@ -61,10 +68,16 @@ export async function handleLeaderboard(interaction, _client) {
       );
     } else {
       // For other types, we'll need to implement custom sorting
+      // Allow dependency injection for testing
+      const getStorageManager =
+        options.getStorageManager ||
+        (await import("../../../utils/storage/storageManager.js"))
+          .getStorageManager;
       leaderboardData = await getCustomLeaderboard(
         interaction.guild.id,
         type,
         limit,
+        getStorageManager,
       );
     }
 
@@ -112,12 +125,21 @@ export async function handleLeaderboard(interaction, _client) {
  * @param {string} guildId - Discord guild ID
  * @param {string} type - Leaderboard type
  * @param {number} limit - Number of users to return
+ * @param {Function} getStorageManager - Optional storage manager getter for testing
  * @returns {Array} Sorted leaderboard data
  */
-async function getCustomLeaderboard(guildId, type, limit) {
-  const { getStorageManager } = await import(
-    "../../../utils/storage/storageManager.js"
-  );
+async function getCustomLeaderboard(
+  guildId,
+  type,
+  limit,
+  getStorageManager = null,
+) {
+  if (!getStorageManager) {
+    const { getStorageManager: defaultGetStorageManager } = await import(
+      "../../../utils/storage/storageManager.js"
+    );
+    getStorageManager = defaultGetStorageManager;
+  }
   const storageManager = await getStorageManager();
   const experienceData = await storageManager.read("user_experience");
 
