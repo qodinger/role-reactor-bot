@@ -7,6 +7,7 @@ import {
   getCachedMember,
 } from "../../utils/discord/roleManager.js";
 import { THEME, EMOJIS } from "../../config/theme.js";
+import { enforceVoiceRestrictions } from "../../utils/discord/voiceRestrictions.js";
 
 class RoleExpirationScheduler {
   constructor(client) {
@@ -169,26 +170,58 @@ class RoleExpirationScheduler {
         "Temporary role expired",
       );
 
-      // Send expiration notifications for roles that were successfully removed
+      // Send expiration notifications and enforce voice restrictions for roles that were successfully removed
       for (let i = 0; i < results.length; i++) {
         const result = results[i];
         const roleRemoval = roleRemovals[i];
 
-        if (result.success && roleRemoval.notifyExpiry) {
-          try {
-            await this.sendExpirationNotification(
-              roleRemoval.member,
-              roleRemoval.role,
-              guild,
-            );
-            this.logger.info(
-              `📧 Sent expiration notification to ${roleRemoval.member.user.tag}`,
-            );
-          } catch (error) {
-            this.logger.warn(
-              `Failed to send expiration notification to ${roleRemoval.member.user.tag}:`,
-              error.message,
-            );
+        if (result.success) {
+          // Enforce voice restrictions if user is in a voice channel
+          // This will unmute them if they no longer have restrictive Speak roles
+          if (roleRemoval.member.voice?.channel) {
+            try {
+              // Refresh member to ensure we have latest roles
+              await roleRemoval.member.fetch();
+
+              const voiceResult = await enforceVoiceRestrictions(
+                roleRemoval.member,
+                `Temporary role expired: ${roleRemoval.role.name}`,
+              );
+
+              if (voiceResult.unmuted) {
+                this.logger.info(
+                  `🔊 Unmuted ${roleRemoval.member.user.tag} in voice channel after role "${roleRemoval.role.name}" expired (no longer has restrictive Speak role)`,
+                );
+              } else if (voiceResult.error) {
+                this.logger.warn(
+                  `⚠️ Failed to enforce voice restrictions for ${roleRemoval.member.user.tag}: ${voiceResult.error}`,
+                );
+              }
+            } catch (voiceError) {
+              this.logger.warn(
+                `Failed to enforce voice restrictions for ${roleRemoval.member.user.tag}:`,
+                voiceError.message,
+              );
+            }
+          }
+
+          // Send expiration notification if requested
+          if (roleRemoval.notifyExpiry) {
+            try {
+              await this.sendExpirationNotification(
+                roleRemoval.member,
+                roleRemoval.role,
+                guild,
+              );
+              this.logger.info(
+                `📧 Sent expiration notification to ${roleRemoval.member.user.tag}`,
+              );
+            } catch (error) {
+              this.logger.warn(
+                `Failed to send expiration notification to ${roleRemoval.member.user.tag}:`,
+                error.message,
+              );
+            }
           }
         }
       }
@@ -211,7 +244,9 @@ class RoleExpirationScheduler {
     }
 
     // Clean up all expired roles from database
-    await this.cleanupExpiredRolesFromDB([...rolesToCleanup, ...expiredRoles]);
+    // Note: expiredRoles contains all expired roles (including those in rolesToCleanup)
+    // so we only need to pass expiredRoles to avoid duplicates
+    await this.cleanupExpiredRolesFromDB(expiredRoles);
   }
 
   async cleanupExpiredRolesFromDB(expiredRoles) {

@@ -4,6 +4,7 @@ import {
   removeTemporaryRole,
   getUserTemporaryRoles,
 } from "../../../utils/discord/tempRoles.js";
+import { enforceVoiceRestrictions } from "../../../utils/discord/voiceRestrictions.js";
 
 // ============================================================================
 // VALIDATION FUNCTIONS
@@ -430,6 +431,35 @@ export async function removeRoleFromUser(
     // Remove from temporary roles database if it exists there
     if (isTemporaryRole) {
       await removeTemporaryRoleData(user.id, role.id, guild.id);
+    }
+
+    // Enforce voice restrictions if user is in a voice channel
+    // This will unmute them if they no longer have restrictive Speak roles
+    if (member.voice?.channel) {
+      try {
+        // Refresh member to ensure we have latest roles
+        await member.fetch();
+
+        const result = await enforceVoiceRestrictions(
+          member,
+          `Temporary role removal: ${role.name}`,
+        );
+
+        if (result.unmuted) {
+          logger.info(
+            `🔊 Unmuted ${member.user.tag} in voice channel after removing temporary role "${role.name}" (no longer has restrictive Speak role)`,
+          );
+        } else if (result.error) {
+          logger.warn(
+            `⚠️ Failed to enforce voice restrictions for ${member.user.tag}: ${result.error}`,
+          );
+        }
+      } catch (voiceError) {
+        logger.warn(
+          `Failed to enforce voice restrictions for ${member.user.tag}:`,
+          voiceError.message,
+        );
+      }
     }
 
     return {

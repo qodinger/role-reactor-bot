@@ -3,6 +3,7 @@ import { getDatabaseManager } from "../storage/databaseManager.js";
 import { getLogger } from "../logger.js";
 import { EmbedBuilder } from "discord.js";
 import { THEME } from "../../config/theme.js";
+import { enforceVoiceRestrictions } from "./voiceRestrictions.js";
 
 /**
  * Send DM notification to user about role assignment
@@ -168,6 +169,38 @@ export async function addTemporaryRole(
         logger.info(
           `✅ Successfully assigned temporary role ${role.name} to user ${userId}`,
         );
+
+        // Enforce voice restrictions if user is in a voice channel
+        if (member.voice?.channel) {
+          try {
+            // Refresh member to ensure we have latest roles
+            await member.fetch();
+
+            const result = await enforceVoiceRestrictions(
+              member,
+              `Temporary role assignment: ${role.name}`,
+            );
+
+            if (result.disconnected) {
+              logger.info(
+                `🚫 Disconnected ${member.user.tag} from voice channel due to temporary role "${role.name}" (Connect disabled)`,
+              );
+            } else if (result.muted) {
+              logger.info(
+                `🔇 Muted ${member.user.tag} in voice channel due to temporary role "${role.name}" (Speak disabled)`,
+              );
+            } else if (result.error) {
+              logger.warn(
+                `⚠️ Failed to enforce voice restrictions for ${member.user.tag}: ${result.error}`,
+              );
+            }
+          } catch (voiceError) {
+            logger.warn(
+              `Failed to enforce voice restrictions for ${member.user.tag}:`,
+              voiceError.message,
+            );
+          }
+        }
       } else {
         logger.info(
           `✅ User ${userId} already has role ${role.name}, skipping Discord assignment`,
@@ -328,6 +361,38 @@ export async function addTemporaryRolesForMultipleUsers(
           logger.info(
             `✅ Successfully assigned temporary role ${role.name} to user ${userId}`,
           );
+
+          // Enforce voice restrictions if user is in a voice channel
+          if (member.voice?.channel) {
+            try {
+              // Refresh member to ensure we have latest roles
+              await member.fetch();
+
+              const result = await enforceVoiceRestrictions(
+                member,
+                `Temporary role assignment: ${role.name}`,
+              );
+
+              if (result.disconnected) {
+                logger.info(
+                  `🚫 Disconnected ${member.user.tag} from voice channel due to temporary role "${role.name}" (Connect disabled)`,
+                );
+              } else if (result.muted) {
+                logger.info(
+                  `🔇 Muted ${member.user.tag} in voice channel due to temporary role "${role.name}" (Speak disabled)`,
+                );
+              } else if (result.error) {
+                logger.warn(
+                  `⚠️ Failed to enforce voice restrictions for ${member.user.tag}: ${result.error}`,
+                );
+              }
+            } catch (voiceError) {
+              logger.warn(
+                `Failed to enforce voice restrictions for ${member.user.tag}:`,
+                voiceError.message,
+              );
+            }
+          }
 
           // Send immediate DM notification if requested
           if (notify) {

@@ -49,9 +49,14 @@ class EmbedFactory {
     }
 
     embed.setTitle(`${statusEmoji} ${title}`.trim());
-    if (description) {
-      embed.setDescription(description);
-    }
+    // Discord requires description if title is present - always set it
+    const safeDescription =
+      description &&
+      typeof description === "string" &&
+      description.trim().length > 0
+        ? description.trim()
+        : "An error occurred. Please try again.";
+    embed.setDescription(safeDescription);
 
     if (fields.length > 0) {
       embed.addFields(fields);

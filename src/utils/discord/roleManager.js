@@ -80,8 +80,15 @@ export async function bulkAddRoles(
   const logger = getLogger();
   const results = [];
 
-  // Process in batches of 5 to avoid rate limits
-  const batchSize = 5;
+  // Adaptive batch size based on operation size
+  // Smaller batches for very large operations to be more conservative
+  const batchSize =
+    assignments.length > 500 ? 5 : assignments.length > 100 ? 8 : 10;
+
+  // Adaptive delay based on operation size
+  const batchDelay =
+    assignments.length > 500 ? 150 : assignments.length > 100 ? 120 : 100;
+
   for (let i = 0; i < assignments.length; i += batchSize) {
     const batch = assignments.slice(i, i + batchSize);
 
@@ -90,9 +97,29 @@ export async function bulkAddRoles(
         await member.roles.add(role, reason);
         return { success: true, memberId: member.id, roleId: role.id };
       } catch (error) {
-        logger.error(
-          `Failed to add role ${role.name} to ${member.user.tag}`,
-          error,
+        // Check for rate limit errors specifically
+        const isRateLimit =
+          error.code === 429 ||
+          error.message?.toLowerCase().includes("rate limit") ||
+          error.retryAfter;
+
+        if (isRateLimit) {
+          logger.warn(
+            `Rate limited while adding role ${role.name} to ${member.user.tag}`,
+          );
+          // Return rate limit error for retry handling
+          return {
+            success: false,
+            memberId: member.id,
+            roleId: role.id,
+            error: error.message || "Rate limited",
+            rateLimited: true,
+            retryAfter: error.retryAfter || 1000,
+          };
+        }
+
+        logger.debug(
+          `Failed to add role ${role.name} to ${member.user.tag}: ${error.message}`,
         );
         return {
           success: false,
@@ -103,13 +130,35 @@ export async function bulkAddRoles(
       }
     });
 
-    const batchResults = await Promise.all(batchPromises);
-    results.push(...batchResults);
+    const batchResults = await Promise.allSettled(batchPromises);
 
-    // Small delay between batches to avoid rate limits
+    // Process settled results
+    for (const result of batchResults) {
+      if (result.status === "fulfilled") {
+        results.push(result.value);
+
+        // If rate limited, apply backoff
+        if (result.value.rateLimited) {
+          const backoff = result.value.retryAfter || 2000;
+          logger.warn(`Rate limit detected, backing off for ${backoff}ms`);
+          await new Promise(resolve => {
+            setTimeout(() => resolve(), backoff);
+          });
+        }
+      } else {
+        results.push({
+          success: false,
+          memberId: null,
+          roleId: null,
+          error: result.reason?.message || "Unknown error",
+        });
+      }
+    }
+
+    // Delay between batches to avoid rate limits
     if (i + batchSize < assignments.length) {
       await new Promise(resolve => {
-        setTimeout(resolve, 100);
+        setTimeout(resolve, batchDelay);
       });
     }
   }
@@ -130,8 +179,14 @@ export async function bulkRemoveRoles(
   const logger = getLogger();
   const results = [];
 
-  // Process in batches of 5 to avoid rate limits
-  const batchSize = 5;
+  // Adaptive batch size based on operation size
+  const batchSize =
+    assignments.length > 500 ? 5 : assignments.length > 100 ? 8 : 10;
+
+  // Adaptive delay based on operation size
+  const batchDelay =
+    assignments.length > 500 ? 150 : assignments.length > 100 ? 120 : 100;
+
   for (let i = 0; i < assignments.length; i += batchSize) {
     const batch = assignments.slice(i, i + batchSize);
 
@@ -140,9 +195,28 @@ export async function bulkRemoveRoles(
         await member.roles.remove(role, reason);
         return { success: true, memberId: member.id, roleId: role.id };
       } catch (error) {
-        logger.error(
-          `Failed to remove role ${role.name} from ${member.user.tag}`,
-          error,
+        // Check for rate limit errors specifically
+        const isRateLimit =
+          error.code === 429 ||
+          error.message?.toLowerCase().includes("rate limit") ||
+          error.retryAfter;
+
+        if (isRateLimit) {
+          logger.warn(
+            `Rate limited while removing role ${role.name} from ${member.user.tag}`,
+          );
+          return {
+            success: false,
+            memberId: member.id,
+            roleId: role.id,
+            error: error.message || "Rate limited",
+            rateLimited: true,
+            retryAfter: error.retryAfter || 1000,
+          };
+        }
+
+        logger.debug(
+          `Failed to remove role ${role.name} from ${member.user.tag}: ${error.message}`,
         );
         return {
           success: false,
@@ -153,13 +227,35 @@ export async function bulkRemoveRoles(
       }
     });
 
-    const batchResults = await Promise.all(batchPromises);
-    results.push(...batchResults);
+    const batchResults = await Promise.allSettled(batchPromises);
 
-    // Small delay between batches to avoid rate limits
+    // Process settled results
+    for (const result of batchResults) {
+      if (result.status === "fulfilled") {
+        results.push(result.value);
+
+        // If rate limited, apply backoff
+        if (result.value.rateLimited) {
+          const backoff = result.value.retryAfter || 2000;
+          logger.warn(`Rate limit detected, backing off for ${backoff}ms`);
+          await new Promise(resolve => {
+            setTimeout(() => resolve(), backoff);
+          });
+        }
+      } else {
+        results.push({
+          success: false,
+          memberId: null,
+          roleId: null,
+          error: result.reason?.message || "Unknown error",
+        });
+      }
+    }
+
+    // Delay between batches to avoid rate limits
     if (i + batchSize < assignments.length) {
       await new Promise(resolve => {
-        setTimeout(resolve, 100);
+        setTimeout(resolve, batchDelay);
       });
     }
   }

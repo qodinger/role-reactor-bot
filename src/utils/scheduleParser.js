@@ -8,6 +8,54 @@ export function parseOneTimeSchedule(scheduleInput) {
   try {
     const input = scheduleInput.toLowerCase().trim();
 
+    // Handle standalone time formats (e.g., "10:30", "2pm", "14:30")
+    // These should be interpreted as "today at that time" (or tomorrow if time has passed)
+    const timeOnlyMatch = input.match(
+      /^(\d{1,2})(?::(\d{2}))?(?::(\d{2}))?\s*(am|pm)?$/i,
+    );
+    if (
+      timeOnlyMatch &&
+      !input.match(
+        /^(today|tomorrow|in|next|this|monday|tuesday|wednesday|thursday|friday|saturday|sunday|tonight|morning|afternoon|evening|midnight|noon)/i,
+      )
+    ) {
+      const now = new Date();
+      const today = new Date(now);
+      today.setSeconds(0, 0);
+
+      let hour = parseInt(timeOnlyMatch[1]);
+      const minute = timeOnlyMatch[2] ? parseInt(timeOnlyMatch[2]) : 0;
+      const second = timeOnlyMatch[3] ? parseInt(timeOnlyMatch[3]) : 0;
+      const period = timeOnlyMatch[4] ? timeOnlyMatch[4].toLowerCase() : null;
+
+      // Handle AM/PM conversion
+      if (period === "pm" && hour !== 12) {
+        hour += 12;
+      } else if (period === "am" && hour === 12) {
+        hour = 0;
+      }
+
+      // Validate hours (0-23)
+      if (
+        hour >= 0 &&
+        hour <= 23 &&
+        minute >= 0 &&
+        minute <= 59 &&
+        second >= 0 &&
+        second <= 59
+      ) {
+        const targetTime = new Date(today);
+        targetTime.setHours(hour, minute, second, 0);
+
+        // If the time has already passed today, schedule for tomorrow
+        if (targetTime <= now) {
+          targetTime.setDate(targetTime.getDate() + 1);
+        }
+
+        return targetTime;
+      }
+    }
+
     // Handle relative time formats
     if (input.startsWith("in ")) {
       const timeStr = input.substring(3);

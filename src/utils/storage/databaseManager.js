@@ -304,8 +304,37 @@ class ConnectionManager {
     try {
       this.logger.info("🗑️ Dropping old conflicting indexes...");
 
-      // Drop old id_1 indexes (schedule collections removed)
-      this.logger.info("✅ Old index cleanup completed");
+      // Drop old scheduleId indexes from scheduled_roles and recurring_schedules
+      try {
+        const scheduledRolesCollection = this.db.collection("scheduled_roles");
+        const recurringSchedulesCollection = this.db.collection(
+          "recurring_schedules",
+        );
+
+        for (const collection of [
+          scheduledRolesCollection,
+          recurringSchedulesCollection,
+        ]) {
+          try {
+            const indexes = await collection.listIndexes().toArray();
+            for (const index of indexes) {
+              if (index.name === "scheduleId_1") {
+                this.logger.info(
+                  `Dropping old index: ${index.name} from ${collection.collectionName}`,
+                );
+                await collection.dropIndex("scheduleId_1");
+              }
+            }
+          } catch (error) {
+            this.logger.debug(
+              `No old indexes to drop from ${collection.collectionName}:`,
+              error.message,
+            );
+          }
+        }
+      } catch (error) {
+        this.logger.debug("No old schedule indexes to drop:", error.message);
+      }
 
       // Drop old temporary_roles indexes that conflict with new multi-user format
       try {
@@ -327,7 +356,7 @@ class ConnectionManager {
         );
       }
 
-      this.logger.info("✅ Old indexes cleanup completed");
+      this.logger.info("✅ Old indexes and data cleanup completed");
     } catch (error) {
       this.logger.warn("⚠️ Old index cleanup failed (non-critical)", error);
     }
@@ -361,6 +390,23 @@ class ConnectionManager {
         .collection("core_credits")
         .createIndex({ userId: 1 }, { unique: true });
       await this.db.collection("core_credits").createIndex({ lastUpdated: 1 });
+      await this.db
+        .collection("scheduled_roles")
+        .createIndex({ id: 1 }, { unique: true });
+      await this.db.collection("scheduled_roles").createIndex({ guildId: 1 });
+      await this.db
+        .collection("scheduled_roles")
+        .createIndex({ scheduledAt: 1 });
+      await this.db.collection("scheduled_roles").createIndex({ executed: 1 });
+      await this.db
+        .collection("recurring_schedules")
+        .createIndex({ id: 1 }, { unique: true });
+      await this.db
+        .collection("recurring_schedules")
+        .createIndex({ guildId: 1 });
+      await this.db
+        .collection("recurring_schedules")
+        .createIndex({ active: 1 });
       this.logger.success("✅ Database indexes created successfully");
     } catch (error) {
       this.logger.warn("⚠️ Index creation failed (non-critical)", error);
@@ -1207,6 +1253,348 @@ class CoreCreditsRepository extends BaseRepository {
   }
 }
 
+class ScheduledRoleRepository extends BaseRepository {
+  constructor(db, cache, logger) {
+    super(db, "scheduled_roles", cache, logger);
+  }
+
+  async getAll() {
+    try {
+      const cached = this.cache.get("scheduled_roles_all");
+      if (cached) return cached;
+
+      const documents = await this.collection.find({}).toArray();
+      const schedules = {};
+      for (const doc of documents) {
+        schedules[doc.id] = doc;
+      }
+
+      this.cache.set("scheduled_roles_all", schedules);
+      return schedules;
+    } catch (error) {
+      this.logger.error("Failed to get all scheduled roles", error);
+      return {};
+    }
+  }
+
+  async getById(scheduleId) {
+    try {
+      const cached = this.cache.get(`scheduled_role_${scheduleId}`);
+      if (cached) return cached;
+
+      const schedule = await this.collection.findOne({ id: scheduleId });
+      if (schedule) {
+        this.cache.set(`scheduled_role_${scheduleId}`, schedule);
+      }
+      return schedule;
+    } catch (error) {
+      this.logger.error(`Failed to get scheduled role ${scheduleId}`, error);
+      return null;
+    }
+  }
+
+  async getByGuild(guildId) {
+    try {
+      const cached = this.cache.get(`scheduled_roles_guild_${guildId}`);
+      if (cached) return cached;
+
+      const documents = await this.collection.find({ guildId }).toArray();
+      const schedules = {};
+      for (const doc of documents) {
+        schedules[doc.id] = doc;
+      }
+
+      this.cache.set(`scheduled_roles_guild_${guildId}`, schedules);
+      return schedules;
+    } catch (error) {
+      this.logger.error(
+        `Failed to get scheduled roles for guild ${guildId}`,
+        error,
+      );
+      return {};
+    }
+  }
+
+  async findDue() {
+    try {
+      const now = new Date();
+      const documents = await this.collection
+        .find({
+          scheduledAt: { $lte: now },
+          executed: { $ne: true },
+          cancelled: { $ne: true },
+        })
+        .toArray();
+
+      // Ensure scheduledAt is a Date object, not a string
+      const processedDocuments = documents.map(doc => {
+        if (doc.scheduledAt && typeof doc.scheduledAt === "string") {
+          doc.scheduledAt = new Date(doc.scheduledAt);
+        }
+        return doc;
+      });
+
+      return processedDocuments;
+    } catch (error) {
+      this.logger.error("Failed to find due scheduled roles", error);
+      return [];
+    }
+  }
+
+  async create(scheduleData) {
+    try {
+      const document = {
+        ...scheduleData,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      await this.collection.insertOne(document);
+      this.cache.clear();
+      return true;
+    } catch (error) {
+      this.logger.error("Failed to create scheduled role", error);
+      return false;
+    }
+  }
+
+  async update(scheduleId, scheduleData) {
+    try {
+      await this.collection.updateOne(
+        { id: scheduleId },
+        { $set: { ...scheduleData, updatedAt: new Date() } },
+      );
+      this.cache.clear();
+      return true;
+    } catch (error) {
+      this.logger.error(`Failed to update scheduled role ${scheduleId}`, error);
+      return false;
+    }
+  }
+
+  async delete(scheduleId) {
+    try {
+      await this.collection.deleteOne({ id: scheduleId });
+      this.cache.clear();
+      return true;
+    } catch (error) {
+      this.logger.error(`Failed to delete scheduled role ${scheduleId}`, error);
+      return false;
+    }
+  }
+
+  async markExecuted(scheduleId) {
+    try {
+      await this.collection.updateOne(
+        { id: scheduleId },
+        {
+          $set: {
+            executed: true,
+            executedAt: new Date(),
+            updatedAt: new Date(),
+          },
+        },
+      );
+      this.cache.clear();
+      return true;
+    } catch (error) {
+      this.logger.error(
+        `Failed to mark scheduled role ${scheduleId} as executed`,
+        error,
+      );
+      return false;
+    }
+  }
+
+  async cancel(scheduleId) {
+    try {
+      await this.collection.updateOne(
+        { id: scheduleId },
+        {
+          $set: {
+            cancelled: true,
+            cancelledAt: new Date(),
+            updatedAt: new Date(),
+          },
+        },
+      );
+      this.cache.clear();
+      return true;
+    } catch (error) {
+      this.logger.error(`Failed to cancel scheduled role ${scheduleId}`, error);
+      return false;
+    }
+  }
+}
+
+class RecurringScheduleRepository extends BaseRepository {
+  constructor(db, cache, logger) {
+    super(db, "recurring_schedules", cache, logger);
+  }
+
+  async getAll() {
+    try {
+      const cached = this.cache.get("recurring_schedules_all");
+      if (cached) return cached;
+
+      const documents = await this.collection.find({}).toArray();
+      const schedules = {};
+      for (const doc of documents) {
+        schedules[doc.id] = doc;
+      }
+
+      this.cache.set("recurring_schedules_all", schedules);
+      return schedules;
+    } catch (error) {
+      this.logger.error("Failed to get all recurring schedules", error);
+      return {};
+    }
+  }
+
+  async getById(scheduleId) {
+    try {
+      const cached = this.cache.get(`recurring_schedule_${scheduleId}`);
+      if (cached) return cached;
+
+      const schedule = await this.collection.findOne({ id: scheduleId });
+      if (schedule) {
+        this.cache.set(`recurring_schedule_${scheduleId}`, schedule);
+      }
+      return schedule;
+    } catch (error) {
+      this.logger.error(
+        `Failed to get recurring schedule ${scheduleId}`,
+        error,
+      );
+      return null;
+    }
+  }
+
+  async getByGuild(guildId) {
+    try {
+      const cached = this.cache.get(`recurring_schedules_guild_${guildId}`);
+      if (cached) return cached;
+
+      const documents = await this.collection.find({ guildId }).toArray();
+      const schedules = {};
+      for (const doc of documents) {
+        schedules[doc.id] = doc;
+      }
+
+      this.cache.set(`recurring_schedules_guild_${guildId}`, schedules);
+      return schedules;
+    } catch (error) {
+      this.logger.error(
+        `Failed to get recurring schedules for guild ${guildId}`,
+        error,
+      );
+      return {};
+    }
+  }
+
+  async findActive() {
+    try {
+      const documents = await this.collection
+        .find({
+          active: true,
+          cancelled: { $ne: true },
+        })
+        .toArray();
+      return documents;
+    } catch (error) {
+      this.logger.error("Failed to find active recurring schedules", error);
+      return [];
+    }
+  }
+
+  async create(scheduleData) {
+    try {
+      const document = {
+        ...scheduleData,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      await this.collection.insertOne(document);
+      this.cache.clear();
+      return true;
+    } catch (error) {
+      this.logger.error("Failed to create recurring schedule", error);
+      return false;
+    }
+  }
+
+  async update(scheduleId, scheduleData) {
+    try {
+      await this.collection.updateOne(
+        { id: scheduleId },
+        { $set: { ...scheduleData, updatedAt: new Date() } },
+      );
+      this.cache.clear();
+      return true;
+    } catch (error) {
+      this.logger.error(
+        `Failed to update recurring schedule ${scheduleId}`,
+        error,
+      );
+      return false;
+    }
+  }
+
+  async delete(scheduleId) {
+    try {
+      await this.collection.deleteOne({ id: scheduleId });
+      this.cache.clear();
+      return true;
+    } catch (error) {
+      this.logger.error(
+        `Failed to delete recurring schedule ${scheduleId}`,
+        error,
+      );
+      return false;
+    }
+  }
+
+  async cancel(scheduleId) {
+    try {
+      await this.collection.updateOne(
+        { id: scheduleId },
+        {
+          $set: {
+            active: false,
+            cancelled: true,
+            cancelledAt: new Date(),
+            updatedAt: new Date(),
+          },
+        },
+      );
+      this.cache.clear();
+      return true;
+    } catch (error) {
+      this.logger.error(
+        `Failed to cancel recurring schedule ${scheduleId}`,
+        error,
+      );
+      return false;
+    }
+  }
+
+  async updateLastExecuted(scheduleId, lastExecutedAt) {
+    try {
+      await this.collection.updateOne(
+        { id: scheduleId },
+        { $set: { lastExecutedAt, updatedAt: new Date() } },
+      );
+      this.cache.clear();
+      return true;
+    } catch (error) {
+      this.logger.error(
+        `Failed to update last executed time for schedule ${scheduleId}`,
+        error,
+      );
+      return false;
+    }
+  }
+}
+
 class DatabaseManager {
   constructor() {
     this.logger = getLogger();
@@ -1262,6 +1650,16 @@ class DatabaseManager {
         );
         this.polls = new PollRepository(db, this.cacheManager, this.logger);
         this.coreCredits = new CoreCreditsRepository(
+          db,
+          this.cacheManager,
+          this.logger,
+        );
+        this.scheduledRoles = new ScheduledRoleRepository(
+          db,
+          this.cacheManager,
+          this.logger,
+        );
+        this.recurringSchedules = new RecurringScheduleRepository(
           db,
           this.cacheManager,
           this.logger,

@@ -196,6 +196,10 @@ async function gracefulShutdown(client) {
       global.tempRoleScheduler.stop();
     }
 
+    if (global.roleScheduler) {
+      global.roleScheduler.stop();
+    }
+
     if (global.pollScheduler) {
       global.pollScheduler.stop();
     }
@@ -556,7 +560,12 @@ async function main() {
         // Continue bot operation even if webhook server fails
       }
 
-      // Background services (RoleScheduler removed - schedule-role feature discontinued)
+      // Start role scheduler for scheduled role assignments/removals
+      const roleScheduler = (
+        await import("./features/scheduledRoles/RoleScheduler.js")
+      ).getScheduler(client);
+      global.roleScheduler = roleScheduler; // Store globally for shutdown
+      roleScheduler.start();
 
       // Start automatic cleanup for generation history
       import("./commands/general/avatar/utils/generationHistory.js").then(

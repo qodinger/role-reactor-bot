@@ -26,4 +26,10 @@ echo "✅ No existing bot instances found. Starting fresh..."
 
 # Start the bot
 echo "🎯 Starting bot with nodemon..."
-npm run dev
+# Use pnpm if available, otherwise fall back to npm
+if command -v pnpm &> /dev/null; then
+  pnpm run dev
+else
+  echo "⚠️  pnpm not found, using npm (you may see harmless warnings about pnpm configs)"
+  npm run dev
+fi

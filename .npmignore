@@ -1,0 +1,4 @@
+# This file prevents npm from reading pnpm-specific configs
+# However, npm will still read .npmrc, so warnings are expected
+# These warnings are harmless and can be ignored
+
