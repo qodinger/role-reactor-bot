@@ -48,35 +48,21 @@ export async function handleLeaderboard(interaction, _client, options = {}) {
       );
     }
 
-    // Get options (Core members get higher limits)
+    // Get options (simple limit for all users)
     const requestedLimit = interaction.options.getInteger("limit") || 10;
     const type = interaction.options.getString("type") || "xp";
 
-    // Check Core member status and adjust limit
-    const BASE_MAX_LIMIT = 25;
-    let maxLimit = BASE_MAX_LIMIT;
-
-    try {
-      const { getUserData, getCoreUserLimit } = await import(
-        "../../../commands/general/core/utils.js"
-      );
-      const userData = await getUserData(interaction.user.id);
-      if (userData.isCore && userData.coreTier) {
-        // Core Basic: 50, Premium: 100, Elite: 200
-        maxLimit = getCoreUserLimit(userData.coreTier, BASE_MAX_LIMIT * 2);
-      }
-    } catch (error) {
-      // If lookup fails, use default limit
-      logger.debug("Failed to check Core status for leaderboard limit:", error);
-    }
+    // Simple max limit for all users (Discord embed field value limit is 1024 chars)
+    // ~20 entries fit comfortably in one field
+    const MAX_LIMIT = 20;
 
     // Enforce max limit
-    const limit = Math.min(requestedLimit, maxLimit);
+    const limit = Math.min(requestedLimit, MAX_LIMIT);
 
-    // If user requested more than their limit, show a message
-    if (requestedLimit > maxLimit) {
+    // If user requested more than the limit, show a message
+    if (requestedLimit > MAX_LIMIT) {
       logger.debug(
-        `User ${interaction.user.tag} requested ${requestedLimit} but limit is ${maxLimit}`,
+        `User ${interaction.user.tag} requested ${requestedLimit} but limit is ${MAX_LIMIT}`,
       );
     }
 

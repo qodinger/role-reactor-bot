@@ -53,7 +53,27 @@ jest.mock("src/utils/storage/storageManager.js", () => ({
     save: jest.fn(),
     get: jest.fn(),
     delete: jest.fn(),
+    read: jest.fn().mockResolvedValue(null),
+    write: jest.fn(),
+    isInitialized: true,
   }),
+}));
+
+// Mock Core utils to prevent MongoDB connections
+jest.mock("src/commands/general/core/utils.js", () => ({
+  getUserCorePriority: jest.fn().mockResolvedValue({
+    hasCore: false,
+    tier: null,
+    priority: 0,
+  }),
+  getCoreRateLimitMultiplier: jest.fn().mockReturnValue(1.0),
+}));
+
+// Mock rate limiter to prevent MongoDB connections
+jest.mock("src/utils/discord/rateLimiter.js", () => ({
+  isVoiceOperationRateLimited: jest.fn().mockResolvedValue(false),
+  getVoiceOperationRemainingTime: jest.fn().mockReturnValue(0),
+  isRateLimited: jest.fn().mockResolvedValue(false),
 }));
 
 // Mock voice tracker - create mock instance outside factory

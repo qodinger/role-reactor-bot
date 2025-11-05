@@ -408,8 +408,21 @@ class CommandHandler {
       } else if (error.message.includes("permission")) {
         errorMessage = "❌ You don't have permission to use this command.";
       } else if (error.message.includes("rate limit")) {
-        errorMessage =
-          "❌ You're using commands too quickly. Please wait a moment.";
+        // Try to get remaining time for better error message
+        try {
+          const { getRateLimitRemainingTime } = await import(
+            "../discord/rateLimiter.js"
+          );
+          const remainingTime = getRateLimitRemainingTime(
+            interaction.user.id,
+            interaction.commandName,
+          );
+          const remainingSeconds = Math.ceil(remainingTime / 1000);
+          errorMessage = `❌ You're using commands too quickly. Please wait ${remainingSeconds} second${remainingSeconds !== 1 ? "s" : ""}.`;
+        } catch {
+          errorMessage =
+            "❌ You're using commands too quickly. Please wait a moment.";
+        }
       }
 
       if (

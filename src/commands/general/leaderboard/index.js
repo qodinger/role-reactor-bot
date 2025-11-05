@@ -17,9 +17,9 @@ export const data = new SlashCommandBuilder()
   .addIntegerOption(option =>
     option
       .setName("limit")
-      .setDescription("Number of users to show (1-25, Core members: up to 200)")
+      .setDescription("Number of users to show (1-20)")
       .setMinValue(1)
-      .setMaxValue(200) // Core members can display up to 200
+      .setMaxValue(20)
       .setRequired(false),
   )
   .addStringOption(option =>

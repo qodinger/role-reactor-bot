@@ -246,12 +246,12 @@ export async function handleCreate(interaction, client, deferred = false) {
             description: `The combined total of **${userIds.length.toLocaleString()} members** (from user mentions and roles ${roleNames}) exceeds the maximum limit of **${MAX_ALL_MEMBERS.toLocaleString()} members**.`,
             solution: dedent`
               For operations with more than ${MAX_ALL_MEMBERS.toLocaleString()} total members, please use one of these alternatives:
-              
-              **Recommended Solutions:**
-              1. **Reduce Targeting**: Use fewer roles or split into multiple schedules
-              2. **Direct Role Assignment**: Assign the target role to another role in Server Settings (instant and efficient)
-              3. **Split Operations**: Create multiple schedules targeting different groups
-              
+            
+**Recommended Solutions:**
+1. **Reduce Targeting**: Use fewer roles or split into multiple schedules
+2. **Direct Role Assignment**: Assign the target role to another role in Server Settings (instant and efficient)
+3. **Split Operations**: Create multiple schedules targeting different groups
+
               **Why this limit?** Operations on ${userIds.length.toLocaleString()} members would take ${Math.ceil(userIds.length / 500)}-${Math.ceil(userIds.length / 500) * 2} minutes to complete and have higher reliability risks.
             `,
           });
@@ -369,12 +369,12 @@ export async function handleCreate(interaction, client, deferred = false) {
             description: `The roles **${roleNames}** have a combined total of **${userIds.length.toLocaleString()} members**, which exceeds the maximum limit of **${MAX_ALL_MEMBERS.toLocaleString()} members** for role-based operations.`,
             solution: dedent`
               For roles with more than ${MAX_ALL_MEMBERS.toLocaleString()} total members, please use one of these alternatives:
-              
-              **Recommended Solutions:**
-              1. **Direct Role Assignment**: Assign the target role to another role in Server Settings (instant and efficient)
-              2. **Split Operations**: Create multiple schedules targeting fewer roles or specific role groups
-              3. **Discord's Built-in Features**: Use Discord's role management in Server Settings
-              
+            
+**Recommended Solutions:**
+1. **Direct Role Assignment**: Assign the target role to another role in Server Settings (instant and efficient)
+2. **Split Operations**: Create multiple schedules targeting fewer roles or specific role groups
+3. **Discord's Built-in Features**: Use Discord's role management in Server Settings
+
               **Why this limit?** Operations on ${userIds.length.toLocaleString()} members would take ${Math.ceil(userIds.length / 500)}-${Math.ceil(userIds.length / 500) * 2} minutes to complete and have higher reliability risks.
             `,
           });
@@ -486,12 +486,12 @@ export async function handleCreate(interaction, client, deferred = false) {
             description: `This server has **${userIds.length.toLocaleString()} members**, which exceeds the maximum limit of **${MAX_ALL_MEMBERS.toLocaleString()} members** for "@everyone" operations.`,
             solution: dedent`
               For servers with more than ${MAX_ALL_MEMBERS.toLocaleString()} members, please use one of these alternatives:
-              
-              **Recommended Solutions:**
-              1. **Role-Based Targeting**: Assign the role to another role instead of individual members (instant and efficient)
-              2. **Split Operations**: Create multiple schedules targeting specific role groups or subsets
-              3. **Discord's Built-in Features**: Use Discord's role management in Server Settings
-              
+            
+**Recommended Solutions:**
+1. **Role-Based Targeting**: Assign the role to another role instead of individual members (instant and efficient)
+2. **Split Operations**: Create multiple schedules targeting specific role groups or subsets
+3. **Discord's Built-in Features**: Use Discord's role management in Server Settings
+
               **Why this limit?** Operations on ${userIds.length.toLocaleString()} members would take ${Math.ceil(userIds.length / 500)}-${Math.ceil(userIds.length / 500) * 2} minutes to complete and have higher reliability risks.
             `,
           });
@@ -584,8 +584,8 @@ export async function handleCreate(interaction, client, deferred = false) {
           description: `You can only schedule roles for a maximum of **${MAX_USERS} users** at once when specifying individual users.`,
           solution: dedent`
             For bulk operations, you can:
-            - Use \`users:@everyone\` to target all members
-            - Mention roles (e.g., \`users:@RoleName\`) to target members with those roles
+- Use \`users:@everyone\` to target all members
+- Mention roles (e.g., \`users:@RoleName\`) to target members with those roles
             - Mix users and roles (e.g., \`users:@user1,@user2,@RoleName\`) to combine both
           `,
         });

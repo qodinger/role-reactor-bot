@@ -81,7 +81,6 @@ export function getCorePricing() {
       "Higher rate limits (1.5x-3x)",
       "Increased command limits (15-50 users)",
       "Extended bulk operation limits (750-2.5k members)",
-      "Enhanced leaderboard display (50-200 users)",
     ],
   };
 }

@@ -1,5 +1,9 @@
 import { Collection } from "discord.js";
 import { getLogger } from "../logger.js";
+import {
+  isRateLimited as checkRateLimit,
+  getRateLimitRemainingTime,
+} from "../discord/rateLimiter.js";
 
 class EventHandler {
   constructor() {
@@ -10,7 +14,7 @@ class EventHandler {
     this.eventStats = new Map();
   }
 
-  // Rate limiting
+  // Rate limiting (legacy for non-command events)
   isRateLimited(userId, eventType) {
     const key = `${userId}:${eventType}`;
     const now = Date.now();
@@ -60,13 +64,53 @@ class EventHandler {
       // Check rate limiting for user events
       if (args[0]?.user?.id) {
         const userId = args[0].user.id;
-        if (this.isRateLimited(userId, eventType)) {
-          this.logger.logRateLimit(
-            userId,
-            eventType,
-            this.getRateLimitInfo(userId, eventType),
-          );
-          return;
+
+        // Use Core-aware rate limiting for commands
+        if (eventType.startsWith("command:")) {
+          const commandName = eventType.replace("command:", "");
+          const isLimited = await checkRateLimit(userId, commandName);
+
+          if (isLimited) {
+            const remainingTime = getRateLimitRemainingTime(
+              userId,
+              commandName,
+            );
+            const remainingSeconds = Math.ceil(remainingTime / 1000);
+            this.logger.logRateLimit(userId, eventType, {
+              current: "rate limited",
+              limit: "Core-aware limit",
+              remaining: 0,
+              resetTime: Date.now() + remainingTime,
+            });
+
+            // Try to reply to the interaction if available
+            const interaction = args[0];
+            if (interaction && !interaction.replied && !interaction.deferred) {
+              try {
+                const plural = remainingSeconds !== 1 ? "s" : "";
+                await interaction.reply({
+                  content: `❌ You're using commands too quickly. Please wait ${remainingSeconds} second${plural}.`,
+                  flags: 64, // Ephemeral
+                });
+              } catch (replyError) {
+                // If reply fails, log it but don't throw
+                this.logger.debug(
+                  `Failed to reply to rate limited interaction: ${replyError.message}`,
+                );
+              }
+            }
+            return;
+          }
+        } else {
+          // Use legacy rate limiting for non-command events
+          if (this.isRateLimited(userId, eventType)) {
+            this.logger.logRateLimit(
+              userId,
+              eventType,
+              this.getRateLimitInfo(userId, eventType),
+            );
+            return;
+          }
         }
       }
 
