@@ -56,6 +56,10 @@ export class RateLimitManager {
         limit: isProduction ? 50 : 25, // API call rate limits
         windowMs: 30000,
       },
+      voice: {
+        limit: 8, // Discord allows ~10 voice operations per 10 seconds per user
+        windowMs: 10000, // 10 second window
+      },
       ...options,
     };
 
@@ -142,4 +146,48 @@ export function getRateLimitRemainingTime(userId, commandName) {
   const globalRemaining = rateLimiter.get("global:all").getRemainingTime();
 
   return Math.max(userRemaining, commandRemaining, globalRemaining);
+}
+
+/**
+ * Check if voice operation is rate limited
+ * Discord allows ~10 voice operations per 10 seconds per user
+ * @param {string} userId - User ID
+ * @param {string} guildId - Guild ID (optional, for per-guild limits)
+ * @returns {boolean} True if rate limited
+ */
+export function isVoiceOperationRateLimited(userId, guildId = null) {
+  const voiceLimit = rateLimiter.get(`voice:${userId}`);
+  const guildVoiceLimit = guildId
+    ? rateLimiter.get(`voice:guild:${guildId}`)
+    : null;
+
+  if (voiceLimit.isExceeded()) {
+    return true;
+  }
+
+  if (guildVoiceLimit && guildVoiceLimit.isExceeded()) {
+    return true;
+  }
+
+  voiceLimit.record();
+  if (guildVoiceLimit) {
+    guildVoiceLimit.record();
+  }
+
+  return false;
+}
+
+/**
+ * Get remaining time until voice operation rate limit resets
+ * @param {string} userId - User ID
+ * @param {string} guildId - Guild ID (optional)
+ * @returns {number} Remaining time in milliseconds
+ */
+export function getVoiceOperationRemainingTime(userId, guildId = null) {
+  const voiceRemaining = rateLimiter.get(`voice:${userId}`).getRemainingTime();
+  const guildVoiceRemaining = guildId
+    ? rateLimiter.get(`voice:guild:${guildId}`).getRemainingTime()
+    : 0;
+
+  return Math.max(voiceRemaining, guildVoiceRemaining);
 }

@@ -1,4 +1,10 @@
 import { getLogger } from "../logger.js";
+import {
+  isVoiceOperationRateLimited,
+  getVoiceOperationRemainingTime,
+} from "./rateLimiter.js";
+
+const logger = getLogger();
 
 /**
  * Centralized utility for checking and enforcing voice restrictions based on roles
@@ -110,8 +116,6 @@ export async function enforceVoiceRestrictions(
   member,
   reason = "Voice restriction",
 ) {
-  const logger = getLogger();
-
   // Check if member is in a voice channel
   if (!member.voice?.channel) {
     return { disconnected: false, muted: false };
@@ -142,6 +146,23 @@ export async function enforceVoiceRestrictions(
   );
   if (hasRestrictiveRole) {
     if (hasMoveMembers) {
+      // Check rate limit before disconnecting
+      if (isVoiceOperationRateLimited(member.id, guild.id)) {
+        const remainingTime = getVoiceOperationRemainingTime(
+          member.id,
+          guild.id,
+        );
+        logger.warn(
+          `⏸️ Rate limited: Cannot disconnect ${member.user.tag} - too many voice operations. Retry after ${Math.ceil(remainingTime / 1000)}s`,
+        );
+        return {
+          disconnected: false,
+          muted: false,
+          error: "Rate limited",
+          needsWait: true,
+        };
+      }
+
       try {
         await member.voice.disconnect(
           `${reason}: Restrictive role "${roleName}" - Connect disabled`,
@@ -151,6 +172,15 @@ export async function enforceVoiceRestrictions(
         );
         return { disconnected: true, muted: false };
       } catch (disconnectError) {
+        // Check if it's a rate limit error
+        if (
+          disconnectError.message?.includes("rate limit") ||
+          disconnectError.code === 429
+        ) {
+          logger.warn(
+            `🚫 Discord rate limit hit while disconnecting ${member.user.tag}. Will retry after cooldown.`,
+          );
+        }
         logger.error(
           `❌ Failed to disconnect ${member.user.tag} from voice channel: ${disconnectError.message}. ` +
             `Enable "Move Members" permission in Server Settings → Roles → [Bot's Role] → General Permissions.`,
@@ -189,6 +219,23 @@ export async function enforceVoiceRestrictions(
     if (hasMuteMembers) {
       // Only mute if not already muted
       if (!member.voice.mute && !member.voice.selfMute) {
+        // Check rate limit before muting
+        if (isVoiceOperationRateLimited(member.id, guild.id)) {
+          const remainingTime = getVoiceOperationRemainingTime(
+            member.id,
+            guild.id,
+          );
+          logger.warn(
+            `⏸️ Rate limited: Cannot mute ${member.user.tag} - too many voice operations. Retry after ${Math.ceil(remainingTime / 1000)}s`,
+          );
+          return {
+            disconnected: false,
+            muted: false,
+            error: "Rate limited",
+            needsWait: true,
+          };
+        }
+
         try {
           await member.voice.setMute(
             true,
@@ -199,10 +246,20 @@ export async function enforceVoiceRestrictions(
           );
           return { disconnected: false, muted: true };
         } catch (muteError) {
-          logger.warn(
-            `Failed to mute ${member.user.tag} in voice channel:`,
-            muteError.message,
-          );
+          // Check if it's a rate limit error
+          if (
+            muteError.message?.includes("rate limit") ||
+            muteError.code === 429
+          ) {
+            logger.warn(
+              `🚫 Discord rate limit hit while muting ${member.user.tag}. Will retry after cooldown.`,
+            );
+          } else {
+            logger.warn(
+              `Failed to mute ${member.user.tag} in voice channel:`,
+              muteError.message,
+            );
+          }
           return {
             disconnected: false,
             muted: false,
@@ -240,6 +297,20 @@ export async function enforceVoiceRestrictions(
     !hasRestrictiveSpeakRole &&
     hasMuteMembers
   ) {
+    // Check rate limit before unmuting
+    if (isVoiceOperationRateLimited(member.id, guild.id)) {
+      const remainingTime = getVoiceOperationRemainingTime(member.id, guild.id);
+      logger.warn(
+        `⏸️ Rate limited: Cannot unmute ${member.user.tag} - too many voice operations. Retry after ${Math.ceil(remainingTime / 1000)}s`,
+      );
+      return {
+        disconnected: false,
+        muted: false,
+        error: "Rate limited",
+        needsWait: true,
+      };
+    }
+
     logger.debug(
       `All conditions met for unmute - attempting to unmute ${member.user.tag}`,
     );
@@ -253,11 +324,25 @@ export async function enforceVoiceRestrictions(
       );
       return { disconnected: false, muted: false, unmuted: true };
     } catch (unmuteError) {
-      logger.warn(
-        `Failed to unmute ${member.user.tag} in voice channel:`,
-        unmuteError.message,
-      );
-      return { disconnected: false, muted: false, error: unmuteError.message };
+      // Check if it's a rate limit error
+      if (
+        unmuteError.message?.includes("rate limit") ||
+        unmuteError.code === 429
+      ) {
+        logger.warn(
+          `🚫 Discord rate limit hit while unmuting ${member.user.tag}. Will retry after cooldown.`,
+        );
+      } else {
+        logger.warn(
+          `Failed to unmute ${member.user.tag} in voice channel:`,
+          unmuteError.message,
+        );
+      }
+      return {
+        disconnected: false,
+        muted: false,
+        error: unmuteError.message,
+      };
     }
   } else {
     // Log why unmute wasn't attempted

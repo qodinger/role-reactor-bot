@@ -11,6 +11,7 @@ import {
   handleList,
   handleCancel,
   handleView,
+  handleDelete,
 } from "./handlers.js";
 
 export const data = new SlashCommandBuilder()
@@ -83,6 +84,14 @@ export const data = new SlashCommandBuilder()
           .setDescription("Page number (default: 1)")
           .setRequired(false)
           .setMinValue(1),
+      )
+      .addBooleanOption(opt =>
+        opt
+          .setName("show-all")
+          .setDescription(
+            "Show all schedules including executed, inactive, and cancelled",
+          )
+          .setRequired(false),
       ),
   )
   .addSubcommand(subcommand =>
@@ -104,6 +113,17 @@ export const data = new SlashCommandBuilder()
         opt
           .setName("schedule-id")
           .setDescription("The ID of the schedule to cancel")
+          .setRequired(true),
+      ),
+  )
+  .addSubcommand(subcommand =>
+    subcommand
+      .setName("delete")
+      .setDescription("Permanently delete a scheduled role from the database")
+      .addStringOption(opt =>
+        opt
+          .setName("schedule-id")
+          .setDescription("The ID of the schedule to delete")
           .setRequired(true),
       ),
   );
@@ -175,12 +195,15 @@ export async function execute(interaction, client) {
       case "cancel":
         await handleCancel(interaction, client, deferred);
         break;
+      case "delete":
+        await handleDelete(interaction, client, deferred);
+        break;
 
       default: {
         const response = errorEmbed({
           title: "Unknown Subcommand",
           description: `The subcommand "${subcommand}" is not recognized.`,
-          solution: "Use create, list, view, or cancel as subcommands.",
+          solution: "Use create, list, view, cancel, or delete as subcommands.",
         });
 
         if (deferred) {

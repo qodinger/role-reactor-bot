@@ -1,4 +1,3 @@
-import { randomUUID } from "crypto";
 import { PermissionFlagsBits } from "discord.js";
 import dedent from "dedent";
 import { getLogger } from "../../../utils/logger.js";
@@ -22,6 +21,7 @@ import {
   processUserList,
   validateSchedule,
   detectTargetingType,
+  generateScheduleId,
 } from "./utils.js";
 import { getDatabaseManager } from "../../../utils/storage/databaseManager.js";
 
@@ -584,7 +584,7 @@ export async function handleCreate(interaction, client, deferred = false) {
       }
     }
 
-    const scheduleId = randomUUID();
+    const scheduleId = generateScheduleId();
 
     // Create schedule data
     let scheduleData;
@@ -797,6 +797,7 @@ export async function handleList(interaction, client, deferred = false) {
     }
 
     const page = interaction.options.getInteger("page") || 1;
+    const showAll = interaction.options.getBoolean("show-all") || false;
     const limit = 10;
 
     // Get all schedules for this guild
@@ -805,20 +806,32 @@ export async function handleList(interaction, client, deferred = false) {
       dbManager.recurringSchedules.getByGuild(interaction.guild.id),
     ]);
 
-    // Combine and filter active schedules
+    // Combine and filter schedules
     const allSchedules = [];
 
-    // Add one-time schedules (not executed and not cancelled)
+    // Add one-time schedules
     for (const schedule of Object.values(oneTimeSchedules)) {
-      if (!schedule.executed && !schedule.cancelled) {
+      if (showAll) {
+        // Show all schedules if show-all is true
         allSchedules.push({ ...schedule, type: "one-time" });
+      } else {
+        // Show only active schedules (not executed and not cancelled)
+        if (!schedule.executed && !schedule.cancelled) {
+          allSchedules.push({ ...schedule, type: "one-time" });
+        }
       }
     }
 
-    // Add recurring schedules (active and not cancelled)
+    // Add recurring schedules
     for (const schedule of Object.values(recurringSchedules)) {
-      if (schedule.active && !schedule.cancelled) {
+      if (showAll) {
+        // Show all schedules if show-all is true
         allSchedules.push({ ...schedule, type: "recurring" });
+      } else {
+        // Show only active schedules (active and not cancelled)
+        if (schedule.active && !schedule.cancelled) {
+          allSchedules.push({ ...schedule, type: "recurring" });
+        }
       }
     }
 
@@ -857,6 +870,7 @@ export async function handleList(interaction, client, deferred = false) {
       totalPages,
       allSchedules.length,
       client,
+      showAll,
     );
 
     if (deferred) {
@@ -1118,6 +1132,113 @@ export async function handleCancel(interaction, client, deferred = false) {
       const response = errorEmbed({
         title: "Error",
         description: "Failed to cancel scheduled role.",
+        solution: "Please try again or contact support.",
+      });
+
+      try {
+        await interaction.reply({ ...response, flags: 64 });
+      } catch (replyError) {
+        logger.error("Failed to send error response", {
+          interactionId: interaction.id,
+          error: replyError.message,
+        });
+      }
+    }
+  }
+}
+
+/**
+ * Handle the delete schedule logic
+ */
+export async function handleDelete(interaction, client, deferred = false) {
+  const logger = getLogger();
+
+  try {
+    const scheduleId = interaction.options.getString("schedule-id");
+
+    const dbManager = await getDatabaseManager();
+    if (!dbManager) {
+      const response = errorEmbed({
+        title: "Database Error",
+        description: "Failed to connect to the database.",
+        solution: "Please try again or contact support if the issue persists.",
+      });
+
+      if (deferred) {
+        return interaction.editReply(response);
+      } else {
+        return interaction.reply(response);
+      }
+    }
+
+    // Try to find in both collections
+    const [oneTimeSchedule, recurringSchedule] = await Promise.all([
+      dbManager.scheduledRoles.getById(scheduleId),
+      dbManager.recurringSchedules.getById(scheduleId),
+    ]);
+
+    const schedule = oneTimeSchedule || recurringSchedule;
+
+    if (!schedule) {
+      const response = errorEmbed({
+        title: "Schedule Not Found",
+        description: `No schedule found with ID: **${scheduleId}**`,
+        solution:
+          "Make sure you're using the correct schedule ID. Use `/schedule-role list` to see all schedules.",
+      });
+
+      if (deferred) {
+        return interaction.editReply(response);
+      } else {
+        return interaction.reply(response);
+      }
+    }
+
+    // Check if schedule belongs to this guild
+    if (schedule.guildId !== interaction.guild.id) {
+      const response = errorEmbed({
+        title: "Access Denied",
+        description: "This schedule belongs to a different server.",
+        solution: "Use `/schedule-role list` to see schedules for this server.",
+      });
+
+      if (deferred) {
+        return interaction.editReply(response);
+      } else {
+        return interaction.reply(response);
+      }
+    }
+
+    // Delete the schedule permanently
+    const deleted = oneTimeSchedule
+      ? await dbManager.scheduledRoles.delete(scheduleId)
+      : await dbManager.recurringSchedules.delete(scheduleId);
+
+    if (!deleted) {
+      throw new Error("Failed to delete schedule from database");
+    }
+
+    const response = successEmbed({
+      title: "Schedule Deleted",
+      description: `Successfully deleted schedule **${scheduleId}** from the database.`,
+    });
+
+    if (deferred) {
+      await interaction.editReply(response);
+    } else {
+      await interaction.reply(response);
+    }
+
+    logger.info(
+      `Scheduled role deleted by ${interaction.user.tag} in ${interaction.guild.name}: Schedule ID ${scheduleId}`,
+    );
+  } catch (error) {
+    logger.error("Error in handleDelete:", error);
+
+    if (!interaction.replied && !interaction.deferred) {
+      const response = errorEmbed({
+        title: "Error",
+        description: "Failed to delete scheduled role.",
         solution: "Please try again or contact support.",
       });
 

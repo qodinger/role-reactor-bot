@@ -7,6 +7,7 @@ import {
 } from "../../utils/discord/roleManager.js";
 import { getNextExecutionTime } from "../../commands/admin/schedule-role/utils.js";
 import { getOptimizedRoleExecutor } from "./OptimizedRoleExecutor.js";
+import { getUserData } from "../../commands/general/core/utils.js";
 
 class RoleScheduler {
   constructor(client) {
@@ -103,8 +104,13 @@ class RoleScheduler {
       guildGroups.get(guildId).push(schedule);
     }
 
-    // Process each guild's schedules
-    for (const [guildId, schedules] of guildGroups) {
+    // Sort guilds by Core member priority
+    const prioritizedGuilds = await this.prioritizeGuildsByCoreMembers(
+      Array.from(guildGroups.entries()),
+    );
+
+    // Process each guild's schedules in priority order
+    for (const { guildId, schedules } of prioritizedGuilds) {
       await this.processGuildSchedules(guildId, schedules, databaseManager);
     }
   }
@@ -132,7 +138,8 @@ class RoleScheduler {
 
     const now = new Date();
 
-    // Check each recurring schedule
+    // Filter schedules that should execute
+    const schedulesToExecute = [];
     for (const schedule of activeSchedules) {
       try {
         const shouldExecute = await this.shouldExecuteRecurringSchedule(
@@ -141,11 +148,27 @@ class RoleScheduler {
         );
 
         if (shouldExecute) {
-          await this.executeRecurringSchedule(schedule, databaseManager);
+          schedulesToExecute.push(schedule);
         }
       } catch (error) {
         this.logger.error(
           `Error processing recurring schedule ${schedule.id}:`,
+          error,
+        );
+      }
+    }
+
+    // Sort schedules by Core member priority
+    const prioritizedSchedules =
+      await this.prioritizeSchedulesByCoreMembers(schedulesToExecute);
+
+    // Execute schedules in priority order
+    for (const schedule of prioritizedSchedules) {
+      try {
+        await this.executeRecurringSchedule(schedule, databaseManager);
+      } catch (error) {
+        this.logger.error(
+          `Error executing recurring schedule ${schedule.id}:`,
           error,
         );
       }
@@ -382,94 +405,83 @@ class RoleScheduler {
       );
     }
 
-    for (const operation of operations) {
-      const { member, role } = operation;
+    // Use centralized voice restriction utility which handles rate limiting
+    const { enforceVoiceRestrictions } = await import(
+      "../../utils/discord/voiceRestrictions.js"
+    );
 
-      // Check if user is in a voice channel
-      if (!member.voice?.channel) {
-        continue;
-      }
+    // Process voice operations in batches to avoid rate limits
+    // Discord allows ~10 voice operations per 10 seconds per user
+    // Batch size: 5 operations per batch with 150ms delay
+    const batchSize = 5;
+    const batchDelay = 150;
 
-      // Refresh member to get updated role cache after role assignment
-      try {
-        await member.fetch();
-      } catch (error) {
-        logger.debug(
-          `Failed to refresh member ${member.user.tag}:`,
-          error.message,
-        );
-      }
+    logger.info(
+      `Processing ${operations.length} voice restriction operations in batches`,
+    );
 
-      const channel = member.voice.channel;
+    for (let i = 0; i < operations.length; i += batchSize) {
+      const batch = operations.slice(i, i + batchSize);
 
-      // Check if the restrictive role has Connect disabled - ONLY disconnect for Connect issues
-      const roleCanConnect = role
-        ? (channel.permissionsFor(role)?.has("Connect") ?? true)
-        : true;
+      // Process batch in parallel
+      const batchPromises = batch.map(async operation => {
+        const { member, role } = operation;
 
-      // Check if the restrictive role has Speak disabled - ONLY mute for Speak issues
-      const roleCanSpeak = role
-        ? (channel.permissionsFor(role)?.has("Speak") ?? true)
-        : true;
-
-      // Handle Connect restriction - disconnect only
-      if (!roleCanConnect) {
-        if (hasMoveMembers) {
-          try {
-            await member.voice.disconnect(
-              `Scheduled restriction: ${reason} - Role "${role.name}" has Connect disabled`,
-            );
-            logger.info(
-              `🚫 Disconnected ${member.user.tag} from voice channel due to scheduled role "${role.name}" (Connect disabled)`,
-            );
-            continue; // Successfully disconnected, move to next user
-          } catch (disconnectError) {
-            logger.error(
-              `❌ Failed to disconnect ${member.user.tag} from voice channel: ${disconnectError.message}. ` +
-                `Enable "Move Members" permission in Server Settings → Roles → [Bot's Role] → General Permissions.`,
-            );
-            continue; // Don't fall back to muting for Connect issues
-          }
-        } else {
-          logger.error(
-            `❌ Cannot disconnect ${member.user.tag} - bot missing MoveMembers permission. ` +
-              `Enable "Move Members" permission in Server Settings → Roles → [Bot's Role] → General Permissions. ` +
-              `Connect restrictions require disconnection, not muting.`,
-          );
-          continue; // Don't fall back to muting for Connect issues
+        // Check if user is in a voice channel
+        if (!member.voice?.channel) {
+          return { success: true, skipped: true };
         }
-      }
 
-      // Handle Speak restriction - mute only
-      if (!roleCanSpeak && hasMuteMembers) {
-        // Only mute if not already muted
-        if (!member.voice.mute && !member.voice.selfMute) {
-          try {
-            await member.voice.setMute(
-              true,
-              `Scheduled restriction: ${reason} - Role "${role.name}" has Speak disabled`,
-            );
-            logger.info(
-              `🔇 Muted ${member.user.tag} in voice channel due to scheduled role "${role.name}" (Speak disabled)`,
-            );
-          } catch (muteError) {
-            logger.error(
-              `❌ Failed to mute ${member.user.tag} in voice channel: ${muteError.message}. ` +
-                `Ensure bot has "Mute Members" permission in Server Settings → Roles → [Bot's Role] → General Permissions`,
-            );
-          }
-        } else {
+        // Refresh member to get updated role cache after role assignment
+        try {
+          await member.fetch();
+        } catch (error) {
           logger.debug(
-            `User ${member.user.tag} already muted (voice.mute=${member.voice.mute}, voice.selfMute=${member.voice.selfMute}) - keeping muted due to restrictive role`,
+            `Failed to refresh member ${member.user.tag}:`,
+            error.message,
           );
         }
-      } else if (!roleCanSpeak && !hasMuteMembers) {
-        logger.error(
-          `❌ Cannot mute ${member.user.tag} - bot missing MuteMembers permission. ` +
-            `Enable "Mute Members" permission in Server Settings → Roles → [Bot's Role] → General Permissions.`,
+
+        // Use centralized utility which handles rate limiting
+        const result = await enforceVoiceRestrictions(
+          member,
+          `Scheduled restriction: ${reason}`,
         );
+
+        if (result.disconnected) {
+          logger.info(
+            `🚫 Disconnected ${member.user.tag} from voice channel due to scheduled role "${role.name}" (Connect disabled)`,
+          );
+        } else if (result.muted) {
+          logger.info(
+            `🔇 Muted ${member.user.tag} in voice channel due to scheduled role "${role.name}" (Speak disabled)`,
+          );
+        } else if (result.error) {
+          if (result.needsWait) {
+            logger.warn(
+              `⏸️ Rate limited: Skipped voice restriction for ${member.user.tag} - will retry later`,
+            );
+          } else {
+            logger.warn(
+              `⚠️ Failed to enforce voice restriction for ${member.user.tag}: ${result.error}`,
+            );
+          }
+        }
+
+        return { success: !result.error, result };
+      });
+
+      await Promise.allSettled(batchPromises);
+
+      // Delay between batches to avoid rate limits
+      if (i + batchSize < operations.length) {
+        await this.delay(batchDelay);
       }
     }
+
+    logger.info(
+      `Completed voice restriction processing for ${operations.length} operations`,
+    );
   }
 
   /**
@@ -503,77 +515,82 @@ class RoleScheduler {
       return;
     }
 
-    for (const operation of operations) {
-      const { member, role } = operation;
+    // Use centralized voice restriction utility which handles rate limiting
+    const { enforceVoiceRestrictions } = await import(
+      "../../utils/discord/voiceRestrictions.js"
+    );
 
-      // Check if user is in a voice channel and muted
-      if (!member.voice?.channel || !member.voice.mute) {
-        continue;
-      }
+    // Process voice operations in batches to avoid rate limits
+    const batchSize = 5;
+    const batchDelay = 150;
 
-      // Refresh member to get updated role cache after role removal
-      try {
-        await member.fetch();
-      } catch (error) {
-        logger.debug(
-          `Failed to refresh member ${member.user.tag}:`,
-          error.message,
-        );
-      }
+    logger.info(
+      `Processing ${operations.length} voice unmute operations in batches`,
+    );
 
-      const channel = member.voice.channel;
+    for (let i = 0; i < operations.length; i += batchSize) {
+      const batch = operations.slice(i, i + batchSize);
 
-      // Check if the removed role had Speak disabled
-      const removedRoleHadSpeakDisabled = role
-        ? !(channel.permissionsFor(role)?.has("Speak") ?? true)
-        : false;
+      // Process batch in parallel
+      const batchPromises = batch.map(async operation => {
+        const { member, role } = operation;
 
-      // Check if user still has any other restrictive Speak role
-      let hasOtherRestrictiveSpeakRole = false;
-      for (const memberRole of member.roles.cache.values()) {
-        if (memberRole.id === role.id) {
-          // Skip the role that was just removed (shouldn't be in cache, but just in case)
-          continue;
+        // Check if user is in a voice channel and muted
+        if (!member.voice?.channel || !member.voice.mute) {
+          return { success: true, skipped: true };
         }
 
-        const rolePermissions = channel.permissionsFor(memberRole);
-        const canSpeak = rolePermissions?.has("Speak") ?? true;
-
-        const channelOverrides = channel.permissionOverwrites.cache.get(
-          memberRole.id,
-        );
-        const overrideAllowsSpeak = channelOverrides
-          ? channelOverrides.allow.has("Speak")
-          : false;
-        const overrideDeniesSpeak = channelOverrides
-          ? channelOverrides.deny.has("Speak")
-          : false;
-
-        if ((!canSpeak || overrideDeniesSpeak) && !overrideAllowsSpeak) {
-          hasOtherRestrictiveSpeakRole = true;
-          break;
-        }
-      }
-
-      // If the removed role had Speak disabled AND user doesn't have other restrictive Speak roles,
-      // unmute them
-      if (removedRoleHadSpeakDisabled && !hasOtherRestrictiveSpeakRole) {
+        // Refresh member to get updated role cache after role removal
         try {
-          await member.voice.setMute(
-            false,
-            `Restrictive role removed: ${reason}`,
+          await member.fetch();
+        } catch (error) {
+          logger.debug(
+            `Failed to refresh member ${member.user.tag}:`,
+            error.message,
           );
+        }
+
+        // Use centralized utility which handles rate limiting and checks restrictions
+        const result = await enforceVoiceRestrictions(
+          member,
+          `Restrictive role removed: ${reason}`,
+        );
+
+        if (result.unmuted) {
           logger.info(
             `🔊 Unmuted ${member.user.tag} in voice channel - restrictive Speak role "${role.name}" was removed`,
           );
-        } catch (unmuteError) {
-          logger.warn(
-            `Failed to unmute ${member.user.tag} in voice channel:`,
-            unmuteError.message,
-          );
+        } else if (result.error) {
+          if (result.needsWait) {
+            logger.warn(
+              `⏸️ Rate limited: Skipped unmute for ${member.user.tag} - will retry later`,
+            );
+          } else {
+            logger.debug(`Not unmuting ${member.user.tag}: ${result.error}`);
+          }
         }
+
+        return { success: result.unmuted || false, result };
+      });
+
+      const batchResults = await Promise.allSettled(batchPromises);
+      // Log any failures (results are already logged in individual promises)
+      const failures = batchResults.filter(r => r.status === "rejected");
+      if (failures.length > 0) {
+        logger.warn(
+          `${failures.length} voice unmute operations failed in batch`,
+        );
+      }
+
+      // Delay between batches to avoid rate limits
+      if (i + batchSize < operations.length) {
+        await this.delay(batchDelay);
       }
     }
+
+    logger.info(
+      `Completed voice unmute processing for ${operations.length} operations`,
+    );
   }
 
   async processGuildSchedules(guildId, schedules, databaseManager) {
@@ -716,6 +733,176 @@ class RoleScheduler {
         this.logger.error(`Error cleaning up schedule ${schedule.id}:`, error);
       }
     }
+  }
+
+  /**
+   * Get priority score for Core tier
+   * Higher score = higher priority
+   * Elite: 3, Premium: 2, Basic: 1, None: 0
+   */
+  getCoreTierPriority(tier) {
+    const tierPriorities = {
+      "Core Elite": 3,
+      "Core Premium": 2,
+      "Core Basic": 1,
+    };
+    return tierPriorities[tier] || 0;
+  }
+
+  /**
+   * Check if any user in a schedule is a Core member and get highest tier
+   * @param {Object} schedule - Schedule object
+   * @returns {Promise<{hasCore: boolean, maxTier: string|null, priority: number}>}
+   */
+  async getScheduleCorePriority(schedule) {
+    try {
+      const userIds = Array.isArray(schedule.userIds)
+        ? schedule.userIds
+        : [schedule.userId].filter(Boolean);
+
+      if (userIds.length === 0) {
+        return { hasCore: false, maxTier: null, priority: 0 };
+      }
+
+      // Check up to first 10 users for Core status (to avoid too many lookups)
+      const usersToCheck = userIds.slice(0, 10);
+      let maxPriority = 0;
+      let maxTier = null;
+
+      for (const userId of usersToCheck) {
+        try {
+          const userData = await getUserData(userId);
+          if (userData.isCore && userData.coreTier) {
+            const tierPriority = this.getCoreTierPriority(userData.coreTier);
+            if (tierPriority > maxPriority) {
+              maxPriority = tierPriority;
+              maxTier = userData.coreTier;
+            }
+          }
+        } catch (error) {
+          // Skip user if lookup fails
+          this.logger.debug(
+            `Failed to check Core status for user ${userId}:`,
+            error.message,
+          );
+        }
+      }
+
+      return {
+        hasCore: maxPriority > 0,
+        maxTier,
+        priority: maxPriority,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error checking Core priority for schedule ${schedule.id}:`,
+        error,
+      );
+      return { hasCore: false, maxTier: null, priority: 0 };
+    }
+  }
+
+  /**
+   * Prioritize schedules by Core member status
+   * @param {Array} schedules - Array of schedules to prioritize
+   * @returns {Promise<Array>} Sorted schedules (Core members first)
+   */
+  async prioritizeSchedulesByCoreMembers(schedules) {
+    if (schedules.length === 0) {
+      return [];
+    }
+
+    // Get Core priority for each schedule
+    const schedulesWithPriority = await Promise.all(
+      schedules.map(async schedule => {
+        const corePriority = await this.getScheduleCorePriority(schedule);
+        return {
+          schedule,
+          priority: corePriority.priority,
+          tier: corePriority.maxTier,
+        };
+      }),
+    );
+
+    // Sort by priority (descending), then by schedule ID for consistency
+    schedulesWithPriority.sort((a, b) => {
+      if (b.priority !== a.priority) {
+        return b.priority - a.priority; // Higher priority first
+      }
+      return a.schedule.id.localeCompare(b.schedule.id); // Consistent tie-breaker
+    });
+
+    // Log priority distribution
+    const coreCount = schedulesWithPriority.filter(s => s.priority > 0).length;
+    if (coreCount > 0) {
+      this.logger.info(
+        `🎯 Prioritized ${coreCount}/${schedules.length} schedules with Core members (Elite: ${schedulesWithPriority.filter(s => s.tier === "Core Elite").length}, Premium: ${schedulesWithPriority.filter(s => s.tier === "Core Premium").length}, Basic: ${schedulesWithPriority.filter(s => s.tier === "Core Basic").length})`,
+      );
+    }
+
+    return schedulesWithPriority.map(s => s.schedule);
+  }
+
+  /**
+   * Prioritize guilds by Core member status in their schedules
+   * @param {Array} guildEntries - Array of [guildId, schedules] tuples
+   * @returns {Promise<Array>} Sorted guild entries (Core members first)
+   */
+  async prioritizeGuildsByCoreMembers(guildEntries) {
+    if (guildEntries.length === 0) {
+      return [];
+    }
+
+    // Get Core priority for each guild's schedules
+    const guildsWithPriority = await Promise.all(
+      guildEntries.map(async ([guildId, schedules]) => {
+        let maxPriority = 0;
+        let maxTier = null;
+
+        // Check up to first 3 schedules per guild for Core members
+        for (const schedule of schedules.slice(0, 3)) {
+          const corePriority = await this.getScheduleCorePriority(schedule);
+          if (corePriority.priority > maxPriority) {
+            maxPriority = corePriority.priority;
+            maxTier = corePriority.maxTier;
+          }
+        }
+
+        return {
+          guildId,
+          schedules,
+          priority: maxPriority,
+          tier: maxTier,
+        };
+      }),
+    );
+
+    // Sort by priority (descending), then by guild ID for consistency
+    guildsWithPriority.sort((a, b) => {
+      if (b.priority !== a.priority) {
+        return b.priority - a.priority; // Higher priority first
+      }
+      return a.guildId.localeCompare(b.guildId); // Consistent tie-breaker
+    });
+
+    // Log priority distribution
+    const coreGuilds = guildsWithPriority.filter(g => g.priority > 0).length;
+    if (coreGuilds > 0) {
+      this.logger.info(
+        `🎯 Prioritized ${coreGuilds}/${guildEntries.length} guilds with Core members`,
+      );
+    }
+
+    return guildsWithPriority;
+  }
+
+  /**
+   * Delay utility for rate limiting
+   */
+  delay(ms) {
+    return new Promise(resolve => {
+      setTimeout(() => resolve(), ms);
+    });
   }
 }
 

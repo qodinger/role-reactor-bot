@@ -24,106 +24,61 @@ export function createScheduleEmbed(
 ) {
   const isRecurring = scheduleType !== "one-time";
   const action = scheduleData.action === "assign" ? "Assign" : "Remove";
-  const actionEmoji = scheduleData.action === "assign" ? "➕" : "➖";
   const userCount = totalUserCount !== null ? totalUserCount : users.length;
-  let userDisplay;
+
+  // Build target description
+  let targetDescription = "";
   if (isMixed && targetRoles && targetRoles.length > 0) {
-    // Mixed: users + roles
     const roleNames =
       targetRoles.length === 1
         ? targetRoles[0].name
         : targetRoles.map(r => r.name).join(", ");
-    userDisplay = `Users + Members with role${targetRoles.length > 1 ? "s" : ""}: ${roleNames}`;
+    targetDescription = `Users + Members with role${targetRoles.length > 1 ? "s" : ""}: ${roleNames}`;
   } else if (targetRoles && targetRoles.length > 0) {
-    // Multiple roles or single role
     if (targetRoles.length === 1) {
-      userDisplay = `Members with role ${targetRoles[0].name}`;
+      targetDescription = `Members with role ${targetRoles[0].name}`;
     } else {
-      const roleNames = targetRoles.map(r => r.name).join(", ");
-      userDisplay = `Members with roles: ${roleNames}`;
+      targetDescription = `Members with roles: ${targetRoles.map(r => r.name).join(", ")}`;
     }
   } else if (targetRole) {
-    // Backward compatibility
-    userDisplay = `Members with role ${targetRole.name}`;
+    targetDescription = `Members with role ${targetRole.name}`;
   } else if (isAllMembers) {
-    userDisplay = "All server members";
+    targetDescription = "All server members";
   } else {
-    userDisplay = `${userCount} user${userCount !== 1 ? "s" : ""}`;
+    targetDescription = `${userCount} user${userCount !== 1 ? "s" : ""}`;
   }
 
-  // Ensure role and description are valid
-  const roleName = role?.name || "Unknown Role";
-  const descriptionText = `Successfully created a ${isRecurring ? "recurring" : "one-time"} schedule to ${action.toLowerCase()} the **${roleName}** role`;
+  const roleMention = role ? role.toString() : "Unknown Role";
+  const descriptionText = `Schedule created successfully. The ${roleMention} role will be ${action.toLowerCase()}ed ${isRecurring ? "recurringly" : "once"} to ${targetDescription}.`;
 
-  // Ensure description is always a non-empty string (Discord requirement)
-  // CRITICAL: Description is required by Discord API - must never be empty or undefined
-  let safeDescription = descriptionText || "";
-  if (
-    typeof safeDescription !== "string" ||
-    safeDescription.trim().length === 0
-  ) {
-    safeDescription = "Schedule created successfully";
-  } else {
-    safeDescription = safeDescription.trim();
-  }
-
-  // Build embed - description MUST be set before any other operations
   const embed = new EmbedBuilder()
-    .setTitle("Scheduled Role Assignment")
-    .setColor(THEME.PRIMARY);
-
-  // Set description explicitly - this is required by Discord
-  embed.setDescription(safeDescription);
-
-  // Continue building embed
-  embed
+    .setTitle("Schedule Created")
+    .setDescription(descriptionText)
+    .setColor(THEME.SUCCESS)
     .setThumbnail(role?.iconURL() || null)
     .setTimestamp()
     .setFooter({
-      text: "Role Reactor • Scheduled Roles",
+      text: `Schedule ID: ${scheduleData.id}`,
       iconURL: client.user?.displayAvatarURL() || undefined,
     });
 
-  // Validate description was set correctly
-  const testJson = embed.toJSON();
-  if (!testJson.description || testJson.description.trim().length === 0) {
-    // If somehow description is missing, force it
-    embed.setDescription("Schedule created successfully");
-  }
-
   // Schedule details
-  embed.addFields([
+  const scheduleInfo = isRecurring
+    ? formatRecurringSchedule(scheduleData.scheduleConfig)
+    : formatScheduleTime(scheduleData.scheduledAt);
+
+  embed.addFields(
     {
-      name: "Schedule Information",
-      value: [
-        `**Type:** ${isRecurring ? "Recurring" : "One-time"}`,
-        `**Action:** ${actionEmoji} ${action}`,
-        `**Schedule:** ${isRecurring ? formatRecurringSchedule(scheduleData.scheduleConfig) : formatScheduleTime(scheduleData.scheduledAt)}`,
-        `**Schedule ID:** \`${scheduleData.id}\``,
-      ].join("\n"),
+      name: "Schedule Details",
+      value: `**Type:** ${isRecurring ? "Recurring" : "One-time"}\n**Action:** ${action}\n**Schedule:** ${scheduleInfo}`,
       inline: true,
     },
     {
-      name: "Role & Target",
-      value: [
-        `**Role:** ${roleName}`,
-        `**Target:** ${userDisplay}${isAllMembers || targetRole || (targetRoles && targetRoles.length > 0) ? ` (${userCount} total)` : ""}`,
-        isMixed && targetRoles && targetRoles.length > 0
-          ? `**Mixed Targeting:** Users + Role${targetRoles.length > 1 ? "s" : ""} (${targetRoles.map(r => r.name).join(", ")})`
-          : targetRoles && targetRoles.length > 0
-            ? targetRoles.length === 1
-              ? `**Filter Role:** ${targetRoles[0].name}`
-              : `**Filter Roles:** ${targetRoles.map(r => r.name).join(", ")}`
-            : targetRole
-              ? `**Filter Role:** ${targetRole.name}`
-              : "",
-        `**Reason:** ${scheduleData.reason || "No reason provided"}`,
-      ]
-        .filter(Boolean)
-        .join("\n"),
+      name: "Target",
+      value: `**Role:** ${roleMention}\n**Users:** ${targetDescription}\n**Count:** ${userCount}`,
       inline: true,
     },
-  ]);
+  );
 
   // Show next execution time for recurring schedules
   if (isRecurring && scheduleData.scheduleConfig) {
@@ -134,10 +89,19 @@ export function createScheduleEmbed(
     if (nextExecution) {
       embed.addFields({
         name: "Next Execution",
-        value: `<t:${Math.floor(nextExecution.getTime() / 1000)}:F> (<t:${Math.floor(nextExecution.getTime() / 1000)}:R>)`,
+        value: `<t:${Math.floor(nextExecution.getTime() / 1000)}:F>\n<t:${Math.floor(nextExecution.getTime() / 1000)}:R>`,
         inline: false,
       });
     }
+  }
+
+  // Add reason if provided
+  if (scheduleData.reason && scheduleData.reason !== "No reason provided") {
+    embed.addFields({
+      name: "Reason",
+      value: scheduleData.reason,
+      inline: false,
+    });
   }
 
   return embed;
@@ -153,73 +117,87 @@ export function createScheduleListEmbed(
   totalPages,
   totalSchedules,
   client,
+  showAll = false,
 ) {
   const embed = new EmbedBuilder()
     .setTitle("Scheduled Roles")
     .setDescription(
-      `**${totalSchedules}** active scheduled role${totalSchedules !== 1 ? "s" : ""} in this server`,
+      showAll
+        ? `Showing **${totalSchedules}** scheduled role${totalSchedules !== 1 ? "s" : ""} (including executed, inactive, and cancelled)`
+        : `Showing **${totalSchedules}** active scheduled role${totalSchedules !== 1 ? "s" : ""}`,
     )
     .setColor(THEME.PRIMARY)
     .setTimestamp()
     .setFooter({
-      text: `Role Reactor • Page ${currentPage} of ${totalPages || 1}`,
+      text: `${guild.name} • Page ${currentPage} of ${totalPages || 1}`,
       iconURL: client.user.displayAvatarURL(),
     });
 
   if (schedules.length === 0) {
     embed.addFields({
-      name: "No Active Schedules",
+      name: "No Schedules Found",
       value:
-        "No scheduled roles found. Use `/schedule-role create` to create one!",
+        "No scheduled roles found. Use `/schedule-role create` to create a new schedule.",
       inline: false,
     });
-  } else {
-    // Group schedules by type
-    for (const schedule of schedules) {
-      const scheduleType =
-        schedule.type ||
-        (schedule.active !== undefined ? "recurring" : "one-time");
-      const isRecurring = scheduleType === "recurring";
-      const action = schedule.action === "assign" ? "➕ Assign" : "➖ Remove";
-      const status = isRecurring
-        ? schedule.active && !schedule.cancelled
-          ? "🟢 Active"
-          : "🔴 Inactive"
-        : schedule.executed
-          ? "✅ Executed"
-          : schedule.cancelled
-            ? "❌ Cancelled"
-            : "⏳ Pending";
+    return embed;
+  }
 
-      let scheduleText = "";
-      if (isRecurring) {
-        scheduleText = formatRecurringSchedule(
-          schedule.scheduleConfig || schedule,
-        );
+  // Group schedules into a cleaner format
+  for (const schedule of schedules) {
+    const scheduleType =
+      schedule.type ||
+      (schedule.active !== undefined ? "recurring" : "one-time");
+    const isRecurring = scheduleType === "recurring";
+
+    // Determine status
+    let statusText = "";
+    let statusColor = "";
+    if (isRecurring) {
+      if (schedule.active && !schedule.cancelled) {
+        statusText = "Active";
+        statusColor = "🟢";
+      } else if (schedule.cancelled) {
+        statusText = "Cancelled";
+        statusColor = "❌";
       } else {
-        scheduleText = formatScheduleTime(schedule.scheduledAt);
+        statusText = "Inactive";
+        statusColor = "🔴";
       }
-
-      const usersCount = Array.isArray(schedule.userIds)
-        ? schedule.userIds.length
-        : 1;
-
-      embed.addFields({
-        name: `${action} ${scheduleType === "recurring" ? "• Recurring" : "• One-time"}`,
-        value: [
-          `**ID:** \`${schedule.id.substring(0, 8)}\``,
-          `**Status:** ${status}`,
-          `**Users:** ${usersCount} user${usersCount !== 1 ? "s" : ""}`,
-          `**Schedule:** ${scheduleText}`,
-          isRecurring && schedule.lastExecutedAt
-            ? `**Last executed:** <t:${Math.floor(new Date(schedule.lastExecutedAt).getTime() / 1000)}:R>`
-            : "",
-        ]
-          .filter(Boolean)
-          .join("\n"),
-        inline: true,
-      });
+    } else {
+      if (schedule.executed) {
+        statusText = "Executed";
+        statusColor = "✅";
+      } else if (schedule.cancelled) {
+        statusText = "Cancelled";
+        statusColor = "❌";
+      } else {
+        statusText = "Pending";
+        statusColor = "⏳";
+      }
     }
+
+    // Format schedule time
+    let scheduleText = "";
+    if (isRecurring) {
+      scheduleText = formatRecurringSchedule(
+        schedule.scheduleConfig || schedule,
+      );
+    } else {
+      scheduleText = formatScheduleTime(schedule.scheduledAt);
+    }
+
+    const usersCount = Array.isArray(schedule.userIds)
+      ? schedule.userIds.length
+      : 1;
+
+    const actionText = schedule.action === "assign" ? "Assign" : "Remove";
+
+    embed.addFields({
+      name: `${statusColor} ${actionText} • ${scheduleType === "recurring" ? "Recurring" : "One-time"}`,
+      value: `**ID:** \`${schedule.id}\`\n**Status:** ${statusText}\n**Users:** ${usersCount}\n**Schedule:** ${scheduleText}`,
+      inline: false,
+    });
   }
 
   return embed;
@@ -231,16 +209,33 @@ export function createScheduleListEmbed(
 export function createScheduleViewEmbed(schedule, scheduleType, guild, client) {
   const isRecurring = scheduleType === "recurring";
   const action = schedule.action === "assign" ? "Assign" : "Remove";
-  const actionEmoji = schedule.action === "assign" ? "➕" : "➖";
-  const status = isRecurring
-    ? schedule.active && !schedule.cancelled
-      ? "🟢 Active"
-      : "🔴 Inactive"
-    : schedule.executed
-      ? "✅ Executed"
-      : schedule.cancelled
-        ? "❌ Cancelled"
-        : "⏳ Pending";
+
+  // Determine status
+  let statusText = "";
+  let statusColor = "";
+  if (isRecurring) {
+    if (schedule.active && !schedule.cancelled) {
+      statusText = "Active";
+      statusColor = "🟢";
+    } else if (schedule.cancelled) {
+      statusText = "Cancelled";
+      statusColor = "❌";
+    } else {
+      statusText = "Inactive";
+      statusColor = "🔴";
+    }
+  } else {
+    if (schedule.executed) {
+      statusText = "Executed";
+      statusColor = "✅";
+    } else if (schedule.cancelled) {
+      statusText = "Cancelled";
+      statusColor = "❌";
+    } else {
+      statusText = "Pending";
+      statusColor = "⏳";
+    }
+  }
 
   // Get role info
   const role = guild.roles.cache.get(schedule.roleId);
@@ -250,44 +245,41 @@ export function createScheduleViewEmbed(schedule, scheduleType, guild, client) {
   const userIds = Array.isArray(schedule.userIds)
     ? schedule.userIds
     : [schedule.userId].filter(Boolean);
-  const usersMentions = userIds.map(id => `<@${id}>`).join(", ");
 
   const embed = new EmbedBuilder()
-    .setTitle("Schedule Details")
+    .setTitle(`Schedule: ${schedule.id}`)
     .setDescription(
-      `Viewing details for schedule **${schedule.id.substring(0, 8)}**`,
+      `${statusColor} **${statusText}** • ${action} ${isRecurring ? "Recurring" : "One-time"} Schedule`,
     )
-    .setColor(THEME.PRIMARY)
+    .setColor(
+      statusText === "Active" || statusText === "Pending"
+        ? THEME.SUCCESS
+        : statusText === "Executed"
+          ? THEME.INFO
+          : THEME.ERROR,
+    )
     .setThumbnail(role ? role.iconURL() : null)
     .setTimestamp()
     .setFooter({
-      text: "Role Reactor • Scheduled Roles",
+      text: `Role Reactor • Scheduled Roles`,
       iconURL: client.user.displayAvatarURL(),
     });
 
-  embed.addFields([
+  // Basic information
+  embed.addFields(
     {
       name: "Schedule Information",
-      value: [
-        `**ID:** \`${schedule.id}\``,
-        `**Type:** ${isRecurring ? "Recurring" : "One-time"}`,
-        `**Action:** ${actionEmoji} ${action}`,
-        `**Status:** ${status}`,
-      ].join("\n"),
+      value: `**ID:** \`${schedule.id}\`\n**Type:** ${isRecurring ? "Recurring" : "One-time"}\n**Action:** ${action}\n**Status:** ${statusText}`,
       inline: true,
     },
     {
-      name: "Role & Users",
-      value: [
-        `**Role:** ${roleMention}`,
-        `**Users:** ${userIds.length} user${userIds.length !== 1 ? "s" : ""}`,
-        `**Reason:** ${schedule.reason || "No reason provided"}`,
-      ].join("\n"),
+      name: "Role & Target",
+      value: `**Role:** ${roleMention}\n**Users:** ${userIds.length} user${userIds.length !== 1 ? "s" : ""}`,
       inline: true,
     },
-  ]);
+  );
 
-  // Add schedule-specific fields
+  // Schedule-specific information
   if (isRecurring) {
     const scheduleText = formatRecurringSchedule(
       schedule.scheduleConfig || schedule,
@@ -297,57 +289,68 @@ export function createScheduleViewEmbed(schedule, scheduleType, guild, client) {
       scheduleType,
     );
 
+    const scheduleValue = [`**Schedule:** ${scheduleText}`];
+
+    if (schedule.lastExecutedAt) {
+      scheduleValue.push(
+        `**Last executed:** <t:${Math.floor(new Date(schedule.lastExecutedAt).getTime() / 1000)}:R>`,
+      );
+    } else {
+      scheduleValue.push("**Last executed:** Never");
+    }
+
+    if (nextExecution) {
+      scheduleValue.push(
+        `**Next execution:** <t:${Math.floor(nextExecution.getTime() / 1000)}:R>`,
+      );
+    }
+
     embed.addFields({
       name: "Recurring Schedule",
-      value: [
-        `**Schedule:** ${scheduleText}`,
-        schedule.lastExecutedAt
-          ? `**Last executed:** <t:${Math.floor(new Date(schedule.lastExecutedAt).getTime() / 1000)}:F> (<t:${Math.floor(new Date(schedule.lastExecutedAt).getTime() / 1000)}:R>)`
-          : "**Last executed:** Never",
-        nextExecution
-          ? `**Next execution:** <t:${Math.floor(nextExecution.getTime() / 1000)}:F> (<t:${Math.floor(nextExecution.getTime() / 1000)}:R>)`
-          : "",
-      ]
-        .filter(Boolean)
-        .join("\n"),
+      value: scheduleValue.join("\n"),
       inline: false,
     });
   } else {
+    const scheduleValue = [
+      `**Scheduled for:** <t:${Math.floor(new Date(schedule.scheduledAt).getTime() / 1000)}:F>`,
+      `**Time until execution:** <t:${Math.floor(new Date(schedule.scheduledAt).getTime() / 1000)}:R>`,
+    ];
+
+    if (schedule.executedAt) {
+      scheduleValue.push(
+        `**Executed at:** <t:${Math.floor(new Date(schedule.executedAt).getTime() / 1000)}:F>`,
+      );
+    }
+
     embed.addFields({
       name: "One-time Schedule",
-      value: [
-        `**Scheduled for:** <t:${Math.floor(new Date(schedule.scheduledAt).getTime() / 1000)}:F>`,
-        `**Time until execution:** <t:${Math.floor(new Date(schedule.scheduledAt).getTime() / 1000)}:R>`,
-        schedule.executedAt
-          ? `**Executed at:** <t:${Math.floor(new Date(schedule.executedAt).getTime() / 1000)}:F>`
-          : "",
-      ]
-        .filter(Boolean)
-        .join("\n"),
+      value: scheduleValue.join("\n"),
       inline: false,
     });
   }
 
-  // Add metadata
+  // Reason if provided
+  if (schedule.reason && schedule.reason !== "No reason provided") {
+    embed.addFields({
+      name: "Reason",
+      value: schedule.reason,
+      inline: false,
+    });
+  }
+
+  // Metadata
   embed.addFields({
     name: "Metadata",
-    value: [
-      `**Created by:** <@${schedule.createdBy}>`,
-      `**Created at:** <t:${Math.floor(new Date(schedule.createdAt).getTime() / 1000)}:F>`,
-      schedule.updatedAt
-        ? `**Updated at:** <t:${Math.floor(new Date(schedule.updatedAt).getTime() / 1000)}:F>`
-        : "",
-    ]
-      .filter(Boolean)
-      .join("\n"),
+    value: `**Created by:** <@${schedule.createdBy}>\n**Created:** <t:${Math.floor(new Date(schedule.createdAt).getTime() / 1000)}:R>`,
     inline: false,
   });
 
   // Add users list if not too many
-  if (userIds.length <= 10) {
+  if (userIds.length <= 10 && userIds.length > 0) {
+    const usersMentions = userIds.map(id => `<@${id}>`).join(", ");
     embed.addFields({
       name: "Target Users",
-      value: usersMentions || "No users specified",
+      value: usersMentions,
       inline: false,
     });
   }

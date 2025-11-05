@@ -1,6 +1,31 @@
 import { getLogger } from "../utils/logger.js";
 import { getVoiceTracker } from "../features/experience/VoiceTracker.js";
 import { enforceVoiceRestrictions as defaultEnforceVoiceRestrictions } from "../utils/discord/voiceRestrictions.js";
+import {
+  isVoiceOperationRateLimited,
+  getVoiceOperationRemainingTime,
+} from "../utils/discord/rateLimiter.js";
+
+// Track bot-initiated mute actions to prevent infinite loops
+// Format: `${guildId}:${userId}:${timestamp}` -> expires after 5 seconds
+const botActionCache = new Set();
+const BOT_ACTION_EXPIRY = 5000; // 5 seconds
+
+// Clean up expired entries every 10 seconds
+setInterval(() => {
+  const now = Date.now();
+  const entriesToRemove = [];
+  for (const entry of botActionCache) {
+    const parts = entry.split(":");
+    if (parts.length === 3) {
+      const timestamp = parseInt(parts[2], 10);
+      if (now - timestamp > BOT_ACTION_EXPIRY) {
+        entriesToRemove.push(entry);
+      }
+    }
+  }
+  entriesToRemove.forEach(entry => botActionCache.delete(entry));
+}, 10000);
 
 /**
  * Handle voice state updates for XP tracking and voice restrictions
@@ -21,6 +46,41 @@ export async function execute(oldState, newState, options = {}) {
     if (!member) return;
 
     const userId = member.id;
+
+    // Check if this is a bot-initiated action (prevent infinite loops)
+    const muteStatusChanged = oldState.mute !== newState.mute;
+    if (muteStatusChanged) {
+      const now = Date.now();
+
+      // Check if this change was caused by the bot (within last 5 seconds)
+      let isBotAction = false;
+      for (const entry of botActionCache) {
+        const parts = entry.split(":");
+        if (parts.length === 3) {
+          const entryGuildId = parts[0];
+          const entryUserId = parts[1];
+          const entryTimestamp = parseInt(parts[2], 10);
+
+          if (entryGuildId === guildId && entryUserId === userId) {
+            const timeDiff = now - entryTimestamp;
+            if (timeDiff >= 0 && timeDiff < BOT_ACTION_EXPIRY) {
+              isBotAction = true;
+              logger.debug(
+                `Detected bot-initiated action for ${member.user.tag} (${timeDiff}ms ago) - skipping to prevent loop`,
+              );
+              break;
+            }
+          }
+        }
+      }
+
+      if (isBotAction) {
+        logger.debug(
+          `Skipping voiceStateUpdate for ${member.user.tag} - this is a bot-initiated action (preventing loop)`,
+        );
+        return;
+      }
+    }
     // Allow dependency injection for testing
     const voiceTracker = options.voiceTracker
       ? await Promise.resolve(options.voiceTracker)
@@ -33,7 +93,6 @@ export async function execute(oldState, newState, options = {}) {
       oldState.channelId &&
       newState.channelId &&
       oldState.channelId !== newState.channelId;
-    const muteStatusChanged = oldState.mute !== newState.mute;
     const selfMuted = newState.selfMute !== oldState.selfMute;
 
     // Check if user is muted but no longer has restrictive Speak role
@@ -155,7 +214,24 @@ export async function execute(oldState, newState, options = {}) {
 
           // If user has a restrictive Speak role, mute them again
           if (hasRestrictiveSpeakRole) {
+            // Check rate limit before muting
+            if (isVoiceOperationRateLimited(userId, guildId)) {
+              const remainingTime = getVoiceOperationRemainingTime(
+                userId,
+                guildId,
+              );
+              logger.warn(
+                `⏸️ Rate limited: Cannot mute ${member.user.tag} - too many voice operations. Retry after ${Math.ceil(remainingTime / 1000)}s`,
+              );
+              return; // Skip this operation to avoid rate limit
+            }
+
             try {
+              // Track this as a bot-initiated action to prevent infinite loops
+              const now = Date.now();
+              const actionKey = `${guildId}:${userId}:${now}`;
+              botActionCache.add(actionKey);
+
               await member.voice.setMute(
                 true,
                 `Restrictive role "${restrictiveSpeakRoleName}": Speak permission denied`,
@@ -164,10 +240,24 @@ export async function execute(oldState, newState, options = {}) {
                 `🔇 Re-muted ${member.user.tag} in voice channel ${channel.name} due to restrictive role "${restrictiveSpeakRoleName}" (Speak disabled) - user tried to unmute`,
               );
             } catch (muteError) {
-              logger.warn(
-                `Failed to mute ${member.user.tag} in voice channel:`,
-                muteError.message,
-              );
+              // Check if it's a rate limit error
+              if (
+                muteError.message?.includes("rate limit") ||
+                muteError.code === 429
+              ) {
+                logger.warn(
+                  `🚫 Discord rate limit hit while muting ${member.user.tag}. Will retry after cooldown.`,
+                );
+                // Add to cache to prevent retry loop
+                const now = Date.now();
+                const actionKey = `${guildId}:${userId}:${now}`;
+                botActionCache.add(actionKey);
+              } else {
+                logger.warn(
+                  `Failed to mute ${member.user.tag} in voice channel:`,
+                  muteError.message,
+                );
+              }
             }
           } else {
             // User doesn't have restrictive role - use centralized utility to unmute

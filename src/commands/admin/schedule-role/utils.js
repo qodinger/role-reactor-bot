@@ -1,4 +1,5 @@
 import dedent from "dedent";
+import { randomBytes } from "crypto";
 import { getLogger } from "../../../utils/logger.js";
 import {
   parseOneTimeSchedule,
@@ -308,17 +309,63 @@ export async function validateSchedule(scheduleType, scheduleInput) {
  */
 export function getNextExecutionTime(scheduleConfig, scheduleType) {
   try {
+    const now = new Date();
+
     if (scheduleType === "daily") {
-      return parseRecurringSchedule(scheduleConfig.time || "00:00", "daily")
-        ?.nextExecution;
+      // ParseDailySchedule returns { type: "daily", hour, minute }
+      const hour = scheduleConfig.hour ?? 0;
+      const minute = scheduleConfig.minute ?? 0;
+
+      const nextExecution = new Date(now);
+      nextExecution.setHours(hour, minute, 0, 0);
+
+      // If the time has already passed today, schedule for tomorrow
+      if (nextExecution <= now) {
+        nextExecution.setDate(nextExecution.getDate() + 1);
+      }
+
+      return nextExecution;
     } else if (scheduleType === "weekly") {
-      const scheduleStr = `${scheduleConfig.day} ${scheduleConfig.time || "00:00"}`;
-      return parseRecurringSchedule(scheduleStr, "weekly")?.nextExecution;
+      // ParseWeeklySchedule returns { type: "weekly", dayOfWeek, hour, minute }
+      const dayOfWeek = scheduleConfig.dayOfWeek ?? 0;
+      const hour = scheduleConfig.hour ?? 0;
+      const minute = scheduleConfig.minute ?? 0;
+
+      const nextExecution = new Date(now);
+      nextExecution.setHours(hour, minute, 0, 0);
+
+      const currentDay = now.getDay();
+      let daysToAdd = dayOfWeek - currentDay;
+
+      // If the day has passed this week, or it's today but the time has passed, go to next week
+      if (daysToAdd < 0 || (daysToAdd === 0 && nextExecution <= now)) {
+        daysToAdd += 7;
+      }
+
+      nextExecution.setDate(now.getDate() + daysToAdd);
+      return nextExecution;
     } else if (scheduleType === "monthly") {
-      const scheduleStr = `${scheduleConfig.day} ${scheduleConfig.time || "00:00"}`;
-      return parseRecurringSchedule(scheduleStr, "monthly")?.nextExecution;
+      // ParseMonthlySchedule returns { type: "monthly", dayOfMonth, hour, minute }
+      const dayOfMonth = scheduleConfig.dayOfMonth ?? 1;
+      const hour = scheduleConfig.hour ?? 0;
+      const minute = scheduleConfig.minute ?? 0;
+
+      const nextExecution = new Date(now);
+      nextExecution.setDate(dayOfMonth);
+      nextExecution.setHours(hour, minute, 0, 0);
+
+      // If the date has already passed this month, go to next month
+      if (nextExecution <= now) {
+        nextExecution.setMonth(nextExecution.getMonth() + 1);
+        // Handle edge case where day doesn't exist in next month (e.g., Feb 31)
+        if (nextExecution.getDate() !== dayOfMonth) {
+          nextExecution.setDate(0); // Go to last day of previous month
+        }
+      }
+
+      return nextExecution;
     } else if (scheduleType === "custom") {
-      const interval = scheduleConfig.interval || 60;
+      const interval = scheduleConfig.intervalMinutes || 60;
       return new Date(Date.now() + interval * 60 * 1000);
     }
     return null;
@@ -368,18 +415,62 @@ export function formatRecurringSchedule(scheduleConfig) {
         return `Every ${minutes} minute${minutes !== 1 ? "s" : ""}`;
       }
     } else if (scheduleConfig.type === "daily") {
-      return `Daily at ${scheduleConfig.time || "00:00"}`;
+      // ParseDailySchedule returns { type: "daily", hour, minute }
+      const hour = scheduleConfig.hour ?? 0;
+      const minute = scheduleConfig.minute ?? 0;
+      const timeStr = `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
+      return `Daily at ${timeStr}`;
     } else if (scheduleConfig.type === "weekly") {
-      const day =
-        scheduleConfig.day.charAt(0).toUpperCase() +
-        scheduleConfig.day.slice(1);
-      return `Weekly on ${day} at ${scheduleConfig.time || "00:00"}`;
+      // ParseWeeklySchedule returns { type: "weekly", dayOfWeek, hour, minute }
+      const dayNames = [
+        "Sunday",
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+      ];
+      const dayOfWeek = scheduleConfig.dayOfWeek ?? 0;
+      const day = dayNames[dayOfWeek] || "Unknown";
+      const hour = scheduleConfig.hour ?? 0;
+      const minute = scheduleConfig.minute ?? 0;
+      const timeStr = `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
+      return `Weekly on ${day} at ${timeStr}`;
     } else if (scheduleConfig.type === "monthly") {
-      return `Monthly on day ${scheduleConfig.day} at ${scheduleConfig.time || "00:00"}`;
+      // ParseMonthlySchedule returns { type: "monthly", dayOfMonth, hour, minute }
+      const hour = scheduleConfig.hour ?? 0;
+      const minute = scheduleConfig.minute ?? 0;
+      const timeStr = `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
+      return `Monthly on day ${scheduleConfig.dayOfMonth} at ${timeStr}`;
     }
     return "Invalid schedule";
   } catch (error) {
     getLogger().error("Error formatting recurring schedule:", error);
     return "Invalid schedule";
   }
+}
+
+/**
+ * Generate a short, easy-to-use schedule ID
+ * Format: 8 characters using lowercase alphanumeric (0-9, a-z)
+ * This provides 36^8 = ~2.8 trillion unique combinations
+ * @returns {string} Short schedule ID (e.g., "a3k9m2x7")
+ */
+export function generateScheduleId() {
+  // Generate 6 random bytes (48 bits) for randomness
+  const randomBytesBuffer = randomBytes(6);
+
+  // Convert to a number and then to base36 (0-9, a-z)
+  // Use timestamp's last 4 digits for additional uniqueness
+  const timestampComponent = (Date.now() % 10000).toString(36).padStart(3, "0");
+  const randomComponent = parseInt(randomBytesBuffer.toString("hex"), 16)
+    .toString(36)
+    .padStart(5, "0");
+
+  // Combine and take first 8 characters
+  const combined = (timestampComponent + randomComponent).slice(0, 8);
+
+  // Ensure it's exactly 8 characters and lowercase
+  return combined.toLowerCase().padEnd(8, "0").slice(0, 8);
 }
