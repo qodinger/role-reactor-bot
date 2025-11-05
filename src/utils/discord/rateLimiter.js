@@ -1,4 +1,8 @@
 import { getLogger } from "../logger.js";
+import {
+  getCoreRateLimitMultiplier,
+  getUserCorePriority,
+} from "../../commands/general/core/utils.js";
 
 class RateLimit {
   constructor(limit, windowMs) {
@@ -23,6 +27,18 @@ class RateLimit {
     }
     const oldest = this.timestamps[0];
     return oldest + this.windowMs - Date.now();
+  }
+
+  /**
+   * Check if exceeded with Core tier multiplier
+   * @param {number} multiplier - Rate limit multiplier for Core members
+   * @returns {boolean} True if exceeded
+   */
+  isExceededWithMultiplier(multiplier = 1.0) {
+    const now = Date.now();
+    this.timestamps = this.timestamps.filter(ts => ts > now - this.windowMs);
+    const effectiveLimit = Math.floor(this.limit * multiplier);
+    return this.timestamps.length >= effectiveLimit;
   }
 }
 
@@ -90,14 +106,36 @@ export class RateLimitManager {
 
 const rateLimiter = new RateLimitManager();
 
-export function isRateLimited(userId, commandName) {
+/**
+ * Check if user is rate limited with Core member benefits
+ * @param {string} userId - User ID
+ * @param {string} commandName - Command name
+ * @param {Object} coreUserData - Optional Core user data (for performance, avoids async lookup)
+ * @returns {Promise<boolean>} True if rate limited
+ */
+export async function isRateLimited(userId, commandName, coreUserData = null) {
+  // Get Core tier multiplier if not provided
+  let multiplier = 1.0;
+  if (coreUserData) {
+    multiplier = getCoreRateLimitMultiplier(coreUserData.coreTier || null);
+  } else {
+    try {
+      const userPriority = await getUserCorePriority(userId);
+      if (userPriority.hasCore) {
+        multiplier = getCoreRateLimitMultiplier(userPriority.tier);
+      }
+    } catch {
+      // If lookup fails, use default multiplier (1.0)
+    }
+  }
+
   const userLimit = rateLimiter.get(`user:${userId}`);
   const commandLimit = rateLimiter.get(`command:${userId}:${commandName}`);
   const globalLimit = rateLimiter.get("global:all");
 
   if (
-    userLimit.isExceeded() ||
-    commandLimit.isExceeded() ||
+    userLimit.isExceededWithMultiplier(multiplier) ||
+    commandLimit.isExceededWithMultiplier(multiplier) ||
     globalLimit.isExceeded()
   ) {
     return true;
@@ -110,11 +148,35 @@ export function isRateLimited(userId, commandName) {
   return false;
 }
 
-export function isInteractionRateLimited(userId) {
+/**
+ * Check if user is interaction rate limited with Core member benefits
+ * @param {string} userId - User ID
+ * @param {Object} coreUserData - Optional Core user data (for performance, avoids async lookup)
+ * @returns {Promise<boolean>} True if rate limited
+ */
+export async function isInteractionRateLimited(userId, coreUserData = null) {
+  // Get Core tier multiplier if not provided
+  let multiplier = 1.0;
+  if (coreUserData) {
+    multiplier = getCoreRateLimitMultiplier(coreUserData.coreTier || null);
+  } else {
+    try {
+      const userPriority = await getUserCorePriority(userId);
+      if (userPriority.hasCore) {
+        multiplier = getCoreRateLimitMultiplier(userPriority.tier);
+      }
+    } catch {
+      // If lookup fails, use default multiplier (1.0)
+    }
+  }
+
   const interactionLimit = rateLimiter.get(`interaction:${userId}`);
   const globalLimit = rateLimiter.get("global:all");
 
-  if (interactionLimit.isExceeded() || globalLimit.isExceeded()) {
+  if (
+    interactionLimit.isExceededWithMultiplier(multiplier) ||
+    globalLimit.isExceeded()
+  ) {
     return true;
   }
 
@@ -149,19 +211,39 @@ export function getRateLimitRemainingTime(userId, commandName) {
 }
 
 /**
- * Check if voice operation is rate limited
+ * Check if voice operation is rate limited with Core member benefits
  * Discord allows ~10 voice operations per 10 seconds per user
  * @param {string} userId - User ID
  * @param {string} guildId - Guild ID (optional, for per-guild limits)
- * @returns {boolean} True if rate limited
+ * @param {Object} coreUserData - Optional Core user data (for performance, avoids async lookup)
+ * @returns {Promise<boolean>} True if rate limited
  */
-export function isVoiceOperationRateLimited(userId, guildId = null) {
+export async function isVoiceOperationRateLimited(
+  userId,
+  guildId = null,
+  coreUserData = null,
+) {
+  // Get Core tier multiplier if not provided
+  let multiplier = 1.0;
+  if (coreUserData) {
+    multiplier = getCoreRateLimitMultiplier(coreUserData.coreTier || null);
+  } else {
+    try {
+      const userPriority = await getUserCorePriority(userId);
+      if (userPriority.hasCore) {
+        multiplier = getCoreRateLimitMultiplier(userPriority.tier);
+      }
+    } catch {
+      // If lookup fails, use default multiplier (1.0)
+    }
+  }
+
   const voiceLimit = rateLimiter.get(`voice:${userId}`);
   const guildVoiceLimit = guildId
     ? rateLimiter.get(`voice:guild:${guildId}`)
     : null;
 
-  if (voiceLimit.isExceeded()) {
+  if (voiceLimit.isExceededWithMultiplier(multiplier)) {
     return true;
   }
 

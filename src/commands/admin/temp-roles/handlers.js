@@ -1,4 +1,5 @@
 import pLimit from "p-limit";
+import dedent from "dedent";
 import { getLogger } from "../../../utils/logger.js";
 
 import {
@@ -28,6 +29,7 @@ import {
   processUserList,
   processTempRoles,
 } from "./utils.js";
+import { detectTargetingType } from "../schedule-role/utils.js";
 // import { THEME } from "../../../config/theme.js"; // Not used in new implementation
 
 /**
@@ -126,54 +128,435 @@ export async function handleAssign(interaction, client, deferred = false) {
       `Duration string: "${durationString}" -> Parsed to: ${durationMs}ms (${durationMs / 1000 / 60} minutes)`,
     );
 
-    // Process user list
-    const userValidation = await processUserList(usersString, interaction);
-    if (!userValidation.valid) {
-      const response = errorEmbed({
-        title: "Invalid Users",
-        description: userValidation.error,
-        solution: userValidation.solution,
-      });
+    // Dynamically detect targeting type based on mentions in users field
+    const targeting = detectTargetingType(usersString, interaction.guild);
+    const isAllMembers = targeting.type === "everyone";
+    const targetRoles = targeting.targetRoles || [];
+    const isMixed = targeting.type === "mixed";
 
-      if (deferred) {
-        return interaction.editReply({ embeds: [response] });
-      } else {
-        return interaction.reply({ embeds: [response], flags: 64 });
+    let userIds = [];
+    let validUsers = [];
+
+    // Handle bulk targeting (role-based, @everyone, or mixed)
+    if (isAllMembers || targeting.type === "role" || isMixed) {
+      // Handle @everyone targeting
+      if (isAllMembers) {
+        try {
+          logger.info(
+            `Fetching all members for temp role assignment in guild ${interaction.guild.name} (${interaction.guild.id})`,
+          );
+
+          // For very large servers, provide user feedback
+          if (deferred && interaction.guild.memberCount > 5000) {
+            try {
+              await interaction.editReply({
+                content: `⏳ Fetching ${interaction.guild.memberCount.toLocaleString()} members... This may take 30-60 seconds for large servers.`,
+              });
+            } catch (error) {
+              logger.debug("Failed to update interaction with progress", error);
+            }
+          }
+
+          // Fetch all members (requires GUILD_MEMBERS intent)
+          await interaction.guild.members.fetch();
+
+          const allMembersCollection = interaction.guild.members.cache;
+          userIds = Array.from(allMembersCollection.values())
+            .filter(
+              member =>
+                !member.user.bot ||
+                member.user.id === interaction.client.user.id,
+            )
+            .map(member => member.id);
+
+          logger.info(
+            `Found ${userIds.length} members in guild ${interaction.guild.name} (excluding bots)`,
+          );
+
+          if (userIds.length === 0) {
+            const response = errorEmbed({
+              title: "No Members Found",
+              description: "No members found in this server.",
+              solution: "Make sure the server has members.",
+            });
+
+            if (deferred) {
+              return interaction.editReply({ embeds: [response] });
+            } else {
+              return interaction.reply({ embeds: [response], flags: 64 });
+            }
+          }
+
+          // Apply member limit for @everyone (Core members get higher limits)
+          // Base limit: 500 matches RoleExecutor chunk size for optimal processing
+          const BASE_MAX_ALL_MEMBERS = 500;
+          let MAX_ALL_MEMBERS = BASE_MAX_ALL_MEMBERS;
+
+          try {
+            const { getUserData, getCoreBulkMemberLimit } = await import(
+              "../../../commands/general/core/utils.js"
+            );
+            const userData = await getUserData(interaction.user.id);
+            if (userData.isCore && userData.coreTier) {
+              MAX_ALL_MEMBERS = getCoreBulkMemberLimit(
+                userData.coreTier,
+                BASE_MAX_ALL_MEMBERS,
+              );
+            }
+          } catch (error) {
+            logger.debug("Failed to check Core status for bulk limit:", error);
+          }
+
+          if (userIds.length > MAX_ALL_MEMBERS) {
+            const response = errorEmbed({
+              title: "Too Many Members",
+              description: `Assigning temporary roles to **${userIds.length.toLocaleString()} members** (all server members) exceeds the maximum limit of **${MAX_ALL_MEMBERS.toLocaleString()} members**.`,
+              solution: dedent`
+                For operations with more than ${MAX_ALL_MEMBERS.toLocaleString()} members, please use one of these alternatives:
+                
+                **Recommended Solutions:**
+                1. **Target Specific Roles**: Use role mentions instead of @everyone
+                2. **Split Operations**: Create multiple assignments targeting different groups
+                3. **Direct Role Assignment**: Assign the role directly in Server Settings
+                
+                **Why this limit?** Operations on ${userIds.length.toLocaleString()} members would take ${Math.ceil(userIds.length / 500)}-${Math.ceil(userIds.length / 500) * 2} minutes to complete and have higher reliability risks.
+              `,
+            });
+
+            if (deferred) {
+              return interaction.editReply({ embeds: [response] });
+            } else {
+              return interaction.reply({ embeds: [response], flags: 64 });
+            }
+          }
+
+          // Warn for large operations
+          if (userIds.length > 500) {
+            logger.warn(
+              `Large operation detected: ${userIds.length} members (@everyone) for temp role assignment. This may take a long time.`,
+            );
+          }
+        } catch (error) {
+          logger.error("Error fetching all members:", error);
+          const response = errorEmbed({
+            title: "Failed to Fetch Members",
+            description:
+              "Could not fetch all server members. This requires the GUILD_MEMBERS privileged intent.",
+            solution:
+              "Make sure the bot has the GUILD_MEMBERS intent enabled in the Discord Developer Portal.",
+          });
+
+          if (deferred) {
+            return interaction.editReply({ embeds: [response] });
+          } else {
+            return interaction.reply({ embeds: [response], flags: 64 });
+          }
+        }
+      }
+      // Handle role-based targeting
+      else if (targeting.type === "role" && targetRoles.length > 0) {
+        try {
+          const roleNames = targetRoles.map(r => r.name).join(", ");
+          logger.info(
+            `Fetching members with roles ${roleNames} for temp role assignment in guild ${interaction.guild.name}`,
+          );
+
+          if (deferred && interaction.guild.memberCount > 5000) {
+            try {
+              await interaction.editReply({
+                content: `⏳ Fetching members with roles ${roleNames}... This may take a moment for large servers.`,
+              });
+            } catch (error) {
+              logger.debug("Failed to update interaction with progress", error);
+            }
+          }
+
+          // Fetch all members to check their roles
+          await interaction.guild.members.fetch();
+
+          // Get all members who have ANY of the target roles (OR logic)
+          const roleIds = targetRoles.map(r => r.id);
+          userIds = interaction.guild.members.cache
+            .filter(member =>
+              roleIds.some(roleId => member.roles.cache.has(roleId)),
+            )
+            .filter(
+              member =>
+                !member.user.bot ||
+                member.user.id === interaction.client.user.id,
+            )
+            .map(member => member.id);
+
+          // Remove duplicates
+          userIds = [...new Set(userIds)];
+
+          logger.info(
+            `Found ${userIds.length} members with roles ${roleNames} in guild ${interaction.guild.name}`,
+          );
+
+          if (userIds.length === 0) {
+            const response = errorEmbed({
+              title: "No Members Found",
+              description: `No members found with any of the roles: **${roleNames}** to assign the temporary role to.`,
+              solution:
+                "Make sure the roles exist and have members assigned to them.",
+            });
+
+            if (deferred) {
+              return interaction.editReply({ embeds: [response] });
+            } else {
+              return interaction.reply({ embeds: [response], flags: 64 });
+            }
+          }
+
+          // Apply member limit (Core members get higher limits)
+          // Base limit: 500 matches RoleExecutor chunk size for optimal processing
+          const BASE_MAX_ALL_MEMBERS = 500;
+          let MAX_ALL_MEMBERS = BASE_MAX_ALL_MEMBERS;
+
+          try {
+            const { getUserData, getCoreBulkMemberLimit } = await import(
+              "../../../commands/general/core/utils.js"
+            );
+            const userData = await getUserData(interaction.user.id);
+            if (userData.isCore && userData.coreTier) {
+              MAX_ALL_MEMBERS = getCoreBulkMemberLimit(
+                userData.coreTier,
+                BASE_MAX_ALL_MEMBERS,
+              );
+            }
+          } catch (error) {
+            logger.debug("Failed to check Core status for bulk limit:", error);
+          }
+
+          if (userIds.length > MAX_ALL_MEMBERS) {
+            const response = errorEmbed({
+              title: "Too Many Members",
+              description: `The roles **${roleNames}** have a combined total of **${userIds.length.toLocaleString()} members**, which exceeds the maximum limit of **${MAX_ALL_MEMBERS.toLocaleString()} members** for role-based operations.`,
+              solution: dedent`
+                For roles with more than ${MAX_ALL_MEMBERS.toLocaleString()} total members, please use one of these alternatives:
+                
+                **Recommended Solutions:**
+                1. **Direct Role Assignment**: Assign the target role to another role in Server Settings (instant and efficient)
+                2. **Split Operations**: Create multiple assignments targeting fewer roles or specific role groups
+                3. **Target Fewer Roles**: Use only roles with fewer members
+                
+                **Why this limit?** Operations on ${userIds.length.toLocaleString()} members would take ${Math.ceil(userIds.length / 500)}-${Math.ceil(userIds.length / 500) * 2} minutes to complete and have higher reliability risks.
+              `,
+            });
+
+            if (deferred) {
+              return interaction.editReply({ embeds: [response] });
+            } else {
+              return interaction.reply({ embeds: [response], flags: 64 });
+            }
+          }
+        } catch (error) {
+          logger.error("Error fetching members by role:", error);
+          const response = errorEmbed({
+            title: "Failed to Fetch Members",
+            description:
+              "Could not fetch members with the specified roles. This requires the GUILD_MEMBERS privileged intent.",
+            solution:
+              "Make sure the bot has the GUILD_MEMBERS intent enabled in the Discord Developer Portal.",
+          });
+
+          if (deferred) {
+            return interaction.editReply({ embeds: [response] });
+          } else {
+            return interaction.reply({ embeds: [response], flags: 64 });
+          }
+        }
+      }
+      // Handle mixed targeting (users + roles)
+      else if (isMixed && targetRoles.length > 0) {
+        try {
+          // First, get users from user mentions
+          const userValidation = await processUserList(
+            usersString,
+            interaction,
+          );
+          const userMentionIds = userValidation.valid
+            ? userValidation.validUsers.map(user => user.id)
+            : [];
+
+          // Then, get members from role mentions
+          const roleNames = targetRoles.map(r => r.name).join(", ");
+          logger.info(
+            `Fetching members with roles ${roleNames} and processing user mentions for temp role assignment in guild ${interaction.guild.name}`,
+          );
+
+          if (deferred && interaction.guild.memberCount > 5000) {
+            try {
+              await interaction.editReply({
+                content: `⏳ Fetching members with roles ${roleNames} and processing user mentions... This may take a moment for large servers.`,
+              });
+            } catch (error) {
+              logger.debug("Failed to update interaction with progress", error);
+            }
+          }
+
+          // Fetch all members to check their roles
+          await interaction.guild.members.fetch();
+
+          // Get all members who have ANY of the target roles (OR logic)
+          const roleIds = targetRoles.map(r => r.id);
+          const roleMemberIds = interaction.guild.members.cache
+            .filter(member =>
+              roleIds.some(roleId => member.roles.cache.has(roleId)),
+            )
+            .filter(
+              member =>
+                !member.user.bot ||
+                member.user.id === interaction.client.user.id,
+            )
+            .map(member => member.id);
+
+          // Combine user mentions and role-based members, remove duplicates
+          userIds = [...new Set([...userMentionIds, ...roleMemberIds])];
+
+          logger.info(
+            `Found ${userMentionIds.length} user mentions and ${roleMemberIds.length} members with roles ${roleNames}, total unique: ${userIds.length} in guild ${interaction.guild.name}`,
+          );
+
+          if (userIds.length === 0) {
+            const response = errorEmbed({
+              title: "No Members Found",
+              description: `No valid users or members with any of the roles: **${roleNames}** found to assign the temporary role to.`,
+              solution:
+                "Make sure the users are valid and the roles exist and have members assigned to them.",
+            });
+
+            if (deferred) {
+              return interaction.editReply({ embeds: [response] });
+            } else {
+              return interaction.reply({ embeds: [response], flags: 64 });
+            }
+          }
+
+          // Apply member limit for combined result (Core members get higher limits)
+          // Base limit: 500 matches RoleExecutor chunk size for optimal processing
+          const BASE_MAX_ALL_MEMBERS = 500;
+          let MAX_ALL_MEMBERS = BASE_MAX_ALL_MEMBERS;
+
+          try {
+            const { getUserData, getCoreBulkMemberLimit } = await import(
+              "../../../commands/general/core/utils.js"
+            );
+            const userData = await getUserData(interaction.user.id);
+            if (userData.isCore && userData.coreTier) {
+              MAX_ALL_MEMBERS = getCoreBulkMemberLimit(
+                userData.coreTier,
+                BASE_MAX_ALL_MEMBERS,
+              );
+            }
+          } catch (error) {
+            logger.debug("Failed to check Core status for bulk limit:", error);
+          }
+
+          if (userIds.length > MAX_ALL_MEMBERS) {
+            const response = errorEmbed({
+              title: "Too Many Members",
+              description: `The combined total of **${userIds.length.toLocaleString()} members** (from user mentions and roles ${roleNames}) exceeds the maximum limit of **${MAX_ALL_MEMBERS.toLocaleString()} members**.`,
+              solution: dedent`
+                For operations with more than ${MAX_ALL_MEMBERS.toLocaleString()} total members, please use one of these alternatives:
+                
+                **Recommended Solutions:**
+                1. **Reduce Targeting**: Use fewer roles or split into multiple assignments
+                2. **Direct Role Assignment**: Assign the target role to another role in Server Settings (instant and efficient)
+                3. **Split Operations**: Create multiple assignments targeting different groups
+                
+                **Why this limit?** Operations on ${userIds.length.toLocaleString()} members would take ${Math.ceil(userIds.length / 500)}-${Math.ceil(userIds.length / 500) * 2} minutes to complete and have higher reliability risks.
+              `,
+            });
+
+            if (deferred) {
+              return interaction.editReply({ embeds: [response] });
+            } else {
+              return interaction.reply({ embeds: [response], flags: 64 });
+            }
+          }
+        } catch (error) {
+          logger.error("Error fetching members by mixed targeting:", error);
+          const response = errorEmbed({
+            title: "Failed to Fetch Members",
+            description:
+              "Could not fetch members with the specified roles or process user mentions. This requires the GUILD_MEMBERS privileged intent.",
+            solution:
+              "Make sure the bot has the GUILD_MEMBERS intent enabled in the Discord Developer Portal.",
+          });
+
+          if (deferred) {
+            return interaction.editReply({ embeds: [response] });
+          } else {
+            return interaction.reply({ embeds: [response], flags: 64 });
+          }
+        }
       }
     }
+    // Handle individual user targeting
+    else {
+      // Process user list
+      const userValidation = await processUserList(usersString, interaction);
+      if (!userValidation.valid) {
+        const response = errorEmbed({
+          title: "Invalid Users",
+          description: userValidation.error,
+          solution: userValidation.solution,
+        });
 
-    const { validUsers } = userValidation;
-
-    // Check maximum user limit
-    const MAX_USERS = 10;
-    if (validUsers.length > MAX_USERS) {
-      const response = errorEmbed({
-        title: "Too Many Users",
-        description: `You can only assign roles to a maximum of **${MAX_USERS} users** at once.`,
-        solution: `Please reduce the number of users to ${MAX_USERS} or fewer. You can run the command multiple times if needed.`,
-      });
-
-      if (deferred) {
-        return interaction.editReply({ embeds: [response] });
-      } else {
-        return interaction.reply({ embeds: [response], flags: 64 });
+        if (deferred) {
+          return interaction.editReply({ embeds: [response] });
+        } else {
+          return interaction.reply({ embeds: [response], flags: 64 });
+        }
       }
+
+      validUsers = userValidation.validUsers;
+
+      // Check maximum user limit (Core members get higher limits)
+      const BASE_MAX_USERS = 10;
+      let MAX_USERS = BASE_MAX_USERS;
+
+      try {
+        const { getUserData, getCoreUserLimit } = await import(
+          "../../../commands/general/core/utils.js"
+        );
+        const userData = await getUserData(interaction.user.id);
+        if (userData.isCore && userData.coreTier) {
+          MAX_USERS = getCoreUserLimit(userData.coreTier, BASE_MAX_USERS);
+        }
+      } catch (error) {
+        logger.debug("Failed to check Core status for user limit:", error);
+      }
+
+      if (validUsers.length > MAX_USERS) {
+        const response = errorEmbed({
+          title: "Too Many Users",
+          description: `You can only assign roles to a maximum of **${MAX_USERS} users** at once.`,
+          solution: `Please reduce the number of users to ${MAX_USERS} or fewer. You can run the command multiple times if needed.`,
+        });
+
+        if (deferred) {
+          return interaction.editReply({ embeds: [response] });
+        } else {
+          return interaction.reply({ embeds: [response], flags: 64 });
+        }
+      }
+
+      userIds = validUsers.map(user => user.id);
     }
 
     logger.info("Starting role assignment", {
-      totalUsers: validUsers.length,
-      userIds: validUsers.map(u => u.id),
-      usernames: validUsers.map(u => u.username),
+      totalUsers: userIds.length,
+      userIds,
       roleId: role.id,
       roleName: role.name,
     });
-
-    // Use the new multiple user function for efficiency
-    const userIds = validUsers.map(user => user.id);
     const expiresAt = new Date(Date.now() + durationMs);
 
     logger.info("Using multiple user assignment function", {
-      totalUsers: validUsers.length,
+      totalUsers: userIds.length,
       userIds,
       roleId: role.id,
       roleName: role.name,
@@ -205,12 +588,35 @@ export async function handleAssign(interaction, client, deferred = false) {
       }
     }
 
+    // For bulk operations, we need to fetch user objects for the embed
+    // For individual operations, we already have validUsers
+    let usersForEmbed = validUsers;
+    if (isAllMembers || targeting.type === "role" || isMixed) {
+      // Fetch user objects for bulk operations
+      try {
+        const userPromises = userIds.slice(0, 100).map(async userId => {
+          try {
+            const user = await interaction.client.users.fetch(userId);
+            return user;
+          } catch {
+            return null;
+          }
+        });
+        const fetchedUsers = await Promise.all(userPromises);
+        usersForEmbed = fetchedUsers.filter(Boolean);
+      } catch (error) {
+        logger.warn("Failed to fetch some users for embed:", error);
+        usersForEmbed = [];
+      }
+    }
+
     // Convert the result to the format expected by the embed
-    const results = validUsers.map((user, index) => {
+    const results = userIds.map((userId, index) => {
       const result = assignmentResult.results[index];
+      const user = usersForEmbed.find(u => u.id === userId);
       return {
         success: result?.success || false,
-        user: user.username,
+        user: user?.username || userId,
         error: result?.error || null,
         message: result?.message || null,
       };
@@ -220,7 +626,7 @@ export async function handleAssign(interaction, client, deferred = false) {
     logger.debug("Creating temp role embed with data:", {
       roleName: role?.name,
       roleId: role?.id,
-      usersCount: validUsers?.length,
+      usersCount: userIds.length,
       durationString,
       reason,
       resultsCount: results?.length,
@@ -228,7 +634,7 @@ export async function handleAssign(interaction, client, deferred = false) {
 
     const embed = createTempRoleEmbed(
       role,
-      validUsers,
+      usersForEmbed,
       durationString,
       reason,
       results,

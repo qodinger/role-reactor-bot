@@ -74,7 +74,15 @@ export function getCorePricing() {
       "Core Premium": { price: "$25/mo", credits: 400 },
       "Core Elite": { price: "$50/mo", credits: 850 },
     },
-    benefits: ["Priority processing", "Monthly bonuses", "Better value"],
+    benefits: [
+      "Priority processing",
+      "Monthly bonuses",
+      "Better value",
+      "Higher rate limits (1.5x-3x)",
+      "Increased command limits (15-50 users)",
+      "Extended bulk operation limits (750-2.5k members)",
+      "Enhanced leaderboard display (50-200 users)",
+    ],
   };
 }
 
@@ -118,6 +126,55 @@ export function getCoreTierPriority(tier) {
     "Core Basic": 1,
   };
   return tierPriorities[tier] || 0;
+}
+
+/**
+ * Get rate limit multiplier for Core tier
+ * @param {string|null} tier - Core tier name
+ * @returns {number} Multiplier (1.0 for regular, 1.5 for Basic, 2.0 for Premium, 3.0 for Elite)
+ */
+export function getCoreRateLimitMultiplier(tier) {
+  if (!tier) return 1.0;
+  const tierMultipliers = {
+    "Core Elite": 3.0,
+    "Core Premium": 2.0,
+    "Core Basic": 1.5,
+  };
+  return tierMultipliers[tier] || 1.0;
+}
+
+/**
+ * Get user limit for Core tier (e.g., MAX_USERS for commands)
+ * @param {string|null} tier - Core tier name
+ * @param {number} baseLimit - Base limit for regular users
+ * @returns {number} User limit for Core members
+ */
+export function getCoreUserLimit(tier, baseLimit) {
+  if (!tier) return baseLimit;
+  const tierMultipliers = {
+    "Core Elite": 5.0, // 50 users for Elite (10 * 5)
+    "Core Premium": 2.5, // 25 users for Premium (10 * 2.5)
+    "Core Basic": 1.5, // 15 users for Basic (10 * 1.5)
+  };
+  const multiplier = tierMultipliers[tier] || 1.0;
+  return Math.floor(baseLimit * multiplier);
+}
+
+/**
+ * Get bulk member limit for Core tier (e.g., MAX_ALL_MEMBERS)
+ * @param {string|null} tier - Core tier name
+ * @param {number} baseLimit - Base limit for regular users
+ * @returns {number} Bulk member limit for Core members
+ */
+export function getCoreBulkMemberLimit(tier, baseLimit) {
+  if (!tier) return baseLimit;
+  const tierMultipliers = {
+    "Core Elite": 5.0, // 2,500 members for Elite (500 * 5)
+    "Core Premium": 2.5, // 1,250 members for Premium (500 * 2.5)
+    "Core Basic": 1.5, // 750 members for Basic (500 * 1.5)
+  };
+  const multiplier = tierMultipliers[tier] || 1.0;
+  return Math.floor(baseLimit * multiplier);
 }
 
 /**

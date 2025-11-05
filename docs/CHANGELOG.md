@@ -10,10 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Schedule Role Command: Restored `/schedule-role` command with full functionality including one-time and recurring schedules
-- Voice Restrictions for Temp-Roles: Added automatic voice restriction enforcement when assigning/removing temporary roles
-- Voice Restrictions for Schedule-Role: Added automatic voice restriction enforcement for scheduled role assignments
-- Voice Restriction System: Centralized voice restriction utility for Connect/Speak permission enforcement across all role operations
-- Guild Member Update Event: Added event handler to catch role changes for members already in voice channels
+- Voice Restrictions: Automatic voice restriction enforcement when assigning/removing roles with Connect or Speak permissions disabled
+- Voice Restrictions for Temp-Roles: Users are automatically disconnected or muted when assigned restrictive temporary roles
+- Voice Restrictions for Schedule-Role: Automatic voice restriction enforcement for scheduled role assignments
+- Voice Restrictions for Existing Members: Voice restrictions now apply to members who already have restrictive roles when they join voice channels
 
 ### Changed
 
@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Role Expiration Scheduler: Fixed duplicate cleanup logic in `cleanupExpiredRolesFromDB` call
+- Role Expiration Scheduler: Fixed duplicate cleanup logic that could cause errors during role expiration
 
 ## [1.3.1] - 2025-11-02
 

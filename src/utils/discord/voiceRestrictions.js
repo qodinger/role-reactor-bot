@@ -147,7 +147,7 @@ export async function enforceVoiceRestrictions(
   if (hasRestrictiveRole) {
     if (hasMoveMembers) {
       // Check rate limit before disconnecting
-      if (isVoiceOperationRateLimited(member.id, guild.id)) {
+      if (await isVoiceOperationRateLimited(member.id, guild.id)) {
         const remainingTime = getVoiceOperationRemainingTime(
           member.id,
           guild.id,
@@ -220,7 +220,7 @@ export async function enforceVoiceRestrictions(
       // Only mute if not already muted
       if (!member.voice.mute && !member.voice.selfMute) {
         // Check rate limit before muting
-        if (isVoiceOperationRateLimited(member.id, guild.id)) {
+        if (await isVoiceOperationRateLimited(member.id, guild.id)) {
           const remainingTime = getVoiceOperationRemainingTime(
             member.id,
             guild.id,
@@ -298,7 +298,7 @@ export async function enforceVoiceRestrictions(
     hasMuteMembers
   ) {
     // Check rate limit before unmuting
-    if (isVoiceOperationRateLimited(member.id, guild.id)) {
+    if (await isVoiceOperationRateLimited(member.id, guild.id)) {
       const remainingTime = getVoiceOperationRemainingTime(member.id, guild.id);
       logger.warn(
         `⏸️ Rate limited: Cannot unmute ${member.user.tag} - too many voice operations. Retry after ${Math.ceil(remainingTime / 1000)}s`,

@@ -21,7 +21,9 @@ export const data = new SlashCommandBuilder()
       .addStringOption(opt =>
         opt
           .setName("users")
-          .setDescription("Comma-separated list of user IDs or mentions")
+          .setDescription(
+            "User IDs, mentions, role mentions (@RoleName), or @everyone for all members",
+          )
           .setRequired(true),
       )
       .addRoleOption(opt =>

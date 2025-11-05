@@ -48,9 +48,37 @@ export async function handleLeaderboard(interaction, _client, options = {}) {
       );
     }
 
-    // Get options
-    const limit = interaction.options.getInteger("limit") || 10;
+    // Get options (Core members get higher limits)
+    const requestedLimit = interaction.options.getInteger("limit") || 10;
     const type = interaction.options.getString("type") || "xp";
+
+    // Check Core member status and adjust limit
+    const BASE_MAX_LIMIT = 25;
+    let maxLimit = BASE_MAX_LIMIT;
+
+    try {
+      const { getUserData, getCoreUserLimit } = await import(
+        "../../../commands/general/core/utils.js"
+      );
+      const userData = await getUserData(interaction.user.id);
+      if (userData.isCore && userData.coreTier) {
+        // Core Basic: 50, Premium: 100, Elite: 200
+        maxLimit = getCoreUserLimit(userData.coreTier, BASE_MAX_LIMIT * 2);
+      }
+    } catch (error) {
+      // If lookup fails, use default limit
+      logger.debug("Failed to check Core status for leaderboard limit:", error);
+    }
+
+    // Enforce max limit
+    const limit = Math.min(requestedLimit, maxLimit);
+
+    // If user requested more than their limit, show a message
+    if (requestedLimit > maxLimit) {
+      logger.debug(
+        `User ${interaction.user.tag} requested ${requestedLimit} but limit is ${maxLimit}`,
+      );
+    }
 
     // Allow dependency injection for testing
     const getExperienceManager =

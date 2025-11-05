@@ -24,6 +24,11 @@ import {
   generateScheduleId,
 } from "./utils.js";
 import { getDatabaseManager } from "../../../utils/storage/databaseManager.js";
+import {
+  getUserData,
+  getCoreUserLimit,
+  getCoreBulkMemberLimit,
+} from "../../../commands/general/core/utils.js";
 
 /**
  * Handle the create schedule logic
@@ -217,8 +222,24 @@ export async function handleCreate(interaction, client, deferred = false) {
           }
         }
 
-        // Apply the 10,000 member limit for combined result
-        const MAX_ALL_MEMBERS = 10000;
+        // Apply member limit for combined result (Core members get higher limits)
+        // Base limit: 500 matches RoleExecutor chunk size for optimal processing
+        const BASE_MAX_ALL_MEMBERS = 500;
+        let MAX_ALL_MEMBERS = BASE_MAX_ALL_MEMBERS;
+
+        try {
+          const userData = await getUserData(interaction.user.id);
+          if (userData.isCore && userData.coreTier) {
+            MAX_ALL_MEMBERS = getCoreBulkMemberLimit(
+              userData.coreTier,
+              BASE_MAX_ALL_MEMBERS,
+            );
+          }
+        } catch (error) {
+          // If lookup fails, use default limit
+          logger.debug("Failed to check Core status for bulk limit:", error);
+        }
+
         if (userIds.length > MAX_ALL_MEMBERS) {
           const response = errorEmbed({
             title: "Too Many Members",
@@ -231,7 +252,7 @@ export async function handleCreate(interaction, client, deferred = false) {
               2. **Direct Role Assignment**: Assign the target role to another role in Server Settings (instant and efficient)
               3. **Split Operations**: Create multiple schedules targeting different groups
               
-              **Why this limit?** Operations on ${userIds.length.toLocaleString()} members would take ${Math.ceil(userIds.length / 5000)}-${Math.ceil(userIds.length / 5000) * 2} minutes to complete and have higher reliability risks.
+              **Why this limit?** Operations on ${userIds.length.toLocaleString()} members would take ${Math.ceil(userIds.length / 500)}-${Math.ceil(userIds.length / 500) * 2} minutes to complete and have higher reliability risks.
             `,
           });
 
@@ -324,8 +345,24 @@ export async function handleCreate(interaction, client, deferred = false) {
           }
         }
 
-        // Apply the same 10,000 member limit
-        const MAX_ALL_MEMBERS = 10000;
+        // Apply member limit (Core members get higher limits)
+        // Base limit: 500 matches RoleExecutor chunk size for optimal processing
+        const BASE_MAX_ALL_MEMBERS = 500;
+        let MAX_ALL_MEMBERS = BASE_MAX_ALL_MEMBERS;
+
+        try {
+          const userData = await getUserData(interaction.user.id);
+          if (userData.isCore && userData.coreTier) {
+            MAX_ALL_MEMBERS = getCoreBulkMemberLimit(
+              userData.coreTier,
+              BASE_MAX_ALL_MEMBERS,
+            );
+          }
+        } catch (error) {
+          // If lookup fails, use default limit
+          logger.debug("Failed to check Core status for bulk limit:", error);
+        }
+
         if (userIds.length > MAX_ALL_MEMBERS) {
           const response = errorEmbed({
             title: "Too Many Members",
@@ -338,7 +375,7 @@ export async function handleCreate(interaction, client, deferred = false) {
               2. **Split Operations**: Create multiple schedules targeting fewer roles or specific role groups
               3. **Discord's Built-in Features**: Use Discord's role management in Server Settings
               
-              **Why this limit?** Operations on ${userIds.length.toLocaleString()} members would take ${Math.ceil(userIds.length / 5000)}-${Math.ceil(userIds.length / 5000) * 2} minutes to complete and have higher reliability risks.
+              **Why this limit?** Operations on ${userIds.length.toLocaleString()} members would take ${Math.ceil(userIds.length / 500)}-${Math.ceil(userIds.length / 500) * 2} minutes to complete and have higher reliability risks.
             `,
           });
 
@@ -425,8 +462,24 @@ export async function handleCreate(interaction, client, deferred = false) {
           }
         }
 
-        // Hard limit: Maximum 10,000 members for "@everyone" operations
-        const MAX_ALL_MEMBERS = 10000;
+        // Hard limit for "@everyone" operations (Core members get higher limits)
+        // Base limit: 500 matches RoleExecutor chunk size for optimal processing
+        const BASE_MAX_ALL_MEMBERS = 500;
+        let MAX_ALL_MEMBERS = BASE_MAX_ALL_MEMBERS;
+
+        try {
+          const userData = await getUserData(interaction.user.id);
+          if (userData.isCore && userData.coreTier) {
+            MAX_ALL_MEMBERS = getCoreBulkMemberLimit(
+              userData.coreTier,
+              BASE_MAX_ALL_MEMBERS,
+            );
+          }
+        } catch (error) {
+          // If lookup fails, use default limit
+          logger.debug("Failed to check Core status for bulk limit:", error);
+        }
+
         if (userIds.length > MAX_ALL_MEMBERS) {
           const response = errorEmbed({
             title: "Too Many Members",
@@ -439,7 +492,7 @@ export async function handleCreate(interaction, client, deferred = false) {
               2. **Split Operations**: Create multiple schedules targeting specific role groups or subsets
               3. **Discord's Built-in Features**: Use Discord's role management in Server Settings
               
-              **Why this limit?** Operations on ${userIds.length.toLocaleString()} members would take ${Math.ceil(userIds.length / 5000)}-${Math.ceil(userIds.length / 5000) * 2} minutes to complete and have higher reliability risks.
+              **Why this limit?** Operations on ${userIds.length.toLocaleString()} members would take ${Math.ceil(userIds.length / 500)}-${Math.ceil(userIds.length / 500) * 2} minutes to complete and have higher reliability risks.
             `,
           });
 
@@ -455,15 +508,15 @@ export async function handleCreate(interaction, client, deferred = false) {
         }
 
         // Warn for large servers (but still allow)
-        if (userIds.length > 1000) {
+        if (userIds.length > 500) {
           logger.warn(
             `Large server detected: ${userIds.length} members for schedule. This may take a long time and could hit rate limits.`,
           );
 
           // Show estimated time for large operations
-          if (userIds.length > 5000 && deferred) {
+          if (userIds.length > 500 && deferred) {
             try {
-              const estimatedMinutes = Math.ceil(userIds.length / 5000);
+              const estimatedMinutes = Math.ceil(userIds.length / 500);
               const maxMinutes = estimatedMinutes * 2;
 
               await interaction.editReply({
@@ -511,9 +564,20 @@ export async function handleCreate(interaction, client, deferred = false) {
 
       const { validUsers } = userValidation;
 
-      // Check maximum user limit for specific users
-      // Match temp-roles limit for consistency
-      const MAX_USERS = 10;
+      // Check maximum user limit for specific users (Core members get higher limits)
+      const BASE_MAX_USERS = 10;
+      let MAX_USERS = BASE_MAX_USERS;
+
+      try {
+        const userData = await getUserData(interaction.user.id);
+        if (userData.isCore && userData.coreTier) {
+          MAX_USERS = getCoreUserLimit(userData.coreTier, BASE_MAX_USERS);
+        }
+      } catch (error) {
+        // If lookup fails, use default limit
+        logger.debug("Failed to check Core status for user limit:", error);
+      }
+
       if (validUsers.length > MAX_USERS) {
         const response = errorEmbed({
           title: "Too Many Users",

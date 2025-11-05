@@ -215,7 +215,7 @@ export async function execute(oldState, newState, options = {}) {
           // If user has a restrictive Speak role, mute them again
           if (hasRestrictiveSpeakRole) {
             // Check rate limit before muting
-            if (isVoiceOperationRateLimited(userId, guildId)) {
+            if (await isVoiceOperationRateLimited(userId, guildId)) {
               const remainingTime = getVoiceOperationRemainingTime(
                 userId,
                 guildId,
