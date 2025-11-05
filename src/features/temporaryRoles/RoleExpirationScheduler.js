@@ -8,6 +8,11 @@ import {
 } from "../../utils/discord/roleManager.js";
 import { THEME, EMOJIS } from "../../config/theme.js";
 import { enforceVoiceRestrictions } from "../../utils/discord/voiceRestrictions.js";
+import {
+  getUsersCorePriority,
+  sortByCorePriority,
+  logPriorityDistribution,
+} from "../../commands/general/core/utils.js";
 
 class RoleExpirationScheduler {
   constructor(client) {
@@ -94,8 +99,16 @@ class RoleExpirationScheduler {
       guildGroups.get(guildId).push(expiredRole);
     }
 
-    // Process each guild's expired roles in bulk
-    for (const [guildId, guildExpiredRoles] of guildGroups) {
+    // Prioritize guilds by Core member status
+    const prioritizedGuilds = await this.prioritizeGuildsByCoreMembers(
+      Array.from(guildGroups.entries()),
+    );
+
+    // Process each guild's expired roles in priority order
+    for (const {
+      guildId,
+      expiredRoles: guildExpiredRoles,
+    } of prioritizedGuilds) {
       await this.processGuildExpiredRoles(guildId, guildExpiredRoles);
     }
   }
@@ -344,6 +357,84 @@ class RoleExpirationScheduler {
         `Could not send expiration notification to ${member.user.tag}`,
       );
     }
+  }
+
+  /**
+   * Check if any user in expired roles is a Core member and get highest tier
+   * @param {Array} expiredRoles - Array of expired role objects
+   * @returns {Promise<{hasCore: boolean, maxTier: string|null, priority: number}>}
+   */
+  async getExpiredRolesCorePriority(expiredRoles) {
+    try {
+      if (expiredRoles.length === 0) {
+        return { hasCore: false, maxTier: null, priority: 0 };
+      }
+
+      // Extract unique user IDs from expired roles
+      const checkedUsers = new Set();
+      const userIds = [];
+
+      for (const expiredRole of expiredRoles.slice(0, 10)) {
+        const roleUserIds =
+          expiredRole.userIds || [expiredRole.userId].filter(Boolean);
+
+        for (const userId of roleUserIds) {
+          if (!checkedUsers.has(userId) && checkedUsers.size < 10) {
+            checkedUsers.add(userId);
+            userIds.push(userId);
+          }
+        }
+      }
+
+      return await getUsersCorePriority(userIds, {
+        maxUsers: 10,
+        logger: this.logger,
+      });
+    } catch (error) {
+      this.logger.error(
+        "Error checking Core priority for expired roles:",
+        error,
+      );
+      return { hasCore: false, maxTier: null, priority: 0 };
+    }
+  }
+
+  /**
+   * Prioritize guilds by Core member status in their expired roles
+   * @param {Array} guildEntries - Array of [guildId, expiredRoles] tuples
+   * @returns {Promise<Array>} Sorted guild entries (Core members first)
+   */
+  async prioritizeGuildsByCoreMembers(guildEntries) {
+    if (guildEntries.length === 0) {
+      return [];
+    }
+
+    // Get Core priority for each guild's expired roles
+    const guildsWithPriority = await Promise.all(
+      guildEntries.map(async ([guildId, expiredRoles]) => {
+        const corePriority =
+          await this.getExpiredRolesCorePriority(expiredRoles);
+        return {
+          guildId,
+          expiredRoles,
+          priority: corePriority.priority,
+          tier: corePriority.maxTier,
+        };
+      }),
+    );
+
+    // Sort by priority (descending), then by guild ID for consistency
+    sortByCorePriority(guildsWithPriority, "guildId");
+
+    // Log priority distribution
+    logPriorityDistribution(
+      guildsWithPriority,
+      guildEntries.length,
+      "guilds",
+      this.logger,
+    );
+
+    return guildsWithPriority;
   }
 }
 

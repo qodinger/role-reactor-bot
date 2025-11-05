@@ -7,6 +7,12 @@ import {
 import { getLogger } from "../../utils/logger.js";
 import { getStorageManager } from "../../utils/storage/storageManager.js";
 import { THEME, EMOJIS } from "../../config/theme.js";
+import {
+  getUserCorePriority,
+  sortByCorePriority,
+  logPriorityDistribution,
+} from "../../commands/general/core/utils.js";
+import { delay } from "../../utils/delay.js";
 
 const logger = getLogger();
 
@@ -193,13 +199,22 @@ class PollScheduler {
         logger.info(
           `Found ${expiredPolls.length} expired polls, ending them...`,
         );
-        await this.processExpiredPollsInParallel(expiredPolls, storageManager);
+        // Prioritize polls by Core member creator
+        const prioritizedExpiredPolls =
+          await this.prioritizePollsByCoreMembers(expiredPolls);
+        await this.processExpiredPollsInParallel(
+          prioritizedExpiredPolls,
+          storageManager,
+        );
       }
 
       // Update remaining active polls in parallel (with concurrency limit)
       if (stillActivePolls.length > 0) {
+        // Prioritize polls by Core member creator
+        const prioritizedActivePolls =
+          await this.prioritizePollsByCoreMembers(stillActivePolls);
         await this.updateActivePollsInParallel(
-          stillActivePolls,
+          prioritizedActivePolls,
           storageManager,
         );
       }
@@ -228,9 +243,7 @@ class PollScheduler {
 
       // Small delay between chunks to avoid overwhelming Discord API
       if (chunks.indexOf(chunk) < chunks.length - 1) {
-        await new Promise(resolve => {
-          setTimeout(resolve, 100);
-        });
+        await delay(100);
       }
     }
   }
@@ -255,9 +268,7 @@ class PollScheduler {
 
       // Small delay between chunks to avoid overwhelming Discord API
       if (chunks.indexOf(chunk) < chunks.length - 1) {
-        await new Promise(resolve => {
-          setTimeout(resolve, 50);
-        });
+        await delay(50);
       }
     }
   }
@@ -684,6 +695,46 @@ class PollScheduler {
     } else {
       return `${remainingMinutes}m left`;
     }
+  }
+
+  /**
+   * Check if poll creator is a Core member and get tier
+   * @param {Object} poll - Poll object with creatorId
+   * @returns {Promise<{hasCore: boolean, tier: string|null, priority: number}>}
+   */
+  async getPollCorePriority(poll) {
+    return await getUserCorePriority(poll.creatorId, logger);
+  }
+
+  /**
+   * Prioritize polls by Core member creator
+   * @param {Array} polls - Array of polls to prioritize
+   * @returns {Promise<Array>} Sorted polls (Core members first)
+   */
+  async prioritizePollsByCoreMembers(polls) {
+    if (polls.length === 0) {
+      return [];
+    }
+
+    // Get Core priority for each poll
+    const pollsWithPriority = await Promise.all(
+      polls.map(async poll => {
+        const corePriority = await this.getPollCorePriority(poll);
+        return {
+          poll,
+          priority: corePriority.priority,
+          tier: corePriority.tier,
+        };
+      }),
+    );
+
+    // Sort by priority (descending), then by poll ID for consistency
+    sortByCorePriority(pollsWithPriority, "poll.id");
+
+    // Log priority distribution
+    logPriorityDistribution(pollsWithPriority, polls.length, "polls", logger);
+
+    return pollsWithPriority.map(p => p.poll);
   }
 
   /**

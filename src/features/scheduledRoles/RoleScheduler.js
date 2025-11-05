@@ -6,8 +6,13 @@ import {
   getCachedMember,
 } from "../../utils/discord/roleManager.js";
 import { getNextExecutionTime } from "../../commands/admin/schedule-role/utils.js";
-import { getOptimizedRoleExecutor } from "./OptimizedRoleExecutor.js";
-import { getUserData } from "../../commands/general/core/utils.js";
+import { getRoleExecutor } from "./RoleExecutor.js";
+import {
+  getUsersCorePriority,
+  sortByCorePriority,
+  logPriorityDistribution,
+} from "../../commands/general/core/utils.js";
+import { delay } from "../../utils/delay.js";
 
 class RoleScheduler {
   constructor(client) {
@@ -260,7 +265,7 @@ class RoleScheduler {
 
     // Use optimized executor for large operations (>50 users)
     if (userIds.length > 50) {
-      const executor = getOptimizedRoleExecutor();
+      const executor = getRoleExecutor();
       const result = await executor.executeRoleOperation(
         guild,
         userIds,
@@ -475,7 +480,7 @@ class RoleScheduler {
 
       // Delay between batches to avoid rate limits
       if (i + batchSize < operations.length) {
-        await this.delay(batchDelay);
+        await delay(batchDelay);
       }
     }
 
@@ -584,7 +589,7 @@ class RoleScheduler {
 
       // Delay between batches to avoid rate limits
       if (i + batchSize < operations.length) {
-        await this.delay(batchDelay);
+        await delay(batchDelay);
       }
     }
 
@@ -654,7 +659,7 @@ class RoleScheduler {
 
     // Use optimized executor for large operations (>50 users)
     if (userIds.length > 50) {
-      const executor = getOptimizedRoleExecutor();
+      const executor = getRoleExecutor();
       const result = await executor.executeRoleOperation(
         guild,
         userIds,
@@ -736,20 +741,6 @@ class RoleScheduler {
   }
 
   /**
-   * Get priority score for Core tier
-   * Higher score = higher priority
-   * Elite: 3, Premium: 2, Basic: 1, None: 0
-   */
-  getCoreTierPriority(tier) {
-    const tierPriorities = {
-      "Core Elite": 3,
-      "Core Premium": 2,
-      "Core Basic": 1,
-    };
-    return tierPriorities[tier] || 0;
-  }
-
-  /**
    * Check if any user in a schedule is a Core member and get highest tier
    * @param {Object} schedule - Schedule object
    * @returns {Promise<{hasCore: boolean, maxTier: string|null, priority: number}>}
@@ -760,39 +751,10 @@ class RoleScheduler {
         ? schedule.userIds
         : [schedule.userId].filter(Boolean);
 
-      if (userIds.length === 0) {
-        return { hasCore: false, maxTier: null, priority: 0 };
-      }
-
-      // Check up to first 10 users for Core status (to avoid too many lookups)
-      const usersToCheck = userIds.slice(0, 10);
-      let maxPriority = 0;
-      let maxTier = null;
-
-      for (const userId of usersToCheck) {
-        try {
-          const userData = await getUserData(userId);
-          if (userData.isCore && userData.coreTier) {
-            const tierPriority = this.getCoreTierPriority(userData.coreTier);
-            if (tierPriority > maxPriority) {
-              maxPriority = tierPriority;
-              maxTier = userData.coreTier;
-            }
-          }
-        } catch (error) {
-          // Skip user if lookup fails
-          this.logger.debug(
-            `Failed to check Core status for user ${userId}:`,
-            error.message,
-          );
-        }
-      }
-
-      return {
-        hasCore: maxPriority > 0,
-        maxTier,
-        priority: maxPriority,
-      };
+      return await getUsersCorePriority(userIds, {
+        maxUsers: 10,
+        logger: this.logger,
+      });
     } catch (error) {
       this.logger.error(
         `Error checking Core priority for schedule ${schedule.id}:`,
@@ -825,20 +787,15 @@ class RoleScheduler {
     );
 
     // Sort by priority (descending), then by schedule ID for consistency
-    schedulesWithPriority.sort((a, b) => {
-      if (b.priority !== a.priority) {
-        return b.priority - a.priority; // Higher priority first
-      }
-      return a.schedule.id.localeCompare(b.schedule.id); // Consistent tie-breaker
-    });
+    sortByCorePriority(schedulesWithPriority, "id");
 
     // Log priority distribution
-    const coreCount = schedulesWithPriority.filter(s => s.priority > 0).length;
-    if (coreCount > 0) {
-      this.logger.info(
-        `🎯 Prioritized ${coreCount}/${schedules.length} schedules with Core members (Elite: ${schedulesWithPriority.filter(s => s.tier === "Core Elite").length}, Premium: ${schedulesWithPriority.filter(s => s.tier === "Core Premium").length}, Basic: ${schedulesWithPriority.filter(s => s.tier === "Core Basic").length})`,
-      );
-    }
+    logPriorityDistribution(
+      schedulesWithPriority,
+      schedules.length,
+      "schedules",
+      this.logger,
+    );
 
     return schedulesWithPriority.map(s => s.schedule);
   }
@@ -878,31 +835,17 @@ class RoleScheduler {
     );
 
     // Sort by priority (descending), then by guild ID for consistency
-    guildsWithPriority.sort((a, b) => {
-      if (b.priority !== a.priority) {
-        return b.priority - a.priority; // Higher priority first
-      }
-      return a.guildId.localeCompare(b.guildId); // Consistent tie-breaker
-    });
+    sortByCorePriority(guildsWithPriority, "guildId");
 
     // Log priority distribution
-    const coreGuilds = guildsWithPriority.filter(g => g.priority > 0).length;
-    if (coreGuilds > 0) {
-      this.logger.info(
-        `🎯 Prioritized ${coreGuilds}/${guildEntries.length} guilds with Core members`,
-      );
-    }
+    logPriorityDistribution(
+      guildsWithPriority,
+      guildEntries.length,
+      "guilds",
+      this.logger,
+    );
 
     return guildsWithPriority;
-  }
-
-  /**
-   * Delay utility for rate limiting
-   */
-  delay(ms) {
-    return new Promise(resolve => {
-      setTimeout(() => resolve(), ms);
-    });
   }
 }
 

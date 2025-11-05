@@ -1,4 +1,6 @@
 import { getLogger } from "../logger.js";
+import { getUserCorePriority } from "../../commands/general/core/utils.js";
+import { delay } from "../delay.js";
 
 /**
  * Batch operation manager for Discord API calls
@@ -39,6 +41,7 @@ class BatchOperationManager {
       key,
       { guildId, userId, roleId, operation },
       "roleAdd",
+      { userId },
     );
   }
 
@@ -56,6 +59,7 @@ class BatchOperationManager {
       key,
       { guildId, userId, roleId, operation },
       "roleRemove",
+      { userId },
     );
   }
 
@@ -72,6 +76,7 @@ class BatchOperationManager {
       key,
       { guildId, userId, operation },
       "memberFetch",
+      { userId },
     );
   }
 
@@ -82,12 +87,37 @@ class BatchOperationManager {
    * @param {string} type - Operation type
    * @returns {Promise<boolean>} Success status
    */
-  async queueOperation(key, data, type) {
+  async queueOperation(key, data, type, options = {}) {
     if (!this.queues.has(key)) {
       this.queues.set(key, []);
     }
 
-    this.queues.get(key).push(data);
+    // Add priority to data if userId is provided
+    let priority = 0;
+    if (options.userId) {
+      try {
+        const userPriority = await getUserCorePriority(
+          options.userId,
+          this.logger,
+        );
+        priority = userPriority.priority;
+      } catch {
+        // Error already logged by getUserCorePriority
+        priority = 0;
+      }
+    }
+
+    // Add priority and timestamp to data
+    const operationData = {
+      ...data,
+      priority,
+      timestamp: Date.now(),
+    };
+
+    this.queues.get(key).push(operationData);
+
+    // Sort queue by priority before processing
+    this.sortQueueByPriority(key);
 
     // Process queue if not already processing
     if (!this.processing.get(key)) {
@@ -95,6 +125,25 @@ class BatchOperationManager {
     }
 
     return true;
+  }
+
+  /**
+   * Sort queue by Core member priority
+   * @param {string} key - Queue key
+   */
+  sortQueueByPriority(key) {
+    const queue = this.queues.get(key);
+    if (!queue || queue.length === 0) {
+      return;
+    }
+
+    // Sort by priority (descending), then by timestamp (ascending)
+    queue.sort((a, b) => {
+      if (b.priority !== a.priority) {
+        return b.priority - a.priority; // Higher priority first
+      }
+      return (a.timestamp || 0) - (b.timestamp || 0); // Earlier timestamp first
+    });
   }
 
   /**
@@ -117,7 +166,7 @@ class BatchOperationManager {
 
           // Delay between batches to respect rate limits
           if (queue.length > 0) {
-            await this.delay(this.batchDelays[type]);
+            await delay(this.batchDelays[type]);
           }
         }
       }
@@ -259,16 +308,6 @@ class BatchOperationManager {
     }
 
     return results;
-  }
-
-  /**
-   * Utility function for delays
-   * @param {number} ms - Milliseconds to delay
-   */
-  delay(ms) {
-    return new Promise(resolve => {
-      setTimeout(resolve, ms);
-    });
   }
 
   /**

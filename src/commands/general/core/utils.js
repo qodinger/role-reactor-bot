@@ -103,6 +103,178 @@ export function getMonthlyCreditsForTier(tier) {
   return tierCredits[tier] || 150; // Default to Basic tier credits
 }
 
+/**
+ * Get priority score for Core tier
+ * Higher score = higher priority
+ * Elite: 3, Premium: 2, Basic: 1, None: 0
+ * @param {string|null} tier - Core tier name
+ * @returns {number} Priority score (0-3)
+ */
+export function getCoreTierPriority(tier) {
+  if (!tier) return 0;
+  const tierPriorities = {
+    "Core Elite": 3,
+    "Core Premium": 2,
+    "Core Basic": 1,
+  };
+  return tierPriorities[tier] || 0;
+}
+
+/**
+ * Get Core priority for a single user
+ * @param {string} userId - User ID to check
+ * @param {Object} logger - Logger instance (optional)
+ * @returns {Promise<{hasCore: boolean, tier: string|null, priority: number}>}
+ */
+export async function getUserCorePriority(userId, logger = null) {
+  try {
+    if (!userId) {
+      return { hasCore: false, tier: null, priority: 0 };
+    }
+
+    const userData = await getUserData(userId);
+    if (userData.isCore && userData.coreTier) {
+      const tierPriority = getCoreTierPriority(userData.coreTier);
+      return {
+        hasCore: true,
+        tier: userData.coreTier,
+        priority: tierPriority,
+      };
+    }
+
+    return { hasCore: false, tier: null, priority: 0 };
+  } catch (error) {
+    if (logger) {
+      logger.debug(
+        `Failed to check Core status for user ${userId}:`,
+        error.message,
+      );
+    }
+    return { hasCore: false, tier: null, priority: 0 };
+  }
+}
+
+/**
+ * Get Core priority for multiple users (returns highest priority)
+ * @param {Array<string>} userIds - Array of user IDs to check
+ * @param {Object} options - Options
+ * @param {number} options.maxUsers - Maximum number of users to check (default: 10)
+ * @param {Object} options.logger - Logger instance (optional)
+ * @returns {Promise<{hasCore: boolean, maxTier: string|null, priority: number}>}
+ */
+export async function getUsersCorePriority(userIds, options = {}) {
+  const { maxUsers = 10, logger = null } = options;
+
+  try {
+    if (!userIds || userIds.length === 0) {
+      return { hasCore: false, maxTier: null, priority: 0 };
+    }
+
+    const usersToCheck = userIds.slice(0, maxUsers);
+    let maxPriority = 0;
+    let maxTier = null;
+
+    for (const userId of usersToCheck) {
+      try {
+        const userPriority = await getUserCorePriority(userId, logger);
+        if (userPriority.hasCore && userPriority.priority > maxPriority) {
+          maxPriority = userPriority.priority;
+          maxTier = userPriority.tier;
+        }
+      } catch (error) {
+        if (logger) {
+          logger.debug(
+            `Failed to check Core status for user ${userId}:`,
+            error.message,
+          );
+        }
+      }
+    }
+
+    return {
+      hasCore: maxPriority > 0,
+      maxTier,
+      priority: maxPriority,
+    };
+  } catch (error) {
+    if (logger) {
+      logger.error("Error checking Core priority for users:", error);
+    }
+    return { hasCore: false, maxTier: null, priority: 0 };
+  }
+}
+
+/**
+ * Sort items by Core priority (higher priority first)
+ * @param {Array} items - Array of items with priority property
+ * @param {string} idKey - Key to use for tie-breaker sorting (default: 'id')
+ * @returns {Array} Sorted items
+ */
+export function sortByCorePriority(items, idKey = "id") {
+  return items.sort((a, b) => {
+    if (b.priority !== a.priority) {
+      return b.priority - a.priority; // Higher priority first
+    }
+    // Consistent tie-breaker using ID
+    // Support nested structures like { schedule: { id: ... } } or { poll: { id: ... } }
+    let aId = a[idKey];
+    let bId = b[idKey];
+
+    // Handle dot notation (e.g., "poll.id", "schedule.id")
+    if (idKey.includes(".")) {
+      const [parentKey, childKey] = idKey.split(".");
+      if (a[parentKey]) aId = a[parentKey][childKey];
+      if (b[parentKey]) bId = b[parentKey][childKey];
+    }
+
+    // Handle nested structures
+    if (!aId && a.schedule) aId = a.schedule[idKey];
+    if (!aId && a.poll) aId = a.poll[idKey];
+    if (!bId && b.schedule) bId = b.schedule[idKey];
+    if (!bId && b.poll) bId = b.poll[idKey];
+
+    // If still no ID, try direct access on item
+    if (!aId && a.item) aId = a.item[idKey];
+    if (!bId && b.item) bId = b.item[idKey];
+
+    if (aId && bId) {
+      return String(aId).localeCompare(String(bId));
+    }
+    return 0;
+  });
+}
+
+/**
+ * Log priority distribution
+ * @param {Array} itemsWithPriority - Array of items with priority and tier
+ * @param {number} totalItems - Total number of items
+ * @param {string} itemType - Type of items (e.g., "schedules", "polls")
+ * @param {Object} logger - Logger instance
+ */
+export function logPriorityDistribution(
+  itemsWithPriority,
+  totalItems,
+  itemType,
+  logger,
+) {
+  const coreCount = itemsWithPriority.filter(item => item.priority > 0).length;
+  if (coreCount > 0) {
+    const eliteCount = itemsWithPriority.filter(
+      item => item.tier === "Core Elite",
+    ).length;
+    const premiumCount = itemsWithPriority.filter(
+      item => item.tier === "Core Premium",
+    ).length;
+    const basicCount = itemsWithPriority.filter(
+      item => item.tier === "Core Basic",
+    ).length;
+
+    logger.info(
+      `🎯 Prioritized ${coreCount}/${totalItems} ${itemType} with Core members (Elite: ${eliteCount}, Premium: ${premiumCount}, Basic: ${basicCount})`,
+    );
+  }
+}
+
 // ============================================================================
 // VALIDATION UTILITIES
 // ============================================================================

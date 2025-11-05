@@ -1,4 +1,5 @@
 import { getLogger } from "../../utils/logger.js";
+import { delay } from "../../utils/delay.js";
 import {
   bulkAddRoles,
   bulkRemoveRoles,
@@ -6,10 +7,10 @@ import {
 } from "../../utils/discord/roleManager.js";
 
 /**
- * Optimized role executor for large-scale operations
+ * Role executor for large-scale operations
  * Handles rate limiting, batching, and error recovery for large servers
  */
-export class OptimizedRoleExecutor {
+export class RoleExecutor {
   constructor() {
     this.logger = getLogger();
     this.batchSize = 10; // Smaller batches for better rate limit handling
@@ -88,8 +89,8 @@ export class OptimizedRoleExecutor {
 
         // Longer delay between chunks for very large operations
         if (i + chunkSize < userIds.length) {
-          const delay = Math.min(2000, 500 + chunk.length * 2); // Adaptive delay
-          await this.delay(delay);
+          const delayMs = Math.min(2000, 500 + chunk.length * 2); // Adaptive delay
+          await delay(delayMs);
         }
       } catch (error) {
         this.logger.error(`Error processing chunk ${chunkNumber}:`, error);
@@ -101,7 +102,7 @@ export class OptimizedRoleExecutor {
         });
 
         // Longer backoff on chunk errors
-        await this.delay(this.rateLimitBackoff);
+        await delay(this.rateLimitBackoff);
       }
     }
 
@@ -167,7 +168,7 @@ export class OptimizedRoleExecutor {
 
       // Small delay between fetch batches
       if (i + fetchBatchSize < userIds.length) {
-        await this.delay(100);
+        await delay(100);
       }
 
       // Log progress every 100 users
@@ -234,7 +235,7 @@ export class OptimizedRoleExecutor {
 
     // Delay between add and remove operations
     if (addOperations.length > 0 && removeOperations.length > 0) {
-      await this.delay(this.batchDelay * 2);
+      await delay(this.batchDelay * 2);
     }
 
     // Process remove operations with retries
@@ -541,7 +542,7 @@ export class OptimizedRoleExecutor {
           this.logger.warn(
             `Rate limited on attempt ${attempt}, backing off for ${this.rateLimitBackoff}ms`,
           );
-          await this.delay(this.rateLimitBackoff * attempt);
+          await delay(this.rateLimitBackoff * attempt);
           continue;
         }
 
@@ -554,12 +555,12 @@ export class OptimizedRoleExecutor {
           this.logger.warn(
             `Rate limit error on attempt ${attempt}, backing off for ${this.rateLimitBackoff * attempt}ms`,
           );
-          await this.delay(this.rateLimitBackoff * attempt);
+          await delay(this.rateLimitBackoff * attempt);
         } else if (attempt < this.maxRetries) {
           this.logger.warn(
             `Operation failed on attempt ${attempt}, retrying in ${this.retryDelay * attempt}ms`,
           );
-          await this.delay(this.retryDelay * attempt);
+          await delay(this.retryDelay * attempt);
         }
       }
     }
@@ -574,23 +575,14 @@ export class OptimizedRoleExecutor {
       error: lastError?.message || "Unknown error",
     });
   }
-
-  /**
-   * Delay utility
-   */
-  delay(ms) {
-    return new Promise(resolve => {
-      setTimeout(() => resolve(), ms);
-    });
-  }
 }
 
 // Export singleton instance
 let executor = null;
 
-export function getOptimizedRoleExecutor() {
+export function getRoleExecutor() {
   if (!executor) {
-    executor = new OptimizedRoleExecutor();
+    executor = new RoleExecutor();
   }
   return executor;
 }
