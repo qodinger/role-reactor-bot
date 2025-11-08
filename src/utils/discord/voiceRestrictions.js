@@ -317,7 +317,11 @@ export async function enforceVoiceRestrictions(
   if (!hasRestrictiveSpeakRole && hasMuteMembers) {
     // Only attempt unmute if user is muted and not self-muted
     // If user is not muted, they're already in the correct state
-    if (member.voice.mute && !member.voice.selfMute) {
+    // IMPORTANT: Check if member is server-muted (regardless of self-mute status)
+    // A member can be both server-muted (by bot) and self-muted (by themselves)
+    // We should remove the server mute if they no longer have restrictive roles,
+    // even if they're also self-muted
+    if (member.voice.mute) {
       // Check rate limit before unmuting
       if (await isVoiceOperationRateLimited(member.id, guild.id)) {
         const remainingTime = getVoiceOperationRemainingTime(
@@ -336,7 +340,7 @@ export async function enforceVoiceRestrictions(
       }
 
       logger.debug(
-        `All conditions met for unmute - attempting to unmute ${member.user.tag}`,
+        `All conditions met for unmute - attempting to unmute ${member.user.tag} (server-muted, selfMute: ${member.voice.selfMute})`,
       );
       try {
         await member.voice.setMute(
@@ -344,7 +348,7 @@ export async function enforceVoiceRestrictions(
           `${reason}: Restrictive Speak role removed`,
         );
         logger.info(
-          `🔊 Unmuted ${member.user.tag} in voice channel ${channel.name} - no longer has restrictive Speak role`,
+          `🔊 Unmuted ${member.user.tag} in voice channel ${channel.name} - no longer has restrictive Speak role (was server-muted, selfMute: ${member.voice.selfMute})`,
         );
         return { disconnected: false, muted: false, unmuted: true };
       } catch (unmuteError) {
@@ -374,16 +378,10 @@ export async function enforceVoiceRestrictions(
           error: unmuteError.message,
         };
       }
-    } else if (!member.voice.mute) {
-      // User is not muted and has no restrictive role - this is the correct state
+    } else {
+      // User is not server-muted and has no restrictive role - this is the correct state
       logger.debug(
-        `User ${member.user.tag} is not muted and has no restrictive role - correct state`,
-      );
-      return { disconnected: false, muted: false, unmuted: false };
-    } else if (member.voice.selfMute) {
-      // User is self-muted - don't interfere
-      logger.debug(
-        `Not unmuting ${member.user.tag} - user is self-muted (voice.selfMute=true)`,
+        `User ${member.user.tag} is not server-muted and has no restrictive role - correct state`,
       );
       return { disconnected: false, muted: false, unmuted: false };
     }

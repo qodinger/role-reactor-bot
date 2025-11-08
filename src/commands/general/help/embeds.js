@@ -81,6 +81,23 @@ export class HelpEmbedBuilder {
         ].join("\n"),
         inline: false,
       });
+      embed.addFields({
+        name: `Voice Channel Permissions`,
+        value: [
+          `**Automatic Voice Management** - Works for ALL role assignments:`,
+          `• **Commands** - \`/temp-roles\`, \`/schedule-role\`, role reactions`,
+          `• **Manual Assignment** - When admins manually add/remove roles`,
+          `• **Any Method** - Works automatically regardless of how roles are assigned`,
+          ``,
+          `**How It Works:**`,
+          `• **Connect Disabled** → Users are disconnected from voice channels`,
+          `• **Speak Disabled** → Users are muted in voice channels`,
+          `• **Role Removed** → Users are automatically unmuted`,
+          ``,
+          `**Requirements:** Bot needs \`Move Members\` and \`Mute Members\` permissions`,
+        ].join("\n"),
+        inline: false,
+      });
     } catch {
       // Fall back silently if dynamic data unavailable
     }
@@ -284,7 +301,12 @@ export class HelpEmbedBuilder {
           {
             name: `What You Need`,
             value:
-              "**question** - Ask the intelligent magic 8-ball anything you want to know!",
+              "**question** *(required)* - Ask the intelligent magic 8-ball anything you want to know!",
+            inline: false,
+          },
+          {
+            name: `Permissions`,
+            value: "• No special permissions required",
             inline: false,
           },
           {
@@ -314,6 +336,11 @@ export class HelpEmbedBuilder {
             name: `What You Need`,
             value:
               "**prompt** *(required)* - Describe the avatar you want to generate (e.g., 'cyberpunk hacker with neon hair')\n**color_style** *(optional)* - Choose a color palette (vibrant, pastel, monochrome, neon, warm, cool)\n**mood** *(optional)* - Choose the character's mood (happy, serious, mysterious, cute, cool, elegant)\n**art_style** *(optional)* - Choose the artistic style (studio, manga, modern, retro, realistic, chibi, lofi)",
+            inline: false,
+          },
+          {
+            name: `Permissions`,
+            value: "• **Send Messages** permission required",
             inline: false,
           },
           {
@@ -377,9 +404,10 @@ export class HelpEmbedBuilder {
           {
             name: `How to Use`,
             value: [
-              "```/temp-roles assign users:@user1,@user2 role:@EventRole duration:2h reason:Tournament participation```",
+              "```/temp-roles assign users:@user1,@user2 role:@EventRole duration:2h reason:Tournament participation notify:true```",
+              "```/temp-roles assign users:@RoleName role:@Mute duration:5m notify-expiry:true```",
               "```/temp-roles list user:@user1```",
-              "```/temp-roles remove users:@user1 role:@EventRole reason:Early removal```",
+              "```/temp-roles remove users:@user1,@user2 role:@EventRole reason:Early removal notify:true```",
             ].join("\n"),
             inline: false,
           },
@@ -393,8 +421,26 @@ export class HelpEmbedBuilder {
             inline: false,
           },
           {
-            name: `Permissions`,
-            value: "• **Manage Roles** permission required",
+            name: `User Targeting`,
+            value: [
+              "• **User mentions** - `@user1,@user2` (target specific users)",
+              "• **Role mentions** - `@RoleName` (target all members with that role)",
+              "• **User IDs** - `123456789,987654321` (target by ID)",
+              "• **@everyone** - Target all server members",
+              "• **Mix formats** - Combine any of the above (e.g., `@user1,@RoleName,123456789`)",
+            ].join("\n"),
+            inline: false,
+          },
+          {
+            name: `Options`,
+            value: [
+              "**users** *(required)* - Users to assign/remove role from (supports mentions, IDs, role mentions, @everyone)",
+              "**role** *(required)* - The role to assign or remove",
+              "**duration** *(required for assign)* - How long the role lasts (e.g., 30m, 2h, 1d, 1w)",
+              "**reason** *(optional)* - Reason for the role assignment/removal",
+              "**notify** *(optional)* - Send DM notification when role is assigned/removed (default: false)",
+              "**notify-expiry** *(optional)* - Send DM notification when role expires (default: false)",
+            ].join("\n"),
             inline: false,
           },
           {
@@ -409,9 +455,14 @@ export class HelpEmbedBuilder {
             inline: false,
           },
           {
+            name: `Permissions`,
+            value: "• **Manage Roles** permission required",
+            inline: false,
+          },
+          {
             name: `Perfect For`,
             value:
-              "Events, tournaments, giveaways, VIP access, beta testing, or any temporary special access!",
+              "Events, tournaments, giveaways, VIP access, beta testing, temporary mutes, or any temporary special access!",
             inline: false,
           },
         );
@@ -431,6 +482,11 @@ export class HelpEmbedBuilder {
             inline: false,
           },
           {
+            name: `Permissions`,
+            value: "• No special permissions required",
+            inline: false,
+          },
+          {
             name: `What You'll See`,
             value:
               "Detailed instructions, examples, and everything you need to know about using the bot effectively!",
@@ -447,14 +503,19 @@ export class HelpEmbedBuilder {
             inline: false,
           },
           {
-            name: `What You'll See`,
-            value:
-              "Bot uptime, memory usage, server count, and overall health status - perfect for checking if everything is running smoothly!",
+            name: `What You Need`,
+            value: "No parameters needed - just run the command!",
             inline: false,
           },
           {
-            name: `Who Can Use`,
-            value: "• Developer only",
+            name: `Permissions`,
+            value: "• **Developer** access required",
+            inline: false,
+          },
+          {
+            name: `What You'll See`,
+            value:
+              "Bot uptime, memory usage, server count, and overall health status - perfect for checking if everything is running smoothly!",
             inline: false,
           },
         );
@@ -468,14 +529,19 @@ export class HelpEmbedBuilder {
             inline: false,
           },
           {
-            name: `What You'll See`,
-            value:
-              "Command usage statistics, event processing metrics, and performance data - great for understanding how your community uses the bot!",
+            name: `What You Need`,
+            value: "No parameters needed - just run the command!",
             inline: false,
           },
           {
-            name: `Who Can Use`,
-            value: "• Developer only",
+            name: `Permissions`,
+            value: "• **Developer** access required",
+            inline: false,
+          },
+          {
+            name: `What You'll See`,
+            value:
+              "Command usage statistics, event processing metrics, and performance data - great for understanding how your community uses the bot!",
             inline: false,
           },
         );
@@ -489,14 +555,19 @@ export class HelpEmbedBuilder {
             inline: false,
           },
           {
-            name: `What You'll See`,
-            value:
-              "Database connection status, local file storage info, and sync status - ensures your role data is safe and backed up!",
+            name: `What You Need`,
+            value: "No parameters needed - just run the command!",
             inline: false,
           },
           {
-            name: `Who Can Use`,
-            value: "• Developer only",
+            name: `Permissions`,
+            value: "• **Developer** access required",
+            inline: false,
+          },
+          {
+            name: `What You'll See`,
+            value:
+              "Database connection status, local file storage info, and sync status - ensures your role data is safe and backed up!",
             inline: false,
           },
         );
@@ -512,6 +583,11 @@ export class HelpEmbedBuilder {
           {
             name: `What You Need`,
             value: "No parameters needed - just run the command!",
+            inline: false,
+          },
+          {
+            name: `Permissions`,
+            value: "• No special permissions required",
             inline: false,
           },
           {
@@ -534,6 +610,13 @@ export class HelpEmbedBuilder {
             name: `What You Need`,
             value:
               "No parameters needed - just run the subcommand to access the XP system settings!",
+            inline: false,
+          },
+          {
+            name: `Subcommands`,
+            value: [
+              "**settings** - View and configure XP system settings",
+            ].join("\n"),
             inline: false,
           },
           {
@@ -574,8 +657,23 @@ export class HelpEmbedBuilder {
           {
             name: `What You Need`,
             value: [
-              "**limit** *(optional)* - Number of users to show (1-25, default: 10)",
+              "**limit** *(optional)* - Number of users to show (1-20, default: 10)",
               "**type** *(optional)* - Choose from: xp, level, messages, voice (default: xp)",
+            ].join("\n"),
+            inline: false,
+          },
+          {
+            name: `Permissions`,
+            value: "• **View Channel** permission required",
+            inline: false,
+          },
+          {
+            name: `Leaderboard Types`,
+            value: [
+              "**xp** - Total experience points (default)",
+              "**level** - Current level",
+              "**messages** - Total messages sent",
+              "**voice** - Total voice time",
             ].join("\n"),
             inline: false,
           },
@@ -602,6 +700,11 @@ export class HelpEmbedBuilder {
             inline: false,
           },
           {
+            name: `Permissions`,
+            value: "• **View Channel** permission required",
+            inline: false,
+          },
+          {
             name: `What You'll See`,
             value:
               "Detailed level information including current XP, progress to next level, and rank. Perfect for tracking your growth and comparing with other members!",
@@ -620,6 +723,11 @@ export class HelpEmbedBuilder {
           {
             name: `What You Need`,
             value: "No parameters needed - just run the command!",
+            inline: false,
+          },
+          {
+            name: `Permissions`,
+            value: "• No special permissions required",
             inline: false,
           },
           {
@@ -644,6 +752,11 @@ export class HelpEmbedBuilder {
             inline: false,
           },
           {
+            name: `Permissions`,
+            value: "• No special permissions required",
+            inline: false,
+          },
+          {
             name: `What You'll See`,
             value:
               "Information about supporting the bot's development to help keep it free and running for everyone, including why support is needed, how to contribute, and an interactive 'Become a Sponsor' button!",
@@ -662,6 +775,11 @@ export class HelpEmbedBuilder {
           {
             name: `What You Need`,
             value: "No parameters needed - just run the command!",
+            inline: false,
+          },
+          {
+            name: `Permissions`,
+            value: "• No special permissions required",
             inline: false,
           },
           {
@@ -745,11 +863,21 @@ export class HelpEmbedBuilder {
             inline: false,
           },
           {
+            name: `What You Need`,
+            value: "No parameters needed - just run the subcommand!",
+            inline: false,
+          },
+          {
             name: `Subcommands`,
             value: [
               "**balance** - View your current Core balance and tier status",
               "**pricing** - View Core pricing, membership benefits, and donation options",
             ].join("\n"),
+            inline: false,
+          },
+          {
+            name: `Permissions`,
+            value: "• **Send Messages** permission required",
             inline: false,
           },
           {
@@ -774,6 +902,16 @@ export class HelpEmbedBuilder {
             inline: false,
           },
           {
+            name: `What You Need`,
+            value: [
+              "**create** - No parameters needed, opens interactive form",
+              "**list** - No parameters needed, shows all polls",
+              "**end** - **poll-id** *(required)* - The poll ID to end",
+              "**delete** - **poll-id** *(required)* - The poll ID to delete",
+            ].join("\n"),
+            inline: false,
+          },
+          {
             name: `Subcommands`,
             value: [
               "**create** - Open an interactive form to create a new poll",
@@ -786,7 +924,7 @@ export class HelpEmbedBuilder {
           {
             name: `Permissions`,
             value:
-              "• **Create Polls** - Anyone can create polls\n• **Manage Polls** - Poll creators and admins can close polls",
+              "• **Send Messages** permission required\n• **Create Polls** - Anyone can create polls\n• **Manage Polls** - Poll creators and admins can close polls",
             inline: false,
           },
           {
@@ -798,29 +936,134 @@ export class HelpEmbedBuilder {
         );
         break;
 
-      case "core-management":
+      case "schedule-role":
         embed.addFields(
           {
             name: `How to Use`,
             value: [
-              "```/core-management add user:@username amount:10```",
-              "```/core-management remove user:@username amount:5```",
-              "```/core-management set user:@username amount:100```",
-              "```/core-management tier user:@username tier:Core Basic```",
-              "```/core-management remove-tier user:@username```",
-              "```/core-management view user:@username```",
+              "```/schedule-role create action:assign role:@EventRole users:@user1,@RoleName schedule-type:one-time schedule:tomorrow 8am```",
+              "```/schedule-role create action:remove role:@Mute users:@RoleName schedule-type:daily schedule:9am```",
+              "```/schedule-role list page:1 show-all:false```",
+              "```/schedule-role view schedule-id:abc123```",
+              "```/schedule-role cancel schedule-id:abc123```",
+              "```/schedule-role delete schedule-id:abc123```",
+            ].join("\n"),
+            inline: false,
+          },
+          {
+            name: `What You Need`,
+            value: [
+              "**create** - **action** *(required)*, **role** *(required)*, **users** *(required)*, **schedule-type** *(required)*, **schedule** *(required)*, **reason** *(optional)*",
+              "**list** - **page** *(optional)*, **show-all** *(optional)*",
+              "**view** - **schedule-id** *(required)*",
+              "**cancel** - **schedule-id** *(required)*",
+              "**delete** - **schedule-id** *(required)*",
             ].join("\n"),
             inline: false,
           },
           {
             name: `Subcommands`,
             value: [
-              "**add** - Add Core credits to a user's account",
-              "**remove** - Remove Core credits from a user's account",
-              "**set** - Set a user's Core balance to a specific amount",
-              "**tier** - Set a user's Core membership tier",
-              "**remove-tier** - Remove a user's Core membership tier",
-              "**view** - View a user's Core account details",
+              "**create** - Create a new scheduled role assignment or removal",
+              "**list** - List all active scheduled roles with pagination",
+              "**view** - View details of a specific scheduled role",
+              "**cancel** - Cancel a scheduled role (keeps in database)",
+              "**delete** - Permanently delete a scheduled role from database",
+            ].join("\n"),
+            inline: false,
+          },
+          {
+            name: `Schedule Types`,
+            value: [
+              "**one-time** - Execute once at the specified time",
+              "**daily** - Execute every day at the specified time",
+              "**weekly** - Execute every week on the specified day and time",
+              "**monthly** - Execute every month on the specified date and time",
+              "**custom** - Execute at custom intervals (specified in minutes)",
+            ].join("\n"),
+            inline: false,
+          },
+          {
+            name: `Schedule Format Examples`,
+            value: [
+              "`tomorrow 8am` - Tomorrow at 8:00 AM",
+              "`9am` - Today at 9:00 AM (if before 9am) or tomorrow",
+              "`monday 9am` - Next Monday at 9:00 AM",
+              "`15 2pm` - 15th of this month at 2:00 PM",
+              "`60` - 60 minutes from now (for custom intervals)",
+            ].join("\n"),
+            inline: false,
+          },
+          {
+            name: `User Targeting`,
+            value: [
+              "• **User mentions** - `@user1,@user2` (target specific users)",
+              "• **Role mentions** - `@RoleName` (target all members with that role)",
+              "• **User IDs** - `123456789,987654321` (target by ID)",
+              "• **@everyone** - Target all server members",
+              "• **Mix formats** - Combine any of the above",
+            ].join("\n"),
+            inline: false,
+          },
+          {
+            name: `Permissions`,
+            value: "• **Manage Roles** permission required",
+            inline: false,
+          },
+          {
+            name: `Perfect For`,
+            value:
+              "Automated role assignments for events, scheduled maintenance, recurring tasks, or any time-based role management!",
+            inline: false,
+          },
+        );
+        break;
+
+      case "core-management":
+        embed.addFields(
+          {
+            name: `How to Use`,
+            value: [
+              "```/core-management add user:@username amount:10 reason:Donation bonus```",
+              "```/core-management remove user:@username amount:5 reason:Refund```",
+              "```/core-management set user:@username amount:100 reason:Reset balance```",
+              "```/core-management view user:@username```",
+              "```/core-management add-donation user:@username amount:5.00 ko-fi-url:https://ko-fi.com/...```",
+              "```/core-management cancel-subscription user:@username reason:User request```",
+            ].join("\n"),
+            inline: false,
+          },
+          {
+            name: `What You Need`,
+            value: [
+              "**add** - **user** *(required)*, **amount** *(required)*, **reason** *(optional)*",
+              "**remove** - **user** *(required)*, **amount** *(required)*, **reason** *(optional)*",
+              "**set** - **user** *(required)*, **amount** *(required)*, **reason** *(optional)*",
+              "**view** - **user** *(required)*",
+              "**add-donation** - **user** *(required)*, **amount** *(required)*, **ko-fi-url** *(optional)*, **reason** *(optional)*",
+              "**cancel-subscription** - **user** *(required)*, **reason** *(optional)*",
+            ].join("\n"),
+            inline: false,
+          },
+          {
+            name: `Subcommands`,
+            value: [
+              "**add** - Add bonus Cores (donation Cores only) to a user's account",
+              "**remove** - Remove bonus Cores (donation Cores only) from a user's account",
+              "**set** - Set a user's bonus Core balance to a specific amount (donation Cores only, not subscription Cores)",
+              "**view** - View a user's Core information and breakdown",
+              "**add-donation** - Verify a Ko-fi donation and grant bonus Cores",
+              "**cancel-subscription** - Manually cancel a user's Core subscription",
+            ].join("\n"),
+            inline: false,
+          },
+          {
+            name: `Options`,
+            value: [
+              "**user** *(required)* - The user to manage Cores for",
+              "**amount** *(required)* - Amount of Cores to add/remove/set (1-10000 for add/remove, 0-10000 for set)",
+              "**reason** *(optional)* - Reason for the Core management action",
+              "**ko-fi-url** *(optional for add-donation)* - Ko-fi donation URL for verification",
             ].join("\n"),
             inline: false,
           },

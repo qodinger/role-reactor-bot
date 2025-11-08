@@ -31,8 +31,9 @@ A production-ready Discord bot for self-assignable roles through reactions. Buil
 ## ✨ Features
 
 - **🎯 Self-Assignable Roles**: Users can assign/remove roles by reacting to messages
-- **⏰ Temporary Roles**: Auto-expire roles after a set time with smart notifications and voice restriction enforcement
-- **📅 Schedule Roles**: Schedule automatic role assignments and removals with one-time or recurring schedules, including voice restriction enforcement
+- **⏰ Temporary Roles**: Auto-expire roles after a set time with smart notifications
+- **📅 Schedule Roles**: Schedule automatic role assignments and removals with one-time or recurring schedules
+- **Voice Channel Permissions**: Automatically enforces Connect/Speak restrictions for ALL role assignments (commands, manual, reactions, etc.)
 - **🎉 Welcome System**: Auto-welcome new members with customizable messages and auto-role assignment
 - **👋 Goodbye System**: Auto-goodbye messages when members leave with customizable placeholders
 - **🧠 Smart 8ball**: Intelligent question analysis with sentiment detection and context-aware responses
@@ -131,7 +132,7 @@ Create role-reaction messages using the `/role-reactions setup` command:
 
 ### Temporary Roles
 
-Assign temporary roles that auto-expire with smart notifications and voice restriction enforcement:
+Assign temporary roles that auto-expire with smart notifications:
 
 **Assign a temporary role:**
 
@@ -160,17 +161,9 @@ Assign temporary roles that auto-expire with smart notifications and voice restr
 - `1d` - 1 day
 - `1w` - 1 week
 
-**Voice Restrictions:**
-
-When assigning restrictive roles (roles with `Connect` or `Speak` permissions disabled), the bot automatically enforces voice restrictions:
-
-- **Disconnects** users from voice channels if the role has `Connect` permission disabled
-- **Mutes** users if the role has `Speak` permission disabled
-- Requires bot permissions: `Move Members` (for disconnecting) and `Mute Members` (for muting)
-
 ### Schedule Roles
 
-Schedule automatic role assignments and removals with voice restriction enforcement:
+Schedule automatic role assignments and removals with one-time or recurring schedules:
 
 **One-time schedule:**
 
@@ -178,7 +171,7 @@ Schedule automatic role assignments and removals with voice restriction enforcem
 /schedule-role create action:assign role:@EventRole users:@user1,@user2 schedule-type:one-time schedule:"tomorrow 8am"
 ```
 
-**Recurring schedule with voice restrictions:**
+**Recurring schedule:**
 
 ```
 /schedule-role create action:assign role:@RestrictedRole users:@user1 schedule-type:daily schedule:"9am" reason:"Night shift restriction"
@@ -199,13 +192,29 @@ Schedule automatic role assignments and removals with voice restriction enforcem
 /schedule-role cancel schedule-id:"abc123-def456-ghi789"
 ```
 
-**Voice Restrictions:**
+### Voice Channel Permissions
 
-When assigning restrictive roles (roles with `Connect` or `Speak` permissions disabled), the bot automatically:
+**Automatic Voice Management** - Works for ALL role assignments (commands, manual, reactions, etc.):
+
+When assigning roles with `Connect` or `Speak` permissions disabled, the bot automatically:
 
 - **Disconnects** users from voice channels if the role has `Connect` permission disabled
 - **Mutes** users if the role has `Speak` permission disabled
-- Requires bot permissions: `Move Members` (for disconnecting) and `Mute Members` (for muting)
+- **Unmutes** users when restrictive roles are removed
+
+**Works with:**
+
+- `/temp-roles` command
+- `/schedule-role` command
+- Role reactions
+- Manual role assignments (by admins)
+- Any other method of role assignment
+
+**Requirements:**
+
+- Bot needs `Move Members` permission (for disconnecting users)
+- Bot needs `Mute Members` permission (for muting users)
+- Works automatically - no additional configuration needed!
 
 ### Welcome System
 
@@ -336,6 +345,7 @@ The XP system is **disabled by default** and must be enabled by server administr
 | `/schedule-role list`    | List active schedules                    | Manage Roles  |
 | `/schedule-role view`    | View schedule details                    | Manage Roles  |
 | `/schedule-role cancel`  | Cancel a schedule                        | Manage Roles  |
+| `/schedule-role delete`  | Permanently delete a schedule            | Manage Roles  |
 | `/welcome setup`         | Configure welcome system                 | Manage Server |
 | `/welcome settings`      | View welcome system settings             | Manage Server |
 | `/goodbye setup`         | Configure goodbye system                 | Manage Server |
@@ -344,28 +354,38 @@ The XP system is **disabled by default** and must be enabled by server administr
 
 #### Developer Commands
 
-| Command            | Description                                  | Permissions |
-| ------------------ | -------------------------------------------- | ----------- |
-| `/health`          | 🔒 [DEVELOPER ONLY] Check bot health status  | Developer   |
-| `/performance`     | 🔒 [DEVELOPER ONLY] View performance metrics | Developer   |
-| `/storage`         | 🔒 [DEVELOPER ONLY] Show storage status      | Developer   |
-| `/core-management` | 🔒 [DEVELOPER ONLY] Manage user Core credits | Developer   |
+| Command                                | Description                                      | Permissions |
+| -------------------------------------- | ------------------------------------------------ | ----------- |
+| `/health`                              | 🔒 [DEVELOPER ONLY] Check bot health status      | Developer   |
+| `/performance`                         | 🔒 [DEVELOPER ONLY] View performance metrics     | Developer   |
+| `/storage`                             | 🔒 [DEVELOPER ONLY] Show storage status          | Developer   |
+| `/core-management`                     | 🔒 [DEVELOPER ONLY] Manage user Core credits     | Developer   |
+| `/core-management add`                 | 🔒 [DEVELOPER ONLY] Add bonus Cores to user      | Developer   |
+| `/core-management remove`              | 🔒 [DEVELOPER ONLY] Remove bonus Cores from user | Developer   |
+| `/core-management set`                 | 🔒 [DEVELOPER ONLY] Set user Core balance        | Developer   |
+| `/core-management view`                | 🔒 [DEVELOPER ONLY] View user Core information   | Developer   |
+| `/core-management add-donation`        | 🔒 [DEVELOPER ONLY] Verify Ko-fi donation        | Developer   |
+| `/core-management cancel-subscription` | 🔒 [DEVELOPER ONLY] Cancel Core subscription     | Developer   |
 
 #### General Commands
 
-| Command        | Description                                     | Permissions |
-| -------------- | ----------------------------------------------- | ----------- |
-| `/help`        | Display comprehensive bot help and information  | None        |
-| `/ping`        | Check bot latency and status                    | None        |
-| `/invite`      | Get bot invite link with proper permissions     | None        |
-| `/support`     | Get support server and GitHub links             | None        |
-| `/sponsor`     | Support bot development (donations)             | None        |
-| `/8ball`       | Ask the magic 8ball with intelligent responses  | None        |
-| `/avatar`      | Generate AI-powered avatars with custom prompts | None        |
-| `/core`        | Check Core balance and view pricing             | None        |
-| `/poll`        | Create and manage native Discord polls          | None        |
-| `/level`       | Check user XP level and statistics              | None        |
-| `/leaderboard` | View server XP leaderboard                      | None        |
+| Command         | Description                                     | Permissions |
+| --------------- | ----------------------------------------------- | ----------- |
+| `/help`         | Display comprehensive bot help and information  | None        |
+| `/ping`         | Check bot latency and status                    | None        |
+| `/invite`       | Get bot invite link with proper permissions     | None        |
+| `/support`      | Get support server and GitHub links             | None        |
+| `/sponsor`      | Support bot development (donations)             | None        |
+| `/8ball`        | Ask the magic 8ball with intelligent responses  | None        |
+| `/avatar`       | Generate AI-powered avatars with custom prompts | None        |
+| `/core balance` | Check your current Core balance and tier status | None        |
+| `/core pricing` | View Core pricing and membership benefits       | None        |
+| `/poll create`  | Create a new poll using interactive form        | None        |
+| `/poll list`    | List all polls in the server                    | None        |
+| `/poll end`     | End an active poll early                        | None        |
+| `/poll delete`  | Delete a poll permanently                       | None        |
+| `/level`        | Check user XP level and statistics              | None        |
+| `/leaderboard`  | View server XP leaderboard                      | None        |
 
 ## 🔧 Configuration
 

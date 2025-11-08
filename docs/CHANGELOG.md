@@ -14,14 +14,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Voice Restrictions for Temp-Roles: Users are automatically disconnected or muted when assigned restrictive temporary roles
 - Voice Restrictions for Schedule-Role: Automatic voice restriction enforcement for scheduled role assignments
 - Voice Restrictions for Existing Members: Voice restrictions now apply to members who already have restrictive roles when they join voice channels
+- Temp-Roles Bulk Targeting: Added support for targeting multiple users by role in `/temp-roles` command with Core member benefits
 
 ### Changed
 
 - Temp-Roles Documentation: Updated to include voice restrictions feature
 
-### Fixed
+### Performance
 
-- Role Expiration Scheduler: Fixed duplicate cleanup logic that could cause errors during role expiration
+- Voice Operations: Significantly improved voice restriction enforcement speed and efficiency, especially for servers with many members
+- Voice Operations Queue: Optimized voice operation processing to handle high concurrency scenarios faster
+- Voice Restrictions: Reduced delays and improved response times when muting or disconnecting users with restrictive roles
 
 ## [1.3.1] - 2025-11-02
 
