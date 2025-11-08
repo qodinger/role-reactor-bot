@@ -121,6 +121,19 @@ export async function enforceVoiceRestrictions(
     return { disconnected: false, muted: false };
   }
 
+  // Refresh member to get latest voice state and roles
+  // This is important when roles are removed - we need the latest state
+  // Note: member.fetch() automatically updates the voice state, so we don't need to fetch it separately
+  try {
+    await member.fetch();
+  } catch (error) {
+    logger.debug(
+      `Failed to refresh member ${member.user.tag} in enforceVoiceRestrictions:`,
+      error.message,
+    );
+    // Continue with cached data if fetch fails
+  }
+
   const channel = member.voice.channel;
   const guild = member.guild;
   const botMember = guild.members.me;
@@ -218,6 +231,7 @@ export async function enforceVoiceRestrictions(
   if (hasRestrictiveSpeakRole) {
     if (hasMuteMembers) {
       // Only mute if not already muted
+      // OPTIMIZATION: Skip rate limit check if already muted - saves an API call
       if (!member.voice.mute && !member.voice.selfMute) {
         // Check rate limit before muting
         if (await isVoiceOperationRateLimited(member.id, guild.id)) {
@@ -267,9 +281,11 @@ export async function enforceVoiceRestrictions(
           };
         }
       } else {
+        // OPTIMIZATION: User already muted - return success without any operations
         logger.debug(
           `User ${member.user.tag} already muted (voice.mute=${member.voice.mute}, voice.selfMute=${member.voice.selfMute}) - keeping muted due to restrictive role`,
         );
+        return { disconnected: false, muted: true }; // Return success since they're already muted
       }
     } else {
       logger.error(
@@ -287,74 +303,93 @@ export async function enforceVoiceRestrictions(
   }
 
   // If no restrictions, check if user should be unmuted (removed restrictive role)
+  // IMPORTANT: Always check if user should be unmuted, even if they're not currently muted
+  // This handles cases where users joined voice with a restrictive role but weren't muted
+  // due to rate limits or timing issues
   logger.debug(
-    `Unmute check for ${member.user.tag}: voice.mute=${member.voice.mute}, voice.selfMute=${member.voice.selfMute}, hasRestrictiveSpeakRole=${hasRestrictiveSpeakRole}, hasMuteMembers=${hasMuteMembers}`,
+    `Unmute check for ${member.user.tag}: voice.mute=${member.voice.mute}, voice.selfMute=${member.voice.selfMute}, hasRestrictiveSpeakRole=${hasRestrictiveSpeakRole}, hasMuteMembers=${hasMuteMembers}, channel=${channel.name}`,
   );
 
-  if (
-    member.voice.mute &&
-    !member.voice.selfMute &&
-    !hasRestrictiveSpeakRole &&
-    hasMuteMembers
-  ) {
-    // Check rate limit before unmuting
-    if (await isVoiceOperationRateLimited(member.id, guild.id)) {
-      const remainingTime = getVoiceOperationRemainingTime(member.id, guild.id);
-      logger.warn(
-        `⏸️ Rate limited: Cannot unmute ${member.user.tag} - too many voice operations. Retry after ${Math.ceil(remainingTime / 1000)}s`,
-      );
-      return {
-        disconnected: false,
-        muted: false,
-        error: "Rate limited",
-        needsWait: true,
-      };
-    }
-
-    logger.debug(
-      `All conditions met for unmute - attempting to unmute ${member.user.tag}`,
-    );
-    try {
-      await member.voice.setMute(
-        false,
-        `${reason}: Restrictive Speak role removed`,
-      );
-      logger.info(
-        `🔊 Unmuted ${member.user.tag} in voice channel ${channel.name} - no longer has restrictive Speak role`,
-      );
-      return { disconnected: false, muted: false, unmuted: true };
-    } catch (unmuteError) {
-      // Check if it's a rate limit error
-      if (
-        unmuteError.message?.includes("rate limit") ||
-        unmuteError.code === 429
-      ) {
-        logger.warn(
-          `🚫 Discord rate limit hit while unmuting ${member.user.tag}. Will retry after cooldown.`,
+  // If user has no restrictive role and bot has permission, ensure they're not muted
+  // This handles both cases:
+  // 1. User was muted by bot and role was removed -> unmute them
+  // 2. User joined voice with restrictive role but wasn't muted -> ensure they're not muted
+  if (!hasRestrictiveSpeakRole && hasMuteMembers) {
+    // Only attempt unmute if user is muted and not self-muted
+    // If user is not muted, they're already in the correct state
+    if (member.voice.mute && !member.voice.selfMute) {
+      // Check rate limit before unmuting
+      if (await isVoiceOperationRateLimited(member.id, guild.id)) {
+        const remainingTime = getVoiceOperationRemainingTime(
+          member.id,
+          guild.id,
         );
-      } else {
         logger.warn(
-          `Failed to unmute ${member.user.tag} in voice channel:`,
-          unmuteError.message,
+          `⏸️ Rate limited: Cannot unmute ${member.user.tag} - too many voice operations. Retry after ${Math.ceil(remainingTime / 1000)}s`,
         );
+        return {
+          disconnected: false,
+          muted: false,
+          error: "Rate limited",
+          needsWait: true,
+        };
       }
-      return {
-        disconnected: false,
-        muted: false,
-        error: unmuteError.message,
-      };
-    }
-  } else {
-    // Log why unmute wasn't attempted
-    if (!member.voice.mute) {
+
       logger.debug(
-        `Not unmuting ${member.user.tag} - user is not muted (voice.mute=false)`,
+        `All conditions met for unmute - attempting to unmute ${member.user.tag}`,
       );
+      try {
+        await member.voice.setMute(
+          false,
+          `${reason}: Restrictive Speak role removed`,
+        );
+        logger.info(
+          `🔊 Unmuted ${member.user.tag} in voice channel ${channel.name} - no longer has restrictive Speak role`,
+        );
+        return { disconnected: false, muted: false, unmuted: true };
+      } catch (unmuteError) {
+        // Check if it's a rate limit error
+        if (
+          unmuteError.message?.includes("rate limit") ||
+          unmuteError.code === 429
+        ) {
+          logger.warn(
+            `🚫 Discord rate limit hit while unmuting ${member.user.tag}. Will retry after cooldown.`,
+          );
+          return {
+            disconnected: false,
+            muted: false,
+            error: "Rate limited",
+            needsWait: true,
+          };
+        } else {
+          logger.warn(
+            `Failed to unmute ${member.user.tag} in voice channel:`,
+            unmuteError.message,
+          );
+        }
+        return {
+          disconnected: false,
+          muted: false,
+          error: unmuteError.message,
+        };
+      }
+    } else if (!member.voice.mute) {
+      // User is not muted and has no restrictive role - this is the correct state
+      logger.debug(
+        `User ${member.user.tag} is not muted and has no restrictive role - correct state`,
+      );
+      return { disconnected: false, muted: false, unmuted: false };
     } else if (member.voice.selfMute) {
+      // User is self-muted - don't interfere
       logger.debug(
         `Not unmuting ${member.user.tag} - user is self-muted (voice.selfMute=true)`,
       );
-    } else if (hasRestrictiveSpeakRole) {
+      return { disconnected: false, muted: false, unmuted: false };
+    }
+  } else {
+    // Log why unmute wasn't attempted
+    if (hasRestrictiveSpeakRole) {
       logger.debug(
         `Not unmuting ${member.user.tag} - user still has restrictive Speak role`,
       );

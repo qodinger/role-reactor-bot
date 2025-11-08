@@ -211,14 +211,14 @@ export function getRateLimitRemainingTime(userId, commandName) {
 }
 
 /**
- * Check if voice operation is rate limited with Core member benefits
+ * Check if voice operation would be rate limited (without recording)
  * Discord allows ~10 voice operations per 10 seconds per user
  * @param {string} userId - User ID
  * @param {string} guildId - Guild ID (optional, for per-guild limits)
  * @param {Object} coreUserData - Optional Core user data (for performance, avoids async lookup)
  * @returns {Promise<boolean>} True if rate limited
  */
-export async function isVoiceOperationRateLimited(
+export async function wouldVoiceOperationBeRateLimited(
   userId,
   guildId = null,
   coreUserData = null,
@@ -250,6 +250,40 @@ export async function isVoiceOperationRateLimited(
   if (guildVoiceLimit && guildVoiceLimit.isExceeded()) {
     return true;
   }
+
+  return false;
+}
+
+/**
+ * Check if voice operation is rate limited with Core member benefits
+ * Discord allows ~10 voice operations per 10 seconds per user
+ * This function RECORDS the operation, so only call it when actually executing
+ * @param {string} userId - User ID
+ * @param {string} guildId - Guild ID (optional, for per-guild limits)
+ * @param {Object} coreUserData - Optional Core user data (for performance, avoids async lookup)
+ * @returns {Promise<boolean>} True if rate limited
+ */
+export async function isVoiceOperationRateLimited(
+  userId,
+  guildId = null,
+  coreUserData = null,
+) {
+  // Check if would be rate limited (without recording)
+  const wouldBeLimited = await wouldVoiceOperationBeRateLimited(
+    userId,
+    guildId,
+    coreUserData,
+  );
+
+  if (wouldBeLimited) {
+    return true;
+  }
+
+  // Only record if not rate limited (we're actually executing the operation)
+  const voiceLimit = rateLimiter.get(`voice:${userId}`);
+  const guildVoiceLimit = guildId
+    ? rateLimiter.get(`voice:guild:${guildId}`)
+    : null;
 
   voiceLimit.record();
   if (guildVoiceLimit) {

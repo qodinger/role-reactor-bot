@@ -4,7 +4,7 @@ import {
   removeTemporaryRole,
   getUserTemporaryRoles,
 } from "../../../utils/discord/tempRoles.js";
-import { enforceVoiceRestrictions } from "../../../utils/discord/voiceRestrictions.js";
+import { getVoiceOperationQueue } from "../../../utils/discord/voiceOperationQueue.js";
 
 // ============================================================================
 // VALIDATION FUNCTIONS
@@ -214,6 +214,18 @@ export async function processUserList(usersString, interaction) {
   }
 
   if (validUsers.length === 0) {
+    // Check if role mentions were provided
+    const roleMentions = userList.filter(userStr => /<@&\d+>/.test(userStr));
+    if (roleMentions.length > 0) {
+      return {
+        valid: false,
+        error:
+          "Role mentions are not supported. Please use user mentions or user IDs.",
+        solution:
+          "Use user mentions (@User) or user IDs instead of role mentions (@Role).",
+      };
+    }
+
     return {
       valid: false,
       error: "No valid users found.",
@@ -433,30 +445,29 @@ export async function removeRoleFromUser(
       await removeTemporaryRoleData(user.id, role.id, guild.id);
     }
 
-    // Enforce voice restrictions if user is in a voice channel
-    // This will unmute them if they no longer have restrictive Speak roles
+    // Queue voice operation if user is in a voice channel
+    // The global queue will handle unmuting if they no longer have restrictive Speak roles
     if (member.voice?.channel) {
       try {
-        // Refresh member to ensure we have latest roles
-        await member.fetch();
+        const voiceQueue = getVoiceOperationQueue();
 
-        const result = await enforceVoiceRestrictions(
-          member,
-          `Temporary role removal: ${role.name}`,
-        );
-
-        if (result.unmuted) {
-          logger.info(
-            `🔊 Unmuted ${member.user.tag} in voice channel after removing temporary role "${role.name}" (no longer has restrictive Speak role)`,
-          );
-        } else if (result.error) {
-          logger.warn(
-            `⚠️ Failed to enforce voice restrictions for ${member.user.tag}: ${result.error}`,
-          );
-        }
+        // Queue the operation - queue will handle rate limiting and retries
+        voiceQueue
+          .queueOperation({
+            member,
+            role,
+            reason: `Temporary role removal: ${role.name}`,
+            type: "enforce",
+          })
+          .catch(error => {
+            logger.debug(
+              `Failed to queue voice operation for ${member.user.tag}:`,
+              error.message,
+            );
+          });
       } catch (voiceError) {
         logger.warn(
-          `Failed to enforce voice restrictions for ${member.user.tag}:`,
+          `Failed to queue voice operation for ${member.user.tag}:`,
           voiceError.message,
         );
       }

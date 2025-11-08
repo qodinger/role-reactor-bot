@@ -5,6 +5,7 @@ import {
   bulkRemoveRoles,
   getCachedMember,
 } from "../../utils/discord/roleManager.js";
+import { getVoiceOperationQueue } from "../../utils/discord/voiceOperationQueue.js";
 
 /**
  * Role executor for large-scale operations
@@ -329,94 +330,48 @@ export class RoleExecutor {
       );
     }
 
-    for (const operation of operations) {
+    // Use global voice operation queue
+    const voiceQueue = getVoiceOperationQueue();
+
+    logger.info(
+      `Queueing ${operations.length} voice restriction operations for global processing`,
+    );
+
+    // Queue all operations
+    const queuePromises = operations.map(operation => {
       const { member, role } = operation;
 
-      // Check if user is in a voice channel
+      // Only queue if user is in a voice channel
       if (!member.voice?.channel) {
-        continue;
+        return Promise.resolve({ success: true, skipped: true });
       }
 
-      // Refresh member to get updated role cache after role assignment
-      try {
-        await member.fetch();
-      } catch (error) {
-        logger.debug(
-          `Failed to refresh member ${member.user.tag}:`,
-          error.message,
-        );
-      }
+      return voiceQueue.queueOperation({
+        member,
+        role,
+        reason: `Scheduled restriction: ${reason}`,
+        type: "enforce",
+      });
+    });
 
-      const channel = member.voice.channel;
+    // Don't wait for all operations - let queue handle them
+    Promise.allSettled(queuePromises)
+      .then(results => {
+        const successCount = results.filter(
+          r =>
+            r.status === "fulfilled" && (r.value?.success || r.value?.skipped),
+        ).length;
+        const failureCount = results.length - successCount;
 
-      // Check if the restrictive role has Connect disabled - ONLY disconnect for Connect issues
-      const roleCanConnect = role
-        ? (channel.permissionsFor(role)?.has("Connect") ?? true)
-        : true;
-
-      // Check if the restrictive role has Speak disabled - ONLY mute for Speak issues
-      const roleCanSpeak = role
-        ? (channel.permissionsFor(role)?.has("Speak") ?? true)
-        : true;
-
-      // Handle Connect restriction - disconnect only
-      if (!roleCanConnect) {
-        if (hasMoveMembers) {
-          try {
-            await member.voice.disconnect(
-              `Scheduled restriction: ${reason} - Role "${role.name}" has Connect disabled`,
-            );
-            logger.info(
-              `🚫 Disconnected ${member.user.tag} from voice channel due to scheduled role "${role.name}" (Connect disabled)`,
-            );
-            continue; // Successfully disconnected, move to next user
-          } catch (disconnectError) {
-            logger.error(
-              `❌ Failed to disconnect ${member.user.tag} from voice channel: ${disconnectError.message}. ` +
-                `Enable "Move Members" permission in Server Settings → Roles → [Bot's Role] → General Permissions.`,
-            );
-            continue; // Don't fall back to muting for Connect issues
-          }
-        } else {
-          logger.error(
-            `❌ Cannot disconnect ${member.user.tag} - bot missing MoveMembers permission. ` +
-              `Enable "Move Members" permission in Server Settings → Roles → [Bot's Role] → General Permissions. ` +
-              `Connect restrictions require disconnection, not muting.`,
-          );
-          continue; // Don't fall back to muting for Connect issues
-        }
-      }
-
-      // Handle Speak restriction - mute only
-      if (!roleCanSpeak && hasMuteMembers) {
-        // Only mute if not already muted
-        if (!member.voice.mute && !member.voice.selfMute) {
-          try {
-            await member.voice.setMute(
-              true,
-              `Scheduled restriction: ${reason} - Role "${role.name}" has Speak disabled`,
-            );
-            logger.info(
-              `🔇 Muted ${member.user.tag} in voice channel due to scheduled role "${role.name}" (Speak disabled)`,
-            );
-          } catch (muteError) {
-            logger.error(
-              `❌ Failed to mute ${member.user.tag} in voice channel: ${muteError.message}. ` +
-                `Ensure bot has "Mute Members" permission in Server Settings → Roles → [Bot's Role] → General Permissions`,
-            );
-          }
-        } else {
+        if (failureCount > 0) {
           logger.debug(
-            `User ${member.user.tag} already muted (voice.mute=${member.voice.mute}, voice.selfMute=${member.voice.selfMute}) - keeping muted due to restrictive role`,
+            `Voice operations queued: ${successCount} queued, ${failureCount} failed`,
           );
         }
-      } else if (!roleCanSpeak && !hasMuteMembers) {
-        logger.error(
-          `❌ Cannot mute ${member.user.tag} - bot missing MuteMembers permission. ` +
-            `Enable "Mute Members" permission in Server Settings → Roles → [Bot's Role] → General Permissions.`,
-        );
-      }
-    }
+      })
+      .catch(error => {
+        logger.warn("Error queuing voice operations:", error);
+      });
   }
 
   /**
@@ -450,77 +405,48 @@ export class RoleExecutor {
       return;
     }
 
-    for (const operation of operations) {
+    // Use global voice operation queue
+    const voiceQueue = getVoiceOperationQueue();
+
+    logger.info(
+      `Queueing ${operations.length} voice unmute operations for global processing`,
+    );
+
+    // Queue all operations
+    const queuePromises = operations.map(operation => {
       const { member, role } = operation;
 
-      // Check if user is in a voice channel and muted
+      // Only queue if user is in a voice channel and muted
       if (!member.voice?.channel || !member.voice.mute) {
-        continue;
+        return Promise.resolve({ success: true, skipped: true });
       }
 
-      // Refresh member to get updated role cache after role removal
-      try {
-        await member.fetch();
-      } catch (error) {
-        logger.debug(
-          `Failed to refresh member ${member.user.tag}:`,
-          error.message,
-        );
-      }
+      return voiceQueue.queueOperation({
+        member,
+        role,
+        reason: `Restrictive role removed: ${reason}`,
+        type: "enforce",
+      });
+    });
 
-      const channel = member.voice.channel;
+    // Don't wait for all operations - let queue handle them
+    Promise.allSettled(queuePromises)
+      .then(results => {
+        const successCount = results.filter(
+          r =>
+            r.status === "fulfilled" && (r.value?.success || r.value?.skipped),
+        ).length;
+        const failureCount = results.length - successCount;
 
-      // Check if the removed role had Speak disabled
-      const removedRoleHadSpeakDisabled = role
-        ? !(channel.permissionsFor(role)?.has("Speak") ?? true)
-        : false;
-
-      // Check if user still has any other restrictive Speak role
-      let hasOtherRestrictiveSpeakRole = false;
-      for (const memberRole of member.roles.cache.values()) {
-        if (memberRole.id === role.id) {
-          // Skip the role that was just removed (shouldn't be in cache, but just in case)
-          continue;
-        }
-
-        const rolePermissions = channel.permissionsFor(memberRole);
-        const canSpeak = rolePermissions?.has("Speak") ?? true;
-
-        const channelOverrides = channel.permissionOverwrites.cache.get(
-          memberRole.id,
-        );
-        const overrideAllowsSpeak = channelOverrides
-          ? channelOverrides.allow.has("Speak")
-          : false;
-        const overrideDeniesSpeak = channelOverrides
-          ? channelOverrides.deny.has("Speak")
-          : false;
-
-        if ((!canSpeak || overrideDeniesSpeak) && !overrideAllowsSpeak) {
-          hasOtherRestrictiveSpeakRole = true;
-          break;
-        }
-      }
-
-      // If the removed role had Speak disabled AND user doesn't have other restrictive Speak roles,
-      // unmute them
-      if (removedRoleHadSpeakDisabled && !hasOtherRestrictiveSpeakRole) {
-        try {
-          await member.voice.setMute(
-            false,
-            `Restrictive role removed: ${reason}`,
-          );
-          logger.info(
-            `🔊 Unmuted ${member.user.tag} in voice channel - restrictive Speak role "${role.name}" was removed`,
-          );
-        } catch (unmuteError) {
-          logger.warn(
-            `Failed to unmute ${member.user.tag} in voice channel:`,
-            unmuteError.message,
+        if (failureCount > 0) {
+          logger.debug(
+            `Voice unmute operations queued: ${successCount} queued, ${failureCount} failed`,
           );
         }
-      }
-    }
+      })
+      .catch(error => {
+        logger.warn("Error queuing voice unmute operations:", error);
+      });
   }
 
   /**

@@ -7,7 +7,7 @@ import {
   getCachedMember,
 } from "../../utils/discord/roleManager.js";
 import { THEME, EMOJIS } from "../../config/theme.js";
-import { enforceVoiceRestrictions } from "../../utils/discord/voiceRestrictions.js";
+import { getVoiceOperationQueue } from "../../utils/discord/voiceOperationQueue.js";
 import {
   getUsersCorePriority,
   sortByCorePriority,
@@ -193,26 +193,25 @@ class RoleExpirationScheduler {
           // This will unmute them if they no longer have restrictive Speak roles
           if (roleRemoval.member.voice?.channel) {
             try {
-              // Refresh member to ensure we have latest roles
-              await roleRemoval.member.fetch();
+              // Queue voice operation - global queue will handle it
+              const voiceQueue = getVoiceOperationQueue();
 
-              const voiceResult = await enforceVoiceRestrictions(
-                roleRemoval.member,
-                `Temporary role expired: ${roleRemoval.role.name}`,
-              );
-
-              if (voiceResult.unmuted) {
-                this.logger.info(
-                  `🔊 Unmuted ${roleRemoval.member.user.tag} in voice channel after role "${roleRemoval.role.name}" expired (no longer has restrictive Speak role)`,
-                );
-              } else if (voiceResult.error) {
-                this.logger.warn(
-                  `⚠️ Failed to enforce voice restrictions for ${roleRemoval.member.user.tag}: ${voiceResult.error}`,
-                );
-              }
+              voiceQueue
+                .queueOperation({
+                  member: roleRemoval.member,
+                  role: roleRemoval.role,
+                  reason: `Temporary role expired: ${roleRemoval.role.name}`,
+                  type: "enforce",
+                })
+                .catch(error => {
+                  this.logger.debug(
+                    `Failed to queue voice operation for ${roleRemoval.member.user.tag}:`,
+                    error.message,
+                  );
+                });
             } catch (voiceError) {
               this.logger.warn(
-                `Failed to enforce voice restrictions for ${roleRemoval.member.user.tag}:`,
+                `Failed to queue voice operation for ${roleRemoval.member.user.tag}:`,
                 voiceError.message,
               );
             }

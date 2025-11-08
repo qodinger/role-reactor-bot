@@ -12,7 +12,6 @@ import {
   sortByCorePriority,
   logPriorityDistribution,
 } from "../../commands/general/core/utils.js";
-import { delay } from "../../utils/delay.js";
 
 class RoleScheduler {
   constructor(client) {
@@ -376,7 +375,7 @@ class RoleScheduler {
    * @param {string} reason - Reason for the voice restriction
    */
   async handleVoiceRestrictions(operations, reason) {
-    const logger = getLogger();
+    const logger = this.logger;
 
     if (operations.length === 0) {
       return;
@@ -410,83 +409,51 @@ class RoleScheduler {
       );
     }
 
-    // Use centralized voice restriction utility which handles rate limiting
-    const { enforceVoiceRestrictions } = await import(
-      "../../utils/discord/voiceRestrictions.js"
+    // Use global voice operation queue
+    const { getVoiceOperationQueue } = await import(
+      "../../utils/discord/voiceOperationQueue.js"
     );
-
-    // Process voice operations in batches to avoid rate limits
-    // Discord allows ~10 voice operations per 10 seconds per user
-    // Batch size: 5 operations per batch with 150ms delay
-    const batchSize = 5;
-    const batchDelay = 150;
+    const voiceQueue = getVoiceOperationQueue();
 
     logger.info(
-      `Processing ${operations.length} voice restriction operations in batches`,
+      `Queueing ${operations.length} voice restriction operations for global processing`,
     );
 
-    for (let i = 0; i < operations.length; i += batchSize) {
-      const batch = operations.slice(i, i + batchSize);
+    // Queue all operations
+    const queuePromises = operations.map(operation => {
+      const { member, role } = operation;
 
-      // Process batch in parallel
-      const batchPromises = batch.map(async operation => {
-        const { member, role } = operation;
-
-        // Check if user is in a voice channel
-        if (!member.voice?.channel) {
-          return { success: true, skipped: true };
-        }
-
-        // Refresh member to get updated role cache after role assignment
-        try {
-          await member.fetch();
-        } catch (error) {
-          logger.debug(
-            `Failed to refresh member ${member.user.tag}:`,
-            error.message,
-          );
-        }
-
-        // Use centralized utility which handles rate limiting
-        const result = await enforceVoiceRestrictions(
-          member,
-          `Scheduled restriction: ${reason}`,
-        );
-
-        if (result.disconnected) {
-          logger.info(
-            `🚫 Disconnected ${member.user.tag} from voice channel due to scheduled role "${role.name}" (Connect disabled)`,
-          );
-        } else if (result.muted) {
-          logger.info(
-            `🔇 Muted ${member.user.tag} in voice channel due to scheduled role "${role.name}" (Speak disabled)`,
-          );
-        } else if (result.error) {
-          if (result.needsWait) {
-            logger.warn(
-              `⏸️ Rate limited: Skipped voice restriction for ${member.user.tag} - will retry later`,
-            );
-          } else {
-            logger.warn(
-              `⚠️ Failed to enforce voice restriction for ${member.user.tag}: ${result.error}`,
-            );
-          }
-        }
-
-        return { success: !result.error, result };
-      });
-
-      await Promise.allSettled(batchPromises);
-
-      // Delay between batches to avoid rate limits
-      if (i + batchSize < operations.length) {
-        await delay(batchDelay);
+      // Only queue if user is in a voice channel
+      if (!member.voice?.channel) {
+        return Promise.resolve({ success: true, skipped: true });
       }
-    }
 
-    logger.info(
-      `Completed voice restriction processing for ${operations.length} operations`,
-    );
+      return voiceQueue.queueOperation({
+        member,
+        role,
+        reason: `Scheduled restriction: ${reason}`,
+        type: "enforce",
+      });
+    });
+
+    // Don't wait for all operations - let queue handle them
+    Promise.allSettled(queuePromises)
+      .then(results => {
+        const successCount = results.filter(
+          r =>
+            r.status === "fulfilled" && (r.value?.success || r.value?.skipped),
+        ).length;
+        const failureCount = results.length - successCount;
+
+        if (failureCount > 0) {
+          logger.debug(
+            `Voice operations queued: ${successCount} queued, ${failureCount} failed`,
+          );
+        }
+      })
+      .catch(error => {
+        logger.warn("Error queuing voice operations:", error);
+      });
   }
 
   /**
@@ -520,82 +487,51 @@ class RoleScheduler {
       return;
     }
 
-    // Use centralized voice restriction utility which handles rate limiting
-    const { enforceVoiceRestrictions } = await import(
-      "../../utils/discord/voiceRestrictions.js"
+    // Use global voice operation queue
+    const { getVoiceOperationQueue } = await import(
+      "../../utils/discord/voiceOperationQueue.js"
     );
-
-    // Process voice operations in batches to avoid rate limits
-    const batchSize = 5;
-    const batchDelay = 150;
+    const voiceQueue = getVoiceOperationQueue();
 
     logger.info(
-      `Processing ${operations.length} voice unmute operations in batches`,
+      `Queueing ${operations.length} voice unmute operations for global processing`,
     );
 
-    for (let i = 0; i < operations.length; i += batchSize) {
-      const batch = operations.slice(i, i + batchSize);
+    // Queue all operations
+    const queuePromises = operations.map(operation => {
+      const { member, role } = operation;
 
-      // Process batch in parallel
-      const batchPromises = batch.map(async operation => {
-        const { member, role } = operation;
+      // Only queue if user is in a voice channel and muted
+      if (!member.voice?.channel || !member.voice.mute) {
+        return Promise.resolve({ success: true, skipped: true });
+      }
 
-        // Check if user is in a voice channel and muted
-        if (!member.voice?.channel || !member.voice.mute) {
-          return { success: true, skipped: true };
-        }
-
-        // Refresh member to get updated role cache after role removal
-        try {
-          await member.fetch();
-        } catch (error) {
-          logger.debug(
-            `Failed to refresh member ${member.user.tag}:`,
-            error.message,
-          );
-        }
-
-        // Use centralized utility which handles rate limiting and checks restrictions
-        const result = await enforceVoiceRestrictions(
-          member,
-          `Restrictive role removed: ${reason}`,
-        );
-
-        if (result.unmuted) {
-          logger.info(
-            `🔊 Unmuted ${member.user.tag} in voice channel - restrictive Speak role "${role.name}" was removed`,
-          );
-        } else if (result.error) {
-          if (result.needsWait) {
-            logger.warn(
-              `⏸️ Rate limited: Skipped unmute for ${member.user.tag} - will retry later`,
-            );
-          } else {
-            logger.debug(`Not unmuting ${member.user.tag}: ${result.error}`);
-          }
-        }
-
-        return { success: result.unmuted || false, result };
+      return voiceQueue.queueOperation({
+        member,
+        role,
+        reason: `Restrictive role removed: ${reason}`,
+        type: "enforce",
       });
+    });
 
-      const batchResults = await Promise.allSettled(batchPromises);
-      // Log any failures (results are already logged in individual promises)
-      const failures = batchResults.filter(r => r.status === "rejected");
-      if (failures.length > 0) {
-        logger.warn(
-          `${failures.length} voice unmute operations failed in batch`,
-        );
-      }
+    // Don't wait for all operations - let queue handle them
+    Promise.allSettled(queuePromises)
+      .then(results => {
+        const successCount = results.filter(
+          r =>
+            r.status === "fulfilled" && (r.value?.success || r.value?.skipped),
+        ).length;
+        const failureCount = results.length - successCount;
 
-      // Delay between batches to avoid rate limits
-      if (i + batchSize < operations.length) {
-        await delay(batchDelay);
-      }
-    }
-
-    logger.info(
-      `Completed voice unmute processing for ${operations.length} operations`,
-    );
+        if (failureCount > 0) {
+          logger.debug(
+            `Voice unmute operations queued: ${successCount} queued, ${failureCount} failed`,
+          );
+        }
+      })
+      .catch(error => {
+        logger.warn("Error queuing voice unmute operations:", error);
+      });
   }
 
   async processGuildSchedules(guildId, schedules, databaseManager) {

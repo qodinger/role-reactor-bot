@@ -3,7 +3,7 @@ import { getDatabaseManager } from "../storage/databaseManager.js";
 import { getLogger } from "../logger.js";
 import { EmbedBuilder } from "discord.js";
 import { THEME } from "../../config/theme.js";
-import { enforceVoiceRestrictions } from "./voiceRestrictions.js";
+import { getVoiceOperationQueue } from "./voiceOperationQueue.js";
 
 /**
  * Send DM notification to user about role assignment
@@ -170,33 +170,28 @@ export async function addTemporaryRole(
           `✅ Successfully assigned temporary role ${role.name} to user ${userId}`,
         );
 
-        // Enforce voice restrictions if user is in a voice channel
+        // Queue voice operation if user is in a voice channel
+        // The global queue will handle enforcing restrictions
         if (member.voice?.channel) {
           try {
-            // Refresh member to ensure we have latest roles
-            await member.fetch();
+            const voiceQueue = getVoiceOperationQueue();
 
-            const result = await enforceVoiceRestrictions(
-              member,
-              `Temporary role assignment: ${role.name}`,
-            );
-
-            if (result.disconnected) {
-              logger.info(
-                `🚫 Disconnected ${member.user.tag} from voice channel due to temporary role "${role.name}" (Connect disabled)`,
-              );
-            } else if (result.muted) {
-              logger.info(
-                `🔇 Muted ${member.user.tag} in voice channel due to temporary role "${role.name}" (Speak disabled)`,
-              );
-            } else if (result.error) {
-              logger.warn(
-                `⚠️ Failed to enforce voice restrictions for ${member.user.tag}: ${result.error}`,
-              );
-            }
+            voiceQueue
+              .queueOperation({
+                member,
+                role,
+                reason: `Temporary role assignment: ${role.name}`,
+                type: "enforce",
+              })
+              .catch(error => {
+                logger.debug(
+                  `Failed to queue voice operation for ${member.user.tag}:`,
+                  error.message,
+                );
+              });
           } catch (voiceError) {
             logger.warn(
-              `Failed to enforce voice restrictions for ${member.user.tag}:`,
+              `Failed to queue voice operation for ${member.user.tag}:`,
               voiceError.message,
             );
           }
@@ -362,33 +357,28 @@ export async function addTemporaryRolesForMultipleUsers(
             `✅ Successfully assigned temporary role ${role.name} to user ${userId}`,
           );
 
-          // Enforce voice restrictions if user is in a voice channel
+          // Queue voice operation if user is in a voice channel
+          // The global queue will handle enforcing restrictions
           if (member.voice?.channel) {
             try {
-              // Refresh member to ensure we have latest roles
-              await member.fetch();
+              const voiceQueue = getVoiceOperationQueue();
 
-              const result = await enforceVoiceRestrictions(
-                member,
-                `Temporary role assignment: ${role.name}`,
-              );
-
-              if (result.disconnected) {
-                logger.info(
-                  `🚫 Disconnected ${member.user.tag} from voice channel due to temporary role "${role.name}" (Connect disabled)`,
-                );
-              } else if (result.muted) {
-                logger.info(
-                  `🔇 Muted ${member.user.tag} in voice channel due to temporary role "${role.name}" (Speak disabled)`,
-                );
-              } else if (result.error) {
-                logger.warn(
-                  `⚠️ Failed to enforce voice restrictions for ${member.user.tag}: ${result.error}`,
-                );
-              }
+              voiceQueue
+                .queueOperation({
+                  member,
+                  role,
+                  reason: `Temporary role assignment: ${role.name}`,
+                  type: "enforce",
+                })
+                .catch(error => {
+                  logger.debug(
+                    `Failed to queue voice operation for ${member.user.tag}:`,
+                    error.message,
+                  );
+                });
             } catch (voiceError) {
               logger.warn(
-                `Failed to enforce voice restrictions for ${member.user.tag}:`,
+                `Failed to queue voice operation for ${member.user.tag}:`,
                 voiceError.message,
               );
             }

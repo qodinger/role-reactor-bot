@@ -1,6 +1,6 @@
 import { Events } from "discord.js";
 import { getLogger } from "../utils/logger.js";
-import { enforceVoiceRestrictions as defaultEnforceVoiceRestrictions } from "../utils/discord/voiceRestrictions.js";
+import { getVoiceOperationQueue } from "../utils/discord/voiceOperationQueue.js";
 
 /**
  * Handle guild member updates (including role changes)
@@ -8,10 +8,8 @@ import { enforceVoiceRestrictions as defaultEnforceVoiceRestrictions } from "../
  * @param {import("discord.js").GuildMember} oldMember - Previous member state
  * @param {import("discord.js").GuildMember} newMember - New member state
  * @param {import("discord.js").Client} _client - Discord client (passed by event handler, unused)
- * @param {Object} [options] - Optional parameters
- * @param {Function} [options.enforceVoiceRestrictions] - Voice restrictions function (for testing)
  */
-export async function execute(oldMember, newMember, _client, options = {}) {
+export async function execute(oldMember, newMember, _client) {
   const logger = getLogger();
 
   try {
@@ -45,33 +43,31 @@ export async function execute(oldMember, newMember, _client, options = {}) {
       }
 
       logger.debug(
-        `Role change detected for ${newMember.user.tag} in voice channel ${newMember.voice.channel.name} - enforcing voice restrictions`,
+        `Role change detected for ${newMember.user.tag} in voice channel ${newMember.voice.channel.name} - queuing voice operation`,
       );
 
-      // Allow dependency injection for testing
-      const enforceVoiceRestrictions =
-        options.enforceVoiceRestrictions || defaultEnforceVoiceRestrictions;
+      // Use global queue for voice operations
+      const voiceQueue = getVoiceOperationQueue();
 
-      // Enforce voice restrictions based on current roles
-      const result = await enforceVoiceRestrictions(
-        newMember,
-        "Role change detected",
+      // Find the role that was removed (for logging)
+      const removedRole = oldMember.roles.cache.find(
+        role => !newMember.roles.cache.has(role.id),
       );
 
-      // Log the result for debugging
-      if (result.unmuted) {
-        logger.info(
-          `✅ Unmuted ${newMember.user.tag} after role removal in guildMemberUpdate`,
-        );
-      } else if (result.muted) {
-        logger.info(
-          `✅ Muted ${newMember.user.tag} after role assignment in guildMemberUpdate`,
-        );
-      } else if (result.error) {
-        logger.warn(
-          `⚠️ Voice restriction enforcement failed for ${newMember.user.tag}: ${result.error}`,
-        );
-      }
+      // Queue the operation - queue will handle enforcement and logging
+      voiceQueue
+        .queueOperation({
+          member: newMember,
+          role: removedRole || { name: "Unknown" },
+          reason: "Role change detected",
+          type: "enforce",
+        })
+        .catch(error => {
+          logger.debug(
+            `Failed to queue voice operation for ${newMember.user.tag}:`,
+            error.message,
+          );
+        });
     }
   } catch (error) {
     logger.error("Error handling guild member update:", error);

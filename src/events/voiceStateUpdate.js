@@ -1,10 +1,11 @@
 import { getLogger } from "../utils/logger.js";
 import { getVoiceTracker } from "../features/experience/VoiceTracker.js";
-import { enforceVoiceRestrictions as defaultEnforceVoiceRestrictions } from "../utils/discord/voiceRestrictions.js";
+import { getVoiceOperationQueue } from "../utils/discord/voiceOperationQueue.js";
 import {
-  isVoiceOperationRateLimited,
-  getVoiceOperationRemainingTime,
-} from "../utils/discord/rateLimiter.js";
+  checkConnectRestriction,
+  checkSpeakRestriction,
+  enforceVoiceRestrictions,
+} from "../utils/discord/voiceRestrictions.js";
 
 // Track bot-initiated mute actions to prevent infinite loops
 // Format: `${guildId}:${userId}:${timestamp}` -> expires after 5 seconds
@@ -115,40 +116,22 @@ export async function execute(oldState, newState, options = {}) {
           );
         }
 
-        // Allow dependency injection for testing
-        const enforceVoiceRestrictions =
-          options.enforceVoiceRestrictions || defaultEnforceVoiceRestrictions;
+        // Use global queue for voice operations
+        const voiceQueue = getVoiceOperationQueue();
 
-        // Enforce voice restrictions (this will unmute if no restrictive role exists)
-        const result = await enforceVoiceRestrictions(
-          member,
-          "Voice state update - checking unmute",
-        );
-
-        // Log the result
-        if (result.unmuted) {
-          logger.info(
-            `✅ Unmuted ${member.user.tag} in voiceStateUpdate - no longer has restrictive Speak role`,
-          );
-        } else if (result.muted) {
-          // User was muted (shouldn't happen here since they're already muted)
-          logger.debug(`User ${member.user.tag} was muted in voiceStateUpdate`);
-        } else if (result.needsPermission) {
-          // Bot needs permission - log this clearly
-          logger.warn(
-            `⚠️ Bot needs "Mute Members" permission to unmute ${member.user.tag}. ` +
-              `Enable this permission in Server Settings → Roles → [Bot's Role] → General Permissions.`,
-          );
-        } else if (result.error) {
-          logger.warn(
-            `⚠️ Failed to process unmute for ${member.user.tag}: ${result.error}`,
-          );
-        } else {
-          // User still has restrictive role or other reason
-          logger.debug(
-            `User ${member.user.tag} still has restrictive Speak role or other condition - not unmuting`,
-          );
-        }
+        // Queue voice operation - queue will handle enforcement and logging
+        voiceQueue
+          .queueOperation({
+            member,
+            reason: "Voice state update - checking unmute",
+            type: "enforce",
+          })
+          .catch(error => {
+            logger.debug(
+              `Failed to queue voice operation for ${member.user.tag}:`,
+              error.message,
+            );
+          });
       }
     }
 
@@ -170,128 +153,255 @@ export async function execute(oldState, newState, options = {}) {
         const hasMuteMembers =
           botMember?.permissions.has("MuteMembers") ?? false;
 
-        if (hasMuteMembers) {
-          let hasRestrictiveSpeakRole = false;
-          let restrictiveSpeakRoleName = null;
+        // Check both Connect and Speak restrictions
+        const hasMoveMembers =
+          botMember?.permissions.has("MoveMembers") ?? false;
 
-          // Refresh member to ensure we have latest roles
-          try {
-            await member.fetch();
-          } catch (error) {
-            logger.debug(
-              `Failed to refresh member ${member.user.tag}:`,
-              error.message,
-            );
-          }
+        // Refresh member to ensure we have latest roles
+        try {
+          await member.fetch();
+        } catch (error) {
+          logger.debug(
+            `Failed to refresh member ${member.user.tag}:`,
+            error.message,
+          );
+        }
 
-          // Check each role for Speak permission
-          for (const role of member.roles.cache.values()) {
-            const rolePermissions = channel.permissionsFor(role);
-            const canSpeak = rolePermissions?.has("Speak") ?? true;
+        // Check for restrictive Connect role (highest priority - disconnect)
+        const {
+          hasRestrictiveRole: hasConnectRestriction,
+          roleName: connectRoleName,
+        } = checkConnectRestriction(member, channel);
 
-            // Check channel overrides for this role
-            const channelOverrides = channel.permissionOverwrites.cache.get(
-              role.id,
-            );
-            const overrideAllowsSpeak = channelOverrides
-              ? channelOverrides.allow.has("Speak")
-              : false;
-            const overrideDeniesSpeak = channelOverrides
-              ? channelOverrides.deny.has("Speak")
-              : false;
+        // Check for restrictive Speak role (mute)
+        const { hasRestrictiveSpeakRole, roleName: restrictiveSpeakRoleName } =
+          checkSpeakRestriction(member, channel);
 
-            // If role has Speak disabled (either explicitly denied or not granted)
-            // AND there's no override allowing Speak
-            if ((!canSpeak || overrideDeniesSpeak) && !overrideAllowsSpeak) {
-              hasRestrictiveSpeakRole = true;
-              restrictiveSpeakRoleName = role.name;
-              logger.debug(
-                `User ${member.user.tag} tried to unmute but has role ${role.name} with Speak disabled in channel ${channel.name}`,
-              );
-              break;
-            }
-          }
+        // Priority 1: If user has restrictive Connect role, disconnect immediately
+        // IMPORTANT: Always try immediate enforcement first, even if we think we're rate limited
+        // The rate limit might have expired by the time we try, or Discord might allow it
+        if (hasConnectRestriction && hasMoveMembers) {
+          // OPTIMIZATION: Skip if user is already disconnected (not in voice channel)
+          if (member.voice.channel) {
+            let immediateDisconnectSucceeded = false;
 
-          // If user has a restrictive Speak role, mute them again
-          if (hasRestrictiveSpeakRole) {
-            // Check rate limit before muting
-            if (await isVoiceOperationRateLimited(userId, guildId)) {
-              const remainingTime = getVoiceOperationRemainingTime(
-                userId,
-                guildId,
-              );
-              logger.warn(
-                `⏸️ Rate limited: Cannot mute ${member.user.tag} - too many voice operations. Retry after ${Math.ceil(remainingTime / 1000)}s`,
-              );
-              return; // Skip this operation to avoid rate limit
-            }
-
+            // Try immediate disconnect regardless of rate limit check
+            // This gives us the best chance of immediate enforcement
             try {
               // Track this as a bot-initiated action to prevent infinite loops
               const now = Date.now();
               const actionKey = `${guildId}:${userId}:${now}`;
               botActionCache.add(actionKey);
 
-              await member.voice.setMute(
-                true,
-                `Restrictive role "${restrictiveSpeakRoleName}": Speak permission denied`,
+              await member.voice.disconnect(
+                `Restrictive role "${connectRoleName}": Connect permission denied`,
               );
               logger.info(
-                `🔇 Re-muted ${member.user.tag} in voice channel ${channel.name} due to restrictive role "${restrictiveSpeakRoleName}" (Speak disabled) - user tried to unmute`,
+                `🚫 Immediately disconnected ${member.user.tag} from voice channel ${channel.name} due to restrictive role "${connectRoleName}" (Connect disabled)`,
               );
-            } catch (muteError) {
+              immediateDisconnectSucceeded = true;
+            } catch (error) {
+              // Error during immediate disconnect, fall through to queue
               // Check if it's a rate limit error
-              if (
-                muteError.message?.includes("rate limit") ||
-                muteError.code === 429
-              ) {
-                logger.warn(
-                  `🚫 Discord rate limit hit while muting ${member.user.tag}. Will retry after cooldown.`,
+              if (error.message?.includes("rate limit") || error.code === 429) {
+                logger.debug(
+                  `Rate limited during immediate disconnect for ${member.user.tag}, queuing operation`,
                 );
-                // Add to cache to prevent retry loop
-                const now = Date.now();
-                const actionKey = `${guildId}:${userId}:${now}`;
-                botActionCache.add(actionKey);
               } else {
-                logger.warn(
-                  `Failed to mute ${member.user.tag} in voice channel:`,
-                  muteError.message,
+                logger.debug(
+                  `Error during immediate disconnect for ${member.user.tag}: ${error.message}, queuing operation`,
                 );
               }
             }
+
+            // Only queue if immediate disconnect didn't succeed or wasn't attempted
+            if (!immediateDisconnectSucceeded) {
+              // Track this as a bot-initiated action to prevent infinite loops
+              const now = Date.now();
+              const actionKey = `${guildId}:${userId}:${now}`;
+              botActionCache.add(actionKey);
+
+              // Use global queue for disconnecting
+              const voiceQueue = getVoiceOperationQueue();
+
+              // Find the restrictive role
+              const restrictiveRole = member.roles.cache.find(role => {
+                const rolePermissions = channel.permissionsFor(role);
+                const canConnect = rolePermissions?.has("Connect") ?? true;
+                const channelOverrides = channel.permissionOverwrites.cache.get(
+                  role.id,
+                );
+                const overrideAllowsConnect = channelOverrides
+                  ? channelOverrides.allow.has("Connect")
+                  : false;
+                const overrideDeniesConnect = channelOverrides
+                  ? channelOverrides.deny.has("Connect")
+                  : false;
+                return (
+                  (!canConnect || overrideDeniesConnect) &&
+                  !overrideAllowsConnect
+                );
+              });
+
+              voiceQueue
+                .queueOperation({
+                  member,
+                  role: restrictiveRole || { name: connectRoleName },
+                  reason: `Restrictive role "${connectRoleName}": Connect permission denied`,
+                  type: "enforce",
+                })
+                .catch(error => {
+                  logger.debug(
+                    `Failed to queue disconnect operation for ${member.user.tag}:`,
+                    error.message,
+                  );
+                });
+            }
           } else {
-            // User doesn't have restrictive role - use centralized utility to unmute
+            // User already disconnected - no action needed
             logger.debug(
-              `User ${member.user.tag} tried to unmute and has no restrictive Speak role - allowing unmute or unmuting if needed`,
+              `User ${member.user.tag} already disconnected - no action needed`,
             );
-            // Allow dependency injection for testing
-            const enforceVoiceRestrictions =
-              options.enforceVoiceRestrictions ||
-              defaultEnforceVoiceRestrictions;
-            const result = await enforceVoiceRestrictions(
-              member,
-              "User tried to unmute - checking restrictions",
+          }
+        }
+        // Priority 2: If user has restrictive Speak role (and no Connect restriction), mute immediately
+        // IMPORTANT: Always try immediate enforcement first, even if we think we're rate limited
+        // The rate limit might have expired by the time we try, or Discord might allow it
+        else if (hasRestrictiveSpeakRole && hasMuteMembers) {
+          // OPTIMIZATION: Skip if user is already muted
+          if (member.voice.mute && !member.voice.selfMute) {
+            logger.debug(
+              `User ${member.user.tag} already muted - no action needed`,
             );
-            if (result.unmuted) {
-              logger.info(
-                `✅ Unmuted ${member.user.tag} after unmute attempt - no restrictive role found`,
-              );
-            } else if (result.error) {
-              logger.warn(
-                `⚠️ Failed to process unmute for ${member.user.tag}: ${result.error}`,
-              );
+            // User already muted - no action needed
+          } else {
+            let immediateMuteSucceeded = false;
+
+            // Try immediate mute regardless of rate limit check
+            // This gives us the best chance of immediate enforcement
+            try {
+              // Track this as a bot-initiated action to prevent infinite loops
+              const now = Date.now();
+              const actionKey = `${guildId}:${userId}:${now}`;
+              botActionCache.add(actionKey);
+
+              // Only mute if not already muted
+              if (!member.voice.mute && !member.voice.selfMute) {
+                await member.voice.setMute(
+                  true,
+                  `Restrictive role "${restrictiveSpeakRoleName}": Speak permission denied`,
+                );
+                logger.info(
+                  `🔇 Immediately muted ${member.user.tag} in voice channel ${channel.name} due to restrictive role "${restrictiveSpeakRoleName}" (Speak disabled)`,
+                );
+                immediateMuteSucceeded = true;
+              } else {
+                // Already muted - no action needed
+                logger.debug(
+                  `User ${member.user.tag} already muted - no action needed`,
+                );
+                immediateMuteSucceeded = true; // Consider it successful since they're already muted
+              }
+            } catch (error) {
+              // Error during immediate mute, fall through to queue
+              // Check if it's a rate limit error
+              if (error.message?.includes("rate limit") || error.code === 429) {
+                logger.debug(
+                  `Rate limited during immediate mute for ${member.user.tag}, queuing operation`,
+                );
+              } else {
+                logger.debug(
+                  `Error during immediate mute for ${member.user.tag}: ${error.message}, queuing operation`,
+                );
+              }
+            }
+
+            // Only queue if immediate mute didn't succeed or wasn't attempted
+            if (!immediateMuteSucceeded) {
+              // Track this as a bot-initiated action to prevent infinite loops
+              const now = Date.now();
+              const actionKey = `${guildId}:${userId}:${now}`;
+              botActionCache.add(actionKey);
+
+              // Use global queue for muting
+              const voiceQueue = getVoiceOperationQueue();
+
+              // Find the restrictive role
+              const restrictiveRole = member.roles.cache.find(role => {
+                const rolePermissions = channel.permissionsFor(role);
+                const canSpeak = rolePermissions?.has("Speak") ?? true;
+                const channelOverrides = channel.permissionOverwrites.cache.get(
+                  role.id,
+                );
+                const overrideAllowsSpeak = channelOverrides
+                  ? channelOverrides.allow.has("Speak")
+                  : false;
+                const overrideDeniesSpeak = channelOverrides
+                  ? channelOverrides.deny.has("Speak")
+                  : false;
+                return (
+                  (!canSpeak || overrideDeniesSpeak) && !overrideAllowsSpeak
+                );
+              });
+
+              voiceQueue
+                .queueOperation({
+                  member,
+                  role: restrictiveRole || { name: restrictiveSpeakRoleName },
+                  reason: `Restrictive role "${restrictiveSpeakRoleName}": Speak permission denied`,
+                  type: "mute",
+                  forceMute: true,
+                })
+                .catch(error => {
+                  logger.debug(
+                    `Failed to queue mute operation for ${member.user.tag}:`,
+                    error.message,
+                  );
+                });
             }
           }
         } else {
-          logger.debug(
-            `Bot missing MuteMembers permission - cannot check/unmute ${member.user.tag}`,
-          );
+          // User doesn't have restrictive role OR bot missing permissions
+          if (!hasConnectRestriction && !hasRestrictiveSpeakRole) {
+            // User doesn't have restrictive role - queue unmute operation
+            logger.debug(
+              `User ${member.user.tag} tried to unmute and has no restrictive roles - queuing unmute`,
+            );
+
+            // Use global queue for unmuting
+            const voiceQueue = getVoiceOperationQueue();
+
+            voiceQueue
+              .queueOperation({
+                member,
+                reason: "User tried to unmute - checking restrictions",
+                type: "enforce",
+              })
+              .catch(error => {
+                logger.debug(
+                  `Failed to queue unmute operation for ${member.user.tag}:`,
+                  error.message,
+                );
+              });
+          } else {
+            // Bot missing required permissions
+            if (hasConnectRestriction && !hasMoveMembers) {
+              logger.debug(
+                `Bot missing MoveMembers permission - cannot disconnect ${member.user.tag}`,
+              );
+            } else if (hasRestrictiveSpeakRole && !hasMuteMembers) {
+              logger.debug(
+                `Bot missing MuteMembers permission - cannot mute ${member.user.tag}`,
+              );
+            }
+          }
         }
       }
     }
 
     // Check if user joined a voice channel (new connection or switched channels)
     // This prevents users with restrictive roles from joining voice channels
+    // IMPORTANT: Check and enforce immediately when user joins, don't wait for queue
     if (justJoined || switchedChannels) {
       const channel = newState.channel;
       if (channel) {
@@ -305,32 +415,111 @@ export async function execute(oldState, newState, options = {}) {
           );
         }
 
-        // Allow dependency injection for testing
-        const enforceVoiceRestrictions =
-          options.enforceVoiceRestrictions || defaultEnforceVoiceRestrictions;
+        // Check restrictions immediately before queuing
+        const { hasRestrictiveRole: hasConnectRestriction } =
+          checkConnectRestriction(member, channel);
+        const { hasRestrictiveSpeakRole } = checkSpeakRestriction(
+          member,
+          channel,
+        );
 
-        // Use centralized voice restriction enforcement
         const reason = justJoined
           ? "User joined voice channel"
           : "User switched voice channels";
 
-        const result = await enforceVoiceRestrictions(member, reason);
+        // If user has restrictive roles, try to enforce immediately
+        // IMPORTANT: Always try immediate enforcement first, even if we think we're rate limited
+        // The rate limit might have expired by the time we try, or Discord might allow it
+        if (hasConnectRestriction || hasRestrictiveSpeakRole) {
+          // OPTIMIZATION: Check if user is already in correct state before trying enforcement
+          // This reduces unnecessary operations and rate limit checks
+          const alreadyInCorrectState =
+            (hasConnectRestriction && !member.voice.channel) ||
+            (hasRestrictiveSpeakRole &&
+              member.voice.mute &&
+              !member.voice.selfMute);
 
-        // Log the result
-        if (result.disconnected) {
-          logger.info(
-            `🚫 Disconnected ${member.user.tag} from voice channel ${channel.name} - restrictive role detected`,
+          if (alreadyInCorrectState) {
+            logger.debug(
+              `User ${member.user.tag} already in correct state - no enforcement needed`,
+            );
+            // No need to queue or enforce - user is already muted/disconnected
+            // Skip to voice tracking below
+          } else {
+            let immediateEnforcementSucceeded = false;
+
+            // Try immediate enforcement regardless of rate limit check
+            // This gives us the best chance of immediate enforcement
+            try {
+              const result = await enforceVoiceRestrictions(member, reason);
+
+              if (result.disconnected || result.muted) {
+                // Successfully enforced immediately - track in botActionCache to prevent loops
+                const now = Date.now();
+                const actionKey = `${guildId}:${userId}:${now}`;
+                botActionCache.add(actionKey);
+
+                // Successfully enforced immediately - no need to queue
+                logger.debug(
+                  `✅ Immediately enforced voice restrictions for ${member.user.tag} on join (${result.disconnected ? "disconnected" : "muted"})`,
+                );
+                immediateEnforcementSucceeded = true;
+                // Continue to voice tracking below, but don't queue operation
+                // (The restriction is already applied)
+              } else if (result.error && result.needsWait) {
+                // Rate limited during enforcement, fall through to queue
+                logger.debug(
+                  `Rate limited during immediate enforcement for ${member.user.tag}, queuing operation`,
+                );
+              } else if (result.error) {
+                // Other error, fall through to queue
+                logger.debug(
+                  `Error during immediate enforcement for ${member.user.tag}: ${result.error}, queuing operation`,
+                );
+              } else {
+                // No action needed (user doesn't need restrictions)
+                logger.debug(
+                  `No restrictions needed for ${member.user.tag} on join`,
+                );
+                immediateEnforcementSucceeded = true; // No need to queue
+              }
+            } catch (error) {
+              // Error during immediate enforcement, fall through to queue
+              // Check if it's a rate limit error
+              if (error.message?.includes("rate limit") || error.code === 429) {
+                logger.debug(
+                  `Rate limited during immediate enforcement for ${member.user.tag}, queuing operation`,
+                );
+              } else {
+                logger.debug(
+                  `Exception during immediate enforcement for ${member.user.tag}: ${error.message}, queuing operation`,
+                );
+              }
+            }
+
+            // Only queue if immediate enforcement didn't succeed or wasn't attempted
+            if (!immediateEnforcementSucceeded) {
+              const voiceQueue = getVoiceOperationQueue();
+
+              voiceQueue
+                .queueOperation({
+                  member,
+                  reason,
+                  type: "enforce",
+                })
+                .catch(error => {
+                  logger.debug(
+                    `Failed to queue voice operation for ${member.user.tag}:`,
+                    error.message,
+                  );
+                });
+            }
+          }
+        } else {
+          // User has no restrictive roles - no action needed
+          logger.debug(
+            `User ${member.user.tag} joined voice channel with no restrictive roles`,
           );
-          return; // Don't track voice time for disconnected users
-        } else if (result.muted) {
-          logger.info(
-            `🔇 Muted ${member.user.tag} in voice channel ${channel.name} - restrictive Speak role detected`,
-          );
-        } else if (result.error) {
-          logger.warn(
-            `⚠️ Voice restriction enforcement failed for ${member.user.tag}: ${result.error}`,
-          );
-          // Continue to allow voice tracking even if enforcement failed
         }
       }
     }

@@ -30,6 +30,7 @@ import {
   processTempRoles,
 } from "./utils.js";
 import { detectTargetingType } from "../schedule-role/utils.js";
+import { getVoiceOperationQueue } from "../../../utils/discord/voiceOperationQueue.js";
 // import { THEME } from "../../../config/theme.js"; // Not used in new implementation
 
 /**
@@ -158,7 +159,28 @@ export async function handleAssign(interaction, client, deferred = false) {
           }
 
           // Fetch all members (requires GUILD_MEMBERS intent)
-          await interaction.guild.members.fetch();
+          // Fetch all members to check their roles
+          // Add timeout to prevent hanging on large servers
+          try {
+            const fetchPromise = interaction.guild.members.fetch();
+            const timeoutPromise = new Promise((_, reject) => {
+              setTimeout(
+                () =>
+                  reject(new Error("Member fetch timed out after 30 seconds")),
+                30000,
+              );
+            });
+            await Promise.race([fetchPromise, timeoutPromise]);
+          } catch (fetchError) {
+            if (fetchError.message?.includes("timed out")) {
+              logger.warn(
+                `Member fetch timed out for guild ${interaction.guild.name} - using cached members`,
+              );
+              // Continue with cached members if fetch times out
+            } else {
+              throw fetchError;
+            }
+          }
 
           const allMembersCollection = interaction.guild.members.cache;
           userIds = Array.from(allMembersCollection.values())
@@ -272,7 +294,27 @@ export async function handleAssign(interaction, client, deferred = false) {
           }
 
           // Fetch all members to check their roles
-          await interaction.guild.members.fetch();
+          // Add timeout to prevent hanging on large servers
+          try {
+            const fetchPromise = interaction.guild.members.fetch();
+            const timeoutPromise = new Promise((_, reject) => {
+              setTimeout(
+                () =>
+                  reject(new Error("Member fetch timed out after 30 seconds")),
+                30000,
+              );
+            });
+            await Promise.race([fetchPromise, timeoutPromise]);
+          } catch (fetchError) {
+            if (fetchError.message?.includes("timed out")) {
+              logger.warn(
+                `Member fetch timed out for guild ${interaction.guild.name} - using cached members`,
+              );
+              // Continue with cached members if fetch times out
+            } else {
+              throw fetchError;
+            }
+          }
 
           // Get all members who have ANY of the target roles (OR logic)
           const roleIds = targetRoles.map(r => r.id);
@@ -397,7 +439,27 @@ export async function handleAssign(interaction, client, deferred = false) {
           }
 
           // Fetch all members to check their roles
-          await interaction.guild.members.fetch();
+          // Add timeout to prevent hanging on large servers
+          try {
+            const fetchPromise = interaction.guild.members.fetch();
+            const timeoutPromise = new Promise((_, reject) => {
+              setTimeout(
+                () =>
+                  reject(new Error("Member fetch timed out after 30 seconds")),
+                30000,
+              );
+            });
+            await Promise.race([fetchPromise, timeoutPromise]);
+          } catch (fetchError) {
+            if (fetchError.message?.includes("timed out")) {
+              logger.warn(
+                `Member fetch timed out for guild ${interaction.guild.name} - using cached members`,
+              );
+              // Continue with cached members if fetch times out
+            } else {
+              throw fetchError;
+            }
+          }
 
           // Get all members who have ANY of the target roles (OR logic)
           const roleIds = targetRoles.map(r => r.id);
@@ -872,28 +934,7 @@ export async function handleRemove(interaction, client, deferred = false) {
       interaction.options.getString("reason") || "No reason provided";
     const notify = interaction.options.getBoolean("notify") || false;
 
-    // Process user list (same as assign command)
-    const userProcessingResult = await processUserList(
-      usersString,
-      interaction,
-    );
-    if (!userProcessingResult.valid) {
-      const response = errorEmbed({
-        title: "Invalid User List",
-        description: userProcessingResult.error,
-        solution: userProcessingResult.solution,
-      });
-
-      if (deferred) {
-        return interaction.editReply({ embeds: [response] });
-      } else {
-        return interaction.reply({ embeds: [response], flags: 64 });
-      }
-    }
-
-    const { validUsers: targetUsers } = userProcessingResult;
-
-    // Validate role
+    // Validate role first
     const roleValidation = validateRole(role, interaction.guild);
     if (!roleValidation.valid) {
       const response = errorEmbed({
@@ -909,18 +950,502 @@ export async function handleRemove(interaction, client, deferred = false) {
       }
     }
 
+    // Dynamically detect targeting type based on mentions in users field
+    const targeting = detectTargetingType(usersString, interaction.guild);
+    const isAllMembers = targeting.type === "everyone";
+    const targetRoles = targeting.targetRoles || [];
+    const isMixed = targeting.type === "mixed";
+
+    let userIds = [];
+    let validUsers = []; // For individual user processing
+
+    // Handle bulk targeting (role-based, @everyone, or mixed)
+    if (isAllMembers || targeting.type === "role" || isMixed) {
+      // Handle @everyone targeting
+      if (isAllMembers) {
+        try {
+          logger.info(
+            `Fetching all members for temp role removal in guild ${interaction.guild.name} (${interaction.guild.id})`,
+          );
+
+          if (deferred && interaction.guild.memberCount > 5000) {
+            try {
+              await interaction.editReply({
+                content: `⏳ Fetching ${interaction.guild.memberCount.toLocaleString()} members... This may take 30-60 seconds for large servers.`,
+              });
+            } catch (error) {
+              logger.debug("Failed to update interaction with progress", error);
+            }
+          }
+
+          // Fetch all members to check their roles
+          // Add timeout to prevent hanging on large servers
+          try {
+            const fetchPromise = interaction.guild.members.fetch();
+            const timeoutPromise = new Promise((_, reject) => {
+              setTimeout(
+                () =>
+                  reject(new Error("Member fetch timed out after 30 seconds")),
+                30000,
+              );
+            });
+            await Promise.race([fetchPromise, timeoutPromise]);
+          } catch (fetchError) {
+            if (fetchError.message?.includes("timed out")) {
+              logger.warn(
+                `Member fetch timed out for guild ${interaction.guild.name} - using cached members`,
+              );
+              // Continue with cached members if fetch times out
+            } else {
+              throw fetchError;
+            }
+          }
+
+          const allMembersCollection = interaction.guild.members.cache;
+          userIds = Array.from(allMembersCollection.values())
+            .filter(
+              member =>
+                !member.user.bot ||
+                member.user.id === interaction.client.user.id,
+            )
+            .map(member => member.id);
+
+          logger.info(
+            `Found ${userIds.length} members in guild ${interaction.guild.name} (excluding bots)`,
+          );
+
+          if (userIds.length === 0) {
+            const response = errorEmbed({
+              title: "No Members Found",
+              description: "No members found in this server.",
+              solution: "Make sure the server has members.",
+            });
+
+            if (deferred) {
+              return interaction.editReply({ embeds: [response] });
+            } else {
+              return interaction.reply({ embeds: [response], flags: 64 });
+            }
+          }
+
+          // Apply member limit for @everyone (Core members get higher limits)
+          const BASE_MAX_ALL_MEMBERS = 500;
+          let MAX_ALL_MEMBERS = BASE_MAX_ALL_MEMBERS;
+
+          try {
+            const { getUserData, getCoreBulkMemberLimit } = await import(
+              "../../../commands/general/core/utils.js"
+            );
+            const userData = await getUserData(interaction.user.id);
+            if (userData.isCore && userData.coreTier) {
+              MAX_ALL_MEMBERS = getCoreBulkMemberLimit(
+                userData.coreTier,
+                BASE_MAX_ALL_MEMBERS,
+              );
+            }
+          } catch (error) {
+            logger.debug("Failed to check Core status for bulk limit:", error);
+          }
+
+          if (userIds.length > MAX_ALL_MEMBERS) {
+            const response = errorEmbed({
+              title: "Too Many Members",
+              description: `Removing temporary roles from **${userIds.length.toLocaleString()} members** (all server members) exceeds the maximum limit of **${MAX_ALL_MEMBERS.toLocaleString()} members**.`,
+              solution: dedent`
+                For operations with more than ${MAX_ALL_MEMBERS.toLocaleString()} members, please use one of these alternatives:
+
+                **Recommended Solutions:**
+                1. **Target Specific Roles**: Use role mentions instead of @everyone
+                2. **Split Operations**: Create multiple removals targeting different groups
+                3. **Direct Role Removal**: Remove the role directly in Server Settings
+
+                **Why this limit?** Operations on ${userIds.length.toLocaleString()} members would take ${Math.ceil(userIds.length / 500)}-${Math.ceil(userIds.length / 500) * 2} minutes to complete and have higher reliability risks.
+              `,
+            });
+
+            if (deferred) {
+              return interaction.editReply({ embeds: [response] });
+            } else {
+              return interaction.reply({ embeds: [response], flags: 64 });
+            }
+          }
+        } catch (error) {
+          logger.error("Error fetching all members:", error);
+          const response = errorEmbed({
+            title: "Failed to Fetch Members",
+            description:
+              "Could not fetch all server members. This requires the GUILD_MEMBERS privileged intent.",
+            solution:
+              "Make sure the bot has the GUILD_MEMBERS intent enabled in the Discord Developer Portal.",
+          });
+
+          if (deferred) {
+            return interaction.editReply({ embeds: [response] });
+          } else {
+            return interaction.reply({ embeds: [response], flags: 64 });
+          }
+        }
+      }
+      // Handle role-based targeting
+      else if (targeting.type === "role" && targetRoles.length > 0) {
+        try {
+          const roleNames = targetRoles.map(r => r.name).join(", ");
+          logger.info(
+            `Fetching members with roles ${roleNames} for temp role removal in guild ${interaction.guild.name}`,
+          );
+
+          if (deferred && interaction.guild.memberCount > 5000) {
+            try {
+              await interaction.editReply({
+                content: `⏳ Fetching members with roles ${roleNames}... This may take a moment for large servers.`,
+              });
+            } catch (error) {
+              logger.debug("Failed to update interaction with progress", error);
+            }
+          }
+
+          // Fetch all members to check their roles
+          // Add timeout to prevent hanging on large servers
+          try {
+            const fetchPromise = interaction.guild.members.fetch();
+            const timeoutPromise = new Promise((_, reject) => {
+              setTimeout(
+                () =>
+                  reject(new Error("Member fetch timed out after 30 seconds")),
+                30000,
+              );
+            });
+            await Promise.race([fetchPromise, timeoutPromise]);
+          } catch (fetchError) {
+            if (fetchError.message?.includes("timed out")) {
+              logger.warn(
+                `Member fetch timed out for guild ${interaction.guild.name} - using cached members`,
+              );
+              // Continue with cached members if fetch times out
+            } else {
+              throw fetchError;
+            }
+          }
+
+          const roleIds = targetRoles.map(r => r.id);
+          userIds = interaction.guild.members.cache
+            .filter(member =>
+              roleIds.some(roleId => member.roles.cache.has(roleId)),
+            )
+            .filter(
+              member =>
+                !member.user.bot ||
+                member.user.id === interaction.client.user.id,
+            )
+            .map(member => member.id);
+
+          userIds = [...new Set(userIds)];
+
+          logger.info(
+            `Found ${userIds.length} members with roles ${roleNames} in guild ${interaction.guild.name}`,
+          );
+
+          if (userIds.length === 0) {
+            const response = errorEmbed({
+              title: "No Members Found",
+              description: `No members found with any of the roles: **${roleNames}** to remove the temporary role from.`,
+              solution:
+                "Make sure the roles exist and have members assigned to them.",
+            });
+
+            if (deferred) {
+              return interaction.editReply({ embeds: [response] });
+            } else {
+              return interaction.reply({ embeds: [response], flags: 64 });
+            }
+          }
+
+          // Apply member limit (Core members get higher limits)
+          const BASE_MAX_ALL_MEMBERS = 500;
+          let MAX_ALL_MEMBERS = BASE_MAX_ALL_MEMBERS;
+
+          try {
+            const { getUserData, getCoreBulkMemberLimit } = await import(
+              "../../../commands/general/core/utils.js"
+            );
+            const userData = await getUserData(interaction.user.id);
+            if (userData.isCore && userData.coreTier) {
+              MAX_ALL_MEMBERS = getCoreBulkMemberLimit(
+                userData.coreTier,
+                BASE_MAX_ALL_MEMBERS,
+              );
+            }
+          } catch (error) {
+            logger.debug("Failed to check Core status for bulk limit:", error);
+          }
+
+          if (userIds.length > MAX_ALL_MEMBERS) {
+            const response = errorEmbed({
+              title: "Too Many Members",
+              description: `The roles **${roleNames}** have a combined total of **${userIds.length.toLocaleString()} members**, which exceeds the maximum limit of **${MAX_ALL_MEMBERS.toLocaleString()} members** for role-based operations.`,
+              solution: dedent`
+                For roles with more than ${MAX_ALL_MEMBERS.toLocaleString()} total members, please use one of these alternatives:
+
+                **Recommended Solutions:**
+                1. **Direct Role Removal**: Remove the target role from another role in Server Settings (instant and efficient)
+                2. **Split Operations**: Create multiple removals targeting fewer roles or specific role groups
+                3. **Target Fewer Roles**: Use only roles with fewer members
+
+                **Why this limit?** Operations on ${userIds.length.toLocaleString()} members would take ${Math.ceil(userIds.length / 500)}-${Math.ceil(userIds.length / 500) * 2} minutes to complete and have higher reliability risks.
+              `,
+            });
+
+            if (deferred) {
+              return interaction.editReply({ embeds: [response] });
+            } else {
+              return interaction.reply({ embeds: [response], flags: 64 });
+            }
+          }
+        } catch (error) {
+          logger.error("Error fetching members by role:", error);
+          const response = errorEmbed({
+            title: "Failed to Fetch Members",
+            description:
+              "Could not fetch members with the specified roles. This requires the GUILD_MEMBERS privileged intent.",
+            solution:
+              "Make sure the bot has the GUILD_MEMBERS intent enabled in the Discord Developer Portal.",
+          });
+
+          if (deferred) {
+            return interaction.editReply({ embeds: [response] });
+          } else {
+            return interaction.reply({ embeds: [response], flags: 64 });
+          }
+        }
+      }
+      // Handle mixed targeting (users + roles)
+      else if (isMixed && targetRoles.length > 0) {
+        try {
+          const userValidation = await processUserList(
+            usersString,
+            interaction,
+          );
+          const userMentionIds = userValidation.valid
+            ? userValidation.validUsers.map(user => user.id)
+            : [];
+
+          const roleNames = targetRoles.map(r => r.name).join(", ");
+          logger.info(
+            `Fetching members with roles ${roleNames} and processing user mentions for temp role removal in guild ${interaction.guild.name}`,
+          );
+
+          if (deferred && interaction.guild.memberCount > 5000) {
+            try {
+              await interaction.editReply({
+                content: `⏳ Fetching members with roles ${roleNames} and processing user mentions... This may take a moment for large servers.`,
+              });
+            } catch (error) {
+              logger.debug("Failed to update interaction with progress", error);
+            }
+          }
+
+          // Fetch all members to check their roles
+          // Add timeout to prevent hanging on large servers
+          try {
+            const fetchPromise = interaction.guild.members.fetch();
+            const timeoutPromise = new Promise((_, reject) => {
+              setTimeout(
+                () =>
+                  reject(new Error("Member fetch timed out after 30 seconds")),
+                30000,
+              );
+            });
+            await Promise.race([fetchPromise, timeoutPromise]);
+          } catch (fetchError) {
+            if (fetchError.message?.includes("timed out")) {
+              logger.warn(
+                `Member fetch timed out for guild ${interaction.guild.name} - using cached members`,
+              );
+              // Continue with cached members if fetch times out
+            } else {
+              throw fetchError;
+            }
+          }
+
+          const roleIds = targetRoles.map(r => r.id);
+          const roleMemberIds = interaction.guild.members.cache
+            .filter(member =>
+              roleIds.some(roleId => member.roles.cache.has(roleId)),
+            )
+            .filter(
+              member =>
+                !member.user.bot ||
+                member.user.id === interaction.client.user.id,
+            )
+            .map(member => member.id);
+
+          userIds = [...new Set([...userMentionIds, ...roleMemberIds])];
+
+          logger.info(
+            `Found ${userMentionIds.length} user mentions and ${roleMemberIds.length} members with roles ${roleNames}, total unique: ${userIds.length} in guild ${interaction.guild.name}`,
+          );
+
+          if (userIds.length === 0) {
+            const response = errorEmbed({
+              title: "No Members Found",
+              description: `No valid users or members with any of the roles: **${roleNames}** found to remove the temporary role from.`,
+              solution:
+                "Make sure the users are valid and the roles exist and have members assigned to them.",
+            });
+
+            if (deferred) {
+              return interaction.editReply({ embeds: [response] });
+            } else {
+              return interaction.reply({ embeds: [response], flags: 64 });
+            }
+          }
+
+          // Apply member limit for combined result (Core members get higher limits)
+          const BASE_MAX_ALL_MEMBERS = 500;
+          let MAX_ALL_MEMBERS = BASE_MAX_ALL_MEMBERS;
+
+          try {
+            const { getUserData, getCoreBulkMemberLimit } = await import(
+              "../../../commands/general/core/utils.js"
+            );
+            const userData = await getUserData(interaction.user.id);
+            if (userData.isCore && userData.coreTier) {
+              MAX_ALL_MEMBERS = getCoreBulkMemberLimit(
+                userData.coreTier,
+                BASE_MAX_ALL_MEMBERS,
+              );
+            }
+          } catch (error) {
+            logger.debug("Failed to check Core status for bulk limit:", error);
+          }
+
+          if (userIds.length > MAX_ALL_MEMBERS) {
+            const response = errorEmbed({
+              title: "Too Many Members",
+              description: `The combined total of **${userIds.length.toLocaleString()} members** (from user mentions and roles ${roleNames}) exceeds the maximum limit of **${MAX_ALL_MEMBERS.toLocaleString()} members**.`,
+              solution: dedent`
+                For operations with more than ${MAX_ALL_MEMBERS.toLocaleString()} total members, please use one of these alternatives:
+
+                **Recommended Solutions:**
+                1. **Reduce Targeting**: Use fewer roles or split into multiple removals
+                2. **Direct Role Removal**: Remove the target role from another role in Server Settings (instant and efficient)
+                3. **Split Operations**: Create multiple removals targeting different groups
+
+                **Why this limit?** Operations on ${userIds.length.toLocaleString()} members would take ${Math.ceil(userIds.length / 500)}-${Math.ceil(userIds.length / 500) * 2} minutes to complete and have higher reliability risks.
+              `,
+            });
+
+            if (deferred) {
+              return interaction.editReply({ embeds: [response] });
+            } else {
+              return interaction.reply({ embeds: [response], flags: 64 });
+            }
+          }
+        } catch (error) {
+          logger.error("Error fetching members by mixed targeting:", error);
+          const response = errorEmbed({
+            title: "Failed to Fetch Members",
+            description:
+              "Could not fetch members with the specified roles or process user mentions. This requires the GUILD_MEMBERS privileged intent.",
+            solution:
+              "Make sure the bot has the GUILD_MEMBERS intent enabled in the Discord Developer Portal.",
+          });
+
+          if (deferred) {
+            return interaction.editReply({ embeds: [response] });
+          } else {
+            return interaction.reply({ embeds: [response], flags: 64 });
+          }
+        }
+      }
+    }
+    // Handle individual user targeting
+    else {
+      const userValidation = await processUserList(usersString, interaction);
+      if (!userValidation.valid) {
+        const response = errorEmbed({
+          title: "Invalid Users",
+          description: userValidation.error,
+          solution: userValidation.solution,
+        });
+
+        if (deferred) {
+          return interaction.editReply({ embeds: [response] });
+        } else {
+          return interaction.reply({ embeds: [response], flags: 64 });
+        }
+      }
+
+      validUsers = userValidation.validUsers;
+
+      // Check maximum user limit (Core members get higher limits)
+      const BASE_MAX_USERS = 10;
+      let MAX_USERS = BASE_MAX_USERS;
+
+      try {
+        const { getUserData, getCoreUserLimit } = await import(
+          "../../../commands/general/core/utils.js"
+        );
+        const userData = await getUserData(interaction.user.id);
+        if (userData.isCore && userData.coreTier) {
+          MAX_USERS = getCoreUserLimit(userData.coreTier, BASE_MAX_USERS);
+        }
+      } catch (error) {
+        logger.debug("Failed to check Core status for user limit:", error);
+      }
+
+      if (validUsers.length > MAX_USERS) {
+        const response = errorEmbed({
+          title: "Too Many Users",
+          description: `You can only remove roles from a maximum of **${MAX_USERS} users** at once.`,
+          solution: `Please reduce the number of users to ${MAX_USERS} or fewer. You can run the command multiple times if needed.`,
+        });
+
+        if (deferred) {
+          return interaction.editReply({ embeds: [response] });
+        } else {
+          return interaction.reply({ embeds: [response], flags: 64 });
+        }
+      }
+
+      userIds = validUsers.map(user => user.id);
+    }
+
+    // For bulk operations, we need to fetch user objects for the embed
+    // For individual operations, we already have validUsers
+    let usersForEmbed = validUsers;
+    if (isAllMembers || targeting.type === "role" || isMixed) {
+      try {
+        const userPromises = userIds.slice(0, 100).map(async userId => {
+          try {
+            const user = await interaction.client.users.fetch(userId);
+            return user;
+          } catch {
+            return null;
+          }
+        });
+        const fetchedUsers = await Promise.all(userPromises);
+        usersForEmbed = fetchedUsers.filter(Boolean);
+      } catch (error) {
+        logger.warn("Failed to fetch some users for embed:", error);
+        usersForEmbed = [];
+      }
+    }
+
     // Process removals for all users
     const limiter = pLimit(3);
-    const removalPromises = targetUsers.map(user =>
+    const membersForVoiceOps = []; // Collect members who need voice operations
+
+    const removalPromises = userIds.map(userId =>
       limiter(async () => {
         try {
           // Check if user has the temporary role
-          const member = await interaction.guild.members.fetch(user.id);
+          const member = await interaction.guild.members.fetch(userId);
           if (!member.roles.cache.has(role.id)) {
-            logger.info(`User ${user.id} does not have role ${role.id}`);
+            logger.info(`User ${userId} does not have role ${role.id}`);
             return {
               success: false,
-              userId: user.id,
+              userId,
               error: "User does not have this role.",
             };
           }
@@ -928,13 +1453,18 @@ export async function handleRemove(interaction, client, deferred = false) {
           // Remove from temporary roles database
           const removed = await removeTemporaryRole(
             interaction.guild.id,
-            user.id,
+            userId,
             role.id,
           );
 
           if (removed) {
             // Remove the actual Discord role
             await member.roles.remove(role, reason);
+
+            // Collect member for voice operations if they're in a voice channel
+            if (member.voice?.channel) {
+              membersForVoiceOps.push({ member, role });
+            }
 
             // Send notification if requested
             if (notify) {
@@ -946,10 +1476,10 @@ export async function handleRemove(interaction, client, deferred = false) {
                   reason,
                   interaction.user,
                 );
-                logger.info(`📧 Sent removal notification to user ${user.id}`);
+                logger.info(`📧 Sent removal notification to user ${userId}`);
               } catch (notificationError) {
                 logger.warn(
-                  `Failed to send removal notification to user ${user.id}:`,
+                  `Failed to send removal notification to user ${userId}:`,
                   notificationError,
                 );
                 // Don't fail the removal if notification fails
@@ -957,19 +1487,19 @@ export async function handleRemove(interaction, client, deferred = false) {
             }
 
             logger.info(
-              `✅ Successfully removed temporary role ${role.name} from user ${user.id}`,
+              `✅ Successfully removed temporary role ${role.name} from user ${userId}`,
             );
-            return { success: true, userId: user.id };
+            return { success: true, userId };
           } else {
             return {
               success: false,
-              userId: user.id,
+              userId,
               error: "Role not found in temporary roles database.",
             };
           }
         } catch (error) {
-          logger.warn(`Failed to remove role from user ${user.id}:`, error);
-          return { success: false, userId: user.id, error: error.message };
+          logger.warn(`Failed to remove role from user ${userId}:`, error);
+          return { success: false, userId, error: error.message };
         }
       }),
     );
@@ -981,10 +1511,43 @@ export async function handleRemove(interaction, client, deferred = false) {
         : { success: false, userId: null, error: r.reason },
     );
 
+    // Queue voice operations for global processing
+    if (membersForVoiceOps.length > 0) {
+      const voiceQueue = getVoiceOperationQueue();
+
+      // Queue all operations
+      const queuePromises = membersForVoiceOps.map(
+        ({ member, role: roleObj }) =>
+          voiceQueue.queueOperation({
+            member,
+            role: roleObj,
+            reason: `Temporary role removal: ${role.name}`,
+          }),
+      );
+
+      // Don't wait for all operations to complete - let queue handle them
+      Promise.allSettled(queuePromises)
+        .then(results => {
+          const successCount = results.filter(
+            r => r.status === "fulfilled" && r.value?.success,
+          ).length;
+          const failureCount = results.length - successCount;
+
+          if (failureCount > 0) {
+            logger.debug(
+              `Voice operations queued: ${successCount} queued, ${failureCount} failed`,
+            );
+          }
+        })
+        .catch(error => {
+          logger.warn("Error queuing voice operations:", error);
+        });
+    }
+
     // Create success embed with results
     const embed = createTempRoleRemovalEmbed(
       role,
-      targetUsers,
+      usersForEmbed,
       reason,
       processedResults,
       interaction.user,

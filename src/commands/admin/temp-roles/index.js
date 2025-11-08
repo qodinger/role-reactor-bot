@@ -79,7 +79,9 @@ export const data = new SlashCommandBuilder()
       .addStringOption(opt =>
         opt
           .setName("users")
-          .setDescription("Comma-separated list of user IDs or mentions")
+          .setDescription(
+            "User IDs, mentions, role mentions (@RoleName), or @everyone for all members",
+          )
           .setRequired(true),
       )
       .addRoleOption(opt =>
@@ -208,6 +210,22 @@ export async function execute(interaction, client) {
         logger.error("Failed to send error response", {
           interactionId: interaction.id,
           error: replyError.message,
+        });
+      }
+    } else if (interaction.deferred && !interaction.replied) {
+      // If deferred but not replied, try to edit reply with error
+      const response = errorEmbed({
+        title: "Error",
+        description: "Failed to process temp-roles command.",
+        solution: "Please try again or contact support if the issue persists.",
+      });
+
+      try {
+        await interaction.editReply(response);
+      } catch (editError) {
+        logger.error("Failed to edit error response", {
+          interactionId: interaction.id,
+          error: editError.message,
         });
       }
     }
