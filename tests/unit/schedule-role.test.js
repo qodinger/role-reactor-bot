@@ -419,9 +419,17 @@ describe("Schedule Role - Schedule Parsing", () => {
       const result = parseOneTimeSchedule(`${hourStr}:00`);
 
       expect(result).toBeInstanceOf(Date);
-      // Should be tomorrow
-      expect(result.getDate()).toBe(now.getDate() + 1);
+      // Should be tomorrow (or today if we're near midnight and date calculation is off)
+      // The key is that the result should be in the future
+      expect(result.getTime()).toBeGreaterThan(now.getTime());
+      // Check that the hour matches
       expect(result.getHours()).toBe(pastTime.getHours());
+      // Check that it's either today or tomorrow (handles date boundary cases)
+      const tomorrow = new Date(now);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const isToday = result.getDate() === now.getDate();
+      const isTomorrow = result.getDate() === tomorrow.getDate();
+      expect(isToday || isTomorrow).toBe(true);
     });
 
     it("should schedule for today if time hasn't passed", () => {

@@ -19,8 +19,12 @@ export async function execute(oldMember, newMember, _client) {
     // Only process if roles changed
     if (oldMember.roles.cache.size === newMember.roles.cache.size) {
       // Check if roles actually changed (not just count)
-      const oldRoleIds = oldMember.roles.cache.map(r => r.id).sort();
-      const newRoleIds = newMember.roles.cache.map(r => r.id).sort();
+      const oldRoleIds = Array.from(oldMember.roles.cache.values())
+        .map(r => r.id)
+        .sort();
+      const newRoleIds = Array.from(newMember.roles.cache.values())
+        .map(r => r.id)
+        .sort();
       const rolesChanged =
         oldRoleIds.length !== newRoleIds.length ||
         oldRoleIds.some((id, idx) => id !== newRoleIds[idx]);
@@ -42,8 +46,13 @@ export async function execute(oldMember, newMember, _client) {
         );
       }
 
+      // Check if still in voice channel after fetch (may have changed)
+      if (!newMember.voice?.channel) {
+        return; // No longer in voice channel, skip
+      }
+
       logger.debug(
-        `Role change detected for ${newMember.user.tag} in voice channel ${newMember.voice.channel.name} - queuing voice operation`,
+        `Role change detected for ${newMember.user.tag} in voice channel ${newMember.voice.channel?.name || "unknown"} - queuing voice operation`,
       );
 
       // Use global queue for voice operations
