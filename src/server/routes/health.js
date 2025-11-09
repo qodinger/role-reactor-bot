@@ -1,5 +1,10 @@
 import fs from "fs";
 import { getLogger } from "../../utils/logger.js";
+import {
+  createSuccessResponse,
+  createErrorResponse,
+  logRequest as logRequestHelper,
+} from "../utils/responseHelpers.js";
 
 const logger = getLogger();
 
@@ -9,22 +14,17 @@ const logger = getLogger();
  * @param {import('express').Response} res - Express response object
  */
 export function healthCheck(req, res) {
-  const healthData = {
-    status: "healthy",
-    timestamp: new Date().toISOString(),
-    service: "Unified API Server",
-    uptime: process.uptime(),
-    memory: process.memoryUsage(),
-    environment: process.env.NODE_ENV || "development",
-  };
+  logRequestHelper(logger, "Health check", req, "🏥");
 
-  logger.debug("🏥 Health check requested", {
-    ip: req.ip,
-    userAgent: req.get("User-Agent"),
-    timestamp: new Date().toISOString(),
-  });
-
-  res.json(healthData);
+  res.json(
+    createSuccessResponse({
+      status: "healthy",
+      service: "Unified API Server",
+      uptime: process.uptime(),
+      memory: process.memoryUsage(),
+      environment: process.env.NODE_ENV || "development",
+    }),
+  );
 }
 
 /**
@@ -34,39 +34,35 @@ export function healthCheck(req, res) {
  */
 export function dockerHealthCheck(req, res) {
   try {
-    const dockerInfo = {
-      status: "healthy",
-      timestamp: new Date().toISOString(),
-      docker: {
-        environment: process.env.DOCKER_ENV === "true",
-        dockerenv: fs.existsSync("/.dockerenv"),
-        cgroup:
-          fs.existsSync("/proc/1/cgroup") &&
-          fs.readFileSync("/proc/1/cgroup", "utf8").includes("docker"),
-      },
-      system: {
-        uptime: process.uptime(),
-        memory: process.memoryUsage(),
-        platform: process.platform,
-        arch: process.arch,
-        nodeVersion: process.version,
-      },
-    };
+    logRequestHelper(logger, "Docker health check", req, "🐳");
 
-    logger.debug("🐳 Docker health check requested", {
-      ip: req.ip,
-      userAgent: req.get("User-Agent"),
-      timestamp: new Date().toISOString(),
-    });
-
-    res.json(dockerInfo);
+    res.json(
+      createSuccessResponse({
+        status: "healthy",
+        docker: {
+          environment: process.env.DOCKER_ENV === "true",
+          dockerenv: fs.existsSync("/.dockerenv"),
+          cgroup:
+            fs.existsSync("/proc/1/cgroup") &&
+            fs.readFileSync("/proc/1/cgroup", "utf8").includes("docker"),
+        },
+        system: {
+          uptime: process.uptime(),
+          memory: process.memoryUsage(),
+          platform: process.platform,
+          arch: process.arch,
+          nodeVersion: process.version,
+        },
+      }),
+    );
   } catch (error) {
     logger.error("❌ Error in Docker health check:", error);
-    res.status(500).json({
-      status: "error",
-      message: "Docker health check failed",
-      error: error.message,
-      timestamp: new Date().toISOString(),
-    });
+    const { statusCode, response } = createErrorResponse(
+      "Docker health check failed",
+      500,
+      null,
+      error.message,
+    );
+    res.status(statusCode).json(response);
   }
 }

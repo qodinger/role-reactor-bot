@@ -23,7 +23,7 @@ import { getHealthCheckRunner } from "./utils/monitoring/healthCheck.js";
 import { getCommandHandler } from "./utils/core/commandHandler.js";
 import { getEventHandler } from "./utils/core/eventHandler.js";
 import { getVersion } from "./utils/discord/version.js";
-import { startWebhookServer } from "./server/index.js";
+import { startWebhookServer, setClient } from "./server/index.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -541,6 +541,8 @@ async function main() {
       // Start webhook server for Ko-fi integration
       try {
         await startWebhookServer();
+        // Set Discord client for API endpoints
+        setClient(client);
       } catch (error) {
         logger.error("❌ Failed to start webhook server:", error);
         // Continue bot operation even if webhook server fails

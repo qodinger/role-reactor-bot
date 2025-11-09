@@ -9,16 +9,13 @@ import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import {
   webhookRateLimiter,
   kofiWebhookRateLimiter,
+  apiRateLimiter,
 } from "./middleware/rateLimiter.js";
 
 // Import route handlers
 import { healthCheck, dockerHealthCheck } from "./routes/health.js";
-import {
-  testWebhookGet,
-  testWebhookPost,
-  verifyWebhookToken,
-} from "./routes/webhook.js";
-import { apiStatus, apiInfo } from "./routes/api.js";
+import { verifyWebhookToken } from "./routes/webhook.js";
+import { apiInfo, apiStats, setDiscordClient } from "./routes/api.js";
 
 // Import configuration
 import {
@@ -68,14 +65,12 @@ function initializeRoutes() {
   }
 
   // Webhook routes with rate limiting
-  app.get("/webhook/test", webhookRateLimiter, testWebhookGet);
-  app.post("/webhook/test", webhookRateLimiter, testWebhookPost);
   app.post("/webhook/verify", webhookRateLimiter, verifyWebhookToken);
   app.post("/webhook/kofi", kofiWebhookRateLimiter, handleKoFiWebhook);
 
-  // API routes
-  app.get("/api/status", apiStatus);
-  app.get("/api/info", apiInfo);
+  // API routes with rate limiting
+  app.get("/api/info", apiRateLimiter, apiInfo);
+  app.get("/api/stats", apiRateLimiter, apiStats);
 }
 
 /**
@@ -151,17 +146,16 @@ export async function startWebhookServer() {
         );
       }
 
-      logger.info(`  Test: http://localhost:${serverConfig.port}/webhook/test`);
       logger.info(
         `  Verify: http://localhost:${serverConfig.port}/webhook/verify`,
       );
       logger.info(
         `  Ko-fi: http://localhost:${serverConfig.port}/webhook/kofi`,
       );
-      logger.info(
-        `  API Status: http://localhost:${serverConfig.port}/api/status`,
-      );
       logger.info(`  API Info: http://localhost:${serverConfig.port}/api/info`);
+      logger.info(
+        `  API Stats: http://localhost:${serverConfig.port}/api/stats`,
+      );
     });
 
     // Handle server errors
@@ -216,6 +210,14 @@ export function getApp() {
  */
 export function getServerConfig() {
   return serverConfig;
+}
+
+/**
+ * Set Discord client for API endpoints
+ * @param {import('discord.js').Client} client - Discord.js client instance
+ */
+export function setClient(client) {
+  setDiscordClient(client);
 }
 
 export default app;

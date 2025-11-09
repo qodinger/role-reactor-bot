@@ -3,6 +3,7 @@ export {
   startWebhookServer,
   getApp,
   getServerConfig,
+  setClient,
 } from "./webhookServer.js";
 
 // Configuration
@@ -19,9 +20,5 @@ export { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 
 // Route handlers
 export { healthCheck, dockerHealthCheck } from "./routes/health.js";
-export {
-  testWebhookGet,
-  testWebhookPost,
-  verifyWebhookToken,
-} from "./routes/webhook.js";
-export { apiStatus, apiInfo } from "./routes/api.js";
+export { verifyWebhookToken } from "./routes/webhook.js";
+export { apiInfo, apiStats } from "./routes/api.js";

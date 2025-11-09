@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Bot Statistics API: Public API endpoint to get bot statistics including server count and user count
+- API Information Endpoint: Public API endpoint to get bot information and version
+
+### Performance
+
+- Bot Statistics API: Improved response times by caching statistics for 24 hours
+
+### Security
+
+- Webhook Security: Enhanced webhook token verification to prevent security vulnerabilities
+
 ## [1.4.0] - 2025-11-09
 
 ### Added

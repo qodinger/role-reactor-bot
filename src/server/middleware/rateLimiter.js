@@ -66,3 +66,36 @@ export const kofiWebhookRateLimiter = rateLimit({
     });
   },
 });
+
+/**
+ * Create a rate limiter for API endpoints
+ * More lenient than webhook limiters for public API access
+ */
+export const apiRateLimiter = rateLimit({
+  windowMs: parseInt(process.env.API_RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes default
+  max: parseInt(process.env.API_RATE_LIMIT_MAX) || 60, // 60 requests per window default
+  message: {
+    status: "error",
+    message: "Too many API requests, please try again later",
+    retryAfter: "15 minutes",
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    logger.warn("⚠️ Rate limit exceeded for API endpoint", {
+      ip: req.ip,
+      url: req.url,
+      userAgent: req.get("User-Agent"),
+      timestamp: new Date().toISOString(),
+    });
+    res.status(429).json({
+      status: "error",
+      message: "Too many API requests, please try again later",
+      retryAfter: "15 minutes",
+    });
+  },
+  skip: req => {
+    // Skip rate limiting for health checks
+    return req.path === "/health" || req.path.startsWith("/health/");
+  },
+});
