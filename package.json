@@ -89,6 +89,7 @@
     "emoji-regex": "10.4.0",
     "express": "5.1.0",
     "express-rate-limit": "8.2.1",
+    "express-session": "1.18.2",
     "gradient-string": "^3.0.0",
     "mongodb": "^6.17.0",
     "ora": "^8.2.0",

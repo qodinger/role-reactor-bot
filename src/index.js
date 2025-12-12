@@ -16,10 +16,7 @@ import { getStorageManager } from "./utils/storage/storageManager.js";
 import { getPerformanceMonitor } from "./utils/monitoring/performanceMonitor.js";
 import { getLogger } from "./utils/logger.js";
 import { getScheduler as getRoleExpirationScheduler } from "./features/temporaryRoles/RoleExpirationScheduler.js";
-// PollScheduler disabled - using native Discord polls only
-// import { PollScheduler } from "./features/polls/PollScheduler.js";
 import { getHealthCheckRunner } from "./utils/monitoring/healthCheck.js";
-// Health server functionality moved to unified API server
 import { getCommandHandler } from "./utils/core/commandHandler.js";
 import { getEventHandler } from "./utils/core/eventHandler.js";
 import { getVersion } from "./utils/discord/version.js";
@@ -184,10 +181,6 @@ async function gracefulShutdown(client) {
 
     if (global.roleScheduler) {
       global.roleScheduler.stop();
-    }
-
-    if (global.pollScheduler) {
-      global.pollScheduler.stop();
     }
 
     if (global.pollCleanupInterval) {
@@ -567,11 +560,7 @@ async function main() {
       global.tempRoleScheduler = tempRoleScheduler; // Store globally for shutdown
       tempRoleScheduler.start();
 
-      // Poll scheduler disabled - using native Discord polls only
-      // Native polls handle their own UI updates automatically
-      // const pollScheduler = new PollScheduler(client);
-      // global.pollScheduler = pollScheduler; // Store globally for shutdown
-      // pollScheduler.start();
+      // Native Discord polls handle their own UI updates automatically
 
       // Start poll cleanup scheduler (runs every 6 hours)
       const pollCleanupInterval = setInterval(
