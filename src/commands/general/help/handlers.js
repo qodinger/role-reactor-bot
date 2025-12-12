@@ -83,6 +83,7 @@ export async function handleSpecificCommandHelp(
       "storage",
       "core-management",
       "verify",
+      "imagine",
     ];
 
     if (

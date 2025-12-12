@@ -143,6 +143,7 @@ export const COMMAND_CATEGORIES = {
       "storage",
       "core-management",
       "verify",
+      "imagine",
     ],
   },
   admin: {
