@@ -33,10 +33,10 @@ Following the modular pattern established by other commands:
 
 ```
 /avatar prompt:cyberpunk hacker with neon glasses
-/avatar prompt:cool boy with spiky hair color_style:neon mood:mysterious art_style:studio
-/avatar prompt:cute girl in red dress color_style:pastel mood:happy
-/avatar prompt:kawaii girl with pink hair art_style:chibi mood:cute
-/avatar prompt:handsome man with glasses color_style:monochrome mood:serious
+/avatar prompt:cool boy with spiky hair art_style:manga
+/avatar prompt:cute girl in red dress
+/avatar prompt:kawaii girl with pink hair art_style:chibi
+/avatar prompt:handsome man with glasses
 ```
 
 ## Permissions Required
@@ -48,14 +48,12 @@ Following the modular pattern established by other commands:
 ## Available Options
 
 - **prompt** (required): Describe the avatar you want to generate
-- **color_style** (optional): Choose a color palette (vibrant, pastel, monochrome, neon, warm, cool)
-- **mood** (optional): Choose the character's mood (happy, serious, mysterious, cute, cool, elegant)
-- **art_style** (optional): Choose the artistic style (studio, manga, modern, retro, realistic, chibi, lofi)
+- **art_style** (optional): Choose the artistic style (manga, modern, retro, realistic, chibi, lofi)
 
 ## Key Features
 
 - AI-powered anime avatar generation
-- Style customization (color, mood, art style)
+- Art style customization
 - Credit system integration (1 Core per generation)
 - Advanced prompt enhancement
 - Multiple AI provider fallback

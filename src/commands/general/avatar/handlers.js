@@ -13,11 +13,7 @@ import {
   createLoadingEmbed,
   createSuccessEmbed,
 } from "./embeds.js";
-import {
-  validatePrompt,
-  formatStyleOptions,
-  formatGenerationTime,
-} from "./utils.js";
+import { validatePrompt, formatGenerationTime } from "./utils.js";
 
 const logger = getLogger();
 
@@ -52,14 +48,10 @@ export async function handleAvatarGeneration(
 
     // Extract options
     const prompt = interaction.options.getString("prompt");
-    const colorStyle = interaction.options.getString("color_style");
-    const mood = interaction.options.getString("mood");
     const artStyle = interaction.options.getString("art_style");
 
     logger.debug(`Processing prompt: "${prompt}"`);
-    logger.debug(
-      `Style options - Color: ${colorStyle}, Mood: ${mood}, Art: ${artStyle}`,
-    );
+    logger.debug(`Art style: ${artStyle || "none"}`);
 
     // Validate prompt
     const validation = validatePrompt(prompt);
@@ -102,7 +94,7 @@ export async function handleAvatarGeneration(
     });
 
     // Send loading embed with static gradient image
-    const loadingEmbed = createLoadingEmbed(prompt);
+    const loadingEmbed = createLoadingEmbed(prompt, artStyle);
     await interaction.editReply({
       embeds: [loadingEmbed],
       files: [loadingAttachment],
@@ -115,13 +107,15 @@ export async function handleAvatarGeneration(
     let avatarData;
     let generationSuccess = false;
     let generationError = null;
+    let provider = null;
+    let model = null;
 
     try {
       avatarData = await generateAIAvatar(
         prompt,
         false, // showDebugPrompt
         interaction.user.id,
-        { colorStyle, mood, artStyle }, // style options
+        { artStyle }, // style options
         null, // No progress callback
         userData, // Core user data for rate limiting
       );
@@ -131,6 +125,8 @@ export async function handleAvatarGeneration(
       }
 
       generationSuccess = true;
+      provider = avatarData.provider || null;
+      model = avatarData.model || null;
       logger.debug(`AI generation took ${Date.now() - aiStartTime}ms`);
     } catch (error) {
       generationSuccess = false;
@@ -145,6 +141,9 @@ export async function handleAvatarGeneration(
         success: generationSuccess,
         error: generationError,
         processingTime,
+        provider,
+        model,
+        config: { artStyle: artStyle || null },
         userTier: userData.isCore
           ? userData.coreTier || "Core Basic"
           : "Regular",
@@ -166,7 +165,7 @@ export async function handleAvatarGeneration(
     });
 
     // Send final result with success embed
-    const successEmbed = createSuccessEmbed(interaction, prompt);
+    const successEmbed = createSuccessEmbed(interaction, prompt, artStyle);
     await interaction.editReply({
       embeds: [successEmbed],
       files: [attachment],
@@ -175,9 +174,9 @@ export async function handleAvatarGeneration(
     logger.info(
       `Avatar generation completed in ${formatGenerationTime(startTime, Date.now())} for user ${interaction.user.id}`,
     );
-    logger.debug(
-      `Style options used: ${formatStyleOptions({ colorStyle, mood, artStyle })}`,
-    );
+    if (artStyle) {
+      logger.debug(`Art style used: ${artStyle}`);
+    }
   } catch (error) {
     const duration = Date.now() - startTime;
     logger.error(`Error generating AI avatar after ${duration}ms:`, error);

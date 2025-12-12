@@ -47,32 +47,79 @@ export function createWarningEmbed(interaction, title, description) {
 }
 
 /**
+ * Format art style name for display
+ * @param {string} artStyle - Art style value
+ * @returns {string} Formatted art style name
+ */
+function formatArtStyleName(artStyle) {
+  const styleNames = {
+    manga: "Manga",
+    modern: "Modern",
+    retro: "Retro",
+    realistic: "Realistic",
+    chibi: "Chibi",
+    lofi: "Lo-fi",
+  };
+  return styleNames[artStyle] || artStyle;
+}
+
+/**
  * Create loading embed for avatar generation
  * @param {string} prompt - User's prompt
+ * @param {string} [artStyle] - Selected art style (optional)
  * @returns {import('discord.js').EmbedBuilder}
  */
-export function createLoadingEmbed(prompt) {
-  return new EmbedBuilder()
+export function createLoadingEmbed(prompt, artStyle = null) {
+  const embed = new EmbedBuilder()
     .setColor(THEME.PRIMARY)
     .setTitle("Generating Avatar...")
-    .setDescription(`**"${prompt}"**`)
+    .setDescription(`**"${prompt}"**`);
+
+  // Add art style field if one was selected
+  if (artStyle) {
+    embed.addFields([
+      {
+        name: "Art Style",
+        value: formatArtStyleName(artStyle),
+        inline: true,
+      },
+    ]);
+  }
+
+  embed
     .setFooter({
       text: "Avatar Generator • This may take 10-60 seconds",
     })
     .setTimestamp();
+
+  return embed;
 }
 
 /**
  * Create success embed for avatar generation
  * @param {import('discord.js').CommandInteraction} interaction
  * @param {string} prompt - User's prompt
+ * @param {string} [artStyle] - Selected art style (optional)
  * @returns {import('discord.js').EmbedBuilder}
  */
-export function createSuccessEmbed(interaction, prompt) {
+export function createSuccessEmbed(interaction, prompt, artStyle = null) {
   const embed = new EmbedBuilder()
     .setColor(THEME.SUCCESS)
     .setTitle("Avatar Complete!")
-    .setDescription(`**"${prompt}"**\n\nYour Avatar has been generated`)
+    .setDescription(`**"${prompt}"**`);
+
+  // Add art style field if one was selected
+  if (artStyle) {
+    embed.addFields([
+      {
+        name: "Art Style",
+        value: formatArtStyleName(artStyle),
+        inline: true,
+      },
+    ]);
+  }
+
+  embed
     .setFooter({
       text: `Generated for ${interaction.user.username} • Avatar Generator`,
     })
@@ -140,8 +187,8 @@ export function createHelpEmbed() {
         inline: false,
       },
       {
-        name: "Style Options",
-        value: `**Color**: vibrant, pastel, monochrome • **Mood**: happy, serious, cute • **Art**: studio, manga, modern, lofi`,
+        name: "Art Style",
+        value: `Optional: Choose an artistic style (manga, modern, retro, realistic, chibi, lofi)`,
         inline: false,
       },
     ])

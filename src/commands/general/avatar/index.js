@@ -21,39 +21,10 @@ export const data = new SlashCommandBuilder()
   )
   .addStringOption(option =>
     option
-      .setName("color_style")
-      .setDescription("Choose a color palette for the avatar")
-      .setRequired(false)
-      .addChoices(
-        { name: "Vibrant - Bright and colorful", value: "vibrant" },
-        { name: "Pastel - Soft and dreamy", value: "pastel" },
-        { name: "Monochrome - Black and white", value: "monochrome" },
-        { name: "Neon - Cyberpunk and futuristic", value: "neon" },
-        { name: "Warm - Golden and cozy", value: "warm" },
-        { name: "Cool - Blue tones and calm", value: "cool" },
-      ),
-  )
-  .addStringOption(option =>
-    option
-      .setName("mood")
-      .setDescription("Choose the character's mood and expression")
-      .setRequired(false)
-      .addChoices(
-        { name: "Happy - Cheerful and joyful", value: "happy" },
-        { name: "Serious - Focused and professional", value: "serious" },
-        { name: "Mysterious - Enigmatic and secretive", value: "mysterious" },
-        { name: "Cute - Adorable and kawaii", value: "cute" },
-        { name: "Cool - Confident and stylish", value: "cool" },
-        { name: "Elegant - Refined and graceful", value: "elegant" },
-      ),
-  )
-  .addStringOption(option =>
-    option
       .setName("art_style")
       .setDescription("Choose the artistic style for the avatar")
       .setRequired(false)
       .addChoices(
-        { name: "Studio Ghibli - Miyazaki inspired", value: "studio" },
         { name: "Manga - Traditional Japanese comics", value: "manga" },
         { name: "Modern - Contemporary anime style", value: "modern" },
         { name: "Retro - 80s/90s vintage anime", value: "retro" },
