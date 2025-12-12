@@ -354,22 +354,23 @@ class Config {
    */
   get aiModels() {
     return {
-      // Primary AI provider (openrouter or openai)
-      primary: process.env.AI_PRIMARY_PROVIDER || "openrouter",
-
       // Model configurations
+      // Providers are checked in order - first enabled provider is used
+      // Set enabled: true to use, enabled: false to disable
       providers: {
         openrouter: {
+          enabled: true, // Set to false to disable this provider
           name: "OpenRouter",
           baseUrl: "https://openrouter.ai/api/v1/chat/completions",
           apiKey: process.env.OPENROUTER_API_KEY,
           models: {
             image: {
-              primary: "google/gemini-2.5-flash-image-preview",
+              primary: "google/gemini-3-pro-image",
             },
           },
         },
         openai: {
+          enabled: false, // Set to true to enable this provider
           name: "OpenAI",
           baseUrl: "https://api.openai.com/v1",
           apiKey: process.env.OPENAI_API_KEY,
@@ -380,6 +381,7 @@ class Config {
           },
         },
         stability: {
+          enabled: false, // Set to true to enable this provider
           name: "Stability AI",
           baseUrl: "https://api.stability.ai/v2beta/stable-image/generate/sd3",
           apiKey: process.env.STABILITY_API_KEY,

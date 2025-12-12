@@ -13,10 +13,6 @@ async function loadPromptConfig() {
 const fetch = globalThis.fetch;
 const logger = getLogger();
 
-// Cache for repeated requests to avoid duplicate API calls
-const requestCache = new Map();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-
 /**
  * Multi-provider AI service supporting both OpenRouter and OpenAI
  */
@@ -29,20 +25,9 @@ export class MultiProviderAIService {
    * Make an API request with error handling and caching
    * @param {string} url - API endpoint URL
    * @param {Object} options - Fetch options
-   * @param {string} cacheKey - Cache key for request deduplication
    * @returns {Promise<Object>} Parsed JSON response
    */
-  async makeApiRequest(url, options, cacheKey = null) {
-    // Check cache first
-    if (cacheKey && requestCache.has(cacheKey)) {
-      const cached = requestCache.get(cacheKey);
-      if (Date.now() - cached.timestamp < CACHE_TTL) {
-        logger.debug(`Cache hit for key: ${cacheKey}`);
-        return cached.data;
-      }
-      requestCache.delete(cacheKey);
-    }
-
+  async makeApiRequest(url, options) {
     const response = await fetch(url, options);
 
     if (!response.ok) {
@@ -52,14 +37,6 @@ export class MultiProviderAIService {
     }
 
     const data = await response.json();
-
-    // Cache successful responses
-    if (cacheKey) {
-      requestCache.set(cacheKey, {
-        data,
-        timestamp: Date.now(),
-      });
-    }
 
     return data;
   }
@@ -131,6 +108,27 @@ export class MultiProviderAIService {
   }
 
   /**
+   * Check if AI features are enabled (at least one provider is enabled)
+   * @returns {boolean} True if AI is available
+   */
+  isEnabled() {
+    return this.getPrimaryProvider() !== null;
+  }
+
+  /**
+   * Get the first enabled provider in priority order
+   * @returns {string|null} Provider key or null if none enabled
+   */
+  getPrimaryProvider() {
+    for (const [key, provider] of Object.entries(this.config.providers)) {
+      if (provider.enabled === true) {
+        return key;
+      }
+    }
+    return null;
+  }
+
+  /**
    * Generate AI content using the configured provider
    * @param {Object} options - Configuration options
    * @param {string} options.type - Type of generation (image, text)
@@ -147,12 +145,32 @@ export class MultiProviderAIService {
       provider = null,
     } = options;
 
+    // Check if AI features are enabled
+    if (!this.isEnabled()) {
+      throw new Error(
+        "AI features are disabled. All providers are disabled. Please enable at least one provider in config.js to use AI features.",
+      );
+    }
+
     // Determine which provider to use
-    const targetProvider = provider || this.config.primary;
+    let targetProvider = provider;
+
+    if (!targetProvider) {
+      // Find first enabled provider in order
+      targetProvider = this.getPrimaryProvider();
+    }
+
     const providerConfig = this.config.providers[targetProvider];
 
     if (!providerConfig) {
       throw new Error(`Unknown AI provider: ${targetProvider}`);
+    }
+
+    // Check if provider is enabled (only if explicitly forced)
+    if (provider && providerConfig.enabled !== true) {
+      throw new Error(
+        `${providerConfig.name} is disabled. Please enable it in config or use a different provider.`,
+      );
     }
 
     if (!providerConfig.apiKey) {
@@ -214,37 +232,12 @@ export class MultiProviderAIService {
    * @param {Object} config - Generation configuration
    * @returns {Promise<Object>} Generated image data
    */
-  async generateImageOpenRouter(prompt, model, config) {
+  async generateImageOpenRouter(prompt, model, _config) {
     const requestBody = {
       model,
       messages: [{ role: "user", content: prompt }],
       modalities: ["image", "text"],
     };
-
-    // Include style options in cache key to prevent cache hits for different styles
-    let styleHash = "default";
-    if (config?.styleOptions) {
-      // Create a more robust hash by using a simple hash function
-      const styleString = JSON.stringify(
-        config.styleOptions,
-        Object.keys(config.styleOptions).sort(),
-      );
-      let hash = 0;
-      for (let i = 0; i < styleString.length; i++) {
-        const char = styleString.charCodeAt(i);
-        hash = (hash << 5) - hash + char;
-        hash = hash & hash; // Convert to 32-bit integer
-      }
-      styleHash = Math.abs(hash).toString(36); // Convert to base36 for shorter string
-    }
-    const cacheKey = `openrouter_image_${model}_${styleHash}_${Buffer.from(prompt).toString("base64").slice(0, 32)}`;
-
-    // Debug logging for cache key generation
-    logger.debug(`Cache key generated: ${cacheKey}`);
-    logger.debug(
-      `Style options: ${JSON.stringify(config?.styleOptions || {})}`,
-    );
-    logger.debug(`Style hash: ${styleHash}`);
 
     const data = await this.makeApiRequest(
       this.config.providers.openrouter.baseUrl,
@@ -256,7 +249,6 @@ export class MultiProviderAIService {
         ),
         body: JSON.stringify(requestBody),
       },
-      cacheKey,
     );
 
     const imageUrl = this.extractImageUrl(data);
@@ -372,6 +364,8 @@ export class MultiProviderAIService {
    * @param {string} prompt - Image generation prompt
    * @param {string} model - Model to use (sd3.5-flash, sd3.5-medium, etc.)
    * @param {Object} config - Generation configuration
+   * @param {Buffer} config.imageBuffer - Optional: source image buffer for image-to-image
+   * @param {number} config.strength - Optional: image-to-image strength (0.0-1.0, default 0.5)
    * @returns {Promise<Object>} Generated image data
    */
   async generateImageStability(prompt, model, config) {
@@ -383,8 +377,26 @@ export class MultiProviderAIService {
     formData.append("prompt", prompt);
     formData.append("model", model);
     formData.append("output_format", "png");
-    formData.append("aspect_ratio", "1:1");
-    formData.append("style_preset", "anime"); // Perfect for anime avatars!
+
+    // Image-to-image support: add source image if provided
+    if (config.imageBuffer) {
+      // FormData can accept Buffer directly in Node.js environments
+      formData.append("image", config.imageBuffer, "source.png");
+      // Strength controls how much the source image influences the result
+      // 0.0 = ignore source, 1.0 = stay very close to source
+      const strength = config.strength !== undefined ? config.strength : 0.5;
+      formData.append("strength", strength.toString());
+    }
+
+    // Use aspect ratio from config if provided, otherwise default to 1:1
+    const aspectRatio = config.aspectRatio || "1:1";
+    formData.append("aspect_ratio", aspectRatio);
+
+    // Only use anime style preset for avatar generation, not for general imagine
+    if (config.style_preset) {
+      formData.append("style_preset", config.style_preset);
+    }
+
     formData.append("cfg_scale", config.cfgScale || 7); // Higher CFG for better prompt adherence
     formData.append("steps", config.steps || 20); // More steps for better quality
     formData.append("seed", config.seed || Math.floor(Math.random() * 1000000)); // Random seed for variety
@@ -426,46 +438,16 @@ export class MultiProviderAIService {
   }
 
   /**
-   * Clear the request cache
-   */
-  clearCache() {
-    requestCache.clear();
-    logger.debug("Request cache cleared");
-  }
-
-  /**
-   * Get cache statistics
-   * @returns {Object} Cache statistics
-   */
-  getCacheStats() {
-    const now = Date.now();
-    let validEntries = 0;
-    let expiredEntries = 0;
-
-    for (const [, value] of requestCache.entries()) {
-      if (now - value.timestamp < CACHE_TTL) {
-        validEntries++;
-      } else {
-        expiredEntries++;
-      }
-    }
-
-    return {
-      totalEntries: requestCache.size,
-      validEntries,
-      expiredEntries,
-      cacheTTL: CACHE_TTL,
-    };
-  }
-
-  /**
    * Get the current configuration
    * @returns {Object} Current configuration
    */
   getConfig() {
     return {
-      primary: this.config.primary,
+      primary: this.getPrimaryProvider(),
       providers: Object.keys(this.config.providers),
+      enabledProviders: Object.entries(this.config.providers)
+        .filter(([, provider]) => provider.enabled === true)
+        .map(([key]) => key),
     };
   }
 }

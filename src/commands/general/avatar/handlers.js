@@ -1,6 +1,7 @@
 import { AttachmentBuilder } from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
 import { generateAvatar as generateAIAvatar } from "../../../utils/ai/avatarService.js";
+import { multiProviderAIService } from "../../../utils/ai/multiProviderAIService.js";
 import { CreditManager } from "./utils/creditManager.js";
 import { InteractionHandler } from "./utils/interactionHandler.js";
 import { createLoadingSkeleton } from "./utils/imageUtils.js";
@@ -39,6 +40,16 @@ export async function handleAvatarGeneration(
   );
 
   try {
+    // Check if AI features are enabled
+    if (!multiProviderAIService.isEnabled()) {
+      const errorEmbed = createErrorEmbed(
+        interaction,
+        "AI Features Disabled",
+        "AI features are currently disabled. All providers are disabled in the configuration. Please contact the bot administrator.",
+      );
+      return await interaction.editReply({ embeds: [errorEmbed] });
+    }
+
     // Extract options
     const prompt = interaction.options.getString("prompt");
     const colorStyle = interaction.options.getString("color_style");

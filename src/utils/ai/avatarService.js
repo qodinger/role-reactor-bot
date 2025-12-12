@@ -41,7 +41,7 @@ export class AvatarService {
       const enhancedPrompt = await this.buildAnimePrompt(
         prompt,
         styleOptions,
-        this.aiService.config.primary,
+        this.aiService.getPrimaryProvider(),
       );
 
       // Simulate the cache key generation logic
@@ -122,7 +122,7 @@ export class AvatarService {
           if (progressCallback) progressCallback("Building enhanced prompt...");
 
           // Determine provider for prompt optimization
-          const targetProvider = this.aiService.config.primary;
+          const targetProvider = this.aiService.getPrimaryProvider();
           const enhancedPrompt = await this.buildAnimePrompt(
             prompt,
             styleOptions,

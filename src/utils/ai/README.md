@@ -6,10 +6,17 @@ This directory contains reusable AI services for various AI-powered features in 
 
 The AI utilities are designed with a modular, reusable architecture:
 
-- **`multiProviderAIService.js`** - Multi-provider AI service supporting OpenRouter and OpenAI
+- **`multiProviderAIService.js`** - Multi-provider AI service supporting OpenRouter, OpenAI, and Stability AI with enabled/disabled provider configuration
 - **`avatarService.js`** - Specialized service for AI avatar generation
 - **`concurrencyManager.js`** - Request concurrency management
 - **`index.js`** - Central export file for easy imports
+
+**Provider Management:**
+
+- Providers are configured in `src/config/config.js` with `enabled: true/false` flags
+- Providers are checked in priority order (as they appear in config)
+- First enabled provider is used automatically
+- If all providers are disabled, AI features are completely disabled
 
 ## Multi-Provider AI Service
 
@@ -18,7 +25,17 @@ The `MultiProviderAIService` class provides the foundation for all AI operations
 ```javascript
 import { multiProviderAIService } from "./utils/ai/multiProviderAIService.js";
 
+// Check if AI features are enabled
+if (!multiProviderAIService.isEnabled()) {
+  // Handle disabled AI features
+  return;
+}
+
+// Get the primary (first enabled) provider
+const primaryProvider = multiProviderAIService.getPrimaryProvider();
+
 // Generate AI content using the configured provider
+// Automatically uses the first enabled provider, or a specific provider if specified
 const result = await multiProviderAIService.generate({
   type: "image", // Only image generation is supported
   prompt: "Your prompt here",
@@ -26,6 +43,7 @@ const result = await multiProviderAIService.generate({
     size: "1024x1024",
     quality: "standard",
   },
+  provider: null, // null = auto-select first enabled provider, or specify "openrouter", "openai", "stability"
 });
 ```
 
@@ -71,7 +89,8 @@ The AI service supports image generation through multiple providers:
 
 ### OpenRouter Models
 
-- `google/gemini-2.5-flash-image-preview` (Recommended)
+- `google/gemini-3-pro-image-preview` (Default - High quality)
+- `google/gemini-2.5-flash-image-preview` (Faster, lower cost)
 - `stability-ai/stable-diffusion-xl-base-1.0`
 - `google/imagen-3`
 
@@ -99,12 +118,14 @@ All AI services include built-in concurrency management:
 
 Comprehensive error handling for common scenarios:
 
+- **AI features disabled** - All providers are disabled in config
 - API key not configured
 - Payment required (402)
 - Rate limit exceeded (429)
 - Invalid API key (401)
 - Network errors
 - Invalid responses
+- Provider disabled - Attempted to use a provider that is disabled
 
 ## Usage Examples
 
@@ -161,14 +182,22 @@ To add support for new models, update the configuration in `config.js`:
 // In config.js aiModels getter
 providers: {
   openrouter: {
+    enabled: true, // Set to false to disable this provider
+    name: "OpenRouter",
+    baseUrl: "https://openrouter.ai/api/v1/chat/completions",
+    apiKey: process.env.OPENROUTER_API_KEY,
     models: {
       image: {
-        primary: "google/gemini-2.5-flash-image-preview",
+        primary: "google/gemini-3-pro-image-preview",
         // Add new models here
       },
     },
   },
   openai: {
+    enabled: false, // Set to true to enable this provider
+    name: "OpenAI",
+    baseUrl: "https://api.openai.com/v1",
+    apiKey: process.env.OPENAI_API_KEY,
     models: {
       image: {
         primary: "dall-e-3",
@@ -179,14 +208,13 @@ providers: {
 }
 ```
 
+**Important:** Remember to set `enabled: true` for the provider you want to use, and ensure the API key is configured in your `.env` file.
+
 ## Environment Variables
 
 Required environment variables:
 
 ```env
-# AI Provider Selection
-AI_PRIMARY_PROVIDER=openrouter  # or "openai" or "stability"
-
 # OpenRouter Configuration
 OPENROUTER_API_KEY=your_openrouter_api_key
 
@@ -201,6 +229,59 @@ BOT_NAME=Role Reactor Bot
 BOT_WEBSITE_URL=https://github.com/rolereactor
 ```
 
+## Provider Configuration
+
+Provider selection is configured in `src/config/config.js` using the `enabled` flag:
+
+- Set `enabled: true` to enable a provider
+- Set `enabled: false` to disable a provider
+- Providers are checked in order (as they appear in config)
+- The first enabled provider is used automatically
+- If a provider is disabled, the system automatically falls back to the next enabled provider
+- **If all providers are disabled, AI features are completely disabled** - commands like `/avatar` and `/imagine` will show an error message
+
+Example configuration:
+
+```javascript
+providers: {
+  openrouter: {
+    enabled: true,  // This will be used first
+    // ... config
+  },
+  openai: {
+    enabled: false, // Skipped if openrouter is enabled
+    // ... config
+  },
+  stability: {
+    enabled: true,  // Used as fallback if openrouter fails
+    // ... config
+  },
+}
+```
+
+**Disabling AI Features:**
+
+To completely disable AI features, set all providers to `enabled: false`:
+
+```javascript
+providers: {
+  openrouter: {
+    enabled: false,  // AI features disabled
+    // ... config
+  },
+  openai: {
+    enabled: false,
+    // ... config
+  },
+  stability: {
+    enabled: false,
+    // ... config
+  },
+}
+```
+
+When all providers are disabled, AI commands will return user-friendly error messages indicating that AI features are disabled.
+
 ## Future Enhancements
 
 The AI utilities are designed to be easily extensible:
@@ -208,9 +289,9 @@ The AI utilities are designed to be easily extensible:
 - **New AI providers** - Add support for other AI APIs (Anthropic, Cohere, etc.)
 - **New content types** - Add video, audio, or other media generation
 - **Advanced features** - Add conversation memory, context awareness, etc.
-- **Enhanced caching** - Add intelligent caching for repeated requests
 - **Analytics** - Add usage tracking and analytics
 - **Text generation** - Re-add text generation capabilities if needed
+- **Provider fallback** - Automatic fallback to next enabled provider on failure
 
 ## Best Practices
 

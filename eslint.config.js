@@ -24,6 +24,8 @@ export default [
         setInterval: "readonly",
         clearInterval: "readonly",
         URL: "readonly",
+        URLSearchParams: "readonly",
+        fetch: "readonly",
         // Jest globals
         jest: "readonly",
         describe: "readonly",
