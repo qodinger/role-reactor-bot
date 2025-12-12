@@ -12,6 +12,7 @@ let cleanupInterval = null;
 
 /**
  * Generation history tracking for debugging and support
+ * Stores in flat format similar to imagine_jobs.json
  */
 export class GenerationHistory {
   /**
@@ -22,52 +23,36 @@ export class GenerationHistory {
    */
   static async recordGeneration(userId, generationData) {
     const storage = await getStorageManager();
-    const history = (await storage.get("avatar_generation_history")) || {};
+    const history = (await storage.get("avatar_jobs")) || {};
 
-    if (!history[userId]) {
-      history[userId] = {
-        generations: [],
-        totalAttempts: 0,
-        successfulGenerations: 0,
-        failedGenerations: 0,
-        lastUpdated: new Date().toISOString(),
-      };
-    }
+    const timestamp = Date.now();
+    const randomId = Math.random().toString(36).substr(2, 9);
+    const jobId = `avatar_${timestamp}_${randomId}`;
 
-    const userHistory = history[userId];
-    const generationId = `gen_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const createdAt = new Date().toISOString();
+    const expiresAt = new Date(
+      Date.now() + DEFAULT_RETENTION_DAYS * 24 * 60 * 60 * 1000,
+    ).toISOString();
 
     const record = {
-      id: generationId,
-      timestamp: new Date().toISOString(),
       prompt: generationData.prompt,
+      userId,
+      provider: generationData.provider || null,
+      model: generationData.model || null,
+      config: generationData.config || {},
       success: generationData.success,
       error: generationData.error || null,
       processingTime: generationData.processingTime || 0,
       userTier: generationData.userTier || "Regular",
+      createdAt,
+      expiresAt,
     };
 
-    userHistory.generations.push(record);
-    userHistory.totalAttempts += 1;
-
-    if (generationData.success) {
-      userHistory.successfulGenerations += 1;
-    } else {
-      userHistory.failedGenerations += 1;
-    }
-
-    userHistory.lastUpdated = new Date().toISOString();
-
-    // Keep only last 50 generations per user to prevent storage bloat
-    if (userHistory.generations.length > 50) {
-      userHistory.generations = userHistory.generations.slice(-50);
-    }
-
-    history[userId] = userHistory;
-    await storage.set("avatar_generation_history", history);
+    history[jobId] = record;
+    await storage.set("avatar_jobs", history);
 
     logger.debug(
-      `Recorded generation ${generationId} for user ${userId}: ${generationData.success ? "SUCCESS" : "FAILED"}`,
+      `Recorded generation ${jobId} for user ${userId}: ${generationData.success ? "SUCCESS" : "FAILED"}`,
     );
   }
 
@@ -75,23 +60,22 @@ export class GenerationHistory {
    * Get generation history for a user
    * @param {string} userId - User ID
    * @param {number} limit - Number of recent generations to return
-   * @returns {Promise<Object|null>} User generation history
+   * @returns {Promise<Array>} User generation history
    */
   static async getUserHistory(userId, limit = 20) {
     const storage = await getStorageManager();
-    const history = (await storage.get("avatar_generation_history")) || {};
+    const history = (await storage.get("avatar_jobs")) || {};
 
-    if (!history[userId]) {
-      return null;
-    }
+    const userGenerations = Object.entries(history)
+      .filter(([_, record]) => record.userId === userId)
+      .map(([jobId, record]) => ({
+        jobId,
+        ...record,
+      }))
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .slice(0, limit);
 
-    const userHistory = history[userId];
-    const recentGenerations = userHistory.generations.slice(-limit);
-
-    return {
-      ...userHistory,
-      generations: recentGenerations,
-    };
+    return userGenerations;
   }
 
   /**
@@ -101,26 +85,22 @@ export class GenerationHistory {
    */
   static async getFailedGenerations(hours = 24) {
     const storage = await getStorageManager();
-    const history = (await storage.get("avatar_generation_history")) || {};
+    const history = (await storage.get("avatar_jobs")) || {};
 
     const cutoffTime = new Date(Date.now() - hours * 60 * 60 * 1000);
     const failedGenerations = [];
 
-    for (const [userId, userHistory] of Object.entries(history)) {
-      const recentFailures = userHistory.generations.filter(
-        gen => !gen.success && new Date(gen.timestamp) > cutoffTime,
-      );
-
-      failedGenerations.push(
-        ...recentFailures.map(gen => ({
-          ...gen,
-          userId,
-        })),
-      );
+    for (const [jobId, record] of Object.entries(history)) {
+      if (!record.success && new Date(record.createdAt) > cutoffTime) {
+        failedGenerations.push({
+          jobId,
+          ...record,
+        });
+      }
     }
 
     return failedGenerations.sort(
-      (a, b) => new Date(b.timestamp) - new Date(a.timestamp),
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
     );
   }
 
@@ -131,7 +111,7 @@ export class GenerationHistory {
    */
   static async getGenerationStats(hours = 24) {
     const storage = await getStorageManager();
-    const history = (await storage.get("avatar_generation_history")) || {};
+    const history = (await storage.get("avatar_jobs")) || {};
 
     const cutoffTime = new Date(Date.now() - hours * 60 * 60 * 1000);
     let totalAttempts = 0;
@@ -140,22 +120,19 @@ export class GenerationHistory {
     let averageProcessingTime = 0;
     const processingTimes = [];
 
-    for (const userHistory of Object.values(history)) {
-      const recentGenerations = userHistory.generations.filter(
-        gen => new Date(gen.timestamp) > cutoffTime,
-      );
+    for (const record of Object.values(history)) {
+      if (new Date(record.createdAt) > cutoffTime) {
+        totalAttempts += 1;
+        if (record.success) {
+          successfulGenerations += 1;
+        } else {
+          failedGenerations += 1;
+        }
 
-      totalAttempts += recentGenerations.length;
-      successfulGenerations += recentGenerations.filter(
-        gen => gen.success,
-      ).length;
-      failedGenerations += recentGenerations.filter(gen => !gen.success).length;
-
-      processingTimes.push(
-        ...recentGenerations
-          .filter(gen => gen.processingTime > 0)
-          .map(gen => gen.processingTime),
-      );
+        if (record.processingTime > 0) {
+          processingTimes.push(record.processingTime);
+        }
+      }
     }
 
     if (processingTimes.length > 0) {
@@ -187,36 +164,41 @@ export class GenerationHistory {
    */
   static async cleanupOldHistory(daysToKeep = 7) {
     const storage = await getStorageManager();
-    const history = (await storage.get("avatar_generation_history")) || {};
+    const history = (await storage.get("avatar_jobs")) || {};
 
+    const now = new Date();
     const cutoffTime = new Date(Date.now() - daysToKeep * 24 * 60 * 60 * 1000);
     let totalCleaned = 0;
 
-    for (const [userId, userHistory] of Object.entries(history)) {
-      const originalLength = userHistory.generations.length;
-      userHistory.generations = userHistory.generations.filter(
-        gen => new Date(gen.timestamp) > cutoffTime,
-      );
+    for (const [jobId, record] of Object.entries(history)) {
+      let shouldDelete = false;
 
-      const cleaned = originalLength - userHistory.generations.length;
-      totalCleaned += cleaned;
+      // Priority 1: Check if expiresAt is set and in the past
+      if (record.expiresAt) {
+        const expiresAt = new Date(record.expiresAt);
+        if (expiresAt < now) {
+          shouldDelete = true;
+        }
+      }
+      // Priority 2: Fallback to createdAt for old records without expiresAt
+      else if (record.createdAt) {
+        const createdAt = new Date(record.createdAt);
+        if (createdAt < cutoffTime) {
+          shouldDelete = true;
+        }
+      }
+      // Priority 3: Delete records with no timestamp (invalid data)
+      else {
+        shouldDelete = true;
+      }
 
-      if (userHistory.generations.length === 0) {
-        delete history[userId];
-      } else {
-        // Update statistics
-        userHistory.totalAttempts = userHistory.generations.length;
-        userHistory.successfulGenerations = userHistory.generations.filter(
-          gen => gen.success,
-        ).length;
-        userHistory.failedGenerations = userHistory.generations.filter(
-          gen => !gen.success,
-        ).length;
-        userHistory.lastUpdated = new Date().toISOString();
+      if (shouldDelete) {
+        delete history[jobId];
+        totalCleaned += 1;
       }
     }
 
-    await storage.set("avatar_generation_history", history);
+    await storage.set("avatar_jobs", history);
     logger.info(`Cleaned up ${totalCleaned} old generation records`);
     return totalCleaned;
   }
