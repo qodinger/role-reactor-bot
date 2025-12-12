@@ -1,5 +1,7 @@
 import express from "express";
 import { handleKoFiWebhook } from "../webhooks/kofi.js";
+import { handleCryptoWebhook } from "../webhooks/crypto.js";
+import { handleBuyMeACoffeeWebhook } from "../webhooks/buymeacoffee.js";
 import { getLogger } from "../utils/logger.js";
 
 // Import middleware
@@ -16,6 +18,9 @@ import {
 import { healthCheck, dockerHealthCheck } from "./routes/health.js";
 import { verifyWebhookToken } from "./routes/webhook.js";
 import { apiInfo, apiStats, setDiscordClient } from "./routes/api.js";
+import authRoutes from "./routes/auth.js";
+import paymentRoutes from "./routes/payments.js";
+import supporterRoutes from "./routes/supporters.js";
 
 // Import configuration
 import {
@@ -32,7 +37,7 @@ const app = express();
 /**
  * Initialize server middleware
  */
-function initializeMiddleware() {
+async function initializeMiddleware() {
   // Configure Express to trust proxy headers (required for ngrok, reverse proxies, etc.)
   // Trust only the first proxy hop (most secure - prevents IP spoofing while allowing reverse proxies)
   // This allows express-rate-limit to correctly identify client IPs from X-Forwarded-For header
@@ -42,6 +47,43 @@ function initializeMiddleware() {
   // Basic Express middleware
   app.use(express.json({ limit: "10mb" }));
   app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+  // Session middleware (for Discord OAuth)
+  // Note: You'll need to install express-session: npm install express-session
+  // For production, use a session store like connect-mongo or redis
+  if (process.env.SESSION_SECRET) {
+    try {
+      const session = (await import("express-session")).default;
+      app.use(
+        session({
+          secret: process.env.SESSION_SECRET,
+          resave: false,
+          saveUninitialized: false,
+          cookie: {
+            secure: process.env.NODE_ENV === "production", // HTTPS only in production
+            httpOnly: true,
+            maxAge: 24 * 60 * 60 * 1000, // 24 hours
+          },
+        }),
+      );
+      logger.info("✅ Session middleware enabled for Discord OAuth");
+    } catch (_error) {
+      logger.warn(
+        "⚠️ express-session not installed. Install with: npm install express-session",
+      );
+    }
+  }
+
+  // Serve static files (for website)
+  if (process.env.SERVE_STATIC === "true") {
+    const { default: path } = await import("path");
+    const { fileURLToPath } = await import("url");
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    const publicPath = path.join(__dirname, "../../public");
+    app.use(express.static(publicPath));
+    logger.info(`📁 Serving static files from: ${publicPath}`);
+  }
 
   // Custom middleware
   app.use(corsMiddleware);
@@ -67,10 +109,28 @@ function initializeRoutes() {
   // Webhook routes with rate limiting
   app.post("/webhook/verify", webhookRateLimiter, verifyWebhookToken);
   app.post("/webhook/kofi", kofiWebhookRateLimiter, handleKoFiWebhook);
+  app.post("/webhook/crypto", webhookRateLimiter, handleCryptoWebhook);
+  app.post("/webhook/bmac", webhookRateLimiter, handleBuyMeACoffeeWebhook);
 
   // API routes with rate limiting
   app.get("/api/info", apiRateLimiter, apiInfo);
   app.get("/api/stats", apiRateLimiter, apiStats);
+
+  // Authentication routes (Discord OAuth) with rate limiting
+  if (process.env.DISCORD_CLIENT_ID) {
+    app.use("/auth", apiRateLimiter, authRoutes);
+    logger.info("✅ Discord OAuth routes enabled");
+  }
+
+  // Payment routes (require authentication)
+  if (process.env.COINBASE_ENABLED === "true") {
+    app.use("/api/payments", paymentRoutes);
+    logger.info("✅ Payment routes enabled");
+  }
+
+  // Supporter routes (public leaderboard)
+  app.use("/api/supporters", apiRateLimiter, supporterRoutes);
+  logger.info("✅ Supporter routes enabled");
 }
 
 /**
@@ -127,7 +187,7 @@ export async function startWebhookServer() {
     }
 
     // Initialize server components
-    initializeMiddleware();
+    await initializeMiddleware();
     initializeRoutes();
     initializeErrorHandling();
 
@@ -152,10 +212,23 @@ export async function startWebhookServer() {
       logger.info(
         `  Ko-fi: http://localhost:${serverConfig.port}/webhook/kofi`,
       );
+      logger.info(
+        `  Crypto: http://localhost:${serverConfig.port}/webhook/crypto`,
+      );
       logger.info(`  API Info: http://localhost:${serverConfig.port}/api/info`);
       logger.info(
         `  API Stats: http://localhost:${serverConfig.port}/api/stats`,
       );
+
+      if (process.env.DISCORD_CLIENT_ID) {
+        logger.info(
+          `  Discord OAuth: http://localhost:${serverConfig.port}/auth/discord`,
+        );
+      }
+
+      if (process.env.SERVE_STATIC === "true") {
+        logger.info(`  Website: http://localhost:${serverConfig.port}/`);
+      }
     });
 
     // Handle server errors

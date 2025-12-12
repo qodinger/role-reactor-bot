@@ -163,6 +163,39 @@ export const data = new SlashCommandBuilder()
           .setMaxLength(200),
       ),
   )
+  .addSubcommand(subcommand =>
+    subcommand
+      .setName("list-pending")
+      .setDescription(
+        "🔒 [DEVELOPER ONLY] List all pending Buy Me a Coffee payments",
+      ),
+  )
+  .addSubcommand(subcommand =>
+    subcommand
+      .setName("process-pending")
+      .setDescription(
+        "🔒 [DEVELOPER ONLY] Process a pending Buy Me a Coffee payment",
+      )
+      .addUserOption(option =>
+        option
+          .setName("user")
+          .setDescription("The Discord user to link the payment to")
+          .setRequired(true),
+      )
+      .addStringOption(option =>
+        option
+          .setName("transaction-id")
+          .setDescription("Transaction ID of the pending payment")
+          .setRequired(true),
+      )
+      .addStringOption(option =>
+        option
+          .setName("reason")
+          .setDescription("Reason for processing (optional)")
+          .setRequired(false)
+          .setMaxLength(200),
+      ),
+  )
   .setDefaultMemberPermissions(0n) // Visible to all, but restricted by isDeveloper() check
   .setDMPermission(false);
 
