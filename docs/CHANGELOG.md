@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Bot Statistics API: Public API endpoint to get bot statistics including server count and user count
 - API Information Endpoint: Public API endpoint to get bot information and version
+- Imagine Command: Create AI-generated artwork from any prompt using the new `/imagine` command with optional style, aspect ratio, quality, and provider controls, supporting prompts up to 2000 characters
+
+### Changed
+
+- AI Generation: Removed cached responses so identical prompts always produce fresh images
 
 ### Performance
 
