@@ -45,25 +45,69 @@ class LevelUpNotifier {
         return;
       }
 
-      // Get level-up channel (default to system channel or first text channel)
-      let levelUpChannel = guild.systemChannel;
+      // Get level-up channel - prioritize configured channel
+      let levelUpChannel = null;
+
+      // First, try to use the configured level-up channel
       if (guildSettings.experienceSystem.levelUpChannel) {
-        levelUpChannel = guild.channels.cache.get(
+        const configuredChannel = guild.channels.cache.get(
           guildSettings.experienceSystem.levelUpChannel,
         );
+
+        // Verify the channel exists and bot can send messages
+        if (configuredChannel) {
+          const botMember = guild.members.me;
+          const permissions = configuredChannel.permissionsFor(botMember);
+
+          // Check if bot can actually send messages (not just has permission, but also not blocked)
+          if (
+            permissions &&
+            permissions.has("SendMessages") &&
+            permissions.has("ViewChannel") &&
+            permissions.has("EmbedLinks") &&
+            !configuredChannel.isThread()
+          ) {
+            // Additional check: verify channel type is text-based
+            if (configuredChannel.isTextBased()) {
+              levelUpChannel = configuredChannel;
+              this.logger.debug(
+                `Using configured level-up channel: ${configuredChannel.name} (${configuredChannel.id})`,
+              );
+            } else {
+              this.logger.warn(
+                `Configured level-up channel ${configuredChannel.name} (${configuredChannel.id}) is not a text-based channel. Type: ${configuredChannel.type}`,
+              );
+            }
+          } else {
+            // Detailed permission logging
+            const missingPerms = [];
+            if (!permissions) {
+              missingPerms.push("No permission data available");
+            } else {
+              if (!permissions.has("SendMessages"))
+                missingPerms.push("SendMessages");
+              if (!permissions.has("ViewChannel"))
+                missingPerms.push("ViewChannel");
+              if (!permissions.has("EmbedLinks"))
+                missingPerms.push("EmbedLinks");
+            }
+
+            this.logger.warn(
+              `Configured level-up channel ${configuredChannel.name} (${configuredChannel.id}) exists but bot cannot send messages. Missing permissions: ${missingPerms.join(", ") || "Unknown"}`,
+            );
+          }
+        } else {
+          this.logger.warn(
+            `Configured level-up channel ${guildSettings.experienceSystem.levelUpChannel} not found in guild ${guild.id}. Channel may have been deleted.`,
+          );
+        }
       }
 
-      if (!levelUpChannel) {
-        levelUpChannel = guild.channels.cache.find(
-          channel =>
-            channel.type === 0 &&
-            channel.permissionsFor(guild.members.me).has("SendMessages"),
-        );
-      }
-
+      // If no configured channel or it's invalid, don't fall back to other channels
+      // This ensures level-up messages only go to the configured channel
       if (!levelUpChannel) {
         this.logger.warn(
-          `No suitable channel found for level-up message in guild ${guild.id}`,
+          `No valid level-up channel configured for guild ${guild.id}. Level-up messages will not be sent. Please configure a level-up channel using /xp level-up.`,
         );
         return;
       }
@@ -72,17 +116,93 @@ class LevelUpNotifier {
       const embed = this.createLevelUpEmbed(user, oldLevel, newLevel, totalXP);
 
       // Send level-up message
-      await levelUpChannel.send({
-        content: `🎉 **${user.displayName || user.username}** leveled up!`,
-        embeds: [embed],
-      });
+      try {
+        await levelUpChannel.send({
+          content: `🎉 **${user.displayName || user.username}** leveled up!`,
+          embeds: [embed],
+        });
 
-      this.logger.info(
-        `🎉 Sent level-up notification for user ${user.id} in guild ${guild.id} (Level ${oldLevel} → ${newLevel})`,
-      );
+        this.logger.info(
+          `🎉 Sent level-up notification for user ${user.id} in guild ${guild.id} (Level ${oldLevel} → ${newLevel}) to channel ${levelUpChannel.name}`,
+        );
+      } catch (sendError) {
+        // Enhanced error detection and logging
+        const errorCode = sendError.code;
+        const errorMessage = sendError.message || "Unknown error";
+
+        // Check for specific Discord error codes
+        if (
+          errorCode === 50013 ||
+          errorMessage.includes("Missing Permissions")
+        ) {
+          this.logger.error(
+            `❌ Cannot send level-up message to channel ${levelUpChannel.name} (${levelUpChannel.id}) in guild ${guild.id} (${guild.name}). Bot is missing permissions or is blocked.`,
+            {
+              errorCode,
+              errorMessage,
+              channelId: levelUpChannel.id,
+              channelName: levelUpChannel.name,
+              guildId: guild.id,
+              guildName: guild.name,
+              userId: user.id,
+              username: user.tag,
+              level: newLevel,
+            },
+          );
+        } else if (
+          errorCode === 50001 ||
+          errorMessage.includes("Missing Access")
+        ) {
+          this.logger.error(
+            `❌ Cannot access level-up channel ${levelUpChannel.name} (${levelUpChannel.id}) in guild ${guild.id} (${guild.name}). Bot may be blocked from this channel or channel was deleted.`,
+            {
+              errorCode,
+              errorMessage,
+              channelId: levelUpChannel.id,
+              channelName: levelUpChannel.name,
+              guildId: guild.id,
+              guildName: guild.name,
+              userId: user.id,
+              username: user.tag,
+              level: newLevel,
+            },
+          );
+        } else if (
+          errorCode === 10007 ||
+          errorMessage.includes("Unknown Channel")
+        ) {
+          this.logger.error(
+            `❌ Level-up channel ${levelUpChannel.id} was deleted or no longer exists in guild ${guild.id} (${guild.name}). Please reconfigure the level-up channel using /xp level-up.`,
+            {
+              errorCode,
+              errorMessage,
+              channelId: levelUpChannel.id,
+              guildId: guild.id,
+              guildName: guild.name,
+            },
+          );
+        } else {
+          this.logger.error(
+            `❌ Error sending level-up message to channel ${levelUpChannel.name} (${levelUpChannel.id}) in guild ${guild.id} (${guild.name}):`,
+            {
+              errorCode,
+              errorMessage,
+              errorStack: sendError.stack,
+              channelId: levelUpChannel.id,
+              channelName: levelUpChannel.name,
+              guildId: guild.id,
+              guildName: guild.name,
+              userId: user.id,
+              username: user.tag,
+              level: newLevel,
+            },
+          );
+        }
+        // Don't re-throw - we've logged the error
+      }
     } catch (error) {
       this.logger.error(
-        `Error sending level-up notification for user ${user.id}:`,
+        `Error processing level-up notification for user ${user.id} in guild ${guild.id}:`,
         error,
       );
     }

@@ -245,8 +245,8 @@ export function createXpConfigPageEmbed(
     {
       name: "Configuration Options",
       value: [
-        "**🔧 Basic Configuration** - Set XP amounts for messages, commands, roles, and voice chat",
-        "**⚙️ Advanced Configuration** - Adjust cooldowns, voice XP intervals, and timing settings",
+        "**🔧 Set XP Amounts** - Configure how much XP users earn from messages, commands, roles, and voice chat",
+        "**⚙️ Set Cooldowns & Timing** - Adjust cooldown periods, voice XP intervals, and other timing settings",
       ].join("\n"),
       inline: false,
     },

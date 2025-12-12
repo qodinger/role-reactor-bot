@@ -168,7 +168,7 @@ export function createLevelUpComponents(xpSettings) {
   buttonComponents.push(
     new ButtonBuilder()
       .setCustomId("xp_configure_channel")
-      .setLabel("Select Channel")
+      .setLabel("Set Level-Up Channel")
       .setStyle(ButtonStyle.Secondary),
   );
 
@@ -197,7 +197,7 @@ export function createXpConfigPageComponents(_xpSettings) {
   firstRowButtons.push(
     new ButtonBuilder()
       .setCustomId("xp_configure_basic")
-      .setLabel("Basic Configuration")
+      .setLabel("Set XP Amounts")
       .setStyle(ButtonStyle.Secondary),
   );
 
@@ -205,7 +205,7 @@ export function createXpConfigPageComponents(_xpSettings) {
   firstRowButtons.push(
     new ButtonBuilder()
       .setCustomId("xp_configure_advanced")
-      .setLabel("Advanced Configuration")
+      .setLabel("Set Cooldowns & Timing")
       .setStyle(ButtonStyle.Secondary),
   );
 
