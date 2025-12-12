@@ -9,13 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Bot Statistics API: Public API endpoint to get bot statistics including server count and user count
-- API Information Endpoint: Public API endpoint to get bot information and version
-- Imagine Command: Create AI-generated artwork from any prompt using the new `/imagine` command with optional style, aspect ratio, quality, and provider controls, supporting prompts up to 2000 characters
+- Bot Statistics API: Public API endpoint `/api/stats` to get bot statistics including server count and user count
+- Webhook Handlers: Added webhook handlers for Buy Me a Coffee (`/webhook/bmac`) and crypto payments (`/webhook/crypto`)
+- Server Routes: Added API routes for authentication (`/auth`), payments (`/api/payments`), and supporter management (`/api/supporters`)
 
-### Changed
+### Fixed
 
-- AI Generation: Removed cached responses so identical prompts always produce fresh images
+- Level-Up Notifications: Improved error handling and diagnostics for level-up message posting. Bot now provides better error messages when it cannot post to the configured level-up channel, helping identify permission issues and blocked channels
 
 ### Performance
 

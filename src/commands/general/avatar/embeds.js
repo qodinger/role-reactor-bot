@@ -66,46 +66,13 @@ export function createLoadingEmbed(prompt) {
  * Create success embed for avatar generation
  * @param {import('discord.js').CommandInteraction} interaction
  * @param {string} prompt - User's prompt
- * @param {Object} deductionBreakdown - Core deduction breakdown
  * @returns {import('discord.js').EmbedBuilder}
  */
-export function createSuccessEmbed(
-  interaction,
-  prompt,
-  deductionBreakdown = null,
-) {
+export function createSuccessEmbed(interaction, prompt) {
   const embed = new EmbedBuilder()
     .setColor(THEME.SUCCESS)
     .setTitle("Avatar Complete!")
-    .setDescription(`**"${prompt}"**\n\nYour Avatar has been generated`);
-
-  // Add credit deduction breakdown if available
-  if (deductionBreakdown) {
-    const { subscriptionDeducted, bonusDeducted, totalDeducted } =
-      deductionBreakdown;
-
-    if (subscriptionDeducted > 0 || bonusDeducted > 0) {
-      let deductionText = `**Cores Used**: ${totalDeducted} ${CORE_EMOJI}`;
-
-      if (subscriptionDeducted > 0 && bonusDeducted > 0) {
-        deductionText += `\n• ${subscriptionDeducted} from subscription, ${bonusDeducted} from bonus`;
-      } else if (subscriptionDeducted > 0) {
-        deductionText += `\n• ${subscriptionDeducted} from subscription Cores`;
-      } else if (bonusDeducted > 0) {
-        deductionText += `\n• ${bonusDeducted} from bonus Cores`;
-      }
-
-      embed.addFields([
-        {
-          name: "Core Usage",
-          value: deductionText,
-          inline: false,
-        },
-      ]);
-    }
-  }
-
-  embed
+    .setDescription(`**"${prompt}"**\n\nYour Avatar has been generated`)
     .setFooter({
       text: `Generated for ${interaction.user.username} • Avatar Generator`,
     })

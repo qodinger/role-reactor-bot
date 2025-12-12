@@ -359,13 +359,13 @@ class Config {
       // Set enabled: true to use, enabled: false to disable
       providers: {
         openrouter: {
-          enabled: true, // Set to false to disable this provider
+          enabled: false, // Set to false to disable this provider
           name: "OpenRouter",
           baseUrl: "https://openrouter.ai/api/v1/chat/completions",
           apiKey: process.env.OPENROUTER_API_KEY,
           models: {
             image: {
-              primary: "google/gemini-3-pro-image",
+              primary: "google/gemini-3-pro-image-preview",
             },
           },
         },
@@ -381,7 +381,7 @@ class Config {
           },
         },
         stability: {
-          enabled: false, // Set to true to enable this provider
+          enabled: true, // Set to true to enable this provider
           name: "Stability AI",
           baseUrl: "https://api.stability.ai/v2beta/stable-image/generate/sd3",
           apiKey: process.env.STABILITY_API_KEY,

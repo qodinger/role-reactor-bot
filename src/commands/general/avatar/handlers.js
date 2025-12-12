@@ -152,14 +152,12 @@ export async function handleAvatarGeneration(
     }
 
     // Deduct credits only on success
-    let deductionBreakdown = null;
     if (generationSuccess) {
-      const result = await CreditManager.deductCredits(
+      await CreditManager.deductCredits(
         interaction.user.id,
         creditsNeeded,
         options,
       );
-      deductionBreakdown = result.deductionBreakdown;
     }
 
     // Create final attachment
@@ -168,11 +166,7 @@ export async function handleAvatarGeneration(
     });
 
     // Send final result with success embed
-    const successEmbed = createSuccessEmbed(
-      interaction,
-      prompt,
-      deductionBreakdown,
-    );
+    const successEmbed = createSuccessEmbed(interaction, prompt);
     await interaction.editReply({
       embeds: [successEmbed],
       files: [attachment],
