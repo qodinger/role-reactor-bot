@@ -83,22 +83,20 @@ class CommandHandler {
     // First try to get from command handler collection
     let command = this.commands.get(commandName);
 
-    // If not found, log a warning for debugging
-    if (!command) {
-      this.logger.warn(
-        `⚠️ Command '${commandName}' not found in command handler collection`,
-      );
-
-      // Try to get from client commands as fallback (if available)
-      if (this.client && this.client.commands) {
-        command = this.client.commands.get(commandName);
-        if (command) {
-          this.logger.info(
-            `✅ Found command '${commandName}' in client collection (fallback)`,
-          );
-          // Register it in the command handler for future use
-          this.registerCommand(command);
-        }
+    // If not found, try to get from client commands as fallback (if available)
+    if (!command && this.client && this.client.commands) {
+      command = this.client.commands.get(commandName);
+      if (command) {
+        this.logger.debug(
+          `Found command '${commandName}' in client collection, registering in command handler`,
+        );
+        // Register it in the command handler for future use
+        this.registerCommand(command);
+      } else {
+        // Only log warning if command is truly not found in either collection
+        this.logger.warn(
+          `⚠️ Command '${commandName}' not found in command handler or client collections`,
+        );
       }
     }
 
