@@ -29,13 +29,13 @@ export async function execute(interaction, client) {
     // Try to fetch all members for accurate counts (with timeout for large servers)
     let membersFetched = false;
     const cachedBeforeFetch = guild.members.cache.size;
-    
+
     if (cachedBeforeFetch < guild.memberCount) {
       try {
         // For large servers, set a timeout
         const memberCount = guild.memberCount;
         const timeoutMs = memberCount > 5000 ? 30000 : 15000; // 30s for large, 15s for small
-        
+
         if (memberCount > 5000) {
           await interaction.editReply({
             content: `⏳ Fetching ${memberCount.toLocaleString()} members for accurate data...`,
