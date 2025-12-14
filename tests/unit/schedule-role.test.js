@@ -434,16 +434,33 @@ describe("Schedule Role - Schedule Parsing", () => {
 
     it("should schedule for today if time hasn't passed", () => {
       const now = new Date();
-      const futureTime = new Date(now);
-      futureTime.setHours(now.getHours() + 2, 0, 0, 0); // 2 hours from now
+      // Pick a time that's definitely in the future today
+      // Use a time that's 1-2 hours in the future, but cap at 22:00 to avoid crossing midnight
+      let futureHour = Math.min(now.getHours() + 1, 22);
+      // If current hour is already 22 or later, use 14:00 (2pm) which will test tomorrow case
+      if (now.getHours() >= 22) {
+        futureHour = 14;
+      }
 
-      const hourStr = futureTime.getHours().toString().padStart(2, "0");
+      const hourStr = futureHour.toString().padStart(2, "0");
       const result = parseOneTimeSchedule(`${hourStr}:00`);
 
       expect(result).toBeInstanceOf(Date);
-      // Should be today
-      expect(result.getDate()).toBe(now.getDate());
-      expect(result.getHours()).toBe(futureTime.getHours());
+
+      // Check if the target time has passed today
+      const targetTime = new Date(now);
+      targetTime.setHours(futureHour, 0, 0, 0);
+
+      if (targetTime <= now) {
+        // Time has passed, should schedule for tomorrow
+        const tomorrow = new Date(now);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        expect(result.getDate()).toBe(tomorrow.getDate());
+      } else {
+        // Time hasn't passed, should schedule for today
+        expect(result.getDate()).toBe(now.getDate());
+      }
+      expect(result.getHours()).toBe(futureHour);
     });
   });
 
