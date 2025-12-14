@@ -9,8 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Moderation Commands: Complete moderation system with `/moderation` command supporting timeout, warn, ban, kick, unban, purge, history, remove-warn, and list-bans subcommands
+- Moderation Bulk Operations: Support for moderating multiple users at once (up to 15 users) for timeout, warn, ban, kick, and unban actions with faster processing
+- Moderation History: View moderation history for individual users or entire server with pagination support
+- Moderation Logging: Comprehensive logging system with unique case IDs for all moderation actions
+- Moderation Auto-Escalation: Automatic timeout or kick based on warning thresholds (configurable)
+- Moderation DM Notifications: Users received direct messages when warned, timed out, banned, kicked, or unbanned
+- Moderation Bot Protection: Moderation commands prevented moderating bots to avoid breaking bot functionality
+- Warning System: Track and manage user warnings with automatic escalation to timeout or kick
+- Userinfo Warning Display: Warning count now appears in `/userinfo` command for users with moderation history
 - Userinfo Command: New `/userinfo` command to view detailed information about Discord users including account details, badges, roles, join date, timeout status, and current voice channel
-- Serverinfo Command: Restored `/serverinfo` command to view comprehensive server information including member statistics, channel counts, server description, and boost level
+- Serverinfo Command: Added `/serverinfo` command to view comprehensive server information including member statistics, channel counts, server description, and boost level
 - Bot Statistics API: Public API endpoint `/api/stats` to get bot statistics including server count and user count
 - Webhook Handlers: Added webhook handlers for Buy Me a Coffee (`/webhook/bmac`) and crypto payments (`/webhook/crypto`)
 - Server Routes: Added API routes for authentication (`/auth`), payments (`/api/payments`), and supporter management (`/api/supporters`)

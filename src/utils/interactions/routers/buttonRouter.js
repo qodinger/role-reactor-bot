@@ -99,6 +99,15 @@ export async function routeButtonInteraction(interaction, _client) {
       return;
     }
 
+    // Moderation history pagination buttons
+    if (customId.startsWith("mod_history_")) {
+      const { handleHistoryPagination } = await import(
+        "../../../commands/admin/moderation/handlers.js"
+      );
+      await handleHistoryPagination(interaction, _client);
+      return;
+    }
+
     // Route specific button types
     switch (customId) {
       // Welcome system buttons

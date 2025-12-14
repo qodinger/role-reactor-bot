@@ -414,6 +414,16 @@ class Config {
         minimum: parseFloat(process.env.KOFI_MINIMUM_DONATION) || 10, // Minimum payment amount (default $10)
       },
 
+      // Moderation auto-escalation thresholds
+      // Set to 0 to disable auto-escalation
+      autoEscalation: {
+        timeoutAfterWarnings:
+          parseInt(process.env.MODERATION_TIMEOUT_AFTER_WARNINGS, 10) || 3, // Auto-timeout after 3 warnings
+        kickAfterWarnings:
+          parseInt(process.env.MODERATION_KICK_AFTER_WARNINGS, 10) || 5, // Auto-kick after 5 warnings
+        timeoutDuration: process.env.MODERATION_AUTO_TIMEOUT_DURATION || "1h", // Duration for auto-timeout
+      },
+
       // Subscription tiers (DEPRECATED - subscriptions removed)
       // Kept for legacy user support only - new subscriptions are not accepted
       subscriptions: {

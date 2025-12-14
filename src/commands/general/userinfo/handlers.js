@@ -1,5 +1,6 @@
 import { getLogger } from "../../../utils/logger.js";
 import { createUserInfoEmbed, createErrorEmbed } from "./embeds.js";
+import { getWarnCount } from "../../admin/moderation/utils.js";
 
 const logger = getLogger();
 
@@ -38,11 +39,25 @@ export async function execute(interaction, _client) {
         }
       : null;
 
+    // Get warning count if user is in guild
+    let warnCount = null;
+    if (interaction.guild) {
+      try {
+        warnCount = await getWarnCount(interaction.guild.id, targetUser.id);
+      } catch (error) {
+        logger.debug(
+          `Failed to get warning count for ${targetUser.id}:`,
+          error.message,
+        );
+      }
+    }
+
     // Create embed with user information
     const embed = createUserInfoEmbed(
       targetUser,
       memberData,
       interaction.guild,
+      warnCount,
     );
 
     logger.debug(

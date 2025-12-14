@@ -408,11 +408,18 @@ The XP system is **disabled by default** and must be enabled by server administr
 Required Discord bot permissions:
 
 - **Manage Roles**: To assign/remove roles and auto-roles
-- **Manage Messages**: To add reactions
+- **Manage Messages**: To add reactions and purge messages
 - **Add Reactions**: To add emoji reactions
 - **Read Message History**: To access reaction events
 - **View Channel**: To read channel content
 - **Send Messages**: To send welcome messages
+- **Embed Links**: To create rich embeds
+- **Attach Files**: To send image attachments (avatar generation, imagine command)
+- **Manage Server**: To manage server settings
+- **Use External Emojis**: To use emojis from other servers
+- **Moderate Members**: To timeout users (for moderation commands)
+- **Ban Members**: To ban and unban users (for moderation commands)
+- **Kick Members**: To kick users from the server (for moderation commands)
 - **Move Members**: To disconnect users from voice channels (for voice restrictions)
 - **Mute Members**: To mute users in voice channels (for voice restrictions)
 

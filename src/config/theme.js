@@ -284,6 +284,16 @@ export const EMOJIS = {
     SCHEDULE: "📋",
   },
 
+  // Moderation actions
+  MODERATION: {
+    WARN: "⚠️",
+    TIMEOUT: "⏱️",
+    BAN: "🚫",
+    KICK: "👢",
+    UNBAN: "🔓",
+    DEFAULT: "📝",
+  },
+
   // Numbers and indicators (for step-by-step guides)
   NUMBERS: {
     ONE: "1️⃣",

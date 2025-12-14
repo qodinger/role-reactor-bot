@@ -148,7 +148,8 @@ export const COMMAND_CATEGORIES = {
   admin: {
     emoji: EMOJIS.CATEGORIES.ADMIN,
     name: "Administration",
-    description: "Manage role reactions, temporary roles, and server settings",
+    description:
+      "Manage role reactions, temporary roles, moderation, and server settings",
     color: THEME.ADMIN,
     requiredPermissions: ["MANAGE_ROLES"],
     commandPatterns: [
@@ -158,6 +159,7 @@ export const COMMAND_CATEGORIES = {
       "welcome",
       "goodbye",
       "xp",
+      "moderation",
     ],
   },
   general: {

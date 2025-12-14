@@ -1,17 +1,10 @@
-import { PermissionFlagsBits } from "discord.js";
-import { formatPermissionName } from "./permissions.js";
+import { formatPermissionName, BOT_PERMISSIONS } from "./permissions.js";
 
-export const DEFAULT_INVITE_PERMISSIONS = [
-  PermissionFlagsBits.ManageRoles,
-  PermissionFlagsBits.ManageMessages,
-  PermissionFlagsBits.AddReactions,
-  PermissionFlagsBits.ReadMessageHistory,
-  PermissionFlagsBits.ViewChannel,
-  PermissionFlagsBits.SendMessages,
-  PermissionFlagsBits.EmbedLinks,
-  PermissionFlagsBits.ManageGuild,
-  PermissionFlagsBits.UseExternalEmojis,
-];
+/**
+ * Default permissions for bot invite links
+ * Uses the same permissions as BOT_PERMISSIONS to ensure consistency
+ */
+export const DEFAULT_INVITE_PERMISSIONS = BOT_PERMISSIONS;
 
 /**
  * Generates a Discord bot invite link for the given client and options.

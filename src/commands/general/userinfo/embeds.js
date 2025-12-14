@@ -12,9 +12,10 @@ import {
  * @param {import('discord.js').User} user - Target user
  * @param {Object|null} memberData - Member data if user is in guild
  * @param {import('discord.js').Guild|null} guild - Guild instance
+ * @param {number|null} warnCount - Warning count (null if not available)
  * @returns {EmbedBuilder}
  */
-export function createUserInfoEmbed(user, memberData, guild) {
+export function createUserInfoEmbed(user, memberData, guild, warnCount = null) {
   const embed = new EmbedBuilder()
     .setColor(THEME.PRIMARY)
     .setTitle("User Information")
@@ -128,6 +129,11 @@ export function createUserInfoEmbed(user, memberData, guild) {
     }
     if (memberData.voice?.channel) {
       serverInfo.push(`Voice: ${memberData.voice.channel.toString()}`);
+    }
+
+    // Add warning count if available
+    if (warnCount !== null && warnCount > 0) {
+      serverInfo.push(`Warnings: ${warnCount}`);
     }
 
     if (serverInfo.length > 0) {
