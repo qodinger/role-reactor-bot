@@ -17,34 +17,55 @@ export function createBalanceEmbed(userData, username, avatarURL) {
   const subscriptionCredits = userData.subscriptionCredits || 0;
   const bonusCredits = userData.bonusCredits || 0;
 
+  // Build breakdown text - show only if there are credits
+  let breakdownText = "";
+  if (subscriptionCredits > 0 && bonusCredits > 0) {
+    // Legacy case: both subscription and bonus credits
+    breakdownText = `Subscription: ${subscriptionCredits} ${customEmojis.core}\nBonus: ${bonusCredits} ${customEmojis.core}`;
+  } else if (subscriptionCredits > 0) {
+    // Legacy case: only subscription credits
+    breakdownText = `Subscription: ${subscriptionCredits} ${customEmojis.core}`;
+  } else if (bonusCredits > 0) {
+    // Current case: only bonus credits (from crypto payments)
+    breakdownText = `Bonus: ${bonusCredits} ${customEmojis.core}`;
+  }
+
+  const fields = [
+    {
+      name: `Tier`,
+      value: tierDisplay,
+      inline: true,
+    },
+    {
+      name: `Total Balance`,
+      value: `${customEmojis.core} ${userData.credits}`,
+      inline: true,
+    },
+  ];
+
+  // Only add breakdown field if there are credits to show
+  if (breakdownText) {
+    fields.push({
+      name: `Core Breakdown`,
+      value: breakdownText,
+      inline: false,
+    });
+  }
+
+  // Add payment link field
+  fields.push({
+    name: `Get More Cores`,
+    value: `[Purchase Cores](https://rolereactor.app/sponsor) • View \`/core pricing\``,
+    inline: false,
+  });
+
   return {
     color: THEME.PRIMARY,
     author: {
       name: `${username}`,
       icon_url: avatarURL,
     },
-    fields: [
-      {
-        name: `Tier`,
-        value: tierDisplay,
-        inline: true,
-      },
-      {
-        name: `Total Balance`,
-        value: `${customEmojis.core} ${userData.credits}`,
-        inline: true,
-      },
-      {
-        name: `Core Breakdown`,
-        value: `Subscription: ${subscriptionCredits} ${customEmojis.core}\nBonus: ${bonusCredits} ${customEmojis.core}`,
-        inline: false,
-      },
-      {
-        name: `Get More Cores`,
-        value: `[Donate on Ko-fi](https://ko-fi.com/rolereactor) • View \`/core pricing\``,
-        inline: false,
-      },
-    ],
+    fields,
   };
 }
 
@@ -56,45 +77,38 @@ export function createBalanceEmbed(userData, username, avatarURL) {
 export function createPricingEmbed(botAvatarURL) {
   const pricing = getCorePricing();
 
-  // Format donation pricing
-  const donationPricing = Object.entries(pricing.donations)
+  // Format one-time payment pricing (crypto payments only)
+  const paymentPricing = Object.entries(pricing.donations)
     .map(([price, credits]) => `**${price}** → ${credits} ${customEmojis.core}`)
     .join("\n");
 
-  // Format subscription pricing
-  const subscriptionPricing = Object.entries(pricing.subscriptions)
-    .map(([tier, info]) => {
-      const tierBadge = emojiConfig.getTierBadge(tier);
-      return `**${tierBadge} ${tier}** ${info.price} → ${info.credits} ${customEmojis.core}`;
-    })
-    .join("\n");
-
-  // Format benefits
-  const benefits = pricing.benefits.map(benefit => `${benefit}`).join(" • ");
+  // Format benefits (updated for one-time payments)
+  const benefits = [
+    "Never expires",
+    "Instant delivery",
+    "Secure crypto payments",
+    "10 Cores per $1",
+  ].join(" • ");
 
   return {
     color: THEME.PRIMARY,
-    title: `Core Pricing & Benefits`,
+    title: `Core Pricing`,
+    description: "Purchase Core credits with cryptocurrency (one-time payment)",
     fields: [
       {
-        name: `One-time Donations`,
-        value: donationPricing,
-        inline: true,
+        name: `Pricing`,
+        value: paymentPricing,
+        inline: false,
       },
       {
-        name: `Core Membership`,
-        value: subscriptionPricing,
-        inline: true,
-      },
-      {
-        name: `Core Benefits`,
+        name: `Benefits`,
         value: benefits,
         inline: false,
       },
     ],
     timestamp: new Date().toISOString(),
     footer: {
-      text: "Donate on Ko-fi • Use /core balance to check balance",
+      text: "Purchase on website • Use /core balance to check balance",
       icon_url: botAvatarURL,
     },
   };

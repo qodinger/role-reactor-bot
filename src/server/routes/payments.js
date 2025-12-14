@@ -27,14 +27,15 @@ router.post("/create", async (req, res) => {
     const userId = req.session.discordUser.id;
 
     // Validate request
-    if (!type || (type !== "donation" && type !== "subscription")) {
+    // Note: Only one-time payments (donation) are supported (subscriptions removed)
+    if (!type || type !== "donation") {
       return res
         .status(400)
         .json(
           createErrorResponse(
             "Invalid payment type",
             400,
-            "Type must be 'donation' or 'subscription'",
+            "Type must be 'donation' (one-time payment). Subscriptions are no longer supported.",
           ).response,
         );
     }
@@ -63,47 +64,42 @@ router.post("/create", async (req, res) => {
     }
 
     // Calculate price and credits
+    // Note: Only one-time crypto payments are supported (subscriptions removed)
     let price = 0;
     let credits = 0;
     let description = "";
 
+    // Reject subscription requests (subscriptions removed)
     if (type === "subscription") {
-      if (!tier) {
-        return res
-          .status(400)
-          .json(
-            createErrorResponse("Tier required for subscription", 400).response,
-          );
-      }
-
-      const tierInfo = config.corePricing.subscriptions[tier];
-      if (!tierInfo) {
-        return res
-          .status(400)
-          .json(createErrorResponse(`Invalid tier: ${tier}`, 400).response);
-      }
-
-      price = tierInfo.price;
-      credits = tierInfo.cores;
-      description = `Monthly subscription for ${tier}`;
-    } else {
-      // Donation
-      if (!amount || amount < 1) {
-        return res
-          .status(400)
-          .json(
-            createErrorResponse("Amount must be at least $1", 400).response,
-          );
-      }
-
-      price = amount;
-      credits = Math.floor(amount * config.corePricing.donation.rate);
-      description = "One-time Core credits purchase";
+      return res
+        .status(400)
+        .json(
+          createErrorResponse(
+            "Subscriptions are no longer supported. Please use one-time payments.",
+            400,
+          ).response,
+        );
     }
 
+    // One-time crypto payment (donation)
+    const minimumAmount = config.corePricing.donation.minimum;
+    if (!amount || amount < minimumAmount) {
+      return res
+        .status(400)
+        .json(
+          createErrorResponse(`Amount must be at least $${minimumAmount}`, 400)
+            .response,
+        );
+    }
+
+    price = amount;
+    credits = Math.floor(amount * config.corePricing.donation.rate);
+    description = "One-time Core credits purchase";
+
     // Create Coinbase Commerce charge
+    // Note: Only one-time payments are supported (subscriptions removed)
     const chargeData = {
-      name: tier ? `${tier} Core Membership` : "Core Credits",
+      name: "Core Credits",
       description,
       pricing_type: "fixed_price",
       local_price: {
@@ -112,8 +108,8 @@ router.post("/create", async (req, res) => {
       },
       metadata: {
         discord_user_id: userId,
-        tier: tier || null,
-        type,
+        tier: null, // Subscriptions removed
+        type: "donation", // Always donation (one-time payment)
       },
     };
 

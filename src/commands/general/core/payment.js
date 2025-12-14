@@ -8,13 +8,14 @@ const logger = getLogger();
 
 /**
  * Create Coinbase Commerce payment link
+ * Note: Only one-time payments are supported (subscriptions removed)
  * @param {string} userId - Discord user ID
- * @param {string} tier - Subscription tier name
+ * @param {string|null} _tier - Tier name (deprecated, kept for compatibility)
  * @param {number} price - Price in USD
- * @param {string} paymentType - 'donation' or 'subscription'
+ * @param {string} _paymentType - Payment type (deprecated, always 'donation')
  * @returns {Promise<string|null>} Payment URL or null if error
  */
-async function createCryptoPaymentLink(userId, tier, price, paymentType) {
+async function createCryptoPaymentLink(userId, _tier, price, _paymentType) {
   try {
     // Check if crypto payments are enabled
     if (
@@ -34,12 +35,10 @@ async function createCryptoPaymentLink(userId, tier, price, paymentType) {
     }
 
     // Create charge using Coinbase Commerce API
+    // Note: Only one-time payments are supported
     const chargeData = {
-      name: tier ? `${tier} Core Membership` : "Core Credits",
-      description:
-        paymentType === "subscription"
-          ? `Monthly subscription for ${tier}`
-          : "One-time Core credits purchase",
+      name: "Core Credits",
+      description: "One-time Core credits purchase",
       pricing_type: "fixed_price",
       local_price: {
         amount: price.toString(),
@@ -47,8 +46,8 @@ async function createCryptoPaymentLink(userId, tier, price, paymentType) {
       },
       metadata: {
         discord_user_id: userId,
-        tier: tier || null,
-        type: paymentType,
+        tier: null, // Subscriptions removed
+        type: "donation", // Always donation (one-time payment)
       },
     };
 
@@ -93,8 +92,6 @@ export async function execute(interaction, _client) {
 
     if (subcommand === "donation") {
       await handleDonationPayment(interaction);
-    } else if (subcommand === "subscribe") {
-      await handleSubscriptionPayment(interaction);
     } else {
       const errorEmbed = createErrorEmbed(
         "Unknown Subcommand",
@@ -120,11 +117,12 @@ export async function execute(interaction, _client) {
  */
 async function handleDonationPayment(interaction) {
   const amount = interaction.options.getNumber("amount");
+  const minimumAmount = config.corePricing.donation.minimum;
 
-  if (!amount || amount < 1) {
+  if (!amount || amount < minimumAmount) {
     const errorEmbed = createErrorEmbed(
       "Invalid Amount",
-      "Please specify an amount of at least $1.",
+      `Please specify an amount of at least $${minimumAmount}.`,
       interaction.client.user.displayAvatarURL(),
     );
     await interaction.editReply({ embeds: [errorEmbed] });
@@ -169,101 +167,24 @@ async function handleDonationPayment(interaction) {
 }
 
 /**
- * Handle subscription payment
- * @param {import('discord.js').ChatInputCommandInteraction} interaction - The interaction object
- */
-async function handleSubscriptionPayment(interaction) {
-  const tier = interaction.options.getString("tier");
-
-  if (!tier) {
-    const errorEmbed = createErrorEmbed(
-      "Invalid Tier",
-      "Please specify a subscription tier.",
-      interaction.client.user.displayAvatarURL(),
-    );
-    await interaction.editReply({ embeds: [errorEmbed] });
-    return;
-  }
-
-  // Get tier info
-  const tierInfo = config.corePricing.subscriptions[tier];
-  if (!tierInfo) {
-    const errorEmbed = createErrorEmbed(
-      "Invalid Tier",
-      `The tier "${tier}" is not available. Use /core pricing to see available tiers.`,
-      interaction.client.user.displayAvatarURL(),
-    );
-    await interaction.editReply({ embeds: [errorEmbed] });
-    return;
-  }
-
-  // Create payment link
-  const paymentUrl = await createCryptoPaymentLink(
-    interaction.user.id,
-    tier,
-    tierInfo.price,
-    "subscription",
-  );
-
-  if (!paymentUrl) {
-    const errorEmbed = createErrorEmbed(
-      "Payment Error",
-      "Unable to create payment link. Please try again later or contact support.",
-      interaction.client.user.displayAvatarURL(),
-    );
-    await interaction.editReply({ embeds: [errorEmbed] });
-    return;
-  }
-
-  // Create payment embed
-  const embed = createPaymentEmbed(
-    interaction.user,
-    {
-      type: "subscription",
-      tier,
-      amount: tierInfo.price,
-      cores: tierInfo.cores,
-      paymentUrl,
-      currency: "USD",
-    },
-    interaction.client.user.displayAvatarURL(),
-  );
-
-  await interaction.editReply({ embeds: [embed] });
-}
-
-/**
  * Payment command definition
+ * Note: Only one-time crypto payments are supported (subscriptions removed)
  */
 export const data = new SlashCommandBuilder()
   .setName("core-pay")
-  .setDescription("Pay for Core credits using cryptocurrency")
-  .addSubcommand(subcommand =>
-    subcommand
-      .setName("donation")
-      .setDescription("Make a one-time donation to get Core credits")
-      .addNumberOption(option =>
-        option
-          .setName("amount")
-          .setDescription("Donation amount in USD (minimum $1)")
-          .setRequired(true)
-          .setMinValue(1),
-      ),
+  .setDescription(
+    "Purchase Core credits using cryptocurrency (one-time payment)",
   )
   .addSubcommand(subcommand =>
     subcommand
-      .setName("subscribe")
-      .setDescription("Subscribe to a Core membership tier")
-      .addStringOption(option =>
+      .setName("donation")
+      .setDescription("Purchase Core credits with a one-time crypto payment")
+      .addNumberOption(option =>
         option
-          .setName("tier")
-          .setDescription("Subscription tier")
+          .setName("amount")
+          .setDescription("Payment amount in USD (minimum $10)")
           .setRequired(true)
-          .addChoices(
-            { name: "Core Basic - $10/month", value: "Core Basic" },
-            { name: "Core Premium - $25/month", value: "Core Premium" },
-            { name: "Core Elite - $50/month", value: "Core Elite" },
-          ),
+          .setMinValue(10),
       ),
   )
   .setDefaultMemberPermissions(0n); // Visible to all users

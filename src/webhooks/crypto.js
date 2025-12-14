@@ -300,6 +300,21 @@ async function processCryptoPayment(charge) {
     let coresToAdd = 0;
     const paymentAmount = parseFloat(amount);
 
+    // Validate minimum payment amount for one-time payments (donations)
+    // Subscriptions are removed, so all payments should be donations
+    if (paymentType !== "subscription") {
+      const minimumAmount = config.corePricing.donation.minimum;
+      if (paymentAmount < minimumAmount) {
+        logger.warn(
+          `❌ Payment below minimum: $${paymentAmount} < $${minimumAmount} (chargeId: ${chargeId})`,
+        );
+        return {
+          success: false,
+          error: `Payment amount ($${paymentAmount}) is below the minimum required amount ($${minimumAmount}). No credits will be granted.`,
+        };
+      }
+    }
+
     if (paymentType === "subscription") {
       // Subscription payment - get monthly credits for tier
       const tierInfo = config.corePricing.subscriptions[tier];

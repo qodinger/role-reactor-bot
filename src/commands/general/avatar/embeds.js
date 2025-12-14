@@ -102,21 +102,68 @@ export function createLoadingEmbed(prompt, artStyle = null) {
  * @param {string} [artStyle] - Selected art style (optional)
  * @returns {import('discord.js').EmbedBuilder}
  */
-export function createSuccessEmbed(interaction, prompt, artStyle = null) {
+/**
+ * Create success embed for avatar generation
+ * @param {import('discord.js').CommandInteraction} interaction
+ * @param {string} prompt - User's prompt
+ * @param {string|null} artStyle - Selected art style
+ * @param {Object|null} deductionBreakdown - Credit deduction breakdown
+ * @returns {import('discord.js').EmbedBuilder}
+ */
+export function createSuccessEmbed(
+  interaction,
+  prompt,
+  artStyle = null,
+  deductionBreakdown = null,
+) {
   const embed = new EmbedBuilder()
     .setColor(THEME.SUCCESS)
     .setTitle("Avatar Complete!")
     .setDescription(`**"${prompt}"**`);
 
+  const fields = [];
+
   // Add art style field if one was selected
   if (artStyle) {
-    embed.addFields([
-      {
-        name: "Art Style",
-        value: formatArtStyleName(artStyle),
-        inline: true,
-      },
-    ]);
+    fields.push({
+      name: "Art Style",
+      value: formatArtStyleName(artStyle),
+      inline: true,
+    });
+  }
+
+  // Add credit deduction breakdown if available
+  // Note: Currently only one-time crypto payments are supported (bonus credits only)
+  // Subscriptions/memberships have been removed
+  if (deductionBreakdown) {
+    const { totalDeducted, subscriptionDeducted, bonusDeducted } =
+      deductionBreakdown;
+    let deductionText = `**${totalDeducted} ${CORE_EMOJI}** deducted`;
+
+    // Show breakdown only if relevant
+    // Since subscriptions are removed, most users will only have bonus credits
+    if (subscriptionDeducted > 0 && bonusDeducted > 0) {
+      // Legacy case: both subscription and bonus credits (for existing users)
+      deductionText += `\n• ${subscriptionDeducted} ${CORE_EMOJI} from subscription`;
+      deductionText += `\n• ${bonusDeducted} ${CORE_EMOJI} from bonus`;
+    } else if (subscriptionDeducted > 0) {
+      // Legacy case: only subscription credits (for existing users)
+      deductionText += `\n• ${subscriptionDeducted} ${CORE_EMOJI} from subscription`;
+    } else if (bonusDeducted > 0) {
+      // Current case: only bonus credits (from one-time crypto payments)
+      deductionText += `\n• ${bonusDeducted} ${CORE_EMOJI} from bonus`;
+    }
+    // If neither subscriptionDeducted nor bonusDeducted > 0, just show total
+
+    fields.push({
+      name: "Core Usage",
+      value: deductionText,
+      inline: false,
+    });
+  }
+
+  if (fields.length > 0) {
+    embed.addFields(fields);
   }
 
   embed

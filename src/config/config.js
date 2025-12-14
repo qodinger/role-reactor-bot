@@ -411,10 +411,11 @@ class Config {
       // Donation rates (Cores per $1) - Your preferred rates
       donation: {
         rate: 10, // 10 Cores per $1
-        minimum: parseFloat(process.env.KOFI_MINIMUM_DONATION) || 1, // Minimum donation amount (default $1)
+        minimum: parseFloat(process.env.KOFI_MINIMUM_DONATION) || 10, // Minimum payment amount (default $10)
       },
 
-      // Subscription tiers (monthly) - Your preferred rates
+      // Subscription tiers (DEPRECATED - subscriptions removed)
+      // Kept for legacy user support only - new subscriptions are not accepted
       subscriptions: {
         Bronze: {
           price: 5,
