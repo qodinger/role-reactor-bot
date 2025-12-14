@@ -90,15 +90,24 @@ function validateEnvironment() {
 }
 
 function createClient() {
+  // Base intents (required)
+  const intents = [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.GuildMessageReactions,
+    GatewayIntentBits.GuildVoiceStates,
+    GatewayIntentBits.GuildMessagePolls,
+  ];
+
+  // Optional privileged intents (only add if enabled in Developer Portal)
+  // GuildPresences is required for user status/activity in /userinfo command
+  // If not enabled, status will simply not be shown (graceful degradation)
+  // Uncomment the line below after enabling "Presence Intent" in Discord Developer Portal
+  // intents.push(GatewayIntentBits.GuildPresences);
+
   const client = new Client({
-    intents: [
-      GatewayIntentBits.Guilds,
-      GatewayIntentBits.GuildMembers,
-      GatewayIntentBits.GuildMessages,
-      GatewayIntentBits.GuildMessageReactions,
-      GatewayIntentBits.GuildVoiceStates,
-      GatewayIntentBits.GuildMessagePolls,
-    ],
+    intents,
     partials: [Partials.Message, Partials.Channel, Partials.Reaction],
     makeCache: Options.cacheWithLimits(config.cacheLimits),
     // Use optimized rate limit configuration from config

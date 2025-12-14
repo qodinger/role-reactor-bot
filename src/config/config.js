@@ -116,6 +116,7 @@ class Config {
       guildMembers: true,
       guildMessages: true,
       guildMessageReactions: true,
+      // guildPresences: true, // Optional - uncomment after enabling in Developer Portal
     };
   }
 
