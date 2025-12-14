@@ -5,6 +5,9 @@ import {
   StringSelectMenuBuilder,
 } from "discord.js";
 import { EMOJIS } from "../../../config/theme.js";
+import { getLogger } from "../../../utils/logger.js";
+
+const logger = getLogger();
 
 /**
  * Create welcome settings components
@@ -132,7 +135,7 @@ export function createRoleSelectComponents(guild, currentRoleId = null) {
     // Get roles that the bot can assign (below bot's highest role)
     const botHighestRole = guild.members.me?.roles?.highest;
     if (!botHighestRole) {
-      console.error(
+      logger.error(
         "Bot member not found in guild, cannot determine assignable roles",
       );
       return [];
@@ -204,7 +207,7 @@ export function createRoleSelectComponents(guild, currentRoleId = null) {
       new ActionRowBuilder().addComponents(backButton, clearRoleButton),
     ];
   } catch (error) {
-    console.error("Error creating role select components:", error);
+    logger.error("Error creating role select components:", error);
     return [];
   }
 }
