@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Userinfo Command: New `/userinfo` command to view detailed information about Discord users including account details, badges, roles, join date, timeout status, and current voice channel
+- Serverinfo Command: Restored `/serverinfo` command to view comprehensive server information including member statistics, channel counts, server description, and boost level
 - Bot Statistics API: Public API endpoint `/api/stats` to get bot statistics including server count and user count
 - Webhook Handlers: Added webhook handlers for Buy Me a Coffee (`/webhook/bmac`) and crypto payments (`/webhook/crypto`)
 - Server Routes: Added API routes for authentication (`/auth`), payments (`/api/payments`), and supporter management (`/api/supporters`)
