@@ -173,7 +173,8 @@ export class MultiProviderAIService {
       );
     }
 
-    if (!providerConfig.apiKey) {
+    // API key is optional for self-hosted providers (e.g., Automatic1111)
+    if (targetProvider !== "selfhosted" && !providerConfig.apiKey) {
       throw new Error(`${providerConfig.name} API key not configured`);
     }
 
@@ -220,6 +221,8 @@ export class MultiProviderAIService {
       return this.generateImageOpenAI(prompt, model, config);
     } else if (provider === "stability") {
       return this.generateImageStability(prompt, model, config);
+    } else if (provider === "selfhosted") {
+      return this.generateImageSelfHosted(prompt, model, config);
     } else {
       throw new Error(`Unsupported provider for image generation: ${provider}`);
     }
@@ -401,6 +404,12 @@ export class MultiProviderAIService {
     formData.append("steps", config.steps || 20); // More steps for better quality
     formData.append("seed", config.seed || Math.floor(Math.random() * 1000000)); // Random seed for variety
 
+    // Safety tolerance: 6 = most permissive, lower values (1-5) are more restrictive
+    formData.append(
+      "safety_tolerance",
+      (config.safetyTolerance || 6).toString(),
+    );
+
     // Use provider-specific negative prompt
     const negativePrompt =
       promptConfig.PROVIDER_PROMPTS?.stability?.negative ||
@@ -435,6 +444,165 @@ export class MultiProviderAIService {
       provider: "stability",
       prompt,
     };
+  }
+
+  /**
+   * Generate image using Self-Hosted Stable Diffusion (Automatic1111 WebUI)
+   * @param {string} prompt - Image generation prompt
+   * @param {string} model - Model name (not used, but kept for consistency)
+   * @param {Object} config - Generation configuration
+   * @param {Buffer} config.imageBuffer - Optional: source image buffer for image-to-image
+   * @param {number} config.strength - Optional: image-to-image strength (0.0-1.0, default 0.5)
+   * @returns {Promise<Object>} Generated image data
+   */
+  async generateImageSelfHosted(prompt, _model, config) {
+    // Load prompt configuration
+    const promptConfig = await loadPromptConfig();
+
+    // Use provider-specific negative prompt
+    const negativePrompt =
+      promptConfig.PROVIDER_PROMPTS?.selfhosted?.negative ||
+      promptConfig.NEGATIVE_PROMPT;
+
+    // Parse aspect ratio (e.g., "16:9" -> width: 1024, height: 576)
+    const aspectRatio = config.aspectRatio || "1:1";
+    const [width, height] = this.parseAspectRatio(aspectRatio);
+
+    // Build request body for Automatic1111 API
+    const requestBody = {
+      prompt,
+      negative_prompt: negativePrompt,
+      steps: config.steps || 20,
+      width,
+      height,
+      cfg_scale: config.cfgScale || 7,
+      sampler_name: config.samplerName || "Euler a",
+      seed: config.seed !== undefined ? config.seed : -1, // -1 = random
+    };
+
+    // Image-to-image support
+    if (config.imageBuffer) {
+      // Convert buffer to base64
+      const base64Image = config.imageBuffer.toString("base64");
+      requestBody.init_images = [base64Image];
+      requestBody.denoising_strength =
+        config.strength !== undefined ? config.strength : 0.5;
+    }
+
+    // Build API URL
+    const apiUrl = `${this.config.providers.selfhosted.baseUrl}/sdapi/v1/txt2img`;
+    if (config.imageBuffer) {
+      // Use img2img endpoint for image-to-image
+      const img2imgUrl = `${this.config.providers.selfhosted.baseUrl}/sdapi/v1/img2img`;
+      const response = await fetch(img2imgUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(this.config.providers.selfhosted.apiKey && {
+            Authorization: `Bearer ${this.config.providers.selfhosted.apiKey}`,
+          }),
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(
+          `Self-hosted API error: ${response.status} - ${errorData}`,
+        );
+      }
+
+      const data = await response.json();
+      if (!data.images || data.images.length === 0) {
+        throw new Error("No image generated in response");
+      }
+
+      // Decode base64 image
+      const base64Image = data.images[0];
+      const imageBuffer = Buffer.from(base64Image, "base64");
+      const imageUrl = `data:image/png;base64,${base64Image}`;
+
+      return {
+        imageBuffer,
+        imageUrl,
+        model: _model,
+        provider: "selfhosted",
+        prompt,
+      };
+    }
+
+    // Text-to-image request
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(this.config.providers.selfhosted.apiKey && {
+          Authorization: `Bearer ${this.config.providers.selfhosted.apiKey}`,
+        }),
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      throw new Error(
+        `Self-hosted API error: ${response.status} - ${errorData}`,
+      );
+    }
+
+    const data = await response.json();
+    if (!data.images || data.images.length === 0) {
+      throw new Error("No image generated in response");
+    }
+
+    // Decode base64 image
+    const base64Image = data.images[0];
+    const imageBuffer = Buffer.from(base64Image, "base64");
+    const imageUrl = `data:image/png;base64,${base64Image}`;
+
+    return {
+      imageBuffer,
+      imageUrl,
+      model: _model,
+      provider: "selfhosted",
+      prompt,
+    };
+  }
+
+  /**
+   * Parse aspect ratio string to width and height
+   * @param {string} aspectRatio - Aspect ratio string (e.g., "16:9", "1:1", "3:2")
+   * @returns {[number, number]} [width, height]
+   */
+  parseAspectRatio(aspectRatio) {
+    // Common aspect ratios mapped to 512/768/1024 base sizes
+    const ratioMap = {
+      "1:1": [512, 512],
+      "16:9": [768, 432],
+      "9:16": [432, 768],
+      "4:3": [640, 480],
+      "3:4": [480, 640],
+      "3:2": [768, 512],
+      "2:3": [512, 768],
+      "21:9": [1024, 432],
+    };
+
+    if (ratioMap[aspectRatio]) {
+      return ratioMap[aspectRatio];
+    }
+
+    // Parse custom ratio (e.g., "16:9")
+    const parts = aspectRatio.split(":");
+    if (parts.length === 2) {
+      const ratio = parseFloat(parts[0]) / parseFloat(parts[1]);
+      // Use 512 as base, scale height based on ratio
+      const width = 512;
+      const height = Math.round(512 / ratio);
+      return [width, height];
+    }
+
+    // Default to 1:1
+    return [512, 512];
   }
 
   /**

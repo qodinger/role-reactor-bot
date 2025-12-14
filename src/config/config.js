@@ -359,6 +359,31 @@ class Config {
       // Providers are checked in order - first enabled provider is used
       // Set enabled: true to use, enabled: false to disable
       providers: {
+        selfhosted: {
+          enabled: false,
+          name: "Self-Hosted",
+          baseUrl: process.env.SELF_HOSTED_API_URL || "http://127.0.0.1:7860",
+          apiKey: process.env.SELF_HOSTED_API_KEY || null,
+          models: {
+            image: {
+              primary: "default",
+            },
+          },
+        },
+        stability: {
+          enabled: true,
+          name: "Stability AI",
+          baseUrl: "https://api.stability.ai/v2beta/stable-image/generate/sd3",
+          apiKey: process.env.STABILITY_API_KEY,
+          models: {
+            image: {
+              primary: "sd3.5-flash", // Fastest and cheapest
+              large: "sd3.5-large", // Highest quality
+              medium: "sd3.5-medium", // Balanced
+              turbo: "sd3.5-large-turbo", // Quality + Speed
+            },
+          },
+        },
         openrouter: {
           enabled: false, // Set to false to disable this provider
           name: "OpenRouter",
@@ -378,20 +403,6 @@ class Config {
           models: {
             image: {
               primary: "dall-e-3",
-            },
-          },
-        },
-        stability: {
-          enabled: true, // Set to true to enable this provider
-          name: "Stability AI",
-          baseUrl: "https://api.stability.ai/v2beta/stable-image/generate/sd3",
-          apiKey: process.env.STABILITY_API_KEY,
-          models: {
-            image: {
-              primary: "sd3.5-flash", // Fastest and cheapest
-              large: "sd3.5-large", // Highest quality
-              medium: "sd3.5-medium", // Balanced
-              turbo: "sd3.5-large-turbo", // Quality + Speed
             },
           },
         },
