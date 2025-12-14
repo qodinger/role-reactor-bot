@@ -142,7 +142,6 @@ export const COMMAND_CATEGORIES = {
       "performance",
       "storage",
       "core-management",
-      "verify",
       "imagine",
     ],
   },
@@ -155,6 +154,7 @@ export const COMMAND_CATEGORIES = {
     commandPatterns: [
       "role-reactions",
       "temp-roles",
+      "schedule-role",
       "welcome",
       "goodbye",
       "xp",
