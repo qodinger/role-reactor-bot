@@ -1,5 +1,7 @@
 # Core Command
 
+## Overview
+
 The `/core` command allows users to check their Core balance and view pricing information for the Core credit system.
 
 ## File Structure

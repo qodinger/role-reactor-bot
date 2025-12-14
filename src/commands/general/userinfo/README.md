@@ -1,18 +1,30 @@
 # Userinfo Command
 
+## Overview
+
 Display detailed information about a Discord user, including account details, badges, roles, permissions, and server-specific information.
 
-## Usage
+## File Structure
 
 ```
-/userinfo [user]
+userinfo/
+├── index.js          # Command definition and entry point
+├── handlers.js       # Main command handlers and user data processing
+├── embeds.js         # Discord embed creation and user information display
+├── utils.js          # Helper functions for data formatting
+└── README.md         # This documentation
 ```
 
-### Options
+## Architecture
 
-- `user` (optional) - The user to get information about. If not specified, shows information about yourself.
+Following the modular pattern established by other general commands:
 
-## Examples
+- **`index.js`**: Command definition and main execution flow
+- **`handlers.js`**: Core business logic and user data handling
+- **`embeds.js`**: Discord embed creation and formatting
+- **`utils.js`**: Helper functions for data formatting and validation
+
+## Usage Examples
 
 ```
 /userinfo
@@ -20,7 +32,11 @@ Display detailed information about a Discord user, including account details, ba
 /userinfo user:123456789012345678
 ```
 
-## Features
+## Permissions Required
+
+- `ViewChannel` - Basic permission to view channels
+
+## Key Features
 
 - **Account Information**: Username, display name, tag, ID, bot status
 - **Account Age**: Creation date and account age
@@ -33,10 +49,7 @@ Display detailed information about a Discord user, including account details, ba
   - Server booster status
   - Timeout status
   - Current voice channel
-
-## Permissions Required
-
-- `ViewChannel` - Basic permission to view channels
+  - **Warning Count**: Number of warnings the user has received (if any)
 
 ## Notes
 
@@ -44,3 +57,10 @@ Display detailed information about a Discord user, including account details, ba
 - Roles are sorted by position (highest first)
 - Permissions are limited to the most important ones to avoid clutter
 - The embed automatically truncates long role lists
+
+## Dependencies
+
+- Discord.js
+- Theme configuration for colors and styling
+- Moderation utilities for warning count retrieval
+- Permission validation utilities

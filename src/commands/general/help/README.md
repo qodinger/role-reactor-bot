@@ -1,6 +1,8 @@
-# Help Command Structure
+# Help Command
 
-This directory contains the restructured help command that follows a modular organizational pattern.
+## Overview
+
+The Help command provides comprehensive command information and guidance for users. It features autocomplete support, dynamic content generation, and an interactive UI for easy navigation.
 
 ## File Structure
 
@@ -16,80 +18,42 @@ help/
 └── README.md             # This documentation file
 ```
 
-## Architecture Overview
+## Architecture
 
-### index.js
+Following the modular pattern established by other general commands:
 
-- **Command Definition**: Defines the slash command with autocomplete support
-- **Main Execution**: Entry point with error handling and interaction deferral
-- **Interaction Management**: Routes commands to appropriate handlers
-- **Autocomplete Handler**: Provides command suggestions
+- **`index.js`**: Command definition, autocomplete support, and main execution flow
+- **`handlers.js`**: Core business logic, error handling, and interaction routing
+- **`data.js`**: Command metadata generation, category management, and smart tagging
+- **`embeds.js`**: Discord embed creation and formatting
+- **`components.js`**: Interactive UI components (buttons, menus)
+- **`interactionHandler.js`**: Legacy interaction handler (maintains backward compatibility)
+- **`utils.js`**: Helper functions for text processing and command analysis
 
-### handlers.js
+## Usage Examples
 
-- **Core Logic**: Contains all the main help command functionality
-- **Error Handling**: Centralized error handling for all help operations
-- **Interaction Routing**: Routes different types of help interactions
-- **Usage Analytics**: Logs help command usage for monitoring
-
-### data.js
-
-- **Command Metadata**: Generates dynamic command information
-- **Category Management**: Organizes commands into logical groups
-- **Smart Tagging**: Automatically generates relevant tags for commands
-- **Complexity Analysis**: Determines command difficulty and usage patterns
-
-### embeds.js
-
-- **Embed Creation**: Builds all help-related embeds
-- **Formatting**: Handles text formatting and layout
-- **Command Details**: Provides detailed help for specific commands
-- **Category Views**: Creates category-specific help displays
-
-### components.js
-
-- **UI Components**: Creates buttons, menus, and other interactive elements
-- **Permission Handling**: Checks user permissions for different categories
-- **Component Layout**: Organizes components into logical rows
-- **Dynamic Generation**: Adapts components based on available data
-
-### interactionHandler.js
-
-- **Legacy Support**: Maintains backward compatibility
-- **Simplified Logic**: Now delegates to handlers.js for core functionality
-- **Error Handling**: Provides fallback error handling for interactions
-
-### utils.js
-
-- **Utility Functions**: Helper functions for common operations
-- **Text Processing**: Text formatting and validation utilities
-- **Command Analysis**: Functions for analyzing and categorizing commands
-- **Search Functionality**: Command search and suggestion utilities
-
-## Key Features
-
-1. **Autocomplete Support**: Users can type partial command names for suggestions
-2. **Dynamic Content**: Help content is generated based on available commands
-3. **Permission-Based Display**: Users only see commands they can use
-4. **Interactive UI**: Dropdown menus and buttons for easy navigation
-5. **Comprehensive Help**: Detailed information for each command
-6. **Usage Analytics**: Tracks how users interact with help system
-
-## Usage Patterns
-
-### Basic Help
-
-```javascript
-/help
 ```
-
-### Specific Command Help
-
-```javascript
+/help
 /help command:role-reactions
 ```
 
-### Interaction Handling
+## Permissions Required
+
+- None (public command)
+- All users can access
+
+## Key Features
+
+- **Autocomplete Support**: Users can type partial command names for suggestions
+- **Dynamic Content**: Help content is generated based on available commands
+- **Permission-Based Display**: Users only see commands they can use
+- **Interactive UI**: Dropdown menus and buttons for easy navigation
+- **Comprehensive Help**: Detailed information for each command
+- **Usage Analytics**: Tracks how users interact with help system
+- **Category Organization**: Commands organized into logical groups
+- **Smart Tagging**: Automatically generates relevant tags for commands
+
+## Interaction Handling
 
 The system automatically handles:
 
@@ -112,9 +76,9 @@ The system automatically handles:
 - **Efficient Queries**: Minimal database/API calls during help generation
 - **Optimized Rendering**: Efficient embed and component creation
 
-## Maintenance
+## Dependencies
 
-- **Modular Design**: Easy to add new help categories or commands
-- **Consistent Structure**: Follows established patterns for easy maintenance
-- **Clear Separation**: Each file has a specific responsibility
-- **Documentation**: Comprehensive inline documentation for all functions
+- Discord.js
+- Theme configuration for colors and styling
+- Command handler for command metadata
+- Permission validation utilities
