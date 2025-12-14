@@ -21,12 +21,16 @@ Thank you for your interest in contributing to Role Reactor Bot! This document p
 ### Code Contributions
 
 1. **Fork the repository**
-2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
-3. **Make your changes** following the coding standards
-4. **Test your changes** thoroughly
-5. **Commit your changes**: `git commit -m 'Add amazing feature'`
-6. **Push to your branch**: `git push origin feature/amazing-feature`
-7. **Open a Pull Request**
+2. **Follow Git Workflow**: See [Git Workflow Guide](./GIT_WORKFLOW.md) for detailed branch strategy
+3. **Create a feature branch**:
+   - Use helper: `source scripts/git-helpers.sh && git-feature amazing-feature`
+   - Or manually: `git checkout -b feature/amazing-feature`
+4. **Make your changes** following the coding standards
+5. **Test your changes** thoroughly
+6. **Commit your changes**: Use [Conventional Commits](https://www.conventionalcommits.org/)
+   - Example: `git commit -m "feat(commands): add amazing feature"`
+7. **Push to your branch**: `git push origin feature/amazing-feature`
+8. **Open a Pull Request** or merge when ready (see Git Workflow Guide)
 
 ## 🛠️ Development Setup
 

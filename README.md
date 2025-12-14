@@ -23,6 +23,7 @@
 - [Monitoring](#-monitoring)
 - [User Experience](#-user-experience)
 - [Documentation](#-documentation)
+- [Development Workflow](#-development-workflow)
 - [Changelog](#-changelog)
 - [Contributing](#-contributing)
 
@@ -516,6 +517,8 @@ The bot includes comprehensive health monitoring:
 
 - **[🚀 Deployment Guide](./docs/DEPLOYMENT.md)** - Production deployment instructions
 - **[🤝 Contributing Guidelines](./docs/CONTRIBUTING.md)** - How to contribute to the project
+- **[🌿 Git Workflow Guide](./docs/GIT_WORKFLOW.md)** - Branch strategy and workflow patterns
+- **[⚙️ Git Workflow Setup](./docs/GIT_WORKFLOW_SETUP.md)** - Quick setup guide for Git helpers
 
 ## 📝 Changelog
 
@@ -540,6 +543,66 @@ pnpm lint
 # Run tests
 pnpm test
 ```
+
+## 🔀 Development Workflow
+
+This project follows a structured Git workflow for organized development and collaboration.
+
+### Branch Strategy
+
+- **`main`** - Production-ready, stable code
+- **`dev`** - Development integration branch
+- **`feature/*`** - Feature development branches
+- **`fix/*`** - Bug fix branches
+- **`hotfix/*`** - Critical production fixes
+
+### Quick Start
+
+**For small fixes/updates:**
+
+```bash
+git checkout main && git pull origin main
+# Make changes
+git commit -m "fix(scope): description"
+git push origin main
+```
+
+**For new features:**
+
+```bash
+# Using Git helpers (recommended)
+source scripts/git-helpers.sh
+git-feature feature-name
+# ... develop ...
+git-finish-feature
+```
+
+### Documentation
+
+- **[📘 Git Workflow Guide](./docs/GIT_WORKFLOW.md)** - Complete workflow documentation with patterns and best practices
+- **[⚙️ Git Workflow Setup](./docs/GIT_WORKFLOW_SETUP.md)** - Setup guide for Git helper scripts
+
+### Git Helper Scripts
+
+The project includes helper scripts to streamline common Git operations:
+
+```bash
+# Source the helpers
+source scripts/git-helpers.sh
+
+# Available commands
+git-feature <name>          # Create feature branch
+git-finish-feature           # Merge feature to dev
+git-fix <name>               # Create fix branch
+git-finish-fix               # Merge fix to main
+git-hotfix <name>            # Create hotfix branch
+git-finish-hotfix            # Merge hotfix to main and dev
+git-sync-main                # Sync current branch with main
+git-sync-dev                 # Sync current branch with dev
+git-workflow-help            # Show all available commands
+```
+
+See [Git Workflow Setup Guide](./docs/GIT_WORKFLOW_SETUP.md) for detailed setup instructions.
 
 ## 📄 License
 
