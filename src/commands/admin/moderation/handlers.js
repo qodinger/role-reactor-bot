@@ -1053,6 +1053,9 @@ export async function handleUnban(interaction, client) {
 
     const embed = createBulkOperationEmbed(
       "Unban",
+      results.success.length,
+      results.failed.length,
+      validUsers.length,
       results.success.map(r => r.user),
       results.failed.map(r => ({ user: r.user, error: r.error })),
       null,
