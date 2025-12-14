@@ -179,6 +179,8 @@ export const COMMAND_CATEGORIES = {
       "leaderboard",
       "core",
       "poll",
+      "userinfo",
+      "serverinfo",
     ],
   },
 };
