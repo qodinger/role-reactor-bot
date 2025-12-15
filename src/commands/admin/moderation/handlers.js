@@ -998,7 +998,14 @@ export async function handleUnban(interaction, client) {
     const results = { success: [], failed: [] };
     const OPERATION_DELAY = 150; // 150ms delay between operations
 
-    for (const { user } of validUsers) {
+    for (let i = 0; i < validUsers.length; i++) {
+      const { user } = validUsers[i];
+
+      // Add delay between operations to respect Discord rate limits
+      if (i > 0) {
+        await delay(OPERATION_DELAY);
+      }
+
       try {
         // Check if user is actually banned
         const ban = bans.get(user.id);
@@ -1048,7 +1055,6 @@ export async function handleUnban(interaction, client) {
           error: error.message || "Unknown error",
         });
       }
-      await delay(OPERATION_DELAY); // Delay between operations
     }
 
     const embed = createBulkOperationEmbed(
