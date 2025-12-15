@@ -1,11 +1,14 @@
-import { EmbedBuilder } from "discord.js";
+import { EmbedBuilder, ActivityType } from "discord.js";
 import { THEME, UI_COMPONENTS } from "../../../config/theme.js";
+import { getLogger } from "../../../utils/logger.js";
 import {
   formatUserFlags,
   formatRoles,
   formatUserStatus,
   formatUserActivity,
 } from "./utils.js";
+
+const logger = getLogger();
 
 /**
  * Create user info embed
@@ -57,34 +60,79 @@ export function createUserInfoEmbed(user, memberData, guild, warnCount = null) {
     });
   }
 
-  // Status (if member is in guild and presence data is available)
+  // Status (if member is in guild)
   // Note: Presence data requires GUILD_PRESENCES privileged intent
-  // If intent is not enabled, presence will be null and status won't be shown
-  if (memberData?.presence) {
-    const status = formatUserStatus(memberData.presence);
-    const activity = formatUserActivity(memberData.presence);
+  // If intent is enabled, presence will show real-time status
+  // If intent is not enabled or presence is not cached, status field is omitted
+  if (memberData) {
+    // Check if presence data is available (intent enabled and cached)
+    // In Discord.js, presence object might exist but status could be undefined/null
+    // For offline users, presence might be null even with intent enabled
+    const hasPresence =
+      memberData.presence &&
+      memberData.presence.status !== undefined &&
+      memberData.presence.status !== null;
 
-    // Truncate activity text if too long (Discord field value limit is 1024)
-    let activityText = activity;
-    if (activity && activity.length > 200) {
-      activityText = `${activity.substring(0, 197)}...`;
+    if (hasPresence) {
+      // User has valid presence data (online, idle, dnd, or offline with cached presence)
+      const status = formatUserStatus(memberData.presence);
+      const activity = formatUserActivity(memberData.presence);
+
+      // Debug logging for activity detection
+      logger.debug("Activity formatting result:", {
+        hasActivity: !!activity,
+        activityText: activity,
+        activitiesCount: memberData.presence.activities?.length || 0,
+        activities: memberData.presence.activities?.map(a => {
+          let typeName = "Unknown";
+          if (a.type === ActivityType.Playing) typeName = "Playing";
+          else if (a.type === ActivityType.Streaming) typeName = "Streaming";
+          else if (a.type === ActivityType.Listening) typeName = "Listening";
+          else if (a.type === ActivityType.Watching) typeName = "Watching";
+          else if (a.type === ActivityType.Custom) typeName = "Custom";
+          else if (a.type === ActivityType.Competing) typeName = "Competing";
+
+          return {
+            type: a.type,
+            name: a.name,
+            url: a.url,
+            typeName,
+            isStreaming: a.type === ActivityType.Streaming,
+          };
+        }),
+      });
+
+      // Truncate activity text if too long (Discord field value limit is 1024)
+      let activityText = activity;
+      if (activity && activity.length > 200) {
+        activityText = `${activity.substring(0, 197)}...`;
+      }
+
+      const statusValue = activityText
+        ? `${status.emoji} ${status.label}\n${activityText}`
+        : `${status.emoji} ${status.label}`;
+
+      row2Fields.push({
+        name: "Status",
+        value: statusValue,
+        inline: true,
+      });
+    } else if (
+      memberData.presence === null ||
+      memberData.presence === undefined
+    ) {
+      // Presence is null/undefined - user is likely offline and not cached
+      // Show "Offline" as fallback when user is a member but presence unavailable
+      // This provides consistent UX even when presence data isn't cached
+      row2Fields.push({
+        name: "Status",
+        value: "⚫ Offline",
+        inline: true,
+      });
     }
-
-    const statusValue = activityText
-      ? `${status.emoji} ${status.label}\n${activityText}`
-      : `${status.emoji} ${status.label}`;
-
-    row2Fields.push({
-      name: "Status",
-      value: statusValue,
-      inline: true,
-    });
+    // If presence exists but has no status, the field is not shown
+    // This is an edge case that shouldn't normally happen
   }
-  // If presence is null/undefined, status field is simply not shown
-  // This gracefully handles cases where:
-  // - GUILD_PRESENCES intent is not enabled/approved
-  // - User presence is not cached
-  // - User is offline and not in cache
 
   // Badges
   const badges = formatUserFlags(user.flags);

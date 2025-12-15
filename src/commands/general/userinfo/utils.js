@@ -1,3 +1,5 @@
+import { ActivityType } from "discord.js";
+
 /**
  * Format user flags into readable badges
  * @param {import('discord.js').UserFlagsBitField} flags - User flags
@@ -174,14 +176,16 @@ export function formatUserActivity(presence) {
     return null;
   }
 
+  // Filter out CUSTOM_STATUS (ActivityType.Custom) but keep all other activities
+  // Prioritize streaming activities (ActivityType.Streaming) as they're more visible
   const activities = presence.activities.filter(
-    activity => activity.type !== 4, // Filter out CUSTOM_STATUS
+    activity => activity.type !== ActivityType.Custom, // Filter out CUSTOM_STATUS
   );
 
   if (activities.length === 0) {
     // Check for custom status
     const customStatus = presence.activities.find(
-      activity => activity.type === 4,
+      activity => activity.type === ActivityType.Custom,
     );
     if (customStatus && customStatus.state) {
       return `**Custom Status:** ${customStatus.state}`;
@@ -189,21 +193,59 @@ export function formatUserActivity(presence) {
     return null;
   }
 
-  const activity = activities[0]; // Get the primary activity
+  // Prioritize streaming activities (ActivityType.Streaming) if present
+  const streamingActivity = activities.find(
+    activity => activity.type === ActivityType.Streaming,
+  );
+  const activity = streamingActivity || activities[0]; // Get streaming or primary activity
+
+  // Map ActivityType enum to readable labels
   const activityTypes = {
-    0: "Playing",
-    1: "Streaming",
-    2: "Listening",
-    3: "Watching",
-    5: "Competing",
+    [ActivityType.Playing]: "Playing",
+    [ActivityType.Streaming]: "Streaming",
+    [ActivityType.Listening]: "Listening",
+    [ActivityType.Watching]: "Watching",
+    [ActivityType.Competing]: "Competing",
   };
 
   const typeLabel = activityTypes[activity.type] || "Playing";
   let activityText = `**${typeLabel}:** `;
 
-  if (activity.type === 1 && activity.url) {
-    // Streaming
-    activityText += `[${activity.name}](${activity.url})`;
+  if (activity.type === ActivityType.Streaming) {
+    // Streaming - show name and URL if available
+    // Discord streaming activities should always have a name and URL
+    if (activity.url) {
+      // Format as clickable link
+      const streamName = activity.name || activity.details || "Stream";
+      activityText += `[${streamName}](${activity.url})`;
+    } else if (activity.name) {
+      // Has name but no URL (unusual but handle it)
+      activityText += activity.name;
+    } else if (activity.details) {
+      // Fallback to details if name is missing
+      activityText += activity.details;
+    } else {
+      // Last resort
+      activityText += "Stream";
+    }
+
+    // Add details/state if available for streaming (on new line for better formatting)
+    if (activity.details && activity.url) {
+      // If we already used details in the link, don't repeat
+      // But if there's state, show it
+      if (activity.state) {
+        activityText += `\n${activity.state}`;
+      }
+    } else if (activity.details && !activity.url) {
+      // Details not used yet, add them
+      activityText += `\n${activity.details}`;
+      if (activity.state) {
+        activityText += ` - ${activity.state}`;
+      }
+    } else if (activity.state && activity.url) {
+      // Only state available
+      activityText += `\n${activity.state}`;
+    }
   } else if (activity.details) {
     activityText += activity.details;
     if (activity.state) {
