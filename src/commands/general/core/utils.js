@@ -60,6 +60,7 @@ export function formatTierDisplay(userData) {
 
 /**
  * Gets Core pricing information
+ * Note: Only one-time crypto payments are supported (subscriptions removed)
  * @returns {Object} Pricing information object
  */
 export function getCorePricing() {
@@ -69,18 +70,13 @@ export function getCorePricing() {
       $25: 250,
       $50: 500,
     },
-    subscriptions: {
-      "Core Basic": { price: "$10/mo", credits: 150 },
-      "Core Premium": { price: "$25/mo", credits: 400 },
-      "Core Elite": { price: "$50/mo", credits: 850 },
-    },
+    // Subscriptions removed - only one-time crypto payments supported
+    subscriptions: {},
     benefits: [
-      "Priority processing",
-      "Monthly bonuses",
-      "Better value",
-      "Higher rate limits (1.5x-3x)",
-      "Increased command limits (15-50 users)",
-      "Extended bulk operation limits (750-2.5k members)",
+      "Never expires",
+      "Instant delivery",
+      "Secure crypto payments",
+      "10 Cores per $1",
     ],
   };
 }

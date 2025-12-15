@@ -32,6 +32,18 @@ const TAG_PATTERNS = {
   fun: ["8ball", "question"],
   webhook: ["webhook", "api", "kofi", "donation"],
   debug: ["debug", "verify"],
+  moderation: [
+    "moderation",
+    "mod",
+    "moderate",
+    "timeout",
+    "warn",
+    "ban",
+    "kick",
+    "unban",
+    "purge",
+    "history",
+  ],
 };
 
 /**
@@ -105,6 +117,17 @@ const EMOJI_MAP = {
   debug: EMOJIS.UI.INFO,
   verify: EMOJIS.STATUS.SUCCESS,
 
+  // Moderation
+  moderation: EMOJIS.MODERATION.DEFAULT,
+  mod: EMOJIS.MODERATION.DEFAULT,
+  timeout: EMOJIS.MODERATION.TIMEOUT,
+  warn: EMOJIS.MODERATION.WARN,
+  ban: EMOJIS.MODERATION.BAN,
+  kick: EMOJIS.MODERATION.KICK,
+  unban: EMOJIS.MODERATION.UNBAN,
+  purge: EMOJIS.ACTIONS.DELETE,
+  history: EMOJIS.ACTIONS.VIEW,
+
   // Default fallback
   default: EMOJIS.ACTIONS.HELP,
 };
@@ -148,7 +171,8 @@ export const COMMAND_CATEGORIES = {
   admin: {
     emoji: EMOJIS.CATEGORIES.ADMIN,
     name: "Administration",
-    description: "Manage role reactions, temporary roles, and server settings",
+    description:
+      "Manage role reactions, temporary roles, moderation, and server settings",
     color: THEME.ADMIN,
     requiredPermissions: ["MANAGE_ROLES"],
     commandPatterns: [
@@ -158,6 +182,7 @@ export const COMMAND_CATEGORIES = {
       "welcome",
       "goodbye",
       "xp",
+      "moderation",
     ],
   },
   general: {

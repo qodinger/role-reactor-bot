@@ -20,9 +20,7 @@ export const data = new SlashCommandBuilder()
   .addSubcommand(subcommand =>
     subcommand
       .setName("pricing")
-      .setDescription(
-        "View Core pricing, membership benefits, and donation options",
-      ),
+      .setDescription("View Core pricing and purchase options"),
   )
   .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages);
 

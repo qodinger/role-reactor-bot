@@ -21,6 +21,52 @@ jest.mock("src/config/theme.js", () => ({
   },
 }));
 
+// Mock MongoDB and storage manager (needed for getWarnCount)
+jest.mock("mongodb", () => {
+  const mockMongoClient = {
+    connect: jest.fn().mockResolvedValue({
+      db: jest.fn().mockReturnValue({
+        collection: jest.fn().mockReturnValue({
+          find: jest.fn(),
+          updateOne: jest.fn(),
+          deleteOne: jest.fn(),
+        }),
+      }),
+      close: jest.fn().mockResolvedValue(undefined),
+    }),
+    close: jest.fn().mockResolvedValue(undefined),
+  };
+  return {
+    MongoClient: jest.fn(() => mockMongoClient),
+  };
+});
+
+const mockStorageManager = {
+  read: jest.fn().mockResolvedValue({}),
+  write: jest.fn().mockResolvedValue(true),
+  get: jest.fn().mockResolvedValue({}),
+  set: jest.fn().mockResolvedValue(true),
+  save: jest.fn().mockResolvedValue(true),
+  delete: jest.fn().mockResolvedValue(true),
+  initialize: jest.fn().mockResolvedValue(undefined),
+  isInitialized: true,
+};
+
+jest.mock("src/utils/storage/storageManager.js", () => ({
+  getStorageManager: jest.fn().mockResolvedValue(mockStorageManager),
+  StorageManager: jest.fn(() => mockStorageManager),
+}));
+
+// Mock moderation utils (needed for getWarnCount)
+jest.mock("src/commands/admin/moderation/utils.js", () => ({
+  getWarnCount: jest.fn().mockResolvedValue(0),
+  canModerateMember: jest.fn(),
+  botCanModerateMember: jest.fn(),
+  validateTimeoutDuration: jest.fn(),
+  formatDuration: jest.fn(),
+  parseMultipleUsers: jest.fn(),
+}));
+
 // Mock embeds - define mocks outside factory (like help.test.js pattern)
 const mockCreateUserInfoEmbed = jest.fn(() => ({
   data: {

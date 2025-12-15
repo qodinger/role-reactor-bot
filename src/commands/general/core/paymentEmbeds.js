@@ -5,23 +5,18 @@ const { customEmojis } = emojiConfig;
 
 /**
  * Create payment embed
+ * Note: Only one-time crypto payments are supported (subscriptions removed)
  * @param {import('discord.js').User} user - Discord user
  * @param {Object} paymentInfo - Payment information
  * @param {string} botAvatarURL - Bot avatar URL
  * @returns {Object} Discord embed object
  */
 export function createPaymentEmbed(user, paymentInfo, botAvatarURL) {
-  const { type, amount, cores, currency, tier } = paymentInfo;
+  const { amount, cores, currency } = paymentInfo;
 
-  const title =
-    type === "subscription"
-      ? `💳 Subscribe to ${tier}`
-      : `💳 Core Credits Payment`;
+  const title = `💳 Core Credits Payment`;
 
-  const description =
-    type === "subscription"
-      ? `Subscribe to **${tier}** and get **${cores} Cores** monthly for **$${amount}/${currency}**`
-      : `Get **${cores} Cores** for **$${amount} ${currency}**`;
+  const description = `Get **${cores} Cores** for **$${amount} ${currency}** (one-time payment)`;
 
   const fields = [
     {
@@ -30,7 +25,7 @@ export function createPaymentEmbed(user, paymentInfo, botAvatarURL) {
       inline: false,
     },
     {
-      name: type === "subscription" ? "Monthly Credits" : "Credits",
+      name: "Credits",
       value: `${customEmojis.core} ${cores} Cores`,
       inline: true,
     },
@@ -39,15 +34,12 @@ export function createPaymentEmbed(user, paymentInfo, botAvatarURL) {
       value: `$${amount} ${currency}`,
       inline: true,
     },
-  ];
-
-  if (type === "subscription") {
-    fields.push({
-      name: "Subscription Type",
-      value: "🔄 Monthly Recurring",
+    {
+      name: "Payment Type",
+      value: "One-time payment (never expires)",
       inline: false,
-    });
-  }
+    },
+  ];
 
   return {
     color: THEME.PRIMARY,

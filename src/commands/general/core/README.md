@@ -1,5 +1,7 @@
 # Core Command
 
+## Overview
+
 The `/core` command allows users to check their Core balance and view pricing information for the Core credit system.
 
 ## File Structure
@@ -39,16 +41,15 @@ Following the modular pattern established by other commands:
 ## Available Options
 
 - **balance** (subcommand): Check current Core balance and tier status
-- **pricing** (subcommand): View Core pricing, membership benefits, and donation options
+- **pricing** (subcommand): View Core pricing and purchase options
 
 ## Key Features
 
 - Real-time balance checking
 - Tier status with proper badge emojis
 - Total avatar generation count
-- Clear pricing structure for donations
-- Core membership tier benefits
-- Monthly credit allocations
+- Clear pricing structure for one-time crypto payments
+- Credit breakdown (subscription vs bonus credits)
 - Professional presentation
 - Ephemeral responses for privacy
 - Simple and official design
@@ -58,4 +59,5 @@ Following the modular pattern established by other commands:
 - Discord.js
 - Storage manager for data persistence
 - Theme configuration for colors and styling
-- Ko-fi integration for donation links
+- Cryptocurrency payment integration (Coinbase Commerce)
+- Website sponsor page for purchases

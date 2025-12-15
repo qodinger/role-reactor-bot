@@ -359,6 +359,31 @@ class Config {
       // Providers are checked in order - first enabled provider is used
       // Set enabled: true to use, enabled: false to disable
       providers: {
+        selfhosted: {
+          enabled: false,
+          name: "Self-Hosted",
+          baseUrl: process.env.SELF_HOSTED_API_URL || "http://127.0.0.1:7860",
+          apiKey: process.env.SELF_HOSTED_API_KEY || null,
+          models: {
+            image: {
+              primary: "default",
+            },
+          },
+        },
+        stability: {
+          enabled: true,
+          name: "Stability AI",
+          baseUrl: "https://api.stability.ai/v2beta/stable-image/generate/sd3",
+          apiKey: process.env.STABILITY_API_KEY,
+          models: {
+            image: {
+              primary: "sd3.5-flash", // Fastest and cheapest
+              large: "sd3.5-large", // Highest quality
+              medium: "sd3.5-medium", // Balanced
+              turbo: "sd3.5-large-turbo", // Quality + Speed
+            },
+          },
+        },
         openrouter: {
           enabled: false, // Set to false to disable this provider
           name: "OpenRouter",
@@ -381,20 +406,6 @@ class Config {
             },
           },
         },
-        stability: {
-          enabled: true, // Set to true to enable this provider
-          name: "Stability AI",
-          baseUrl: "https://api.stability.ai/v2beta/stable-image/generate/sd3",
-          apiKey: process.env.STABILITY_API_KEY,
-          models: {
-            image: {
-              primary: "sd3.5-flash", // Fastest and cheapest
-              large: "sd3.5-large", // Highest quality
-              medium: "sd3.5-medium", // Balanced
-              turbo: "sd3.5-large-turbo", // Quality + Speed
-            },
-          },
-        },
       },
     };
   }
@@ -411,10 +422,21 @@ class Config {
       // Donation rates (Cores per $1) - Your preferred rates
       donation: {
         rate: 10, // 10 Cores per $1
-        minimum: parseFloat(process.env.KOFI_MINIMUM_DONATION) || 1, // Minimum donation amount (default $1)
+        minimum: parseFloat(process.env.KOFI_MINIMUM_DONATION) || 10, // Minimum payment amount (default $10)
       },
 
-      // Subscription tiers (monthly) - Your preferred rates
+      // Moderation auto-escalation thresholds
+      // Set to 0 to disable auto-escalation
+      autoEscalation: {
+        timeoutAfterWarnings:
+          parseInt(process.env.MODERATION_TIMEOUT_AFTER_WARNINGS, 10) || 3, // Auto-timeout after 3 warnings
+        kickAfterWarnings:
+          parseInt(process.env.MODERATION_KICK_AFTER_WARNINGS, 10) || 5, // Auto-kick after 5 warnings
+        timeoutDuration: process.env.MODERATION_AUTO_TIMEOUT_DURATION || "1h", // Duration for auto-timeout
+      },
+
+      // Subscription tiers (DEPRECATED - subscriptions removed)
+      // Kept for legacy user support only - new subscriptions are not accepted
       subscriptions: {
         Bronze: {
           price: 5,

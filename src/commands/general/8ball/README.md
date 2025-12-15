@@ -60,13 +60,8 @@ Following the modular pattern established by other general commands:
 
 ## Permissions Required
 
-- **Execute**: Send Messages permission
-- **Public**: All users can access
-
-### Bot Permissions
-
-- **Send Messages**: Required for responses
-- **Embed Links**: Required for rich embed display
+- `Send Messages` permission
+- `Embed Links` permission
 
 ## Key Features
 
@@ -75,21 +70,10 @@ Following the modular pattern established by other general commands:
 - **Context Awareness**: Personal, urgent, and emotional question detection
 - **Simple and Official Design**: Clean embed design with category-specific themes
 - **Rich Formatting**: Proper Discord embed styling
-
-### Smart Question Analysis
-
 - **Sentiment Detection**: Analyzes positive/negative/questioning tone
 - **Context Recognition**: Identifies personal, urgent, or emotional questions
 - **Keyword Analysis**: Detects important context clues
 - **Weighted Responses**: Adjusts response selection based on analysis
-
-### Response Categories
-
-- **Very Positive**: Exceptional fortune responses
-- **Positive**: Favorable responses
-- **Neutral**: Uncertain or unclear responses
-- **Negative**: Challenging or difficult responses
-- **Very Negative**: Strong warnings or cautions
 
 ## Response Categories
 

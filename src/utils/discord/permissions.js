@@ -3,7 +3,13 @@ import config from "../../config/config.js";
 
 const DEVELOPER_IDS = config.discord.developers || [];
 
-const BOT_PERMISSIONS = [
+/**
+ * All required bot permissions for the Role Reactor bot
+ * This array is used for:
+ * - Permission validation (botHasRequiredPermissions, getMissingBotPermissions)
+ * - Bot invite link generation (DEFAULT_INVITE_PERMISSIONS)
+ */
+export const BOT_PERMISSIONS = [
   PermissionFlagsBits.ManageRoles,
   PermissionFlagsBits.ManageMessages,
   PermissionFlagsBits.AddReactions,
@@ -11,8 +17,16 @@ const BOT_PERMISSIONS = [
   PermissionFlagsBits.ViewChannel,
   PermissionFlagsBits.SendMessages,
   PermissionFlagsBits.EmbedLinks,
+  PermissionFlagsBits.AttachFiles, // To send image attachments (avatar generation, imagine command)
   PermissionFlagsBits.ManageGuild,
   PermissionFlagsBits.UseExternalEmojis,
+  // Moderation permissions
+  PermissionFlagsBits.ModerateMembers, // For timeout command
+  PermissionFlagsBits.BanMembers, // For ban/unban commands
+  PermissionFlagsBits.KickMembers, // For kick command
+  // Voice restrictions permissions
+  PermissionFlagsBits.MoveMembers, // To disconnect users from voice channels
+  PermissionFlagsBits.MuteMembers, // To mute users in voice channels
 ];
 
 /**

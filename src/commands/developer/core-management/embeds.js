@@ -1,8 +1,10 @@
 import { EmbedBuilder } from "discord.js";
 import { THEME } from "../../../config/theme.js";
 import { emojiConfig } from "../../../config/emojis.js";
+import { getLogger } from "../../../utils/logger.js";
 
 const CORE_EMOJI = emojiConfig.customEmojis.core;
+const logger = getLogger();
 
 // ============================================================================
 // CORE MANAGEMENT EMBED BUILDER
@@ -52,12 +54,12 @@ export async function createDetailedCoreManagementEmbed({
     newAmount,
     creditType,
   );
-  console.log("Generated description:", description);
-  console.log("Type:", type, "TargetUser:", targetUser?.username);
+  logger.debug("Generated description:", description);
+  logger.debug("Type:", type, "TargetUser:", targetUser?.username);
 
   const finalDescription =
     description || "Core account management operation completed.";
-  console.log("Final description:", finalDescription);
+  logger.debug("Final description:", finalDescription);
 
   const embed = new EmbedBuilder()
     .setColor(THEME.PRIMARY)
