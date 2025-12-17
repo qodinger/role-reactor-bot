@@ -23,9 +23,12 @@ export class ServerInfoGatherer {
    * Works universally for any Discord server
    * @param {import('discord.js').Guild} guild - Discord guild
    * @param {import('discord.js').Client} _client - Discord client (unused)
+   * @param {Object} options - Options for server info
+   * @param {boolean} options.includeMemberList - Whether to include full member list (default: true)
    * @returns {Promise<string>} Formatted server information
    */
-  async getServerInfo(guild, _client) {
+  async getServerInfo(guild, _client, options = {}) {
+    const { includeMemberList = true } = options;
     if (!guild) return "";
 
     try {
@@ -96,125 +99,132 @@ export class ServerInfoGatherer {
         info += `\n`;
       }
 
-      // Member names - Try to fetch all members for complete data
+      // Member names - Only fetch if needed (can be slow for large servers)
       // IMPORTANT: This section MUST be used when asked for member names
-      try {
-        let membersCollection = guild.members.cache;
-        const cachedBeforeFetch = membersCollection.size;
-        const totalMembers = guild.memberCount;
-        let allMembersFetched = false;
+      if (includeMemberList) {
+        try {
+          let membersCollection = guild.members.cache;
+          const cachedBeforeFetch = membersCollection.size;
+          const totalMembers = guild.memberCount;
+          let allMembersFetched = false;
 
-        // If we don't have all members cached, try to fetch them
-        if (
-          cachedBeforeFetch < totalMembers &&
-          totalMembers <= MAX_MEMBER_FETCH_SERVER_SIZE
-        ) {
-          try {
-            logger.debug(
-              `[getServerInfo] Fetching members: ${cachedBeforeFetch}/${totalMembers} cached`,
-            );
-            const fetchPromise = guild.members.fetch();
-            const timeoutPromise = new Promise((_, reject) => {
-              setTimeout(
-                () => reject(new Error("Member fetch timed out")),
-                MEMBER_FETCH_TIMEOUT,
+          // If we don't have all members cached, try to fetch them
+          if (
+            cachedBeforeFetch < totalMembers &&
+            totalMembers <= MAX_MEMBER_FETCH_SERVER_SIZE
+          ) {
+            try {
+              logger.debug(
+                `[getServerInfo] Fetching members: ${cachedBeforeFetch}/${totalMembers} cached`,
               );
-            });
+              const fetchPromise = guild.members.fetch();
+              const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(
+                  () => reject(new Error("Member fetch timed out")),
+                  MEMBER_FETCH_TIMEOUT,
+                );
+              });
 
-            await Promise.race([fetchPromise, timeoutPromise]);
-            membersCollection = guild.members.cache;
-            allMembersFetched = membersCollection.size >= totalMembers * 0.95; // 95% threshold
-            logger.debug(
-              `[getServerInfo] Fetched members: ${membersCollection.size}/${totalMembers} (${allMembersFetched ? "complete" : "partial"})`,
-            );
-          } catch (fetchError) {
-            if (fetchError.message?.includes("timed out")) {
+              await Promise.race([fetchPromise, timeoutPromise]);
+              membersCollection = guild.members.cache;
+              allMembersFetched = membersCollection.size >= totalMembers * 0.95; // 95% threshold
               logger.debug(
-                `[getServerInfo] Member fetch timed out - using cached members`,
+                `[getServerInfo] Fetched members: ${membersCollection.size}/${totalMembers} (${allMembersFetched ? "complete" : "partial"})`,
               );
-            } else if (fetchError.message?.includes("Missing Access")) {
-              logger.debug(
-                `[getServerInfo] Missing GUILD_MEMBERS intent - using cached members`,
-              );
-            } else {
-              logger.debug(
-                `[getServerInfo] Failed to fetch members: ${fetchError.message} - using cached`,
-              );
+            } catch (fetchError) {
+              if (fetchError.message?.includes("timed out")) {
+                logger.debug(
+                  `[getServerInfo] Member fetch timed out - using cached members`,
+                );
+              } else if (fetchError.message?.includes("Missing Access")) {
+                logger.debug(
+                  `[getServerInfo] Missing GUILD_MEMBERS intent - using cached members`,
+                );
+              } else {
+                logger.debug(
+                  `[getServerInfo] Failed to fetch members: ${fetchError.message} - using cached`,
+                );
+              }
+              // Continue with cached members
+              membersCollection = guild.members.cache;
             }
-            // Continue with cached members
-            membersCollection = guild.members.cache;
+          } else if (cachedBeforeFetch >= totalMembers) {
+            allMembersFetched = true;
           }
-        } else if (cachedBeforeFetch >= totalMembers) {
-          allMembersFetched = true;
-        }
 
-        if (membersCollection && membersCollection.size > 0) {
-          // Get human members only (exclude bots)
-          const humanMembers = Array.from(membersCollection.values())
-            .filter(member => member && member.user && !member.user.bot)
-            .map(member => {
-              // Use displayName if available, otherwise username
-              const name =
-                member.displayName || member.user?.username || "Unknown";
-              return responseValidator.sanitizeData(name);
-            })
-            .filter(name => name && name !== "Unknown")
-            .slice(0, MAX_MEMBERS_TO_DISPLAY);
+          if (membersCollection && membersCollection.size > 0) {
+            // Get human members only (exclude bots)
+            const humanMembers = Array.from(membersCollection.values())
+              .filter(member => member && member.user && !member.user.bot)
+              .map(member => {
+                // Use displayName if available, otherwise username
+                const name =
+                  member.displayName || member.user?.username || "Unknown";
+                return responseValidator.sanitizeData(name);
+              })
+              .filter(name => name && name !== "Unknown")
+              .slice(0, MAX_MEMBERS_TO_DISPLAY);
 
-          logger.debug(
-            `[getServerInfo] Human members found: ${humanMembers.length} (${allMembersFetched ? "complete" : "partial"})`,
-          );
+            logger.debug(
+              `[getServerInfo] Human members found: ${humanMembers.length} (${allMembersFetched ? "complete" : "partial"})`,
+            );
 
-          if (humanMembers.length > 0) {
-            info += `**COMPLETE LIST OF HUMAN MEMBER NAMES:**\n`;
-            info += `🚨 **CRITICAL: When asked for member names, use ONLY the names from this list below. Copy them EXACTLY as shown.**\n`;
-            if (!allMembersFetched) {
-              info += `⚠️ Note: This is a partial list (${humanMembers.length} of ${memberCounts?.humans || "unknown"} members shown due to cache limits)\n`;
+            if (humanMembers.length > 0) {
+              info += `**COMPLETE LIST OF HUMAN MEMBER NAMES:**\n`;
+              info += `🚨 **CRITICAL: When asked for member names, use ONLY the names from this list below. Copy them EXACTLY as shown.**\n`;
+              if (!allMembersFetched) {
+                info += `⚠️ Note: This is a partial list (${humanMembers.length} of ${memberCounts?.humans || "unknown"} members shown due to cache limits)\n`;
+              }
+              info += `\n`;
+              humanMembers.forEach((name, index) => {
+                info += `${index + 1}. ${name}\n`;
+              });
+              info += `\n`;
+            } else {
+              info += `**COMPLETE LIST OF HUMAN MEMBER NAMES:**\n`;
+              info += `- No human members found in cache\n`;
+              info += `- This may be due to cache limitations or server permissions\n`;
+              info += `\n`;
             }
-            info += `\n`;
-            humanMembers.forEach((name, index) => {
-              info += `${index + 1}. ${name}\n`;
-            });
-            info += `\n`;
+
+            // Get bot members (for reference, but not included in "members" count)
+            const botMembers = Array.from(membersCollection.values())
+              .filter(member => member && member.user && member.user.bot)
+              .map(member => {
+                const name =
+                  member.displayName || member.user?.username || "Unknown";
+                return responseValidator.sanitizeData(name);
+              })
+              .filter(name => name && name !== "Unknown")
+              .slice(0, MAX_MEMBERS_TO_DISPLAY);
+
+            if (botMembers.length > 0) {
+              info += `**COMPLETE LIST OF BOT NAMES:**\n`;
+              info += `- These are bots, NOT human members\n`;
+              info += `- When asked about "members", do NOT include bots\n`;
+              info += `\n`;
+              botMembers.forEach((name, index) => {
+                info += `${index + 1}. ${name} [BOT]\n`;
+              });
+              info += `\n`;
+            }
           } else {
             info += `**COMPLETE LIST OF HUMAN MEMBER NAMES:**\n`;
-            info += `- No human members found in cache\n`;
+            info += `- No members found in cache\n`;
             info += `- This may be due to cache limitations or server permissions\n`;
             info += `\n`;
           }
-
-          // Get bot members (for reference, but not included in "members" count)
-          const botMembers = Array.from(membersCollection.values())
-            .filter(member => member && member.user && member.user.bot)
-            .map(member => {
-              const name =
-                member.displayName || member.user?.username || "Unknown";
-              return responseValidator.sanitizeData(name);
-            })
-            .filter(name => name && name !== "Unknown")
-            .slice(0, MAX_MEMBERS_TO_DISPLAY);
-
-          if (botMembers.length > 0) {
-            info += `**COMPLETE LIST OF BOT NAMES:**\n`;
-            info += `- These are bots, NOT human members\n`;
-            info += `- When asked about "members", do NOT include bots\n`;
-            info += `\n`;
-            botMembers.forEach((name, index) => {
-              info += `${index + 1}. ${name} [BOT]\n`;
-            });
-            info += `\n`;
-          }
-        } else {
+        } catch (error) {
+          logger.debug("Error fetching member names:", error);
           info += `**COMPLETE LIST OF HUMAN MEMBER NAMES:**\n`;
-          info += `- No members found in cache\n`;
-          info += `- This may be due to cache limitations or server permissions\n`;
+          info += `- Error fetching member list: ${error.message}\n`;
           info += `\n`;
         }
-      } catch (error) {
-        logger.debug("Error fetching member names:", error);
-        info += `**COMPLETE LIST OF HUMAN MEMBER NAMES:**\n`;
-        info += `- Error fetching member list: ${error.message}\n`;
-        info += `\n`;
+      } else {
+        // Skip member list for faster responses - can use fetch_members action if needed
+        info += `**Member Names:**\n`;
+        info += `- Use "fetch_members" action to get complete member list when needed\n`;
+        info += `- Current cached: ${memberCounts?.humans || 0} human members\n\n`;
       }
 
       // Channel information

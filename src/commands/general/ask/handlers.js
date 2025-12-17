@@ -101,15 +101,12 @@ export async function execute(interaction, client) {
     // If response is empty (e.g., command already sent its response), don't send an empty embed
     if (!responseText || responseText.trim().length === 0) {
       // Command already sent its response directly to channel, no need to send AI's message
-      // Just delete the "thinking..." message
+      // Just delete the "thinking..." message - don't show any message
       try {
         await interaction.deleteReply();
       } catch {
-        // If delete fails, just edit to a minimal message
-        await interaction.editReply({
-          content: "✅ Command executed successfully.",
-          embeds: [],
-        });
+        // If delete fails (e.g., message already deleted or interaction expired), just return silently
+        // Don't send any message - the command already sent its response
       }
       return;
     }

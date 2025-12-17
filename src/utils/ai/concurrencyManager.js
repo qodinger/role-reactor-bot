@@ -9,6 +9,11 @@ export class ConcurrencyManager {
   constructor() {
     this.activeRequests = new Set();
     this.queue = [];
+    // Track timeouts to prevent race conditions
+    this.requestTimeouts = new Map(); // requestId -> { requestTimeout, queueTimeout }
+    // Track cleanup intervals for proper cleanup
+    this.cleanupIntervals = [];
+
     // Increased limits for better scalability
     // Default: 100 concurrent requests (good for high-traffic servers)
     // For self-hosted Ollama, can be increased based on server CPU/RAM
@@ -200,22 +205,49 @@ export class ConcurrencyManager {
       this.queue.push(request);
       this.processQueue();
 
-      // Set timeout for the request
-      setTimeout(() => {
+      // Set timeout for the request (store to clear if request completes)
+      const requestTimeoutId = setTimeout(() => {
+        // Only reject if request is still active (not already resolved/rejected)
         if (this.activeRequests.has(requestId)) {
           this.activeRequests.delete(requestId);
-          reject(new Error("AI generation request timed out"));
+          // Clear the timeout tracking
+          this.requestTimeouts.delete(requestId);
+          // Check if promise is still pending before rejecting
+          try {
+            reject(new Error("AI generation request timed out"));
+          } catch (_err) {
+            // Promise already resolved/rejected, ignore
+            logger.debug(
+              `Request ${requestId} timeout handler: promise already settled`,
+            );
+          }
         }
       }, this.requestTimeout);
 
-      // Set queue timeout
-      setTimeout(() => {
+      // Set queue timeout (store to clear if request starts processing)
+      const queueTimeoutId = setTimeout(() => {
         const queueIndex = this.queue.findIndex(r => r.id === requestId);
         if (queueIndex !== -1) {
           this.queue.splice(queueIndex, 1);
-          reject(new Error("Request timed out in queue"));
+          // Clear the timeout tracking
+          this.requestTimeouts.delete(requestId);
+          // Check if promise is still pending before rejecting
+          try {
+            reject(new Error("Request timed out in queue"));
+          } catch (_err) {
+            // Promise already resolved/rejected, ignore
+            logger.debug(
+              `Request ${requestId} queue timeout handler: promise already settled`,
+            );
+          }
         }
       }, this.queueTimeout);
+
+      // Store timeouts for cleanup
+      this.requestTimeouts.set(requestId, {
+        requestTimeout: requestTimeoutId,
+        queueTimeout: queueTimeoutId,
+      });
     });
   }
 
@@ -247,6 +279,14 @@ export class ConcurrencyManager {
       logger.debug(
         `Processing AI request ${request.id} (${this.activeRequests.size}/${this.maxConcurrent} active, ${this.queue.length} queued)`,
       );
+
+      // Clear timeouts since request is now processing
+      const timeouts = this.requestTimeouts.get(request.id);
+      if (timeouts) {
+        clearTimeout(timeouts.requestTimeout);
+        clearTimeout(timeouts.queueTimeout);
+        this.requestTimeouts.delete(request.id);
+      }
 
       const result = await request.function(request.options);
       request.resolve(result);
@@ -346,12 +386,13 @@ export class ConcurrencyManager {
    */
   startCleanup() {
     // Clean up user rate limits every 5 minutes
-    setInterval(() => {
+    const cleanupInterval = setInterval(() => {
       this.cleanupUserRateLimits();
     }, 300000);
+    this.cleanupIntervals.push(cleanupInterval);
 
     // Log queue stats every minute
-    setInterval(() => {
+    const statsInterval = setInterval(() => {
       const stats = this.getQueueStats();
       if (stats.queuedRequests > 0 || stats.activeRequests > 0) {
         logger.info(
@@ -359,6 +400,17 @@ export class ConcurrencyManager {
         );
       }
     }, 60000);
+    this.cleanupIntervals.push(statsInterval);
+  }
+
+  /**
+   * Stop all cleanup intervals (for testing or graceful shutdown)
+   */
+  stopCleanup() {
+    for (const interval of this.cleanupIntervals) {
+      clearInterval(interval);
+    }
+    this.cleanupIntervals = [];
   }
 }
 

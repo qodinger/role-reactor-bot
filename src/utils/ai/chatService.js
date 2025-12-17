@@ -1013,7 +1013,13 @@ export class ChatService {
             role: "system",
             content: systemMessage,
           })
-          .catch(() => {});
+          .catch(error => {
+            // Log but don't throw - history failures shouldn't break response generation
+            logger.debug(
+              `Failed to add system message to history for user ${userId}:`,
+              error,
+            );
+          });
       }
     } else {
       // First message in conversation - add system message
@@ -1298,6 +1304,9 @@ export class ChatService {
             }
           }
 
+          // Track if response was intentionally suppressed (e.g., command executed)
+          let responseSuppressed = false;
+
           // Process structured actions if we have them
           if (actions.length > 0 && guild) {
             try {
@@ -1438,28 +1447,59 @@ export class ChatService {
                 // So we don't need to handle commandResponsesToSend anymore
                 // Just handle text results if any
                 // Commands now send their responses directly to the channel
-                // Suppress generic AI messages when commands execute successfully
+                // Suppress AI messages when commands execute successfully
+                // The command's response is already visible to the user
                 if (commandResults.length > 0) {
                   logger.info(
                     `[generateResponse] Command executed - response already sent to channel by command handler`,
                   );
-                  // Check if the AI's message is generic/acknowledgment-only
-                  const genericPatterns = [
-                    /^I'll (execute|run|show|display|get|fetch)/i,
-                    /^Let me (execute|run|show|display|get|fetch)/i,
+
+                  // Check if the AI's message is just explaining/repeating what the command does
+                  // Suppress redundant responses when command already sent its own response
+                  const redundantPatterns = [
+                    // Generic execution phrases
+                    /^I'll (execute|run|show|display|get|fetch|play)/i,
+                    /^Let me (execute|run|show|display|get|fetch|play)/i,
                     /^I'll (execute|run) (the|that) .+ (command|for you)/i,
                     /^Executing/i,
                     /^Running/i,
+                    // Explanatory phrases about what the command does
+                    /^Let's (play|try|use|run)/i,
+                    /^Here's (a|the|your)/i,
+                    /^Please (choose|select|pick)/i,
+                    // Responses that just describe the command
+                    /^(Here|This) (is|are) (a|the|your)/i,
+                    /^You can (now|now you can)/i,
                   ];
-                  const isGenericMessage = genericPatterns.some(pattern =>
+
+                  const isRedundantMessage = redundantPatterns.some(pattern =>
                     pattern.test(finalResponse.trim()),
                   );
 
-                  if (isGenericMessage) {
-                    // Suppress generic message - command already sent its response
+                  // Also check if response is very short and just acknowledges the command
+                  const isShortAcknowledgment =
+                    finalResponse.trim().length < 100 &&
+                    (finalResponse.toLowerCase().includes("command") ||
+                      finalResponse.toLowerCase().includes("executed") ||
+                      finalResponse.toLowerCase().includes("done") ||
+                      finalResponse.toLowerCase().includes("here"));
+
+                  // Suppress if it's redundant or just a short acknowledgment
+                  // Only keep the response if it contains important error information
+                  const hasErrorInfo =
+                    /error|failed|unable|cannot|issue|problem/i.test(
+                      finalResponse,
+                    );
+
+                  if (
+                    (isRedundantMessage || isShortAcknowledgment) &&
+                    !hasErrorInfo
+                  ) {
+                    // Suppress redundant message - command already sent its response
                     finalResponse = "";
+                    responseSuppressed = true;
                     logger.info(
-                      `[generateResponse] Suppressed generic AI message - command response already sent`,
+                      `[generateResponse] Suppressed redundant AI message - command response already sent to channel`,
                     );
                   }
                 }
@@ -1486,12 +1526,19 @@ export class ChatService {
           finalResponse = responseValidator.sanitizeData(finalResponse);
 
           // Additional validation: Check for empty or invalid responses
+          // But don't set fallback if response was intentionally suppressed (e.g., command executed)
           if (!finalResponse || finalResponse.trim().length === 0) {
-            logger.warn(
-              `[AI RESPONSE LOG] ⚠️ Response is empty after processing, using fallback`,
-            );
-            finalResponse =
-              "I couldn't generate a response. Please try rephrasing your question or use /help for available commands.";
+            if (!responseSuppressed) {
+              logger.warn(
+                `[AI RESPONSE LOG] ⚠️ Response is empty after processing, using fallback`,
+              );
+              finalResponse =
+                "I couldn't generate a response. Please try rephrasing your question or use /help for available commands.";
+            } else {
+              logger.info(
+                `[AI RESPONSE LOG] Response intentionally suppressed (command executed), keeping empty`,
+              );
+            }
           }
 
           // Check response length to prevent Discord embed limit issues

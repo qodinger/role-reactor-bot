@@ -15,6 +15,8 @@ export class ConversationManager {
   constructor() {
     this.conversations = new Map();
     this.dbManager = null;
+    // Track cleanup interval for proper cleanup
+    this.cleanupInterval = null;
 
     // Configuration from environment variables
     this.useLongTermMemory = process.env.AI_USE_LONG_TERM_MEMORY !== "false";
@@ -138,7 +140,12 @@ export class ConversationManager {
         this.conversations.delete(userId);
         // Also delete from database if LTM enabled
         if (this.useLongTermMemory && this.dbManager?.conversations) {
-          await this.dbManager.conversations.delete(userId).catch(() => {});
+          await this.dbManager.conversations.delete(userId).catch(error => {
+            logger.debug(
+              `Failed to delete conversation for user ${userId}:`,
+              error,
+            );
+          });
         }
         return [];
       }
@@ -224,7 +231,11 @@ export class ConversationManager {
       this.dbManager.conversations
         .save(userId, conversation.messages, conversation.lastActivity)
         .catch(error => {
-          logger.debug("Failed to save conversation to database:", error);
+          // Log but don't throw - LTM failures shouldn't break conversation flow
+          logger.debug(
+            `Failed to save conversation for user ${userId} to database:`,
+            error,
+          );
         });
     }
   }
@@ -258,7 +269,12 @@ export class ConversationManager {
       this.conversations.delete(userId);
       // Also delete from database if LTM enabled
       if (this.useLongTermMemory && this.dbManager?.conversations) {
-        await this.dbManager.conversations.delete(userId).catch(() => {});
+        await this.dbManager.conversations.delete(userId).catch(error => {
+          logger.debug(
+            `Failed to delete conversation for user ${userId}:`,
+            error,
+          );
+        });
       }
     }
   }
@@ -268,7 +284,7 @@ export class ConversationManager {
    */
   startCleanup() {
     // Clean up expired conversations every 3 minutes
-    setInterval(
+    this.cleanupInterval = setInterval(
       () => {
         const now = Date.now();
         let cleaned = 0;
@@ -287,7 +303,12 @@ export class ConversationManager {
 
           // Also delete from database if LTM enabled
           if (this.useLongTermMemory && this.dbManager?.conversations) {
-            this.dbManager.conversations.delete(userId).catch(() => {});
+            this.dbManager.conversations.delete(userId).catch(error => {
+              logger.debug(
+                `Failed to delete expired conversation for user ${userId}:`,
+                error,
+              );
+            });
           }
         }
 
@@ -301,6 +322,16 @@ export class ConversationManager {
       },
       3 * 60 * 1000,
     ); // Every 3 minutes
+  }
+
+  /**
+   * Stop cleanup interval (for testing or graceful shutdown)
+   */
+  stopCleanup() {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
   }
 }
 

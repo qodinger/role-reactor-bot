@@ -127,6 +127,137 @@ export async function getGeneralCommands() {
 }
 
 /**
+ * Cache for admin commands list
+ */
+let ADMIN_COMMANDS_CACHE = null;
+
+/**
+ * Dynamically discover admin commands from src/commands/admin directory
+ * @returns {Promise<Array<string>>} Array of admin command names
+ */
+async function discoverAdminCommands() {
+  if (ADMIN_COMMANDS_CACHE) {
+    return ADMIN_COMMANDS_CACHE;
+  }
+
+  try {
+    const adminCommandsPath = path.join(__dirname, "../../commands/admin");
+    try {
+      await fs.access(adminCommandsPath);
+    } catch {
+      ADMIN_COMMANDS_CACHE = [];
+      return ADMIN_COMMANDS_CACHE;
+    }
+
+    const items = await fs.readdir(adminCommandsPath);
+    const itemChecks = await Promise.all(
+      items.map(async item => {
+        const itemPath = path.join(adminCommandsPath, item);
+        try {
+          const stats = await fs.stat(itemPath);
+          if (!stats.isDirectory()) return null;
+          const indexPath = path.join(itemPath, "index.js");
+          try {
+            await fs.access(indexPath);
+            return item;
+          } catch {
+            return null;
+          }
+        } catch {
+          return null;
+        }
+      }),
+    );
+
+    const commandNames = itemChecks.filter(name => name !== null).sort();
+    ADMIN_COMMANDS_CACHE = commandNames;
+    logger.debug(
+      `Discovered ${commandNames.length} admin commands: ${commandNames.join(", ")}`,
+    );
+    return commandNames;
+  } catch (error) {
+    logger.error("Failed to discover admin commands:", error);
+    ADMIN_COMMANDS_CACHE = [];
+    return ADMIN_COMMANDS_CACHE;
+  }
+}
+
+/**
+ * Get admin commands list
+ * @returns {Promise<Array<string>>} Array of admin command names
+ */
+export async function getAdminCommands() {
+  return await discoverAdminCommands();
+}
+
+/**
+ * Cache for developer commands list
+ */
+let DEVELOPER_COMMANDS_CACHE = null;
+
+/**
+ * Dynamically discover developer commands from src/commands/developer directory
+ * @returns {Promise<Array<string>>} Array of developer command names
+ */
+async function discoverDeveloperCommands() {
+  if (DEVELOPER_COMMANDS_CACHE) {
+    return DEVELOPER_COMMANDS_CACHE;
+  }
+
+  try {
+    const developerCommandsPath = path.join(
+      __dirname,
+      "../../commands/developer",
+    );
+    try {
+      await fs.access(developerCommandsPath);
+    } catch {
+      DEVELOPER_COMMANDS_CACHE = [];
+      return DEVELOPER_COMMANDS_CACHE;
+    }
+
+    const items = await fs.readdir(developerCommandsPath);
+    const itemChecks = await Promise.all(
+      items.map(async item => {
+        const itemPath = path.join(developerCommandsPath, item);
+        try {
+          const stats = await fs.stat(itemPath);
+          if (!stats.isDirectory()) return null;
+          const indexPath = path.join(itemPath, "index.js");
+          try {
+            await fs.access(indexPath);
+            return item;
+          } catch {
+            return null;
+          }
+        } catch {
+          return null;
+        }
+      }),
+    );
+
+    const commandNames = itemChecks.filter(name => name !== null).sort();
+    DEVELOPER_COMMANDS_CACHE = commandNames;
+    logger.debug(
+      `Discovered ${commandNames.length} developer commands: ${commandNames.join(", ")}`,
+    );
+    return commandNames;
+  } catch (error) {
+    logger.error("Failed to discover developer commands:", error);
+    DEVELOPER_COMMANDS_CACHE = [];
+    return DEVELOPER_COMMANDS_CACHE;
+  }
+}
+
+/**
+ * Get developer commands list
+ * @returns {Promise<Array<string>>} Array of developer command names
+ */
+export async function getDeveloperCommands() {
+  return await discoverDeveloperCommands();
+}
+
+/**
  * Commands the AI is allowed to execute
  * AI can ONLY execute general commands for safety
  * This is dynamically built from commands in src/commands/general
