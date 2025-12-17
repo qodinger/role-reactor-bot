@@ -407,6 +407,12 @@ class ConnectionManager {
       await this.db
         .collection("recurring_schedules")
         .createIndex({ active: 1 });
+      await this.db
+        .collection("ai_conversations")
+        .createIndex({ userId: 1 }, { unique: true });
+      await this.db
+        .collection("ai_conversations")
+        .createIndex({ lastActivity: 1 });
       this.logger.success("✅ Database indexes created successfully");
     } catch (error) {
       this.logger.warn("⚠️ Index creation failed (non-critical)", error);
@@ -1014,6 +1020,82 @@ class GuildSettingsRepository extends BaseRepository {
     } catch (error) {
       this.logger.error("Failed to set supporters", error);
       return false;
+    }
+  }
+}
+
+class ConversationRepository extends BaseRepository {
+  constructor(db, cache, logger) {
+    super(db, "ai_conversations", cache, logger);
+  }
+
+  async getByUser(userId) {
+    try {
+      const cached = this.cache.get(`conversation_${userId}`);
+      if (cached) return cached;
+
+      const conversation = await this.collection.findOne({ userId });
+      if (conversation) {
+        this.cache.set(`conversation_${userId}`, conversation);
+      }
+      return conversation || null;
+    } catch (error) {
+      this.logger.error(`Failed to get conversation for user ${userId}`, error);
+      return null;
+    }
+  }
+
+  async save(userId, messages, lastActivity) {
+    try {
+      await this.collection.updateOne(
+        { userId },
+        {
+          $set: {
+            messages,
+            lastActivity: new Date(lastActivity),
+            updatedAt: new Date(),
+          },
+        },
+        { upsert: true },
+      );
+      this.cache.set(`conversation_${userId}`, {
+        userId,
+        messages,
+        lastActivity,
+      });
+      return true;
+    } catch (error) {
+      this.logger.error(
+        `Failed to save conversation for user ${userId}`,
+        error,
+      );
+      return false;
+    }
+  }
+
+  async delete(userId) {
+    try {
+      await this.collection.deleteOne({ userId });
+      this.cache.delete(`conversation_${userId}`);
+      return true;
+    } catch (error) {
+      this.logger.error(
+        `Failed to delete conversation for user ${userId}`,
+        error,
+      );
+      return false;
+    }
+  }
+
+  async deleteExpired(expirationTime) {
+    try {
+      const result = await this.collection.deleteMany({
+        lastActivity: { $lt: new Date(expirationTime) },
+      });
+      return result.deletedCount || 0;
+    } catch (error) {
+      this.logger.error("Failed to delete expired conversations", error);
+      return 0;
     }
   }
 }
@@ -1649,6 +1731,11 @@ class DatabaseManager {
           this.logger,
         );
         this.polls = new PollRepository(db, this.cacheManager, this.logger);
+        this.conversations = new ConversationRepository(
+          db,
+          this.cacheManager,
+          this.logger,
+        );
         this.coreCredits = new CoreCreditsRepository(
           db,
           this.cacheManager,

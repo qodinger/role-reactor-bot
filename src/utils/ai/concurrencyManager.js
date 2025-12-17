@@ -10,21 +10,28 @@ export class ConcurrencyManager {
     this.activeRequests = new Set();
     this.queue = [];
     // Increased limits for better scalability
-    this.maxConcurrent = parseInt(process.env.AI_MAX_CONCURRENT) || 50;
+    // Default: 100 concurrent requests (good for high-traffic servers)
+    // For self-hosted Ollama, can be increased based on server CPU/RAM
+    // For paid APIs, keep lower to manage costs
+    this.maxConcurrent = parseInt(process.env.AI_MAX_CONCURRENT) || 100;
     this.requestTimeout = parseInt(process.env.AI_REQUEST_TIMEOUT) || 120000; // 2 minutes
     this.retryAttempts = parseInt(process.env.AI_RETRY_ATTEMPTS) || 2;
     this.retryDelay = parseInt(process.env.AI_RETRY_DELAY) || 1000; // 1 second
 
     // User-specific rate limiting
     this.userRequests = new Map(); // userId -> { count, lastRequest, isCore, coreTier }
-    this.userRateLimit = parseInt(process.env.AI_USER_RATE_LIMIT) || 5; // 5 requests per user
+    // Chat-specific rate limiting (more lenient for conversational AI)
+    // Default: 50 requests per 1 minute (very generous for natural conversations)
+    // For self-hosted models, this is safe since there are no API costs
+    this.userRateLimit = parseInt(process.env.AI_USER_RATE_LIMIT) || 50; // 50 requests per user (default)
     this.userRateWindow = parseInt(process.env.AI_USER_RATE_WINDOW) || 300000; // 5 minutes
 
-    // Core tier rate limiting benefits
+    // Core tier rate limiting benefits (multipliers applied to base rate limit)
+    // With default 50 requests per minute, Core users get even more generous limits
     this.coreTierLimits = {
-      "Core Basic": { multiplier: 1.5, priority: 1 }, // 7.5 requests per 5 minutes
-      "Core Premium": { multiplier: 2.0, priority: 2 }, // 10 requests per 5 minutes
-      "Core Elite": { multiplier: 3.0, priority: 3 }, // 15 requests per 5 minutes
+      "Core Basic": { multiplier: 1.5, priority: 1 }, // 75 requests per minute (50 * 1.5)
+      "Core Premium": { multiplier: 2.0, priority: 2 }, // 100 requests per minute (50 * 2.0)
+      "Core Elite": { multiplier: 3.0, priority: 3 }, // 150 requests per minute (50 * 3.0)
     };
 
     // Queue management
@@ -33,7 +40,43 @@ export class ConcurrencyManager {
   }
 
   /**
-   * Check if user has exceeded rate limit
+   * Check if user has exceeded rate limit (read-only check, doesn't increment counter)
+   * @param {string} userId - User ID to check
+   * @param {Object} coreUserData - User data including Core tier info
+   * @returns {boolean} True if rate limited
+   */
+  checkUserRateLimit(userId, coreUserData = null) {
+    if (!userId) return false;
+
+    const now = Date.now();
+    const userData = this.userRequests.get(userId);
+
+    // Calculate effective rate limit based on Core tier
+    let effectiveRateLimit = this.userRateLimit;
+    if (coreUserData && coreUserData.isCore && coreUserData.coreTier) {
+      const tierConfig = this.coreTierLimits[coreUserData.coreTier];
+      if (tierConfig) {
+        effectiveRateLimit = Math.floor(
+          this.userRateLimit * tierConfig.multiplier,
+        );
+      }
+    }
+
+    if (!userData) {
+      return false; // No previous requests, not rate limited
+    }
+
+    // Reset counter if window has passed
+    if (now - userData.lastRequest > this.userRateWindow) {
+      return false; // Window expired, not rate limited
+    }
+
+    // Check if user has exceeded their effective limit
+    return userData.count >= effectiveRateLimit;
+  }
+
+  /**
+   * Check if user has exceeded rate limit (increments counter if not rate limited)
    * @param {string} userId - User ID to check
    * @param {Object} coreUserData - User data including Core tier info
    * @returns {boolean} True if rate limited
@@ -113,13 +156,17 @@ export class ConcurrencyManager {
       const userId = options.userId;
       const coreUserData = options.coreUserData;
       if (userId && this.isUserRateLimited(userId, coreUserData)) {
-        const effectiveRateLimit =
-          coreUserData?.isCore && coreUserData?.coreTier
-            ? Math.floor(
-                this.userRateLimit *
-                  (this.coreTierLimits[coreUserData.coreTier]?.multiplier || 1),
-              )
-            : this.userRateLimit;
+        // Get the actual effective rate limit that was used
+        const userData = this.userRequests.get(userId);
+        let effectiveRateLimit = this.userRateLimit;
+        if (userData && userData.isCore && userData.coreTier) {
+          const tierConfig = this.coreTierLimits[userData.coreTier];
+          if (tierConfig) {
+            effectiveRateLimit = Math.floor(
+              this.userRateLimit * tierConfig.multiplier,
+            );
+          }
+        }
 
         reject(
           new Error(

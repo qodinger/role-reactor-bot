@@ -155,6 +155,13 @@ async function deployCommands() {
   } catch (error) {
     spinner.fail(createErrorMessage("Failed to deploy commands."));
     console.error(error);
+    process.exit(1);
+  } finally {
+    // Exit after deployment completes
+    // Small delay to ensure all output is flushed
+    setTimeout(() => {
+      process.exit(0);
+    }, 100);
   }
 }
 

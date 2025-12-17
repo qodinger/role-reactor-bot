@@ -129,6 +129,52 @@ export class MultiProviderAIService {
   }
 
   /**
+   * Get the appropriate provider for image generation
+   * Skips self-hosted (Ollama doesn't do images) and prefers Stability AI
+   * @returns {string|null} Provider key or null if none enabled
+   */
+  getImageProvider() {
+    // For images, prefer Stability AI, then OpenAI, then OpenRouter
+    // Skip self-hosted as it's for text/chat only
+    const imageProviders = ["stability", "openai", "openrouter"];
+
+    for (const key of imageProviders) {
+      const provider = this.config.providers[key];
+      if (provider && provider.enabled === true && provider.apiKey) {
+        return key;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Get the appropriate provider for text/chat generation
+   * Prefers self-hosted (Ollama) for local AI, then falls back to others
+   * @returns {string|null} Provider key or null if none enabled
+   */
+  getTextProvider() {
+    // For text/chat, prefer self-hosted (Ollama), then OpenRouter, then OpenAI
+    const textProviders = ["selfhosted", "openrouter", "openai"];
+
+    for (const key of textProviders) {
+      const provider = this.config.providers[key];
+      if (provider && provider.enabled === true) {
+        // For self-hosted, API key is optional
+        if (key === "selfhosted") {
+          return key;
+        }
+        // For others, require API key
+        if (provider.apiKey) {
+          return key;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
    * Generate AI content using the configured provider
    * @param {Object} options - Configuration options
    * @param {string} options.type - Type of generation (image, text)
@@ -145,19 +191,34 @@ export class MultiProviderAIService {
       provider = null,
     } = options;
 
-    // Check if AI features are enabled
-    if (!this.isEnabled()) {
-      throw new Error(
-        "AI features are disabled. All providers are disabled. Please enable at least one provider in config.js to use AI features.",
-      );
-    }
-
-    // Determine which provider to use
+    // Determine which provider to use based on generation type
     let targetProvider = provider;
 
     if (!targetProvider) {
-      // Find first enabled provider in order
-      targetProvider = this.getPrimaryProvider();
+      // Route to appropriate provider based on type
+      if (type === "image") {
+        targetProvider = this.getImageProvider();
+        if (!targetProvider) {
+          throw new Error(
+            "No image generation provider available. Please enable Stability AI, OpenAI, or OpenRouter in config.js and configure their API keys.",
+          );
+        }
+      } else if (type === "text" || type === "chat") {
+        targetProvider = this.getTextProvider();
+        if (!targetProvider) {
+          throw new Error(
+            "No text/chat provider available. Please enable self-hosted (Ollama), OpenRouter, or OpenAI in config.js and configure their API keys if needed.",
+          );
+        }
+      } else {
+        // Fallback to primary provider for unknown types
+        targetProvider = this.getPrimaryProvider();
+        if (!targetProvider) {
+          throw new Error(
+            "AI features are disabled. All providers are disabled. Please enable at least one provider in config.js to use AI features.",
+          );
+        }
+      }
     }
 
     const providerConfig = this.config.providers[targetProvider];
@@ -186,9 +247,11 @@ export class MultiProviderAIService {
 
       if (type === "image") {
         result = await this.generateImage(prompt, genConfig, targetProvider);
+      } else if (type === "text" || type === "chat") {
+        result = await this.generateText(prompt, genConfig, targetProvider);
       } else {
         throw new Error(
-          `Unsupported generation type: ${type}. Only 'image' is supported.`,
+          `Unsupported generation type: ${type}. Supported types: 'image', 'text', 'chat'.`,
         );
       }
 
@@ -603,6 +666,258 @@ export class MultiProviderAIService {
 
     // Default to 1:1
     return [512, 512];
+  }
+
+  /**
+   * Generate text/chat using specified provider
+   * @param {string|Array} prompt - Text prompt or messages array
+   * @param {Object} config - Generation configuration
+   * @param {string} provider - Provider to use
+   * @returns {Promise<Object>} Generated text data
+   */
+  async generateText(prompt, config, provider) {
+    const providerConfig = this.config.providers[provider];
+    const model = providerConfig.models?.text?.primary || config.model;
+
+    if (provider === "selfhosted") {
+      return this.generateTextSelfHosted(prompt, model, config);
+    } else if (provider === "openrouter") {
+      return this.generateTextOpenRouter(prompt, model, config);
+    } else if (provider === "openai") {
+      return this.generateTextOpenAI(prompt, model, config);
+    } else {
+      throw new Error(`Unsupported provider for text generation: ${provider}`);
+    }
+  }
+
+  /**
+   * Generate text using Self-Hosted AI (Ollama, etc.)
+   * Supports OpenAI-compatible API
+   * @param {string|Array} prompt - Text prompt or messages array
+   * @param {string} model - Model name
+   * @param {Object} config - Generation configuration
+   * @returns {Promise<Object>} Generated text data
+   */
+  async generateTextSelfHosted(prompt, model, config) {
+    // Convert prompt to messages format if needed
+    let messages = [];
+    if (typeof prompt === "string") {
+      messages = [{ role: "user", content: prompt }];
+    } else if (Array.isArray(prompt)) {
+      messages = prompt;
+    } else {
+      throw new Error("Prompt must be a string or array of messages");
+    }
+
+    // Add system message if provided
+    if (config.systemMessage) {
+      messages.unshift({ role: "system", content: config.systemMessage });
+    }
+
+    // Build request body (OpenAI-compatible format)
+    const requestBody = {
+      model: model || "llama3.2",
+      messages,
+      temperature: config.temperature || 0.7,
+      max_tokens: config.maxTokens || 1000,
+      stream: false,
+    };
+
+    // Build API URL - try OpenAI-compatible endpoint first, fallback to Ollama native
+    const baseUrl = this.config.providers.selfhosted.baseUrl;
+    let apiUrl = `${baseUrl}/v1/chat/completions`;
+
+    // If baseUrl ends with :11434 (Ollama default), try native API as fallback
+    const isOllama = baseUrl.includes(":11434") || baseUrl.includes("ollama");
+
+    // Try OpenAI-compatible endpoint first
+    let response = await fetch(apiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(this.config.providers.selfhosted.apiKey && {
+          Authorization: `Bearer ${this.config.providers.selfhosted.apiKey}`,
+        }),
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    // If OpenAI-compatible fails and it's Ollama, try native API
+    if (!response.ok && isOllama) {
+      // Convert to Ollama native format
+      const ollamaBody = {
+        model: requestBody.model,
+        messages,
+        stream: false,
+        options: {
+          temperature: requestBody.temperature,
+          num_predict: requestBody.max_tokens,
+        },
+      };
+
+      apiUrl = `${baseUrl}/api/chat`;
+      response = await fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(ollamaBody),
+      });
+
+      if (response.ok) {
+        const ollamaData = await response.json();
+        return {
+          text: ollamaData.message?.content || ollamaData.response || "",
+          model: ollamaData.model || model,
+          provider: "selfhosted",
+          usage: null,
+        };
+      }
+    }
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      throw new Error(
+        `Self-hosted API error: ${response.status} - ${errorData}`,
+      );
+    }
+
+    const data = await response.json();
+
+    if (!data.choices || data.choices.length === 0) {
+      throw new Error("No text generated in response");
+    }
+
+    const content = data.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error("Response missing content");
+    }
+
+    return {
+      text: content,
+      model: data.model || model,
+      provider: "selfhosted",
+      usage: data.usage || null,
+    };
+  }
+
+  /**
+   * Generate text using OpenRouter
+   * @param {string|Array} prompt - Text prompt or messages array
+   * @param {string} model - Model name
+   * @param {Object} config - Generation configuration
+   * @returns {Promise<Object>} Generated text data
+   */
+  async generateTextOpenRouter(prompt, model, config) {
+    let messages = [];
+    if (typeof prompt === "string") {
+      messages = [{ role: "user", content: prompt }];
+    } else if (Array.isArray(prompt)) {
+      messages = prompt;
+    } else {
+      throw new Error("Prompt must be a string or array of messages");
+    }
+
+    if (config.systemMessage) {
+      messages.unshift({ role: "system", content: config.systemMessage });
+    }
+
+    const requestBody = {
+      model: model || "meta-llama/llama-3.2-3b-instruct:free",
+      messages,
+      temperature: config.temperature || 0.7,
+      max_tokens: config.maxTokens || 1000,
+    };
+
+    // Add response_format for structured output if supported by model
+    // This helps enforce JSON format (OpenRouter supports this for compatible models)
+    if (config.responseFormat === "json_object" || config.forceJson) {
+      requestBody.response_format = { type: "json_object" };
+    }
+
+    const data = await this.makeApiRequest(
+      this.config.providers.openrouter.baseUrl,
+      {
+        method: "POST",
+        headers: this.createHeaders(
+          this.config.providers.openrouter.apiKey,
+          "openrouter",
+        ),
+        body: JSON.stringify(requestBody),
+      },
+    );
+
+    const content = data.choices?.[0]?.message?.content;
+    if (!content) {
+      throw new Error("No text generated in response");
+    }
+
+    return {
+      text: content,
+      model: data.model || model,
+      provider: "openrouter",
+      usage: data.usage || null,
+    };
+  }
+
+  /**
+   * Generate text using OpenAI
+   * @param {string|Array} prompt - Text prompt or messages array
+   * @param {string} model - Model name
+   * @param {Object} config - Generation configuration
+   * @returns {Promise<Object>} Generated text data
+   */
+  async generateTextOpenAI(prompt, model, config) {
+    let messages = [];
+    if (typeof prompt === "string") {
+      messages = [{ role: "user", content: prompt }];
+    } else if (Array.isArray(prompt)) {
+      messages = prompt;
+    } else {
+      throw new Error("Prompt must be a string or array of messages");
+    }
+
+    if (config.systemMessage) {
+      messages.unshift({ role: "system", content: config.systemMessage });
+    }
+
+    const response = await fetch(
+      `${this.config.providers.openai.baseUrl}/chat/completions`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.config.providers.openai.apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: model || "gpt-3.5-turbo",
+          messages,
+          temperature: config.temperature || 0.7,
+          max_tokens: config.maxTokens || 1000,
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        `OpenAI API error: ${response.status} - ${errorData.error?.message || response.statusText}`,
+      );
+    }
+
+    const data = await response.json();
+
+    const content = data.choices?.[0]?.message?.content;
+    if (!content) {
+      throw new Error("No text generated in response");
+    }
+
+    return {
+      text: content,
+      model: data.model || model,
+      provider: "openai",
+      usage: data.usage || null,
+    };
   }
 
   /**

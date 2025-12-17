@@ -8,6 +8,7 @@ export {
   avatarService,
   generateAvatar,
 } from "./avatarService.js";
+export { ChatService, chatService } from "./chatService.js";
 
 // Re-export commonly used functions
 export { generateAvatar as generateAIAvatar } from "./avatarService.js";

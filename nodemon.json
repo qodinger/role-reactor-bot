@@ -3,6 +3,7 @@
     "src/index.js",
     "src/config/",
     "src/utils/core/",
+    "src/utils/ai/",
     "src/events/",
     "src/features/",
     "src/commands/"

@@ -341,6 +341,7 @@ class Config {
   get externalLinks() {
     return {
       name: "Role Reactor Bot",
+      website: "https://rolereactor.app",
       guide: "https://rolereactor.app/docs",
       github: "https://github.com/qodinger/role-reactor-bot",
       support: "https://discord.gg/D8tYkU75Ry",
@@ -360,13 +361,16 @@ class Config {
       // Set enabled: true to use, enabled: false to disable
       providers: {
         selfhosted: {
-          enabled: false,
+          enabled: false, // Disabled - using OpenRouter GPT-4o-mini instead
           name: "Self-Hosted",
-          baseUrl: process.env.SELF_HOSTED_API_URL || "http://127.0.0.1:7860",
+          baseUrl: process.env.SELF_HOSTED_API_URL || "http://127.0.0.1:11434",
           apiKey: process.env.SELF_HOSTED_API_KEY || null,
           models: {
             image: {
               primary: "default",
+            },
+            text: {
+              primary: process.env.SELF_HOSTED_TEXT_MODEL || "llama3.2",
             },
           },
         },
@@ -385,13 +389,16 @@ class Config {
           },
         },
         openrouter: {
-          enabled: false, // Set to false to disable this provider
+          enabled: true, // Enabled - using GPT-4o-mini for text/chat
           name: "OpenRouter",
           baseUrl: "https://openrouter.ai/api/v1/chat/completions",
           apiKey: process.env.OPENROUTER_API_KEY,
           models: {
             image: {
               primary: "google/gemini-3-pro-image-preview",
+            },
+            text: {
+              primary: "openai/gpt-4o-mini", // GPT-4o-mini via OpenRouter
             },
           },
         },
@@ -403,6 +410,9 @@ class Config {
           models: {
             image: {
               primary: "dall-e-3",
+            },
+            text: {
+              primary: "gpt-3.5-turbo",
             },
           },
         },
