@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Would You Rather Command: New `/wyr` command with interactive voting system for engaging server discussions
+- WYR Interactive Voting: Users can vote on questions with real-time vote counts and percentages displayed
+- WYR Question Database: 100+ curated questions organized into 6 categories (Funny, Superhero, Life Choices, Philosophical, Challenging, Pop Culture)
+- WYR New Question Button: Get fresh questions without re-running the command
+- Rock Paper Scissors Command: New `/rps` command to play Rock Paper Scissors against the bot or challenge other users
+- RPS Multiplayer Challenges: Challenge other users to Rock Paper Scissors with interactive button responses
+- AI Assistant Command: New `/ask` command to ask questions to an AI assistant about the bot or server
+- AI Chat Mentions: Users can mention the bot in chat messages to interact with the AI assistant directly without using commands
+- AI Server Context: AI assistant has access to server information, member lists, and bot commands
+- AI Command Execution: AI can execute general bot commands on behalf of users
+- AI Conversation Memory: AI remembers conversation history for better context-aware responses
+- AI Response Optimization: Faster AI responses through conditional prompt building based on user queries
+
+### Changed
+
+- Userinfo Activity Display: Enhanced activity information display with better streaming activity support and ActivityType enum usage
+
+### Fixed
+
+- Serverinfo Member Counts: Fixed incorrect online member counts by properly separating human members from bots in status displays
+- Temp Roles Notifications: Improved error handling for DM notification failures to prevent breaking role assignment process
+
 ## [1.5.0] - 2025-12-15
 
 ### Added
