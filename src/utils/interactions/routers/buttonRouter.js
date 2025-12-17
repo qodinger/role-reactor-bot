@@ -82,6 +82,23 @@ export async function routeButtonInteraction(interaction, _client) {
       return;
     }
 
+    if (customId.startsWith("rps_choice-")) {
+      const { handleRPSButton } = await import(
+        "../../../commands/general/rps/handlers.js"
+      );
+      await handleRPSButton(interaction);
+      return;
+    }
+
+    // Handle WYR (Would You Rather) buttons
+    if (customId.startsWith("wyr_vote_") || customId === "wyr_new_question") {
+      const { handleWYRButton } = await import(
+        "../../../commands/general/wyr/handlers.js"
+      );
+      await handleWYRButton(interaction, _client);
+      return;
+    }
+
     if (customId.startsWith("leaderboard_")) {
       const { handleLeaderboardButton } = await import(
         "../handlers/leaderboardHandlers.js"
