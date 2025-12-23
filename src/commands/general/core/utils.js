@@ -77,6 +77,7 @@ export function getCorePricing() {
       "Instant delivery",
       "Secure crypto payments",
       "10 Cores per $1",
+      "1 Core = 10 AI requests (bundle pricing)",
     ],
   };
 }

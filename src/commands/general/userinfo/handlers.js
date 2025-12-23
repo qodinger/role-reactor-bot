@@ -42,7 +42,8 @@ export async function execute(interaction, _client) {
     let presence = null;
     if (member && _client && interaction.guild) {
       // Try guild's presence cache first (this is more reliable for activities)
-      const guildPresence = interaction.guild.presences.cache.get(
+      // Use optional chaining to safely access presences (may be null if Presence Intent is disabled)
+      const guildPresence = interaction.guild.presences?.cache?.get(
         targetUser.id,
       );
       if (guildPresence) {

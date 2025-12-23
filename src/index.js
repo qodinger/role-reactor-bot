@@ -103,7 +103,7 @@ function createClient() {
   // Optional privileged intents (only add if enabled in Developer Portal)
   // GuildPresences is required for user status/activity in /userinfo command
   // If not enabled, status will simply not be shown (graceful degradation)
-  // Enable this after enabling "Presence Intent" in Discord Developer Portal
+  // Uncomment the line below after enabling "Presence Intent" in Discord Developer Portal
   intents.push(GatewayIntentBits.GuildPresences);
 
   const client = new Client({
