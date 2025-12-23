@@ -71,22 +71,7 @@ jest.mock("src/commands/general/core/utils.js", () => ({
 
 // Mock rate limiter to prevent MongoDB connections
 jest.mock("src/utils/discord/rateLimiter.js", () => ({
-  isVoiceOperationRateLimited: jest.fn().mockResolvedValue(false),
-  getVoiceOperationRemainingTime: jest.fn().mockReturnValue(0),
   isRateLimited: jest.fn().mockResolvedValue(false),
-}));
-
-// Mock voice operation queue
-const mockQueueOperation = jest.fn().mockResolvedValue({
-  success: true,
-  muted: false,
-  disconnected: false,
-});
-const mockGetVoiceOperationQueue = jest.fn(() => ({
-  queueOperation: mockQueueOperation,
-}));
-jest.mock("src/utils/discord/voiceOperationQueue.js", () => ({
-  getVoiceOperationQueue: (...args) => mockGetVoiceOperationQueue(...args),
 }));
 
 // Import execute after mocks are set up
@@ -178,18 +163,6 @@ describe("Guild Member Update Event", () => {
     mockClient = {
       user: { tag: "TestBot#1234" },
     };
-
-    // Reset queue operation mock
-    mockQueueOperation.mockClear();
-    mockGetVoiceOperationQueue.mockClear();
-    mockQueueOperation.mockResolvedValue({
-      success: true,
-      muted: false,
-      disconnected: false,
-    });
-    mockGetVoiceOperationQueue.mockReturnValue({
-      queueOperation: mockQueueOperation,
-    });
   });
 
   describe("Role Change Detection", () => {
@@ -207,10 +180,7 @@ describe("Guild Member Update Event", () => {
 
       await execute(oldMember, newMember, mockClient);
 
-      expect(newMember.fetch).toHaveBeenCalled();
-      // Verify queue operation is called (simplified check)
-      // Simplified: just verify fetch is called when in voice channel
-      expect(newMember.fetch).toHaveBeenCalled();
+      // Event handler is now a no-op, so no operations should occur
     });
 
     it("should skip when roles have not changed", async () => {
@@ -230,7 +200,7 @@ describe("Guild Member Update Event", () => {
 
       await execute(oldMember, newMember, mockClient);
 
-      expect(mockQueueOperation).not.toHaveBeenCalled();
+      // Event handler is now a no-op, so no operations should occur
     });
 
     it("should skip when member is not in voice channel", async () => {
@@ -238,7 +208,7 @@ describe("Guild Member Update Event", () => {
 
       await execute(oldMember, newMember, mockClient);
 
-      expect(mockQueueOperation).not.toHaveBeenCalled();
+      // Event handler is now a no-op, so no operations should occur
     });
 
     it("should detect role changes even when role count is the same", async () => {
@@ -271,10 +241,7 @@ describe("Guild Member Update Event", () => {
 
       await execute(oldMember, newMember, mockClient);
 
-      expect(newMember.fetch).toHaveBeenCalled();
-      // Verify queue operation is called (simplified check)
-      // Simplified: just verify fetch is called when in voice channel
-      expect(newMember.fetch).toHaveBeenCalled();
+      // Event handler is now a no-op, so no operations should occur
     });
 
     it("should skip when member is not in a guild", async () => {
@@ -283,89 +250,15 @@ describe("Guild Member Update Event", () => {
 
       await execute(oldMember, newMember, mockClient);
 
-      expect(mockQueueOperation).not.toHaveBeenCalled();
-    });
-  });
-
-  describe("Voice Restriction Enforcement", () => {
-    it("should handle successful voice restriction enforcement", async () => {
-      // Ensure voice object exists and channel is set
-      if (!newMember.voice) {
-        newMember.voice = {};
-      }
-      newMember.voice.channel = mockVoiceChannel;
-
-      await execute(oldMember, newMember, mockClient);
-
-      // Simplified: just verify fetch is called when in voice channel
-      expect(newMember.fetch).toHaveBeenCalled();
-    });
-
-    it("should handle unmute result from voice restriction enforcement", async () => {
-      // Ensure voice object exists and channel is set
-      if (!newMember.voice) {
-        newMember.voice = {};
-      }
-      newMember.voice.channel = mockVoiceChannel;
-
-      await execute(oldMember, newMember, mockClient);
-
-      // Simplified: just verify fetch is called when in voice channel
-      expect(newMember.fetch).toHaveBeenCalled();
-    });
-
-    it("should handle errors from voice restriction enforcement gracefully", async () => {
-      // Ensure roles changed so the event handler processes
-      const role3 = { id: "role3", name: "Role3" };
-      const newRoleMap = new Map([
-        [role1.id, role1],
-        [role2.id, role2],
-        [role3.id, role3],
-      ]);
-      newRoleMap.map = function (callback) {
-        return Array.from(this.values()).map(callback);
-      };
-      newMember.roles.cache = newRoleMap;
-      // Ensure voice object exists and channel is set
-      if (!newMember.voice) {
-        newMember.voice = {};
-      }
-      newMember.voice.channel = mockVoiceChannel;
-
-      // Should not throw
-      await expect(
-        execute(oldMember, newMember, mockClient),
-      ).resolves.not.toThrow();
-
-      // Simplified: just verify fetch is called when in voice channel
-      expect(newMember.fetch).toHaveBeenCalled();
-    });
-
-    it("should handle member fetch errors gracefully", async () => {
-      // Ensure voice object exists and channel is set
-      if (!newMember.voice) {
-        newMember.voice = {};
-      }
-      newMember.voice.channel = mockVoiceChannel;
-      newMember.fetch.mockRejectedValue(new Error("Fetch failed"));
-
-      // Should not throw
-      await expect(
-        execute(oldMember, newMember, mockClient),
-      ).resolves.not.toThrow();
-
-      // Should still try to enforce restrictions
-      // Simplified: just verify fetch is called when in voice channel
-      expect(newMember.fetch).toHaveBeenCalled();
+      // Event handler is now a no-op, so no operations should occur
     });
   });
 
   describe("Error Handling", () => {
     it("should handle unexpected errors gracefully", async () => {
       newMember.voice.channel = mockVoiceChannel;
-      mockQueueOperation.mockRejectedValue(new Error("Unexpected error"));
 
-      // Should not throw
+      // Should not throw (event handler is now a no-op)
       await expect(
         execute(oldMember, newMember, mockClient),
       ).resolves.not.toThrow();
@@ -377,7 +270,7 @@ describe("Guild Member Update Event", () => {
 
       await execute(oldMember, newMember, mockClient);
 
-      expect(mockQueueOperation).not.toHaveBeenCalled();
+      // Event handler is now a no-op, so no operations should occur
     });
   });
 });

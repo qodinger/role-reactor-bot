@@ -71,8 +71,6 @@ jest.mock("src/commands/general/core/utils.js", () => ({
 
 // Mock rate limiter to prevent MongoDB connections
 jest.mock("src/utils/discord/rateLimiter.js", () => ({
-  isVoiceOperationRateLimited: jest.fn().mockResolvedValue(false),
-  getVoiceOperationRemainingTime: jest.fn().mockReturnValue(0),
   isRateLimited: jest.fn().mockResolvedValue(false),
 }));
 
@@ -89,40 +87,6 @@ jest.mock("src/features/experience/VoiceTracker.js", () => {
     getVoiceTracker: mockGetVoiceTracker,
   };
 });
-
-// Mock voice operation queue
-const mockQueueOperation = jest.fn().mockResolvedValue({
-  success: true,
-  muted: false,
-  disconnected: false,
-});
-jest.mock("src/utils/discord/voiceOperationQueue.js", () => ({
-  getVoiceOperationQueue: jest.fn(() => ({
-    queueOperation: mockQueueOperation,
-  })),
-}));
-
-// Mock voice restrictions utility (still needed for checkConnectRestriction, checkSpeakRestriction)
-const mockCheckConnectRestriction = jest.fn(() => ({
-  hasRestrictiveRole: false,
-  roleName: null,
-}));
-const mockCheckSpeakRestriction = jest.fn(() => ({
-  hasRestrictiveSpeakRole: false,
-  roleName: null,
-}));
-const mockEnforceVoiceRestrictions = jest.fn();
-jest.mock("src/utils/discord/voiceRestrictions.js", () => ({
-  checkConnectRestriction: jest.fn((...args) =>
-    mockCheckConnectRestriction(...args),
-  ),
-  checkSpeakRestriction: jest.fn((...args) =>
-    mockCheckSpeakRestriction(...args),
-  ),
-  enforceVoiceRestrictions: jest.fn((...args) =>
-    mockEnforceVoiceRestrictions(...args),
-  ),
-}));
 
 // Import execute after mocks are set up
 let execute;
@@ -206,31 +170,10 @@ describe("Voice State Update Event", () => {
       mute: false,
       selfMute: false,
     };
-
-    // Reset mocks
-    mockQueueOperation.mockClear();
-    mockQueueOperation.mockResolvedValue({
-      success: true,
-      muted: false,
-      disconnected: false,
-    });
-    mockCheckConnectRestriction.mockReturnValue({
-      hasRestrictiveRole: false,
-      roleName: null,
-    });
-    mockCheckSpeakRestriction.mockReturnValue({
-      hasRestrictiveSpeakRole: false,
-      roleName: null,
-    });
-    mockEnforceVoiceRestrictions.mockResolvedValue({
-      disconnected: false,
-      muted: false,
-      unmuted: false,
-    });
   });
 
   describe("Voice Channel Join", () => {
-    it("should enforce voice restrictions when user joins voice channel", async () => {
+    it("should track voice activity when user joins voice channel", async () => {
       // User joins voice channel
       oldState.channelId = null;
       newState.channelId = "voice123";
@@ -240,25 +183,15 @@ describe("Voice State Update Event", () => {
         channelId: "voice123",
       };
 
-      // Set up restrictive role for testing
-      mockCheckConnectRestriction.mockReturnValue({
-        hasRestrictiveRole: false,
-        roleName: null,
-      });
-      mockCheckSpeakRestriction.mockReturnValue({
-        hasRestrictiveSpeakRole: false,
-        roleName: null,
-      });
-
       await execute(oldState, newState, {
         voiceTracker: mockVoiceTracker,
       });
 
-      // Simplified: just verify function executes without errors
-      // Voice tracking is tested in integration tests
+      // Verify voice tracking is called
+      expect(mockVoiceTracker.startVoiceTracking).toHaveBeenCalled();
     });
 
-    it("should enforce voice restrictions when user switches voice channels", async () => {
+    it("should track voice activity when user switches voice channels", async () => {
       // User switches from one channel to another
       oldState.channelId = "voice123";
       oldState.channel = { id: "voice123", name: "Old Channel" };
@@ -266,22 +199,13 @@ describe("Voice State Update Event", () => {
       newState.channel = { id: "voice456", name: "New Channel" };
       mockMember.voice.channel = newState.channel;
 
-      // Set up restrictive role for testing
-      mockCheckConnectRestriction.mockReturnValue({
-        hasRestrictiveRole: false,
-        roleName: null,
-      });
-      mockCheckSpeakRestriction.mockReturnValue({
-        hasRestrictiveSpeakRole: false,
-        roleName: null,
-      });
-
       await execute(oldState, newState, {
         voiceTracker: mockVoiceTracker,
       });
 
-      // Simplified: just verify function executes without errors
-      // Voice tracking is tested in integration tests
+      // Verify voice tracking is updated
+      expect(mockVoiceTracker.stopVoiceTracking).toHaveBeenCalled();
+      expect(mockVoiceTracker.startVoiceTracking).toHaveBeenCalled();
     });
 
     it("should skip when member is not in a guild", async () => {
@@ -293,8 +217,8 @@ describe("Voice State Update Event", () => {
         voiceTracker: mockVoiceTracker,
       });
 
-      expect(mockQueueOperation).not.toHaveBeenCalled();
-      expect(mockEnforceVoiceRestrictions).not.toHaveBeenCalled();
+      // Should not track when not in guild
+      expect(mockVoiceTracker.startVoiceTracking).not.toHaveBeenCalled();
     });
 
     it("should skip when member is null", async () => {
@@ -306,184 +230,8 @@ describe("Voice State Update Event", () => {
         voiceTracker: mockVoiceTracker,
       });
 
-      expect(mockQueueOperation).not.toHaveBeenCalled();
-      expect(mockEnforceVoiceRestrictions).not.toHaveBeenCalled();
-    });
-  });
-
-  describe("Voice Restriction Enforcement", () => {
-    it("should disconnect user when Connect restriction exists", async () => {
-      oldState.channelId = null;
-      newState.channelId = "voice123";
-      newState.channel = mockVoiceChannel;
-      mockMember.voice.channel = mockVoiceChannel;
-
-      // Set up Connect restriction
-      mockCheckConnectRestriction.mockReturnValue({
-        hasRestrictiveRole: true,
-        roleName: "RestrictiveRole",
-      });
-      mockCheckSpeakRestriction.mockReturnValue({
-        hasRestrictiveSpeakRole: false,
-        roleName: null,
-      });
-      mockEnforceVoiceRestrictions.mockResolvedValue({
-        disconnected: true,
-        muted: false,
-        unmuted: false,
-      });
-
-      await execute(oldState, newState, {
-        voiceTracker: mockVoiceTracker,
-      });
-
-      // Simplified: just verify function executes without errors
-      // Enforcement is tested in integration tests
-    });
-
-    it("should mute user when Speak restriction exists", async () => {
-      oldState.channelId = null;
-      newState.channelId = "voice123";
-      newState.channel = mockVoiceChannel;
-      mockMember.voice.channel = mockVoiceChannel;
-
-      // Set up Speak restriction
-      mockCheckConnectRestriction.mockReturnValue({
-        hasRestrictiveRole: false,
-        roleName: null,
-      });
-      mockCheckSpeakRestriction.mockReturnValue({
-        hasRestrictiveSpeakRole: true,
-        roleName: "RestrictiveRole",
-      });
-      mockEnforceVoiceRestrictions.mockResolvedValue({
-        disconnected: false,
-        muted: true,
-        unmuted: false,
-      });
-
-      await execute(oldState, newState, {
-        voiceTracker: mockVoiceTracker,
-      });
-
-      // Simplified: just verify function executes without errors
-      // Enforcement is tested in integration tests
-    });
-
-    it("should handle errors from voice restriction enforcement gracefully", async () => {
-      oldState.channelId = null;
-      newState.channelId = "voice123";
-      newState.channel = mockVoiceChannel;
-      mockMember.voice.channel = mockVoiceChannel;
-
-      mockEnforceVoiceRestrictions.mockResolvedValue({
-        disconnected: false,
-        muted: false,
-        unmuted: false,
-        error: "Missing permissions",
-      });
-
-      // Set up restrictive role
-      mockCheckConnectRestriction.mockReturnValue({
-        hasRestrictiveRole: true,
-        roleName: "RestrictiveRole",
-      });
-      mockCheckSpeakRestriction.mockReturnValue({
-        hasRestrictiveSpeakRole: false,
-        roleName: null,
-      });
-
-      // Should not throw
-      await expect(
-        execute(oldState, newState, {
-          voiceTracker: mockVoiceTracker,
-        }),
-      ).resolves.not.toThrow();
-
-      // Simplified: just verify function executes without errors
-      // Enforcement is tested in integration tests
-    });
-  });
-
-  describe("Unmute Logic", () => {
-    it("should check for unmute when user is muted but not self-muted", async () => {
-      // User is in voice and muted (not self-muted)
-      oldState.channelId = "voice123";
-      oldState.channel = mockVoiceChannel;
-      oldState.mute = true;
-      oldState.selfMute = false;
-
-      newState.channelId = "voice123";
-      newState.channel = mockVoiceChannel;
-      newState.mute = true;
-      newState.selfMute = false;
-
-      mockMember.voice.channel = mockVoiceChannel;
-      mockMember.voice.mute = true;
-      mockMember.voice.selfMute = false;
-
-      // No restrictive Speak role - should unmute
-      mockCheckConnectRestriction.mockReturnValue({
-        hasRestrictiveRole: false,
-        roleName: null,
-      });
-      mockCheckSpeakRestriction.mockReturnValue({
-        hasRestrictiveSpeakRole: false,
-        roleName: null,
-      });
-
-      await execute(oldState, newState, {
-        voiceTracker: mockVoiceTracker,
-      });
-
-      // Simplified: just verify function executes without errors
-      // Queue operations are tested in integration tests
-    });
-
-    it("should skip unmute check when user is self-muted", async () => {
-      // User is self-muted - should not check unmute (implementation skips when selfMute is true)
-      oldState.channelId = "voice123";
-      oldState.channel = mockVoiceChannel;
-      oldState.mute = false;
-      oldState.selfMute = true;
-
-      newState.channelId = "voice123";
-      newState.channel = mockVoiceChannel;
-      newState.mute = false;
-      newState.selfMute = true;
-
-      mockMember.voice.channel = mockVoiceChannel;
-
-      await execute(oldState, newState, {
-        voiceTracker: mockVoiceTracker,
-      });
-
-      // Should not check restrictions when user is self-muted (implementation condition: mute && !selfMute)
-      expect(mockQueueOperation).not.toHaveBeenCalled();
-      expect(mockEnforceVoiceRestrictions).not.toHaveBeenCalled();
-    });
-
-    it("should skip unmute check when user is not muted", async () => {
-      // User is not muted - should not check unmute (implementation only checks when mute is true)
-      oldState.channelId = "voice123";
-      oldState.channel = mockVoiceChannel;
-      oldState.mute = false;
-      oldState.selfMute = false;
-
-      newState.channelId = "voice123";
-      newState.channel = mockVoiceChannel;
-      newState.mute = false;
-      newState.selfMute = false;
-
-      mockMember.voice.channel = mockVoiceChannel;
-
-      await execute(oldState, newState, {
-        voiceTracker: mockVoiceTracker,
-      });
-
-      // Should not check restrictions when user is not muted (implementation condition: mute && !selfMute)
-      expect(mockQueueOperation).not.toHaveBeenCalled();
-      expect(mockEnforceVoiceRestrictions).not.toHaveBeenCalled();
+      // Should not track when member is null
+      expect(mockVoiceTracker.startVoiceTracking).not.toHaveBeenCalled();
     });
   });
 
@@ -500,22 +248,12 @@ describe("Voice State Update Event", () => {
       mockMember.voice.mute = false;
       mockMember.voice.selfMute = false;
 
-      // Ensure no restrictive roles so the function doesn't queue operations
-      mockCheckConnectRestriction.mockReturnValue({
-        hasRestrictiveRole: false,
-        roleName: null,
-      });
-      mockCheckSpeakRestriction.mockReturnValue({
-        hasRestrictiveSpeakRole: false,
-        roleName: null,
-      });
-
       await execute(oldState, newState, {
         voiceTracker: mockVoiceTracker,
       });
 
-      // Simplified: just verify function executes without errors
-      // Voice tracking is tested in integration tests
+      // Verify voice tracking is called
+      expect(mockVoiceTracker.startVoiceTracking).toHaveBeenCalled();
     });
 
     it("should stop tracking when user leaves voice channel", async () => {
@@ -545,22 +283,13 @@ describe("Voice State Update Event", () => {
       mockMember.voice.mute = false;
       mockMember.voice.selfMute = false;
 
-      // Ensure no restrictive roles so the function doesn't queue operations
-      mockCheckConnectRestriction.mockReturnValue({
-        hasRestrictiveRole: false,
-        roleName: null,
-      });
-      mockCheckSpeakRestriction.mockReturnValue({
-        hasRestrictiveSpeakRole: false,
-        roleName: null,
-      });
-
       await execute(oldState, newState, {
         voiceTracker: mockVoiceTracker,
       });
 
-      // Simplified: just verify function executes without errors
-      // Voice tracking is tested in integration tests
+      // Verify voice tracking is updated
+      expect(mockVoiceTracker.stopVoiceTracking).toHaveBeenCalled();
+      expect(mockVoiceTracker.startVoiceTracking).toHaveBeenCalled();
     });
   });
 
@@ -570,10 +299,6 @@ describe("Voice State Update Event", () => {
       newState.channelId = "voice123";
       newState.channel = mockVoiceChannel;
       mockMember.voice.channel = mockVoiceChannel;
-
-      mockEnforceVoiceRestrictions.mockRejectedValue(
-        new Error("Unexpected error"),
-      );
 
       // Should not throw
       await expect(execute(oldState, newState)).resolves.not.toThrow();
