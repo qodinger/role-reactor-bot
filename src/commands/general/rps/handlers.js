@@ -12,8 +12,11 @@ import { createChallengeButtons } from "./components.js";
 
 const logger = getLogger();
 
+// Challenge expiration time: 10 minutes (reasonable time for users to respond)
+const CHALLENGE_EXPIRATION_MS = 10 * 60 * 1000; // 10 minutes in milliseconds
+
 // In-memory challenge storage (challengeId -> challenge data)
-// Challenges expire after 5 minutes and are cleaned up lazily (when accessed)
+// Challenges expire after 10 minutes and are cleaned up lazily (when accessed)
 const challenges = new Map();
 
 /**
@@ -22,10 +25,9 @@ const challenges = new Map();
  */
 function cleanupExpiredChallenges() {
   const now = Date.now();
-  const fiveMinutes = 5 * 60 * 1000;
 
   for (const [challengeId, challenge] of challenges.entries()) {
-    if (now - challenge.createdAt > fiveMinutes) {
+    if (now - challenge.createdAt > CHALLENGE_EXPIRATION_MS) {
       challenges.delete(challengeId);
       logger.debug(`Cleaned up expired challenge: ${challengeId}`);
     }
@@ -36,104 +38,113 @@ export async function execute(interaction, _client) {
   try {
     await interaction.deferReply({ ephemeral: false });
 
-    const subcommand = interaction.options.getSubcommand();
+    const challengedUser = interaction.options.getUser("user");
+    const challengerChoice = interaction.options.getString("choice");
 
-    if (subcommand === "play") {
-      // Play against bot
-      const playerChoice = interaction.options.getString("choice");
-      const botChoice = getBotChoice();
-      const embed = createRPSEmbed(playerChoice, botChoice, interaction.user);
-
-      await interaction.editReply({ embeds: [embed] });
-    } else if (subcommand === "challenge") {
-      // Challenge another user
-      const challengedUser = interaction.options.getUser("user");
-      const challengerChoice = interaction.options.getString("choice");
-
-      // Validation
-      if (challengedUser.id === interaction.user.id) {
-        await interaction.editReply({
-          embeds: [
-            createErrorEmbed().setDescription("You cannot challenge yourself!"),
-          ],
-        });
-        return;
-      }
-
-      if (challengedUser.bot) {
-        await interaction.editReply({
-          embeds: [
-            createErrorEmbed().setDescription(
-              "You cannot challenge bots! Use `/rps play` to play against the bot.",
-            ),
-          ],
-        });
-        return;
-      }
-
-      // Get members for display names (server nicknames)
-      const challengerMember =
-        interaction.guild?.members.cache.get(interaction.user.id) || null;
-      const challengedMember =
-        interaction.guild?.members.cache.get(challengedUser.id) || null;
-
-      const challengerName =
-        challengerMember?.displayName || interaction.user.username;
-      const challengedName =
-        challengedMember?.displayName || challengedUser.username;
-
-      // Clean up expired challenges (lazy cleanup)
-      cleanupExpiredChallenges();
-
-      // Create challenge
-      const challengeId = generateChallengeId();
-
-      // Create user objects with toString() method for mentions
-      // Store original user objects to avoid infinite recursion
-      const originalChallenger = interaction.user;
-      const originalChallenged = challengedUser;
-
-      const challengerObj = {
-        ...interaction.user,
-        displayName: challengerName,
-        toString: () => originalChallenger.toString(),
-      };
-      const challengedObj = {
-        ...challengedUser,
-        displayName: challengedName,
-        toString: () => originalChallenged.toString(),
-      };
-
-      const createdAt = Date.now();
-      const embed = createChallengeEmbed(
-        challengerObj,
-        challengedObj,
-        challengeId,
-        createdAt,
-      );
-      const buttons = createChallengeButtons(challengeId);
-
-      const reply = await interaction.editReply({
-        embeds: [embed],
-        components: [buttons],
+    // Validate required options
+    if (!challengedUser) {
+      const errorMsg =
+        "Missing required option: `user`. The `/rps` command requires a `user` option to specify who you want to challenge. Example: `/rps user:@username choice:rock`";
+      await interaction.editReply({
+        embeds: [createErrorEmbed().setDescription(`❌ ${errorMsg}`)],
       });
-
-      // Store challenge with message ID for expiration handling
-      challenges.set(challengeId, {
-        challengerId: interaction.user.id,
-        challengerName,
-        challengerChoice,
-        challengedId: challengedUser.id,
-        challengedName,
-        createdAt,
-        messageId: reply.id,
-        channelId: interaction.channel.id,
-      });
-
-      logger.info(
-        `RPS challenge created: ${challengerName} vs ${challengedName} (${challengeId})`,
-      );
+      throw new Error(errorMsg);
     }
+
+    if (!challengerChoice) {
+      const errorMsg =
+        "Missing required option: `choice`. The `/rps` command requires a `choice` option (rock, paper, or scissors). Example: `/rps user:@username choice:rock`";
+      await interaction.editReply({
+        embeds: [createErrorEmbed().setDescription(`❌ ${errorMsg}`)],
+      });
+      throw new Error(errorMsg);
+    }
+
+    // Validation
+    if (challengedUser.id === interaction.user.id) {
+      await interaction.editReply({
+        embeds: [
+          createErrorEmbed().setDescription("You cannot challenge yourself!"),
+        ],
+      });
+      return;
+    }
+
+    // Handle bot challenges - immediately show result (no buttons needed)
+    if (challengedUser.bot) {
+      const botChoice = getBotChoice();
+      const embed = createRPSEmbed(
+        challengerChoice,
+        botChoice,
+        interaction.user,
+      );
+      await interaction.editReply({ embeds: [embed] });
+      return;
+    }
+
+    // Challenge another user (human)
+    // Get members for display names (server nicknames)
+    const challengerMember =
+      interaction.guild?.members.cache.get(interaction.user.id) || null;
+    const challengedMember =
+      interaction.guild?.members.cache.get(challengedUser.id) || null;
+
+    const challengerName =
+      challengerMember?.displayName || interaction.user.username;
+    const challengedName =
+      challengedMember?.displayName || challengedUser.username;
+
+    // Clean up expired challenges (lazy cleanup)
+    cleanupExpiredChallenges();
+
+    // Create challenge
+    const challengeId = generateChallengeId();
+
+    // Create user objects with toString() method for mentions
+    // Store original user objects to avoid infinite recursion
+    const originalChallenger = interaction.user;
+    const originalChallenged = challengedUser;
+
+    const challengerObj = {
+      ...interaction.user,
+      displayName: challengerName,
+      toString: () => originalChallenger.toString(),
+    };
+    const challengedObj = {
+      ...challengedUser,
+      displayName: challengedName,
+      toString: () => originalChallenged.toString(),
+    };
+
+    const createdAt = Date.now();
+    const embed = createChallengeEmbed(
+      challengerObj,
+      challengedObj,
+      challengeId,
+      createdAt,
+    );
+    const buttons = createChallengeButtons(challengeId);
+
+    const reply = await interaction.editReply({
+      embeds: [embed],
+      components: [buttons],
+    });
+
+    // Store challenge with message ID for expiration handling
+    challenges.set(challengeId, {
+      challengerId: interaction.user.id,
+      challengerName,
+      challengerChoice,
+      challengedId: challengedUser.id,
+      challengedName,
+      createdAt,
+      messageId: reply.id,
+      channelId: interaction.channel.id,
+    });
+
+    logger.info(
+      `RPS challenge created: ${challengerName} vs ${challengedName} (${challengeId})`,
+    );
   } catch (error) {
     logger.error("Error in rps command:", error);
     await interaction.editReply({ embeds: [createErrorEmbed()] });
@@ -191,10 +202,9 @@ export async function handleRPSButton(interaction) {
       return;
     }
 
-    // Check if challenge has expired (5 minutes)
+    // Check if challenge has expired
     const now = Date.now();
-    const fiveMinutes = 5 * 60 * 1000;
-    if (now - challenge.createdAt > fiveMinutes) {
+    if (now - challenge.createdAt > CHALLENGE_EXPIRATION_MS) {
       // Update the original message to show expiration
       if (challenge.messageId && challenge.channelId) {
         try {
@@ -353,17 +363,25 @@ export async function handleRPSButton(interaction) {
         components: [], // Remove buttons
       });
     } catch (error) {
-      // Fallback: edit the message directly if update fails
-      logger.debug(
-        "Failed to update interaction, editing message directly:",
-        error,
-      );
+      // Fallback: defer first, then edit the message directly if update fails
+      logger.debug("Failed to update interaction, trying fallback:", error);
       try {
+        // Defer the interaction first (must be done within 3 seconds)
+        // This acknowledges the interaction to Discord
+        await interaction.deferUpdate();
+      } catch (deferError) {
+        // If defer fails (e.g., interaction expired), log but continue
+        logger.debug(
+          "Failed to defer interaction (may be expired):",
+          deferError,
+        );
+      }
+      try {
+        // Then edit the message (this works even if defer failed, as long as we have the message)
         await interaction.message.edit({
           embeds: [resultEmbed],
           components: [], // Remove buttons
         });
-        await interaction.deferUpdate();
       } catch (editError) {
         logger.error("Failed to edit message after button click:", editError);
       }

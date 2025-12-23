@@ -3,31 +3,11 @@ import { execute } from "./handlers.js";
 
 export const data = new SlashCommandBuilder()
   .setName("rps")
-  .setDescription("Play Rock Paper Scissors")
-  .addSubcommand(subcommand =>
-    subcommand
-      .setName("play")
-      .setDescription("Play against the bot")
-      .addStringOption(option =>
-        option
-          .setName("choice")
-          .setDescription("Your choice")
-          .setRequired(true)
-          .addChoices(
-            { name: "Rock", value: "rock" },
-            { name: "Paper", value: "paper" },
-            { name: "Scissors", value: "scissors" },
-          ),
-      ),
-  )
-  .addSubcommand(subcommand =>
-    subcommand
-      .setName("challenge")
-      .setDescription("Challenge another user to Rock Paper Scissors")
+  .setDescription("Challenge someone to Rock Paper Scissors")
       .addUserOption(option =>
         option
           .setName("user")
-          .setDescription("User to challenge")
+      .setDescription("User to challenge (can be a bot or another user)")
           .setRequired(true),
       )
       .addStringOption(option =>
@@ -39,7 +19,6 @@ export const data = new SlashCommandBuilder()
             { name: "Rock", value: "rock" },
             { name: "Paper", value: "paper" },
             { name: "Scissors", value: "scissors" },
-          ),
       ),
   );
 

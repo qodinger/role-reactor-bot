@@ -11,10 +11,10 @@ import {
  * Create Rock Paper Scissors game embed (vs bot)
  * @param {string} playerChoice - Player's choice
  * @param {string} botChoice - Bot's choice
- * @param {import('discord.js').User} user - User who played
+ * @param {import('discord.js').User} _user - User who played (unused, kept for API compatibility)
  * @returns {EmbedBuilder}
  */
-export function createRPSEmbed(playerChoice, botChoice, user) {
+export function createRPSEmbed(playerChoice, botChoice, _user) {
   const winner = determineWinner(playerChoice, botChoice, false);
   const resultMessage = getResultMessage(winner);
 
@@ -26,26 +26,15 @@ export function createRPSEmbed(playerChoice, botChoice, user) {
     embedColor = THEME.ERROR; // Red for loss
   }
 
+  // Build cleaner description with all info in one place
+  let description = `**${resultMessage}**\n\n`;
+  description += `${CHOICE_EMOJIS[playerChoice]} **You**: ${CHOICE_NAMES[playerChoice]}\n`;
+  description += `${CHOICE_EMOJIS[botChoice]} **Bot**: ${CHOICE_NAMES[botChoice]}`;
+
   return new EmbedBuilder()
     .setColor(embedColor)
     .setTitle("Rock Paper Scissors")
-    .setDescription(`**${resultMessage}**`)
-    .addFields(
-      {
-        name: `${CHOICE_EMOJIS[playerChoice]} Your Choice`,
-        value: `**${CHOICE_NAMES[playerChoice]}**`,
-        inline: true,
-      },
-      {
-        name: `${CHOICE_EMOJIS[botChoice]} Bot's Choice`,
-        value: `**${CHOICE_NAMES[botChoice]}**`,
-        inline: true,
-      },
-    )
-    .setFooter({
-      text: `Played by ${user.username} • Role Reactor`,
-      iconURL: user.displayAvatarURL(),
-    })
+    .setDescription(description)
     .setTimestamp();
 }
 
@@ -68,8 +57,8 @@ export function createChallengeEmbed(
   const challengedMention = challenged.toString();
   const challengedName = challenged.displayName || challenged.username;
 
-  // Calculate expiration time (5 minutes from creation)
-  const expirationTime = createdAt + 5 * 60 * 1000;
+  // Calculate expiration time (10 minutes from creation)
+  const expirationTime = createdAt + 10 * 60 * 1000; // 10 minutes
   const expirationTimestamp = Math.floor(expirationTime / 1000);
 
   return new EmbedBuilder()
@@ -124,27 +113,16 @@ export function createMultiplayerResultEmbed(
     embedColor = THEME.SUCCESS; // Green (both players can win)
   }
 
+  // Build cleaner description with all info in one place
+  let description = `**${resultMessage}**\n\n`;
+  description += `${player1Mention} vs ${player2Mention}\n\n`;
+  description += `${CHOICE_EMOJIS[player1Choice]} **${player1Name}**: ${CHOICE_NAMES[player1Choice]}\n`;
+  description += `${CHOICE_EMOJIS[player2Choice]} **${player2Name}**: ${CHOICE_NAMES[player2Choice]}`;
+
   return new EmbedBuilder()
     .setColor(embedColor)
     .setTitle("Rock Paper Scissors - Result")
-    .setDescription(
-      `**${resultMessage}**\n\n${player1Mention} vs ${player2Mention}`,
-    )
-    .addFields(
-      {
-        name: `${CHOICE_EMOJIS[player1Choice]} ${player1Name}`,
-        value: `**${CHOICE_NAMES[player1Choice]}**`,
-        inline: true,
-      },
-      {
-        name: `${CHOICE_EMOJIS[player2Choice]} ${player2Name}`,
-        value: `**${CHOICE_NAMES[player2Choice]}**`,
-        inline: true,
-      },
-    )
-    .setFooter({
-      text: `Role Reactor`,
-    })
+    .setDescription(description)
     .setTimestamp();
 }
 
@@ -158,7 +136,7 @@ export function createExpiredChallengeEmbed(challenge) {
     .setColor(THEME.ERROR)
     .setTitle("Rock Paper Scissors Challenge - Expired")
     .setDescription(
-      `**${challenge.challengerName}** challenged **${challenge.challengedName}** to Rock Paper Scissors, but the challenge expired after 5 minutes.\n\n` +
+      `**${challenge.challengerName}** challenged **${challenge.challengedName}** to Rock Paper Scissors, but the challenge expired after 10 minutes.\n\n` +
         `*This challenge is no longer active. Please create a new challenge to play.*`,
     )
     .setFooter({

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `/rps` command allows users to play Rock Paper Scissors against the bot with a simple, interactive command.
+The `/rps` command allows users to challenge anyone (including the bot) to Rock Paper Scissors. Challenge the bot for instant results, or challenge other users for interactive multiplayer games.
 
 ## File Structure
 
@@ -19,28 +19,30 @@ rps/
 
 Following the modular pattern established by other general commands:
 
-- **`index.js`**: Command definition with choice options
+- **`index.js`**: Command definition with user and choice options (no subcommands)
 - **`handlers.js`**: Core command logic and game execution
 - **`embeds.js`**: Discord embed creation with result display
 - **`utils.js`**: Game logic, winner determination, and utilities
 
 ## Usage Examples
 
-### Play Against Bot
-
-```
-/rps play choice:Rock
-/rps play choice:Paper
-/rps play choice:Scissors
-```
-
 ### Challenge Another User
 
 ```
-/rps challenge user:@username choice:Rock
-/rps challenge user:@username choice:Paper
-/rps challenge user:@username choice:Scissors
+/rps user:@username choice:Rock
+/rps user:@username choice:Paper
+/rps user:@username choice:Scissors
 ```
+
+### Play Against Bot
+
+```
+/rps user:@RoleReactorBot choice:Rock
+/rps user:@RoleReactorBot choice:Paper
+/rps user:@RoleReactorBot choice:Scissors
+```
+
+**Note:** To play against the bot, simply challenge the bot itself. The result will be shown immediately (no buttons needed).
 
 When you challenge another user:
 
@@ -56,13 +58,14 @@ When you challenge another user:
 
 ## Key Features
 
-- **Play Against Bot**: Quick games with instant results
-- **Challenge Friends**: Challenge other users to multiplayer games
-- **Interactive Buttons**: Challenged users respond with button clicks
+- **Unified Challenge System**: One command for all games - challenge users or bots
+- **Play Against Bot**: Challenge the bot for instant results (no buttons needed)
+- **Challenge Friends**: Challenge other users to multiplayer games with interactive buttons
+- **Interactive Buttons**: Challenged users respond with button clicks (for human players)
 - **Instant Results**: Immediate winner determination
 - **Visual Feedback**: Color-coded embeds (green for win, red for loss, blue for tie)
 - **Emoji Display**: Visual representation of choices
-- **Challenge Expiration**: Challenges expire after 5 minutes
+- **Challenge Expiration**: Challenges expire after 10 minutes (reasonable time for users to respond)
 - **No Setup Required**: Works immediately in any server
 
 ## Game Rules
