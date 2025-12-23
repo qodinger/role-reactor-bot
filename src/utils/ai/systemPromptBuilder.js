@@ -3,6 +3,7 @@ import { getLogger } from "../logger.js";
 import { responseValidator } from "./responseValidator.js";
 import { commandDiscoverer } from "./commandDiscoverer.js";
 import { serverInfoGatherer } from "./serverInfoGatherer.js";
+import { commandSuggester } from "./commandSuggester.js";
 import {
   SYSTEM_MESSAGE_CACHE_TIMEOUT,
   MAX_SYSTEM_CACHE_SIZE,
@@ -85,67 +86,84 @@ export class SystemPromptBuilder {
    * Build response format section of system prompt
    * @param {import('discord.js').Guild} guild - Discord guild
    * @param {import('discord.js').Client} client - Discord client
-   * @param {Function} getBotCommands - Function to get bot commands
-   * @param {Function} discoverDataFetchingCommands - Function to discover data fetching commands
-   * @param {Function} discoverDiscordActions - Function to discover Discord actions
    * @param {Function} generateCommandExample - Function to generate command example
-   * @param {Function} generateActionExample - Function to generate action example
    * @returns {Promise<string>} Response format section
    */
-  async buildResponseFormatSection(
-    guild,
-    client,
-    getBotCommands,
-    discoverDataFetchingCommands,
-    discoverDiscordActions,
-    generateCommandExample,
-    generateActionExample,
-  ) {
-    const actionsList = await this.buildDynamicActionsList(
-      guild,
-      client,
-      getBotCommands,
-      discoverDataFetchingCommands,
-      discoverDiscordActions,
-    );
+  async buildResponseFormatSection(guild, client, generateCommandExample) {
+    const actionsList = await this.buildDynamicActionsList(guild, client);
     const examples = await this.buildResponseFormatExamples(
       guild,
       client,
       generateCommandExample,
-      generateActionExample,
     );
 
     return dedent`
-      ## Response Format - CRITICAL REQUIREMENT
+      ## Response Format
 
-      **🚨 YOU MUST ALWAYS RESPOND IN VALID JSON FORMAT - NO EXCEPTIONS! 🚨**
+      **IMPORTANT: Use the correct format based on whether you need to execute actions:**
 
-      **Your response MUST be a valid JSON object with this EXACT structure:**
+      ### When you need to execute actions (commands, role changes, etc.):
+      **You MUST respond in JSON format:**
       {
-        "message": "Your response text here",
-        "actions": []
+        "message": "Your response text here (can be empty if command provides its own response)",
+        "actions": [{"type": "execute_command", "command": "...", "options": {...}}]
       }
 
-      **CRITICAL RULES - FOLLOW THESE EXACTLY:**
-      1. **ALWAYS** start your response with { and end with }
-      2. **NEVER** send plain text - it will cause errors
-      3. **NEVER** use markdown code blocks (no \`\`\`json)
-      4. **ALWAYS** include both "message" and "actions" fields
-      5. **ALWAYS** use double quotes for strings
-      6. Use ACTUAL data from Server Information above - never use placeholders
-      7. The "message" field is what the user will see
-      8. The "actions" array is for requesting data or executing commands (empty array [] if not needed)
+      ### When you DON'T need to execute any actions:
+      **Respond in plain text/markdown format (NO JSON):**
+      Just write your response directly. You can use Discord markdown formatting:
+      - **Bold text** with \`**text**\`
+      - *Italic text* with \`*text*\`
+      - \`Code\` with backticks
+      - Lists, links, etc.
 
-      **⚠️ REMEMBER: If you respond with plain text instead of JSON, the bot will fail!**
+      **CRITICAL DECISION RULES:**
+      
+      1. **Do I need to execute any actions?** (commands, role changes, data fetching, etc.)
+         - ✅ YES → Use JSON format
+         - ❌ NO → Use plain text/markdown
+      
+      2. **Format Selection:**
+         - **Actions exist** → JSON: \`{"message": "...", "actions": [...]}\`
+         - **No actions** → Plain text: Just write your response directly
+      
+      3. **NEVER use JSON when actions array would be empty** - if you have no actions, use plain text!
+      
+      **Additional Rules:**
+      - Use double quotes for JSON strings (only when using JSON format)
+      - Use actual data from Server Information - never placeholders
+      - **CRITICAL:** When using "execute_command", you MUST provide ALL required options - commands will fail if options are missing
+      - **REMEMBER:** If you're just answering a question without executing anything, use plain text!
 
-      **EXAMPLE OF CORRECT FORMAT:**
+      **EXAMPLES:**
+
+      **Example 1: Simple response (NO actions) - Use plain text:**
+      Hello! How can I help you today? I'm here to assist with server management, role reactions, and more!
+
+      **Example 2: Response with actions - Use JSON:**
       {
-        "message": "Hello! How can I help you?",
-        "actions": []
+        "message": "I'll show you the server info!",
+        "actions": [{"type": "execute_command", "command": "serverinfo", "options": {}}]
       }
 
-      **EXAMPLE OF INCORRECT FORMAT (DO NOT DO THIS):**
-      Hello! How can I help you?
+      **Example 3: Command execution only (NO message) - Use JSON:**
+      {
+        "message": "",
+        "actions": [{"type": "execute_command", "command": "rps", "options": {"user": "<@123456789>", "choice": "rock"}}]
+      }
+
+      **Example 4: INCORRECT - Don't use JSON when you have no actions:**
+      {
+        "message": "Hello!",
+        "actions": []
+      }
+      ❌ This is WRONG! Empty actions array means NO actions - use plain text!
+      ✅ CORRECT: Just say "Hello!" directly (no JSON, no curly braces)
+
+      **Example 5: INCORRECT - Don't use plain text when you have actions:**
+      I'll execute the serverinfo command for you.
+      ❌ WRONG! You have actions to execute - use JSON format!
+      ✅ CORRECT: Use JSON with actions array
 
       **Available Actions - You can perform ANY action the bot can do!**
 
@@ -165,30 +183,8 @@ export class SystemPromptBuilder {
    * @returns {Promise<string>} Formatted actions list
    * @private
    */
-  async buildDynamicActionsList(
-    guild,
-    client,
-    getBotCommands,
-    discoverDataFetchingCommands,
-    discoverDiscordActions,
-  ) {
-    let actionsList = `**Data Fetching Actions:**\n`;
-    actionsList += `- "fetch_members" - Get all members\n`;
-    actionsList += `- "fetch_channels" - Get all channels\n`;
-    actionsList += `- "fetch_roles" - Get all roles\n`;
-    actionsList += `- "get_member_info" - Get member details (options: "user_id" or "username")\n`;
-    actionsList += `- "get_role_info" - Get role details (options: "role_name" or "role_id")\n`;
-    actionsList += `- "get_channel_info" - Get channel details (options: "channel_name" or "channel_id")\n`;
-    actionsList += `- "search_members_by_role" - Find members with role (options: "role_name" or "role_id")\n`;
-
-    // Dynamically discover and add data fetching actions for commands that need IDs
-    const botCommands = getBotCommands(client);
-    const dataFetchingCommands = discoverDataFetchingCommands(botCommands);
-    for (const { actionName, description } of dataFetchingCommands) {
-      actionsList += `- "${actionName}" - ${description}\n`;
-    }
-
-    actionsList += `\n`;
+  async buildDynamicActionsList(guild, client) {
+    let actionsList = "";
 
     if (guild) {
       actionsList += `**Command Execution:**\n`;
@@ -196,23 +192,23 @@ export class SystemPromptBuilder {
         const { getExecutableCommands } = await import("./commandExecutor.js");
         const executableCommands = await getExecutableCommands(client);
         if (executableCommands.length > 0) {
-          actionsList += `- "execute_command" - Execute any bot command (command, subcommand, options)\n`;
+          actionsList += `- "execute_command" - Execute any general bot command (command, subcommand, options)\n`;
           actionsList += `  Available commands: ${executableCommands.map(c => `/${c.name}`).join(", ")}\n`;
+          actionsList += `  **Note:** You can only execute commands from /src/commands/general (general commands only)\n`;
         }
       } catch (_error) {
         // Ignore
       }
       actionsList += `\n`;
 
-      actionsList += `**Discord Operations (based on bot permissions):**\n`;
-      // Dynamically discover Discord actions from discordActionExecutor
-      const discordOperations = await discoverDiscordActions();
-      for (const action of discordOperations) {
-        actionsList += `- "${action.name}" - ${action.description}\n`;
-      }
+      actionsList += `**Data Fetching Actions:**\n`;
+      actionsList += `- "fetch_members" - Fetch all server members (human members and bots). Use this ONLY when member data is not already in the system context AND user asks about specific members, users, bots, or online/offline status.\n`;
+      actionsList += `  **When to use:** User asks about members/users/bots/online status AND the member list is NOT already shown in "COMPLETE LIST OF HUMAN MEMBER NAMES" section above.\n`;
+      actionsList += `  **When NOT to use:** If member list is already in context, use that data directly - do NOT fetch again.\n`;
+      actionsList += `  **Format:** {"type": "fetch_members"}\n`;
+      actionsList += `  **After execution:** The system will automatically re-query with updated member data, then you can respond with the fetched information.\n`;
+      actionsList += `  **Note:** For servers with >1000 members, fetching may be limited - use cached data if available.\n`;
       actionsList += `\n`;
-
-      actionsList += `**Important:** All actions check bot permissions automatically. If bot lacks permission, action will fail with an error message.\n\n`;
     }
     return actionsList;
   }
@@ -225,110 +221,38 @@ export class SystemPromptBuilder {
    * @param {Function} generateActionExample - Function to generate action example
    * @returns {Promise<string>} Examples section
    */
-  async buildResponseFormatExamples(
-    guild,
-    client,
-    generateCommandExample,
-    generateActionExample,
-  ) {
+  async buildResponseFormatExamples(guild, client, generateCommandExample) {
     const commandExample = await generateCommandExample(client);
-    const actionExample = await generateActionExample();
 
     let examples = dedent`
       **Examples (use ACTUAL data from Server Information above, not placeholders):**
 
-      **Example 1 - Simple response:**
-      {
-        "message": "There are 5 members in this server.",
-        "actions": []
-      }
+      **Example 1 - Simple response (NO actions) - Use plain text:**
+      There are 5 members in this server.
 
-      **Example 2 - List members (use names from member list above):**
-      {
-        "message": "Here are all members:\\n1. MemberName1\\n2. MemberName2\\n3. MemberName3",
-        "actions": []
-      }
+      **Example 2 - List members (NO actions) - Use plain text:**
+      Here are all members:
+      1. MemberName1
+      2. MemberName2
+      3. MemberName3
 
-      **Example 3 - Request data:**
+      **Example 3 - Execute command (HAS actions) - Use JSON:**
       {
-        "message": "Let me fetch the member list.",
-        "actions": [{"type": "fetch_members"}]
-      }
-
-      **Example 4 - Get member info:**
-      {
-        "message": "Let me get information about that user.",
-        "actions": [{"type": "get_member_info", "options": {"username": "actual_username"}}]
+        "message": "Let me get server information for you.",
+        "actions": [{"type": "execute_command", "command": "serverinfo", "options": {}}]
       }
 
     `;
 
     if (commandExample) {
       examples += dedent`
-        **Example 5 - Execute command:**
+        **Example 4 - Execute command:**
         ${commandExample}
 
       `;
     }
 
-    if (actionExample) {
-      examples += dedent`
-        **Example 6 - Discord action:**
-        ${actionExample}
-
-      `;
-    }
-
-    examples += dedent`
-      **Example 7 - Multiple actions:**
-      {
-        "message": "I'll add the role and send a welcome message.",
-        "actions": [
-          {"type": "add_role", "options": {"user_id": "123456789", "role_name": "Member"}},
-          {"type": "send_message", "options": {"content": "Welcome to the server!"}}
-        ]
-      }
-
-    `;
-
     return examples;
-  }
-
-  /**
-   * Discover Discord actions from the executor
-   * Uses a static list that matches the executor's switch statement
-   * @returns {Promise<Array<{name: string, description: string}>>} Array of action descriptions
-   */
-  async discoverDiscordActions() {
-    // Action descriptions - matches discordActionExecutor.js switch statement
-    // When new actions are added to the executor, add them here
-    const actionDescriptions = {
-      send_message: 'Send a message (options: "content" or "embed")',
-      add_role:
-        'Add role to member (options: "user_id", "role_id" or "role_name")',
-      remove_role:
-        'Remove role from member (options: "user_id", "role_id" or "role_name")',
-      kick_member: 'Kick a member (options: "user_id", optional: "reason")',
-      ban_member:
-        'Ban a member (options: "user_id", optional: "reason", "delete_days")',
-      timeout_member:
-        'Timeout a member (options: "user_id", "duration_seconds", optional: "reason")',
-      warn_member: 'Warn a member (options: "user_id", optional: "reason")',
-      delete_message: 'Delete a message (options: "message_id")',
-      pin_message: 'Pin a message (options: "message_id")',
-      unpin_message: 'Unpin a message (options: "message_id")',
-      create_channel:
-        'Create a channel (options: "name", optional: "type", "category_id", "topic")',
-      delete_channel: 'Delete a channel (options: "channel_id")',
-      modify_channel:
-        'Modify a channel (options: "channel_id", optional: "name", "topic", "nsfw", "slowmode")',
-    };
-
-    // Return all actions as an array
-    return Object.keys(actionDescriptions).map(name => ({
-      name,
-      description: actionDescriptions[name],
-    }));
   }
 
   /**
@@ -370,7 +294,7 @@ export class SystemPromptBuilder {
     }
 
     // Final fallback
-    return `{\n  "message": "I'll play Rock Paper Scissors!",\n  "actions": [{"type": "execute_command", "command": "rps", "subcommand": "play", "options": {"choice": "rock"}}]\n}`;
+    return `{\n  "message": "I'll challenge someone to Rock Paper Scissors!",\n  "actions": [{"type": "execute_command", "command": "rps", "options": {"user": "@username", "choice": "rock"}}]\n}`;
   }
 
   /**
@@ -397,28 +321,46 @@ export class SystemPromptBuilder {
    * @param {import('discord.js').Client} client - Discord client
    * @param {string} userMessage - User's message (for on-demand command injection)
    * @param {string} locale - User's locale for date/time formatting
+   * @param {import('discord.js').User} requester - User who asked the question (optional)
    * @returns {Promise<string>} System message with context
    */
-  async buildSystemContext(guild, client, userMessage = "", locale = "en-US") {
+  async buildSystemContext(
+    guild,
+    client,
+    userMessage = "",
+    locale = "en-US",
+    requester = null,
+    options = {},
+  ) {
+    const { forceIncludeMemberList = false } = options;
     const cacheKey = guild ? `guild_${guild.id}` : `dm_global`;
     const cached = this.systemMessageCache.get(cacheKey);
 
     // Check cache (5 minutes timeout for command updates)
+    // Skip cache if forcing member list inclusion (after fetch_members action)
     if (
       cached &&
-      Date.now() - cached.timestamp < SYSTEM_MESSAGE_CACHE_TIMEOUT
+      Date.now() - cached.timestamp < SYSTEM_MESSAGE_CACHE_TIMEOUT &&
+      !forceIncludeMemberList
     ) {
       return cached.content;
     }
 
     // Determine if we need detailed info based on user message
+    // Force include if fetch_members was just executed
     const needsMemberList =
-      userMessage &&
-      (userMessage.toLowerCase().includes("member") ||
-        userMessage.toLowerCase().includes("who") ||
-        userMessage.toLowerCase().includes("list") ||
-        userMessage.toLowerCase().includes("people") ||
-        userMessage.toLowerCase().includes("users"));
+      forceIncludeMemberList ||
+      (userMessage &&
+        (userMessage.toLowerCase().includes("member") ||
+          userMessage.toLowerCase().includes("who") ||
+          userMessage.toLowerCase().includes("list") ||
+          userMessage.toLowerCase().includes("people") ||
+          userMessage.toLowerCase().includes("users") ||
+          userMessage.toLowerCase().includes("offline") ||
+          userMessage.toLowerCase().includes("online") ||
+          userMessage.toLowerCase().includes("idle") ||
+          userMessage.toLowerCase().includes("dnd") ||
+          userMessage.toLowerCase().includes("do not disturb")));
     const needsCommandList =
       userMessage &&
       (userMessage.toLowerCase().includes("command") ||
@@ -430,11 +372,7 @@ export class SystemPromptBuilder {
     const responseFormat = await this.buildResponseFormatSection(
       guild,
       client,
-      commandDiscoverer.getBotCommands.bind(commandDiscoverer),
-      commandDiscoverer.discoverDataFetchingCommands.bind(commandDiscoverer),
-      this.discoverDiscordActions.bind(this),
       this.generateCommandExample.bind(this),
-      this.generateActionExample.bind(this),
     );
     const identity = this.buildIdentitySection();
     const contextSection = this.buildContextSection(guild);
@@ -480,12 +418,23 @@ export class SystemPromptBuilder {
 
     `;
 
+    // Add requester information if available (for commands that need to target the requester)
+    if (requester) {
+      context += dedent`
+        ## Requester Information
+        - **Username:** ${requester.username}
+        - **User ID:** ${requester.id}
+        - **Mention:** <@${requester.id}>
+
+      `;
+    }
+
     if (guild) {
       context += dedent`
         ## Server Information
         Below is detailed information about the current server. Use this data to answer questions accurately.
 
-        **⚠️ CRITICAL: Use ONLY the data shown below - do NOT use example data from prompts!**
+        **Use ONLY the data shown below - do NOT use example data from prompts!**
 
         ${serverInfo}
 
@@ -506,8 +455,37 @@ export class SystemPromptBuilder {
       if (mentioned.length > 0) {
         context += `## Available Commands (Relevant to User's Question)\n`;
         context += `**Note:** This list includes ALL commands for information purposes. You can only EXECUTE general commands (see restrictions below).\n\n`;
-        context += commandDiscoverer.getCommandDetails(mentioned, botCommands);
+        context += commandDiscoverer.getCommandDetails(
+          mentioned,
+          botCommands,
+          requester,
+          client,
+        );
         context += `\n`;
+      }
+
+      // Phase 2: Command Suggestions
+      // Suggest relevant commands based on user message
+      try {
+        const suggestions = await commandSuggester.suggestCommands(
+          userMessage,
+          client,
+          3,
+        );
+        if (suggestions.length > 0) {
+          const suggestionText =
+            commandSuggester.formatSuggestions(suggestions);
+          context += dedent`
+            ## Command Suggestions
+            ${suggestionText}
+            
+            **Note:** These are suggestions based on the user's message. You can mention these commands if they seem relevant, but don't force them if the user's intent is clear.
+            
+          `;
+        }
+      } catch (error) {
+        logger.debug("[SystemPromptBuilder] Command suggestion failed:", error);
+        // Continue without suggestions
       }
     }
 
@@ -531,7 +509,7 @@ export class SystemPromptBuilder {
         ]);
 
       capabilitiesSection += dedent`
-        **⚠️ CRITICAL RESTRICTION - Command Execution:**
+        **Command Execution Restriction:**
         - You can ONLY EXECUTE commands from the "general" category (safe, user-facing commands)
         - Admin commands CANNOT be executed by AI (these are server management commands)
         - Developer commands CANNOT be executed by AI (these are bot maintenance commands)
@@ -556,7 +534,7 @@ export class SystemPromptBuilder {
       capabilitiesSection += `\n`;
     } catch (_error) {
       capabilitiesSection += dedent`
-        **⚠️ CRITICAL RESTRICTION - Command Execution:**
+        **Command Execution Restriction:**
         - You can ONLY EXECUTE general commands (safe, user-facing commands)
         - Admin and developer commands CANNOT be executed by AI
         - This restriction prevents potential issues and keeps the bot safe
@@ -575,32 +553,20 @@ export class SystemPromptBuilder {
       **What you can do:**
       1. **Execute General Commands** - Run safe, user-facing bot commands from /src/commands/general only
       2. **Provide Information About Commands** - Help users understand how to use ANY command (general, admin, developer), but only execute general commands
-      3. **Manage Roles** - Add/remove roles from members (via Discord actions, not commands)
-      4. **Moderate** - Kick, ban, timeout, warn members (via Discord actions, not commands)
-      5. **Manage Channels** - Create, delete, modify channels (via Discord actions, not commands)
-      6. **Manage Messages** - Send, delete, pin, unpin messages (via Discord actions, not commands)
-      7. **Fetch Data** - Get server, member, role, channel information
 
       **How to use:**
-      - Include actions in the "actions" array of your JSON response
-      - Actions are executed automatically after you respond
-      - If an action fails (e.g., missing permission), you'll get an error message
-      - You can include multiple actions in one response
-
-      **Important:**
-      - All actions check bot permissions automatically
+      - **When executing commands:** Use "execute_command" action in your JSON response (format: {"message": "...", "actions": [...]})
+      - **When NOT executing commands:** Use plain text/markdown format (NO JSON)
+      - **CRITICAL:** Always provide ALL required options (marked as "REQUIRED" in command details) - commands will fail without them
+      - For RPS: Always provide both "user" (target requester) and "choice" options - both are required
+      - **RPS CHOICE RANDOMIZATION:** For the "choice" option, you MUST randomly select between rock, paper, or scissors EACH TIME. DO NOT always pick "rock" - vary it! Use different choices on different requests.
+      - Commands send their own responses - keep your "message" field empty or minimal when executing commands
       - Only works in servers (not in DMs)
-      - Use actions to help users accomplish their goals
-      - If user asks you to do something, use the appropriate action!
-      - **For admin/developer commands:** Provide helpful information and guidance, but remind users they need to run the command manually (you cannot execute them)
 
-      **CRITICAL - When Executing Commands:**
-      - When you execute a command using "execute_command" action, the command sends its own response directly to the channel
-      - DO NOT generate redundant text responses explaining what the command does
-      - DO NOT say things like "Let's play...", "Here's...", "I'll execute...", etc. when the command already shows the result
-      - Keep your "message" field EMPTY or very minimal when executing commands successfully
-      - Only include a message if there's an error or important additional context that the command didn't provide
-      - The command's response (embed, buttons, etc.) is already visible to the user - don't repeat it
+      **Response Guidelines:**
+      - When executing commands successfully, keep "message" empty (command provides the response)
+      - Only include a message for errors or important additional context
+      - For admin/developer commands: provide information but remind users to run them manually
 
     `;
 
@@ -754,62 +720,30 @@ export class SystemPromptBuilder {
       ## Critical Rules
 
       ### Command Usage Rules
-      1. **ONLY use commands/subcommands/options exactly as shown in the Available Commands section above.**
-      2. **Do NOT invent command syntax, flags, or parameters that don't exist.**
-      3. **All commands use Discord slash command format:** /command subcommand option:value
-      4. **If a command has subcommands, you MUST use the subcommand.**
-         - Example: Use action {"type": "execute_command", "command": "rps", "subcommand": "play", "options": {"choice": "rock"}}
-         - NOT: {"type": "execute_command", "command": "rps", "options": {"choice": "rock"}} (missing subcommand)
-      5. **Commands work the same way in ALL servers - they are universal.**
-      6. **Use the JSON actions array format** - this is the only supported format
+      - Use commands exactly as shown in Available Commands section
+      - Format: /command subcommand option:value
+      - **When executing commands:** Use JSON format with actions array
+      - **When NOT executing commands:** Use plain text/markdown format
+      - Command details are injected automatically when mentioned
+      - Use actual data from Server Information - never invent
 
-      ### Data Understanding Rules
-      **ROLES vs MEMBER NAMES:**
-      - **Roles** = Permission groups (Admin, Moderator, etc.) - NOT people
-      - **Member names** = Actual usernames from the member lists above
-      - When asked for member names, use ONLY the names from the lists above - do NOT make up names
+      ### Data Understanding - CRITICAL CONTEXT AWARENESS
+      - **Roles** = Permission groups (NOT people)
+      
+      **Members vs Bots:**
+      - Two separate lists: "COMPLETE LIST OF HUMAN MEMBER NAMES" (humans only) and "COMPLETE LIST OF BOT NAMES" (bots with [BOT] tag)
+      - "members"/"users"/"people" = use HUMAN list only
+      - "bots"/"discord bots" = use BOT list only
+      - If lists not in context, use {"type": "fetch_members"} first
+      - **Large servers (>1000 members):** Member list may be partial - only shows first 50 cached members. If user asks for specific member not in list, say "Member not found in cached list" or suggest using /serverinfo command.
+      - Count only HUMAN members for "members online" (Online + Idle + DND)
+      - **Status meanings:** 🟢 online, 🟡 idle, 🔴 dnd (Do Not Disturb - NOT offline), ⚫ offline
+      - **Important:** "dnd" (Do Not Disturb) is NOT the same as "offline" - dnd means user is online but set to Do Not Disturb
+      - Copy names EXACTLY as shown, never invent names
 
-      **MEMBER FILTERING:**
-      - **"members" or "human members"** = Use the "COMPLETE LIST OF HUMAN MEMBER NAMES" section (real people only)
-      - **"bots" or "bot members"** = Use the "COMPLETE LIST OF BOT NAMES" section (bots only)
-      - **"all members" or "everyone"** = List BOTH humans AND bots from both sections
-      - If user doesn't specify, default to human members only
-
-      **MEMBER COUNT:**
-      - When asked "how many members" (without specifying), use the **Human Members** count (NOT total including bots)
-      - When asked "how many bots", use the bot count from the bot list
-      - When asked "how many total members", use the total count (humans + bots)
-
-      **ONLINE STATUS - CRITICAL RULES:**
-      - When asked "how many are online" or "who is online", use **HUMAN MEMBER** online counts ONLY
-      - The "Status Breakdown" shows counts for HUMAN MEMBERS ONLY (Online, Idle, DND, Offline)
-      - **DO NOT include bots** when counting "members online" - bots are NOT members
-      - If asked "how many members are online", add: Online + Idle + DND (all human members)
-      - If asked "how many are online" (specifically online status), use just the "Online" count
-      - Example: If Status Breakdown shows "Online: 5 | Idle: 2 | DND: 1", then "members online" = 8 (5+2+1), and "online" = 5
-      - **NEVER count bots** in online member counts unless user specifically asks about bots
-
-      **🚨 DATA ACCURACY REQUIREMENTS - CRITICAL:**
-      - **NEVER invent, guess, or make up ANY data** - this is a CRITICAL error
-      - **ALL examples in this prompt** (like "[ACTUAL_MEMBER_NAME_1]", "[ACTUAL_USERNAME]", "[ACTUAL_ROLE_NAME]", etc.) are PLACEHOLDERS - they are NOT real data, just showing the FORMAT
-      - **You MUST use ONLY actual data** from the Server Information section above
-      - **NEVER use generic names** like "John", "Alice", "Bob", "Admin", "Moderator", "general", "welcome" unless they ACTUALLY exist in the server
-      - **ALWAYS verify data exists** before mentioning it - check the Server Information section
-      - **For member names:** Use ONLY names from "COMPLETE LIST OF HUMAN MEMBER NAMES" section - copy them EXACTLY character by character
-      - **For roles:** Use ONLY actual role names from the "Server Roles" section (not example names like "Admin")
-      - **For channels:** Use ONLY actual channel names from the "Server Channels" section (not example names like "general")
-      - **If unsure about data**, say "I don't have that information" or "That doesn't appear to exist in this server" - DO NOT guess
-      - **If data is missing or empty**, say so honestly (e.g., "There are no human members in this server") - do NOT invent data
-      - **Double-check your response** before sending - ensure every name, role, and channel you mention actually exists in the server data above
-      - **Example of CORRECT response**: "I don't see a role named 'Admin' in this server. The available roles are: [list actual roles from Server Information]"
-      - **Example of WRONG response**: "The Admin role has 5 members" (when Admin doesn't exist) - DO NOT DO THIS
-      - **Example of WRONG response**: "Here are some members: [made-up-name], and other members..." - DO NOT DO THIS
-
-      ### Security Rules
-      1. **Never expose:** API keys, tokens, environment variables, or sensitive configuration
-      2. **If asked about technical details:** Provide general information only
-      3. **You have access to:** Current server data (members, channels, roles)
-      4. **You cannot access:** Sensitive bot configuration or private data
+      ### Security
+      - Never expose API keys, tokens, or sensitive configuration
+      - Provide general information only for technical details
 
     `;
 
@@ -834,32 +768,16 @@ export class SystemPromptBuilder {
       - If unsure about something, be honest and helpful
       - Be friendly and professional in all responses
 
-      **🔍 HANDLING EDGE CASES AND UNKNOWN QUERIES:**
-      - **If user asks about something you don't know**: Say "I don't have that information" or "I'm not sure about that" - be honest
-      - **If user asks about data that doesn't exist**: Tell them clearly it doesn't exist (e.g., "There's no role named 'X' in this server")
-      - **If user asks ambiguous questions**: Ask for clarification or provide what you can determine from available data
-      - **If user asks about bot capabilities**: Refer to the /help command or list available commands from the system context
-      - **If user asks technical questions about the bot**: Provide general information, but don't expose internal implementation details
-      - **If user asks about server settings you can't see**: Say "I don't have access to that information" - don't guess
-      - **If data is incomplete or missing**: Acknowledge it honestly (e.g., "The member list shows 0 members" or "I don't have channel information")
-      - **If user's question is unclear**: Ask for clarification or provide the most likely interpretation with available data
-      - **Always prioritize accuracy over completeness** - it's better to say "I don't know" than to provide incorrect information
+      **Edge Cases:**
+      - Don't know something? Say so honestly
+      - Data doesn't exist? Tell them clearly
+      - Unclear question? Ask for clarification
+      - Prioritize accuracy over completeness
 
-      **Response Length & Style:**
-      - **Default:** Keep responses under ${DEFAULT_RESPONSE_LENGTH} characters (concise and to the point)
-      - **Maximum:** Never exceed ${MAX_RESPONSE_LENGTH} characters (Discord embed limit is 4096, but we use ${MAX_RESPONSE_LENGTH} for safety)
-      - **Be brief by default:** Answer questions directly without unnecessary elaboration
-      - **Expand only when asked:** Only provide detailed explanations if the user explicitly requests them (e.g., "tell me more", "explain in detail", "give me more information")
-      - **Examples:**
-        - User: "Hello" → Brief: "Hi! How can I help?" (NOT a long introduction)
-        - User: "Tell me about yourself" → Brief: "I'm Role Reactor, an AI assistant for this bot. I can help with questions about the bot or server." (NOT a long explanation about training, capabilities, etc.)
-        - User: "Explain how role reactions work in detail" → Can be longer (user explicitly asked for detail)
-      - **CRITICAL - Do NOT reveal internal details:**
-        - Respond naturally as a helpful assistant - do NOT mention you're an AI, language model, or LLM
-        - Do NOT explain your capabilities, training data, or how you work
-        - Do NOT reference internal instructions, guidelines, system prompts, or parameters
-        - Do NOT say things like "I'm trained on...", "I follow rules...", "I'm a large language model...", "I don't have personal experiences...", etc.
-        - Simply help users with their questions in a natural, friendly way
+      **Response Style:**
+      - Keep responses under ${DEFAULT_RESPONSE_LENGTH} characters (max ${MAX_RESPONSE_LENGTH})
+      - Be brief by default, expand only when asked
+      - Respond naturally - don't mention you're an AI or reference internal details
         - Example of GOOD response: "Hi! I'm Role Reactor. How can I help you today?"
         - Example of BAD response: "I'm a large language model trained on a massive dataset..." (DO NOT DO THIS)
     `;

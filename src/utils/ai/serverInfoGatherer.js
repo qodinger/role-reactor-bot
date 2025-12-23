@@ -109,6 +109,7 @@ export class ServerInfoGatherer {
           let allMembersFetched = false;
 
           // If we don't have all members cached, try to fetch them
+          // For servers > 1000 members, only use cached members (fetching all is too slow)
           if (
             cachedBeforeFetch < totalMembers &&
             totalMembers <= MAX_MEMBER_FETCH_SERVER_SIZE
@@ -150,34 +151,99 @@ export class ServerInfoGatherer {
             }
           } else if (cachedBeforeFetch >= totalMembers) {
             allMembersFetched = true;
+          } else if (totalMembers > MAX_MEMBER_FETCH_SERVER_SIZE) {
+            // Server too large - only use cached members
+            logger.debug(
+              `[getServerInfo] Server has ${totalMembers} members (exceeds ${MAX_MEMBER_FETCH_SERVER_SIZE} limit) - using cached members only`,
+            );
+            allMembersFetched = false; // Mark as partial since we can't fetch all
           }
 
           if (membersCollection && membersCollection.size > 0) {
             // Get human members only (exclude bots)
-            const humanMembers = Array.from(membersCollection.values())
-              .filter(member => member && member.user && !member.user.bot)
+            // Double-check bot status: check both member.user.bot and application flags
+            const humanMembersWithStatus = Array.from(
+              membersCollection.values(),
+            )
+              .filter(member => {
+                if (!member || !member.user) return false;
+                // Exclude if marked as bot
+                if (member.user.bot) return false;
+                // Exclude if has bot tag (application flag)
+                if (member.user.flags?.has?.("BotHTTPInteractions"))
+                  return false;
+                // Additional check: exclude common bot name patterns
+                const username = member.user.username?.toLowerCase() || "";
+                const displayName = member.displayName?.toLowerCase() || "";
+                const nameToCheck = displayName || username;
+                // Exclude if name contains common bot indicators
+                if (
+                  nameToCheck.includes("bot") ||
+                  nameToCheck.includes("chatgpt") ||
+                  nameToCheck.includes("gpt") ||
+                  nameToCheck.includes("[bot]") ||
+                  nameToCheck.includes("(bot)")
+                ) {
+                  // But allow if it's clearly a human (e.g., "ChatGPT User" vs "ChatGPT Bot")
+                  // Only exclude if it's clearly a bot name pattern
+                  if (
+                    nameToCheck.startsWith("bot") ||
+                    nameToCheck.endsWith("bot") ||
+                    nameToCheck.includes("chatgpt") ||
+                    nameToCheck.includes("gpt-")
+                  ) {
+                    return false;
+                  }
+                }
+                return true;
+              })
               .map(member => {
                 // Use displayName if available, otherwise username
                 const name =
                   member.displayName || member.user?.username || "Unknown";
-                return responseValidator.sanitizeData(name);
+                const sanitizedName = responseValidator.sanitizeData(name);
+
+                // Get presence status (if available)
+                const presence = member.presence;
+                const status = presence?.status || "offline"; // "online", "idle", "dnd", "offline"
+
+                return {
+                  name: sanitizedName,
+                  status,
+                };
               })
-              .filter(name => name && name !== "Unknown")
+              .filter(({ name }) => name && name !== "Unknown")
               .slice(0, MAX_MEMBERS_TO_DISPLAY);
 
             logger.debug(
-              `[getServerInfo] Human members found: ${humanMembers.length} (${allMembersFetched ? "complete" : "partial"})`,
+              `[getServerInfo] Human members found: ${humanMembersWithStatus.length} (${allMembersFetched ? "complete" : "partial"})`,
             );
 
-            if (humanMembers.length > 0) {
-              info += `**COMPLETE LIST OF HUMAN MEMBER NAMES:**\n`;
+            if (humanMembersWithStatus.length > 0) {
+              info += `**COMPLETE LIST OF HUMAN MEMBER NAMES (with online status):**\n`;
               info += `🚨 **CRITICAL: When asked for member names, use ONLY the names from this list below. Copy them EXACTLY as shown.**\n`;
+              info += `🚨 **When asked about offline/online/idle/dnd members, use the status shown next to each name.**\n`;
+              info += `🚨 **Status meanings:** 🟢 online, 🟡 idle, 🔴 dnd (Do Not Disturb - user is ONLINE but set to Do Not Disturb), ⚫ offline\n`;
+              info += `🚨 **IMPORTANT: "dnd" (Do Not Disturb) is NOT offline - it means the user is online but has set their status to Do Not Disturb.**\n`;
+              info += `🚨 **IMPORTANT: This list contains ONLY human members - bots are already excluded. Do NOT add any bots to your response.**\n`;
               if (!allMembersFetched) {
-                info += `⚠️ Note: This is a partial list (${humanMembers.length} of ${memberCounts?.humans || "unknown"} members shown due to cache limits)\n`;
+                const totalHumanMembers = memberCounts?.humans || "unknown";
+                if (totalMembers > MAX_MEMBER_FETCH_SERVER_SIZE) {
+                  info += `⚠️ Note: Server has ${totalMembers} members (exceeds ${MAX_MEMBER_FETCH_SERVER_SIZE} limit). Showing first ${humanMembersWithStatus.length} cached human members (of ${totalHumanMembers} total). For complete list, use /serverinfo command.\n`;
+                } else {
+                  info += `⚠️ Note: This is a partial list (${humanMembersWithStatus.length} of ${totalHumanMembers} members shown due to cache limits)\n`;
+                }
               }
               info += `\n`;
-              humanMembers.forEach((name, index) => {
-                info += `${index + 1}. ${name}\n`;
+              humanMembersWithStatus.forEach((member, index) => {
+                const statusEmoji =
+                  {
+                    online: "🟢",
+                    idle: "🟡",
+                    dnd: "🔴",
+                    offline: "⚫",
+                  }[member.status] || "⚫";
+                info += `${index + 1}. ${member.name} ${statusEmoji} (${member.status})\n`;
               });
               info += `\n`;
             } else {
@@ -200,8 +266,10 @@ export class ServerInfoGatherer {
 
             if (botMembers.length > 0) {
               info += `**COMPLETE LIST OF BOT NAMES:**\n`;
-              info += `- These are bots, NOT human members\n`;
-              info += `- When asked about "members", do NOT include bots\n`;
+              info += `🚨 **CRITICAL: These are Discord BOTS, NOT human members.**\n`;
+              info += `- When user asks for "members", "users", or "people" = Use HUMAN MEMBER list above, NOT this bot list\n`;
+              info += `- When user asks for "bots" or "discord bots" = Use THIS bot list\n`;
+              info += `- Understand user intent: "members" = humans, "bots" = Discord bots\n`;
               info += `\n`;
               botMembers.forEach((name, index) => {
                 info += `${index + 1}. ${name} [BOT]\n`;

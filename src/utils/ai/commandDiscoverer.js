@@ -332,9 +332,16 @@ export class CommandDiscoverer {
    * Get detailed info for specific commands (on-demand injection)
    * @param {Array} commandNames - Command names to get details for
    * @param {Array} allCommands - All available commands
+   * @param {import('discord.js').User} requester - User who asked the question (optional)
+   * @param {import('discord.js').Client} client - Discord client (optional, for bot info)
    * @returns {string} Formatted command details
    */
-  getCommandDetails(commandNames, allCommands) {
+  getCommandDetails(
+    commandNames,
+    allCommands,
+    _requester = null,
+    _client = null,
+  ) {
     if (commandNames.length === 0) return "";
 
     const commands = allCommands.filter(cmd => commandNames.includes(cmd.name));
@@ -417,20 +424,28 @@ export class CommandDiscoverer {
         const optionDetails = cmd.options
           .slice(0, 5)
           .map(o => {
-            // Use the full description from formatOption (includes choices, constraints)
+            // Use formatOption to get full description with required/optional, choices, constraints
+            const formattedOpt = this.formatOption(o);
             let optStr = o.name;
+            // Mark required options clearly
+            if (o.required !== false) {
+              optStr = `**${optStr}** (REQUIRED)`;
+            } else {
+              optStr = `${optStr} (optional)`;
+            }
+            // Add description
             if (o.description && !o.description.includes("type_")) {
               // Don't truncate if description contains choices or important info
-              const hasChoices = o.description.includes("[choices:");
+              const hasChoices = formattedOpt.includes("[choices:");
               const hasConstraints =
-                o.description.includes("[min:") ||
-                o.description.includes("[max:");
+                formattedOpt.includes("[min:") ||
+                formattedOpt.includes("[max:");
               const maxLen = hasChoices || hasConstraints ? 80 : 50;
               const desc =
-                o.description.length > maxLen
-                  ? `${o.description.substring(0, maxLen - 3)}...`
-                  : o.description;
-              optStr = `${optStr} (${desc})`;
+                formattedOpt.length > maxLen
+                  ? `${formattedOpt.substring(0, maxLen - 3)}...`
+                  : formattedOpt;
+              optStr += ` - ${desc}`;
             }
             return optStr;
           })
@@ -444,6 +459,37 @@ export class CommandDiscoverer {
           formatted += `\n  Example: /${cmd.name} limit:10 type:xp`;
         } else if (cmd.name === "8ball") {
           formatted += `\n  Example: /${cmd.name} question:"Will it rain today?"`;
+        } else if (cmd.name === "rps") {
+          // Special guidance for RPS command
+          // When user wants to play, the BOT should challenge the requester
+          // The bot executes the command, targeting the requester as the challenged user
+          // This creates a challenge with buttons for the requester to respond
+          if (_requester) {
+            // Show ALL three choices in examples to demonstrate variety
+            formatted += `\n  Examples (MUST vary - show all three choices):`;
+            formatted += `\n    /${cmd.name} user:<@${_requester.id}> choice:rock`;
+            formatted += `\n    /${cmd.name} user:<@${_requester.id}> choice:paper`;
+            formatted += `\n    /${cmd.name} user:<@${_requester.id}> choice:scissors`;
+            formatted += `\n  **REQUIRED:** You MUST provide both "user" and "choice" options.`;
+            formatted += `\n  - When user wants to play, the BOT challenges the requester (<@${_requester.id}> or @${_requester.username})`;
+            formatted += `\n  - The "user" option should target the requester (the person who asked)`;
+            formatted += `\n  - **CRITICAL FOR CHOICE:** You MUST randomly select between rock, paper, or scissors EACH TIME`;
+            formatted += `\n  - **DO NOT** always pick "rock" - you MUST vary it randomly each request`;
+            formatted += `\n  - Pick a DIFFERENT choice each time: sometimes rock, sometimes paper, sometimes scissors`;
+            formatted += `\n  - This creates a challenge with buttons - the requester will choose their move`;
+          } else {
+            // Show ALL three choices in examples to demonstrate variety
+            formatted += `\n  Examples (MUST vary - show all three choices):`;
+            formatted += `\n    /${cmd.name} user:@username choice:rock`;
+            formatted += `\n    /${cmd.name} user:@username choice:paper`;
+            formatted += `\n    /${cmd.name} user:@username choice:scissors`;
+            formatted += `\n  **REQUIRED:** You MUST provide both "user" and "choice" options.`;
+            formatted += `\n  - When user wants to play, the BOT challenges the requester (from Requester Information)`;
+            formatted += `\n  - **CRITICAL FOR CHOICE:** You MUST randomly select between rock, paper, or scissors EACH TIME`;
+            formatted += `\n  - **DO NOT** always pick "rock" - you MUST vary it randomly each request`;
+            formatted += `\n  - Pick a DIFFERENT choice each time: sometimes rock, sometimes paper, sometimes scissors`;
+            formatted += `\n  - This creates a challenge with buttons - the challenged user will choose their move`;
+          }
         }
       }
 

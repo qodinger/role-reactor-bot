@@ -4,8 +4,16 @@ import { chatService } from "../../../utils/ai/chatService.js";
 import { THEME } from "../../../config/theme.js";
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 import { getUserData } from "../../general/core/utils.js";
+import {
+  checkAICredits,
+  deductAICredits,
+  getAICreditInfo,
+} from "../../../utils/ai/aiCreditManager.js";
+import { emojiConfig } from "../../../config/emojis.js";
+import { STREAMING_ENABLED } from "../../../utils/ai/constants.js";
 
 const logger = getLogger();
+const { customEmojis } = emojiConfig;
 
 /**
  * Handle ask command execution
@@ -27,6 +35,18 @@ export async function execute(interaction, client) {
       return;
     }
 
+    // Check if user has credits for AI request (0.1 Core per request)
+    const creditCheck = await checkAICredits(interaction.user.id);
+    if (!creditCheck.hasCredits) {
+      const creditInfo = await getAICreditInfo(interaction.user.id);
+      const errorResponse = errorEmbed({
+        title: "Insufficient Credits",
+        description: `You need **0.1 ${customEmojis.core}** to use AI chat!\n\n**Your Balance:** ${creditInfo.credits.toFixed(1)} ${customEmojis.core}\n**Cost:** 0.1 ${customEmojis.core} per request (1 ${customEmojis.core} = 10 requests)\n**Requests Available:** ${creditInfo.requestsRemaining}\n\nGet Cores: \`/core pricing\` or visit [rolereactor.app/sponsor](https://rolereactor.app/sponsor)`,
+      });
+      await interaction.reply(errorResponse);
+      return;
+    }
+
     // Get user's Core data for rate limiting priority (before deferring)
     let coreUserData = null;
     try {
@@ -42,32 +62,23 @@ export async function execute(interaction, client) {
       // Continue without Core data
     }
 
-    // Check rate limit BEFORE deferring (so we can send immediate error if rate limited)
+    // Atomically check and reserve rate limit BEFORE deferring (prevents race conditions)
+    // This ensures only one request can pass the check and increment the counter
     const { concurrencyManager } = await import(
       "../../../utils/ai/concurrencyManager.js"
     );
-    if (
-      concurrencyManager.checkUserRateLimit(interaction.user.id, coreUserData)
-    ) {
-      // Calculate effective rate limit for error message
-      const userData = concurrencyManager.userRequests.get(interaction.user.id);
-      let effectiveRateLimit = concurrencyManager.userRateLimit;
-      if (userData && userData.isCore && userData.coreTier) {
-        const tierConfig = concurrencyManager.coreTierLimits[userData.coreTier];
-        if (tierConfig) {
-          effectiveRateLimit = Math.floor(
-            concurrencyManager.userRateLimit * tierConfig.multiplier,
-          );
-        }
-      }
-
+    const rateLimitResult = concurrencyManager.checkAndReserveRateLimit(
+      interaction.user.id,
+      coreUserData,
+    );
+    if (rateLimitResult.rateLimited) {
       const windowMinutes = Math.ceil(
         concurrencyManager.userRateWindow / 60000,
       );
       const windowText = windowMinutes === 1 ? "minute" : "minutes";
       const errorResponse = errorEmbed({
         title: "Rate Limit Exceeded",
-        description: `You can make ${effectiveRateLimit} requests per ${windowMinutes} ${windowText}. Please wait a moment before making another request.`,
+        description: `You can make ${rateLimitResult.effectiveRateLimit} requests per ${windowMinutes} ${windowText}. Please wait a moment before making another request.`,
       });
       await interaction.reply(errorResponse);
       return;
@@ -76,19 +87,162 @@ export async function execute(interaction, client) {
     // Defer reply since AI generation may take time
     await interaction.deferReply();
 
-    // Generate AI response (with user and channel for command execution)
-    const response = await chatService.generateResponse(
-      question,
-      interaction.guild,
-      client,
-      {
-        userId: interaction.user.id,
-        coreUserData,
-        user: interaction.user,
-        channel: interaction.channel,
-        locale: interaction.locale || interaction.guildLocale || "en-US",
-      },
-    );
+    // Deduct credits before generation (bundle system)
+    const deductionResult = await deductAICredits(interaction.user.id);
+    if (!deductionResult.success) {
+      const errorResponse = errorEmbed({
+        title: "Error",
+        description: "Failed to process credits. Please try again.",
+      });
+      await interaction.editReply(errorResponse);
+      return;
+    }
+
+    // Check if streaming is enabled and supported
+    const useStreaming =
+      STREAMING_ENABLED &&
+      chatService.aiService.getTextProvider() &&
+      ["openrouter", "openai", "selfhosted"].includes(
+        chatService.aiService.getTextProvider(),
+      );
+
+    let response;
+
+    if (useStreaming) {
+      // Create initial "thinking..." message
+      await interaction.editReply({
+        embeds: [
+          new EmbedBuilder()
+            .setColor(THEME.PRIMARY)
+            .setDescription("🤔 Thinking...")
+            .setFooter({
+              text: `Asked by ${interaction.user.tag}`,
+              iconURL: interaction.user.displayAvatarURL({ dynamic: true }),
+            }),
+        ],
+      });
+
+      // Helper function to extract message from JSON
+      const extractMessage = text => {
+        if (!text || typeof text !== "string") {
+          return text || "";
+        }
+
+        try {
+          // Try to parse as JSON
+          let jsonString = text.trim();
+          // Remove markdown code blocks if present
+          jsonString = jsonString.replace(/^```json\s*/i, "");
+          jsonString = jsonString.replace(/^```\s*/i, "");
+          jsonString = jsonString.replace(/\s*```$/i, "");
+          jsonString = jsonString.trim();
+
+          // Try to extract JSON object (handles incomplete JSON during streaming)
+          const jsonMatch = jsonString.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            try {
+              const parsed = JSON.parse(jsonMatch[0]);
+              if (parsed && typeof parsed === "object" && "message" in parsed) {
+                // Extract message field (handle null/undefined)
+                const message =
+                  typeof parsed.message === "string"
+                    ? parsed.message
+                    : String(parsed.message || "");
+                // If message is extracted, return it; otherwise continue to fallback
+                if (message) {
+                  return message;
+                }
+              }
+            } catch (_parseError) {
+              // JSON might be incomplete during streaming - try to extract partial message
+              const messageMatch = jsonString.match(
+                /"message"\s*:\s*"([^"]*(?:\\.[^"]*)*)"/,
+              );
+              if (messageMatch) {
+                return messageMatch[1]
+                  .replace(/\\n/g, "\n")
+                  .replace(/\\"/g, '"')
+                  .replace(/\\\\/g, "\\");
+              }
+              // Try to find message field even if value is incomplete
+              const partialMatch = text.match(/"message"\s*:\s*"([^"]*)/);
+              if (partialMatch) {
+                return partialMatch[1]
+                  .replace(/\\n/g, "\n")
+                  .replace(/\\"/g, '"')
+                  .replace(/\\\\/g, "\\");
+              }
+            }
+          }
+        } catch {
+          // If parsing fails, return original text
+        }
+        return text;
+      };
+
+      // Streaming callback - updates Discord message as chunks arrive
+      const onChunk = async fullText => {
+        // Extract message from JSON if possible
+        const messageText = extractMessage(fullText);
+        // Truncate if too long (Discord limit is 4096 for embed description)
+        const displayText =
+          messageText.length > 2000
+            ? `${messageText.substring(0, 1997)}...`
+            : messageText;
+
+        try {
+          await interaction.editReply({
+            embeds: [
+              new EmbedBuilder()
+                .setColor(THEME.PRIMARY)
+                .setDescription(displayText || "🤔 Thinking...")
+                .setFooter({
+                  text: `Asked by ${interaction.user.tag}`,
+                  iconURL: interaction.user.displayAvatarURL({
+                    dynamic: true,
+                  }),
+                })
+                .setTimestamp(),
+            ],
+          });
+        } catch (error) {
+          // Ignore edit errors (e.g., interaction expired)
+          logger.debug("[ask] Failed to update streaming message:", error);
+        }
+      };
+
+      // Generate streaming AI response
+      response = await chatService.generateResponseStreaming(
+        question,
+        interaction.guild,
+        client,
+        {
+          userId: interaction.user.id,
+          coreUserData,
+          user: interaction.user,
+          channel: interaction.channel,
+          locale: interaction.locale || interaction.guildLocale || "en-US",
+          rateLimitReserved: true,
+          onChunk,
+        },
+      );
+    } else {
+      // Generate AI response (non-streaming)
+      // Pass rateLimitReserved: true since we already checked and reserved the rate limit
+      response = await chatService.generateResponse(
+        question,
+        interaction.guild,
+        client,
+        {
+          userId: interaction.user.id,
+          coreUserData,
+          user: interaction.user,
+          channel: interaction.channel,
+          locale: interaction.locale || interaction.guildLocale || "en-US",
+          rateLimitReserved: true, // Already checked and reserved in handler
+        },
+      );
+    }
 
     // Handle response format (can be string or object with text and commandResponses)
     const responseText =

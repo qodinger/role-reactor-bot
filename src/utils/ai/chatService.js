@@ -15,7 +15,10 @@ import {
   MAX_RESPONSE_LENGTH,
   FOLLOW_UP_QUERY_TIMEOUT,
   JSON_MARKDOWN_PATTERNS,
+  STREAMING_ENABLED,
+  STREAMING_UPDATE_INTERVAL,
 } from "./constants.js";
+import { performanceMonitor } from "./performanceMonitor.js";
 
 const logger = getLogger();
 
@@ -44,6 +47,9 @@ const FOLLOW_UP_PROMPT_TEMPLATE = dedent`
 export class ChatService {
   constructor() {
     this.aiService = multiProviderAIService;
+    this.commandNamesCache = null;
+    this.commandNamesCacheTime = 0;
+    this.COMMAND_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
     // Initialize conversation manager with configuration
     const maxHistoryLength =
@@ -62,6 +68,141 @@ export class ChatService {
       maxConversations,
     });
     conversationManager.startCleanup();
+  }
+
+  /**
+   * Detect if user message suggests an action should be performed
+   * This is a general detection that works for ALL actions, not just specific ones
+   * @param {string} userMessage - User's message
+   * @param {import('discord.js').Client} client - Discord client (optional, for command name checking)
+   * @returns {Promise<boolean>} True if message suggests an action should be performed
+   */
+  async detectActionRequest(userMessage, client = null) {
+    if (!userMessage || typeof userMessage !== "string") {
+      return false;
+    }
+
+    const userMessageLower = userMessage.toLowerCase().trim();
+
+    // Common action verbs that suggest the user wants something done
+    const actionVerbs = [
+      "play",
+      "execute",
+      "run",
+      "show",
+      "get",
+      "fetch",
+      "create",
+      "add",
+                "remove",
+      "delete",
+      "kick",
+      "ban",
+      "timeout",
+      "warn",
+      "send",
+      "pin",
+      "unpin",
+      "modify",
+      "change",
+      "update",
+      "set",
+      "give",
+      "take",
+      "grant",
+      "revoke",
+      "challenge",
+      "start",
+      "begin",
+      "do",
+      "make",
+      "perform",
+      "carry out",
+    ];
+
+    // Check if message starts with or contains action verbs
+    const startsWithAction = actionVerbs.some(
+      verb =>
+        userMessageLower.startsWith(verb) ||
+        userMessageLower.startsWith(`let's ${verb}`) ||
+        userMessageLower.startsWith(`let us ${verb}`),
+    );
+
+    // Check if message contains action verbs followed by common objects/commands
+    const containsActionPattern = actionVerbs.some(verb => {
+      const verbIndex = userMessageLower.indexOf(verb);
+      if (verbIndex === -1) return false;
+
+      // Check if verb is followed by something (not just standalone)
+      const afterVerb = userMessageLower
+        .substring(verbIndex + verb.length)
+        .trim();
+      return afterVerb.length > 0 && !afterVerb.startsWith("?");
+    });
+
+    // Check for imperative patterns (commands/directives)
+    const imperativePatterns = [
+      /^(please\s+)?(can you|could you|would you|will you)\s+/i,
+      /^(please\s+)?(do|make|show|get|fetch|execute|run|play)\s+/i,
+      /^(let's|let us)\s+/i,
+      /^(i want|i need|i'd like)\s+/i,
+    ];
+    const isImperative = imperativePatterns.some(pattern =>
+      pattern.test(userMessage),
+    );
+
+    // Check if message mentions command names (if client is available)
+    let mentionsCommand = false;
+    if (client?.commands) {
+      try {
+        // Get command names from client
+        const commandNames = Array.from(client.commands.keys());
+        mentionsCommand = commandNames.some(
+          cmdName =>
+            userMessageLower.includes(cmdName.toLowerCase()) ||
+            userMessageLower.includes(`/${cmdName}`),
+        );
+      } catch (_error) {
+        // Ignore errors
+      }
+    }
+
+    // Check for action-related keywords
+    const actionKeywords = [
+      "command",
+      "action",
+      "again",
+      "retry",
+      "another",
+      "next",
+      "more",
+      "serverinfo",
+      "userinfo",
+      "avatar",
+      "poll",
+      "rps",
+      "rock",
+      "paper",
+      "scissors",
+      "leaderboard",
+      "level",
+      "xp",
+      "members",
+      "roles",
+      "channels",
+    ];
+    const hasActionKeywords = actionKeywords.some(keyword =>
+      userMessageLower.includes(keyword),
+    );
+
+    // Return true if any indicator suggests an action
+    return (
+      startsWithAction ||
+      containsActionPattern ||
+      isImperative ||
+      mentionsCommand ||
+      hasActionKeywords
+    );
   }
 
   /**
@@ -314,14 +455,30 @@ export class ChatService {
 
       try {
         switch (action.type) {
-          case "fetch_members":
+          case "fetch_members": {
             if (!guild) {
               results.push("Cannot fetch members: not in a server");
               break;
             }
+            const cachedBefore = guild.members.cache.size;
+            const totalMembers = guild.memberCount;
             await this.fetchMembers(guild);
-            results.push("Fetched all server members");
+            const cachedAfter = guild.members.cache.size;
+            if (totalMembers > MAX_MEMBER_FETCH_SERVER_SIZE) {
+              results.push(
+                `Server has ${totalMembers} members (exceeds ${MAX_MEMBER_FETCH_SERVER_SIZE} limit). Using cached members only (${cachedAfter} cached).`,
+              );
+            } else if (cachedAfter > cachedBefore) {
+              results.push(
+                `Fetched ${cachedAfter - cachedBefore} additional members (${cachedAfter}/${totalMembers} total now cached)`,
+              );
+            } else {
+              results.push(
+                `All members already cached (${cachedAfter}/${totalMembers})`,
+              );
+            }
             break;
+          }
 
           case "fetch_channels":
             if (!guild) {
@@ -495,13 +652,25 @@ export class ChatService {
                     `Command Result: Command ${action.command} executed successfully`,
                   );
                 } else {
+                  // Include detailed error information for AI to learn from
+                  const errorMsg = result.error || "Unknown error";
+                  const guidance = await this.getCommandErrorGuidance(
+                    errorMsg,
+                    action,
+                  );
                   results.push(
-                    `Failed to execute command: ${result.error || "Unknown error"}`,
+                    `Command Error: Failed to execute command "${action.command}"${action.subcommand ? ` with subcommand "${action.subcommand}"` : ""}. Error: ${errorMsg}. ${guidance}`,
                   );
                 }
               } catch (error) {
+                // Include detailed error information for AI to learn from
+                const errorMsg = error.message || "Unknown error";
+                const guidance = await this.getCommandErrorGuidance(
+                  errorMsg,
+                  action,
+                );
                 results.push(
-                  `Error executing command: ${error.message || "Unknown error"}`,
+                  `Command Error: Error executing command "${action.command}"${action.subcommand ? ` with subcommand "${action.subcommand}"` : ""}. Error: ${errorMsg}. ${guidance}`,
                 );
               }
             }
@@ -704,6 +873,66 @@ export class ChatService {
   }
 
   /**
+   * Get guidance for command errors to help AI understand what went wrong
+   * @param {string} errorMessage - Error message
+   * @param {Object} action - Action that failed
+   * @returns {Promise<string>} Guidance message
+   * @private
+   */
+  async getCommandErrorGuidance(errorMessage, action) {
+    const errorLower = errorMessage.toLowerCase();
+    const command = action.command || "unknown";
+
+    // Command not allowed
+    if (
+      errorLower.includes("not allowed") ||
+      errorLower.includes("only execute general")
+    ) {
+      // Dynamically discover general commands instead of hardcoding
+      try {
+        const { getGeneralCommands } = await import("./commandExecutor.js");
+        const generalCommands = await getGeneralCommands();
+        return `This command is not in the general commands list. AI can only execute commands from /src/commands/general. Available general commands: ${generalCommands.join(", ")}. If you need to use "${command}", it's likely an admin or developer command that must be run manually by a user.`;
+      } catch (error) {
+        logger.error(
+          "Failed to get general commands for error guidance:",
+          error,
+        );
+        return `This command is not in the general commands list. AI can only execute commands from /src/commands/general. Check the available commands using /help.`;
+      }
+    }
+
+    // Subcommand not allowed
+    if (
+      errorLower.includes("subcommand") &&
+      errorLower.includes("not allowed")
+    ) {
+      return `The subcommand "${action.subcommand}" doesn't exist for command "${command}". Check the command structure - some commands don't have subcommands (like /rps, /wyr, /ping).`;
+    }
+
+    // User not found
+    if (
+      errorLower.includes("user") &&
+      (errorLower.includes("not found") || errorLower.includes("invalid"))
+    ) {
+      return `The user ID or mention provided is invalid or the user doesn't exist. Use actual user IDs from the server member list, or use mention format like "<@123456789012345678>".`;
+    }
+
+    // Missing required options
+    if (errorLower.includes("required") || errorLower.includes("missing")) {
+      return `Required options are missing. Check the command structure - all required options must be provided.`;
+    }
+
+    // Invalid option values
+    if (errorLower.includes("invalid") || errorLower.includes("not valid")) {
+      return `One or more option values are invalid. Check the command's expected option types and values (e.g., choices must match predefined values, user options must be valid user IDs).`;
+    }
+
+    // Generic guidance
+    return `Review the command structure and options. Ensure all required options are provided with correct types and values.`;
+  }
+
+  /**
    * Search for members with a specific role
    * @param {import('discord.js').Guild} guild - Discord guild
    * @param {Object} options - Options with role_name or role_id
@@ -741,6 +970,83 @@ export class ChatService {
   }
 
   /**
+   * Smart member fetch with auto-detection
+   * Automatically fetches members if needed based on cache coverage and user query
+   * @param {import('discord.js').Guild} guild - Discord guild
+   * @param {string} userMessage - User's message (for keyword detection)
+   * @returns {Promise<{fetched: boolean, reason: string, cached: number, total: number}>}
+   */
+  async smartMemberFetch(guild, userMessage = "") {
+    if (!guild) {
+      return { fetched: false, reason: "No guild context" };
+    }
+
+    // Detect if member data is needed based on keywords
+    const needsMemberList =
+      userMessage &&
+      (userMessage.toLowerCase().includes("member") ||
+        userMessage.toLowerCase().includes("who") ||
+        userMessage.toLowerCase().includes("list") ||
+        userMessage.toLowerCase().includes("people") ||
+        userMessage.toLowerCase().includes("users") ||
+        userMessage.toLowerCase().includes("offline") ||
+        userMessage.toLowerCase().includes("online") ||
+        userMessage.toLowerCase().includes("idle") ||
+        userMessage.toLowerCase().includes("dnd") ||
+        userMessage.toLowerCase().includes("do not disturb"));
+
+    if (!needsMemberList) {
+      return { fetched: false, reason: "No member keywords detected" };
+    }
+
+    const cachedBefore = guild.members.cache.size;
+    const totalMembers = guild.memberCount;
+
+    // Don't auto-fetch for large servers (>1000 members)
+    if (totalMembers > MAX_MEMBER_FETCH_SERVER_SIZE) {
+      logger.debug(
+        `[smartMemberFetch] Server has ${totalMembers} members (exceeds ${MAX_MEMBER_FETCH_SERVER_SIZE} limit) - skipping auto-fetch`,
+      );
+      return {
+        fetched: false,
+        reason: "Server too large",
+        cached: cachedBefore,
+        total: totalMembers,
+      };
+    }
+
+    // Calculate cache coverage
+    const cacheCoverage = totalMembers > 0 ? cachedBefore / totalMembers : 0;
+
+    // Only fetch if cache coverage is insufficient (< 50%)
+    if (cacheCoverage >= 0.5 && cachedBefore >= totalMembers) {
+      logger.debug(
+        `[smartMemberFetch] Cache coverage sufficient (${Math.round(cacheCoverage * 100)}%) - skipping fetch`,
+      );
+      return {
+        fetched: false,
+        reason: "Cache coverage sufficient",
+        cached: cachedBefore,
+        total: totalMembers,
+        coverage: cacheCoverage,
+      };
+    }
+
+    // Fetch members
+    await this.fetchMembers(guild);
+    const cachedAfter = guild.members.cache.size;
+
+    return {
+      fetched: true,
+      reason: "Auto-fetched due to low cache coverage",
+      cached: cachedAfter,
+      total: totalMembers,
+      coverage: totalMembers > 0 ? cachedAfter / totalMembers : 0,
+      fetchedCount: cachedAfter - cachedBefore,
+    };
+  }
+
+  /**
    * Fetch all members for a guild
    * @param {import('discord.js').Guild} guild - Discord guild
    * @returns {Promise<void>}
@@ -749,16 +1055,28 @@ export class ChatService {
     const cachedBefore = guild.members.cache.size;
     const totalMembers = guild.memberCount;
 
-    if (
-      cachedBefore < totalMembers &&
-      totalMembers <= MAX_MEMBER_FETCH_SERVER_SIZE
-    ) {
+    // For servers > 1000 members, don't attempt to fetch all (too slow/timeout risk)
+    if (totalMembers > MAX_MEMBER_FETCH_SERVER_SIZE) {
+      logger.debug(
+        `[fetchMembers] Server has ${totalMembers} members (exceeds ${MAX_MEMBER_FETCH_SERVER_SIZE} limit) - using cached members only`,
+      );
+      return; // Use cached members only for large servers
+    }
+
+    if (cachedBefore < totalMembers) {
+      // Adaptive timeout: larger servers need more time
+      // Base timeout + 1ms per member (capped at 30 seconds)
+      const adaptiveTimeout = Math.min(
+        MEMBER_FETCH_TIMEOUT * 2 + Math.floor(totalMembers / 10),
+        30000,
+      );
+
       try {
         const fetchPromise = guild.members.fetch();
         const timeoutPromise = new Promise((_, reject) => {
           setTimeout(
             () => reject(new Error("Member fetch timed out")),
-            MEMBER_FETCH_TIMEOUT * 2, // Longer timeout for explicit fetch
+            adaptiveTimeout,
           );
         });
 
@@ -767,8 +1085,14 @@ export class ChatService {
           `[fetchMembers] Fetched ${guild.members.cache.size} members`,
         );
       } catch (fetchError) {
+        if (fetchError.message?.includes("timed out")) {
+          logger.debug(
+            `[fetchMembers] Fetch timed out after ${adaptiveTimeout}ms - using cached members`,
+          );
+        } else {
         logger.debug(`[fetchMembers] Fetch failed: ${fetchError.message}`);
-        throw fetchError;
+        }
+        // Don't throw - gracefully fall back to cached members
       }
     }
   }
@@ -894,11 +1218,20 @@ export class ChatService {
         parsed !== null &&
         "message" in parsed
       ) {
+        // Ensure message is a string (handle null/undefined)
+        const message =
+          typeof parsed.message === "string"
+            ? parsed.message
+            : String(parsed.message || "");
+
+        // Ensure actions is an array (handle null/undefined/invalid types)
+        const actions = Array.isArray(parsed.actions) ? parsed.actions : [];
+
         return {
           success: true,
           data: {
-            message: parsed.message || "No response generated.",
-            actions: Array.isArray(parsed.actions) ? parsed.actions : [],
+            message,
+            actions,
           },
         };
       }
@@ -931,6 +1264,8 @@ export class ChatService {
    * @returns {Promise<string>} AI response text
    */
   async generateResponse(userMessage, guild, client, options = {}) {
+    // Track performance - start timer
+    const requestStartTime = Date.now();
     const { userId, coreUserData, locale } = options;
 
     if (!this.aiService.isEnabled()) {
@@ -945,6 +1280,7 @@ export class ChatService {
       client,
       userMessage,
       options.locale || "en-US",
+      options.user || null, // Pass requester information
     );
 
     // Log system context summary for verification
@@ -990,6 +1326,23 @@ export class ChatService {
       }
     }
 
+    // ============================================================================
+    // PHASE 1: Smart Member Fetching (Auto-Detection)
+    // ============================================================================
+    // Automatically fetch members if needed based on user query and cache coverage
+    if (guild && userMessage) {
+      const fetchResult = await this.smartMemberFetch(guild, userMessage);
+      if (fetchResult.fetched) {
+              logger.info(
+          `[generateResponse] Auto-fetched ${fetchResult.fetchedCount} members (${fetchResult.cached}/${fetchResult.total} total, ${Math.round((fetchResult.coverage || 0) * 100)}% coverage)`,
+              );
+            } else {
+        logger.debug(
+          `[generateResponse] Smart fetch skipped: ${fetchResult.reason} (${fetchResult.cached || 0}/${fetchResult.total || 0} cached)`,
+        );
+      }
+    }
+
     // Get conversation history for this user (with LTM support)
     const history = await this.getConversationHistory(userId);
 
@@ -1003,27 +1356,17 @@ export class ChatService {
     if (hasSystemMessage) {
       // Update system message in case server context changed (use cached version)
       messages.push({ role: "system", content: systemMessage });
-      // Update in history and persist if changed
+      // Update in memory only (system messages are not persisted to storage)
       if (history[0].content !== systemMessage) {
         history[0].content = systemMessage;
-        // Persist updated system message to database (async, don't wait)
-        // This is now handled by conversationManager
-        conversationManager
-          .addToHistory(userId, {
-            role: "system",
-            content: systemMessage,
-          })
-          .catch(error => {
-            // Log but don't throw - history failures shouldn't break response generation
-            logger.debug(
-              `Failed to add system message to history for user ${userId}:`,
-              error,
-            );
-          });
+        // System messages are kept in memory only, not persisted to storage
+        // They're dynamically generated and very large, so we don't save them
       }
     } else {
       // First message in conversation - add system message
       messages.push({ role: "system", content: systemMessage });
+      // System messages are kept in memory only, not persisted to storage
+      // addToHistory will handle this (it filters out system messages)
       await this.addToHistory(userId, {
         role: "system",
         content: systemMessage,
@@ -1080,9 +1423,20 @@ export class ChatService {
 
           const maxTokens = wantsDetail ? 800 : 500; // Concise by default (500 tokens ≈ 350-400 chars), expand if asked
 
-          // Add a final reminder about JSON format to the user message
+          // Add a final reminder about format to the user message
           // Note: messages[messages.length - 1] already contains userMessageWithContext
-          const userMessageWithReminder = `${messages[messages.length - 1].content}\n\n[REMINDER: You MUST respond in JSON format: {"message": "...", "actions": []}]`;
+
+          // Detect if user is asking for an action (works for ALL actions, not just specific ones)
+          const isActionRequest = await this.detectActionRequest(
+            userMessage,
+            client,
+          );
+
+          const reminder = isActionRequest
+            ? `[CRITICAL: The user is asking you to PERFORM AN ACTION (execute a command, play a game, fetch data, modify roles, etc.). You MUST use JSON format with actions array: {"message": "...", "actions": [...]}. DO NOT respond in plain text - you need to execute an action!]`
+            : `[CRITICAL REMINDER: If you need to execute actions (commands, role changes, etc.), use JSON format: {"message": "...", "actions": [...]}. If you have NO actions (empty actions array), you MUST respond in plain text/markdown format - NO JSON, NO curly braces, NO code blocks. Just write your response directly.]`;
+
+          const userMessageWithReminder = `${messages[messages.length - 1].content}\n\n${reminder}`;
 
           const result = await this.aiService.generate({
             type: "text",
@@ -1097,7 +1451,7 @@ export class ChatService {
               systemMessage,
               temperature: 0.7,
               maxTokens, // Adaptive: 500 for concise, 800 if user asks for detail
-              forceJson: true, // Force JSON format for structured output
+              forceJson: false, // Don't force JSON - let AI choose based on whether actions are needed
             },
             // Use primary provider (self-hosted if enabled, otherwise fallback)
           });
@@ -1119,19 +1473,60 @@ export class ChatService {
           logger.info(rawResponse);
           logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
-          // Parse structured JSON response
+          // Parse response - can be JSON (if actions) or plain text (if no actions)
           let finalResponse;
           let actions = [];
 
           const parseResult = this.parseJsonResponse(rawResponse);
 
           if (parseResult.success) {
-            finalResponse = parseResult.data.message;
-            actions = parseResult.data.actions;
+            // JSON format detected
+            // Ensure message is a string (handle edge cases)
+            finalResponse =
+              typeof parseResult.data.message === "string"
+                ? parseResult.data.message
+                : String(parseResult.data.message || "");
+            // Ensure actions is an array (handle edge cases)
+            actions = Array.isArray(parseResult.data.actions)
+              ? parseResult.data.actions
+              : [];
+
+            // Post-processing: If actions array is empty, convert to plain text format
+            // This ensures users see clean text even if AI uses JSON unnecessarily
+            if (actions.length === 0) {
+              logger.info(
+                `[AI RESPONSE LOG] ⚠️ AI used JSON format with empty actions - converting to plain text`,
+              );
+              // Treat as plain text response (no actions)
+              // finalResponse already contains the message, actions is already empty
+              // This is handled the same as plain text responses below
+            }
+
+            // If parsed message is "No response generated" (fallback), treat it as empty
+            // This will be suppressed later if a command executed
+            if (
+              finalResponse === "No response generated." ||
+              finalResponse.trim() === ""
+            ) {
+              finalResponse = "";
+            }
 
             // Log parsed JSON structure
+            if (actions.length > 0) {
             logger.info(
-              `[AI RESPONSE LOG] ✅ Successfully parsed JSON response`,
+                `[AI RESPONSE LOG] ✅ Successfully parsed JSON response (with ${actions.length} actions)`,
+              );
+            } else {
+              logger.info(
+                `[AI RESPONSE LOG] ✅ Parsed JSON response (empty actions - treated as plain text)`,
+              );
+            }
+          } else {
+            // Plain text format - no actions
+            finalResponse = rawResponse.trim();
+            actions = [];
+            logger.info(
+              `[AI RESPONSE LOG] ✅ Plain text response (no actions)`,
             );
             logger.info(
               `[AI RESPONSE LOG] Parsed Message (${finalResponse.length} chars): "${finalResponse.substring(0, 200)}${finalResponse.length > 200 ? "..." : ""}"`,
@@ -1224,84 +1619,6 @@ export class ChatService {
             logger.debug(
               `[generateResponse] Parsed structured response with ${actions.length} actions`,
             );
-          } else {
-            // Invalid structure or parse error - wrap in proper format as fallback
-            logger.warn(
-              "[generateResponse] Response is not valid JSON - AI violated format requirement, wrapping in fallback format",
-            );
-            logger.warn(
-              `[AI RESPONSE LOG] ❌ CRITICAL: AI did not respond in required JSON format!`,
-            );
-            logger.warn(`[AI RESPONSE LOG] Parse error: ${parseResult.error}`);
-            if (parseResult.parsedKeys) {
-              logger.warn(
-                `[AI RESPONSE LOG] Parsed object keys: ${parseResult.parsedKeys.join(", ")}`,
-              );
-            }
-            logger.warn(
-              `[AI RESPONSE LOG] Raw response (first 500 chars): ${parseResult.rawResponse || rawResponse.substring(0, 500)}`,
-            );
-
-            // Check if response contains placeholders
-            const hasPlaceholders =
-              /\[ACTUAL_(MEMBER|USERNAME|ROLE|CHANNEL)/i.test(rawResponse);
-            if (hasPlaceholders) {
-              logger.error(
-                `[AI RESPONSE LOG] ❌ AI used placeholder data instead of real data!`,
-              );
-            }
-
-            // Validate the raw response for data accuracy even if JSON parsing failed
-            if (guild) {
-              const validation = responseValidator.validateResponseData(
-                rawResponse,
-                guild,
-              );
-              if (!validation.valid || validation.warnings.length > 0) {
-                logger.warn(
-                  `[AI RESPONSE LOG] ⚠️ Data validation warnings in non-JSON response:`,
-                );
-                validation.warnings.forEach(warning => {
-                  logger.warn(`[AI RESPONSE LOG] - ${warning}`);
-                });
-              }
-            }
-
-            // Fallback: Automatically wrap non-JSON responses in JSON format
-            // This ensures the bot can still function even if AI doesn't follow format
-            try {
-              // Clean up the raw response - remove any obvious errors or placeholders
-              let cleanedResponse = rawResponse.trim();
-
-              // Remove common AI disclaimers that aren't helpful
-              cleanedResponse = cleanedResponse.replace(
-                /(Note: I don't have real-time access|I'm a language model|I don't have personal experiences)[^.]*\./gi,
-                "",
-              );
-
-              // If response is empty or too short, provide a helpful fallback
-              if (cleanedResponse.length < 10) {
-                cleanedResponse =
-                  "I apologize, but I couldn't generate a proper response. Please try rephrasing your question or use /help to see available commands.";
-              }
-
-              // Try to create a proper JSON response from the raw text
-              const wrappedResponse = {
-                message: cleanedResponse,
-                actions: [],
-              };
-              // Use the wrapped response as if it came from JSON
-              finalResponse = wrappedResponse.message;
-              actions = wrappedResponse.actions;
-              logger.info(
-                `[AI RESPONSE LOG] ✅ Auto-wrapped non-JSON response in JSON format`,
-              );
-            } catch (wrapError) {
-              // If wrapping fails, provide a safe fallback message
-              finalResponse =
-                "I encountered an error processing your request. Please try again or use /help for available commands.";
-              logger.error("Failed to wrap response:", wrapError);
-            }
           }
 
           // Track if response was intentionally suppressed (e.g., command executed)
@@ -1333,17 +1650,28 @@ export class ChatService {
               // If fetch actions were executed, re-query AI with updated context
               if (fetchActions.length > 0) {
                 logger.info(
-                  `[generateResponse] Fetch actions executed, re-querying AI with updated data`,
+                  `[generateResponse] Fetch actions executed: ${fetchActions.map(a => a.type).join(", ")}, re-querying AI with updated data`,
                 );
 
                 // Rebuild system context with freshly fetched data
+                // Force include member list since we just fetched it
                 const updatedSystemMessage =
                   await systemPromptBuilder.buildSystemContext(
-                    guild,
-                    client,
-                    userMessage,
+                  guild,
+                  client,
+                  userMessage,
                     options.locale || "en-US",
+                    options.user || null,
+                    { forceIncludeMemberList: true }, // Force include after fetch
                   );
+
+                // Verify member list is in the updated context
+                const hasMemberList = updatedSystemMessage.includes(
+                  "COMPLETE LIST OF HUMAN MEMBER NAMES",
+                );
+                logger.info(
+                  `[generateResponse] Updated context includes member list: ${hasMemberList}`,
+                );
 
                 // Get updated conversation history
                 const updatedHistory =
@@ -1354,17 +1682,11 @@ export class ChatService {
                 const hasSystemMessage =
                   updatedHistory.length > 0 &&
                   updatedHistory[0]?.role === "system";
-                if (hasSystemMessage) {
+                // Add system message (always add, even if it existed before)
                   updatedMessages.push({
                     role: "system",
                     content: updatedSystemMessage,
                   });
-                } else {
-                  updatedMessages.push({
-                    role: "system",
-                    content: updatedSystemMessage,
-                  });
-                }
 
                 const startIndex = hasSystemMessage ? 1 : 0;
                 for (let i = startIndex; i < updatedHistory.length; i++) {
@@ -1454,52 +1776,67 @@ export class ChatService {
                     `[generateResponse] Command executed - response already sent to channel by command handler`,
                   );
 
-                  // Check if the AI's message is just explaining/repeating what the command does
-                  // Suppress redundant responses when command already sent its own response
-                  const redundantPatterns = [
-                    // Generic execution phrases
-                    /^I'll (execute|run|show|display|get|fetch|play)/i,
-                    /^Let me (execute|run|show|display|get|fetch|play)/i,
-                    /^I'll (execute|run) (the|that) .+ (command|for you)/i,
-                    /^Executing/i,
-                    /^Running/i,
-                    // Explanatory phrases about what the command does
-                    /^Let's (play|try|use|run)/i,
-                    /^Here's (a|the|your)/i,
-                    /^Please (choose|select|pick)/i,
-                    // Responses that just describe the command
-                    /^(Here|This) (is|are) (a|the|your)/i,
-                    /^You can (now|now you can)/i,
-                  ];
+                  // Track executed commands for LTM (Long-Term Memory)
+                  // Extract command information from actions to store in history
+                  const executedCommands = actions
+                    .filter(a => a.type === "execute_command")
+                    .map(a => {
+                      const cmd = a.command;
+                      const subcmd = a.subcommand;
+                      const opts = a.options || {};
+                      // Format: /command subcommand option:value
+                      let cmdStr = `/${cmd}`;
+                      if (subcmd) {
+                        cmdStr += ` ${subcmd}`;
+                      }
+                      const optStrings = Object.entries(opts)
+                        .map(([key, value]) => {
+                          // Format options nicely
+                          if (Array.isArray(value)) {
+                            return `${key}:${value.join(",")}`;
+                          }
+                          return `${key}:${value}`;
+                        })
+                        .filter(Boolean);
+                      if (optStrings.length > 0) {
+                        cmdStr += ` ${optStrings.join(" ")}`;
+                      }
+                      return cmdStr;
+                    });
 
-                  const isRedundantMessage = redundantPatterns.some(pattern =>
-                    pattern.test(finalResponse.trim()),
-                  );
+                  // Store executed commands in LTM for future reference
+                  if (executedCommands.length > 0) {
+                    const commandHistoryMessage = `[Command executed: ${executedCommands.join(", ")}]`;
+                    await this.addToHistory(userId, {
+                      role: "assistant",
+                      content: commandHistoryMessage,
+                    });
+                    logger.debug(
+                      `[generateResponse] Stored command execution in LTM: ${commandHistoryMessage}`,
+                    );
+                  }
 
-                  // Also check if response is very short and just acknowledges the command
-                  const isShortAcknowledgment =
-                    finalResponse.trim().length < 100 &&
-                    (finalResponse.toLowerCase().includes("command") ||
-                      finalResponse.toLowerCase().includes("executed") ||
-                      finalResponse.toLowerCase().includes("done") ||
-                      finalResponse.toLowerCase().includes("here"));
-
-                  // Suppress if it's redundant or just a short acknowledgment
-                  // Only keep the response if it contains important error information
+                  // When a command executes successfully, suppress ALL AI responses
+                  // unless they contain important error information
+                  // The command's response is already visible to the user
                   const hasErrorInfo =
-                    /error|failed|unable|cannot|issue|problem/i.test(
+                    /error|failed|unable|cannot|issue|problem|exception|crash/i.test(
                       finalResponse,
                     );
 
-                  if (
-                    (isRedundantMessage || isShortAcknowledgment) &&
-                    !hasErrorInfo
-                  ) {
-                    // Suppress redundant message - command already sent its response
+                  // IMPORTANT: Always suppress when command executes, unless there's error info
+                  if (!hasErrorInfo) {
+                    // Suppress ALL responses when command executed successfully
+                    // (empty, redundant, fallback, or acknowledgment)
                     finalResponse = "";
                     responseSuppressed = true;
                     logger.info(
-                      `[generateResponse] Suppressed redundant AI message - command response already sent to channel`,
+                      `[generateResponse] Suppressed AI message (command executed successfully) - keeping response empty`,
+                    );
+                  } else {
+                    // Keep error messages even when command executed (might be important)
+                    logger.info(
+                      `[generateResponse] Keeping AI response (contains error info) despite command execution`,
                     );
                   }
                 }
@@ -1509,11 +1846,36 @@ export class ChatService {
                   finalResponse += `\n\n**Additional Information:**\n${dataResults.map(r => r.replace(/^(Data:|Found:)\s*/, "")).join("\n")}`;
                 }
 
-                // Log status results but don't clutter user response
+                // Include error/status results in AI response so it can learn from them
                 if (statusResults.length > 0) {
                   logger.debug(
                     `[generateResponse] Action status: ${statusResults.join(", ")}`,
                   );
+                  // Add error information to response so AI knows what went wrong
+                  const errorMessages = statusResults.filter(
+                    r => r.includes("Error") || r.includes("Failed"),
+                  );
+                  if (errorMessages.length > 0) {
+                    // Include error context in response for AI learning
+                    if (!finalResponse) {
+                      finalResponse = "";
+                    }
+                    const errorSection = `\n\n**⚠️ Action Errors:**\n${errorMessages.join("\n")}`;
+                    finalResponse += errorSection;
+                    logger.info(
+                      `[generateResponse] Including error messages in response for AI learning: ${errorMessages.length} error(s)`,
+                    );
+
+                    // Store error information in LTM so AI can learn from it
+                    const errorHistoryMessage = `[Command execution failed: ${errorMessages.map(e => e.replace(/Command Error: /, "")).join("; ")}]`;
+                    await this.addToHistory(userId, {
+                      role: "assistant",
+                      content: errorHistoryMessage,
+                    });
+                    logger.debug(
+                      `[generateResponse] Stored command error in LTM for AI learning: ${errorHistoryMessage}`,
+                    );
+                  }
                 }
               }
             } catch (error) {
@@ -1542,7 +1904,7 @@ export class ChatService {
           }
 
           // Check response length to prevent Discord embed limit issues
-          if (finalResponse.length > MAX_RESPONSE_LENGTH) {
+          if (finalResponse && finalResponse.length > MAX_RESPONSE_LENGTH) {
             logger.warn(
               `[AI RESPONSE LOG] ⚠️ Response exceeds maximum length (${finalResponse.length} > ${MAX_RESPONSE_LENGTH}), truncating`,
             );
@@ -1562,17 +1924,41 @@ export class ChatService {
           logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
           // Add AI response to conversation history (sanitized, with LTM)
+          // Don't store empty responses when command was executed (already stored command execution above)
+          if (finalResponse && finalResponse.trim().length > 0) {
           await this.addToHistory(userId, {
             role: "assistant",
             content: finalResponse,
           });
+          } else if (responseSuppressed) {
+            // Command executed - command execution was already stored above, skip empty message
+            logger.debug(
+              `[generateResponse] Skipping empty response storage (command executed, already stored command info)`,
+            );
+          }
 
           // Return text response - commands send their own responses directly to channel
+          // Record performance metrics
+          const responseTime = Date.now() - requestStartTime;
+          performanceMonitor.recordRequest({
+            provider: "ai-chat",
+            responseTime,
+            success: true,
+          });
+
           return {
             text: finalResponse,
             commandResponses: [], // Commands send directly, no need to return them
           };
         } catch (error) {
+          // Record failed request in performance monitor
+          const responseTime = Date.now() - requestStartTime;
+          performanceMonitor.recordRequest({
+            provider: "ai-chat",
+            responseTime,
+            success: false,
+            error: error.message,
+          });
           logger.error("Chat generation failed:", error);
           throw error;
         }
@@ -1580,8 +1966,288 @@ export class ChatService {
       {
         userId,
         coreUserData,
+        rateLimitReserved: options.rateLimitReserved || false,
       },
     );
+  }
+
+  /**
+   * Generate streaming AI response
+   * @param {string} userMessage - User's message
+   * @param {import('discord.js').Guild} guild - Discord guild
+   * @param {import('discord.js').Client} client - Discord client
+   * @param {Object} options - Additional options
+   * @param {Function} options.onChunk - Callback for each chunk (fullText: string) => void
+   * @returns {Promise<Object>} Response with text and commandResponses
+   */
+  async generateResponseStreaming(userMessage, guild, client, options = {}) {
+    const { onChunk, userId } = options;
+
+    if (!onChunk || typeof onChunk !== "function") {
+      throw new Error("onChunk callback is required for streaming");
+    }
+
+    // Check if streaming is enabled
+    if (!STREAMING_ENABLED) {
+      logger.debug(
+        "[generateResponseStreaming] Streaming disabled, falling back to non-streaming",
+      );
+      return await this.generateResponse(userMessage, guild, client, options);
+    }
+
+    // Check if provider supports streaming
+    const textProvider = this.aiService.getTextProvider();
+    if (
+      !textProvider ||
+      !["openrouter", "openai", "selfhosted"].includes(textProvider)
+    ) {
+      // Fallback to non-streaming
+      logger.warn(
+        `[generateResponseStreaming] Provider ${textProvider} doesn't support streaming, falling back to non-streaming`,
+      );
+      return await this.generateResponse(userMessage, guild, client, options);
+    }
+
+    // Track performance - start timer
+    const requestStartTime = Date.now();
+
+    if (!this.aiService.isEnabled()) {
+      throw new Error(
+        "AI chat is not available. Please enable a text-capable AI provider in the bot configuration.",
+      );
+    }
+
+    // Build system context (same as non-streaming)
+    const systemMessage = await systemPromptBuilder.buildSystemContext(
+      guild,
+      client,
+      userMessage,
+      options.locale || "en-US",
+      options.user || null,
+    );
+
+    // Smart member fetch (same as non-streaming)
+    if (guild && userMessage) {
+      const fetchResult = await this.smartMemberFetch(guild, userMessage);
+      if (fetchResult.fetched) {
+        logger.info(
+          `[generateResponseStreaming] Auto-fetched ${fetchResult.fetchedCount} members`,
+        );
+      }
+    }
+
+    // Get conversation history
+    const history = await this.getConversationHistory(userId);
+    const messages = [];
+
+    // Add system message
+    const hasSystemMessage =
+      history.length > 0 && history[0]?.role === "system";
+    if (hasSystemMessage) {
+      messages.push({ role: "system", content: systemMessage });
+    } else {
+      messages.push({ role: "system", content: systemMessage });
+      await this.addToHistory(userId, {
+        role: "system",
+        content: systemMessage,
+      });
+    }
+
+    // Add conversation history
+    const startIndex = hasSystemMessage ? 1 : 0;
+    for (let i = startIndex; i < history.length; i++) {
+      messages.push({
+        role: history[i].role,
+        content: history[i].content,
+      });
+    }
+
+    // Add user message with enhanced context for action detection
+    // Detect if user is asking for an action (works for ALL actions, not just specific ones)
+    const needsAction = await this.detectActionRequest(userMessage, client);
+
+    const enhancedUserMessage = needsAction
+      ? `${userMessage}\n\n[CRITICAL: The user is asking you to PERFORM AN ACTION (execute a command, play a game, fetch data, modify roles, etc.). You MUST use JSON format with actions array: {"message": "...", "actions": [...]}. DO NOT respond in plain text - you need to execute an action!]`
+      : userMessage;
+
+    messages.push({ role: "user", content: enhancedUserMessage });
+
+    // Generate streaming response
+    let fullText = "";
+    let lastUpdateTime = Date.now();
+    let hasDetectedActions = false; // Track if we've detected actions in the response
+
+    const chunkCallback = chunk => {
+      fullText += chunk;
+
+      // Check if response contains actions (JSON format with actions array)
+      // If actions are detected, don't stream updates - wait for complete response
+      if (!hasDetectedActions) {
+        // Quick check: if response starts with JSON or contains "actions" field, likely has actions
+        const trimmed = fullText.trim();
+        if (
+          trimmed.startsWith("{") ||
+          trimmed.startsWith("```json") ||
+          /"actions"\s*:\s*\[/.test(fullText)
+        ) {
+          hasDetectedActions = true;
+          logger.debug(
+            "[generateResponseStreaming] Detected actions in response - disabling streaming updates",
+          );
+          // Don't call onChunk - wait for complete response
+          return;
+        }
+      }
+
+      // Only stream if no actions detected (plain text response)
+      if (!hasDetectedActions) {
+        // Throttle Discord updates (update every STREAMING_UPDATE_INTERVAL ms)
+        const now = Date.now();
+        if (now - lastUpdateTime >= STREAMING_UPDATE_INTERVAL) {
+          onChunk(fullText); // Send accumulated text
+          lastUpdateTime = now;
+        }
+      }
+    };
+
+    // Final callback to ensure last chunk is sent
+    const finalCallback = () => {
+      // If actions were detected, we'll update with final message after parsing
+      // Otherwise, send the final accumulated text
+      if (fullText && !hasDetectedActions) {
+        onChunk(fullText);
+      }
+    };
+
+    try {
+      const result = await this.aiService.generateTextStreaming({
+        prompt: messages,
+        model: null, // Use default
+        config: {
+          systemMessage: null, // Already in messages
+          temperature: 0.7,
+          maxTokens: 2000,
+        },
+        provider: textProvider,
+        onChunk: chunkCallback,
+      });
+
+      finalCallback();
+
+      // Parse JSON response if needed (same as non-streaming)
+      const parsed = this.parseJsonResponse(result.text || fullText);
+
+      // Log raw response for debugging
+      const rawResponseText = result.text || fullText;
+      logger.debug(
+        `[generateResponseStreaming] Raw response (${rawResponseText.length} chars): ${rawResponseText.substring(0, 300)}${rawResponseText.length > 300 ? "..." : ""}`,
+      );
+
+      // Post-processing: If JSON has empty actions, treat as plain text
+      const finalMessage = parsed.success
+        ? typeof parsed.data.message === "string"
+          ? parsed.data.message
+          : String(parsed.data.message || "")
+        : result.text || fullText || "";
+      const finalActions = parsed.success
+        ? Array.isArray(parsed.data.actions)
+          ? parsed.data.actions
+          : []
+        : [];
+
+      // Log what we detected
+      logger.info(
+        `[generateResponseStreaming] Parsed response - JSON: ${parsed.success}, Actions: ${finalActions.length}, Detected during streaming: ${hasDetectedActions}`,
+      );
+      if (parsed.success && finalActions.length > 0) {
+        logger.info(
+          `[generateResponseStreaming] Action details: ${JSON.stringify(finalActions)}`,
+        );
+      }
+
+      // If actions were detected during streaming, we didn't show updates
+      // Now that we have the complete response, update with the final message
+      if (hasDetectedActions && onChunk) {
+        // Extract and display only the message text (not the JSON)
+        onChunk(finalMessage || "🤔 Processing...");
+      }
+
+      // If actions array is empty, convert to plain text format
+      if (parsed.success && finalActions.length === 0) {
+        logger.info(
+          `[generateResponseStreaming] AI used JSON with empty actions - treating as plain text`,
+        );
+        // finalMessage already contains the message text
+      }
+
+      // Add to conversation history
+      await this.addToHistory(userId, { role: "user", content: userMessage });
+      await this.addToHistory(userId, {
+        role: "assistant",
+        content: finalMessage,
+      });
+
+      // Execute actions if any
+      let commandResponses = [];
+      if (finalActions.length > 0) {
+        logger.info(
+          `[generateResponseStreaming] Executing ${finalActions.length} action(s): ${finalActions.map(a => a.type).join(", ")}`,
+        );
+        commandResponses = await this.executeStructuredActions(
+          finalActions,
+          guild,
+          client,
+          options.user,
+          options.channel,
+        );
+        logger.info(
+          `[generateResponseStreaming] Actions executed, commandResponses: ${commandResponses.length}`,
+        );
+      } else {
+        logger.debug(
+          `[generateResponseStreaming] No actions to execute (plain text response)`,
+        );
+      }
+
+      // Track performance
+      const responseTime = Date.now() - requestStartTime;
+      performanceMonitor.recordRequest({
+        provider: textProvider,
+        responseTime,
+        success: true,
+        type: "ai-chat-streaming",
+      });
+
+      return {
+        text: finalMessage,
+        commandResponses,
+      };
+    } catch (error) {
+      // Track error
+      const responseTime = Date.now() - requestStartTime;
+      performanceMonitor.recordRequest({
+        provider: textProvider,
+        responseTime,
+        success: false,
+        error: error.message,
+        type: "ai-chat-streaming",
+      });
+
+      logger.error("[generateResponseStreaming] Error:", error);
+
+      // If streaming fails, fallback to non-streaming
+      if (
+        error.message.includes("streaming") ||
+        error.message.includes("stream")
+      ) {
+        logger.warn(
+          "[generateResponseStreaming] Streaming failed, falling back to non-streaming",
+        );
+        return await this.generateResponse(userMessage, guild, client, options);
+      }
+
+      throw error;
+    }
   }
 }
 

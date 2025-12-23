@@ -1,5 +1,6 @@
 import { getLogger } from "../logger.js";
 import { getDatabaseManager } from "../storage/databaseManager.js";
+import { getStorageManager } from "../storage/storageManager.js";
 import {
   DEFAULT_MAX_HISTORY_LENGTH,
   DEFAULT_CONVERSATION_TIMEOUT,
@@ -10,16 +11,22 @@ const logger = getLogger();
 
 /**
  * Manages conversation history and long-term memory for AI chat
+ * Supports both MongoDB and local file storage for cost optimization
  */
 export class ConversationManager {
   constructor() {
     this.conversations = new Map();
     this.dbManager = null;
+    this.storageManager = null;
     // Track cleanup interval for proper cleanup
     this.cleanupInterval = null;
 
     // Configuration from environment variables
     this.useLongTermMemory = process.env.AI_USE_LONG_TERM_MEMORY !== "false";
+    // Storage type: "file" (default), "mongodb", or "memory" (no persistence)
+    // "file" saves to local JSON files instead of MongoDB
+    // Default to "file", but allow override to "mongodb" if needed
+    this.storageType = process.env.AI_CONVERSATION_STORAGE_TYPE || "file"; // file (default), mongodb, or memory
     this.maxHistoryLength =
       parseInt(process.env.AI_CONVERSATION_HISTORY_LENGTH) ||
       DEFAULT_MAX_HISTORY_LENGTH;
@@ -35,7 +42,7 @@ export class ConversationManager {
   }
 
   /**
-   * Initialize long-term memory (MongoDB) if available
+   * Initialize long-term memory (MongoDB or file storage) if available
    */
   async initLongTermMemory() {
     if (!this.useLongTermMemory) {
@@ -45,23 +52,57 @@ export class ConversationManager {
       return;
     }
 
-    try {
-      this.dbManager = await getDatabaseManager();
-      if (this.dbManager && this.dbManager.conversations) {
-        logger.info("✅ Long-term memory (MongoDB) enabled for conversations");
-        // Preload recent conversations (optional optimization)
+    // Initialize file storage if storage type is "file"
+    if (this.storageType === "file") {
+      try {
+        this.storageManager = await getStorageManager();
+        logger.info(
+          "✅ Long-term memory (local file storage) enabled for conversations - saves MongoDB costs",
+        );
+        // Preload recent conversations from files
         if (process.env.AI_PRELOAD_CONVERSATIONS !== "false") {
-          this.preloadRecentConversations().catch(error => {
-            logger.debug("Failed to preload conversations:", error);
+          this.preloadRecentConversationsFromFiles().catch(error => {
+            logger.debug("Failed to preload conversations from files:", error);
           });
         }
-      } else {
-        logger.debug("⚠️ MongoDB not available, using in-memory storage only");
-        this.useLongTermMemory = false;
+        return;
+      } catch (error) {
+        logger.debug(
+          "⚠️ Failed to initialize file storage, falling back to in-memory:",
+          error.message,
+        );
+        this.storageType = "memory";
+        return;
       }
-    } catch (error) {
-      logger.debug("⚠️ Failed to initialize long-term memory:", error.message);
-      this.useLongTermMemory = false;
+    }
+
+    // Initialize MongoDB storage if storage type is "mongodb" (default)
+    if (this.storageType === "mongodb") {
+      try {
+        this.dbManager = await getDatabaseManager();
+        if (this.dbManager && this.dbManager.conversations) {
+          logger.info(
+            "✅ Long-term memory (MongoDB) enabled for conversations",
+          );
+          // Preload recent conversations (optional optimization)
+          if (process.env.AI_PRELOAD_CONVERSATIONS !== "false") {
+            this.preloadRecentConversations().catch(error => {
+              logger.debug("Failed to preload conversations:", error);
+            });
+          }
+        } else {
+          logger.debug(
+            "⚠️ MongoDB not available, falling back to in-memory storage only",
+          );
+          this.storageType = "memory";
+        }
+      } catch (error) {
+        logger.debug(
+          "⚠️ Failed to initialize MongoDB, falling back to in-memory:",
+          error.message,
+        );
+        this.storageType = "memory";
+      }
     }
   }
 
@@ -85,7 +126,7 @@ export class ConversationManager {
   }
 
   /**
-   * Preload recent conversations into memory cache (performance optimization)
+   * Preload recent conversations from MongoDB into memory cache
    * Only loads conversations active in last 24 hours to avoid memory bloat
    */
   async preloadRecentConversations() {
@@ -118,11 +159,60 @@ export class ConversationManager {
 
       if (loaded > 0) {
         logger.debug(
-          `Preloaded ${loaded} recent conversation(s) into memory cache`,
+          `Preloaded ${loaded} recent conversation(s) from MongoDB into memory cache`,
         );
       }
     } catch (error) {
-      logger.debug("Failed to preload conversations:", error);
+      logger.debug("Failed to preload conversations from MongoDB:", error);
+    }
+  }
+
+  /**
+   * Preload recent conversations from local files into memory cache
+   * Only loads conversations active in last 24 hours to avoid memory bloat
+   */
+  async preloadRecentConversationsFromFiles() {
+    if (!this.useLongTermMemory || !this.storageManager) {
+      return;
+    }
+
+    try {
+      const recentThreshold = Date.now() - 24 * 60 * 60 * 1000; // 24 hours
+      const conversationsData =
+        (await this.storageManager.read("ai_conversations")) || {};
+
+      let loaded = 0;
+      for (const [userId, conv] of Object.entries(conversationsData)) {
+        // Filter out system messages from stored data
+        const messages = (conv.messages || []).filter(m => m.role !== "system");
+        if (messages.length === 0) {
+          continue; // Skip conversations with only system messages
+        }
+
+        const lastActivity =
+          typeof conv.lastActivity === "number"
+            ? conv.lastActivity
+            : new Date(conv.lastActivity).getTime();
+        // Only load if recent and not expired
+        if (
+          lastActivity >= recentThreshold &&
+          Date.now() - lastActivity <= this.conversationTimeout
+        ) {
+          this.conversations.set(userId, {
+            messages, // Already filtered to exclude system messages
+            lastActivity,
+          });
+          loaded++;
+        }
+      }
+
+      if (loaded > 0) {
+        logger.debug(
+          `Preloaded ${loaded} recent conversation(s) from files into memory cache`,
+        );
+      }
+    } catch (error) {
+      logger.debug("Failed to preload conversations from files:", error);
     }
   }
 
@@ -138,41 +228,66 @@ export class ConversationManager {
       // Check if conversation expired
       if (Date.now() - cached.lastActivity > this.conversationTimeout) {
         this.conversations.delete(userId);
-        // Also delete from database if LTM enabled
-        if (this.useLongTermMemory && this.dbManager?.conversations) {
-          await this.dbManager.conversations.delete(userId).catch(error => {
-            logger.debug(
-              `Failed to delete conversation for user ${userId}:`,
-              error,
-            );
-          });
+        // Also delete from storage if LTM enabled
+        if (this.useLongTermMemory) {
+          await this.deleteFromStorage(userId);
         }
         return [];
       }
       return cached.messages || [];
     }
 
-    // If not in cache, try loading from database (LTM)
-    if (this.useLongTermMemory && this.dbManager?.conversations) {
+    // If not in cache, try loading from storage (LTM)
+    if (this.useLongTermMemory) {
       try {
-        const dbConversation =
-          await this.dbManager.conversations.getByUser(userId);
-        if (dbConversation) {
-          const lastActivity = new Date(dbConversation.lastActivity).getTime();
+        let conversation = null;
+
+        // Load from MongoDB
+        if (this.storageType === "mongodb" && this.dbManager?.conversations) {
+          const dbConversation =
+            await this.dbManager.conversations.getByUser(userId);
+          if (dbConversation) {
+            conversation = {
+              messages: dbConversation.messages || [],
+              lastActivity: new Date(dbConversation.lastActivity).getTime(),
+            };
+          }
+        }
+        // Load from file storage
+        else if (this.storageType === "file" && this.storageManager) {
+          const conversationsData =
+            (await this.storageManager.read("ai_conversations")) || {};
+          const fileConv = conversationsData[userId];
+          if (fileConv) {
+            // Filter out system messages from stored data (they shouldn't be there, but just in case)
+            const messages = (fileConv.messages || []).filter(
+              m => m.role !== "system",
+            );
+            conversation = {
+              messages,
+              lastActivity:
+                typeof fileConv.lastActivity === "number"
+                  ? fileConv.lastActivity
+                  : new Date(fileConv.lastActivity).getTime(),
+            };
+          }
+        }
+
+        if (conversation) {
           // Check if expired
-          if (Date.now() - lastActivity > this.conversationTimeout) {
-            await this.dbManager.conversations.delete(userId);
+          if (
+            Date.now() - conversation.lastActivity >
+            this.conversationTimeout
+          ) {
+            await this.deleteFromStorage(userId);
             return [];
           }
           // Load into memory cache
-          this.conversations.set(userId, {
-            messages: dbConversation.messages || [],
-            lastActivity,
-          });
-          return dbConversation.messages || [];
+          this.conversations.set(userId, conversation);
+          return conversation.messages || [];
         }
       } catch (error) {
-        logger.debug("Failed to load conversation from database:", error);
+        logger.debug("Failed to load conversation from storage:", error);
       }
     }
 
@@ -204,6 +319,28 @@ export class ConversationManager {
     // Update last activity
     conversation.lastActivity = Date.now();
 
+    // Don't store system messages - they're dynamically generated and very large
+    // System messages are only kept in memory for the current conversation
+    if (message.role === "system") {
+      // Only keep system message in memory, don't persist to storage
+      if (
+        conversation.messages.length === 0 ||
+        conversation.messages[0]?.role !== "system"
+      ) {
+        conversation.messages.unshift({
+          role: message.role,
+          content: message.content,
+        });
+      } else {
+        // Update existing system message in memory
+        conversation.messages[0] = {
+          role: message.role,
+          content: message.content,
+        };
+      }
+      return; // Don't save system messages to storage
+    }
+
     // Add message (optimized: don't store timestamp to save memory)
     conversation.messages.push({
       role: message.role,
@@ -226,17 +363,69 @@ export class ConversationManager {
         : recentMessages;
     }
 
-    // Save to database for LTM (async, don't wait)
-    if (this.useLongTermMemory && this.dbManager?.conversations) {
-      this.dbManager.conversations
-        .save(userId, conversation.messages, conversation.lastActivity)
-        .catch(error => {
-          // Log but don't throw - LTM failures shouldn't break conversation flow
-          logger.debug(
-            `Failed to save conversation for user ${userId} to database:`,
-            error,
-          );
-        });
+    // Save to storage for LTM (async, don't wait) - exclude system messages
+    if (this.useLongTermMemory) {
+      const messagesToSave = conversation.messages.filter(
+        m => m.role !== "system",
+      );
+      this.saveToStorage(
+        userId,
+        messagesToSave,
+        conversation.lastActivity,
+      ).catch(error => {
+        // Log but don't throw - LTM failures shouldn't break conversation flow
+        logger.debug(
+          `Failed to save conversation for user ${userId} to storage:`,
+          error,
+        );
+      });
+    }
+  }
+
+  /**
+   * Save conversation to storage (MongoDB or file)
+   * @param {string} userId - User ID
+   * @param {Array} messages - Conversation messages
+   * @param {number} lastActivity - Last activity timestamp
+   */
+  async saveToStorage(userId, messages, lastActivity) {
+    if (this.storageType === "mongodb" && this.dbManager?.conversations) {
+      await this.dbManager.conversations.save(userId, messages, lastActivity);
+    } else if (this.storageType === "file" && this.storageManager) {
+      const conversationsData =
+        (await this.storageManager.read("ai_conversations")) || {};
+      conversationsData[userId] = {
+        messages,
+        lastActivity,
+      };
+      await this.storageManager.write("ai_conversations", conversationsData);
+    }
+  }
+
+  /**
+   * Delete conversation from storage (MongoDB or file)
+   * @param {string} userId - User ID
+   */
+  async deleteFromStorage(userId) {
+    if (this.storageType === "mongodb" && this.dbManager?.conversations) {
+      await this.dbManager.conversations.delete(userId).catch(error => {
+        logger.debug(
+          `Failed to delete conversation for user ${userId} from MongoDB:`,
+          error,
+        );
+      });
+    } else if (this.storageType === "file" && this.storageManager) {
+      try {
+        const conversationsData =
+          (await this.storageManager.read("ai_conversations")) || {};
+        delete conversationsData[userId];
+        await this.storageManager.write("ai_conversations", conversationsData);
+      } catch (error) {
+        logger.debug(
+          `Failed to delete conversation for user ${userId} from files:`,
+          error,
+        );
+      }
     }
   }
 
@@ -267,14 +456,9 @@ export class ConversationManager {
   async clearHistory(userId) {
     if (userId) {
       this.conversations.delete(userId);
-      // Also delete from database if LTM enabled
-      if (this.useLongTermMemory && this.dbManager?.conversations) {
-        await this.dbManager.conversations.delete(userId).catch(error => {
-          logger.debug(
-            `Failed to delete conversation for user ${userId}:`,
-            error,
-          );
-        });
+      // Also delete from storage if LTM enabled
+      if (this.useLongTermMemory) {
+        await this.deleteFromStorage(userId);
       }
     }
   }
@@ -301,9 +485,9 @@ export class ConversationManager {
           this.conversations.delete(userId);
           cleaned++;
 
-          // Also delete from database if LTM enabled
-          if (this.useLongTermMemory && this.dbManager?.conversations) {
-            this.dbManager.conversations.delete(userId).catch(error => {
+          // Also delete from storage if LTM enabled
+          if (this.useLongTermMemory) {
+            this.deleteFromStorage(userId).catch(error => {
               logger.debug(
                 `Failed to delete expired conversation for user ${userId}:`,
                 error,

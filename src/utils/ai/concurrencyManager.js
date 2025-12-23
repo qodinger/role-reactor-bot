@@ -49,6 +49,7 @@ export class ConcurrencyManager {
    * @param {string} userId - User ID to check
    * @param {Object} coreUserData - User data including Core tier info
    * @returns {boolean} True if rate limited
+   * @deprecated Use checkAndReserveRateLimit() for atomic check-and-increment to avoid race conditions
    */
   checkUserRateLimit(userId, coreUserData = null) {
     if (!userId) return false;
@@ -78,6 +79,72 @@ export class ConcurrencyManager {
 
     // Check if user has exceeded their effective limit
     return userData.count >= effectiveRateLimit;
+  }
+
+  /**
+   * Atomically check and reserve rate limit (increments counter if not rate limited)
+   * This prevents race conditions where multiple requests pass the check before any increment
+   * @param {string} userId - User ID to check
+   * @param {Object} coreUserData - User data including Core tier info
+   * @returns {Object} { rateLimited: boolean, effectiveRateLimit: number }
+   */
+  checkAndReserveRateLimit(userId, coreUserData = null) {
+    if (!userId) {
+      return { rateLimited: false, effectiveRateLimit: this.userRateLimit };
+    }
+
+    const now = Date.now();
+    const userData = this.userRequests.get(userId);
+
+    // Calculate effective rate limit based on Core tier
+    let effectiveRateLimit = this.userRateLimit;
+    if (coreUserData && coreUserData.isCore && coreUserData.coreTier) {
+      const tierConfig = this.coreTierLimits[coreUserData.coreTier];
+      if (tierConfig) {
+        effectiveRateLimit = Math.floor(
+          this.userRateLimit * tierConfig.multiplier,
+        );
+      }
+    }
+
+    if (!userData) {
+      // First request - create entry and increment
+      this.userRequests.set(userId, {
+        count: 1,
+        lastRequest: now,
+        isCore: coreUserData?.isCore || false,
+        coreTier: coreUserData?.coreTier || null,
+      });
+      return { rateLimited: false, effectiveRateLimit };
+    }
+
+    // Reset counter if window has passed
+    if (now - userData.lastRequest > this.userRateWindow) {
+      // Window expired - reset and increment
+      this.userRequests.set(userId, {
+        count: 1,
+        lastRequest: now,
+        isCore: coreUserData?.isCore || false,
+        coreTier: coreUserData?.coreTier || null,
+      });
+      return { rateLimited: false, effectiveRateLimit };
+    }
+
+    // Check if user has exceeded their effective limit
+    if (userData.count >= effectiveRateLimit) {
+      return { rateLimited: true, effectiveRateLimit };
+    }
+
+    // Increment counter atomically
+    userData.count++;
+    userData.lastRequest = now;
+    // Update Core tier info if provided
+    if (coreUserData) {
+      userData.isCore = coreUserData.isCore || false;
+      userData.coreTier = coreUserData.coreTier || null;
+    }
+    this.userRequests.set(userId, userData);
+    return { rateLimited: false, effectiveRateLimit };
   }
 
   /**
@@ -157,10 +224,15 @@ export class ConcurrencyManager {
    */
   async queueRequest(requestId, generationFunction, options = {}) {
     return new Promise((resolve, reject) => {
-      // Check user rate limiting
+      // Check user rate limiting (only if not already checked and reserved in handler)
       const userId = options.userId;
       const coreUserData = options.coreUserData;
-      if (userId && this.isUserRateLimited(userId, coreUserData)) {
+      const rateLimitReserved = options.rateLimitReserved || false;
+
+      // Only check rate limit here if it wasn't already checked and reserved in the handler
+      // This prevents double-counting and ensures atomic check-and-increment
+      if (userId && !rateLimitReserved) {
+        if (this.isUserRateLimited(userId, coreUserData)) {
         // Get the actual effective rate limit that was used
         const userData = this.userRequests.get(userId);
         let effectiveRateLimit = this.userRateLimit;
@@ -179,6 +251,7 @@ export class ConcurrencyManager {
           ),
         );
         return;
+        }
       }
 
       // Check queue size limit
@@ -214,7 +287,7 @@ export class ConcurrencyManager {
           this.requestTimeouts.delete(requestId);
           // Check if promise is still pending before rejecting
           try {
-            reject(new Error("AI generation request timed out"));
+          reject(new Error("AI generation request timed out"));
           } catch (_err) {
             // Promise already resolved/rejected, ignore
             logger.debug(
@@ -233,7 +306,7 @@ export class ConcurrencyManager {
           this.requestTimeouts.delete(requestId);
           // Check if promise is still pending before rejecting
           try {
-            reject(new Error("Request timed out in queue"));
+          reject(new Error("Request timed out in queue"));
           } catch (_err) {
             // Promise already resolved/rejected, ignore
             logger.debug(
