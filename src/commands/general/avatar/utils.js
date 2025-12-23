@@ -1,15 +1,17 @@
 import { getLogger } from "../../../utils/logger.js";
+import config from "../../../config/config.js";
 
 /**
  * Validate user prompt for inappropriate content
  * @param {string} prompt - User's prompt
  * @returns {Object} Validation result with isValid and reason
  */
-export function validatePrompt(prompt) {
-  const logger = getLogger();
-
-  // Comprehensive content filter for AI image generation
-  const inappropriateKeywords = [
+/**
+ * Get list of NSFW/inappropriate keywords for content detection
+ * @returns {Array<string>} Array of inappropriate keywords
+ */
+export function getInappropriateKeywords() {
+  return [
     // Explicit content
     "nude",
     "naked",
@@ -252,23 +254,101 @@ export function validatePrompt(prompt) {
     "forbidden",
     "banned",
   ];
+}
+
+/**
+ * Get explicit NSFW keywords (subset of inappropriate keywords)
+ * Used for spoiler detection - only explicit sexual/nude content
+ * @returns {Array<string>} Array of explicit NSFW keywords
+ */
+export function getExplicitNSFWKeywords() {
+  const allKeywords = getInappropriateKeywords();
+  // Filter to only explicit NSFW keywords (sexual/nude content)
+  const explicitKeywords = [
+    // Explicit content
+    "nude",
+    "naked",
+    "explicit",
+    "porn",
+    "sexual",
+    "nsfw",
+    "adult",
+    "18+",
+    "xxx",
+    "sex",
+    "nudity",
+    "bare",
+    "topless",
+    "bottomless",
+    "undressed",
+    "unclothed",
+    "exposed",
+    // Sexual content
+    "hentai",
+    "ecchi",
+    "erotic",
+    "sexy",
+    "seductive",
+    "provocative",
+    "sensual",
+    "intimate",
+    // Body parts (anatomical) - only explicit ones
+    "breast",
+    "boob",
+    "boobs",
+    "nipple",
+    "nipples",
+    "genital",
+    "genitals",
+    "penis",
+    "vagina",
+    "pussy",
+    "cock",
+    "dick",
+    "anus",
+    "butthole",
+    "clitoris",
+    "labia",
+    "scrotum",
+    "testicle",
+    "testicles",
+  ];
+
+  // Return intersection of all keywords and explicit keywords
+  return allKeywords.filter(keyword => explicitKeywords.includes(keyword));
+}
+
+/**
+ * Validate user prompt for inappropriate content
+ * @param {string} prompt - User's prompt
+ * @returns {Object} Validation result with isValid and reason
+ */
+export function validatePrompt(prompt) {
+  const logger = getLogger();
+  const contentFilterEnabled =
+    config.corePricing.avatarContentFilter?.enabled ?? false;
+
+  // Get inappropriate keywords
+  const inappropriateKeywords = getInappropriateKeywords();
 
   const lowerPrompt = prompt.toLowerCase();
 
-  // Check for inappropriate keywords
-  for (const keyword of inappropriateKeywords) {
-    if (lowerPrompt.includes(keyword)) {
-      logger.warn(
-        `Inappropriate content detected in prompt: "${prompt}" (keyword: ${keyword})`,
-      );
-      return {
-        isValid: false,
-        reason: `Your prompt contains inappropriate content. Please describe your character in a family-friendly way.`,
-      };
+  // Check for inappropriate keywords (only if filter is enabled)
+  if (contentFilterEnabled) {
+    for (const keyword of inappropriateKeywords) {
+      if (lowerPrompt.includes(keyword)) {
+        logger.warn(
+          `Inappropriate content detected in prompt: "${prompt}" (keyword: ${keyword})`,
+        );
+        return {
+          isValid: false,
+          reason: `Your prompt contains inappropriate content. Please describe your character in a family-friendly way.`,
+        };
+      }
     }
   }
 
-  // Additional validation checks
+  // Additional validation checks (only if filter is enabled)
   const additionalChecks = [
     // Check for anatomical terms with word boundaries
     {
@@ -335,15 +415,18 @@ export function validatePrompt(prompt) {
     },
   ];
 
-  for (const check of additionalChecks) {
-    if (check.pattern.test(prompt)) {
-      logger.warn(
-        `Pattern-based inappropriate content detected in prompt: "${prompt}"`,
-      );
-      return {
-        isValid: false,
-        reason: check.reason,
-      };
+  // Pattern-based checks (only if filter is enabled)
+  if (contentFilterEnabled) {
+    for (const check of additionalChecks) {
+      if (check.pattern.test(prompt)) {
+        logger.warn(
+          `Pattern-based inappropriate content detected in prompt: "${prompt}"`,
+        );
+        return {
+          isValid: false,
+          reason: check.reason,
+        };
+      }
     }
   }
 
