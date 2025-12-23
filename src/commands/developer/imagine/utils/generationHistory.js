@@ -2,7 +2,6 @@ import { getImageJobsStorageManager } from "../../../../utils/storage/imageJobsS
 import { getLogger } from "../../../../utils/logger.js";
 
 const logger = getLogger();
-const COLLECTION_NAME = "avatar_jobs";
 
 // Auto cleanup configuration
 const CLEANUP_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours
@@ -12,11 +11,13 @@ const DEFAULT_RETENTION_DAYS =
 // Start automatic cleanup
 let cleanupInterval = null;
 
+const COLLECTION_NAME = "imagine_jobs";
+
 /**
- * Generation history tracking for debugging and support
- * Stores in flat format similar to imagine_jobs.json
+ * Generation history tracking for imagine command
+ * Stores in flat format similar to avatar_jobs.json
  */
-export class GenerationHistory {
+export class ImagineGenerationHistory {
   /**
    * Record a generation attempt
    * @param {string} userId - User ID
@@ -28,7 +29,7 @@ export class GenerationHistory {
 
     const timestamp = Date.now();
     const randomId = Math.random().toString(36).substr(2, 9);
-    const jobId = `avatar_${timestamp}_${randomId}`;
+    const jobId = `imagine_${timestamp}_${randomId}`;
 
     const createdAt = new Date().toISOString();
     // Only set expiresAt if retention is enabled (positive number)
@@ -46,19 +47,13 @@ export class GenerationHistory {
       provider: generationData.provider || null,
       model: generationData.model || null,
       config: generationData.config || {},
-      success: generationData.success,
-      error: generationData.error || null,
-      processingTime: generationData.processingTime || 0,
-      userTier: generationData.userTier || "Regular",
       createdAt,
       expiresAt,
     };
 
     await storage.save(COLLECTION_NAME, jobId, record);
 
-    logger.debug(
-      `Recorded generation ${jobId} for user ${userId}: ${generationData.success ? "SUCCESS" : "FAILED"}`,
-    );
+    logger.debug(`Recorded imagine generation ${jobId} for user ${userId}`);
   }
 
   /**
@@ -73,32 +68,6 @@ export class GenerationHistory {
   }
 
   /**
-   * Get failed generations for debugging
-   * @param {number} hours - Hours to look back
-   * @returns {Promise<Array>} Failed generations
-   */
-  static async getFailedGenerations(hours = 24) {
-    const storage = getImageJobsStorageManager();
-    const history = await storage.getAll(COLLECTION_NAME);
-
-    const cutoffTime = new Date(Date.now() - hours * 60 * 60 * 1000);
-    const failedGenerations = [];
-
-    for (const [jobId, record] of Object.entries(history)) {
-      if (!record.success && new Date(record.createdAt) > cutoffTime) {
-        failedGenerations.push({
-          jobId,
-          ...record,
-        });
-      }
-    }
-
-    return failedGenerations.sort(
-      (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
-    );
-  }
-
-  /**
    * Get generation statistics
    * @param {number} hours - Hours to look back
    * @returns {Promise<Object>} Generation statistics
@@ -108,46 +77,17 @@ export class GenerationHistory {
     const history = await storage.getAll(COLLECTION_NAME);
 
     const cutoffTime = new Date(Date.now() - hours * 60 * 60 * 1000);
-    let totalAttempts = 0;
-    let successfulGenerations = 0;
-    let failedGenerations = 0;
-    let averageProcessingTime = 0;
-    const processingTimes = [];
+    let totalGenerations = 0;
 
     for (const record of Object.values(history)) {
       if (new Date(record.createdAt) > cutoffTime) {
-        totalAttempts += 1;
-        if (record.success) {
-          successfulGenerations += 1;
-        } else {
-          failedGenerations += 1;
-        }
-
-        if (record.processingTime > 0) {
-          processingTimes.push(record.processingTime);
-        }
+        totalGenerations += 1;
       }
-    }
-
-    if (processingTimes.length > 0) {
-      averageProcessingTime =
-        processingTimes.reduce((a, b) => a + b, 0) / processingTimes.length;
     }
 
     return {
       timeRange: `${hours} hours`,
-      totalAttempts,
-      successfulGenerations,
-      failedGenerations,
-      successRate:
-        totalAttempts > 0
-          ? ((successfulGenerations / totalAttempts) * 100).toFixed(2)
-          : 0,
-      averageProcessingTime: Math.round(averageProcessingTime),
-      failureRate:
-        totalAttempts > 0
-          ? ((failedGenerations / totalAttempts) * 100).toFixed(2)
-          : 0,
+      totalGenerations,
     };
   }
 
@@ -160,7 +100,7 @@ export class GenerationHistory {
     const storage = getImageJobsStorageManager();
     const deletedCount = await storage.deleteByUserId(COLLECTION_NAME, userId);
     logger.info(
-      `Deleted ${deletedCount} generation records for user ${userId}`,
+      `Deleted ${deletedCount} imagine generation records for user ${userId}`,
     );
     return deletedCount;
   }
@@ -179,7 +119,7 @@ export class GenerationHistory {
 
     const storage = getImageJobsStorageManager();
     const totalCleaned = await storage.cleanup(COLLECTION_NAME, daysToKeep);
-    logger.info(`Cleaned up ${totalCleaned} old generation records`);
+    logger.info(`Cleaned up ${totalCleaned} old imagine generation records`);
     return totalCleaned;
   }
 
