@@ -30,7 +30,6 @@ import {
   processTempRoles,
 } from "./utils.js";
 import { detectTargetingType } from "../schedule-role/utils.js";
-import { getVoiceOperationQueue } from "../../../utils/discord/voiceOperationQueue.js";
 // import { THEME } from "../../../config/theme.js"; // Not used in new implementation
 
 /**
@@ -1434,7 +1433,6 @@ export async function handleRemove(interaction, client, deferred = false) {
 
     // Process removals for all users
     const limiter = pLimit(3);
-    const membersForVoiceOps = []; // Collect members who need voice operations
 
     const removalPromises = userIds.map(userId =>
       limiter(async () => {
@@ -1460,11 +1458,6 @@ export async function handleRemove(interaction, client, deferred = false) {
           if (removed) {
             // Remove the actual Discord role
             await member.roles.remove(role, reason);
-
-            // Collect member for voice operations if they're in a voice channel
-            if (member.voice?.channel) {
-              membersForVoiceOps.push({ member, role });
-            }
 
             // Send notification if requested
             if (notify) {
@@ -1510,39 +1503,6 @@ export async function handleRemove(interaction, client, deferred = false) {
         ? r.value
         : { success: false, userId: null, error: r.reason },
     );
-
-    // Queue voice operations for global processing
-    if (membersForVoiceOps.length > 0) {
-      const voiceQueue = getVoiceOperationQueue();
-
-      // Queue all operations
-      const queuePromises = membersForVoiceOps.map(
-        ({ member, role: roleObj }) =>
-          voiceQueue.queueOperation({
-            member,
-            role: roleObj,
-            reason: `Temporary role removal: ${role.name}`,
-          }),
-      );
-
-      // Don't wait for all operations to complete - let queue handle them
-      Promise.allSettled(queuePromises)
-        .then(results => {
-          const successCount = results.filter(
-            r => r.status === "fulfilled" && r.value?.success,
-          ).length;
-          const failureCount = results.length - successCount;
-
-          if (failureCount > 0) {
-            logger.debug(
-              `Voice operations queued: ${successCount} queued, ${failureCount} failed`,
-            );
-          }
-        })
-        .catch(error => {
-          logger.warn("Error queuing voice operations:", error);
-        });
-    }
 
     // Create success embed with results
     const embed = createTempRoleRemovalEmbed(

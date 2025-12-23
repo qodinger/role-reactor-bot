@@ -58,11 +58,6 @@ Following the modular pattern established by other admin commands:
 - Comprehensive validation and error handling
 - Role ownership validation
 - BSON error prevention
-- **Voice Restrictions**: Automatically enforces Connect/Speak restrictions when assigning restrictive roles to users in voice channels
-  - **Connect Disabled**: Users are automatically disconnected from voice channels when the role is assigned
-  - **Speak Disabled**: Users are automatically muted in voice channels when the role is assigned
-  - **Automatic Unmute**: Users are automatically unmuted when the restrictive role is removed
-  - **Requirements**: Bot needs `Move Members` permission (for disconnecting) and `Mute Members` permission (for muting)
 
 ## Dependencies
 

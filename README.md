@@ -34,7 +34,6 @@ A production-ready Discord bot for self-assignable roles through reactions. Buil
 - **🎯 Self-Assignable Roles**: Users can assign/remove roles by reacting to messages
 - **⏰ Temporary Roles**: Auto-expire roles after a set time with smart notifications
 - **📅 Schedule Roles**: Schedule automatic role assignments and removals with one-time or recurring schedules
-- **Voice Channel Permissions**: Automatically enforces Connect/Speak restrictions for ALL role assignments (commands, manual, reactions, etc.)
 - **🎉 Welcome System**: Auto-welcome new members with customizable messages and auto-role assignment
 - **👋 Goodbye System**: Auto-goodbye messages when members leave with customizable placeholders
 - **🧠 Smart 8ball**: Intelligent question analysis with sentiment detection and context-aware responses
@@ -192,30 +191,6 @@ Schedule automatic role assignments and removals with one-time or recurring sche
 /schedule-role view schedule-id:"abc123-def456-ghi789"
 /schedule-role cancel schedule-id:"abc123-def456-ghi789"
 ```
-
-### Voice Channel Permissions
-
-**Automatic Voice Management** - Works for ALL role assignments (commands, manual, reactions, etc.):
-
-When assigning roles with `Connect` or `Speak` permissions disabled, the bot automatically:
-
-- **Disconnects** users from voice channels if the role has `Connect` permission disabled
-- **Mutes** users if the role has `Speak` permission disabled
-- **Unmutes** users when restrictive roles are removed
-
-**Works with:**
-
-- `/temp-roles` command
-- `/schedule-role` command
-- Role reactions
-- Manual role assignments (by admins)
-- Any other method of role assignment
-
-**Requirements:**
-
-- Bot needs `Move Members` permission (for disconnecting users)
-- Bot needs `Mute Members` permission (for muting users)
-- Works automatically - no additional configuration needed!
 
 ### Welcome System
 
@@ -420,8 +395,6 @@ Required Discord bot permissions:
 - **Moderate Members**: To timeout users (for moderation commands)
 - **Ban Members**: To ban and unban users (for moderation commands)
 - **Kick Members**: To kick users from the server (for moderation commands)
-- **Move Members**: To disconnect users from voice channels (for voice restrictions)
-- **Mute Members**: To mute users in voice channels (for voice restrictions)
 
 ## 🔧 Troubleshooting
 

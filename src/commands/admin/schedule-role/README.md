@@ -97,20 +97,6 @@ Following the modular pattern established by other admin commands:
 - **Role-Based**: Target members who have specific roles by mentioning those roles
 - **Mixed**: Combine user mentions and role mentions in the same command
 
-### Voice Channel Management
-
-When assigning restrictive roles, the bot automatically handles users who are already in voice channels:
-
-- **Disconnects** users from voice channels if the role has `Connect` permission disabled
-- **Mutes** users if the role has `Speak` permission disabled
-- Prevents users from joining voice channels (via role permissions)
-
-**Requirements:**
-
-- Bot needs `Move Members` permission (guild-level) for disconnecting users
-- Bot needs `Mute Members` permission (guild-level) for muting users
-- Restrictive role must have `Connect`/`Speak` permissions disabled in voice channel settings
-
 ### Performance Optimization
 
 - Adaptive batch processing based on operation size

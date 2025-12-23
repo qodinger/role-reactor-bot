@@ -7,7 +7,6 @@ import {
   getCachedMember,
 } from "../../utils/discord/roleManager.js";
 import { THEME, EMOJIS } from "../../config/theme.js";
-import { getVoiceOperationQueue } from "../../utils/discord/voiceOperationQueue.js";
 import {
   getUsersCorePriority,
   sortByCorePriority,
@@ -183,40 +182,12 @@ class RoleExpirationScheduler {
         "Temporary role expired",
       );
 
-      // Send expiration notifications and enforce voice restrictions for roles that were successfully removed
+      // Send expiration notifications for roles that were successfully removed
       for (let i = 0; i < results.length; i++) {
         const result = results[i];
         const roleRemoval = roleRemovals[i];
 
         if (result.success) {
-          // Enforce voice restrictions if user is in a voice channel
-          // This will unmute them if they no longer have restrictive Speak roles
-          if (roleRemoval.member.voice?.channel) {
-            try {
-              // Queue voice operation - global queue will handle it
-              const voiceQueue = getVoiceOperationQueue();
-
-              voiceQueue
-                .queueOperation({
-                  member: roleRemoval.member,
-                  role: roleRemoval.role,
-                  reason: `Temporary role expired: ${roleRemoval.role.name}`,
-                  type: "enforce",
-                })
-                .catch(error => {
-                  this.logger.debug(
-                    `Failed to queue voice operation for ${roleRemoval.member.user.tag}:`,
-                    error.message,
-                  );
-                });
-            } catch (voiceError) {
-              this.logger.warn(
-                `Failed to queue voice operation for ${roleRemoval.member.user.tag}:`,
-                voiceError.message,
-              );
-            }
-          }
-
           // Send expiration notification if requested
           if (roleRemoval.notifyExpiry) {
             try {

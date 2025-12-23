@@ -3,7 +3,6 @@ import { getDatabaseManager } from "../storage/databaseManager.js";
 import { getLogger } from "../logger.js";
 import { EmbedBuilder } from "discord.js";
 import { THEME } from "../../config/theme.js";
-import { getVoiceOperationQueue } from "./voiceOperationQueue.js";
 
 /**
  * Send DM notification to user about role assignment
@@ -169,33 +168,6 @@ export async function addTemporaryRole(
         logger.info(
           `✅ Successfully assigned temporary role ${role.name} to user ${userId}`,
         );
-
-        // Queue voice operation if user is in a voice channel
-        // The global queue will handle enforcing restrictions
-        if (member.voice?.channel) {
-          try {
-            const voiceQueue = getVoiceOperationQueue();
-
-            voiceQueue
-              .queueOperation({
-                member,
-                role,
-                reason: `Temporary role assignment: ${role.name}`,
-                type: "enforce",
-              })
-              .catch(error => {
-                logger.debug(
-                  `Failed to queue voice operation for ${member.user.tag}:`,
-                  error.message,
-                );
-              });
-          } catch (voiceError) {
-            logger.warn(
-              `Failed to queue voice operation for ${member.user.tag}:`,
-              voiceError.message,
-            );
-          }
-        }
       } else {
         logger.info(
           `✅ User ${userId} already has role ${role.name}, skipping Discord assignment`,
@@ -356,33 +328,6 @@ export async function addTemporaryRolesForMultipleUsers(
           logger.info(
             `✅ Successfully assigned temporary role ${role.name} to user ${userId}`,
           );
-
-          // Queue voice operation if user is in a voice channel
-          // The global queue will handle enforcing restrictions
-          if (member.voice?.channel) {
-            try {
-              const voiceQueue = getVoiceOperationQueue();
-
-              voiceQueue
-                .queueOperation({
-                  member,
-                  role,
-                  reason: `Temporary role assignment: ${role.name}`,
-                  type: "enforce",
-                })
-                .catch(error => {
-                  logger.debug(
-                    `Failed to queue voice operation for ${member.user.tag}:`,
-                    error.message,
-                  );
-                });
-            } catch (voiceError) {
-              logger.warn(
-                `Failed to queue voice operation for ${member.user.tag}:`,
-                voiceError.message,
-              );
-            }
-          }
 
           // Send immediate DM notification if requested
           if (notify) {

@@ -1,4 +1,3 @@
-import { PermissionFlagsBits } from "discord.js";
 import dedent from "dedent";
 import { getLogger } from "../../../utils/logger.js";
 import {
@@ -80,75 +79,6 @@ export async function handleCreate(interaction, client, deferred = false) {
         return interaction.editReply(response);
       } else {
         return interaction.reply(response);
-      }
-    }
-
-    // Voice restrictions are automatically applied when assigning roles
-    // Permission checks are logged but warnings are not shown in embed
-    if (action === "assign") {
-      const botMember = interaction.guild.members.me;
-      if (botMember) {
-        const hasMoveMembers = botMember.permissions.has(
-          PermissionFlagsBits.MoveMembers,
-        );
-        const hasMuteMembers = botMember.permissions.has(
-          PermissionFlagsBits.MuteMembers,
-        );
-
-        const voiceChannels = interaction.guild.channels.cache.filter(channel =>
-          channel.isVoiceBased(),
-        );
-        const hasVoiceChannels = voiceChannels.size > 0;
-
-        logger.debug(
-          `Voice restriction check: hasVoiceChannels=${hasVoiceChannels}, voiceChannelsCount=${voiceChannels.size}, hasMoveMembers=${hasMoveMembers}, hasMuteMembers=${hasMuteMembers}`,
-        );
-
-        // Check if role has Connect or Speak disabled in voice channels
-        let hasConnectDisabled = false;
-        let hasSpeakDisabled = false;
-        if (hasVoiceChannels && role) {
-          // Check a few voice channels to see role permissions
-          for (const channel of voiceChannels.values()) {
-            const rolePermissions = channel.permissionsFor(role);
-            const canConnect = rolePermissions?.has("Connect") ?? true;
-            const canSpeak = rolePermissions?.has("Speak") ?? true;
-            if (!canConnect) {
-              hasConnectDisabled = true;
-            }
-            if (!canSpeak) {
-              hasSpeakDisabled = true;
-            }
-            if (hasConnectDisabled && hasSpeakDisabled) {
-              break; // Found both, no need to check more
-            }
-          }
-          logger.debug(
-            `Voice restriction check for role ${role.name}: hasConnectDisabled=${hasConnectDisabled}, hasSpeakDisabled=${hasSpeakDisabled}`,
-          );
-        }
-
-        // Log warnings but don't show in embed
-        if (hasVoiceChannels) {
-          if (
-            hasConnectDisabled &&
-            hasSpeakDisabled &&
-            !hasMoveMembers &&
-            !hasMuteMembers
-          ) {
-            logger.warn(
-              `Bot missing both voice restriction permissions in ${interaction.guild.name}. Voice restrictions won't work.`,
-            );
-          } else if (hasConnectDisabled && !hasMoveMembers) {
-            logger.warn(
-              `Bot missing "Move Members" permission in ${interaction.guild.name}. Connect restrictions won't work.`,
-            );
-          } else if (hasSpeakDisabled && !hasMuteMembers) {
-            logger.warn(
-              `Bot missing "Mute Members" permission in ${interaction.guild.name}. Speak restrictions won't work.`,
-            );
-          }
-        }
       }
     }
 

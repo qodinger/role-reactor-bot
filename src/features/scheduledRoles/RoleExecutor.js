@@ -5,7 +5,6 @@ import {
   bulkRemoveRoles,
   getCachedMember,
 } from "../../utils/discord/roleManager.js";
-import { getVoiceOperationQueue } from "../../utils/discord/voiceOperationQueue.js";
 
 /**
  * Role executor for large-scale operations
@@ -222,16 +221,6 @@ export class RoleExecutor {
             error: r.error,
           })),
       );
-
-      // Handle voice channel restrictions for users who were successfully assigned the role
-      const voiceOperations = addOperations
-        .filter(
-          (op, idx) => addResults[idx]?.success && op.member.voice?.channel,
-        )
-        .map(op => ({ ...op, role })); // Include role for permission checking
-      if (voiceOperations.length > 0) {
-        await this.handleVoiceRestrictions(voiceOperations, reason);
-      }
     }
 
     // Delay between add and remove operations
@@ -260,17 +249,6 @@ export class RoleExecutor {
             error: r.error,
           })),
       );
-
-      // Handle unmuting users when restrictive roles are removed
-      // Check if the removed role had Speak disabled
-      const voiceUnmuteOperations = removeOperations
-        .filter(
-          (op, idx) => removeResults[idx]?.success && op.member.voice?.channel,
-        )
-        .map(op => ({ ...op, role })); // Include role for permission checking
-      if (voiceUnmuteOperations.length > 0) {
-        await this.handleVoiceUnmute(voiceUnmuteOperations, reason);
-      }
     }
 
     return {
@@ -280,173 +258,6 @@ export class RoleExecutor {
       errors: errors.slice(0, 100), // Limit error details to avoid memory issues
       processed: userIds.length,
     };
-  }
-
-  /**
-   * Handle voice channel restrictions when assigning roles
-   *
-   * This function automatically disconnects or mutes users who are currently
-   * in voice channels when a restrictive role is assigned.
-   *
-   * IMPORTANT: This handles users ALREADY in voice channels.
-   * To prevent FUTURE voice channel joins, you must configure the role
-   * permissions in Discord Server Settings (disable "Connect" permission).
-   *
-   * @param {Array} operations - Array of operations with member objects
-   * @param {string} reason - Reason for the voice restriction
-   */
-  async handleVoiceRestrictions(operations, reason) {
-    const logger = getLogger();
-
-    if (operations.length === 0) {
-      return;
-    }
-
-    // Get guild from first operation to check bot permissions once
-    const guild = operations[0]?.member?.guild;
-    if (!guild || !guild.members.me) {
-      logger.warn(
-        "Cannot check bot permissions for voice restrictions - guild or bot member not available",
-      );
-      return;
-    }
-
-    const botMember = guild.members.me;
-    const hasMoveMembers = botMember.permissions.has("MoveMembers");
-    const hasMuteMembers = botMember.permissions.has("MuteMembers");
-
-    // Log permission status once at the start
-    if (!hasMoveMembers && !hasMuteMembers) {
-      logger.error(
-        `❌ Missing required permissions for voice restrictions in ${guild.name}. ` +
-          `Bot needs "Move Members" (to disconnect) or "Mute Members" (to mute) permissions at guild level. ` +
-          `Configure in: Server Settings → Roles → [Bot's Role] → General Permissions`,
-      );
-      return;
-    } else if (!hasMoveMembers) {
-      logger.warn(
-        `⚠️ Missing "Move Members" permission in ${guild.name}. Will attempt muting as fallback. ` +
-          `For best results, enable "Move Members" in Server Settings → Roles → [Bot's Role] → General Permissions`,
-      );
-    }
-
-    // Use global voice operation queue
-    const voiceQueue = getVoiceOperationQueue();
-
-    logger.info(
-      `Queueing ${operations.length} voice restriction operations for global processing`,
-    );
-
-    // Queue all operations
-    const queuePromises = operations.map(operation => {
-      const { member, role } = operation;
-
-      // Only queue if user is in a voice channel
-      if (!member.voice?.channel) {
-        return Promise.resolve({ success: true, skipped: true });
-      }
-
-      return voiceQueue.queueOperation({
-        member,
-        role,
-        reason: `Scheduled restriction: ${reason}`,
-        type: "enforce",
-      });
-    });
-
-    // Don't wait for all operations - let queue handle them
-    Promise.allSettled(queuePromises)
-      .then(results => {
-        const successCount = results.filter(
-          r =>
-            r.status === "fulfilled" && (r.value?.success || r.value?.skipped),
-        ).length;
-        const failureCount = results.length - successCount;
-
-        if (failureCount > 0) {
-          logger.debug(
-            `Voice operations queued: ${successCount} queued, ${failureCount} failed`,
-          );
-        }
-      })
-      .catch(error => {
-        logger.warn("Error queuing voice operations:", error);
-      });
-  }
-
-  /**
-   * Handle unmuting users when restrictive Speak roles are removed
-   * @param {Array} operations - Array of operations with member objects
-   * @param {string} reason - Reason for the operation
-   */
-  async handleVoiceUnmute(operations, reason) {
-    const logger = getLogger();
-
-    if (operations.length === 0) {
-      return;
-    }
-
-    // Get guild from first operation to check bot permissions once
-    const guild = operations[0]?.member?.guild;
-    if (!guild || !guild.members.me) {
-      logger.warn(
-        "Cannot check bot permissions for voice unmute - guild or bot member not available",
-      );
-      return;
-    }
-
-    const botMember = guild.members.me;
-    const hasMuteMembers = botMember.permissions.has("MuteMembers");
-
-    if (!hasMuteMembers) {
-      logger.debug(
-        "Bot missing 'Mute Members' permission, cannot unmute users",
-      );
-      return;
-    }
-
-    // Use global voice operation queue
-    const voiceQueue = getVoiceOperationQueue();
-
-    logger.info(
-      `Queueing ${operations.length} voice unmute operations for global processing`,
-    );
-
-    // Queue all operations
-    const queuePromises = operations.map(operation => {
-      const { member, role } = operation;
-
-      // Only queue if user is in a voice channel and muted
-      if (!member.voice?.channel || !member.voice.mute) {
-        return Promise.resolve({ success: true, skipped: true });
-      }
-
-      return voiceQueue.queueOperation({
-        member,
-        role,
-        reason: `Restrictive role removed: ${reason}`,
-        type: "enforce",
-      });
-    });
-
-    // Don't wait for all operations - let queue handle them
-    Promise.allSettled(queuePromises)
-      .then(results => {
-        const successCount = results.filter(
-          r =>
-            r.status === "fulfilled" && (r.value?.success || r.value?.skipped),
-        ).length;
-        const failureCount = results.length - successCount;
-
-        if (failureCount > 0) {
-          logger.debug(
-            `Voice unmute operations queued: ${successCount} queued, ${failureCount} failed`,
-          );
-        }
-      })
-      .catch(error => {
-        logger.warn("Error queuing voice unmute operations:", error);
-      });
   }
 
   /**

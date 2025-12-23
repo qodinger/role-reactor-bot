@@ -81,23 +81,6 @@ export class HelpEmbedBuilder {
         ].join("\n"),
         inline: false,
       });
-      embed.addFields({
-        name: `Voice Channel Permissions`,
-        value: [
-          `**Automatic Voice Management** - Works for ALL role assignments:`,
-          `• **Commands** - \`/temp-roles\`, \`/schedule-role\`, role reactions`,
-          `• **Manual Assignment** - When admins manually add/remove roles`,
-          `• **Any Method** - Works automatically regardless of how roles are assigned`,
-          ``,
-          `**How It Works:**`,
-          `• **Connect Disabled** → Users are disconnected from voice channels`,
-          `• **Speak Disabled** → Users are muted in voice channels`,
-          `• **Role Removed** → Users are automatically unmuted`,
-          ``,
-          `**Requirements:** Bot needs \`Move Members\` and \`Mute Members\` permissions`,
-        ].join("\n"),
-        inline: false,
-      });
     } catch {
       // Fall back silently if dynamic data unavailable
     }

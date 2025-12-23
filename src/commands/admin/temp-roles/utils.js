@@ -4,7 +4,6 @@ import {
   removeTemporaryRole,
   getUserTemporaryRoles,
 } from "../../../utils/discord/tempRoles.js";
-import { getVoiceOperationQueue } from "../../../utils/discord/voiceOperationQueue.js";
 
 // ============================================================================
 // VALIDATION FUNCTIONS
@@ -443,34 +442,6 @@ export async function removeRoleFromUser(
     // Remove from temporary roles database if it exists there
     if (isTemporaryRole) {
       await removeTemporaryRoleData(user.id, role.id, guild.id);
-    }
-
-    // Queue voice operation if user is in a voice channel
-    // The global queue will handle unmuting if they no longer have restrictive Speak roles
-    if (member.voice?.channel) {
-      try {
-        const voiceQueue = getVoiceOperationQueue();
-
-        // Queue the operation - queue will handle rate limiting and retries
-        voiceQueue
-          .queueOperation({
-            member,
-            role,
-            reason: `Temporary role removal: ${role.name}`,
-            type: "enforce",
-          })
-          .catch(error => {
-            logger.debug(
-              `Failed to queue voice operation for ${member.user.tag}:`,
-              error.message,
-            );
-          });
-      } catch (voiceError) {
-        logger.warn(
-          `Failed to queue voice operation for ${member.user.tag}:`,
-          voiceError.message,
-        );
-      }
     }
 
     return {
