@@ -6,14 +6,35 @@ function truncatePrompt(prompt) {
   return prompt.length > 200 ? `${prompt.slice(0, 197)}...` : prompt;
 }
 
-export function createImagineProcessingEmbed({ prompt }) {
-  return new EmbedBuilder()
+export function createImagineProcessingEmbed({ prompt, status = null }) {
+  const embed = new EmbedBuilder()
     .setColor(THEME.INFO)
     .setTitle(`${EMOJIS.UI.LOADING} Generating your image`)
-    .setDescription(
-      `**Prompt**\n${truncatePrompt(prompt)}\n\n` +
-        "Please hang tight while the model renders your artwork.",
+    .setDescription(`**Prompt**\n${truncatePrompt(prompt)}`);
+
+  if (status) {
+    embed.addFields([
+      {
+        name: "Status",
+        value: status,
+        inline: false,
+      },
+    ]);
+    embed.setFooter({
+      text: `Image Generator • ${status}`,
+    });
+  } else {
+    embed.setDescription(
+      `${embed.data.description}\n\nPlease hang tight while the model renders your artwork.`,
     );
+    embed.setFooter({
+      text: "Image Generator • This may take 30-60 seconds",
+    });
+  }
+
+  embed.setTimestamp();
+
+  return embed;
 }
 
 export function createImagineResultEmbed({ prompt, interaction = null }) {
