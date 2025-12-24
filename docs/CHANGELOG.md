@@ -349,10 +349,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved command categorization and metadata
 - Added ping command for latency checking
 - Automated update script with backup functionality
-- Data export functionality (developer only)
-- Enhanced storage command with privacy features
-- Manual data management through admin commands
-
 - Improved logging with command and rate limit tracking
 
 ### Changed

@@ -503,6 +503,7 @@ export const generateAvatar = (
   userId,
   styleOptions,
   progressCallback,
+  coreUserData,
 ) =>
   avatarService.generateAvatar(
     prompt,
@@ -510,6 +511,7 @@ export const generateAvatar = (
     userId,
     styleOptions,
     progressCallback,
+    coreUserData,
   );
 export const buildAnimePrompt = (userPrompt, styleOptions) =>
   avatarService.buildAnimePrompt(userPrompt, styleOptions);

@@ -48,7 +48,6 @@ These scripts are still available but may encounter caching issues:
 ```bash
 # Update scripts (may have caching issues)
 pnpm run docker:update          # Basic update
-pnpm run docker:update:clean    # Update with system prune
 pnpm run docker:force-update    # Aggressive cleanup + update
 
 # Manual deployment
