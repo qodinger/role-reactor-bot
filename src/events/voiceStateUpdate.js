@@ -257,56 +257,58 @@ export async function execute(oldState, newState, options = {}) {
               logger.warn(
                 `Cannot move ${newState.member.user.tag} - target channel ${targetChannelId} not found (may have been deleted)`,
               );
-              return;
-            }
-
-            // Check if user is already in the target channel
-            if (newState.channelId === targetChannelId) {
-              logger.debug(
-                `User ${newState.member.user.tag} already in target channel ${targetChannel.name}, skipping move`,
-              );
-              return;
-            }
-
-            if (botMember?.permissions.has(PermissionFlagsBits.MoveMembers)) {
-              // Check bot permissions for the target channel
-              const botPermissions = targetChannel.permissionsFor(botMember);
-              if (
-                !botPermissions?.has("Connect") ||
-                !botPermissions?.has("MoveMembers")
-              ) {
-                logger.warn(
-                  `Cannot move ${newState.member.user.tag} to ${targetChannel.name} - bot missing permissions in target channel`,
-                );
-                return;
-              }
-
-              try {
-                await newState.member.voice.setChannel(
-                  targetChannel,
-                  "Automatically moved due to move role",
-                );
-                logger.info(
-                  `🚚 Moved ${newState.member.user.tag} to ${targetChannel.name} - user has move role`,
-                );
-                // Update tracking to new channel
-                await voiceTracker.stopVoiceTracking(guildId, userId);
-                await voiceTracker.startVoiceTracking(
-                  guildId,
-                  userId,
-                  targetChannelId,
-                );
-                return; // Don't track original channel
-              } catch (error) {
-                logger.error(
-                  `Failed to move ${newState.member.user.tag} to voice channel:`,
-                  error.message,
-                );
-              }
+              // Continue to voice tracking - user is still in newState.channelId
             } else {
-              logger.warn(
-                `Cannot move ${newState.member.user.tag} - bot missing MoveMembers permission in ${newState.guild.name}`,
-              );
+              // Check if user is already in the target channel
+              if (newState.channelId === targetChannelId) {
+                logger.debug(
+                  `User ${newState.member.user.tag} already in target channel ${targetChannel.name}, skipping move`,
+                );
+                // Continue to voice tracking - user is already in correct channel
+              } else if (
+                botMember?.permissions.has(PermissionFlagsBits.MoveMembers)
+              ) {
+                // Check bot permissions for the target channel
+                const botPermissions = targetChannel.permissionsFor(botMember);
+                if (
+                  !botPermissions?.has("Connect") ||
+                  !botPermissions?.has("MoveMembers")
+                ) {
+                  logger.warn(
+                    `Cannot move ${newState.member.user.tag} to ${targetChannel.name} - bot missing permissions in target channel`,
+                  );
+                  // Continue to voice tracking - user is still in newState.channelId
+                } else {
+                  try {
+                    await newState.member.voice.setChannel(
+                      targetChannel,
+                      "Automatically moved due to move role",
+                    );
+                    logger.info(
+                      `🚚 Moved ${newState.member.user.tag} to ${targetChannel.name} - user has move role`,
+                    );
+                    // Update tracking to new channel
+                    await voiceTracker.stopVoiceTracking(guildId, userId);
+                    await voiceTracker.startVoiceTracking(
+                      guildId,
+                      userId,
+                      targetChannelId,
+                    );
+                    return; // Don't track original channel - already tracked target channel
+                  } catch (error) {
+                    logger.error(
+                      `Failed to move ${newState.member.user.tag} to voice channel:`,
+                      error.message,
+                    );
+                    // Continue to voice tracking - user is still in newState.channelId
+                  }
+                }
+              } else {
+                logger.warn(
+                  `Cannot move ${newState.member.user.tag} - bot missing MoveMembers permission in ${newState.guild.name}`,
+                );
+                // Continue to voice tracking - user is still in newState.channelId
+              }
             }
           }
         }
