@@ -242,14 +242,14 @@ class Config {
           models: {
             image: {
               primary: "sd3.5-flash", // Fastest and cheapest
-              large: "sd3.5-large", // Highest quality
               medium: "sd3.5-medium", // Balanced
+              large: "sd3.5-large", // Highest quality
               turbo: "sd3.5-large-turbo", // Quality + Speed
             },
           },
         },
         openrouter: {
-          enabled: true, // Enabled - using GPT-4o-mini for text/chat
+          enabled: true, // Enabled - using Claude 3.5 Haiku for text/chat (fast, excellent reasoning)
           name: "OpenRouter",
           baseUrl: "https://openrouter.ai/api/v1/chat/completions",
           apiKey: process.env.OPENROUTER_API_KEY,
@@ -258,7 +258,13 @@ class Config {
               primary: "google/gemini-3-pro-image-preview",
             },
             text: {
-              primary: "openai/gpt-4o-mini", // GPT-4o-mini via OpenRouter
+              // Claude 3.5 Haiku: Fast, low latency, excellent reasoning, $1/$5 per million tokens
+              // Optimized for real-time assistants and customer support
+              // Alternative options (uncomment to use):
+              // primary: "mistralai/mistral-medium-2407", // $0.40/$2 per million tokens, 90% of Claude Sonnet
+              // primary: "openai/gpt-4o-mini", // Fast, $0.15/$0.60 per million tokens
+              primary: "deepseek/deepseek-r1", // Slower but cheaper reasoning model
+              // primary: "anthropic/claude-3.5-haiku", // Fast, excellent reasoning, optimized for speed
             },
           },
         },

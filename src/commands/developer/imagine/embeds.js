@@ -6,7 +6,41 @@ function truncatePrompt(prompt) {
   return prompt.length > 200 ? `${prompt.slice(0, 197)}...` : prompt;
 }
 
-export function createImagineProcessingEmbed({ prompt, status = null }) {
+/**
+ * Format date as "Today at HH:MM" or "Yesterday at HH:MM" or date format
+ * @param {Date} date - Date to format
+ * @returns {string} Formatted date string
+ */
+function formatFooterTimestamp(date = new Date()) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const dateToFormat = new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+  );
+  const diffDays = Math.floor((today - dateToFormat) / (1000 * 60 * 60 * 24));
+
+  const hours = date.getHours().toString().padStart(2, "0");
+  const minutes = date.getMinutes().toString().padStart(2, "0");
+  const timeStr = `${hours}:${minutes}`;
+
+  if (diffDays === 0) {
+    return `Today at ${timeStr}`;
+  } else if (diffDays === 1) {
+    return `Yesterday at ${timeStr}`;
+  } else {
+    const month = date.toLocaleString("en-US", { month: "short" });
+    const day = date.getDate();
+    return `${month} ${day} at ${timeStr}`;
+  }
+}
+
+export function createImagineProcessingEmbed({
+  prompt,
+  status = null,
+  interaction = null,
+}) {
   const embed = new EmbedBuilder()
     .setColor(THEME.INFO)
     .setTitle(`${EMOJIS.UI.LOADING} Generating your image`)
@@ -20,19 +54,18 @@ export function createImagineProcessingEmbed({ prompt, status = null }) {
         inline: false,
       },
     ]);
-    embed.setFooter({
-      text: `Image Generator • ${status}`,
-    });
   } else {
     embed.setDescription(
       `${embed.data.description}\n\nPlease hang tight while the model renders your artwork.`,
     );
-    embed.setFooter({
-      text: "Image Generator • This may take 30-60 seconds",
-    });
   }
 
-  embed.setTimestamp();
+  // Always use consistent footer format matching avatar command
+  const timestamp = formatFooterTimestamp();
+  const username = interaction?.user?.username || "User";
+  embed.setFooter({
+    text: `Generated for ${username} • Image Generator • ${timestamp}`,
+  });
 
   return embed;
 }
@@ -43,13 +76,12 @@ export function createImagineResultEmbed({ prompt, interaction = null }) {
     .setTitle(`${EMOJIS.UI.IMAGE} Image ready`)
     .setDescription(`**Prompt**\n${truncatePrompt(prompt)}`);
 
-  if (interaction) {
-    embed.setFooter({
-      text: `Generated for ${interaction.user.username} • Image Generator`,
-    });
-  }
-
-  embed.setTimestamp();
+  // Always use consistent footer format matching avatar command
+  const timestamp = formatFooterTimestamp();
+  const username = interaction?.user?.username || "User";
+  embed.setFooter({
+    text: `Generated for ${username} • Image Generator • ${timestamp}`,
+  });
 
   return embed;
 }

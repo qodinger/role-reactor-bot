@@ -537,7 +537,7 @@ async function main() {
       logger.info(`➖ Bot left guild: ${guild.name} (${guild.id})`);
     });
 
-    client.once("ready", async () => {
+    client.once("clientReady", async () => {
       logger.success(`✅ ${client.user.tag} v${getVersion()} is ready!`);
 
       // Start webhook server for Ko-fi integration

@@ -49,10 +49,11 @@ export class ServerInfoGatherer {
       }
 
       // Owner info (may not be available in all cases)
+      // IMPORTANT: This is the SERVER OWNER, NOT the bot. The bot is NOT the owner.
       try {
         const owner = guild.members.cache.get(guild.ownerId);
         if (owner?.user?.tag) {
-          info += `- Owner: ${owner.user.tag}\n`;
+          info += `- Server Owner: ${owner.user.tag} (this is the human who owns the server, NOT the bot)\n`;
         }
       } catch (_error) {
         // Owner info not available, skip

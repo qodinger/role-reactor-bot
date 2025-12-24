@@ -6,6 +6,12 @@ import { conversationManager } from "./conversationManager.js";
 import { responseValidator } from "./responseValidator.js";
 import { systemPromptBuilder } from "./systemPromptBuilder.js";
 import {
+  getActionConfig,
+  actionRequiresGuild,
+  actionTriggersReQuery,
+  validateActionOptions,
+} from "./actionRegistry.js";
+import {
   DEFAULT_MAX_HISTORY_LENGTH,
   DEFAULT_CONVERSATION_TIMEOUT,
   DEFAULT_MAX_CONVERSATIONS,
@@ -24,17 +30,18 @@ const logger = getLogger();
 
 // Follow-up prompt template (when data is fetched)
 const FOLLOW_UP_PROMPT_TEMPLATE = dedent`
-  I've fetched the data. The member list is now in the system context above in the "COMPLETE LIST OF HUMAN MEMBER NAMES" section.
+  I've attempted to fetch the member data. Check the action results below to see if it was successful or if errors occurred.
 
   **CRITICAL INSTRUCTIONS:**
-  1. Look at the "COMPLETE LIST OF HUMAN MEMBER NAMES" section in the system context above
-  2. Find the numbered list (e.g., "1. Name1\\n2. Name2\\n3. Name3")
-  3. Copy the EXACT names from that numbered list - type them character by character as shown
-  4. Do NOT invent, guess, or make up ANY member names
-  5. Do NOT use generic names like "iFunny", "Reddit", "Discord", "John", "Alice", "Bob", "Charlie"
-  6. Use ONLY the actual member names from the numbered list in the "COMPLETE LIST OF HUMAN MEMBER NAMES" section
+  1. **If the fetch was successful:** Look at the "COMPLETE LIST OF HUMAN MEMBER NAMES" section in the system context above
+  2. **If errors occurred:** You MUST inform the user about the errors. Explain what went wrong and what data is available (cached members, if any)
+  3. **If successful:** Find the numbered list (e.g., "1. Name1\\n2. Name2\\n3. Name3")
+  4. **If successful:** Copy the EXACT names from that numbered list - type them character by character as shown
+  5. Do NOT invent, guess, or make up ANY member names
+  6. Do NOT use generic names like "iFunny", "Reddit", "Discord", "John", "Alice", "Bob", "Charlie"
+  7. Use ONLY the actual member names from the numbered list in the "COMPLETE LIST OF HUMAN MEMBER NAMES" section (if available)
 
-  Now provide the actual member names and information the user requested, using ONLY the names from the numbered list above.
+  **IMPORTANT:** If there were errors fetching members, you MUST tell the user about the error clearly. Don't pretend the data was fetched successfully if it wasn't.
 `;
 
 // ============================================================================
@@ -246,134 +253,16 @@ export class ChatService {
       return { isValid: false, error: "Action must have a 'type' field" };
     }
 
-    // Validate required fields for specific action types
-    switch (action.type) {
-      case "get_member_info":
-      case "get_role_info":
-      case "get_channel_info":
-      case "search_members_by_role":
-        if (!action.options || typeof action.options !== "object") {
-          return {
-            isValid: false,
-            error: `${action.type} requires an 'options' object`,
-          };
-        }
-        // Check if options object is empty (no required fields)
-        if (Object.keys(action.options).length === 0) {
-          return {
-            isValid: false,
-            error: `${action.type} requires non-empty 'options' with required fields`,
-          };
-        }
-        break;
+    // Use action registry for validation
+    const validation = validateActionOptions(action);
+    if (!validation.isValid) {
+      return validation;
+    }
 
-      // Dynamic data fetching actions (get_*) don't require options
-      default:
-        if (
-          action.type.startsWith("get_") &&
-          action.type !== "get_member_info" &&
-          action.type !== "get_role_info" &&
-          action.type !== "get_channel_info" &&
-          action.type !== "search_members_by_role"
-        ) {
-          // Dynamic actions don't require options validation
-          break;
-        }
-        // Unknown action type - will be handled in switch statement
-        break;
-
-      case "execute_command":
-        if (!action.command || typeof action.command !== "string") {
-          return {
-            isValid: false,
-            error: "execute_command requires a 'command' field",
-          };
-        }
-        break;
-
-      case "send_message":
-        if (
-          !action.options ||
-          (!action.options.content && !action.options.embed)
-        ) {
-          return {
-            isValid: false,
-            error: "send_message requires 'content' or 'embed' in options",
-          };
-        }
-        break;
-
-      case "add_role":
-      case "remove_role":
-        if (
-          !action.options ||
-          !action.options.user_id ||
-          (!action.options.role_id && !action.options.role_name)
-        ) {
-          return {
-            isValid: false,
-            error: `${action.type} requires 'user_id' and ('role_id' or 'role_name') in options`,
-          };
-        }
-        break;
-
-      case "kick_member":
-      case "ban_member":
-      case "timeout_member":
-      case "warn_member":
-        if (!action.options || !action.options.user_id) {
-          return {
-            isValid: false,
-            error: `${action.type} requires 'user_id' in options`,
-          };
-        }
-        if (
-          action.type === "timeout_member" &&
-          !action.options.duration_seconds
-        ) {
-          return {
-            isValid: false,
-            error: "timeout_member requires 'duration_seconds' in options",
-          };
-        }
-        break;
-
-      case "delete_message":
-      case "pin_message":
-      case "unpin_message":
-        if (!action.options || !action.options.message_id) {
-          return {
-            isValid: false,
-            error: `${action.type} requires 'message_id' in options`,
-          };
-        }
-        break;
-
-      case "create_channel":
-        if (!action.options || !action.options.name) {
-          return {
-            isValid: false,
-            error: "create_channel requires 'name' in options",
-          };
-        }
-        break;
-
-      case "delete_channel":
-      case "modify_channel":
-        if (!action.options || !action.options.channel_id) {
-          return {
-            isValid: false,
-            error: `${action.type} requires 'channel_id' in options`,
-          };
-        }
-        break;
-
-      case "fetch_members":
-      case "fetch_channels":
-      case "fetch_roles":
-      case "fetch_all":
-        // No additional validation needed for fetch actions
-        break;
+    // Handle dynamic actions (get_* that aren't in registry)
+    if (action.type.startsWith("get_") && !getActionConfig(action.type)) {
+      // Dynamic actions don't require options validation
+      return { isValid: true, error: null };
     }
 
     return { isValid: true, error: null };
@@ -401,39 +290,6 @@ export class ChatService {
       };
     }
 
-    // Validate guild is available for server-specific actions
-    // These actions require a guild context to execute
-    const SERVER_ACTIONS = [
-      "fetch_members",
-      "fetch_channels",
-      "fetch_roles",
-      "fetch_all",
-      "get_member_info",
-      "get_role_info",
-      "get_channel_info",
-      "search_members_by_role",
-      // Dynamic data fetching actions (require guild)
-      "get_role_reaction_messages",
-      "get_scheduled_roles",
-      "get_polls",
-      "get_moderation_history",
-      // Command execution and Discord operations
-      "execute_command",
-      "send_message",
-      "add_role",
-      "remove_role",
-      "kick_member",
-      "ban_member",
-      "timeout_member",
-      "warn_member",
-      "delete_message",
-      "pin_message",
-      "unpin_message",
-      "create_channel",
-      "delete_channel",
-      "modify_channel",
-    ];
-
     for (const action of actions) {
       // Validate action structure
       const validation = this.validateAction(action);
@@ -445,8 +301,8 @@ export class ChatService {
         continue;
       }
 
-      // Check if guild is required for this action
-      if (SERVER_ACTIONS.includes(action.type) && !guild) {
+      // Check if guild is required for this action (using registry)
+      if (actionRequiresGuild(action.type) && !guild) {
         results.push(
           `${action.type} requires a server context (cannot be used in DMs)`,
         );
@@ -457,25 +313,36 @@ export class ChatService {
         switch (action.type) {
           case "fetch_members": {
             if (!guild) {
-              results.push("Cannot fetch members: not in a server");
+              results.push("Error: Cannot fetch members - not in a server");
               break;
             }
-            const cachedBefore = guild.members.cache.size;
-            const totalMembers = guild.memberCount;
-            await this.fetchMembers(guild);
-            const cachedAfter = guild.members.cache.size;
-            if (totalMembers > MAX_MEMBER_FETCH_SERVER_SIZE) {
-              results.push(
-                `Server has ${totalMembers} members (exceeds ${MAX_MEMBER_FETCH_SERVER_SIZE} limit). Using cached members only (${cachedAfter} cached).`,
+            try {
+              const fetchResult = await this.fetchMembers(guild);
+              if (fetchResult.success) {
+                if (fetchResult.fetched && fetchResult.fetched > 0) {
+                  results.push(
+                    `Success: Fetched ${fetchResult.fetched} additional members (${fetchResult.cached}/${fetchResult.total} total now cached)`,
+                  );
+                } else if (fetchResult.message) {
+                  results.push(
+                    `Success: ${fetchResult.message} (${fetchResult.cached}/${fetchResult.total} cached)`,
+                  );
+                } else {
+                  results.push(
+                    `Success: All members already cached (${fetchResult.cached}/${fetchResult.total})`,
+                  );
+                }
+              } else {
+                // Error occurred - include error message for AI to report to user
+                results.push(`Error: ${fetchResult.error}`);
+              }
+            } catch (error) {
+              const errorMessage = error.message || "Unknown error occurred";
+              logger.error(
+                `[fetch_members] Unexpected error: ${errorMessage}`,
+                error,
               );
-            } else if (cachedAfter > cachedBefore) {
-              results.push(
-                `Fetched ${cachedAfter - cachedBefore} additional members (${cachedAfter}/${totalMembers} total now cached)`,
-              );
-            } else {
-              results.push(
-                `All members already cached (${cachedAfter}/${totalMembers})`,
-              );
+              results.push(`Error: Failed to fetch members - ${errorMessage}`);
             }
             break;
           }
@@ -500,13 +367,43 @@ export class ChatService {
 
           case "fetch_all":
             if (!guild) {
-              results.push("Cannot fetch data: not in a server");
+              results.push("Error: Cannot fetch data - not in a server");
               break;
             }
-            await this.fetchMembers(guild);
-            await guild.channels.fetch();
-            await guild.roles.fetch();
-            results.push("Fetched all server data");
+            try {
+              const memberFetchResult = await this.fetchMembers(guild);
+              if (!memberFetchResult.success) {
+                results.push(
+                  `Error fetching members: ${memberFetchResult.error}`,
+                );
+              } else {
+                results.push(
+                  `Success: Fetched ${memberFetchResult.fetched || 0} members (${memberFetchResult.cached}/${memberFetchResult.total} cached)`,
+                );
+              }
+
+              await guild.channels.fetch();
+              await guild.roles.fetch();
+
+              if (memberFetchResult.success) {
+                results.push(
+                  "Success: Fetched all server data (members, channels, roles)",
+                );
+              } else {
+                results.push(
+                  "Partial success: Fetched channels and roles, but member fetch had errors",
+                );
+              }
+            } catch (error) {
+              const errorMessage = error.message || "Unknown error occurred";
+              logger.error(
+                `[fetch_all] Unexpected error: ${errorMessage}`,
+                error,
+              );
+              results.push(
+                `Error: Failed to fetch all server data - ${errorMessage}`,
+              );
+            }
             break;
 
           case "get_member_info":
@@ -677,45 +574,11 @@ export class ChatService {
             break;
 
           // Discord Actions (require Discord Action Executor)
-          case "send_message":
-          case "add_role":
-          case "remove_role":
-          case "kick_member":
-          case "ban_member":
-          case "timeout_member":
-          case "warn_member":
-          case "delete_message":
-          case "pin_message":
-          case "unpin_message":
-          case "create_channel":
-          case "delete_channel":
-          case "modify_channel":
-            {
-              try {
-                const { discordActionExecutor } = await import(
-                  "./discordActionExecutor.js"
-                );
-                const result = await discordActionExecutor.executeAction(
-                  action,
-                  guild,
-                  channel,
-                  user,
-                  client,
-                );
-                if (result.success) {
-                  results.push(result.result || `${action.type} completed`);
-                } else {
-                  results.push(
-                    `Failed ${action.type}: ${result.error || "Unknown error"}`,
-                  );
-                }
-              } catch (error) {
-                results.push(
-                  `Error in ${action.type}: ${error.message || "Unknown error"}`,
-                );
-              }
-            }
-            break;
+          // Note: All admin/moderation/guild management actions are blocked in validation for security
+          // These actions (send_message, add_role, remove_role, delete_message, pin_message,
+          // unpin_message, create_channel, delete_channel, modify_channel, kick_member,
+          // ban_member, timeout_member, warn_member) are not available because anyone can use the AI
+          // They must be performed manually by administrators using bot commands
 
           default:
             // Check if this is a dynamic data fetching action
@@ -1033,23 +896,26 @@ export class ChatService {
     }
 
     // Fetch members
-    await this.fetchMembers(guild);
+    const fetchResult = await this.fetchMembers(guild);
     const cachedAfter = guild.members.cache.size;
 
     return {
-      fetched: true,
-      reason: "Auto-fetched due to low cache coverage",
+      fetched: fetchResult.success,
+      reason: fetchResult.success
+        ? "Auto-fetched due to low cache coverage"
+        : `Auto-fetch failed: ${fetchResult.error || "Unknown error"}`,
       cached: cachedAfter,
       total: totalMembers,
       coverage: totalMembers > 0 ? cachedAfter / totalMembers : 0,
-      fetchedCount: cachedAfter - cachedBefore,
+      fetchedCount: fetchResult.fetched || 0,
+      error: fetchResult.error,
     };
   }
 
   /**
    * Fetch all members for a guild
    * @param {import('discord.js').Guild} guild - Discord guild
-   * @returns {Promise<void>}
+   * @returns {Promise<{success: boolean, error?: string, fetched?: number, total?: number}>}
    */
   async fetchMembers(guild) {
     const cachedBefore = guild.members.cache.size;
@@ -1060,7 +926,13 @@ export class ChatService {
       logger.debug(
         `[fetchMembers] Server has ${totalMembers} members (exceeds ${MAX_MEMBER_FETCH_SERVER_SIZE} limit) - using cached members only`,
       );
-      return; // Use cached members only for large servers
+      return {
+        success: true,
+        fetched: 0,
+        total: totalMembers,
+        cached: cachedBefore,
+        message: "Server too large - using cached members only",
+      };
     }
 
     if (cachedBefore < totalMembers) {
@@ -1081,19 +953,61 @@ export class ChatService {
         });
 
         await Promise.race([fetchPromise, timeoutPromise]);
-        logger.debug(
-          `[fetchMembers] Fetched ${guild.members.cache.size} members`,
-        );
+        const cachedAfter = guild.members.cache.size;
+        logger.debug(`[fetchMembers] Fetched ${cachedAfter} members`);
+        return {
+          success: true,
+          fetched: cachedAfter - cachedBefore,
+          total: totalMembers,
+          cached: cachedAfter,
+        };
       } catch (fetchError) {
-        if (fetchError.message?.includes("timed out")) {
+        const errorMessage = fetchError.message || "Unknown error";
+        if (errorMessage.includes("timed out")) {
           logger.debug(
             `[fetchMembers] Fetch timed out after ${adaptiveTimeout}ms - using cached members`,
           );
+          return {
+            success: false,
+            error: `Member fetch timed out after ${Math.round(adaptiveTimeout / 1000)} seconds. Using cached members only (${cachedBefore}/${totalMembers} cached).`,
+            fetched: 0,
+            total: totalMembers,
+            cached: cachedBefore,
+          };
+        } else if (
+          errorMessage.includes("Missing Access") ||
+          errorMessage.includes("GUILD_MEMBERS")
+        ) {
+          logger.debug(
+            `[fetchMembers] Missing GUILD_MEMBERS intent: ${errorMessage}`,
+          );
+          return {
+            success: false,
+            error: `Cannot fetch members: Missing GUILD_MEMBERS privileged intent. The bot needs this intent enabled in the Discord Developer Portal to fetch all members. Using cached members only (${cachedBefore}/${totalMembers} cached).`,
+            fetched: 0,
+            total: totalMembers,
+            cached: cachedBefore,
+          };
         } else {
-          logger.debug(`[fetchMembers] Fetch failed: ${fetchError.message}`);
+          logger.debug(`[fetchMembers] Fetch failed: ${errorMessage}`);
+          return {
+            success: false,
+            error: `Failed to fetch members: ${errorMessage}. Using cached members only (${cachedBefore}/${totalMembers} cached).`,
+            fetched: 0,
+            total: totalMembers,
+            cached: cachedBefore,
+          };
         }
-        // Don't throw - gracefully fall back to cached members
       }
+    } else {
+      // All members already cached
+      return {
+        success: true,
+        fetched: 0,
+        total: totalMembers,
+        cached: cachedBefore,
+        message: "All members already cached",
+      };
     }
   }
 
@@ -1638,23 +1552,25 @@ export class ChatService {
               const actionResults = actionResult.results;
               // Commands now send responses directly to channel, so no need to capture them
 
-              // Check if any actions were data fetch actions (fetch_members, fetch_all, etc.)
-              const fetchActions = actions.filter(
-                a =>
-                  a.type === "fetch_members" ||
-                  a.type === "fetch_channels" ||
-                  a.type === "fetch_roles" ||
-                  a.type === "fetch_all",
+              // Check if any actions trigger re-query (using registry)
+              const fetchActions = actions.filter(a =>
+                actionTriggersReQuery(a.type),
               );
 
-              // If fetch actions were executed, re-query AI with updated context
+              // If fetch actions or structure-modifying actions were executed, re-query AI with updated context
               if (fetchActions.length > 0) {
                 logger.info(
-                  `[generateResponse] Fetch actions executed: ${fetchActions.map(a => a.type).join(", ")}, re-querying AI with updated data`,
+                  `[generateResponse] Context-modifying actions executed: ${fetchActions.map(a => a.type).join(", ")}, re-querying AI with updated data`,
                 );
 
-                // Rebuild system context with freshly fetched data
-                // Force include member list since we just fetched it
+                // Determine what data to force include based on action types
+                const memberActions = fetchActions.filter(
+                  a => a.type === "fetch_members",
+                );
+
+                // Rebuild system context with freshly fetched/updated data
+                // Force include member list if member-related actions were executed
+                // (Channel and role lists are always included in server info, so no need to force them)
                 const updatedSystemMessage =
                   await systemPromptBuilder.buildSystemContext(
                     guild,
@@ -1662,7 +1578,11 @@ export class ChatService {
                     userMessage,
                     options.locale || "en-US",
                     options.user || null,
-                    { forceIncludeMemberList: true }, // Force include after fetch
+                    {
+                      forceIncludeMemberList:
+                        memberActions.length > 0 ||
+                        fetchActions.some(a => a.type === "fetch_all"),
+                    },
                   );
 
                 // Verify member list is in the updated context
@@ -1702,9 +1622,29 @@ export class ChatService {
                   role: "assistant",
                   content: finalResponse,
                 });
+
+                // Build follow-up prompt with action results
+                let followUpPrompt = FOLLOW_UP_PROMPT_TEMPLATE;
+
+                // Include action results (including errors) for AI to report to users
+                if (actionResults && actionResults.length > 0) {
+                  const errorResults = actionResults.filter(r =>
+                    r.startsWith("Error:"),
+                  );
+                  const successResults = actionResults.filter(r =>
+                    r.startsWith("Success:"),
+                  );
+
+                  if (errorResults.length > 0) {
+                    followUpPrompt += `\n\n**IMPORTANT - Action Results (Errors Occurred):**\n${errorResults.map(r => `- ${r}`).join("\n")}\n\n**You MUST inform the user about these errors.** Explain what went wrong and what data is available (if any).`;
+                  } else if (successResults.length > 0) {
+                    followUpPrompt += `\n\n**Action Results (Success):**\n${successResults.map(r => `- ${r}`).join("\n")}\n\n**You can mention this success to the user if relevant.**`;
+                  }
+                }
+
                 updatedMessages.push({
                   role: "user",
-                  content: FOLLOW_UP_PROMPT_TEMPLATE,
+                  content: followUpPrompt,
                 });
 
                 // Re-query AI with updated context (with timeout)
@@ -2120,13 +2060,22 @@ export class ChatService {
     };
 
     try {
+      // Get the current model to optimize for DeepSeek R1
+      const currentModel =
+        this.aiService.config.providers.openrouter?.models?.text?.primary;
+      const isDeepSeekR1 = currentModel && currentModel.includes("deepseek-r1");
+
+      // Optimize maxTokens for DeepSeek R1 (reduce for faster generation)
+      const maxTokens = isDeepSeekR1 ? 1500 : 2000;
+      const temperature = isDeepSeekR1 ? 0.5 : 0.7; // Lower temp = faster, more deterministic
+
       const result = await this.aiService.generateTextStreaming({
         prompt: messages,
         model: null, // Use default
         config: {
           systemMessage: null, // Already in messages
-          temperature: 0.7,
-          maxTokens: 2000,
+          temperature,
+          maxTokens,
         },
         provider: textProvider,
         onChunk: chunkCallback,

@@ -325,20 +325,30 @@ export function getExplicitNSFWKeywords() {
  */
 export function validatePrompt(prompt) {
   const logger = getLogger();
+
+  // Validate input
+  if (!prompt || typeof prompt !== "string") {
+    return {
+      isValid: false,
+      reason: "Please provide a description for the avatar you want to create.",
+    };
+  }
+
   const contentFilterEnabled =
     config.corePricing.avatarContentFilter?.enabled ?? false;
 
   // Get inappropriate keywords
   const inappropriateKeywords = getInappropriateKeywords();
 
-  const lowerPrompt = prompt.toLowerCase();
+  const trimmedPrompt = prompt.trim();
+  const lowerPrompt = trimmedPrompt.toLowerCase();
 
   // Check for inappropriate keywords (only if filter is enabled)
   if (contentFilterEnabled) {
     for (const keyword of inappropriateKeywords) {
       if (lowerPrompt.includes(keyword)) {
         logger.warn(
-          `Inappropriate content detected in prompt: "${prompt}" (keyword: ${keyword})`,
+          `Inappropriate content detected in prompt: "${trimmedPrompt}" (keyword: ${keyword})`,
         );
         return {
           isValid: false,
@@ -418,9 +428,9 @@ export function validatePrompt(prompt) {
   // Pattern-based checks (only if filter is enabled)
   if (contentFilterEnabled) {
     for (const check of additionalChecks) {
-      if (check.pattern.test(prompt)) {
+      if (check.pattern.test(trimmedPrompt)) {
         logger.warn(
-          `Pattern-based inappropriate content detected in prompt: "${prompt}"`,
+          `Pattern-based inappropriate content detected in prompt: "${trimmedPrompt}"`,
         );
         return {
           isValid: false,
@@ -456,8 +466,10 @@ export function validatePrompt(prompt) {
   ];
 
   for (const check of avatarValidationChecks) {
-    if (check.pattern.test(prompt)) {
-      logger.warn(`Avatar-specific validation failed for prompt: "${prompt}"`);
+    if (check.pattern.test(trimmedPrompt)) {
+      logger.warn(
+        `Avatar-specific validation failed for prompt: "${trimmedPrompt}"`,
+      );
       return {
         isValid: false,
         reason: check.reason,
@@ -466,7 +478,7 @@ export function validatePrompt(prompt) {
   }
 
   // Check if prompt is too short (only for very short prompts)
-  if (prompt.trim().length < 3) {
+  if (trimmedPrompt.length < 3) {
     return {
       isValid: false,
       reason:
@@ -523,11 +535,11 @@ export function validatePrompt(prompt) {
   ];
 
   const hasBasicCharacterIndicators = basicCharacterIndicators.some(keyword =>
-    prompt.toLowerCase().includes(keyword),
+    lowerPrompt.includes(keyword),
   );
 
   // Only require character indication if prompt is very short or clearly not character-related
-  if (prompt.trim().length < 5 && !hasBasicCharacterIndicators) {
+  if (trimmedPrompt.length < 5 && !hasBasicCharacterIndicators) {
     return {
       isValid: false,
       reason:
@@ -536,7 +548,7 @@ export function validatePrompt(prompt) {
   }
 
   // Only block if it's clearly not character-related AND very short
-  if (!hasBasicCharacterIndicators && prompt.trim().length < 10) {
+  if (!hasBasicCharacterIndicators && trimmedPrompt.length < 10) {
     return {
       isValid: false,
       reason:
@@ -544,7 +556,7 @@ export function validatePrompt(prompt) {
     };
   }
 
-  return { isValid: true, reason: null };
+  return { isValid: true, prompt: trimmedPrompt };
 }
 
 /**

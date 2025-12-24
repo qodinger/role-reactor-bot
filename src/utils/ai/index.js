@@ -12,3 +12,17 @@ export {
 export { ChatService, chatService } from "./chatService.js";
 export { performanceMonitor } from "./performanceMonitor.js";
 export { commandSuggester } from "./commandSuggester.js";
+export {
+  ACTION_REGISTRY,
+  ACTION_CATEGORIES,
+  getActionConfig,
+  isActionBlocked,
+  actionRequiresGuild,
+  actionTriggersReQuery,
+  getServerActions,
+  getReQueryActions,
+  getBlockedActions,
+  getAllowedActions,
+  getActionsByCategory,
+  validateActionOptions,
+} from "./actionRegistry.js";

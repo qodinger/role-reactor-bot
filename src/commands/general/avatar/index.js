@@ -43,34 +43,53 @@ export async function execute(interaction, client) {
   const logger = getLogger();
 
   try {
-    // Defer immediately to prevent timeout
-    await interaction.deferReply();
+    if (!interaction.isRepliable()) {
+      logger.warn("Interaction is no longer repliable, skipping execution");
+      return;
+    }
 
-    // Handle the avatar generation
-    await handleAvatarGeneration(interaction, client);
+    const deferred = await deferInteraction(interaction);
+    await handleAvatarGeneration(interaction, client, deferred);
   } catch (error) {
     logger.error("Error in avatar command:", error);
+    await handleCommandError(interaction, error);
+  }
+}
+
+// ============================================================================
+// INTERACTION MANAGEMENT
+// ============================================================================
+
+async function deferInteraction(interaction) {
+  try {
+    await interaction.deferReply();
+    return true; // Successfully deferred
+  } catch (deferError) {
+    if (
+      deferError.message !== "Interaction has already been acknowledged." &&
+      deferError.message !== "Unknown interaction"
+    ) {
+      const logger = getLogger();
+      logger.error("Failed to defer reply:", deferError);
+    }
+    return false; // Failed to defer
+  }
+}
+
+async function handleCommandError(interaction, _error) {
+  try {
+    const errorResponse = errorEmbed({
+      title: "Unexpected Error",
+      description: "An unexpected error occurred while generating your avatar.",
+    });
 
     if (interaction.deferred) {
-      await interaction.editReply(
-        errorEmbed({
-          title: "Avatar Generation Failed",
-          description:
-            "An unexpected error occurred while generating your avatar.",
-          solution:
-            "Please try again or contact support if the issue persists.",
-        }),
-      );
+      await interaction.editReply(errorResponse);
     } else {
-      await interaction.reply(
-        errorEmbed({
-          title: "Avatar Generation Failed",
-          description:
-            "An unexpected error occurred while generating your avatar.",
-          solution:
-            "Please try again or contact support if the issue persists.",
-        }),
-      );
+      await interaction.reply(errorResponse);
     }
+  } catch (replyError) {
+    const logger = getLogger();
+    logger.error("Failed to send error response:", replyError);
   }
 }

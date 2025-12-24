@@ -1031,6 +1031,17 @@ export class MultiProviderAIService {
       max_tokens: config.maxTokens || 1000,
     };
 
+    // Model-specific optimizations for speed
+    // DeepSeek R1 is a reasoning model (inherently slower), but we can optimize parameters
+    if (model && model.includes("deepseek-r1")) {
+      // Lower temperature for faster, more deterministic responses
+      requestBody.temperature = config.temperature || 0.5;
+      // Reduce max_tokens to limit output length (faster generation)
+      if (config.maxTokens && config.maxTokens > 1500) {
+        requestBody.max_tokens = 1500; // Cap at 1500 for speed
+      }
+    }
+
     // Add response_format for structured output if supported by model
     // This helps enforce JSON format (OpenRouter supports this for compatible models)
     if (config.responseFormat === "json_object" || config.forceJson) {
@@ -1206,6 +1217,17 @@ export class MultiProviderAIService {
       max_tokens: config.maxTokens || 1000,
       stream: true, // Enable streaming
     };
+
+    // Model-specific optimizations for speed
+    // DeepSeek R1 is a reasoning model (inherently slower), but we can optimize parameters
+    if (requestBody.model && requestBody.model.includes("deepseek-r1")) {
+      // Lower temperature for faster, more deterministic responses
+      requestBody.temperature = config.temperature || 0.5;
+      // Reduce max_tokens to limit output length (faster generation)
+      if (requestBody.max_tokens > 1500) {
+        requestBody.max_tokens = 1500; // Cap at 1500 for speed
+      }
+    }
 
     if (config.responseFormat === "json_object" || config.forceJson) {
       requestBody.response_format = { type: "json_object" };

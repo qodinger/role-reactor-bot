@@ -72,6 +72,9 @@ export async function handleImagineCommand(
 
   const promptOption = interaction.options.getString("prompt", true);
 
+  // Safety tolerance: 6 = most permissive (default for Stability AI)
+  const safetyTolerance = 6;
+
   // Check if AI features are enabled
   if (!multiProviderAIService.isEnabled()) {
     const validationEmbed = createImagineValidationEmbed(
@@ -93,6 +96,7 @@ export async function handleImagineCommand(
 
   let processingEmbed = createImagineProcessingEmbed({
     prompt,
+    interaction,
   });
   await interaction.editReply({
     embeds: [processingEmbed],
@@ -104,6 +108,7 @@ export async function handleImagineCommand(
       processingEmbed = createImagineProcessingEmbed({
         prompt,
         status,
+        interaction,
       });
       await interaction.editReply({
         embeds: [processingEmbed],
@@ -124,7 +129,9 @@ export async function handleImagineCommand(
         multiProviderAIService.generate({
           type: "image",
           prompt,
-          config: {},
+          config: {
+            safetyTolerance,
+          },
           progressCallback,
         }),
       {
@@ -166,7 +173,9 @@ export async function handleImagineCommand(
       prompt,
       provider: result.provider,
       model: result.model,
-      config: {},
+      config: {
+        safetyTolerance,
+      },
     });
   } catch (error) {
     logger.error(

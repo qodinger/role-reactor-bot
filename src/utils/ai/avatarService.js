@@ -146,9 +146,23 @@ export class AvatarService {
           // Step 4: Generate image
           if (progressCallback)
             progressCallback("Generating image (this may take 30-60s)...");
+
+          // Avatar generation uses ONLY Stability AI (no fallback)
+          const stabilityProvider = this.aiService.config.providers.stability;
+          if (
+            !stabilityProvider ||
+            !stabilityProvider.enabled ||
+            !stabilityProvider.apiKey
+          ) {
+            throw new Error(
+              "Stability AI is required for avatar generation but is not configured or enabled. Please enable Stability AI in config.js and configure the API key.",
+            );
+          }
+
           const result = await this.aiService.generate({
             type: "image",
             prompt: enhancedPrompt,
+            provider: "stability", // Explicitly use Stability AI only (no fallback)
             config: {
               size: "1024x1024",
               quality: "standard",

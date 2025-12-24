@@ -34,6 +34,14 @@ class CacheManager {
     this.updateAccessOrder(key);
   }
 
+  delete(key) {
+    const deleted = this.cache.delete(key);
+    if (deleted) {
+      this.removeFromAccessOrder(key);
+    }
+    return deleted;
+  }
+
   clear() {
     this.cache.clear();
     this.accessOrder = [];

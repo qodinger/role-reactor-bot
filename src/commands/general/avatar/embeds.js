@@ -56,8 +56,7 @@ export function createErrorEmbed(interaction, title, description) {
     )
     .setFooter({
       text: "Try refining your prompt or retry later.",
-    })
-    .setTimestamp();
+    });
 }
 
 /**
@@ -261,4 +260,19 @@ export function createHelpEmbed() {
       text: "Avatar Generator • Powered by AI",
     })
     .setTimestamp();
+}
+
+/**
+ * Create validation embed for avatar command
+ * @param {string} reason - Validation failure reason
+ * @returns {import('discord.js').EmbedBuilder}
+ */
+export function createAvatarValidationEmbed(reason) {
+  return new EmbedBuilder()
+    .setColor(THEME.WARNING)
+    .setTitle(`${EMOJIS.STATUS.WARNING} Check your prompt`)
+    .setDescription(reason)
+    .setFooter({
+      text: "Describe your avatar (e.g., 'cyberpunk hacker with neon hair', 'kawaii girl with pink cat ears')",
+    });
 }
