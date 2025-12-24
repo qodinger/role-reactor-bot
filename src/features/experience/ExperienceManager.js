@@ -200,9 +200,10 @@ class ExperienceManager {
    * @param {string} guildId - Discord guild ID
    * @param {string} userId - Discord user ID
    * @param {number} xp - XP to add
+   * @param {import('discord.js').Client} [client] - Optional Discord client for level-up notifications
    * @returns {object} Updated user data
    */
-  async addXP(guildId, userId, xp) {
+  async addXP(guildId, userId, xp, client = null) {
     await this.initialize();
 
     // Check cache first
@@ -237,29 +238,27 @@ class ExperienceManager {
       );
 
       // Send level-up notification
-      try {
-        const { getLevelUpNotifier } = await import("./LevelUpNotifier.js");
-        const levelUpNotifier = await getLevelUpNotifier();
+      if (client) {
+        try {
+          const { getLevelUpNotifier } = await import("./LevelUpNotifier.js");
+          const levelUpNotifier = await getLevelUpNotifier();
 
-        // Get guild and user objects for notification
-        const { getDatabaseManager } = await import(
-          "../../utils/storage/databaseManager.js"
-        );
-        const dbManager = await getDatabaseManager();
-        const guild = dbManager.client.guilds.cache.get(guildId);
-        const user = dbManager.client.users.cache.get(userId);
+          // Get guild and user objects for notification
+          const guild = client.guilds.cache.get(guildId);
+          const user = client.users.cache.get(userId);
 
-        if (guild && user) {
-          await levelUpNotifier.sendLevelUpNotification(
-            guild,
-            user,
-            oldLevel,
-            newLevel,
-            newTotalXP,
-          );
+          if (guild && user) {
+            await levelUpNotifier.sendLevelUpNotification(
+              guild,
+              user,
+              oldLevel,
+              newLevel,
+              newTotalXP,
+            );
+          }
+        } catch (error) {
+          this.logger.error("Error sending level-up notification:", error);
         }
-      } catch (error) {
-        this.logger.error("Error sending level-up notification:", error);
       }
     }
 
@@ -438,9 +437,10 @@ class ExperienceManager {
    * Award XP for message activity
    * @param {string} guildId - Discord guild ID
    * @param {string} userId - Discord user ID
+   * @param {import('discord.js').Client} [client] - Optional Discord client for level-up notifications
    * @returns {object|null} Awarded XP data or null if cooldown active
    */
-  async awardMessageXP(guildId, userId) {
+  async awardMessageXP(guildId, userId, client = null) {
     // Check if message XP is enabled for this guild
     const { getDatabaseManager } = await import(
       "../../utils/storage/databaseManager.js"
@@ -460,7 +460,7 @@ class ExperienceManager {
 
     // Random XP between 15-25
     const xp = Math.floor(Math.random() * 11) + 15;
-    const userData = await this.addXP(guildId, userId, xp);
+    const userData = await this.addXP(guildId, userId, xp, client);
 
     // Update last earned timestamp
     const experienceData = await this.storageManager.read("user_experience");

@@ -150,9 +150,10 @@ class ConnectionManager {
       this.logger.info("🔌 Attempting to connect to MongoDB...");
       this.client = new MongoClient(this.config.uri, {
         ...this.config.options,
-        // Enhanced connection pooling
-        maxPoolSize: Math.max(20, this.config.options.maxPoolSize || 20),
-        minPoolSize: Math.max(5, this.config.options.minPoolSize || 5),
+        // Enhanced connection pooling - optimized for cost savings
+        // Lower minPoolSize reduces compute usage on MongoDB Atlas Flex tier
+        maxPoolSize: Math.max(2, this.config.options.maxPoolSize || 20),
+        minPoolSize: Math.max(2, this.config.options.minPoolSize || 2),
         maxIdleTimeMS: Math.max(
           60000,
           this.config.options.maxIdleTimeMS || 60000,
@@ -407,6 +408,24 @@ class ConnectionManager {
       await this.db
         .collection("recurring_schedules")
         .createIndex({ active: 1 });
+      await this.db
+        .collection("ai_conversations")
+        .createIndex({ userId: 1 }, { unique: true });
+      await this.db
+        .collection("ai_conversations")
+        .createIndex({ lastActivity: 1 });
+      await this.db
+        .collection("avatar_jobs")
+        .createIndex({ jobId: 1 }, { unique: true });
+      await this.db.collection("avatar_jobs").createIndex({ userId: 1 });
+      await this.db.collection("avatar_jobs").createIndex({ createdAt: 1 });
+      await this.db.collection("avatar_jobs").createIndex({ expiresAt: 1 });
+      await this.db
+        .collection("imagine_jobs")
+        .createIndex({ jobId: 1 }, { unique: true });
+      await this.db.collection("imagine_jobs").createIndex({ userId: 1 });
+      await this.db.collection("imagine_jobs").createIndex({ createdAt: 1 });
+      await this.db.collection("imagine_jobs").createIndex({ expiresAt: 1 });
       this.logger.success("✅ Database indexes created successfully");
     } catch (error) {
       this.logger.warn("⚠️ Index creation failed (non-critical)", error);
@@ -1222,6 +1241,258 @@ class GuildSettingsRepository extends BaseRepository {
   }
 }
 
+class ConversationRepository extends BaseRepository {
+  constructor(db, cache, logger) {
+    super(db, "ai_conversations", cache, logger);
+  }
+
+  async getByUser(userId) {
+    try {
+      const cached = this.cache.get(`conversation_${userId}`);
+      if (cached) return cached;
+
+      const conversation = await this.collection.findOne({ userId });
+      if (conversation) {
+        this.cache.set(`conversation_${userId}`, conversation);
+      }
+      return conversation || null;
+    } catch (error) {
+      this.logger.error(`Failed to get conversation for user ${userId}`, error);
+      return null;
+    }
+  }
+
+  async save(userId, messages, lastActivity) {
+    try {
+      await this.collection.updateOne(
+        { userId },
+        {
+          $set: {
+            messages,
+            lastActivity: new Date(lastActivity),
+            updatedAt: new Date(),
+          },
+        },
+        { upsert: true },
+      );
+      this.cache.set(`conversation_${userId}`, {
+        userId,
+        messages,
+        lastActivity,
+      });
+      return true;
+    } catch (error) {
+      this.logger.error(
+        `Failed to save conversation for user ${userId}`,
+        error,
+      );
+      return false;
+    }
+  }
+
+  async delete(userId) {
+    try {
+      await this.collection.deleteOne({ userId });
+      this.cache.delete(`conversation_${userId}`);
+      return true;
+    } catch (error) {
+      this.logger.error(
+        `Failed to delete conversation for user ${userId}`,
+        error,
+      );
+      return false;
+    }
+  }
+
+  async deleteExpired(expirationTime) {
+    try {
+      const result = await this.collection.deleteMany({
+        lastActivity: { $lt: new Date(expirationTime) },
+      });
+      return result.deletedCount || 0;
+    } catch (error) {
+      this.logger.error("Failed to delete expired conversations", error);
+      return 0;
+    }
+  }
+}
+
+class ImageJobRepository extends BaseRepository {
+  constructor(db, cache, logger, collectionName) {
+    super(db, collectionName, cache, logger);
+  }
+
+  async getAll() {
+    try {
+      const cached = this.cache.get(`${this.collection.collectionName}_all`);
+      if (cached) return cached;
+
+      const documents = await this.collection.find({}).toArray();
+      const jobs = {};
+      for (const doc of documents) {
+        // Use jobId as key, or _id if jobId doesn't exist
+        const key = doc.jobId || doc._id.toString();
+        // Remove MongoDB _id from the data
+        // eslint-disable-next-line no-unused-vars
+        const { _id, ...jobData } = doc;
+        jobs[key] = jobData;
+      }
+
+      this.cache.set(`${this.collection.collectionName}_all`, jobs);
+      return jobs;
+    } catch (error) {
+      this.logger.error(
+        `Failed to get all jobs from ${this.collection.collectionName}`,
+        error,
+      );
+      return {};
+    }
+  }
+
+  async getByJobId(jobId) {
+    try {
+      const cached = this.cache.get(
+        `${this.collection.collectionName}_${jobId}`,
+      );
+      if (cached) return cached;
+
+      const job = await this.collection.findOne({ jobId });
+      if (job) {
+        // eslint-disable-next-line no-unused-vars
+        const { _id, ...jobData } = job;
+        this.cache.set(`${this.collection.collectionName}_${jobId}`, jobData);
+        return jobData;
+      }
+      return null;
+    } catch (error) {
+      this.logger.error(
+        `Failed to get job ${jobId} from ${this.collection.collectionName}`,
+        error,
+      );
+      return null;
+    }
+  }
+
+  async getByUserId(userId, limit = 20) {
+    try {
+      const cached = this.cache.get(
+        `${this.collection.collectionName}_user_${userId}_${limit}`,
+      );
+      if (cached) return cached;
+
+      const documents = await this.collection
+        .find({ userId })
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .toArray();
+
+      const jobs = documents.map(doc => {
+        // eslint-disable-next-line no-unused-vars
+        const { _id, ...jobData } = doc;
+        return { jobId: doc.jobId || doc._id.toString(), ...jobData };
+      });
+
+      this.cache.set(
+        `${this.collection.collectionName}_user_${userId}_${limit}`,
+        jobs,
+      );
+      return jobs;
+    } catch (error) {
+      this.logger.error(
+        `Failed to get jobs for user ${userId} from ${this.collection.collectionName}`,
+        error,
+      );
+      return [];
+    }
+  }
+
+  async create(jobId, jobData) {
+    try {
+      await this.collection.insertOne({
+        jobId,
+        ...jobData,
+        createdAt: new Date(jobData.createdAt || Date.now()),
+        expiresAt: new Date(jobData.expiresAt || Date.now()),
+      });
+      this.cache.clear();
+      return true;
+    } catch (error) {
+      this.logger.error(
+        `Failed to create job ${jobId} in ${this.collection.collectionName}`,
+        error,
+      );
+      return false;
+    }
+  }
+
+  async update(jobId, jobData) {
+    try {
+      await this.collection.updateOne(
+        { jobId },
+        { $set: { ...jobData, updatedAt: new Date() } },
+      );
+      this.cache.clear();
+      return true;
+    } catch (error) {
+      this.logger.error(
+        `Failed to update job ${jobId} in ${this.collection.collectionName}`,
+        error,
+      );
+      return false;
+    }
+  }
+
+  async delete(jobId) {
+    try {
+      await this.collection.deleteOne({ jobId });
+      this.cache.clear();
+      return true;
+    } catch (error) {
+      this.logger.error(
+        `Failed to delete job ${jobId} from ${this.collection.collectionName}`,
+        error,
+      );
+      return false;
+    }
+  }
+
+  async deleteExpired() {
+    try {
+      const result = await this.collection.deleteMany({
+        expiresAt: { $lt: new Date() },
+      });
+      return result.deletedCount || 0;
+    } catch (error) {
+      this.logger.error(
+        `Failed to delete expired jobs from ${this.collection.collectionName}`,
+        error,
+      );
+      return 0;
+    }
+  }
+
+  async deleteOld(daysToKeep) {
+    try {
+      const cutoffTime = new Date(
+        Date.now() - daysToKeep * 24 * 60 * 60 * 1000,
+      );
+      // Only delete records without expiresAt or where expiresAt is null/undefined
+      // Records with expiresAt should be handled by deleteExpired()
+      const result = await this.collection.deleteMany({
+        createdAt: { $lt: cutoffTime },
+        $or: [{ expiresAt: { $exists: false } }, { expiresAt: null }],
+      });
+      return result.deletedCount || 0;
+    } catch (error) {
+      this.logger.error(
+        `Failed to delete old jobs from ${this.collection.collectionName}`,
+        error,
+      );
+      return 0;
+    }
+  }
+}
+
 class PollRepository extends BaseRepository {
   constructor(db, cache, logger) {
     super(db, "polls", cache, logger);
@@ -1859,6 +2130,11 @@ class DatabaseManager {
           this.logger,
         );
         this.polls = new PollRepository(db, this.cacheManager, this.logger);
+        this.conversations = new ConversationRepository(
+          db,
+          this.cacheManager,
+          this.logger,
+        );
         this.coreCredits = new CoreCreditsRepository(
           db,
           this.cacheManager,
@@ -1873,6 +2149,18 @@ class DatabaseManager {
           db,
           this.cacheManager,
           this.logger,
+        );
+        this.avatarJobs = new ImageJobRepository(
+          db,
+          this.cacheManager,
+          this.logger,
+          "avatar_jobs",
+        );
+        this.imagineJobs = new ImageJobRepository(
+          db,
+          this.cacheManager,
+          this.logger,
+          "imagine_jobs",
         );
         this.logger.info(
           "✅ All database repositories initialized successfully",

@@ -6,9 +6,26 @@ This directory contains reusable AI services for various AI-powered features in 
 
 The AI utilities are designed with a modular, reusable architecture:
 
-- **`multiProviderAIService.js`** - Multi-provider AI service supporting OpenRouter, OpenAI, and Stability AI with enabled/disabled provider configuration
+### Core Services
+
+- **`multiProviderAIService.js`** - Multi-provider AI service supporting OpenRouter, OpenAI, Stability AI, and self-hosted providers with enabled/disabled provider configuration
+- **`chatService.js`** - AI-powered chat service for conversational interactions with bot and server context awareness
 - **`avatarService.js`** - Specialized service for AI avatar generation
-- **`concurrencyManager.js`** - Request concurrency management
+- **`concurrencyManager.js`** - Request concurrency management and rate limiting
+
+### Supporting Modules
+
+- **`conversationManager.js`** - Manages conversation history and long-term memory (MongoDB)
+- **`responseValidator.js`** - Validates and sanitizes AI responses for data accuracy and security
+- **`systemPromptBuilder.js`** - Builds system prompts with server context, command information, and user-specific data
+- **`commandDiscoverer.js`** - Discovers and formats bot commands for AI system prompts
+- **`serverInfoGatherer.js`** - Gathers server and bot information for AI context
+- **`commandExecutor.js`** - Executes bot commands programmatically from AI actions
+- **`discordActionExecutor.js`** - Executes Discord actions (roles, messages, moderation) from AI actions
+- **`constants.js`** - Shared constants for all AI modules
+
+### Exports
+
 - **`index.js`** - Central export file for easy imports
 
 **Provider Management:**
@@ -37,15 +54,55 @@ const primaryProvider = multiProviderAIService.getPrimaryProvider();
 // Generate AI content using the configured provider
 // Automatically uses the first enabled provider, or a specific provider if specified
 const result = await multiProviderAIService.generate({
-  type: "image", // Only image generation is supported
+  type: "text", // "text" for chat/completions, "image" for image generation
   prompt: "Your prompt here",
   config: {
-    size: "1024x1024",
-    quality: "standard",
+    // Model-specific configuration
   },
-  provider: null, // null = auto-select first enabled provider, or specify "openrouter", "openai", "stability"
+  provider: null, // null = auto-select first enabled provider, or specify "openrouter", "openai", "stability", "selfhosted"
 });
 ```
+
+## Chat Service
+
+The `ChatService` provides AI-powered conversational interactions with full server and bot context:
+
+```javascript
+import { chatService } from "./utils/ai/chatService.js";
+
+// Generate AI response with server context
+const response = await chatService.generateResponse(
+  "Who are the moderators in this server?",
+  guild, // Discord guild object
+  client, // Discord client
+  {
+    userId: interaction.user.id,
+    coreUserData: userData,
+    user: interaction.user,
+    channel: interaction.channel,
+    locale: interaction.locale || "en-US",
+  },
+);
+
+// Response includes:
+// - text: The AI's response message
+// - commandResponses: Array of command execution results (if any commands were executed)
+```
+
+**Features:**
+
+- **Server Context Awareness**: AI knows about server members, roles, channels, and bot commands
+- **Command Execution**: AI can execute bot commands on behalf of users
+- **Action Execution**: AI can perform Discord actions (add roles, send messages, etc.)
+- **Conversation History**: Maintains conversation context across multiple interactions
+- **Long-term Memory**: Stores conversations in MongoDB for persistence
+- **Data Validation**: Validates AI responses to ensure accuracy
+- **Response Sanitization**: Removes sensitive data from responses
+
+**Used By:**
+
+- `/ask` command - Allows users to ask questions about the bot and server
+- `messageCreate` event - Responds when the bot is mentioned in messages
 
 ## Specialized Services
 
@@ -78,32 +135,140 @@ const result = await concurrencyManager.queueRequest(
     return await multiProviderAIService.generate(options);
   },
   {
-    /* request metadata */
+    userId: "user-id",
+    coreUserData: userData,
   },
 );
 ```
 
 ## Available Models
 
-The AI service supports image generation through multiple providers:
+The AI service supports both text generation and image generation through multiple providers:
 
-### OpenRouter Models
+### Text Generation Models
+
+#### OpenRouter Models
+
+- `openai/gpt-4o-mini` (Default - Cost-effective, high quality)
+- `openai/gpt-3.5-turbo` (Faster, lower cost)
+- `anthropic/claude-3-haiku` (Fast, efficient)
+- `google/gemini-pro` (Google's advanced model)
+
+#### Self-Hosted Models
+
+- `llama3.2` (Default for self-hosted)
+- Any model supported by your self-hosted API (Ollama, etc.)
+
+#### OpenAI Models
+
+- `gpt-3.5-turbo` (Standard)
+- `gpt-4` (Higher quality, higher cost)
+
+### Image Generation Models
+
+#### OpenRouter Models
 
 - `google/gemini-3-pro-image-preview` (Default - High quality)
 - `google/gemini-2.5-flash-image-preview` (Faster, lower cost)
 - `stability-ai/stable-diffusion-xl-base-1.0`
 - `google/imagen-3`
 
-### OpenAI Models
+#### OpenAI Models
 
 - `dall-e-3` (High quality image generation)
 
-### Stability AI Models (Stable Diffusion 3.5)
+#### Stability AI Models (Stable Diffusion 3.5)
 
 - `sd3.5-flash` (Fastest, 2.5 credits) - Recommended for cost efficiency
 - `sd3.5-medium` (Balanced, 3.5 credits) - Good quality/speed balance
 - `sd3.5-large-turbo` (Quality + Speed, 4 credits) - High quality, fast
 - `sd3.5-large` (Highest quality, 6.5 credits) - Best quality results
+
+## Module Organization
+
+### Conversation Management
+
+The `conversationManager` handles conversation history and long-term memory:
+
+```javascript
+import { conversationManager } from "./utils/ai/conversationManager.js";
+
+// Get conversation history
+const history = await conversationManager.getConversationHistory(userId);
+
+// Add message to history
+await conversationManager.addToHistory(userId, {
+  role: "user",
+  content: "Hello!",
+});
+
+// Clear conversation history
+await conversationManager.clearHistory(userId);
+```
+
+### Response Validation
+
+The `responseValidator` ensures AI responses are accurate and safe:
+
+```javascript
+import { responseValidator } from "./utils/ai/responseValidator.js";
+
+// Validate response data
+const validation = responseValidator.validateResponseData(response, guild);
+if (!validation.valid) {
+  // Handle validation warnings
+}
+
+// Sanitize sensitive data
+const sanitized = responseValidator.sanitizeData(response);
+```
+
+### System Prompt Building
+
+The `systemPromptBuilder` creates comprehensive system prompts:
+
+```javascript
+import { systemPromptBuilder } from "./utils/ai/systemPromptBuilder.js";
+
+// Build system context with server information
+const systemMessage = await systemPromptBuilder.buildSystemContext(
+  guild,
+  client,
+  userMessage,
+  "en-US", // locale
+);
+```
+
+### Command Discovery
+
+The `commandDiscoverer` provides command information for AI:
+
+```javascript
+import { commandDiscoverer } from "./utils/ai/commandDiscoverer.js";
+
+// Get all bot commands
+const commands = commandDiscoverer.getBotCommands(client);
+
+// Detect mentioned commands in user message
+const mentioned = commandDiscoverer.detectMentionedCommands(
+  "How do I use the /avatar command?",
+  commands,
+);
+```
+
+### Server Info Gathering
+
+The `serverInfoGatherer` collects server and bot information:
+
+```javascript
+import { serverInfoGatherer } from "./utils/ai/serverInfoGatherer.js";
+
+// Get server information
+const serverInfo = await serverInfoGatherer.getServerInfo(guild, client);
+
+// Get bot information
+const botInfo = serverInfoGatherer.getBotInfo(client);
+```
 
 ## Concurrency Management
 
@@ -113,6 +278,7 @@ All AI services include built-in concurrency management:
 - Automatic request queuing
 - Prevents API rate limit issues
 - Configurable limits via concurrency manager
+- Priority queuing for users with Core credits
 
 ## Error Handling
 
@@ -126,8 +292,42 @@ Comprehensive error handling for common scenarios:
 - Network errors
 - Invalid responses
 - Provider disabled - Attempted to use a provider that is disabled
+- Response validation failures
+- Data accuracy issues
 
 ## Usage Examples
+
+### Using Chat Service
+
+```javascript
+import { chatService } from "./utils/ai/chatService.js";
+
+export async function execute(interaction) {
+  const question = interaction.options.getString("question");
+
+  try {
+    const response = await chatService.generateResponse(
+      question,
+      interaction.guild,
+      interaction.client,
+      {
+        userId: interaction.user.id,
+        coreUserData: userData,
+        user: interaction.user,
+        channel: interaction.channel,
+        locale: interaction.locale || "en-US",
+      },
+    );
+
+    await interaction.reply({ content: response.text });
+  } catch (error) {
+    await interaction.reply({
+      content: "Sorry, I couldn't process your request.",
+      ephemeral: true,
+    });
+  }
+}
+```
 
 ### Creating a New AI Feature
 
@@ -144,7 +344,7 @@ export class MyFeatureService {
 
   async generateMyContent(prompt, options = {}) {
     return await this.aiService.generate({
-      type: "image",
+      type: "image", // or "text"
       prompt: this.enhancePrompt(prompt, options),
       config: options,
     });
@@ -191,6 +391,10 @@ providers: {
         primary: "google/gemini-3-pro-image-preview",
         // Add new models here
       },
+      text: {
+        primary: "openai/gpt-4o-mini",
+        // Add new text models here
+      },
     },
   },
   openai: {
@@ -202,6 +406,10 @@ providers: {
       image: {
         primary: "dall-e-3",
         // Add new models here
+      },
+      text: {
+        primary: "gpt-3.5-turbo",
+        // Add new text models here
       },
     },
   },
@@ -224,9 +432,20 @@ OPENAI_API_KEY=your_openai_api_key
 # Stability AI Configuration (Stable Diffusion 3.5)
 STABILITY_API_KEY=your_stability_api_key
 
+# Self-Hosted Configuration (Optional)
+SELF_HOSTED_API_URL=http://127.0.0.1:11434
+SELF_HOSTED_API_KEY=your_api_key
+SELF_HOSTED_TEXT_MODEL=llama3.2
+
+# Conversation Management (Optional)
+AI_USE_LONG_TERM_MEMORY=true
+AI_CONVERSATION_HISTORY_LENGTH=20
+AI_CONVERSATION_TIMEOUT=604800000
+AI_MAX_CONVERSATIONS=1000
+
 # Bot Information
 BOT_NAME=Role Reactor Bot
-BOT_WEBSITE_URL=https://github.com/rolereactor
+BOT_WEBSITE_URL=https://rolereactor.app
 ```
 
 ## Provider Configuration
@@ -238,7 +457,7 @@ Provider selection is configured in `src/config/config.js` using the `enabled` f
 - Providers are checked in order (as they appear in config)
 - The first enabled provider is used automatically
 - If a provider is disabled, the system automatically falls back to the next enabled provider
-- **If all providers are disabled, AI features are completely disabled** - commands like `/avatar` and `/imagine` will show an error message
+- **If all providers are disabled, AI features are completely disabled** - commands like `/avatar`, `/ask`, and `/imagine` will show an error message
 
 Example configuration:
 
@@ -254,6 +473,10 @@ providers: {
   },
   stability: {
     enabled: true,  // Used as fallback if openrouter fails
+    // ... config
+  },
+  selfhosted: {
+    enabled: false, // Disabled by default
     // ... config
   },
 }
@@ -277,10 +500,80 @@ providers: {
     enabled: false,
     // ... config
   },
+  selfhosted: {
+    enabled: false,
+    // ... config
+  },
 }
 ```
 
 When all providers are disabled, AI commands will return user-friendly error messages indicating that AI features are disabled.
+
+## Module Responsibilities
+
+### chatService.js
+
+- Main orchestrator for AI chat interactions
+- Integrates all supporting modules
+- Handles response generation and action execution
+- Manages conversation flow
+
+### conversationManager.js
+
+- Conversation history management
+- Long-term memory (MongoDB) integration
+- Conversation cleanup and expiration
+- History retrieval and storage
+
+### responseValidator.js
+
+- Validates AI responses for data accuracy
+- Checks for placeholder usage
+- Sanitizes sensitive data
+- Ensures response quality
+
+### systemPromptBuilder.js
+
+- Builds comprehensive system prompts
+- Includes server context and bot information
+- Formats command and action information
+- Manages system message caching
+
+### commandDiscoverer.js
+
+- Discovers and formats bot commands
+- Detects mentioned commands in user messages
+- Provides command details for AI context
+- Formats command options and subcommands
+
+### serverInfoGatherer.js
+
+- Gathers server information (members, roles, channels)
+- Collects bot information
+- Formats data for AI consumption
+- Handles member fetching and caching
+
+### commandExecutor.js
+
+- Executes bot commands programmatically
+- Handles command validation
+- Manages command responses
+- Provides command discovery utilities
+
+### discordActionExecutor.js
+
+- Executes Discord actions (roles, messages, moderation)
+- Validates permissions
+- Handles action errors
+- Provides action descriptions for AI
+
+### constants.js
+
+- Shared constants for all AI modules
+- Conversation management constants
+- Member fetching constants
+- Response length constants
+- JSON parsing patterns
 
 ## Future Enhancements
 
@@ -288,10 +581,10 @@ The AI utilities are designed to be easily extensible:
 
 - **New AI providers** - Add support for other AI APIs (Anthropic, Cohere, etc.)
 - **New content types** - Add video, audio, or other media generation
-- **Advanced features** - Add conversation memory, context awareness, etc.
+- **Advanced features** - Enhanced conversation memory, context awareness, etc.
 - **Analytics** - Add usage tracking and analytics
-- **Text generation** - Re-add text generation capabilities if needed
 - **Provider fallback** - Automatic fallback to next enabled provider on failure
+- **Response streaming** - Stream responses for better user experience
 
 ## Best Practices
 
@@ -302,3 +595,6 @@ The AI utilities are designed to be easily extensible:
 5. **Test with different models** to find the best fit for your use case
 6. **Monitor costs** and usage patterns
 7. **Keep prompts concise** but descriptive for better results
+8. **Use conversation history** for context-aware responses
+9. **Validate AI responses** to ensure data accuracy
+10. **Sanitize sensitive data** before displaying to users

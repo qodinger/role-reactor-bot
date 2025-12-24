@@ -7,7 +7,8 @@ export {
   AvatarService,
   avatarService,
   generateAvatar,
+  generateAvatar as generateAIAvatar, // Alias for convenience
 } from "./avatarService.js";
-
-// Re-export commonly used functions
-export { generateAvatar as generateAIAvatar } from "./avatarService.js";
+export { ChatService, chatService } from "./chatService.js";
+export { performanceMonitor } from "./performanceMonitor.js";
+export { commandSuggester } from "./commandSuggester.js";

@@ -9,22 +9,34 @@ export class ConcurrencyManager {
   constructor() {
     this.activeRequests = new Set();
     this.queue = [];
+    // Track timeouts to prevent race conditions
+    this.requestTimeouts = new Map(); // requestId -> { requestTimeout, queueTimeout }
+    // Track cleanup intervals for proper cleanup
+    this.cleanupIntervals = [];
+
     // Increased limits for better scalability
-    this.maxConcurrent = parseInt(process.env.AI_MAX_CONCURRENT) || 50;
+    // Default: 100 concurrent requests (good for high-traffic servers)
+    // For self-hosted Ollama, can be increased based on server CPU/RAM
+    // For paid APIs, keep lower to manage costs
+    this.maxConcurrent = parseInt(process.env.AI_MAX_CONCURRENT) || 100;
     this.requestTimeout = parseInt(process.env.AI_REQUEST_TIMEOUT) || 120000; // 2 minutes
     this.retryAttempts = parseInt(process.env.AI_RETRY_ATTEMPTS) || 2;
     this.retryDelay = parseInt(process.env.AI_RETRY_DELAY) || 1000; // 1 second
 
     // User-specific rate limiting
     this.userRequests = new Map(); // userId -> { count, lastRequest, isCore, coreTier }
-    this.userRateLimit = parseInt(process.env.AI_USER_RATE_LIMIT) || 5; // 5 requests per user
+    // Chat-specific rate limiting (more lenient for conversational AI)
+    // Default: 50 requests per 1 minute (very generous for natural conversations)
+    // For self-hosted models, this is safe since there are no API costs
+    this.userRateLimit = parseInt(process.env.AI_USER_RATE_LIMIT) || 50; // 50 requests per user (default)
     this.userRateWindow = parseInt(process.env.AI_USER_RATE_WINDOW) || 300000; // 5 minutes
 
-    // Core tier rate limiting benefits
+    // Core tier rate limiting benefits (multipliers applied to base rate limit)
+    // With default 50 requests per minute, Core users get even more generous limits
     this.coreTierLimits = {
-      "Core Basic": { multiplier: 1.5, priority: 1 }, // 7.5 requests per 5 minutes
-      "Core Premium": { multiplier: 2.0, priority: 2 }, // 10 requests per 5 minutes
-      "Core Elite": { multiplier: 3.0, priority: 3 }, // 15 requests per 5 minutes
+      "Core Basic": { multiplier: 1.5, priority: 1 }, // 75 requests per minute (50 * 1.5)
+      "Core Premium": { multiplier: 2.0, priority: 2 }, // 100 requests per minute (50 * 2.0)
+      "Core Elite": { multiplier: 3.0, priority: 3 }, // 150 requests per minute (50 * 3.0)
     };
 
     // Queue management
@@ -33,7 +45,110 @@ export class ConcurrencyManager {
   }
 
   /**
-   * Check if user has exceeded rate limit
+   * Check if user has exceeded rate limit (read-only check, doesn't increment counter)
+   * @param {string} userId - User ID to check
+   * @param {Object} coreUserData - User data including Core tier info
+   * @returns {boolean} True if rate limited
+   * @deprecated Use checkAndReserveRateLimit() for atomic check-and-increment to avoid race conditions
+   */
+  checkUserRateLimit(userId, coreUserData = null) {
+    if (!userId) return false;
+
+    const now = Date.now();
+    const userData = this.userRequests.get(userId);
+
+    // Calculate effective rate limit based on Core tier
+    let effectiveRateLimit = this.userRateLimit;
+    if (coreUserData && coreUserData.isCore && coreUserData.coreTier) {
+      const tierConfig = this.coreTierLimits[coreUserData.coreTier];
+      if (tierConfig) {
+        effectiveRateLimit = Math.floor(
+          this.userRateLimit * tierConfig.multiplier,
+        );
+      }
+    }
+
+    if (!userData) {
+      return false; // No previous requests, not rate limited
+    }
+
+    // Reset counter if window has passed
+    if (now - userData.lastRequest > this.userRateWindow) {
+      return false; // Window expired, not rate limited
+    }
+
+    // Check if user has exceeded their effective limit
+    return userData.count >= effectiveRateLimit;
+  }
+
+  /**
+   * Atomically check and reserve rate limit (increments counter if not rate limited)
+   * This prevents race conditions where multiple requests pass the check before any increment
+   * @param {string} userId - User ID to check
+   * @param {Object} coreUserData - User data including Core tier info
+   * @returns {Object} { rateLimited: boolean, effectiveRateLimit: number }
+   */
+  checkAndReserveRateLimit(userId, coreUserData = null) {
+    if (!userId) {
+      return { rateLimited: false, effectiveRateLimit: this.userRateLimit };
+    }
+
+    const now = Date.now();
+    const userData = this.userRequests.get(userId);
+
+    // Calculate effective rate limit based on Core tier
+    let effectiveRateLimit = this.userRateLimit;
+    if (coreUserData && coreUserData.isCore && coreUserData.coreTier) {
+      const tierConfig = this.coreTierLimits[coreUserData.coreTier];
+      if (tierConfig) {
+        effectiveRateLimit = Math.floor(
+          this.userRateLimit * tierConfig.multiplier,
+        );
+      }
+    }
+
+    if (!userData) {
+      // First request - create entry and increment
+      this.userRequests.set(userId, {
+        count: 1,
+        lastRequest: now,
+        isCore: coreUserData?.isCore || false,
+        coreTier: coreUserData?.coreTier || null,
+      });
+      return { rateLimited: false, effectiveRateLimit };
+    }
+
+    // Reset counter if window has passed
+    if (now - userData.lastRequest > this.userRateWindow) {
+      // Window expired - reset and increment
+      this.userRequests.set(userId, {
+        count: 1,
+        lastRequest: now,
+        isCore: coreUserData?.isCore || false,
+        coreTier: coreUserData?.coreTier || null,
+      });
+      return { rateLimited: false, effectiveRateLimit };
+    }
+
+    // Check if user has exceeded their effective limit
+    if (userData.count >= effectiveRateLimit) {
+      return { rateLimited: true, effectiveRateLimit };
+    }
+
+    // Increment counter atomically
+    userData.count++;
+    userData.lastRequest = now;
+    // Update Core tier info if provided
+    if (coreUserData) {
+      userData.isCore = coreUserData.isCore || false;
+      userData.coreTier = coreUserData.coreTier || null;
+    }
+    this.userRequests.set(userId, userData);
+    return { rateLimited: false, effectiveRateLimit };
+  }
+
+  /**
+   * Check if user has exceeded rate limit (increments counter if not rate limited)
    * @param {string} userId - User ID to check
    * @param {Object} coreUserData - User data including Core tier info
    * @returns {boolean} True if rate limited
@@ -109,24 +224,34 @@ export class ConcurrencyManager {
    */
   async queueRequest(requestId, generationFunction, options = {}) {
     return new Promise((resolve, reject) => {
-      // Check user rate limiting
+      // Check user rate limiting (only if not already checked and reserved in handler)
       const userId = options.userId;
       const coreUserData = options.coreUserData;
-      if (userId && this.isUserRateLimited(userId, coreUserData)) {
-        const effectiveRateLimit =
-          coreUserData?.isCore && coreUserData?.coreTier
-            ? Math.floor(
-                this.userRateLimit *
-                  (this.coreTierLimits[coreUserData.coreTier]?.multiplier || 1),
-              )
-            : this.userRateLimit;
+      const rateLimitReserved = options.rateLimitReserved || false;
 
-        reject(
-          new Error(
-            `Rate limit exceeded. You can make ${effectiveRateLimit} requests per ${Math.ceil(this.userRateWindow / 60000)} minutes. Please wait before making another request.`,
-          ),
-        );
-        return;
+      // Only check rate limit here if it wasn't already checked and reserved in the handler
+      // This prevents double-counting and ensures atomic check-and-increment
+      if (userId && !rateLimitReserved) {
+        if (this.isUserRateLimited(userId, coreUserData)) {
+          // Get the actual effective rate limit that was used
+          const userData = this.userRequests.get(userId);
+          let effectiveRateLimit = this.userRateLimit;
+          if (userData && userData.isCore && userData.coreTier) {
+            const tierConfig = this.coreTierLimits[userData.coreTier];
+            if (tierConfig) {
+              effectiveRateLimit = Math.floor(
+                this.userRateLimit * tierConfig.multiplier,
+              );
+            }
+          }
+
+          reject(
+            new Error(
+              `Rate limit exceeded. You can make ${effectiveRateLimit} requests per ${Math.ceil(this.userRateWindow / 60000)} minutes. Please wait before making another request.`,
+            ),
+          );
+          return;
+        }
       }
 
       // Check queue size limit
@@ -153,22 +278,49 @@ export class ConcurrencyManager {
       this.queue.push(request);
       this.processQueue();
 
-      // Set timeout for the request
-      setTimeout(() => {
+      // Set timeout for the request (store to clear if request completes)
+      const requestTimeoutId = setTimeout(() => {
+        // Only reject if request is still active (not already resolved/rejected)
         if (this.activeRequests.has(requestId)) {
           this.activeRequests.delete(requestId);
-          reject(new Error("AI generation request timed out"));
+          // Clear the timeout tracking
+          this.requestTimeouts.delete(requestId);
+          // Check if promise is still pending before rejecting
+          try {
+            reject(new Error("AI generation request timed out"));
+          } catch (_err) {
+            // Promise already resolved/rejected, ignore
+            logger.debug(
+              `Request ${requestId} timeout handler: promise already settled`,
+            );
+          }
         }
       }, this.requestTimeout);
 
-      // Set queue timeout
-      setTimeout(() => {
+      // Set queue timeout (store to clear if request starts processing)
+      const queueTimeoutId = setTimeout(() => {
         const queueIndex = this.queue.findIndex(r => r.id === requestId);
         if (queueIndex !== -1) {
           this.queue.splice(queueIndex, 1);
-          reject(new Error("Request timed out in queue"));
+          // Clear the timeout tracking
+          this.requestTimeouts.delete(requestId);
+          // Check if promise is still pending before rejecting
+          try {
+            reject(new Error("Request timed out in queue"));
+          } catch (_err) {
+            // Promise already resolved/rejected, ignore
+            logger.debug(
+              `Request ${requestId} queue timeout handler: promise already settled`,
+            );
+          }
         }
       }, this.queueTimeout);
+
+      // Store timeouts for cleanup
+      this.requestTimeouts.set(requestId, {
+        requestTimeout: requestTimeoutId,
+        queueTimeout: queueTimeoutId,
+      });
     });
   }
 
@@ -200,6 +352,14 @@ export class ConcurrencyManager {
       logger.debug(
         `Processing AI request ${request.id} (${this.activeRequests.size}/${this.maxConcurrent} active, ${this.queue.length} queued)`,
       );
+
+      // Clear timeouts since request is now processing
+      const timeouts = this.requestTimeouts.get(request.id);
+      if (timeouts) {
+        clearTimeout(timeouts.requestTimeout);
+        clearTimeout(timeouts.queueTimeout);
+        this.requestTimeouts.delete(request.id);
+      }
 
       const result = await request.function(request.options);
       request.resolve(result);
@@ -299,12 +459,13 @@ export class ConcurrencyManager {
    */
   startCleanup() {
     // Clean up user rate limits every 5 minutes
-    setInterval(() => {
+    const cleanupInterval = setInterval(() => {
       this.cleanupUserRateLimits();
     }, 300000);
+    this.cleanupIntervals.push(cleanupInterval);
 
     // Log queue stats every minute
-    setInterval(() => {
+    const statsInterval = setInterval(() => {
       const stats = this.getQueueStats();
       if (stats.queuedRequests > 0 || stats.activeRequests > 0) {
         logger.info(
@@ -312,6 +473,17 @@ export class ConcurrencyManager {
         );
       }
     }, 60000);
+    this.cleanupIntervals.push(statsInterval);
+  }
+
+  /**
+   * Stop all cleanup intervals (for testing or graceful shutdown)
+   */
+  stopCleanup() {
+    for (const interval of this.cleanupIntervals) {
+      clearInterval(interval);
+    }
+    this.cleanupIntervals = [];
   }
 }
 

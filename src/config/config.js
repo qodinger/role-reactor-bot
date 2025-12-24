@@ -72,19 +72,22 @@ class Config {
       uri: process.env.MONGODB_URI || "mongodb://localhost:27017",
       name: process.env.MONGODB_DB || "role-reactor-bot",
       options: {
-        maxPoolSize: 20, // Increased from 10
-        minPoolSize: 5, // Increased from 2
-        maxIdleTimeMS: 60000, // Increased from 30000
-        serverSelectionTimeoutMS: 15000, // Increased from 10000
-        connectTimeoutMS: 15000, // Increased from 10000
-        socketTimeoutMS: 60000, // Increased from 45000
+        // Connection pool settings - optimized for cost savings on MongoDB Atlas Flex
+        // Lower minPoolSize = lower compute usage = lower costs
+        // Can be overridden via MONGODB_MIN_POOL_SIZE and MONGODB_MAX_POOL_SIZE env vars
+        maxPoolSize: parseInt(process.env.MONGODB_MAX_POOL_SIZE || "20", 10),
+        minPoolSize: parseInt(process.env.MONGODB_MIN_POOL_SIZE || "2", 10), // Reduced from 5 to 2 for cost savings
+        maxIdleTimeMS: 60000,
+        serverSelectionTimeoutMS: 30000, // Increased for DNS resolution
+        connectTimeoutMS: 30000, // Increased for DNS resolution
+        socketTimeoutMS: 60000,
         retryWrites: true,
         retryReads: true,
         w: "majority",
         // Enhanced reconnection options
         heartbeatFrequencyMS: 10000,
         // Add connection optimization
-        maxConnecting: 5, // Limit concurrent connection attempts
+        maxConnecting: parseInt(process.env.MONGODB_MAX_CONNECTING || "5", 10), // Limit concurrent connection attempts
         serverApi: {
           version: "1",
           strict: false,
@@ -103,34 +106,6 @@ class Config {
       level: process.env.LOG_LEVEL || "INFO",
       file: process.env.LOG_FILE,
       console: process.env.LOG_CONSOLE !== "false",
-    };
-  }
-
-  /**
-   * Get client intents configuration
-   * @returns {Object} Client intents configuration
-   */
-  get intents() {
-    return {
-      guilds: true,
-      guildMembers: true,
-      guildMessages: true,
-      guildMessageReactions: true,
-      // guildPresences: true, // Optional - uncomment after enabling in Developer Portal
-    };
-  }
-
-  /**
-   * Get client partials configuration
-   * @returns {Object} Client partials configuration
-   */
-  get partials() {
-    return {
-      message: true,
-      channel: true,
-      reaction: true,
-      guildMember: true,
-      user: true,
     };
   }
 
@@ -206,121 +181,6 @@ class Config {
   }
 
   /**
-   * Get caching configuration
-   * @returns {Object} Caching configuration object
-   */
-  get caching() {
-    return {
-      // Member cache settings
-      memberCache: {
-        ttl: 5 * 60 * 1000, // 5 minutes
-        maxSize: 1000,
-        cleanupInterval: 5 * 60 * 1000, // 5 minutes
-      },
-      // Role mapping cache settings
-      roleMappingCache: {
-        ttl: 15 * 60 * 1000, // 15 minutes
-        maxSize: 500,
-        refreshInterval: 5 * 60 * 1000, // 5 minutes
-        cleanupInterval: 15 * 60 * 1000, // 15 minutes
-      },
-      // Experience cache settings
-      experienceCache: {
-        ttl: 10 * 60 * 1000, // 10 minutes
-        maxSize: 2000,
-        batchDelay: 5000, // 5 seconds
-        cleanupInterval: 10 * 60 * 1000, // 10 minutes
-      },
-      // Database query cache settings
-      queryCache: {
-        ttl: 2 * 60 * 1000, // 2 minutes
-        maxSize: 500,
-        cleanupInterval: 5 * 60 * 1000, // 5 minutes
-      },
-      // General cache settings
-      general: {
-        ttl: 5 * 60 * 1000, // 5 minutes
-        maxSize: 1000,
-        cleanupInterval: 5 * 60 * 1000, // 5 minutes
-      },
-    };
-  }
-
-  /**
-   * Get batch operation configuration
-   * @returns {Object} Batch operation configuration object
-   */
-  get batchOperations() {
-    return {
-      // Role operations
-      roleAdd: {
-        batchSize: 5,
-        delay: 100, // 100ms between batches
-        maxConcurrent: 3,
-      },
-      roleRemove: {
-        batchSize: 5,
-        delay: 100,
-        maxConcurrent: 3,
-      },
-      // Member operations
-      memberFetch: {
-        batchSize: 10,
-        delay: 50, // 50ms between batches
-        maxConcurrent: 5,
-      },
-      // Message operations
-      messageSend: {
-        batchSize: 3,
-        delay: 200, // 200ms between batches
-        maxConcurrent: 2,
-      },
-      // Reaction operations
-      reactionAdd: {
-        batchSize: 10,
-        delay: 50,
-        maxConcurrent: 5,
-      },
-    };
-  }
-
-  /**
-   * Get API optimization configuration
-   * @returns {Object} API optimization configuration object
-   */
-  get apiOptimization() {
-    return {
-      // Enable/disable optimizations
-      enabled: true,
-      // Bulk operations
-      bulkOperations: {
-        enabled: true,
-        maxBatchSize: 10,
-        defaultDelay: 100,
-      },
-      // Caching strategies
-      caching: {
-        enabled: true,
-        aggressive: this.isProduction, // More aggressive caching in production
-        preload: this.isProduction, // Preload frequently accessed data in production
-      },
-      // Rate limiting
-      rateLimiting: {
-        enabled: true,
-        adaptive: this.isProduction, // Adaptive rate limiting in production
-        backoff: this.isProduction, // Exponential backoff in production
-      },
-      // Connection pooling
-      connectionPooling: {
-        enabled: true,
-        maxConnections: this.isProduction ? 50 : 20,
-        minConnections: this.isProduction ? 10 : 5,
-        idleTimeout: 60000,
-      },
-    };
-  }
-
-  /**
    * Parse developers from environment variable
    * @returns {string[]} Array of developer IDs
    */
@@ -341,6 +201,7 @@ class Config {
   get externalLinks() {
     return {
       name: "Role Reactor Bot",
+      website: "https://rolereactor.app",
       guide: "https://rolereactor.app/docs",
       github: "https://github.com/qodinger/role-reactor-bot",
       support: "https://discord.gg/D8tYkU75Ry",
@@ -360,13 +221,16 @@ class Config {
       // Set enabled: true to use, enabled: false to disable
       providers: {
         selfhosted: {
-          enabled: false,
+          enabled: false, // Disabled - using OpenRouter GPT-4o-mini instead
           name: "Self-Hosted",
-          baseUrl: process.env.SELF_HOSTED_API_URL || "http://127.0.0.1:7860",
+          baseUrl: process.env.SELF_HOSTED_API_URL || "http://127.0.0.1:11434",
           apiKey: process.env.SELF_HOSTED_API_KEY || null,
           models: {
             image: {
               primary: "default",
+            },
+            text: {
+              primary: process.env.SELF_HOSTED_TEXT_MODEL || "llama3.1:8b",
             },
           },
         },
@@ -385,13 +249,16 @@ class Config {
           },
         },
         openrouter: {
-          enabled: false, // Set to false to disable this provider
+          enabled: true, // Enabled - using GPT-4o-mini for text/chat
           name: "OpenRouter",
           baseUrl: "https://openrouter.ai/api/v1/chat/completions",
           apiKey: process.env.OPENROUTER_API_KEY,
           models: {
             image: {
               primary: "google/gemini-3-pro-image-preview",
+            },
+            text: {
+              primary: "openai/gpt-4o-mini", // GPT-4o-mini via OpenRouter
             },
           },
         },
@@ -403,6 +270,9 @@ class Config {
           models: {
             image: {
               primary: "dall-e-3",
+            },
+            text: {
+              primary: "gpt-3.5-turbo",
             },
           },
         },
@@ -466,6 +336,11 @@ class Config {
         aiServiceCost: 1, // 1 Core per AI service
         priorityProcessing: true, // Core members get priority
       },
+
+      // Avatar content filter settings
+      avatarContentFilter: {
+        enabled: false, // Set to true to enable content filtering, false to disable
+      },
     };
   }
 
@@ -478,8 +353,6 @@ class Config {
       discord: this.discord,
       database: this.database,
       logging: this.logging,
-      intents: this.intents,
-      partials: this.partials,
       cacheLimits: this.cacheLimits,
       rateLimits: this.rateLimits,
       aiModels: this.aiModels,

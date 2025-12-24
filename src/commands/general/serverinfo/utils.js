@@ -98,28 +98,43 @@ export function getMemberCounts(guild) {
   const cached = members.size;
   const uncached = total - cached;
 
-  // Presence data is only available for cached members
-  const online = members.filter(m => m.presence?.status === "online").size;
-  const idle = members.filter(m => m.presence?.status === "idle").size;
-  const dnd = members.filter(m => m.presence?.status === "dnd").size;
-  const offline = members.filter(
-    m => !m.presence || m.presence.status === "offline",
-  ).size;
-
   // Bot/human counts are only accurate for cached members
   const bots = members.filter(m => m.user.bot).size;
   const humans = members.filter(m => !m.user.bot).size;
+
+  // Presence data - separate counts for humans and bots
+  // When asked "how many are online", use human online count only
+  const humanMembers = members.filter(m => !m.user.bot);
+  const botMembers = members.filter(m => m.user.bot);
+
+  // Human member status counts (what users care about)
+  const online = humanMembers.filter(m => m.presence?.status === "online").size;
+  const idle = humanMembers.filter(m => m.presence?.status === "idle").size;
+  const dnd = humanMembers.filter(m => m.presence?.status === "dnd").size;
+  const offline = humanMembers.filter(
+    m => !m.presence || m.presence.status === "offline",
+  ).size;
+
+  // Bot status counts (for reference, but not used when asked about "members online")
+  const botsOnline = botMembers.filter(
+    m => m.presence?.status === "online",
+  ).size;
+  const botsIdle = botMembers.filter(m => m.presence?.status === "idle").size;
+  const botsDnd = botMembers.filter(m => m.presence?.status === "dnd").size;
 
   return {
     total,
     cached,
     uncached,
-    online,
-    idle,
-    dnd,
-    offline,
+    online, // Human members online only
+    idle, // Human members idle only
+    dnd, // Human members dnd only
+    offline, // Human members offline only
     bots,
     humans,
+    botsOnline, // For reference
+    botsIdle, // For reference
+    botsDnd, // For reference
   };
 }
 

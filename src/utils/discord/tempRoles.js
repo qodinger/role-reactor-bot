@@ -30,7 +30,17 @@ async function sendAssignmentNotification(member, role, expiresAt, guild) {
     })
     .setTimestamp();
 
-  await member.user.send({ embeds: [embed] });
+  try {
+    await member.user.send({ embeds: [embed] });
+  } catch (error) {
+    // Log but don't throw - DM failures shouldn't break the assignment process
+    const logger = getLogger();
+    logger.warn(
+      `Failed to send assignment notification to user ${member.id}:`,
+      error.message,
+    );
+    // Don't throw - let caller handle gracefully
+  }
 }
 
 /**

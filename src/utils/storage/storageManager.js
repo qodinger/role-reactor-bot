@@ -33,6 +33,60 @@ class FileProvider {
         if (readError.code === "ENOENT") {
           return {};
         }
+
+        // If JSON parse error, try to recover from corrupted file
+        if (readError instanceof SyntaxError) {
+          this.logger.warn(
+            `⚠️ Corrupted JSON file detected for ${collection}, attempting recovery...`,
+          );
+
+          try {
+            // Create backup of corrupted file
+            const backupPath = `${filePath}.corrupted.${Date.now()}`;
+            const data = await fs.readFile(filePath, "utf8");
+            await fs.writeFile(backupPath, data, "utf8");
+            this.logger.info(
+              `📦 Created backup of corrupted file: ${backupPath}`,
+            );
+
+            // Try to extract valid JSON (find the first complete JSON object)
+            const jsonMatch = data.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              try {
+                const recovered = JSON.parse(jsonMatch[0]);
+                this.logger.info(
+                  `✅ Successfully recovered data from corrupted ${collection} file`,
+                );
+                // Write the recovered data back to fix the file
+                await fs.writeFile(
+                  filePath,
+                  JSON.stringify(recovered, null, 2),
+                  "utf8",
+                );
+                return recovered;
+              } catch (_recoverError) {
+                this.logger.warn(
+                  `⚠️ Could not recover data from ${collection}, resetting to empty object`,
+                );
+              }
+            }
+
+            // If recovery failed, reset to empty object
+            this.logger.warn(
+              `🔄 Resetting ${collection} to empty object due to corruption`,
+            );
+            await fs.writeFile(filePath, JSON.stringify({}, null, 2), "utf8");
+            return {};
+          } catch (recoveryError) {
+            this.logger.error(
+              `❌ Failed to recover corrupted ${collection} file:`,
+              recoveryError,
+            );
+            // Last resort: return empty object
+            return {};
+          }
+        }
+
         throw readError;
       }
     } catch (error) {

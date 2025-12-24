@@ -10,6 +10,7 @@ import {
   createImagineValidationEmbed,
 } from "./embeds.js";
 import { validatePrompt } from "./utils.js";
+import { ImagineGenerationHistory } from "./utils/generationHistory.js";
 
 const logger = getLogger();
 
@@ -90,13 +91,28 @@ export async function handleImagineCommand(
 
   const prompt = validation.prompt;
 
-  await interaction.editReply({
-    embeds: [
-      createImagineProcessingEmbed({
-        prompt,
-      }),
-    ],
+  let processingEmbed = createImagineProcessingEmbed({
+    prompt,
   });
+  await interaction.editReply({
+    embeds: [processingEmbed],
+  });
+
+  // Progress callback to update embed with status messages
+  const progressCallback = async status => {
+    try {
+      processingEmbed = createImagineProcessingEmbed({
+        prompt,
+        status,
+      });
+      await interaction.editReply({
+        embeds: [processingEmbed],
+      });
+    } catch (error) {
+      // Ignore edit errors (e.g., interaction expired)
+      logger.debug("[imagine] Failed to update progress message:", error);
+    }
+  };
 
   const startTime = Date.now();
   const requestId = `imagine-${interaction.id}`;
@@ -109,6 +125,7 @@ export async function handleImagineCommand(
           type: "image",
           prompt,
           config: {},
+          progressCallback,
         }),
       {
         userId: interaction.user.id,
@@ -143,6 +160,14 @@ export async function handleImagineCommand(
         model: result.model,
       },
     );
+
+    // Record successful generation
+    await ImagineGenerationHistory.recordGeneration(interaction.user.id, {
+      prompt,
+      provider: result.provider,
+      model: result.model,
+      config: {},
+    });
   } catch (error) {
     logger.error(
       `Imagine command failed for developer ${interaction.user.id}: ${error.message}`,

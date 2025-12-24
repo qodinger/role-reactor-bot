@@ -1,6 +1,7 @@
 import { EmbedBuilder } from "discord.js";
 import { THEME } from "../../../config/theme.js";
 import { getPerformanceMonitor } from "../../../utils/monitoring/performanceMonitor.js";
+import { performanceMonitor as aiPerformanceMonitor } from "../../../utils/ai/performanceMonitor.js";
 
 // ============================================================================
 // PERFORMANCE EMBED BUILDER
@@ -92,6 +93,45 @@ export async function createPerformanceEmbed(client) {
       ].join("\n"),
       inline: false,
     });
+
+    // AI Performance Metrics
+    try {
+      const aiStats = aiPerformanceMonitor.getStats();
+      if (aiStats.totalRequests > 0) {
+        embed.addFields({
+          name: "🤖 AI Performance",
+          value: [
+            `**Total Requests**: ${aiStats.totalRequests}`,
+            `**Avg Response Time**: ${aiStats.averageResponseTime}ms`,
+            `**Error Rate**: ${aiStats.errorRate.toFixed(2)}%`,
+            `**Percentiles**: p50: ${aiStats.percentiles.p50}ms, p90: ${aiStats.percentiles.p90}ms, p95: ${aiStats.percentiles.p95}ms`,
+          ].join("\n"),
+          inline: false,
+        });
+
+        // Provider-specific stats
+        if (
+          aiStats.providerStats &&
+          Object.keys(aiStats.providerStats).length > 0
+        ) {
+          const providerInfo = Object.entries(aiStats.providerStats)
+            .map(([provider, stats]) => {
+              const providerName =
+                provider.charAt(0).toUpperCase() + provider.slice(1);
+              return `**${providerName}**: ${stats.count} req, ${Math.round(stats.averageTime)}ms avg, ${stats.errorRate.toFixed(2)}% errors`;
+            })
+            .join("\n");
+
+          embed.addFields({
+            name: "AI Provider Stats",
+            value: providerInfo,
+            inline: false,
+          });
+        }
+      }
+    } catch (_aiError) {
+      // AI metrics unavailable, skip
+    }
 
     // Performance Recommendations
     const recommendations = getPerformanceRecommendations(

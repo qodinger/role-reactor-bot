@@ -1,8 +1,43 @@
 import { EmbedBuilder } from "discord.js";
-import { THEME, UI_COMPONENTS } from "../../../config/theme.js";
+import { THEME, EMOJIS } from "../../../config/theme.js";
 import { emojiConfig } from "../../../config/emojis.js";
 
 const CORE_EMOJI = emojiConfig.customEmojis.core;
+
+function truncatePrompt(prompt) {
+  if (!prompt) return "No prompt provided.";
+  return prompt.length > 200 ? `${prompt.slice(0, 197)}...` : prompt;
+}
+
+/**
+ * Format date as "Today at HH:MM" or "Yesterday at HH:MM" or date format
+ * @param {Date} date - Date to format
+ * @returns {string} Formatted date string
+ */
+function formatFooterTimestamp(date = new Date()) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const dateToFormat = new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+  );
+  const diffDays = Math.floor((today - dateToFormat) / (1000 * 60 * 60 * 24));
+
+  const hours = date.getHours().toString().padStart(2, "0");
+  const minutes = date.getMinutes().toString().padStart(2, "0");
+  const timeStr = `${hours}:${minutes}`;
+
+  if (diffDays === 0) {
+    return `Today at ${timeStr}`;
+  } else if (diffDays === 1) {
+    return `Yesterday at ${timeStr}`;
+  } else {
+    const month = date.toLocaleString("en-US", { month: "short" });
+    const day = date.getDate();
+    return `${month} ${day} at ${timeStr}`;
+  }
+}
 
 /**
  * Create error embed for avatar generation failures
@@ -12,16 +47,16 @@ const CORE_EMOJI = emojiConfig.customEmojis.core;
  * @returns {import('discord.js').EmbedBuilder}
  */
 export function createErrorEmbed(interaction, title, description) {
+  const prompt = interaction.options?.getString("prompt") || "N/A";
   return new EmbedBuilder()
     .setColor(THEME.ERROR)
-    .setTitle(title)
-    .setDescription(description)
-    .setFooter(
-      UI_COMPONENTS.createFooter(
-        "Avatar Generator",
-        interaction.client.user.displayAvatarURL(),
-      ),
+    .setTitle(`${EMOJIS.STATUS.ERROR} ${title}`)
+    .setDescription(
+      `**Prompt**\n${truncatePrompt(prompt)}\n\n**Details**\n${description}`,
     )
+    .setFooter({
+      text: "Try refining your prompt or retry later.",
+    })
     .setTimestamp();
 }
 
@@ -35,14 +70,11 @@ export function createErrorEmbed(interaction, title, description) {
 export function createWarningEmbed(interaction, title, description) {
   return new EmbedBuilder()
     .setColor(THEME.WARNING)
-    .setTitle(title)
+    .setTitle(`${EMOJIS.STATUS.WARNING} ${title}`)
     .setDescription(description)
-    .setFooter(
-      UI_COMPONENTS.createFooter(
-        "Avatar Generator",
-        interaction.client.user.displayAvatarURL(),
-      ),
-    )
+    .setFooter({
+      text: "Avatar Generator",
+    })
     .setTimestamp();
 }
 
@@ -65,15 +97,22 @@ function formatArtStyleName(artStyle) {
 
 /**
  * Create loading embed for avatar generation
+ * @param {import('discord.js').CommandInteraction} interaction - The interaction
  * @param {string} prompt - User's prompt
  * @param {string} [artStyle] - Selected art style (optional)
+ * @param {string} [status] - Current status message (optional)
  * @returns {import('discord.js').EmbedBuilder}
  */
-export function createLoadingEmbed(prompt, artStyle = null) {
+export function createLoadingEmbed(
+  interaction,
+  prompt,
+  artStyle = null,
+  status = null,
+) {
   const embed = new EmbedBuilder()
-    .setColor(THEME.PRIMARY)
-    .setTitle("Generating Avatar...")
-    .setDescription(`**"${prompt}"**`);
+    .setColor(THEME.INFO)
+    .setTitle(`${EMOJIS.UI.LOADING} Generating your avatar`)
+    .setDescription(`**Prompt**\n${truncatePrompt(prompt)}`);
 
   // Add art style field if one was selected
   if (artStyle) {
@@ -86,11 +125,26 @@ export function createLoadingEmbed(prompt, artStyle = null) {
     ]);
   }
 
-  embed
-    .setFooter({
-      text: "Avatar Generator • This may take 10-60 seconds",
-    })
-    .setTimestamp();
+  // Add status field if provided
+  if (status) {
+    embed.addFields([
+      {
+        name: "Status",
+        value: status,
+        inline: false,
+      },
+    ]);
+  } else {
+    embed.setDescription(
+      `${embed.data.description}\n\nPlease hang tight while the model renders your avatar.`,
+    );
+  }
+
+  // Always use consistent footer format
+  const timestamp = formatFooterTimestamp();
+  embed.setFooter({
+    text: `Generated for ${interaction.user.username} • Avatar Generator • ${timestamp}`,
+  });
 
   return embed;
 }
@@ -114,63 +168,29 @@ export function createSuccessEmbed(
   interaction,
   prompt,
   artStyle = null,
-  deductionBreakdown = null,
+  _deductionBreakdown = null,
+  _isNSFW = false,
 ) {
   const embed = new EmbedBuilder()
     .setColor(THEME.SUCCESS)
-    .setTitle("Avatar Complete!")
-    .setDescription(`**"${prompt}"**`);
-
-  const fields = [];
+    .setTitle(`${EMOJIS.UI.IMAGE} Avatar ready`)
+    .setDescription(`**Prompt**\n${truncatePrompt(prompt)}`);
 
   // Add art style field if one was selected
   if (artStyle) {
-    fields.push({
-      name: "Art Style",
-      value: formatArtStyleName(artStyle),
-      inline: true,
-    });
+    embed.addFields([
+      {
+        name: "Art Style",
+        value: formatArtStyleName(artStyle),
+        inline: true,
+      },
+    ]);
   }
 
-  // Add credit deduction breakdown if available
-  // Note: Currently only one-time crypto payments are supported (bonus credits only)
-  // Subscriptions/memberships have been removed
-  if (deductionBreakdown) {
-    const { totalDeducted, subscriptionDeducted, bonusDeducted } =
-      deductionBreakdown;
-    let deductionText = `**${totalDeducted} ${CORE_EMOJI}** deducted`;
-
-    // Show breakdown only if relevant
-    // Since subscriptions are removed, most users will only have bonus credits
-    if (subscriptionDeducted > 0 && bonusDeducted > 0) {
-      // Legacy case: both subscription and bonus credits (for existing users)
-      deductionText += `\n• ${subscriptionDeducted} ${CORE_EMOJI} from subscription`;
-      deductionText += `\n• ${bonusDeducted} ${CORE_EMOJI} from bonus`;
-    } else if (subscriptionDeducted > 0) {
-      // Legacy case: only subscription credits (for existing users)
-      deductionText += `\n• ${subscriptionDeducted} ${CORE_EMOJI} from subscription`;
-    } else if (bonusDeducted > 0) {
-      // Current case: only bonus credits (from one-time crypto payments)
-      deductionText += `\n• ${bonusDeducted} ${CORE_EMOJI} from bonus`;
-    }
-    // If neither subscriptionDeducted nor bonusDeducted > 0, just show total
-
-    fields.push({
-      name: "Core Usage",
-      value: deductionText,
-      inline: false,
-    });
-  }
-
-  if (fields.length > 0) {
-    embed.addFields(fields);
-  }
-
-  embed
-    .setFooter({
-      text: `Generated for ${interaction.user.username} • Avatar Generator`,
-    })
-    .setTimestamp();
+  const timestamp = formatFooterTimestamp();
+  embed.setFooter({
+    text: `Generated for ${interaction.user.username} • Avatar Generator • ${timestamp}`,
+  });
 
   return embed;
 }
@@ -183,7 +203,7 @@ export function createSuccessEmbed(
  * @param {string} prompt - User's prompt
  * @returns {import('discord.js').EmbedBuilder}
  */
-export function createCoreEmbed(interaction, userData, creditsNeeded, _prompt) {
+export function createCoreEmbed(interaction, userData, creditsNeeded, prompt) {
   // Enhanced Core breakdown for better user understanding
   const subscriptionCredits = userData.subscriptionCredits || 0;
   const bonusCredits = userData.bonusCredits || 0;
@@ -198,8 +218,9 @@ export function createCoreEmbed(interaction, userData, creditsNeeded, _prompt) {
 
   return new EmbedBuilder()
     .setColor(THEME.WARNING)
+    .setTitle(`${EMOJIS.STATUS.WARNING} Insufficient Cores`)
     .setDescription(
-      `You need **${creditsNeeded} ${CORE_EMOJI}** to generate an AI avatar!\n\n${coreBreakdown}\n\n**Cost**: ${creditsNeeded} ${CORE_EMOJI} per generation`,
+      `**Prompt**\n${truncatePrompt(prompt)}\n\nYou need **${creditsNeeded} ${CORE_EMOJI}** to generate an AI avatar!\n\n${coreBreakdown}\n\n**Cost**: ${creditsNeeded} ${CORE_EMOJI} per generation`,
     )
     .addFields([
       {
@@ -208,12 +229,9 @@ export function createCoreEmbed(interaction, userData, creditsNeeded, _prompt) {
         inline: false,
       },
     ])
-    .setFooter(
-      UI_COMPONENTS.createFooter(
-        "Avatar Generator • Core Energy",
-        interaction.client.user.displayAvatarURL(),
-      ),
-    )
+    .setFooter({
+      text: "Avatar Generator • Core Energy",
+    })
     .setTimestamp();
 }
 

@@ -152,9 +152,20 @@ async function deployCommands() {
       }
     }
     console.log("");
+
+    // Exit after successful deployment
+    // Small delay to ensure all output is flushed
+    setTimeout(() => {
+      process.exit(0);
+    }, 100);
   } catch (error) {
     spinner.fail(createErrorMessage("Failed to deploy commands."));
     console.error(error);
+    // Exit with error code on failure
+    // Small delay to ensure all output is flushed
+    setTimeout(() => {
+      process.exit(1);
+    }, 100);
   }
 }
 
