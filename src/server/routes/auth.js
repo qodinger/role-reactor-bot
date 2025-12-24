@@ -11,7 +11,9 @@ const router = express.Router();
 // Node.js 18+ has native fetch
 
 // Discord OAuth2 configuration
-const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
+// Use DISCORD_CLIENT_ID if set, otherwise fall back to CLIENT_ID (same value)
+const DISCORD_CLIENT_ID =
+  process.env.DISCORD_CLIENT_ID || process.env.CLIENT_ID;
 const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
 const DISCORD_REDIRECT_URI =
   process.env.DISCORD_REDIRECT_URI ||
@@ -31,7 +33,7 @@ router.get("/discord", (req, res) => {
           createErrorResponse(
             "Discord OAuth not configured",
             500,
-            "Please set DISCORD_CLIENT_ID in environment variables",
+            "Please set CLIENT_ID or DISCORD_CLIENT_ID in environment variables",
           ).response,
         );
     }

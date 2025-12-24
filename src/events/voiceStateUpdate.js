@@ -53,7 +53,6 @@ export async function execute(oldState, newState, options = {}) {
                 logger.info(
                   `🔌 Disconnected ${newState.member.user.tag} from voice channel - user has disconnect role`,
                 );
-                return; // Don't track voice activity if disconnected
               } catch (error) {
                 logger.error(
                   `Failed to disconnect ${newState.member.user.tag} from voice channel:`,
@@ -65,6 +64,9 @@ export async function execute(oldState, newState, options = {}) {
                 `Cannot disconnect ${newState.member.user.tag} - bot missing MoveMembers permission in ${newState.guild.name}`,
               );
             }
+            // Always return early for disconnect roles - don't track voice activity
+            // even if disconnect failed or bot lacks permissions
+            return;
           }
         }
 

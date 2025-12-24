@@ -117,7 +117,8 @@ function initializeRoutes() {
   app.get("/api/stats", apiRateLimiter, apiStats);
 
   // Authentication routes (Discord OAuth) with rate limiting
-  if (process.env.DISCORD_CLIENT_ID) {
+  // Check for DISCORD_CLIENT_ID or CLIENT_ID (they're the same value)
+  if (process.env.DISCORD_CLIENT_ID || process.env.CLIENT_ID) {
     app.use("/auth", apiRateLimiter, authRoutes);
     logger.info("✅ Discord OAuth routes enabled");
   }
@@ -220,7 +221,7 @@ export async function startWebhookServer() {
         `  API Stats: http://localhost:${serverConfig.port}/api/stats`,
       );
 
-      if (process.env.DISCORD_CLIENT_ID) {
+      if (process.env.DISCORD_CLIENT_ID || process.env.CLIENT_ID) {
         logger.info(
           `  Discord OAuth: http://localhost:${serverConfig.port}/auth/discord`,
         );
