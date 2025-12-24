@@ -38,8 +38,8 @@ if [ -z "$DISCORD_TOKEN" ]; then
     exit 1
 fi
 
-if [ -z "$CLIENT_ID" ]; then
-    echo "❌ CLIENT_ID is not set!"
+if [ -z "$DISCORD_CLIENT_ID" ]; then
+    echo "❌ DISCORD_CLIENT_ID is not set!"
     exit 1
 fi
 

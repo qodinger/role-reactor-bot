@@ -40,7 +40,7 @@ class Config {
    * @throws {Error} If required environment variables are missing
    */
   validateRequiredEnvVars() {
-    const requiredVars = ["DISCORD_TOKEN", "CLIENT_ID"];
+    const requiredVars = ["DISCORD_TOKEN", "DISCORD_CLIENT_ID"];
     const missingVars = requiredVars.filter(varName => !process.env[varName]);
 
     if (missingVars.length > 0) {
@@ -57,8 +57,8 @@ class Config {
   get discord() {
     return {
       token: process.env.DISCORD_TOKEN,
-      clientId: process.env.CLIENT_ID,
-      guildId: process.env.GUILD_ID,
+      clientId: process.env.DISCORD_CLIENT_ID,
+      guildId: process.env.DISCORD_GUILD_ID,
       developers: this.parseDevelopers(),
     };
   }
@@ -185,7 +185,7 @@ class Config {
    * @returns {string[]} Array of developer IDs
    */
   parseDevelopers() {
-    const developers = process.env.DEVELOPERS;
+    const developers = process.env.DISCORD_DEVELOPERS;
     if (!developers) return [];
 
     return developers

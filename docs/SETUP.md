@@ -9,13 +9,6 @@ Copy the environment template and fill in your values:
 ```bash
 # Basic setup (single .env file)
 cp env.example .env
-
-# Or use separate environment files (optional)
-# Development environment
-cp env.template.development .env.development
-
-# Production environment
-cp env.template.production .env.production
 ```
 
 ### 2. Edit Environment Files
@@ -25,7 +18,7 @@ cp env.template.production .env.production
 ```bash
 # Discord Bot Configuration
 DISCORD_TOKEN=your_bot_token_here
-CLIENT_ID=your_client_id_here
+DISCORD_CLIENT_ID=your_client_id_here
 
 # Database
 MONGODB_URI=mongodb://localhost:27017
@@ -34,33 +27,14 @@ MONGODB_DB=role-reactor-bot
 
 #### Advanced Setup (Separate Files)
 
-If using separate development and production files:
-
-**`.env.development`**
+If using separate development and production files, copy `env.example` to create them:
 
 ```bash
-# Discord Bot Configuration
-DISCORD_TOKEN=your_actual_dev_bot_token
-CLIENT_ID=your_actual_dev_client_id
-GUILD_ID=your_actual_dev_server_id
-
-# Database
-MONGODB_URI=mongodb://localhost:27017
-MONGODB_DB=role-reactor-bot-dev
+cp env.example .env.development
+cp env.example .env.production
 ```
 
-**`.env.production`**
-
-```bash
-# Discord Bot Configuration
-DISCORD_TOKEN=your_actual_prod_bot_token
-CLIENT_ID=your_actual_prod_client_id
-# No GUILD_ID for global commands
-
-# Database
-MONGODB_URI=your_actual_prod_mongodb_uri
-MONGODB_DB=role-reactor-bot-prod
-```
+Then edit each file with appropriate values. For development, include `DISCORD_GUILD_ID` for faster guild-specific command deployment. For production, omit `DISCORD_GUILD_ID` to deploy commands globally.
 
 ### 3. Start the Bot
 

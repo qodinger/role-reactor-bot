@@ -39,6 +39,14 @@ async function deleteGuildCommands(guildId) {
 }
 
 async function main() {
+  // Validate required environment variables
+  if (!config.discord.token || !config.discord.clientId) {
+    logger.error(
+      "Missing required environment variables: DISCORD_TOKEN, DISCORD_CLIENT_ID",
+    );
+    process.exit(1);
+  }
+
   const guildId = process.argv[2];
 
   if (guildId) {
@@ -46,6 +54,17 @@ async function main() {
   } else {
     await deleteGlobalCommands();
   }
+
+  // Exit after completion
+  // Small delay to ensure all output is flushed
+  setTimeout(() => {
+    process.exit(0);
+  }, 100);
 }
 
-main();
+main().catch(error => {
+  logger.error("Fatal error in delete-commands script:", error);
+  setTimeout(() => {
+    process.exit(1);
+  }, 100);
+});

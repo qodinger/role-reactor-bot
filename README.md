@@ -87,7 +87,7 @@ A production-ready Discord bot for self-assignable roles through reactions. Buil
 
    ```env
    DISCORD_TOKEN=your_bot_token_here
-   CLIENT_ID=your_client_id_here
+   DISCORD_CLIENT_ID=your_client_id_here
    MONGODB_URI=mongodb://localhost:27017
    ```
 
@@ -456,16 +456,17 @@ Automatically manage users in voice channels based on roles:
 
 ### Environment Variables
 
-| Variable        | Description                          | Required | Default                     |
-| --------------- | ------------------------------------ | -------- | --------------------------- |
-| `DISCORD_TOKEN` | Discord bot token                    | Yes      | -                           |
-| `CLIENT_ID`     | Discord application client ID        | Yes      | -                           |
-| `MONGODB_URI`   | MongoDB connection URI               | No       | `mongodb://localhost:27017` |
-| `MONGODB_DB`    | MongoDB database name                | No       | `role-reactor-bot`          |
-| `LOG_LEVEL`     | Log level (ERROR, WARN, INFO, DEBUG) | No       | `INFO`                      |
-| `LOG_FILE`      | Log file path                        | No       | Console only                |
-| `LOG_CONSOLE`   | Enable console logging               | No       | `true`                      |
-| `DEVELOPERS`    | Developer user IDs                   | No       | -                           |
+| Variable             | Description                          | Required | Default                     |
+| -------------------- | ------------------------------------ | -------- | --------------------------- |
+| `DISCORD_TOKEN`      | Discord bot token                    | Yes      | -                           |
+| `DISCORD_CLIENT_ID`  | Discord application client ID        | Yes      | -                           |
+| `DISCORD_GUILD_ID`   | Target guild ID (for dev)            | No       | -                           |
+| `DISCORD_DEVELOPERS` | Developer user IDs (comma-separated) | No       | -                           |
+| `MONGODB_URI`        | MongoDB connection URI               | No       | `mongodb://localhost:27017` |
+| `MONGODB_DB`         | MongoDB database name                | No       | `role-reactor-bot`          |
+| `LOG_LEVEL`          | Log level (ERROR, WARN, INFO, DEBUG) | No       | `INFO`                      |
+| `LOG_FILE`           | Log file path                        | No       | Console only                |
+| `LOG_CONSOLE`        | Enable console logging               | No       | `true`                      |
 
 ### Bot Permissions
 
@@ -534,7 +535,7 @@ To use developer commands (`/health`, `/performance`, `/storage`), configure dev
 1. **Find your Discord User ID** (enable Developer Mode, right-click username, Copy ID)
 2. **Add to `.env` file:**
    ```env
-   DEVELOPERS=123456789012345678
+   DISCORD_DEVELOPERS=123456789012345678
    ```
 3. **Restart the bot**
 

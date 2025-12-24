@@ -56,7 +56,7 @@ cp env.example .env
 
 # Edit .env with your Discord bot token
 # DISCORD_TOKEN=your_bot_token_here
-# CLIENT_ID=your_client_id_here
+# DISCORD_CLIENT_ID=your_client_id_here
 
 # Start development mode
 pnpm dev

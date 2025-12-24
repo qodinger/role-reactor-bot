@@ -19,6 +19,7 @@ pnpm run deploy:latest
 The new `deploy-latest.sh` script is the most reliable way to deploy. It handles all edge cases and ensures the latest version is deployed correctly.
 
 **Available commands:**
+
 ```bash
 # Standard deployment
 pnpm run deploy:latest
@@ -31,6 +32,7 @@ pnpm run deploy:latest:force
 ```
 
 **What this script does:**
+
 1. ✅ Pulls latest changes from git repository
 2. ✅ Stops and removes existing containers
 3. ✅ Cleans Docker cache and images (prevents version mismatches)
@@ -60,15 +62,19 @@ pnpm run docker:prod            # Start production container
 ### Common Issues and Solutions
 
 #### 1. Version Mismatch (Old Version Still Running)
+
 **Problem:** Docker shows old version even after rebuild
 **Solution:** Use the new deployment script which handles this automatically:
+
 ```bash
 pnpm run deploy:latest
 ```
 
 #### 2. Container Fails to Start
+
 **Problem:** Container exits or shows unhealthy status
 **Solutions:**
+
 ```bash
 # Check logs for errors
 docker logs role-reactor-bot
@@ -81,16 +87,20 @@ ls -la .env*
 ```
 
 #### 3. Build Failures
+
 **Problem:** Docker build fails or uses cached layers incorrectly
 **Solution:**
+
 ```bash
 # Use force deployment to clear all caches
 pnpm run deploy:latest:force
 ```
 
 #### 4. Database Connection Issues
+
 **Problem:** Bot can't connect to database
 **Solutions:**
+
 ```bash
 # Check if MongoDB is running (if using local DB)
 sudo systemctl status mongod
@@ -119,15 +129,17 @@ docker exec role-reactor-bot cat package.json | grep version
 ### Required Files
 
 Ensure these files exist:
+
 - `.env.production` - Production environment variables
 - `docker-compose.prod.yml` - Production compose configuration
 
 ### Environment Variables
 
 Key variables in `.env.production`:
+
 ```env
 DISCORD_TOKEN=your_bot_token
-CLIENT_ID=your_client_id
+DISCORD_CLIENT_ID=your_client_id
 MONGODB_URI=your_mongodb_connection_string
 NODE_ENV=production
 ```
@@ -135,11 +147,13 @@ NODE_ENV=production
 ## Monitoring
 
 ### View Live Logs
+
 ```bash
 docker logs role-reactor-bot -f
 ```
 
 ### Container Status
+
 ```bash
 # Quick status check
 docker ps | grep role-reactor-bot
@@ -149,7 +163,9 @@ docker inspect role-reactor-bot
 ```
 
 ### Health Endpoint
+
 The bot exposes a health check endpoint:
+
 ```bash
 curl http://localhost:3000/health
 ```
