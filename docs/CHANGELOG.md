@@ -7,9 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Voice Control Command: New `/voice-control` command to automatically manage users in voice channels based on roles
+- Voice Control Subcommands: `/voice-control disconnect`, `/voice-control mute`, `/voice-control deafen`, `/voice-control move`, and `/voice-control list` subcommands for complete voice management
+- Voice Control Auto-Apply: Voice control actions automatically apply to users already in voice channels when roles are first configured
+- Voice Control List: View all configured voice control roles with indicators for deleted roles or channels that need cleanup
+
 ### Removed
 
-- Voice Restrictions: Removed automatic voice restriction enforcement feature. The bot no longer automatically disconnects or mutes users based on role permissions. Discord's native permission system will handle voice channel access restrictions instead.
+- Voice Restrictions: Removed automatic voice restriction enforcement feature. The bot no longer automatically disconnects or mutes users based on role permissions
+
+### Performance
+
+- Voice Control Operations: Improved processing speed and reliability for voice control operations on large servers
+- Voice Control Background Processing: Large operations now process in the background without blocking command responses
 
 ## [1.5.0] - 2025-12-15
 
@@ -26,27 +38,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Userinfo Warning Display: Warning count now appears in `/userinfo` command for users with moderation history
 - Userinfo Command: New `/userinfo` command to view detailed information about Discord users including account details, badges, roles, join date, timeout status, and current voice channel
 - Serverinfo Command: Added `/serverinfo` command to view comprehensive server information including member statistics, channel counts, server description, and boost level
-- Bot Statistics API: Public API endpoint `/api/stats` to get bot statistics including server count and user count
-- Webhook Handlers: Added webhook handlers for Buy Me a Coffee (`/webhook/bmac`) and crypto payments (`/webhook/crypto`)
-- Server Routes: Added API routes for authentication (`/auth`), payments (`/api/payments`), and supporter management (`/api/supporters`)
+- Bot Statistics: Public bot statistics including server count and user count are now available
+- Payment Integration: Added support for Buy Me a Coffee and cryptocurrency payments
 
 ### Changed
 
 - Core Payment System: Updated Core payment system to only accept one-time cryptocurrency payments. Subscriptions are no longer available, and all payments are processed as one-time purchases that never expire. Updated `/core pricing` and `/core balance` commands to reflect the new payment model
 - Minimum Payment Amount: Increased minimum payment amount from $1 to $10 for Core credit purchases
-- Command Documentation: Standardized all 25 command README files to consistent format with Overview, File Structure, Architecture, Usage Examples, Permissions Required, Key Features, and Dependencies sections
 
 ### Fixed
 
 - Avatar Credit Breakdown: Restored credit deduction breakdown display in avatar generation success message. Users can now see how their Core credits were deducted (subscription vs bonus credits) after generating an avatar
 - Level-Up Notifications: Improved error handling and diagnostics for level-up message posting. Bot now provides better error messages when it cannot post to the configured level-up channel, helping identify permission issues and blocked channels
 - Payment Validation: Added minimum payment validation in crypto webhook to prevent credits from being granted for payments below $10
-- Moderation Unban Delay: Fixed delay pattern in `handleUnban` to match other moderation handlers, eliminating unnecessary 150ms latency at end of bulk unban operations
-- Schedule Role Test: Fixed midnight edge case in schedule-role test to handle time calculations correctly
+- Moderation Unban Operations: Improved speed of bulk unban operations
 
 ### Performance
 
-- Bot Statistics API: Improved response times by caching statistics for 24 hours
+- Bot Statistics: Improved response times by caching statistics for 24 hours
 
 ### Security
 
@@ -78,8 +87,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Role Reactions: Custom emojis (including animated) now correctly grant and remove roles. This fix ensures reactions using server emojis work the same as standard Unicode emojis, with no setup changes required.
-- Core Credits Storage: Fixed issue where core credits were saved to local files but not immediately synchronized to MongoDB database, ensuring credits persist correctly after donations and subscriptions
-- Ko-fi Webhooks: Fixed webhook reception issues in production by binding server to 0.0.0.0, configuring trust proxy, and simplifying webhook handler to properly process all Ko-fi webhook events
+- Core Credits Storage: Fixed issue where credits were not properly saved after donations and subscriptions, ensuring credits persist correctly
+- Ko-fi Payments: Fixed payment processing issues that prevented payments from being processed correctly
 
 ## [1.3.0] - 2025-10-28
 
@@ -87,7 +96,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Temp-Roles Removal Notifications: Added `notify` option to `/temp-roles remove` command to send DM notifications to users when their roles are manually removed
 - Temp-Roles Notification System: Comprehensive notification system with removal details including who removed the role, reason, and timestamp
-- Webhook Verification API: Added webhook verification endpoint for improved security
+- Webhook Security: Enhanced webhook verification for improved security
 - PNG Fallback System: Implemented PNG fallback image system after removing Canvas dependency
 
 ### Changed
@@ -108,8 +117,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 - Schedule Role System: Removed `/schedule-role` command and all related functionality due to low usage and maintenance complexity
-- Schedule Role Database: Removed `scheduled_roles` and `recurring_schedules` collections
-- Schedule Role Background Processing: Removed RoleScheduler and all schedule execution logic
 - Schedule Role Help Documentation: Removed all schedule-role references from help system
 - Level-Up Messages Footer: Removed footer from Level-Up Messages configuration page for cleaner design
 
@@ -117,7 +124,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Channel Display Logic: Fixed channel selection pages to properly show current channel status instead of always "Not Set"
 - XP Button Navigation: Fixed "back_to_settings" button error that occurred after XP command simplification
-- Database Index Conflicts: Resolved MongoDB duplicate key errors in temp-roles
+- Temp-Roles Storage: Fixed storage conflicts that could prevent temporary roles from being saved correctly
 - Interaction Stability: Fixed bot stability issues and interaction timeouts
 - Ko-fi Webhook Processing: Resolved webhook processing limitations
 - Member Permission Errors: Fixed permission checking across commands
@@ -141,7 +148,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Command Timeouts: Fixed "Unknown interaction" errors that occurred when commands took too long to respond
-- Database Commands: Improved response times for /leaderboard and /level commands
+- Leaderboard and Level Commands: Improved response times for /leaderboard and /level commands
 - Role Parser: Fixed role parsing to properly strip @ symbol from role names (e.g., "@Gamer" → "Gamer")
 - Button Interactions: Fixed "This interaction failed" errors on various system buttons
 
@@ -159,7 +166,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Channel Selection Dropdown: Interactive channel selection for goodbye system configuration
 - Two-Step Configuration: Channel select → modal configuration flow for better UX
 - Welcome System Improvements: Enhanced welcome system with better button layout and organization
-- Welcome System Test: Real role assignment testing in welcome system test functionality
 - Role List Pagination: Added page navigation for role lists (4 items per page)
 - Server Validation: Improved server-specific data handling
 
@@ -171,36 +177,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Welcome System Architecture: Consolidated welcome commands into unified `/welcome` command structure
 - Welcome Button Layout: Reorganized button layout with Reset button moved to Configure page
-- Welcome Test Functionality: Improved test accuracy by using real interaction.member instead of mock data
 - Goodbye Message Format: Updated to modern format with bold user/server names and improved layout
 
 ### Fixed
 
-- Welcome System Test: Fixed test functionality to use authentic user data and enable real role assignment
+- Welcome System: Fixed welcome system to properly assign roles during testing
 - Goodbye Message Consistency: Fixed old goodbye message format across all components
 - Back to Settings Button: Fixed 'Back to Settings' button to show actual settings interface
-- Role Reactions Delete Command: Fixed "Message Not Found" error by properly validating guildId in getRoleMapping function
+- Role Reactions Delete Command: Fixed "Message Not Found" error when deleting role reactions
 - Permission Parameter Issues: Fixed incorrect permission parameter usage in temp-roles and welcome commands
 - Button Router: Updated pagination button routing to use correct custom ID prefix (rolelist\_)
 - Cache Invalidation: Fixed potential cache issues between list and delete commands
-- Role Reactions Setup Permission Error: Fixed Discord API Error 50013 (Missing Permissions) in role-reactions setup command
+- Role Reactions Setup: Fixed permission errors in role-reactions setup command
 - Channel Permission Validation: Added proper channel-specific permission checks for SendMessages and EmbedLinks
 
 ## [1.0.2] - 2025-09-16
-
-### Added
-
-- Ko-fi Funding Support: Added Ko-fi funding option to GitHub FUNDING.yml for additional support channels
-- Comprehensive Deployment Solution: Added new deployment scripts and solutions to fix version mismatch issues
-- Enhanced Docker Update Scripts: Improved docker update scripts for more reliable deployments
-- Quick Deployment Guide: Added QUICK-DEPLOY.md for streamlined deployment process
-
-### Changed
-
-- Documentation Structure: Reorganized deployment documentation by moving DEPLOYMENT.md and QUICK-DEPLOY.md to docs/ directory
-- Documentation Consolidation: Updated DEPLOYMENT.md with latest content and improved organization
-- Package Configuration: Updated package.json with latest dependencies and configuration
-- Bot Invite System: Enhanced invite functionality for better bot setup experience
 
 ### Fixed
 
@@ -259,7 +250,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - XP System Configuration: Simplified from complex command-based configuration to button-driven toggles
 - XP System Default: XP system is now disabled by default and requires admin activation
 - Experience Manager: Now checks guild settings before awarding XP
-- Development Tools: Enhanced testing and build processes
 
 ## [0.4.0] - 2025-08-11
 
@@ -272,7 +262,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Message XP: Users earn 15-25 XP for messages with 60-second cooldown
 - Command XP: Users earn 3-15 XP for command usage with 30-second cooldown
 - Role XP: Users earn 50 XP for role assignments
-- Database Integration: XP data stored in MongoDB with UserExperienceRepository
 - Server Rank Display: Level command now shows actual server rank instead of "Coming soon..."
 - Welcome System: Complete welcome system with auto-welcome messages and auto-role assignment
 - Auto-Welcome Messages: Automatically send welcome messages when new members join
@@ -281,31 +270,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Welcome System Commands: Added `/welcome setup` and `/welcome settings` for configuration
 - Welcome Message Placeholders: Support for {user}, {user.name}, {user.tag}, {user.id}, {server}, {server.id}, {memberCount}, {memberCount.ordinal}
 - Welcome Embed Support: Rich embed format for welcome messages with member information
-- Welcome System Database: MongoDB integration for storing welcome settings per guild
 - Welcome System Validation: Comprehensive permission and configuration validation
-- Welcome System Utilities: Dedicated utility functions for message processing and embed creation
 
 ### Changed
 
 - Avatar Command UI: Replaced interactive buttons with direct URL download buttons for better UX
 - Avatar Command Colors: Changed embed color from SUCCESS to PRIMARY theme
 - Avatar Command Information: Removed misleading image size claims and unnecessary download text
-- Experience System Storage: Migrated XP data from file storage to MongoDB database
+- Experience System Storage: Improved XP data storage reliability
 - Leaderboard UI: Enhanced with time filters and cleaner presentation
-- Theme Consistency: Fixed all hardcoded emojis to use centralized theme.js exports
+- Theme Consistency: Fixed emoji display issues across all commands
 
 ### Fixed
 
 - Avatar Download Formats: Fixed Discord CDN format parameters for proper PNG/JPG/WebP downloads
-- Experience System Integration: Fixed storage manager to use database for XP data
-- Command Handler: Fixed interactionCreate to use commandHandler for proper XP awarding
-- Theme Emojis: Resolved "undefined" emoji issues by using proper theme.js references
-- Leaderboard Linter Errors: Fixed string concatenation and variable usage issues
-- Database Migration: Successfully migrated existing XP data from files to MongoDB
+- Experience System Integration: Fixed XP data storage and retrieval issues
+- Command XP Awarding: Fixed XP not being awarded when using commands
+- Theme Emojis: Resolved "undefined" emoji display issues
+- Leaderboard Display: Fixed leaderboard display errors
 
 ### Removed
 
-- Storage Command Cleanup Features: Removed "Cleanup Expired Roles" and "Test Auto Cleanup" buttons from developer storage command for improved security
 - Avatar Command Redundancy: Removed unnecessary download options text and misleading image size information
 
 ## [0.3.1] - 2025-08-03
@@ -313,13 +298,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Enhanced Role Parser: Improved parsing for role mentions with spaces and flexible formatting
-- Comprehensive Test Coverage: Added 48 test cases for role parsing edge cases
 - Timeout Protection: Added 10-second timeout for reaction adding process
-- Automatic MongoDB Reconnection: Bot now automatically reconnects to MongoDB when internet connection is restored
-- Enhanced connection monitoring with periodic health checks every 30 seconds
-- Intelligent retry logic with exponential backoff (up to 5 attempts)
-- Connection state tracking and logging for better debugging
-- Graceful handling of network interruptions without requiring manual restart
+- Automatic Reconnection: Bot now automatically reconnects when internet connection is restored
+- Connection Monitoring: Enhanced connection monitoring with periodic health checks
+- Network Interruptions: Improved handling of network interruptions without requiring manual restart
 
 ### Changed
 
@@ -327,11 +309,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reduced Minimum Duration: Changed temporary role minimum from 5 minutes to 1 minute
 - Improved Role Parser Logic: Better handling of spaces around colons and role mentions
 - Enhanced Error Response: Role parser now returns empty array when errors exist
-- Updated MongoDB connection configuration with enhanced reconnection options
-- Improved connection timeout and heartbeat settings for better reliability
-- Enhanced error handling for database connection failures
-- Standardized unit test file naming to consistent camelCase convention
-- Improved test reliability with proper timeout configurations and cleanup
+- Connection Reliability: Improved connection timeout and reliability settings
+- Error Handling: Enhanced error handling for connection failures
 
 ### Fixed
 
@@ -347,9 +326,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved command categorization and metadata
 - Added ping command for latency checking
 - Automated update script with backup functionality
-- Data export functionality for GDPR compliance (developer only)
-- Enhanced storage command with privacy features
-- Manual data management through admin commands
 
 - Improved logging with command and rate limit tracking
 
@@ -357,8 +333,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Enhanced command descriptions and usage examples
 - Improved error handling and user feedback
-- Simplified storage command to export-only (removed dangerous delete functionality)
-- Updated privacy policy to reflect admin command-based data deletion
 - Enhanced command permissions and safety measures
 
 ### Fixed
@@ -367,27 +341,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed command categorization in help system
 - Fixed missing logger methods (logCommand, logRateLimit)
 - Removed unused imports and functions after code cleanup
-
-## [0.2.2] - 2025-07-23
-
-### Added
-
-- Health check server configuration with configurable port settings
-- Global error handlers for unhandled promise rejections and uncaught exceptions
-
-### Changed
-
-- Enhanced Discord API integration tests with updated imports and better test coverage
-- Improved error handling in health monitoring systems
-
-### Fixed
-
-- Resolved issues with health check server port conflicts
-- Fixed test imports after utility reorganization
-- Fixed CI workflow pnpm executable error by reordering setup steps
-- Fixed pnpm lockfile compatibility by updating to pnpm v9 in workflows
-- Fixed CI test failures by adding required environment variables for config validation
-- Fixed release workflow pnpm executable error by reordering setup steps
 
 ## [0.2.1] - 2025-01-22
 
@@ -398,27 +351,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Modularized monitoring, storage, and global utilities
-- Organized utilities into subdirectories for better structure
-- Improved GitHub Actions release workflow with modern practices
-- Enhanced release workflow with better error handling and validation
-
 ### Fixed
-
-- Resolved post-refactor bugs in developer commands
-- Fixed imports after utility reorganization
 
 ## [0.2.0] - 2025-07-20
 
 ### Added
 
-- Developer command system with runtime permission checks
-- `/storage` command for storage status monitoring
-- Runtime permission checks using `DEVELOPERS` environment variable
-- Discord command visibility controls (`setDefaultMemberPermissions(0n)`, `setDMPermission(false)`)
-- Component-based help system architecture
-- Environment-based command deployment filtering
-- GitHub Actions automated release workflow
 - Persistent data storage for temporary roles
 - Enhanced role management validation
 - Automated bot update script
@@ -439,28 +377,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fixed Discord deprecation warnings by updating ephemeral usage
-- Fixed developer command visibility issues in Discord UI
-- Fixed deployment script logic for proper environment-based command filtering
-- Enhanced permission checking and feedback for developer commands
-- Fixed `list-temp-roles` command (`getExpiredTemporaryRoles` error)
+- Temp-Roles List: Fixed errors in `/list-temp-roles` command
 - Fixed date parsing issues in temporary role display
-- Added cache clearing to prevent stale data
-- Fixed data structure handling for temporary roles
-
-### Security
-
-- Added runtime permission checks for developer commands
-- Implemented environment-based command filtering
-- Enhanced command visibility controls to prevent unauthorized access
+- Temp-Roles Data: Fixed data handling issues for temporary roles
 
 ### Performance
 
-- Optimized command deployment with environment-based filtering
-- Reduced deployment script complexity from 8 to 4 essential commands
-- Improved command response times with better error handling
-- Implemented 5-minute cache timeout
-- Added automatic data sync between storage methods
-- Enhanced error handling and logging
+- Command Response Times: Improved command response times with better error handling
+- Data Sync: Added automatic data synchronization
 
 ## [0.1.0] - 2025-07-10
 
@@ -474,9 +398,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Health monitoring and performance metrics (`/health`, `/performance`)
 - Structured logging system with file output
 - Docker deployment support
-- MongoDB integration for data persistence
+- Persistent data storage
 - Permission controls and validation
 - Custom emoji support (Unicode and server emojis)
 - Role categories and organization
-- Developer management commands (`/health`, `/performance`)
 - Comprehensive error handling and rate limiting

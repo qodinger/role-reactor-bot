@@ -6,19 +6,23 @@ import {
   successEmbed,
 } from "../../../utils/discord/responseMessages.js";
 import { createVoiceControlListEmbed } from "./embeds.js";
+import { delay } from "../../../utils/delay.js";
 
 /**
  * Apply voice control action to users already in voice channels with the role
+ * Optimized with rate limiting and batching to prevent API rate limits
  * @param {import('discord.js').Guild} guild - The guild
  * @param {string} roleId - The role ID
  * @param {string} actionType - 'disconnect', 'mute', 'deafen', or 'move'
  * @param {string} [targetChannelId] - Target channel ID for move action
+ * @param {number} [maxMembers=50] - Maximum number of members to process (prevents timeout)
  */
 async function applyToExistingVoiceMembers(
   guild,
   roleId,
   actionType,
   targetChannelId = null,
+  maxMembers = 50,
 ) {
   const logger = getLogger();
   const botMember = guild.members.me;
@@ -29,120 +33,148 @@ async function applyToExistingVoiceMembers(
       channel.isVoiceBased(),
     );
 
-    let affectedCount = 0;
-
+    // Collect all members that need action applied
+    const membersToProcess = [];
     for (const channel of voiceChannels.values()) {
-      // Get members currently in this voice channel
       const membersInChannel = channel.members.filter(
         member => !member.user.bot && member.roles.cache.has(roleId),
       );
-
       for (const member of membersInChannel.values()) {
-        try {
-          // Skip if member is not in voice (shouldn't happen, but safety check)
-          if (!member.voice?.channel) {
-            continue;
-          }
+        if (member.voice?.channel) {
+          membersToProcess.push(member);
+        }
+      }
+    }
 
-          switch (actionType) {
-            case "disconnect":
-              if (botMember?.permissions.has(PermissionFlagsBits.MoveMembers)) {
-                // Only disconnect if not already disconnected
-                if (member.voice.channel) {
-                  await member.voice.disconnect(
-                    "Voice control role was configured",
-                  );
-                  affectedCount++;
-                  logger.debug(
-                    `Disconnected ${member.user.tag} who was already in voice`,
-                  );
-                }
-              }
-              break;
+    // Limit processing to prevent timeout and rate limits
+    const totalMembers = membersToProcess.length;
+    const membersToHandle = membersToProcess.slice(0, maxMembers);
+    const skippedCount = totalMembers - membersToHandle.length;
 
-            case "mute":
-              if (botMember?.permissions.has(PermissionFlagsBits.MuteMembers)) {
-                // Only mute if not already muted
-                if (!member.voice.mute) {
-                  await member.voice.setMute(
-                    true,
-                    "Voice control role was configured",
-                  );
-                  affectedCount++;
-                  logger.debug(
-                    `Muted ${member.user.tag} who was already in voice`,
-                  );
-                }
-              }
-              break;
+    if (skippedCount > 0) {
+      logger.warn(
+        `Processing ${membersToHandle.length} of ${totalMembers} members with voice control role (${skippedCount} skipped to prevent timeout)`,
+      );
+    }
 
-            case "deafen":
-              if (
-                botMember?.permissions.has(PermissionFlagsBits.DeafenMembers)
-              ) {
-                // Only deafen if not already deafened
-                if (!member.voice.deaf) {
-                  await member.voice.setDeaf(
-                    true,
-                    "Voice control role was configured",
-                  );
-                  affectedCount++;
-                  logger.debug(
-                    `Deafened ${member.user.tag} who was already in voice`,
-                  );
-                }
-              }
-              break;
+    let affectedCount = 0;
+    const batchSize = 5; // Process 5 members at a time
+    const delayBetweenBatches = 200; // 200ms delay between batches to respect rate limits
 
-            case "move":
-              if (
-                targetChannelId &&
-                botMember?.permissions.has(PermissionFlagsBits.MoveMembers)
-              ) {
-                const targetChannel = guild.channels.cache.get(targetChannelId);
+    // Process members in batches with rate limiting
+    for (let i = 0; i < membersToHandle.length; i += batchSize) {
+      const batch = membersToHandle.slice(i, i + batchSize);
+
+      // Process batch in parallel (but limited to batchSize)
+      await Promise.all(
+        batch.map(async member => {
+          try {
+            switch (actionType) {
+              case "disconnect":
                 if (
-                  targetChannel &&
-                  member.voice.channelId !== targetChannelId
+                  botMember?.permissions.has(PermissionFlagsBits.MoveMembers)
                 ) {
-                  // Check bot permissions for the target channel
-                  const botPermissions =
-                    targetChannel.permissionsFor(botMember);
-                  if (
-                    botPermissions?.has("Connect") &&
-                    botPermissions?.has("MoveMembers")
-                  ) {
-                    await member.voice.setChannel(
-                      targetChannel,
+                  if (member.voice.channel) {
+                    await member.voice.disconnect(
                       "Voice control role was configured",
                     );
                     affectedCount++;
                     logger.debug(
-                      `Moved ${member.user.tag} who was already in voice`,
+                      `Disconnected ${member.user.tag} who was already in voice`,
                     );
                   }
                 }
-              }
-              break;
+                break;
+
+              case "mute":
+                if (
+                  botMember?.permissions.has(PermissionFlagsBits.MuteMembers)
+                ) {
+                  if (!member.voice.mute) {
+                    await member.voice.setMute(
+                      true,
+                      "Voice control role was configured",
+                    );
+                    affectedCount++;
+                    logger.debug(
+                      `Muted ${member.user.tag} who was already in voice`,
+                    );
+                  }
+                }
+                break;
+
+              case "deafen":
+                if (
+                  botMember?.permissions.has(PermissionFlagsBits.DeafenMembers)
+                ) {
+                  if (!member.voice.deaf) {
+                    await member.voice.setDeaf(
+                      true,
+                      "Voice control role was configured",
+                    );
+                    affectedCount++;
+                    logger.debug(
+                      `Deafened ${member.user.tag} who was already in voice`,
+                    );
+                  }
+                }
+                break;
+
+              case "move":
+                if (
+                  targetChannelId &&
+                  botMember?.permissions.has(PermissionFlagsBits.MoveMembers)
+                ) {
+                  const targetChannel =
+                    guild.channels.cache.get(targetChannelId);
+                  if (
+                    targetChannel &&
+                    member.voice.channelId !== targetChannelId
+                  ) {
+                    const botPermissions =
+                      targetChannel.permissionsFor(botMember);
+                    if (
+                      botPermissions?.has("Connect") &&
+                      botPermissions?.has("MoveMembers")
+                    ) {
+                      await member.voice.setChannel(
+                        targetChannel,
+                        "Voice control role was configured",
+                      );
+                      affectedCount++;
+                      logger.debug(
+                        `Moved ${member.user.tag} who was already in voice`,
+                      );
+                    }
+                  }
+                }
+                break;
+            }
+          } catch (error) {
+            logger.error(
+              `Failed to apply ${actionType} to ${member.user.tag}:`,
+              error.message,
+            );
           }
-        } catch (error) {
-          logger.error(
-            `Failed to apply ${actionType} to ${member.user.tag}:`,
-            error.message,
-          );
-        }
+        }),
+      );
+
+      // Rate limit: delay between batches (except for the last batch)
+      if (i + batchSize < membersToHandle.length) {
+        await delay(delayBetweenBatches);
       }
     }
 
     if (affectedCount > 0) {
       logger.info(
-        `Applied ${actionType} action to ${affectedCount} existing voice member(s) with role ${roleId}`,
+        `Applied ${actionType} action to ${affectedCount} existing voice member(s) with role ${roleId}${skippedCount > 0 ? ` (${skippedCount} skipped)` : ""}`,
       );
     }
 
-    return affectedCount;
+    return { affectedCount, totalMembers, skippedCount };
   } catch (error) {
     logger.error(`Error applying voice control to existing members:`, error);
-    return 0;
+    return { affectedCount: 0, totalMembers: 0, skippedCount: 0 };
   }
 }
 
@@ -193,17 +225,46 @@ export async function handleDisconnectAdd(interaction) {
       `Added voice disconnect role ${role.name} (${role.id}) in ${interaction.guild.name}`,
     );
 
-    // Apply to users already in voice channels
-    const affectedCount = await applyToExistingVoiceMembers(
+    // Apply to users already in voice channels (async, non-blocking)
+    const resultPromise = applyToExistingVoiceMembers(
       interaction.guild,
       role.id,
       "disconnect",
     );
 
-    const description =
-      affectedCount > 0
-        ? `The role ${role.toString()} will now automatically disconnect users from voice channels when assigned.\n\n**Applied to ${affectedCount} user(s) already in voice channels.**`
-        : `The role ${role.toString()} will now automatically disconnect users from voice channels when assigned.`;
+    // Respond immediately, then process members in background
+    let description = `The role ${role.toString()} will now automatically disconnect users from voice channels when assigned.`;
+
+    // Wait briefly to see if we can get a quick result
+    const quickResult = await Promise.race([
+      resultPromise,
+      new Promise(resolve => {
+        setTimeout(() => resolve(null), 500);
+      }),
+    ]);
+
+    if (quickResult) {
+      const { affectedCount, skippedCount } = quickResult;
+      if (affectedCount > 0) {
+        description += `\n\n**Applied to ${affectedCount} user(s) already in voice channels.${skippedCount > 0 ? ` (${skippedCount} more will be processed in background)` : ""}**`;
+      }
+    } else {
+      // Still processing, mention it's happening in background
+      description += `\n\n*Processing existing voice members in background...*`;
+    }
+
+    // Continue processing in background (don't await)
+    resultPromise
+      .then(result => {
+        if (result.affectedCount > 0 || result.skippedCount > 0) {
+          logger.info(
+            `Background processing complete: ${result.affectedCount} affected, ${result.skippedCount} skipped`,
+          );
+        }
+      })
+      .catch(error => {
+        logger.error("Background voice control processing error:", error);
+      });
 
     return interaction.editReply(
       successEmbed({
@@ -334,17 +395,46 @@ export async function handleMuteAdd(interaction) {
       `Added voice mute role ${role.name} (${role.id}) in ${interaction.guild.name}`,
     );
 
-    // Apply to users already in voice channels
-    const affectedCount = await applyToExistingVoiceMembers(
+    // Apply to users already in voice channels (async, non-blocking)
+    const resultPromise = applyToExistingVoiceMembers(
       interaction.guild,
       role.id,
       "mute",
     );
 
-    const description =
-      affectedCount > 0
-        ? `The role ${role.toString()} will now automatically mute users in voice channels when assigned.\n\n**Applied to ${affectedCount} user(s) already in voice channels.**`
-        : `The role ${role.toString()} will now automatically mute users in voice channels when assigned.`;
+    // Respond immediately, then process members in background
+    let description = `The role ${role.toString()} will now automatically mute users in voice channels when assigned.`;
+
+    // Wait briefly to see if we can get a quick result
+    const quickResult = await Promise.race([
+      resultPromise,
+      new Promise(resolve => {
+        setTimeout(() => resolve(null), 500);
+      }),
+    ]);
+
+    if (quickResult) {
+      const { affectedCount, skippedCount } = quickResult;
+      if (affectedCount > 0) {
+        description += `\n\n**Applied to ${affectedCount} user(s) already in voice channels.${skippedCount > 0 ? ` (${skippedCount} more will be processed in background)` : ""}**`;
+      }
+    } else {
+      // Still processing, mention it's happening in background
+      description += `\n\n*Processing existing voice members in background...*`;
+    }
+
+    // Continue processing in background (don't await)
+    resultPromise
+      .then(result => {
+        if (result.affectedCount > 0 || result.skippedCount > 0) {
+          logger.info(
+            `Background processing complete: ${result.affectedCount} affected, ${result.skippedCount} skipped`,
+          );
+        }
+      })
+      .catch(error => {
+        logger.error("Background voice control processing error:", error);
+      });
 
     return interaction.editReply(
       successEmbed({
@@ -472,17 +562,46 @@ export async function handleDeafenAdd(interaction) {
       `Added voice deafen role ${role.name} (${role.id}) in ${interaction.guild.name}`,
     );
 
-    // Apply to users already in voice channels
-    const affectedCount = await applyToExistingVoiceMembers(
+    // Apply to users already in voice channels (async, non-blocking)
+    const resultPromise = applyToExistingVoiceMembers(
       interaction.guild,
       role.id,
       "deafen",
     );
 
-    const description =
-      affectedCount > 0
-        ? `The role ${role.toString()} will now automatically deafen users in voice channels when assigned.\n\n**Applied to ${affectedCount} user(s) already in voice channels.**`
-        : `The role ${role.toString()} will now automatically deafen users in voice channels when assigned.`;
+    // Respond immediately, then process members in background
+    let description = `The role ${role.toString()} will now automatically deafen users in voice channels when assigned.`;
+
+    // Wait briefly to see if we can get a quick result
+    const quickResult = await Promise.race([
+      resultPromise,
+      new Promise(resolve => {
+        setTimeout(() => resolve(null), 500);
+      }),
+    ]);
+
+    if (quickResult) {
+      const { affectedCount, skippedCount } = quickResult;
+      if (affectedCount > 0) {
+        description += `\n\n**Applied to ${affectedCount} user(s) already in voice channels.${skippedCount > 0 ? ` (${skippedCount} more will be processed in background)` : ""}**`;
+      }
+    } else {
+      // Still processing, mention it's happening in background
+      description += `\n\n*Processing existing voice members in background...*`;
+    }
+
+    // Continue processing in background (don't await)
+    resultPromise
+      .then(result => {
+        if (result.affectedCount > 0 || result.skippedCount > 0) {
+          logger.info(
+            `Background processing complete: ${result.affectedCount} affected, ${result.skippedCount} skipped`,
+          );
+        }
+      })
+      .catch(error => {
+        logger.error("Background voice control processing error:", error);
+      });
 
     return interaction.editReply(
       successEmbed({
@@ -656,18 +775,47 @@ export async function handleMoveAdd(interaction) {
       `Added voice move role ${role.name} (${role.id}) -> ${channel.name} (${channel.id}) in ${interaction.guild.name}`,
     );
 
-    // Apply to users already in voice channels
-    const affectedCount = await applyToExistingVoiceMembers(
+    // Apply to users already in voice channels (async, non-blocking)
+    const resultPromise = applyToExistingVoiceMembers(
       interaction.guild,
       role.id,
       "move",
       channel.id,
     );
 
-    const description =
-      affectedCount > 0
-        ? `The role ${role.toString()} will now automatically move users to ${channel.toString()} when assigned.\n\n**Applied to ${affectedCount} user(s) already in voice channels.**`
-        : `The role ${role.toString()} will now automatically move users to ${channel.toString()} when assigned.`;
+    // Respond immediately, then process members in background
+    let description = `The role ${role.toString()} will now automatically move users to ${channel.toString()} when assigned.`;
+
+    // Wait briefly to see if we can get a quick result
+    const quickResult = await Promise.race([
+      resultPromise,
+      new Promise(resolve => {
+        setTimeout(() => resolve(null), 500);
+      }),
+    ]);
+
+    if (quickResult) {
+      const { affectedCount, skippedCount } = quickResult;
+      if (affectedCount > 0) {
+        description += `\n\n**Applied to ${affectedCount} user(s) already in voice channels.${skippedCount > 0 ? ` (${skippedCount} more will be processed in background)` : ""}**`;
+      }
+    } else {
+      // Still processing, mention it's happening in background
+      description += `\n\n*Processing existing voice members in background...*`;
+    }
+
+    // Continue processing in background (don't await)
+    resultPromise
+      .then(result => {
+        if (result.affectedCount > 0 || result.skippedCount > 0) {
+          logger.info(
+            `Background processing complete: ${result.affectedCount} affected, ${result.skippedCount} skipped`,
+          );
+        }
+      })
+      .catch(error => {
+        logger.error("Background voice control processing error:", error);
+      });
 
     return interaction.editReply(
       successEmbed({

@@ -1,14 +1,18 @@
 ---
-description: This rule defines the standards and best practices for maintaining the CHANGELOG.md file. It covers formatting, content guidelines, user-focused descriptions, and version management to ensure clear and consistent documentation of project changes.
-globs: CHANGELOG.md
+description: This rule defines the standards and best practices for maintaining the CHANGELOG.md file. It covers formatting, content guidelines, user-focused descriptions, and version management to ensure clear and consistent documentation of project changes. **MUST BE FOLLOWED whenever updating or creating changelog entries.**
+globs: "**/CHANGELOG.md"
+alwaysApply: true
 ---
 
 ## 1. Changelog Structure and Format
+
+**IMPORTANT:** These rules MUST be followed whenever creating or updating changelog entries. Always verify the current date before adding version dates.
 
 - **File Location:** `docs/CHANGELOG.md` (always in the docs directory)
 - **Format:** Follow [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format
 - **Versioning:** Use [Semantic Versioning](https://semver.org/spec/v2.0.0.html) (MAJOR.MINOR.PATCH)
 - **Date Format:** Use ISO 8601 format (YYYY-MM-DD) for all version dates (year-month-day order to avoid ambiguity)
+- **Date Verification:** **ALWAYS run `date +%Y-%m-%d` or check system date before adding any version date**
 - **Header Structure:**
 
   ```markdown
@@ -43,6 +47,13 @@ globs: CHANGELOG.md
 
 ## 3. Writing Guidelines
 
+**CRITICAL:** When updating the changelog, you MUST:
+
+1. Check the actual current date using `date +%Y-%m-%d` before adding any version date
+2. Follow user-focused, non-technical language
+3. Focus on what users can do, not technical implementation
+4. Use the format and examples provided in this document
+
 ### User-Focused Descriptions
 
 - **Focus on user impact, not technical implementation**
@@ -62,6 +73,9 @@ globs: CHANGELOG.md
 - ❌ "Poll System: Complete native Discord poll system with interactive creation and management"
 - ❌ "Command Interaction Timeouts: Added immediate deferral to prevent 'Unknown interaction' errors across all commands"
 - ❌ "Poll Data Storage: MongoDB integration for storing poll data with automatic cleanup"
+- ❌ "API Endpoint: Added `/api/stats` endpoint for bot statistics"
+- ❌ "Database Migration: Successfully migrated XP data from files to MongoDB"
+- ❌ "Fixed delay pattern in `handleUnban` function to match other handlers"
 
 ### Entry Format
 
@@ -69,6 +83,7 @@ globs: CHANGELOG.md
 - **Keep entries concise but informative**
 - **Group related changes together**
 - **Use consistent tense (past tense for completed changes)**
+- **Avoid repeating the feature name in the description when it's obvious**
 
 **Format:**
 
@@ -76,6 +91,20 @@ globs: CHANGELOG.md
 - Feature Name: Brief description of what users can do or experience
 - Command Name: What the command does or how it was improved
 - System Name: User-visible changes or improvements
+```
+
+**Good Format Examples:**
+
+```markdown
+- Voice Control Command: New `/voice-control` command to automatically manage users in voice channels based on roles
+- Voice Control Subcommands: `/voice-control disconnect`, `/voice-control mute`, `/voice-control deafen`, `/voice-control move`, and `/voice-control list` subcommands for complete voice management
+```
+
+**Avoid Redundancy:**
+
+```markdown
+❌ Bad: Voice Control Command: New voice control command for managing voice channels
+✅ Good: Voice Control Command: New `/voice-control` command to automatically manage users in voice channels based on roles
 ```
 
 ## 4. Version Management
@@ -94,17 +123,31 @@ globs: CHANGELOG.md
 
 ### Release Process
 
+**MANDATORY STEPS - MUST BE FOLLOWED:**
+
 1. **Development:** Add changes to [Unreleased] section
 2. **Release:** Move [Unreleased] content to new version section
-3. **Update:** Add release date and clear [Unreleased] section
-4. **Commit:** Include changelog updates in release commit
+3. **Date Verification (CRITICAL):**
+   - **STOP and run `date +%Y-%m-%d` or check system date**
+   - **Use the verified current date for the version entry**
+   - **Never guess, assume, or use a date without verification**
+4. **Update:** Add release date and clear [Unreleased] section
+5. **Commit:** Include changelog updates in release commit
+
+**AI Instructions:** When updating the changelog, you MUST verify the current date using a system command before adding any version date. This is not optional.
 
 ### Release Date Accuracy
 
+- **CRITICAL: Always Check Current Date:** Before adding a version date, **always verify the actual current date** using system date or reliable date source. Never assume or guess the date.
+- **Date Verification Steps:**
+  1. Run `date +%Y-%m-%d` (Unix/macOS) or check system date
+  2. Use the verified current date for new version entries
+  3. For existing versions, verify using git commit history
 - **Use Git History:** Always verify release dates using `git log --grep="version"` or `git show <commit-hash> --format="%ad" --date=short`
 - **Actual Commit Dates:** Use the date from the version bump commit, not arbitrary dates
-- **Format:** Use YYYY-MM-DD format consistently
-- **Verification:** Double-check dates against actual git commit history before finalizing
+- **Format:** Use YYYY-MM-DD format consistently (year-month-day order to avoid ambiguity)
+- **Verification:** Double-check dates against actual git commit history and current system date before finalizing
+- **Never Guess:** If unsure about a date, always check the actual current date or git history rather than guessing
 
 ## 5. Content Organization
 
@@ -160,6 +203,21 @@ globs: CHANGELOG.md
 - **Ensure all user-visible changes are documented**
 - **Include breaking changes prominently**
 
+### Context and Links
+
+- **Documentation Links:** When relevant, include links to documentation or migration guides
+- **Breaking Changes:** Always provide clear migration instructions or links to migration guides
+- **Related Issues:** Optionally reference related GitHub issues or PRs when helpful for context
+- **Examples:** Include brief usage examples for new commands or features when it adds clarity
+- **Format:** Use markdown links: `[Link Text](https://example.com)`
+
+**Example:**
+
+```markdown
+- Voice Control Command: New `/voice-control` command to automatically manage users in voice channels based on roles. See [documentation](link) for setup instructions
+- Breaking Change: Removed `/old-command`. Use `/new-command` instead. See [migration guide](link) for details
+```
+
 ### What NOT to Include
 
 - **Developer Commands:** Internal tools like `/core-management`, `/health`, `/performance`, `/storage`
@@ -167,6 +225,11 @@ globs: CHANGELOG.md
 - **Unreleased Feature Fixes:** Don't put "fixes" for features that haven't been released yet
 - **Internal Security:** Developer-only security improvements that don't affect users
 - **Code Quality:** Linting fixes, formatting changes, documentation updates
+- **Minor Performance:** Small optimizations that users won't notice (only include significant improvements that users will experience)
+- **Test Fixes:** Test-related fixes that don't affect user-visible functionality
+- **CI/CD Changes:** Build pipeline, workflow, or deployment script changes (unless user-visible)
+- **Function Names:** Avoid mentioning specific function names, class names, or code identifiers
+- **Technical Jargon:** Avoid terms like "API endpoint", "MongoDB", "Repository", "Database migration", "refactoring", "architecture"
 
 ## 7. Examples
 
@@ -213,6 +276,41 @@ globs: CHANGELOG.md
 - Linting Errors: Fixed string concatenation and variable usage issues
 ```
 
+### Good Performance Entry
+
+```markdown
+### Performance
+
+- Voice Control Operations: Improved processing speed and reliability for voice control operations on large servers
+- Voice Control Background Processing: Large operations now process in the background without blocking command responses
+- Bot Statistics API: Improved response times by caching statistics for 24 hours
+```
+
+### Good Removed Entry
+
+```markdown
+### Removed
+
+- Voice Restrictions: Removed automatic voice restriction enforcement feature. The bot no longer automatically disconnects or mutes users based on role permissions
+- Schedule Role System: Removed `/schedule-role` command and all related functionality due to low usage and maintenance complexity
+```
+
+### Feature Replacement Pattern
+
+When replacing an old feature with a new one:
+
+```markdown
+### Added
+
+- New Feature Name: Description of the new feature and what users can do
+
+### Removed
+
+- Old Feature Name: Brief explanation of why it was removed (if relevant)
+```
+
+**Note:** Don't explicitly link them unless the replacement is obvious. Let users understand the new feature on its own merits.
+
 ## 8. Maintenance Guidelines
 
 ### Regular Updates
@@ -238,6 +336,14 @@ globs: CHANGELOG.md
 
 ## 9. Common Mistakes to Avoid
 
+**CRITICAL REMINDERS FOR AI:**
+
+- **ALWAYS verify current date before adding version dates** - Run `date +%Y-%m-%d` first
+- **NEVER guess or assume dates** - Always check the actual current date
+- **ALWAYS follow user-focused language** - Describe what users can do, not technical details
+
+**Other Common Mistakes:**
+
 - **Don't include implementation details**
 - **Don't use technical jargon**
 - **Don't be too verbose**
@@ -248,7 +354,8 @@ globs: CHANGELOG.md
 - **Don't forget to update [Unreleased] section**
 - **Don't include developer commands in user-facing changelog**
 - **Don't put "fixes" for unreleased features in Fixed section**
-- **Don't use arbitrary dates - always verify with git history**
+- **Don't use arbitrary dates - always verify current date and git history**
+- **Don't guess or assume dates - always check the actual current date before adding version dates**
 - **Don't include database migrations or internal architecture changes**
 - **Don't mention "renamed" commands if the old command was never released**
 
