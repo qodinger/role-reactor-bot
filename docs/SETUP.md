@@ -4,9 +4,13 @@
 
 ### 1. Environment Setup
 
-Copy the environment templates and fill in your values:
+Copy the environment template and fill in your values:
 
 ```bash
+# Basic setup (single .env file)
+cp env.example .env
+
+# Or use separate environment files (optional)
 # Development environment
 cp env.template.development .env.development
 
@@ -16,7 +20,23 @@ cp env.template.production .env.production
 
 ### 2. Edit Environment Files
 
-#### `.env.development`
+#### Basic Setup (`.env`)
+
+```bash
+# Discord Bot Configuration
+DISCORD_TOKEN=your_bot_token_here
+CLIENT_ID=your_client_id_here
+
+# Database
+MONGODB_URI=mongodb://localhost:27017
+MONGODB_DB=role-reactor-bot
+```
+
+#### Advanced Setup (Separate Files)
+
+If using separate development and production files:
+
+**`.env.development`**
 
 ```bash
 # Discord Bot Configuration
@@ -29,7 +49,7 @@ MONGODB_URI=mongodb://localhost:27017
 MONGODB_DB=role-reactor-bot-dev
 ```
 
-#### `.env.production`
+**`.env.production`**
 
 ```bash
 # Discord Bot Configuration
@@ -47,13 +67,13 @@ MONGODB_DB=role-reactor-bot-prod
 #### Development Mode
 
 ```bash
-npm run start:dev
+pnpm dev
 ```
 
 #### Production Mode
 
 ```bash
-npm run start:prod
+pnpm start
 ```
 
 ### 4. Deploy Commands
@@ -61,13 +81,13 @@ npm run start:prod
 #### Development (Guild-specific)
 
 ```bash
-npm run deploy:dev
+pnpm run deploy:dev
 ```
 
 #### Production (Global)
 
 ```bash
-npm run deploy:prod
+pnpm run deploy:prod
 ```
 
 ## 🔐 Security Notes
@@ -82,13 +102,13 @@ npm run deploy:prod
 ### Development
 
 ```bash
-npm run docker:dev
+pnpm run docker:dev
 ```
 
 ### Production
 
 ```bash
-npm run docker:prod
+pnpm run docker:prod
 ```
 
 ## 📚 Additional Resources

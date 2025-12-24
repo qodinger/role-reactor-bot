@@ -41,6 +41,8 @@ A production-ready Discord bot for self-assignable roles through reactions. Buil
 - **🎨 AI Avatar Generation**: AI-powered avatar generation with multiple style options
 - **💎 Core Credit System**: Credit-based economy for avatar generation with Ko-fi integration
 - **📊 Poll System**: Create and manage native Discord polls with interactive forms
+- **🛡️ Moderation System**: Comprehensive moderation tools with timeout, warnings, bans, kicks, and history tracking
+- **🎙️ Voice Control**: Automatically manage users in voice channels based on roles (disconnect, mute, deafen, move)
 - **👤 User Information**: Avatar display, level checking, and user statistics
 - **🛡️ Permission Controls**: Comprehensive permission checking
 - **🎨 Custom Emojis**: Support for Unicode and custom server emojis
@@ -237,10 +239,10 @@ Automatically send goodbye messages when members leave with customizable placeho
 
 The XP system is **disabled by default** and must be enabled by server administrators. When enabled, users can earn XP through:
 
-- **Messages**: 15-25 XP every 60 seconds
-- **Commands**: 3-15 XP every 30 seconds (varies by command)
-- **Role Assignments**: 50 XP per role
-- **Voice Activity**: 10 XP every 60 seconds
+- **Messages**: 15-25 XP every 60 seconds (configurable)
+- **Commands**: 8 XP per command every 30 seconds (configurable, applies to all commands)
+- **Role Assignments**: 50 XP per role (configurable)
+- **Voice Activity**: 10 XP every 60 seconds (configurable)
 
 **Admin Commands:**
 
@@ -249,19 +251,88 @@ The XP system is **disabled by default** and must be enabled by server administr
 **Default Settings:**
 
 - System: Disabled
-- Message XP: 15-25 XP (60s cooldown)
-- Command XP: 3-15 XP (30s cooldown)
-- Role XP: 50 XP per role
-- Voice XP: 10 XP (60s cooldown)
+- Message XP: 15-25 XP (60s cooldown, configurable)
+- Command XP: 8 XP per command (30s cooldown, configurable, applies to all commands)
+- Role XP: 50 XP per role (configurable)
+- Voice XP: 10 XP (60s cooldown, configurable)
 
 **Note:** XP system configuration uses a simplified button-driven interface. All settings use optimized default values that work well for most servers.
+
+### Moderation System
+
+Comprehensive moderation tools with bulk operations and history tracking:
+
+**Timeout users:**
+
+```
+/moderation timeout users:@User duration:1h reason:Spam
+/moderation timeout users:@User1 @User2 @User3 duration:2h reason:Spam in multiple channels
+```
+
+**Warn users:**
+
+```
+/moderation warn users:@User reason:Inappropriate behavior
+/moderation warn users:@User1 @User2 reason:First warning for inappropriate language
+```
+
+**Ban/Kick users:**
+
+```
+/moderation ban users:@User reason:Repeated violations delete-days:1
+/moderation kick users:@User reason:Temporary removal
+/moderation unban users:@User
+```
+
+**View moderation history:**
+
+```
+/moderation history
+/moderation history user:@User
+/moderation remove-warn user:@User case-id:MOD-1234567890-ABC123
+/moderation list-bans
+```
+
+**Purge messages:**
+
+```
+/moderation purge amount:50 channel:#general
+```
+
+### Voice Control
+
+Automatically manage users in voice channels based on roles:
+
+**Configure voice control roles:**
+
+```
+/voice-control disconnect add role:@Muted
+/voice-control mute add role:@Restricted
+/voice-control deafen add role:@Punished
+/voice-control move add role:@SupportTeam channel:#support-voice
+```
+
+**Manage voice control:**
+
+```
+/voice-control list
+/voice-control disconnect remove role:@Muted
+/voice-control mute remove role:@Restricted
+```
+
+**How it works:**
+
+- When a user gets a configured role, the bot automatically applies the action (disconnect, mute, deafen, or move)
+- Actions are applied when users join voice channels or when roles are assigned
+- Actions are automatically applied to users already in voice channels when roles are first configured
 
 ### General Commands
 
 **AI Avatar Generation:**
 
 ```
-/avatar prompt:cyberpunk hacker with neon hair color_style:vibrant
+/avatar prompt:cyberpunk hacker with neon hair art_style:manga
+/avatar prompt:cute girl with pink hair art_style:chibi
 ```
 
 **Core Credit System:**
@@ -289,7 +360,8 @@ The XP system is **disabled by default** and must be enabled by server administr
 **User information and statistics:**
 
 ```
-/avatar user:@username
+/userinfo user:@username
+/serverinfo
 /level user:@username
 /leaderboard
 ```
@@ -308,25 +380,39 @@ The XP system is **disabled by default** and must be enabled by server administr
 
 #### Server Management Commands
 
-| Command                  | Description                              | Permissions   |
-| ------------------------ | ---------------------------------------- | ------------- |
-| `/role-reactions setup`  | Create a role-reaction message           | Manage Roles  |
-| `/role-reactions list`   | List all role-reaction messages          | Manage Roles  |
-| `/role-reactions update` | Update an existing role-reaction message | Manage Roles  |
-| `/role-reactions delete` | Delete a role-reaction message           | Manage Roles  |
-| `/temp-roles assign`     | Assign temporary roles (supports bulk)   | Manage Roles  |
-| `/temp-roles list`       | List temporary roles                     | Manage Roles  |
-| `/temp-roles remove`     | Remove temporary roles (supports bulk)   | Manage Roles  |
-| `/schedule-role create`  | Schedule role assignments/removals       | Manage Roles  |
-| `/schedule-role list`    | List active schedules                    | Manage Roles  |
-| `/schedule-role view`    | View schedule details                    | Manage Roles  |
-| `/schedule-role cancel`  | Cancel a schedule                        | Manage Roles  |
-| `/schedule-role delete`  | Permanently delete a schedule            | Manage Roles  |
-| `/welcome setup`         | Configure welcome system                 | Manage Server |
-| `/welcome settings`      | View welcome system settings             | Manage Server |
-| `/goodbye setup`         | Configure goodbye system                 | Manage Server |
-| `/goodbye settings`      | View goodbye system settings             | Manage Server |
-| `/xp settings`           | View and manage XP system settings       | Manage Server |
+| Command                         | Description                                | Permissions   |
+| ------------------------------- | ------------------------------------------ | ------------- |
+| `/role-reactions setup`         | Create a role-reaction message             | Manage Roles  |
+| `/role-reactions list`          | List all role-reaction messages            | Manage Roles  |
+| `/role-reactions update`        | Update an existing role-reaction message   | Manage Roles  |
+| `/role-reactions delete`        | Delete a role-reaction message             | Manage Roles  |
+| `/temp-roles assign`            | Assign temporary roles (supports bulk)     | Manage Roles  |
+| `/temp-roles list`              | List temporary roles                       | Manage Roles  |
+| `/temp-roles remove`            | Remove temporary roles (supports bulk)     | Manage Roles  |
+| `/schedule-role create`         | Schedule role assignments/removals         | Manage Roles  |
+| `/schedule-role list`           | List active schedules                      | Manage Roles  |
+| `/schedule-role view`           | View schedule details                      | Manage Roles  |
+| `/schedule-role cancel`         | Cancel a schedule                          | Manage Roles  |
+| `/schedule-role delete`         | Permanently delete a schedule              | Manage Roles  |
+| `/welcome setup`                | Configure welcome system                   | Manage Server |
+| `/welcome settings`             | View welcome system settings               | Manage Server |
+| `/goodbye setup`                | Configure goodbye system                   | Manage Server |
+| `/goodbye settings`             | View goodbye system settings               | Manage Server |
+| `/xp settings`                  | View and manage XP system settings         | Manage Server |
+| `/moderation timeout`           | Timeout users (supports bulk up to 15)     | Administrator |
+| `/moderation warn`              | Warn users (supports bulk up to 15)        | Administrator |
+| `/moderation ban`               | Ban users (supports bulk up to 15)         | Administrator |
+| `/moderation kick`              | Kick users (supports bulk up to 15)        | Administrator |
+| `/moderation unban`             | Unban users (supports bulk up to 15)       | Administrator |
+| `/moderation purge`             | Delete multiple messages from channel      | Administrator |
+| `/moderation history`           | View moderation history                    | Administrator |
+| `/moderation remove-warn`       | Remove a warning by case ID                | Administrator |
+| `/moderation list-bans`         | List all banned users                      | Administrator |
+| `/voice-control disconnect add` | Add role that disconnects users from voice | Administrator |
+| `/voice-control mute add`       | Add role that mutes users in voice         | Administrator |
+| `/voice-control deafen add`     | Add role that deafens users in voice       | Administrator |
+| `/voice-control move add`       | Add role that moves users to channel       | Administrator |
+| `/voice-control list`           | List all voice control roles               | Administrator |
 
 #### Developer Commands
 
@@ -342,6 +428,7 @@ The XP system is **disabled by default** and must be enabled by server administr
 | `/core-management view`                | 🔒 [DEVELOPER ONLY] View user Core information   | Developer   |
 | `/core-management add-donation`        | 🔒 [DEVELOPER ONLY] Verify Ko-fi donation        | Developer   |
 | `/core-management cancel-subscription` | 🔒 [DEVELOPER ONLY] Cancel Core subscription     | Developer   |
+| `/imagine`                             | 🔒 [DEVELOPER ONLY] Generate AI artwork          | Developer   |
 
 #### General Commands
 
@@ -362,6 +449,8 @@ The XP system is **disabled by default** and must be enabled by server administr
 | `/poll delete`  | Delete a poll permanently                       | None        |
 | `/level`        | Check user XP level and statistics              | None        |
 | `/leaderboard`  | View server XP leaderboard                      | None        |
+| `/userinfo`     | Display detailed user information               | None        |
+| `/serverinfo`   | Display detailed server information             | None        |
 
 ## 🔧 Configuration
 
@@ -395,6 +484,9 @@ Required Discord bot permissions:
 - **Moderate Members**: To timeout users (for moderation commands)
 - **Ban Members**: To ban and unban users (for moderation commands)
 - **Kick Members**: To kick users from the server (for moderation commands)
+- **Move Members**: To disconnect and move users in voice channels (for voice control and moderation)
+- **Mute Members**: To mute users in voice channels (for voice control)
+- **Deafen Members**: To deafen users in voice channels (for voice control)
 
 ## 🔧 Troubleshooting
 
@@ -473,7 +565,9 @@ The bot includes comprehensive health monitoring:
 - **🎨 AI Avatar Generation**: AI-powered avatar creation with multiple style options and content filtering
 - **💎 Core Credit System**: Credit-based economy for avatar generation with Ko-fi integration
 - **📊 Poll System**: Native Discord poll creation and management with interactive forms
-- **🔄 Bulk Operations**: Multi-user support for temporary role assignments and removals
+- **🛡️ Moderation System**: Comprehensive moderation tools with bulk operations and history tracking
+- **🎙️ Voice Control**: Automatic voice channel management based on roles
+- **🔄 Bulk Operations**: Multi-user support for temporary role assignments, removals, and moderation
 - **🎨 Modern UI**: Redesigned embeds with interactive buttons and better visual hierarchy
 - **📝 Enhanced Help**: Comprehensive help system with autocomplete and interactive navigation
 - **🔗 Interactive Buttons**: Direct links to support server, GitHub, and sponsor pages

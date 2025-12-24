@@ -169,78 +169,6 @@ List all banned users in the server with pagination support.
 /moderation list-bans page:2
 ```
 
-## Key Features
-
-- **Bulk Operations**: Moderate up to 15 users at once for timeout, warn, ban, kick, and unban actions with faster processing
-- **Role Hierarchy Validation**: Ensures moderators can only moderate members below them in the role hierarchy
-- **Bot Permission Checks**: Validates bot has required permissions before executing actions
-- **Moderation Logging**: All actions are logged with case IDs, timestamps, and reasons
-- **Warning Tracking**: Warnings are tracked per user and displayed in success messages
-- **Auto-Escalation**: Automatic timeout or kick based on warning thresholds (configurable)
-- **Moderation History**: View moderation history for individual users or entire server with pagination
-- **DM Notifications**: Users receive direct messages when warned, timed out, banned, kicked, or unbanned
-- **Bot Protection**: Prevents moderating bots to avoid breaking bot functionality
-- **Rate Limit Handling**: Built-in rate limit handling with retries for bulk operations
-- **Comprehensive Error Handling**: Clear error messages for permission issues, hierarchy problems, and invalid inputs
-- **Case IDs**: Each moderation action gets a unique case ID for tracking and reference
-
-## Permissions Required
-
-### User Permissions
-
-- **Administrator** permission is required to use all moderation commands
-- The command is registered with `ModerateMembers` as the default permission, but the handler enforces Administrator permission
-
-### Bot Permissions
-
-The bot needs the following permissions to execute moderation actions:
-
-- **`ModerateMembers`**: Required for `/moderation timeout` command
-- **`BanMembers`**: Required for `/moderation ban` and `/moderation unban` commands
-- **`KickMembers`**: Required for `/moderation kick` command
-- **`ManageMessages`**: Required for `/moderation purge` command (channel-specific)
-
-**Note**: The bot will check for these permissions before executing each action and provide clear error messages if permissions are missing. The `/moderation warn` command does not require any special bot permissions (only user Administrator permission).
-
-### Setting Up Bot Permissions
-
-1. Go to **Server Settings** → **Roles**
-2. Find the bot's role (Role Reactor)
-3. Enable the following permissions:
-   - ✅ **Moderate Members** (for timeout)
-   - ✅ **Ban Members** (for ban/unban)
-   - ✅ **Kick Members** (for kick)
-   - ✅ **Manage Messages** (for purge)
-4. **Important**: Make sure the bot's role is positioned **above** the roles of users you want to moderate in the role hierarchy
-
-## Moderation Logging
-
-All moderation actions are logged to storage with:
-
-- Case ID (unique identifier)
-- Guild ID
-- User ID (target)
-- Moderator ID
-- Action type (timeout, warn, ban, kick, unban)
-- Reason
-- Timestamp
-- Additional metadata (duration, delete days, etc.)
-
-Logs are stored in the `moderation_logs` collection, organized by guild and user. Each user can have up to 100 log entries (oldest are removed when limit is reached).
-
-## Auto-Escalation
-
-The moderation system includes automatic escalation based on warning thresholds:
-
-- **Auto-Timeout**: Automatically timeout users after reaching a configured number of warnings (default: 3 warnings)
-- **Auto-Kick**: Automatically kick users after reaching a configured number of warnings (default: 5 warnings)
-- **Configurable**: Thresholds can be configured via environment variables:
-  - `MODERATION_TIMEOUT_AFTER_WARNINGS` (default: 3)
-  - `MODERATION_KICK_AFTER_WARNINGS` (default: 5)
-  - `MODERATION_AUTO_TIMEOUT_DURATION` (default: 1h)
-
-Auto-escalation can be disabled by setting thresholds to 0.
-
 ## Usage Examples
 
 ### Single User Operations
@@ -274,6 +202,78 @@ Auto-escalation can be disabled by setting thresholds to 0.
 /moderation list-bans
 /moderation list-bans page:2
 ```
+
+## Permissions Required
+
+### User Permissions
+
+- **Administrator** permission is required to use all moderation commands
+- The command is registered with `ModerateMembers` as the default permission, but the handler enforces Administrator permission
+
+### Bot Permissions
+
+The bot needs the following permissions to execute moderation actions:
+
+- **`ModerateMembers`**: Required for `/moderation timeout` command
+- **`BanMembers`**: Required for `/moderation ban` and `/moderation unban` commands
+- **`KickMembers`**: Required for `/moderation kick` command
+- **`ManageMessages`**: Required for `/moderation purge` command (channel-specific)
+
+**Note**: The bot will check for these permissions before executing each action and provide clear error messages if permissions are missing. The `/moderation warn` command does not require any special bot permissions (only user Administrator permission).
+
+### Setting Up Bot Permissions
+
+1. Go to **Server Settings** → **Roles**
+2. Find the bot's role (Role Reactor)
+3. Enable the following permissions:
+   - ✅ **Moderate Members** (for timeout)
+   - ✅ **Ban Members** (for ban/unban)
+   - ✅ **Kick Members** (for kick)
+   - ✅ **Manage Messages** (for purge)
+4. **Important**: Make sure the bot's role is positioned **above** the roles of users you want to moderate in the role hierarchy
+
+## Key Features
+
+- **Bulk Operations**: Moderate up to 15 users at once for timeout, warn, ban, kick, and unban actions with faster processing
+- **Role Hierarchy Validation**: Ensures moderators can only moderate members below them in the role hierarchy
+- **Bot Permission Checks**: Validates bot has required permissions before executing actions
+- **Moderation Logging**: All actions are logged with case IDs, timestamps, and reasons
+- **Warning Tracking**: Warnings are tracked per user and displayed in success messages
+- **Auto-Escalation**: Automatic timeout or kick based on warning thresholds (configurable)
+- **Moderation History**: View moderation history for individual users or entire server with pagination
+- **DM Notifications**: Users receive direct messages when warned, timed out, banned, kicked, or unbanned
+- **Bot Protection**: Prevents moderating bots to avoid breaking bot functionality
+- **Rate Limit Handling**: Built-in rate limit handling with retries for bulk operations
+- **Comprehensive Error Handling**: Clear error messages for permission issues, hierarchy problems, and invalid inputs
+- **Case IDs**: Each moderation action gets a unique case ID for tracking and reference
+
+## Moderation Logging
+
+All moderation actions are logged to storage with:
+
+- Case ID (unique identifier)
+- Guild ID
+- User ID (target)
+- Moderator ID
+- Action type (timeout, warn, ban, kick, unban)
+- Reason
+- Timestamp
+- Additional metadata (duration, delete days, etc.)
+
+Logs are stored in the `moderation_logs` collection, organized by guild and user. Each user can have up to 100 log entries (oldest are removed when limit is reached).
+
+## Auto-Escalation
+
+The moderation system includes automatic escalation based on warning thresholds:
+
+- **Auto-Timeout**: Automatically timeout users after reaching a configured number of warnings (default: 3 warnings)
+- **Auto-Kick**: Automatically kick users after reaching a configured number of warnings (default: 5 warnings)
+- **Configurable**: Thresholds can be configured via environment variables:
+  - `MODERATION_TIMEOUT_AFTER_WARNINGS` (default: 3)
+  - `MODERATION_KICK_AFTER_WARNINGS` (default: 5)
+  - `MODERATION_AUTO_TIMEOUT_DURATION` (default: 1h)
+
+Auto-escalation can be disabled by setting thresholds to 0.
 
 ## Dependencies
 

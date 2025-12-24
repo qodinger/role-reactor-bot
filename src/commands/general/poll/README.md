@@ -4,20 +4,6 @@
 
 The Poll command uses Discord's native polling system to create interactive polls with the exact same UI and functionality as Discord's built-in polls. This provides a seamless, native Discord experience for all users with a modern modal-based creation process.
 
-## Features
-
-- **100% Native Discord UI**: Uses Discord's built-in poll interface (exactly like manual polls)
-- **Real-time Results**: Animated progress bars and live vote counts
-- **Multiple Options**: Support for 2-10 poll options (up to 55 characters each)
-- **Time Limits**: Set poll duration from 1 hour to 7 days (Discord's maximum)
-- **Single/Multiple Choice**: Choose between single or multiple vote options
-- **Custom Emojis**: Add emojis to poll options for visual appeal
-- **Modal Creation**: Modern two-step modal interface for poll creation
-- **Poll Management**: List, delete, and end polls
-- **No Custom UI**: No buttons, embeds, or custom components - pure Discord native
-- **Simplified Codebase**: Removed complex voting logic and custom UI components
-- **Simple and Official Design**: Clean, professional styling without excessive emojis
-
 ## File Structure
 
 ```

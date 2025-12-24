@@ -127,7 +127,7 @@ Ensure these files exist:
 Key variables in `.env.production`:
 ```env
 DISCORD_TOKEN=your_bot_token
-DISCORD_CLIENT_ID=your_client_id
+CLIENT_ID=your_client_id
 MONGODB_URI=your_mongodb_connection_string
 NODE_ENV=production
 ```

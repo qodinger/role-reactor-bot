@@ -1,5 +1,7 @@
 # AI Avatar Generator
 
+## Overview
+
 Generate unique anime-style avatars using AI with advanced style customization! This command creates personalized anime avatars with professional quality and customizable artistic styles.
 
 ## File Structure
