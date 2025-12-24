@@ -24,6 +24,9 @@ export const BOT_PERMISSIONS = [
   PermissionFlagsBits.ModerateMembers, // For timeout command
   PermissionFlagsBits.BanMembers, // For ban/unban commands
   PermissionFlagsBits.KickMembers, // For kick command
+  PermissionFlagsBits.MoveMembers, // For voice disconnect and move features
+  PermissionFlagsBits.MuteMembers, // For voice mute feature
+  PermissionFlagsBits.DeafenMembers, // For voice deafen feature
 ];
 
 /**

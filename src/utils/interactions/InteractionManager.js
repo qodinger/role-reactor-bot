@@ -69,10 +69,68 @@ export class InteractionManager {
       await this.routeInteraction(interaction, client);
     } catch (error) {
       this.logger.error("Error handling interaction", error);
-      // Don't try to reply here - let individual handlers manage their own responses
+
+      // CRITICAL: Ensure interaction gets a response
+      // Discord requires all interactions to receive a response
+      await this.ensureInteractionResponse(interaction, error);
     } finally {
       // Always remove the interaction from tracking
       this.activeInteractions.delete(interactionId);
+    }
+  }
+
+  /**
+   * Ensures an interaction receives a response
+   * Discord requires all interactions to receive a response to be valid
+   * @param {import('discord.js').Interaction} interaction - The Discord interaction
+   * @param {Error} _error - The error that occurred (if any)
+   */
+  async ensureInteractionResponse(interaction, _error = null) {
+    // Skip if already responded to
+    if (interaction.replied || interaction.deferred) {
+      return;
+    }
+
+    // Check if interaction is still valid (not expired)
+    const now = Date.now();
+    const created =
+      interaction.createdTimestamp || interaction.createdAt?.getTime() || now;
+    const age = now - created;
+
+    // Discord interactions expire after 3 seconds
+    if (age > 3000) {
+      this.logger.warn(
+        `Interaction ${interaction.id} expired (${age}ms old), cannot respond`,
+      );
+      return;
+    }
+
+    try {
+      // Handle different interaction types
+      if (interaction.isAutocomplete()) {
+        // Autocomplete must respond with choices
+        await interaction.respond([]);
+      } else if (
+        interaction.isCommand() ||
+        interaction.isMessageComponent() ||
+        interaction.isModalSubmit()
+      ) {
+        // Commands, buttons, and modals can reply
+        await interaction.reply({
+          content: `${EMOJIS.STATUS.ERROR} An error occurred while processing your request.`,
+          flags: MessageFlags.Ephemeral,
+        });
+      }
+      this.logger.debug(
+        `✅ Ensured response for interaction ${interaction.id}`,
+      );
+    } catch (replyError) {
+      // If we can't respond, log it but don't throw
+      // This might happen if the interaction expired or was already responded to
+      this.logger.error(
+        `Failed to ensure response for interaction ${interaction.id}:`,
+        replyError,
+      );
     }
   }
 
@@ -136,7 +194,10 @@ export class InteractionManager {
         `Error executing command ${interaction.commandName}`,
         error,
       );
-      // Don't try to reply here - let the command handle its own errors
+
+      // CRITICAL: Ensure interaction gets a response
+      // Even if command execution fails, we must respond to the interaction
+      await this.ensureInteractionResponse(interaction, error);
     }
   }
 

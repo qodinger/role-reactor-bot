@@ -201,6 +201,161 @@ class DatabaseProvider {
   async deleteCoreCredits(userId) {
     return this.dbManager.coreCredits.deleteByUserId(userId);
   }
+
+  // Voice Control Roles methods
+  async getVoiceControlRoles(guildId) {
+    if (this.dbManager?.voiceControlRoles) {
+      return this.dbManager.voiceControlRoles.getByGuild(guildId);
+    }
+    // Fallback to file storage
+    const data = await this.provider.read("voice_control_roles");
+    return (
+      data[guildId] || {
+        guildId,
+        disconnectRoleIds: [],
+        muteRoleIds: [],
+        deafenRoleIds: [],
+        moveRoleMappings: {},
+      }
+    );
+  }
+
+  async addVoiceDisconnectRole(guildId, roleId) {
+    if (this.dbManager?.voiceControlRoles) {
+      return this.dbManager.voiceControlRoles.addDisconnectRole(
+        guildId,
+        roleId,
+      );
+    }
+    // Fallback to file storage
+    const data = await this.provider.read("voice_control_roles");
+    if (!data[guildId]) {
+      data[guildId] = { guildId, disconnectRoleIds: [], muteRoleIds: [] };
+    }
+    if (!data[guildId].disconnectRoleIds.includes(roleId)) {
+      data[guildId].disconnectRoleIds.push(roleId);
+    }
+    return this.provider.write("voice_control_roles", data);
+  }
+
+  async removeVoiceDisconnectRole(guildId, roleId) {
+    if (this.dbManager?.voiceControlRoles) {
+      return this.dbManager.voiceControlRoles.removeDisconnectRole(
+        guildId,
+        roleId,
+      );
+    }
+    // Fallback to file storage
+    const data = await this.provider.read("voice_control_roles");
+    if (data[guildId]) {
+      data[guildId].disconnectRoleIds = data[guildId].disconnectRoleIds.filter(
+        id => id !== roleId,
+      );
+    }
+    return this.provider.write("voice_control_roles", data);
+  }
+
+  async addVoiceMuteRole(guildId, roleId) {
+    if (this.dbManager?.voiceControlRoles) {
+      return this.dbManager.voiceControlRoles.addMuteRole(guildId, roleId);
+    }
+    // Fallback to file storage
+    const data = await this.provider.read("voice_control_roles");
+    if (!data[guildId]) {
+      data[guildId] = { guildId, disconnectRoleIds: [], muteRoleIds: [] };
+    }
+    if (!data[guildId].muteRoleIds.includes(roleId)) {
+      data[guildId].muteRoleIds.push(roleId);
+    }
+    return this.provider.write("voice_control_roles", data);
+  }
+
+  async removeVoiceMuteRole(guildId, roleId) {
+    if (this.dbManager?.voiceControlRoles) {
+      return this.dbManager.voiceControlRoles.removeMuteRole(guildId, roleId);
+    }
+    // Fallback to file storage
+    const data = await this.provider.read("voice_control_roles");
+    if (data[guildId]) {
+      data[guildId].muteRoleIds = data[guildId].muteRoleIds.filter(
+        id => id !== roleId,
+      );
+    }
+    return this.provider.write("voice_control_roles", data);
+  }
+
+  async addVoiceDeafenRole(guildId, roleId) {
+    if (this.dbManager?.voiceControlRoles) {
+      return this.dbManager.voiceControlRoles.addDeafenRole(guildId, roleId);
+    }
+    // Fallback to file storage
+    const data = await this.provider.read("voice_control_roles");
+    if (!data[guildId]) {
+      data[guildId] = {
+        guildId,
+        disconnectRoleIds: [],
+        muteRoleIds: [],
+        deafenRoleIds: [],
+        moveRoleMappings: {},
+      };
+    }
+    if (!data[guildId].deafenRoleIds.includes(roleId)) {
+      data[guildId].deafenRoleIds.push(roleId);
+    }
+    return this.provider.write("voice_control_roles", data);
+  }
+
+  async removeVoiceDeafenRole(guildId, roleId) {
+    if (this.dbManager?.voiceControlRoles) {
+      return this.dbManager.voiceControlRoles.removeDeafenRole(guildId, roleId);
+    }
+    // Fallback to file storage
+    const data = await this.provider.read("voice_control_roles");
+    if (data[guildId]) {
+      data[guildId].deafenRoleIds = data[guildId].deafenRoleIds.filter(
+        id => id !== roleId,
+      );
+    }
+    return this.provider.write("voice_control_roles", data);
+  }
+
+  async addVoiceMoveRole(guildId, roleId, channelId) {
+    if (this.dbManager?.voiceControlRoles) {
+      return this.dbManager.voiceControlRoles.addMoveRole(
+        guildId,
+        roleId,
+        channelId,
+      );
+    }
+    // Fallback to file storage
+    const data = await this.provider.read("voice_control_roles");
+    if (!data[guildId]) {
+      data[guildId] = {
+        guildId,
+        disconnectRoleIds: [],
+        muteRoleIds: [],
+        deafenRoleIds: [],
+        moveRoleMappings: {},
+      };
+    }
+    if (!data[guildId].moveRoleMappings) {
+      data[guildId].moveRoleMappings = {};
+    }
+    data[guildId].moveRoleMappings[roleId] = channelId;
+    return this.provider.write("voice_control_roles", data);
+  }
+
+  async removeVoiceMoveRole(guildId, roleId) {
+    if (this.dbManager?.voiceControlRoles) {
+      return this.dbManager.voiceControlRoles.removeMoveRole(guildId, roleId);
+    }
+    // Fallback to file storage
+    const data = await this.provider.read("voice_control_roles");
+    if (data[guildId]?.moveRoleMappings) {
+      delete data[guildId].moveRoleMappings[roleId];
+    }
+    return this.provider.write("voice_control_roles", data);
+  }
 }
 
 class StorageManager {
@@ -664,6 +819,172 @@ class StorageManager {
     }
     // File-based cleanup would be more complex and is omitted for this refactoring
     return 0;
+  }
+
+  // Voice Control Roles methods
+  async getVoiceControlRoles(guildId) {
+    if (this.provider instanceof DatabaseProvider) {
+      return this.provider.getVoiceControlRoles(guildId);
+    }
+    // Fallback to file storage
+    const fileProvider = new FileProvider(this.logger);
+    const data = await fileProvider.read("voice_control_roles");
+    return (
+      data[guildId] || {
+        guildId,
+        disconnectRoleIds: [],
+        muteRoleIds: [],
+        deafenRoleIds: [],
+        moveRoleMappings: {},
+      }
+    );
+  }
+
+  async addVoiceDisconnectRole(guildId, roleId) {
+    if (this.provider instanceof DatabaseProvider) {
+      return this.provider.addVoiceDisconnectRole(guildId, roleId);
+    }
+    // Fallback to file storage
+    const fileProvider = new FileProvider(this.logger);
+    const data = await fileProvider.read("voice_control_roles");
+    if (!data[guildId]) {
+      data[guildId] = {
+        guildId,
+        disconnectRoleIds: [],
+        muteRoleIds: [],
+        deafenRoleIds: [],
+        moveRoleMappings: {},
+      };
+    }
+    if (!data[guildId].disconnectRoleIds.includes(roleId)) {
+      data[guildId].disconnectRoleIds.push(roleId);
+    }
+    return fileProvider.write("voice_control_roles", data);
+  }
+
+  async removeVoiceDisconnectRole(guildId, roleId) {
+    if (this.provider instanceof DatabaseProvider) {
+      return this.provider.removeVoiceDisconnectRole(guildId, roleId);
+    }
+    // Fallback to file storage
+    const fileProvider = new FileProvider(this.logger);
+    const data = await fileProvider.read("voice_control_roles");
+    if (data[guildId]) {
+      data[guildId].disconnectRoleIds = data[guildId].disconnectRoleIds.filter(
+        id => id !== roleId,
+      );
+    }
+    return fileProvider.write("voice_control_roles", data);
+  }
+
+  async addVoiceMuteRole(guildId, roleId) {
+    if (this.provider instanceof DatabaseProvider) {
+      return this.provider.addVoiceMuteRole(guildId, roleId);
+    }
+    // Fallback to file storage
+    const fileProvider = new FileProvider(this.logger);
+    const data = await fileProvider.read("voice_control_roles");
+    if (!data[guildId]) {
+      data[guildId] = {
+        guildId,
+        disconnectRoleIds: [],
+        muteRoleIds: [],
+        deafenRoleIds: [],
+        moveRoleMappings: {},
+      };
+    }
+    if (!data[guildId].muteRoleIds.includes(roleId)) {
+      data[guildId].muteRoleIds.push(roleId);
+    }
+    return fileProvider.write("voice_control_roles", data);
+  }
+
+  async removeVoiceMuteRole(guildId, roleId) {
+    if (this.provider instanceof DatabaseProvider) {
+      return this.provider.removeVoiceMuteRole(guildId, roleId);
+    }
+    // Fallback to file storage
+    const fileProvider = new FileProvider(this.logger);
+    const data = await fileProvider.read("voice_control_roles");
+    if (data[guildId]) {
+      data[guildId].muteRoleIds = data[guildId].muteRoleIds.filter(
+        id => id !== roleId,
+      );
+    }
+    return fileProvider.write("voice_control_roles", data);
+  }
+
+  async addVoiceDeafenRole(guildId, roleId) {
+    if (this.provider instanceof DatabaseProvider) {
+      return this.provider.addVoiceDeafenRole(guildId, roleId);
+    }
+    // Fallback to file storage
+    const fileProvider = new FileProvider(this.logger);
+    const data = await fileProvider.read("voice_control_roles");
+    if (!data[guildId]) {
+      data[guildId] = {
+        guildId,
+        disconnectRoleIds: [],
+        muteRoleIds: [],
+        deafenRoleIds: [],
+        moveRoleMappings: {},
+      };
+    }
+    if (!data[guildId].deafenRoleIds.includes(roleId)) {
+      data[guildId].deafenRoleIds.push(roleId);
+    }
+    return fileProvider.write("voice_control_roles", data);
+  }
+
+  async removeVoiceDeafenRole(guildId, roleId) {
+    if (this.provider instanceof DatabaseProvider) {
+      return this.provider.removeVoiceDeafenRole(guildId, roleId);
+    }
+    // Fallback to file storage
+    const fileProvider = new FileProvider(this.logger);
+    const data = await fileProvider.read("voice_control_roles");
+    if (data[guildId]) {
+      data[guildId].deafenRoleIds = data[guildId].deafenRoleIds.filter(
+        id => id !== roleId,
+      );
+    }
+    return fileProvider.write("voice_control_roles", data);
+  }
+
+  async addVoiceMoveRole(guildId, roleId, channelId) {
+    if (this.provider instanceof DatabaseProvider) {
+      return this.provider.addVoiceMoveRole(guildId, roleId, channelId);
+    }
+    // Fallback to file storage
+    const fileProvider = new FileProvider(this.logger);
+    const data = await fileProvider.read("voice_control_roles");
+    if (!data[guildId]) {
+      data[guildId] = {
+        guildId,
+        disconnectRoleIds: [],
+        muteRoleIds: [],
+        deafenRoleIds: [],
+        moveRoleMappings: {},
+      };
+    }
+    if (!data[guildId].moveRoleMappings) {
+      data[guildId].moveRoleMappings = {};
+    }
+    data[guildId].moveRoleMappings[roleId] = channelId;
+    return fileProvider.write("voice_control_roles", data);
+  }
+
+  async removeVoiceMoveRole(guildId, roleId) {
+    if (this.provider instanceof DatabaseProvider) {
+      return this.provider.removeVoiceMoveRole(guildId, roleId);
+    }
+    // Fallback to file storage
+    const fileProvider = new FileProvider(this.logger);
+    const data = await fileProvider.read("voice_control_roles");
+    if (data[guildId]?.moveRoleMappings) {
+      delete data[guildId].moveRoleMappings[roleId];
+    }
+    return fileProvider.write("voice_control_roles", data);
   }
 
   // Generic storage methods for other features
