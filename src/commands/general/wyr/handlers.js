@@ -129,6 +129,16 @@ export async function execute(interaction, _client) {
     const category = interaction.options.getString("category") || null;
 
     const question = getRandomWYRQuestion(category);
+
+    // Handle case where questions file failed to load
+    if (!question) {
+      logger.error(
+        "Failed to get WYR question - questions file may not be loaded",
+      );
+      await interaction.editReply({ embeds: [createErrorEmbed()] });
+      return;
+    }
+
     const embed = createWYREmbed(question, interaction.user, {
       option1: 0,
       option2: 0,
@@ -188,6 +198,19 @@ export async function handleWYRButton(interaction, _client) {
 
       // Get a new random question (no category filter for button refresh)
       const question = getRandomWYRQuestion();
+
+      // Handle case where questions file failed to load
+      if (!question) {
+        logger.error(
+          "Failed to get WYR question - questions file may not be loaded",
+        );
+        await interaction.editReply({
+          embeds: [createErrorEmbed()],
+          components: [createVoteButtons(messageId, originalRequesterId)],
+        });
+        return;
+      }
+
       const embed = createWYREmbed(question, originalRequester, {
         option1: 0,
         option2: 0,

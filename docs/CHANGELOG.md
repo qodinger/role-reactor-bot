@@ -38,7 +38,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Serverinfo Member Counts: Fixed incorrect online member counts by properly separating human members from bots in status displays
 - Temp Roles Notifications: Improved error handling for DM notification failures to prevent breaking role assignment process
-- Voice Tracking: Fixed voice tracking not updating when voice control move actions fail, ensuring accurate XP tracking for users in voice channels
 - OAuth Authentication: Fixed authentication failures by standardizing to DISCORD_CLIENT_ID environment variable for consistency
 
 ### Performance

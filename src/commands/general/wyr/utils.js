@@ -87,7 +87,7 @@ export function getCategories() {
 /**
  * Get a random Would You Rather question
  * @param {string|null} category - Optional category to filter by
- * @returns {string} Random WYR question
+ * @returns {string|null} Random WYR question, or null if no questions available
  */
 export function getRandomWYRQuestion(category = null) {
   const questions = category
@@ -95,7 +95,15 @@ export function getRandomWYRQuestion(category = null) {
     : getAllQuestions();
 
   if (questions.length === 0) {
-    return getAllQuestions()[0]; // Fallback to any question
+    // Try fallback to all questions if category-specific search failed
+    const allQuestions = getAllQuestions();
+    if (allQuestions.length === 0) {
+      logger.error(
+        "No WYR questions available - questions file may have failed to load",
+      );
+      return null; // Return null instead of undefined to indicate failure
+    }
+    return allQuestions[Math.floor(Math.random() * allQuestions.length)];
   }
 
   return questions[Math.floor(Math.random() * questions.length)];
@@ -107,6 +115,15 @@ export function getRandomWYRQuestion(category = null) {
  * @returns {Object} Object with option1 and option2
  */
 export function parseQuestionOptions(question) {
+  // Handle null/undefined questions
+  if (!question || typeof question !== "string") {
+    logger.warn("parseQuestionOptions called with invalid question:", question);
+    return {
+      option1: "Option 1",
+      option2: "Option 2",
+    };
+  }
+
   // Remove "Would you rather" prefix and question mark
   const cleanQuestion = question
     .replace(/^Would you rather\s+/i, "")

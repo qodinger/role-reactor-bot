@@ -2,7 +2,7 @@ import { jest } from "@jest/globals";
 import { ConversationManager } from "../../src/utils/ai/conversationManager.js";
 
 // Mock dependencies
-jest.mock("../../src/utils/logger.js", () => ({
+jest.mock("src/utils/logger.js", () => ({
   getLogger: jest.fn(() => ({
     debug: jest.fn(),
     info: jest.fn(),
@@ -11,21 +11,21 @@ jest.mock("../../src/utils/logger.js", () => ({
   })),
 }));
 
-jest.mock("../../src/utils/storage/databaseManager.js", () => ({
-  getDatabaseManager: jest.fn(() => ({
-    getRepository: jest.fn(() => ({
+jest.mock("src/utils/storage/databaseManager.js", () => ({
+  getDatabaseManager: jest.fn().mockResolvedValue({
+    conversations: {
       getByUser: jest.fn().mockResolvedValue(null),
       save: jest.fn().mockResolvedValue(true),
       delete: jest.fn().mockResolvedValue(true),
-    })),
-  })),
+    },
+  }),
 }));
 
-jest.mock("../../src/utils/storage/storageManager.js", () => ({
-  getStorageManager: jest.fn(() => ({
+jest.mock("src/utils/storage/storageManager.js", () => ({
+  getStorageManager: jest.fn().mockResolvedValue({
     read: jest.fn().mockResolvedValue({}),
     write: jest.fn().mockResolvedValue(true),
-  })),
+  }),
 }));
 
 describe("ConversationManager", () => {

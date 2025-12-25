@@ -104,23 +104,34 @@ export function getMemberCounts(guild) {
 
   // Presence data - separate counts for humans and bots
   // When asked "how many are online", use human online count only
-  const humanMembers = members.filter(m => !m.user.bot);
-  const botMembers = members.filter(m => m.user.bot);
+  // Convert Collection to array for filtering
+  const humanMembersArray = Array.from(members.filter(m => !m.user.bot));
+  const botMembersArray = Array.from(members.filter(m => m.user.bot));
 
   // Human member status counts (what users care about)
-  const online = humanMembers.filter(m => m.presence?.status === "online").size;
-  const idle = humanMembers.filter(m => m.presence?.status === "idle").size;
-  const dnd = humanMembers.filter(m => m.presence?.status === "dnd").size;
-  const offline = humanMembers.filter(
+  const online = humanMembersArray.filter(
+    m => m.presence?.status === "online",
+  ).length;
+  const idle = humanMembersArray.filter(
+    m => m.presence?.status === "idle",
+  ).length;
+  const dnd = humanMembersArray.filter(
+    m => m.presence?.status === "dnd",
+  ).length;
+  const offline = humanMembersArray.filter(
     m => !m.presence || m.presence.status === "offline",
-  ).size;
+  ).length;
 
   // Bot status counts (for reference, but not used when asked about "members online")
-  const botsOnline = botMembers.filter(
+  const botsOnline = botMembersArray.filter(
     m => m.presence?.status === "online",
-  ).size;
-  const botsIdle = botMembers.filter(m => m.presence?.status === "idle").size;
-  const botsDnd = botMembers.filter(m => m.presence?.status === "dnd").size;
+  ).length;
+  const botsIdle = botMembersArray.filter(
+    m => m.presence?.status === "idle",
+  ).length;
+  const botsDnd = botMembersArray.filter(
+    m => m.presence?.status === "dnd",
+  ).length;
 
   return {
     total,
