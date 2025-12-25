@@ -17,6 +17,20 @@ import { validatePrompt, getExplicitNSFWKeywords } from "./utils.js";
 
 const logger = getLogger();
 
+/**
+ * Helper function to reply to an interaction based on deferral status
+ * @param {import('discord.js').Interaction} interaction - The interaction to reply to
+ * @param {boolean} deferred - Whether the interaction was deferred
+ * @param {Object} options - Reply options (embeds, files, etc.)
+ */
+async function replyToInteraction(interaction, deferred, options) {
+  if (deferred) {
+    await interaction.editReply(options);
+  } else {
+    await interaction.reply(options);
+  }
+}
+
 function getUserFacingErrorMessage(error) {
   if (!error || !error.message) {
     return "Something went wrong. Please try again shortly.";
@@ -60,20 +74,34 @@ export async function handleAvatarGeneration(
   const promptOption = interaction.options.getString("prompt", true);
   const artStyle = interaction.options.getString("art_style") || null;
 
+  // Debug logging for AI-generated prompts
+  if (promptOption) {
+    logger.debug(
+      `[avatar] Received prompt (${promptOption.length} chars): "${promptOption.substring(0, 100)}${promptOption.length > 100 ? "..." : ""}"`,
+    );
+  }
+
   // Check if AI features are enabled
   if (!multiProviderAIService.isEnabled()) {
     const validationEmbed = createAvatarValidationEmbed(
       "AI features are currently disabled. All providers are disabled in the configuration. Please contact the bot administrator.",
     );
-    await interaction.editReply({ embeds: [validationEmbed] });
+    await replyToInteraction(interaction, _deferred, {
+      embeds: [validationEmbed],
+    });
     return;
   }
 
   // Validate prompt
   const validation = validatePrompt(promptOption);
   if (!validation.isValid) {
+    logger.warn(
+      `[avatar] Prompt validation failed for user ${interaction.user.id}: "${promptOption.substring(0, 100)}..." - Reason: ${validation.reason}`,
+    );
     const validationEmbed = createAvatarValidationEmbed(validation.reason);
-    await interaction.editReply({ embeds: [validationEmbed] });
+    await replyToInteraction(interaction, _deferred, {
+      embeds: [validationEmbed],
+    });
     return;
   }
 
@@ -82,7 +110,7 @@ export async function handleAvatarGeneration(
   // Check for help request
   if (prompt.toLowerCase().includes("help")) {
     const helpEmbed = createHelpEmbed();
-    await interaction.editReply({ embeds: [helpEmbed] });
+    await replyToInteraction(interaction, _deferred, { embeds: [helpEmbed] });
     return;
   }
 
@@ -128,7 +156,9 @@ export async function handleAvatarGeneration(
         "NSFW Content Not Allowed",
         errorMessage,
       );
-      await interaction.editReply({ embeds: [errorEmbed] });
+      await replyToInteraction(interaction, _deferred, {
+        embeds: [errorEmbed],
+      });
       return;
     }
 
@@ -147,7 +177,9 @@ export async function handleAvatarGeneration(
         "NSFW Content Warning",
         warningMessage,
       );
-      await interaction.editReply({ embeds: [warningEmbed] });
+      await replyToInteraction(interaction, _deferred, {
+        embeds: [warningEmbed],
+      });
       await new Promise(resolve => {
         setTimeout(() => {
           resolve();
@@ -159,7 +191,9 @@ export async function handleAvatarGeneration(
         "Account Verification Reminder",
         `**Your account is less than 30 days old.**\n\nTo ensure NSFW images display correctly, your account must be **age-verified (18+)**.\n\n${userSettingsMessage}`,
       );
-      await interaction.editReply({ embeds: [warningEmbed] });
+      await replyToInteraction(interaction, _deferred, {
+        embeds: [warningEmbed],
+      });
       await new Promise(resolve => {
         setTimeout(() => {
           resolve();
@@ -182,18 +216,20 @@ export async function handleAvatarGeneration(
       creditsNeeded,
       prompt,
     );
-    await interaction.editReply({ embeds: [coreEmbed] });
+    await replyToInteraction(interaction, _deferred, { embeds: [coreEmbed] });
     return;
   }
 
   // Send loading embed
   let loadingEmbed = createLoadingEmbed(interaction, prompt, artStyle);
-  await interaction.editReply({
+  await replyToInteraction(interaction, _deferred, {
     embeds: [loadingEmbed],
   });
 
   // Progress callback to update embed with status messages
+  // Note: Progress updates only work if interaction was deferred
   const progressCallback = async status => {
+    if (!_deferred) return; // Can't update if not deferred
     try {
       loadingEmbed = createLoadingEmbed(interaction, prompt, artStyle, status);
       await interaction.editReply({
@@ -276,11 +312,13 @@ export async function handleAvatarGeneration(
     // For NSFW content in NSFW channels, send image as follow-up
     const shouldUseFollowUp = containsNSFWKeywords && channelNSFW;
 
-    if (shouldUseFollowUp) {
+    if (shouldUseFollowUp && _deferred) {
+      // Deferred interaction: send embed first, then follow-up with file
       await interaction.editReply({ embeds: [successEmbed] });
       await interaction.followUp({ files: [attachment] });
     } else {
-      await interaction.editReply({
+      // Not deferred or not using follow-up: send everything in one reply
+      await replyToInteraction(interaction, _deferred, {
         embeds: [successEmbed],
         files: [attachment],
       });
@@ -331,6 +369,6 @@ export async function handleAvatarGeneration(
       getUserFacingErrorMessage(error),
     );
 
-    await interaction.editReply({ embeds: [errorEmbed] });
+    await replyToInteraction(interaction, _deferred, { embeds: [errorEmbed] });
   }
 }

@@ -6,36 +6,6 @@ function truncatePrompt(prompt) {
   return prompt.length > 200 ? `${prompt.slice(0, 197)}...` : prompt;
 }
 
-/**
- * Format date as "Today at HH:MM" or "Yesterday at HH:MM" or date format
- * @param {Date} date - Date to format
- * @returns {string} Formatted date string
- */
-function formatFooterTimestamp(date = new Date()) {
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const dateToFormat = new Date(
-    date.getFullYear(),
-    date.getMonth(),
-    date.getDate(),
-  );
-  const diffDays = Math.floor((today - dateToFormat) / (1000 * 60 * 60 * 24));
-
-  const hours = date.getHours().toString().padStart(2, "0");
-  const minutes = date.getMinutes().toString().padStart(2, "0");
-  const timeStr = `${hours}:${minutes}`;
-
-  if (diffDays === 0) {
-    return `Today at ${timeStr}`;
-  } else if (diffDays === 1) {
-    return `Yesterday at ${timeStr}`;
-  } else {
-    const month = date.toLocaleString("en-US", { month: "short" });
-    const day = date.getDate();
-    return `${month} ${day} at ${timeStr}`;
-  }
-}
-
 export function createImagineProcessingEmbed({
   prompt,
   status = null,
@@ -60,12 +30,20 @@ export function createImagineProcessingEmbed({
     );
   }
 
-  // Always use consistent footer format matching avatar command
-  const timestamp = formatFooterTimestamp();
-  const username = interaction?.user?.username || "User";
-  embed.setFooter({
-    text: `Generated for ${username} • Image Generator • ${timestamp}`,
-  });
+  // Always use consistent footer format matching ask command
+  if (interaction?.user) {
+    embed
+      .setFooter({
+        text: `Generated for ${interaction.user.tag} • Role Reactor`,
+      })
+      .setTimestamp();
+  } else {
+    embed
+      .setFooter({
+        text: "Image Generator • Role Reactor",
+      })
+      .setTimestamp();
+  }
 
   return embed;
 }
@@ -76,26 +54,47 @@ export function createImagineResultEmbed({ prompt, interaction = null }) {
     .setTitle(`${EMOJIS.UI.IMAGE} Image ready`)
     .setDescription(`**Prompt**\n${truncatePrompt(prompt)}`);
 
-  // Always use consistent footer format matching avatar command
-  const timestamp = formatFooterTimestamp();
-  const username = interaction?.user?.username || "User";
-  embed.setFooter({
-    text: `Generated for ${username} • Image Generator • ${timestamp}`,
-  });
+  // Always use consistent footer format matching ask command
+  if (interaction?.user) {
+    embed
+      .setFooter({
+        text: `Generated for ${interaction.user.tag} • Role Reactor`,
+      })
+      .setTimestamp();
+  } else {
+    embed
+      .setFooter({
+        text: "Image Generator • Role Reactor",
+      })
+      .setTimestamp();
+  }
 
   return embed;
 }
 
-export function createImagineErrorEmbed({ prompt, error }) {
-  return new EmbedBuilder()
+export function createImagineErrorEmbed({ prompt, error, interaction = null }) {
+  const embed = new EmbedBuilder()
     .setColor(THEME.ERROR)
     .setTitle(`${EMOJIS.STATUS.ERROR} Unable to generate image`)
     .setDescription(
       `**Prompt**\n${truncatePrompt(prompt)}\n\n**Details**\n${error}`,
-    )
-    .setFooter({
-      text: "Try refining your prompt or retry later.",
-    });
+    );
+
+  if (interaction?.user) {
+    embed
+      .setFooter({
+        text: `Generated for ${interaction.user.tag} • Role Reactor`,
+      })
+      .setTimestamp();
+  } else {
+    embed
+      .setFooter({
+        text: "Image Generator • Role Reactor",
+      })
+      .setTimestamp();
+  }
+
+  return embed;
 }
 
 export function createImagineValidationEmbed(reason) {
@@ -104,6 +103,7 @@ export function createImagineValidationEmbed(reason) {
     .setTitle(`${EMOJIS.STATUS.WARNING} Check your prompt`)
     .setDescription(reason)
     .setFooter({
-      text: "Describe what you want to see (e.g., a futuristic city, a fantasy creature)",
-    });
+      text: "Image Generator • Role Reactor",
+    })
+    .setTimestamp();
 }

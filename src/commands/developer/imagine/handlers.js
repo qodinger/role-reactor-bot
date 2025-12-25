@@ -184,6 +184,7 @@ export async function handleImagineCommand(
     );
 
     const errorEmbed = createImagineErrorEmbed({
+      interaction,
       prompt,
       error: getUserFacingErrorMessage(error),
     });

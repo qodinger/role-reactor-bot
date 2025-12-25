@@ -328,9 +328,23 @@ export function validatePrompt(prompt) {
 
   // Validate input
   if (!prompt || typeof prompt !== "string") {
+    logger.debug(
+      `[validatePrompt] Invalid prompt type: ${typeof prompt}, value: ${prompt}`,
+    );
     return {
       isValid: false,
       reason: "Please provide a description for the avatar you want to create.",
+    };
+  }
+
+  // Check prompt length (max 500 characters as per command definition)
+  if (prompt.length > 500) {
+    logger.warn(
+      `[validatePrompt] Prompt too long: ${prompt.length} characters (max 500)`,
+    );
+    return {
+      isValid: false,
+      reason: `Your prompt is too long (${prompt.length} characters). Please keep it under 500 characters.`,
     };
   }
 
@@ -348,11 +362,11 @@ export function validatePrompt(prompt) {
     for (const keyword of inappropriateKeywords) {
       if (lowerPrompt.includes(keyword)) {
         logger.warn(
-          `Inappropriate content detected in prompt: "${trimmedPrompt}" (keyword: ${keyword})`,
+          `[validatePrompt] Inappropriate content detected: "${trimmedPrompt.substring(0, 100)}..." (keyword: ${keyword})`,
         );
         return {
           isValid: false,
-          reason: `Your prompt contains inappropriate content. Please describe your character in a family-friendly way.`,
+          reason: `Your prompt contains inappropriate content (detected: "${keyword}"). Please describe your character in a family-friendly way.`,
         };
       }
     }
@@ -430,7 +444,7 @@ export function validatePrompt(prompt) {
     for (const check of additionalChecks) {
       if (check.pattern.test(trimmedPrompt)) {
         logger.warn(
-          `Pattern-based inappropriate content detected in prompt: "${trimmedPrompt}"`,
+          `[validatePrompt] Pattern-based inappropriate content detected: "${trimmedPrompt.substring(0, 100)}..." (pattern: ${check.pattern})`,
         );
         return {
           isValid: false,

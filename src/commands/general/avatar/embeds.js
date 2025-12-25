@@ -10,36 +10,6 @@ function truncatePrompt(prompt) {
 }
 
 /**
- * Format date as "Today at HH:MM" or "Yesterday at HH:MM" or date format
- * @param {Date} date - Date to format
- * @returns {string} Formatted date string
- */
-function formatFooterTimestamp(date = new Date()) {
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const dateToFormat = new Date(
-    date.getFullYear(),
-    date.getMonth(),
-    date.getDate(),
-  );
-  const diffDays = Math.floor((today - dateToFormat) / (1000 * 60 * 60 * 24));
-
-  const hours = date.getHours().toString().padStart(2, "0");
-  const minutes = date.getMinutes().toString().padStart(2, "0");
-  const timeStr = `${hours}:${minutes}`;
-
-  if (diffDays === 0) {
-    return `Today at ${timeStr}`;
-  } else if (diffDays === 1) {
-    return `Yesterday at ${timeStr}`;
-  } else {
-    const month = date.toLocaleString("en-US", { month: "short" });
-    const day = date.getDate();
-    return `${month} ${day} at ${timeStr}`;
-  }
-}
-
-/**
  * Create error embed for avatar generation failures
  * @param {import('discord.js').CommandInteraction} interaction
  * @param {string} title - Error title
@@ -55,8 +25,9 @@ export function createErrorEmbed(interaction, title, description) {
       `**Prompt**\n${truncatePrompt(prompt)}\n\n**Details**\n${description}`,
     )
     .setFooter({
-      text: "Try refining your prompt or retry later.",
-    });
+      text: `Generated for ${interaction.user.tag} • Role Reactor`,
+    })
+    .setTimestamp();
 }
 
 /**
@@ -72,7 +43,7 @@ export function createWarningEmbed(interaction, title, description) {
     .setTitle(`${EMOJIS.STATUS.WARNING} ${title}`)
     .setDescription(description)
     .setFooter({
-      text: "Avatar Generator",
+      text: `Generated for ${interaction.user.tag} • Role Reactor`,
     })
     .setTimestamp();
 }
@@ -139,11 +110,12 @@ export function createLoadingEmbed(
     );
   }
 
-  // Always use consistent footer format
-  const timestamp = formatFooterTimestamp();
-  embed.setFooter({
-    text: `Generated for ${interaction.user.username} • Avatar Generator • ${timestamp}`,
-  });
+  // Always use consistent footer format matching ask command
+  embed
+    .setFooter({
+      text: `Generated for ${interaction.user.tag} • Role Reactor`,
+    })
+    .setTimestamp();
 
   return embed;
 }
@@ -152,15 +124,9 @@ export function createLoadingEmbed(
  * Create success embed for avatar generation
  * @param {import('discord.js').CommandInteraction} interaction
  * @param {string} prompt - User's prompt
- * @param {string} [artStyle] - Selected art style (optional)
- * @returns {import('discord.js').EmbedBuilder}
- */
-/**
- * Create success embed for avatar generation
- * @param {import('discord.js').CommandInteraction} interaction
- * @param {string} prompt - User's prompt
  * @param {string|null} artStyle - Selected art style
  * @param {Object|null} deductionBreakdown - Credit deduction breakdown
+ * @param {boolean} _isNSFW - Whether the content is NSFW (unused)
  * @returns {import('discord.js').EmbedBuilder}
  */
 export function createSuccessEmbed(
@@ -186,10 +152,12 @@ export function createSuccessEmbed(
     ]);
   }
 
-  const timestamp = formatFooterTimestamp();
-  embed.setFooter({
-    text: `Generated for ${interaction.user.username} • Avatar Generator • ${timestamp}`,
-  });
+  // Always use consistent footer format matching ask command
+  embed
+    .setFooter({
+      text: `Generated for ${interaction.user.tag} • Role Reactor`,
+    })
+    .setTimestamp();
 
   return embed;
 }
@@ -229,7 +197,7 @@ export function createCoreEmbed(interaction, userData, creditsNeeded, prompt) {
       },
     ])
     .setFooter({
-      text: "Avatar Generator • Core Energy",
+      text: `Generated for ${interaction.user.tag} • Role Reactor`,
     })
     .setTimestamp();
 }
@@ -257,7 +225,7 @@ export function createHelpEmbed() {
       },
     ])
     .setFooter({
-      text: "Avatar Generator • Powered by AI",
+      text: "Avatar Generator • Role Reactor",
     })
     .setTimestamp();
 }
@@ -273,6 +241,7 @@ export function createAvatarValidationEmbed(reason) {
     .setTitle(`${EMOJIS.STATUS.WARNING} Check your prompt`)
     .setDescription(reason)
     .setFooter({
-      text: "Describe your avatar (e.g., 'cyberpunk hacker with neon hair', 'kawaii girl with pink cat ears')",
-    });
+      text: "Avatar Generator • Role Reactor",
+    })
+    .setTimestamp();
 }
