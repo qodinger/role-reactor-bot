@@ -213,29 +213,32 @@ export class ChatService {
   }
 
   /**
-   * Get conversation history for a user (delegates to conversationManager)
+   * Get conversation history for a user in a specific server (delegates to conversationManager)
    * @param {string} userId - User ID
+   * @param {string|null} guildId - Guild ID (null for DMs)
    * @returns {Promise<Array>} Conversation messages
    */
-  async getConversationHistory(userId) {
-    return conversationManager.getConversationHistory(userId);
+  async getConversationHistory(userId, guildId = null) {
+    return conversationManager.getConversationHistory(userId, guildId);
   }
 
   /**
    * Add message to conversation history (delegates to conversationManager)
    * @param {string} userId - User ID
+   * @param {string|null} guildId - Guild ID (null for DMs)
    * @param {Object} message - Message object with role and content
    */
-  async addToHistory(userId, message) {
-    return conversationManager.addToHistory(userId, message);
+  async addToHistory(userId, guildId, message) {
+    return conversationManager.addToHistory(userId, guildId, message);
   }
 
   /**
-   * Clear conversation history for a user (delegates to conversationManager)
+   * Clear conversation history for a user in a specific server (delegates to conversationManager)
    * @param {string} userId - User ID
+   * @param {string|null} guildId - Guild ID (null for DMs)
    */
-  async clearHistory(userId) {
-    return conversationManager.clearHistory(userId);
+  async clearHistory(userId, guildId = null) {
+    return conversationManager.clearHistory(userId, guildId);
   }
 
   /**
@@ -573,8 +576,7 @@ export class ChatService {
             }
             break;
 
-          // Discord Actions (require Discord Action Executor)
-          // Note: All admin/moderation/guild management actions are blocked in validation for security
+          // Note: Admin/moderation/guild management actions are not in the action registry
           // These actions (send_message, add_role, remove_role, delete_message, pin_message,
           // unpin_message, create_channel, delete_channel, modify_channel, kick_member,
           // ban_member, timeout_member, warn_member) are not available because anyone can use the AI
@@ -1257,8 +1259,9 @@ export class ChatService {
       }
     }
 
-    // Get conversation history for this user (with LTM support)
-    const history = await this.getConversationHistory(userId);
+    // Get conversation history for this user in this server (with LTM support)
+    const guildId = guild?.id || null;
+    const history = await this.getConversationHistory(userId, guildId);
 
     // Build messages array with conversation history (optimized)
     const messages = [];
@@ -1281,7 +1284,7 @@ export class ChatService {
       messages.push({ role: "system", content: systemMessage });
       // System messages are kept in memory only, not persisted to storage
       // addToHistory will handle this (it filters out system messages)
-      await this.addToHistory(userId, {
+      await this.addToHistory(userId, guildId, {
         role: "system",
         content: systemMessage,
       });
@@ -1316,7 +1319,10 @@ export class ChatService {
     // Add current user message with date/time context
     const userMessageWithContext = `[Current Date and Time for User: ${userDate} at ${userTime}]\n\n${userMessage}`;
     messages.push({ role: "user", content: userMessageWithContext });
-    await this.addToHistory(userId, { role: "user", content: userMessage });
+    await this.addToHistory(userId, guildId, {
+      role: "user",
+      content: userMessage,
+    });
 
     const requestId = `chat-${userId || "unknown"}-${Date.now()}`;
 
@@ -1594,8 +1600,10 @@ export class ChatService {
                 );
 
                 // Get updated conversation history
-                const updatedHistory =
-                  await this.getConversationHistory(userId);
+                const updatedHistory = await this.getConversationHistory(
+                  userId,
+                  guildId,
+                );
 
                 // Build messages array with updated context
                 const updatedMessages = [];
@@ -1747,7 +1755,7 @@ export class ChatService {
                   // Store executed commands in LTM for future reference
                   if (executedCommands.length > 0) {
                     const commandHistoryMessage = `[Command executed: ${executedCommands.join(", ")}]`;
-                    await this.addToHistory(userId, {
+                    await this.addToHistory(userId, guildId, {
                       role: "assistant",
                       content: commandHistoryMessage,
                     });
@@ -1808,7 +1816,7 @@ export class ChatService {
 
                     // Store error information in LTM so AI can learn from it
                     const errorHistoryMessage = `[Command execution failed: ${errorMessages.map(e => e.replace(/Command Error: /, "")).join("; ")}]`;
-                    await this.addToHistory(userId, {
+                    await this.addToHistory(userId, guildId, {
                       role: "assistant",
                       content: errorHistoryMessage,
                     });
@@ -1866,7 +1874,7 @@ export class ChatService {
           // Add AI response to conversation history (sanitized, with LTM)
           // Don't store empty responses when command was executed (already stored command execution above)
           if (finalResponse && finalResponse.trim().length > 0) {
-            await this.addToHistory(userId, {
+            await this.addToHistory(userId, guildId, {
               role: "assistant",
               content: finalResponse,
             });
@@ -1977,7 +1985,8 @@ export class ChatService {
     }
 
     // Get conversation history
-    const history = await this.getConversationHistory(userId);
+    const guildId = guild?.id || null;
+    const history = await this.getConversationHistory(userId, guildId);
     const messages = [];
 
     // Add system message
@@ -1987,7 +1996,7 @@ export class ChatService {
       messages.push({ role: "system", content: systemMessage });
     } else {
       messages.push({ role: "system", content: systemMessage });
-      await this.addToHistory(userId, {
+      await this.addToHistory(userId, guildId, {
         role: "system",
         content: systemMessage,
       });
@@ -2130,8 +2139,11 @@ export class ChatService {
       }
 
       // Add to conversation history
-      await this.addToHistory(userId, { role: "user", content: userMessage });
-      await this.addToHistory(userId, {
+      await this.addToHistory(userId, guildId, {
+        role: "user",
+        content: userMessage,
+      });
+      await this.addToHistory(userId, guildId, {
         role: "assistant",
         content: finalMessage,
       });

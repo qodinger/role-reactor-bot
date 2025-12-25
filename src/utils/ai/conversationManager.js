@@ -12,6 +12,7 @@ const logger = getLogger();
 /**
  * Manages conversation history and long-term memory for AI chat
  * Supports both MongoDB and local file storage for cost optimization
+ * Conversations are separated by user AND server (composite key: userId_guildId)
  */
 export class ConversationManager {
   constructor() {
@@ -107,6 +108,48 @@ export class ConversationManager {
   }
 
   /**
+   * Get conversation key from userId and guildId
+   * @param {string} userId - User ID
+   * @param {string|null} guildId - Guild ID (null for DMs)
+   * @returns {string} Composite conversation key
+   */
+  getConversationKey(userId, guildId = null) {
+    if (!guildId) {
+      // DMs use special prefix
+      return `dm_${userId}`;
+    }
+    // Server conversations use composite key
+    return `${userId}_${guildId}`;
+  }
+
+  /**
+   * Parse conversation key to extract userId and guildId
+   * @param {string} conversationKey - Conversation key (format: "userId_guildId" or "dm_userId")
+   * @returns {{userId: string, guildId: string|null}} Parsed userId and guildId
+   */
+  parseConversationKey(conversationKey) {
+    if (conversationKey.startsWith("dm_")) {
+      return {
+        userId: conversationKey.replace("dm_", ""),
+        guildId: null,
+      };
+    }
+    // Format: "userId_guildId" - split on first underscore
+    const underscoreIndex = conversationKey.indexOf("_");
+    if (underscoreIndex > 0) {
+      return {
+        userId: conversationKey.substring(0, underscoreIndex),
+        guildId: conversationKey.substring(underscoreIndex + 1),
+      };
+    }
+    // Fallback: treat as legacy userId-only format
+    return {
+      userId: conversationKey,
+      guildId: null,
+    };
+  }
+
+  /**
    * Set configuration for conversation management
    * @param {Object} config - Configuration object
    * @param {number} config.maxHistoryLength - Maximum history length
@@ -149,7 +192,12 @@ export class ConversationManager {
         const lastActivity = new Date(conv.lastActivity).getTime();
         // Only load if not expired
         if (Date.now() - lastActivity <= this.conversationTimeout) {
-          this.conversations.set(conv.userId, {
+          // Use composite key (userId_guildId or dm_userId)
+          const conversationKey = this.getConversationKey(
+            conv.userId,
+            conv.guildId || null,
+          );
+          this.conversations.set(conversationKey, {
             messages: conv.messages || [],
             lastActivity,
           });
@@ -182,7 +230,7 @@ export class ConversationManager {
         (await this.storageManager.read("ai_conversations")) || {};
 
       let loaded = 0;
-      for (const [userId, conv] of Object.entries(conversationsData)) {
+      for (const [conversationKey, conv] of Object.entries(conversationsData)) {
         // Filter out system messages from stored data
         const messages = (conv.messages || []).filter(m => m.role !== "system");
         if (messages.length === 0) {
@@ -198,7 +246,17 @@ export class ConversationManager {
           lastActivity >= recentThreshold &&
           Date.now() - lastActivity <= this.conversationTimeout
         ) {
-          this.conversations.set(userId, {
+          // Handle legacy format (userId only) - convert to dm_userId
+          let finalKey = conversationKey;
+          if (/^\d+$/.test(conversationKey)) {
+            // Legacy format: just userId, convert to dm_userId
+            finalKey = `dm_${conversationKey}`;
+            logger.debug(
+              `Migrating legacy conversation key ${conversationKey} to ${finalKey} during preload`,
+            );
+          }
+
+          this.conversations.set(finalKey, {
             messages, // Already filtered to exclude system messages
             lastActivity,
           });
@@ -217,20 +275,25 @@ export class ConversationManager {
   }
 
   /**
-   * Get conversation history for a user (with LTM support)
+   * Get conversation history for a user in a specific server (with LTM support)
    * @param {string} userId - User ID
+   * @param {string|null} guildId - Guild ID (null for DMs)
    * @returns {Promise<Array>} Conversation messages
    */
-  async getConversationHistory(userId) {
+  async getConversationHistory(userId, guildId = null) {
+    if (!userId) return [];
+
+    const conversationKey = this.getConversationKey(userId, guildId);
+
     // Try in-memory cache first (fast)
-    const cached = this.conversations.get(userId);
+    const cached = this.conversations.get(conversationKey);
     if (cached) {
       // Check if conversation expired
       if (Date.now() - cached.lastActivity > this.conversationTimeout) {
-        this.conversations.delete(userId);
+        this.conversations.delete(conversationKey);
         // Also delete from storage if LTM enabled
         if (this.useLongTermMemory) {
-          await this.deleteFromStorage(userId);
+          await this.deleteFromStorage(userId, guildId);
         }
         return [];
       }
@@ -244,8 +307,10 @@ export class ConversationManager {
 
         // Load from MongoDB
         if (this.storageType === "mongodb" && this.dbManager?.conversations) {
-          const dbConversation =
-            await this.dbManager.conversations.getByUser(userId);
+          const dbConversation = await this.dbManager.conversations.getByUser(
+            userId,
+            guildId,
+          );
           if (dbConversation) {
             conversation = {
               messages: dbConversation.messages || [],
@@ -257,7 +322,18 @@ export class ConversationManager {
         else if (this.storageType === "file" && this.storageManager) {
           const conversationsData =
             (await this.storageManager.read("ai_conversations")) || {};
-          const fileConv = conversationsData[userId];
+
+          // Try new format first (composite key)
+          let fileConv = conversationsData[conversationKey];
+
+          // Backward compatibility: if not found and guildId is null (DM), try legacy userId-only format
+          if (!fileConv && !guildId && conversationsData[userId]) {
+            logger.debug(
+              `Found legacy conversation for user ${userId}, treating as DM`,
+            );
+            fileConv = conversationsData[userId];
+          }
+
           if (fileConv) {
             // Filter out system messages from stored data (they shouldn't be there, but just in case)
             const messages = (fileConv.messages || []).filter(
@@ -279,11 +355,11 @@ export class ConversationManager {
             Date.now() - conversation.lastActivity >
             this.conversationTimeout
           ) {
-            await this.deleteFromStorage(userId);
+            await this.deleteFromStorage(userId, guildId);
             return [];
           }
           // Load into memory cache
-          this.conversations.set(userId, conversation);
+          this.conversations.set(conversationKey, conversation);
           return conversation.messages || [];
         }
       } catch (error) {
@@ -297,23 +373,26 @@ export class ConversationManager {
   /**
    * Add message to conversation history (with LTM support)
    * @param {string} userId - User ID
+   * @param {string|null} guildId - Guild ID (null for DMs)
    * @param {Object} message - Message object with role and content
    */
-  async addToHistory(userId, message) {
+  async addToHistory(userId, guildId, message) {
     if (!userId) return;
+
+    const conversationKey = this.getConversationKey(userId, guildId);
 
     // Enforce conversation limit - remove oldest if at capacity
     if (this.conversations.size >= this.maxConversations) {
       this.evictOldestConversation();
     }
 
-    let conversation = this.conversations.get(userId);
+    let conversation = this.conversations.get(conversationKey);
     if (!conversation) {
       conversation = {
         messages: [],
         lastActivity: Date.now(),
       };
-      this.conversations.set(userId, conversation);
+      this.conversations.set(conversationKey, conversation);
     }
 
     // Update last activity
@@ -370,12 +449,13 @@ export class ConversationManager {
       );
       this.saveToStorage(
         userId,
+        guildId,
         messagesToSave,
         conversation.lastActivity,
       ).catch(error => {
         // Log but don't throw - LTM failures shouldn't break conversation flow
         logger.debug(
-          `Failed to save conversation for user ${userId} to storage:`,
+          `Failed to save conversation for user ${userId} in guild ${guildId || "DM"} to storage:`,
           error,
         );
       });
@@ -385,16 +465,23 @@ export class ConversationManager {
   /**
    * Save conversation to storage (MongoDB or file)
    * @param {string} userId - User ID
+   * @param {string|null} guildId - Guild ID (null for DMs)
    * @param {Array} messages - Conversation messages
    * @param {number} lastActivity - Last activity timestamp
    */
-  async saveToStorage(userId, messages, lastActivity) {
+  async saveToStorage(userId, guildId, messages, lastActivity) {
     if (this.storageType === "mongodb" && this.dbManager?.conversations) {
-      await this.dbManager.conversations.save(userId, messages, lastActivity);
+      await this.dbManager.conversations.save(
+        userId,
+        guildId,
+        messages,
+        lastActivity,
+      );
     } else if (this.storageType === "file" && this.storageManager) {
       const conversationsData =
         (await this.storageManager.read("ai_conversations")) || {};
-      conversationsData[userId] = {
+      const conversationKey = this.getConversationKey(userId, guildId);
+      conversationsData[conversationKey] = {
         messages,
         lastActivity,
       };
@@ -405,24 +492,28 @@ export class ConversationManager {
   /**
    * Delete conversation from storage (MongoDB or file)
    * @param {string} userId - User ID
+   * @param {string|null} guildId - Guild ID (null for DMs)
    */
-  async deleteFromStorage(userId) {
+  async deleteFromStorage(userId, guildId = null) {
     if (this.storageType === "mongodb" && this.dbManager?.conversations) {
-      await this.dbManager.conversations.delete(userId).catch(error => {
-        logger.debug(
-          `Failed to delete conversation for user ${userId} from MongoDB:`,
-          error,
-        );
-      });
+      await this.dbManager.conversations
+        .delete(userId, guildId)
+        .catch(error => {
+          logger.debug(
+            `Failed to delete conversation for user ${userId} in guild ${guildId || "DM"} from MongoDB:`,
+            error,
+          );
+        });
     } else if (this.storageType === "file" && this.storageManager) {
       try {
         const conversationsData =
           (await this.storageManager.read("ai_conversations")) || {};
-        delete conversationsData[userId];
+        const conversationKey = this.getConversationKey(userId, guildId);
+        delete conversationsData[conversationKey];
         await this.storageManager.write("ai_conversations", conversationsData);
       } catch (error) {
         logger.debug(
-          `Failed to delete conversation for user ${userId} from files:`,
+          `Failed to delete conversation for user ${userId} in guild ${guildId || "DM"} from files:`,
           error,
         );
       }
@@ -433,32 +524,37 @@ export class ConversationManager {
    * Evict oldest conversation when at capacity (LRU-style)
    */
   evictOldestConversation() {
-    let oldestUserId = null;
+    let oldestConversationKey = null;
     let oldestTime = Date.now();
 
-    for (const [userId, conversation] of this.conversations.entries()) {
+    for (const [
+      conversationKey,
+      conversation,
+    ] of this.conversations.entries()) {
       if (conversation.lastActivity < oldestTime) {
         oldestTime = conversation.lastActivity;
-        oldestUserId = userId;
+        oldestConversationKey = conversationKey;
       }
     }
 
-    if (oldestUserId) {
-      this.conversations.delete(oldestUserId);
-      logger.debug(`Evicted oldest conversation for user ${oldestUserId}`);
+    if (oldestConversationKey) {
+      this.conversations.delete(oldestConversationKey);
+      logger.debug(`Evicted oldest conversation: ${oldestConversationKey}`);
     }
   }
 
   /**
-   * Clear conversation history for a user (with LTM support)
+   * Clear conversation history for a user in a specific server (with LTM support)
    * @param {string} userId - User ID
+   * @param {string|null} guildId - Guild ID (null for DMs)
    */
-  async clearHistory(userId) {
+  async clearHistory(userId, guildId = null) {
     if (userId) {
-      this.conversations.delete(userId);
+      const conversationKey = this.getConversationKey(userId, guildId);
+      this.conversations.delete(conversationKey);
       // Also delete from storage if LTM enabled
       if (this.useLongTermMemory) {
-        await this.deleteFromStorage(userId);
+        await this.deleteFromStorage(userId, guildId);
       }
     }
   }
@@ -474,22 +570,29 @@ export class ConversationManager {
         let cleaned = 0;
         const toDelete = [];
 
-        for (const [userId, conversation] of this.conversations.entries()) {
+        for (const [
+          conversationKey,
+          conversation,
+        ] of this.conversations.entries()) {
           if (now - conversation.lastActivity > this.conversationTimeout) {
-            toDelete.push(userId);
+            toDelete.push(conversationKey);
           }
         }
 
         // Delete expired conversations
-        for (const userId of toDelete) {
-          this.conversations.delete(userId);
+        for (const conversationKey of toDelete) {
+          this.conversations.delete(conversationKey);
           cleaned++;
+
+          // Extract userId and guildId from conversationKey for storage deletion
+          const { userId, guildId } =
+            this.parseConversationKey(conversationKey);
 
           // Also delete from storage if LTM enabled
           if (this.useLongTermMemory) {
-            this.deleteFromStorage(userId).catch(error => {
+            this.deleteFromStorage(userId, guildId).catch(error => {
               logger.debug(
-                `Failed to delete expired conversation for user ${userId}:`,
+                `Failed to delete expired conversation ${conversationKey}:`,
                 error,
               );
             });

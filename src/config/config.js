@@ -311,8 +311,9 @@ class Config {
         timeoutDuration: process.env.MODERATION_AUTO_TIMEOUT_DURATION || "1h", // Duration for auto-timeout
       },
 
-      // Subscription tiers (DEPRECATED - subscriptions removed)
-      // Kept for legacy user support only - new subscriptions are not accepted
+      // Subscription tiers (LEGACY SUPPORT ONLY)
+      // New subscriptions are not accepted, but existing subscriptions are still supported
+      // Used for: legacy user tier detection, rate limiting, and expired subscription cleanup
       subscriptions: {
         Bronze: {
           price: 5,

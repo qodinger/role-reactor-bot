@@ -33,7 +33,6 @@ src/utils/
 │   │   ├── memory.js
 │   │   └── performance.js
 │   ├── healthCheck.js
-│   ├── healthServer.js
 │   ├── performanceMonitor.js
 │   └── requestHandler.js
 ├── storage/
@@ -85,7 +84,6 @@ graph TD
     subgraph Monitoring
         HealthCheck[monitoring/healthCheck.js]
         PerformanceMonitor[monitoring/performanceMonitor.js]
-        HealthServer[monitoring/healthServer.js]
     end
 
     subgraph Discord

@@ -14,8 +14,6 @@ export const ACTION_CATEGORIES = {
   DATA_FETCH: "data_fetch", // Fetches data from Discord (triggers re-query)
   DATA_RETRIEVE: "data_retrieve", // Retrieves specific data (read-only, no re-query)
   COMMAND_EXEC: "command_exec", // Executes bot commands
-  ADMIN: "admin", // Admin actions (blocked)
-  MODERATION: "moderation", // Moderation actions (blocked)
 };
 
 /**
@@ -25,8 +23,6 @@ export const ACTION_CATEGORIES = {
  *   category: ACTION_CATEGORIES - Action category
  *   requiresGuild: boolean - Whether action requires server context
  *   triggersReQuery: boolean - Whether action triggers AI re-query with updated context
- *   blocked: boolean - Whether action is blocked for security
- *   blockReason: string - Reason for blocking (if blocked)
  *   requiresOptions: boolean - Whether action requires options object
  *   requiredOptions: string[] - Required option keys (if requiresOptions)
  *   description: string - Human-readable description
@@ -45,7 +41,6 @@ export const ACTION_REGISTRY = {
     category: ACTION_CATEGORIES.DATA_FETCH,
     requiresGuild: true,
     triggersReQuery: true,
-    blocked: false,
     requiresOptions: false,
     description: "Fetch all server members (human members and bots)",
   },
@@ -54,7 +49,6 @@ export const ACTION_REGISTRY = {
     category: ACTION_CATEGORIES.DATA_FETCH,
     requiresGuild: true,
     triggersReQuery: true,
-    blocked: false,
     requiresOptions: false,
     description: "Fetch all server channels",
   },
@@ -63,7 +57,6 @@ export const ACTION_REGISTRY = {
     category: ACTION_CATEGORIES.DATA_FETCH,
     requiresGuild: true,
     triggersReQuery: true,
-    blocked: false,
     requiresOptions: false,
     description: "Fetch all server roles",
   },
@@ -72,7 +65,6 @@ export const ACTION_REGISTRY = {
     category: ACTION_CATEGORIES.DATA_FETCH,
     requiresGuild: true,
     triggersReQuery: true,
-    blocked: false,
     requiresOptions: false,
     description: "Fetch all server data (members, channels, roles)",
   },
@@ -85,7 +77,6 @@ export const ACTION_REGISTRY = {
     category: ACTION_CATEGORIES.DATA_RETRIEVE,
     requiresGuild: true,
     triggersReQuery: false,
-    blocked: false,
     requiresOptions: true,
     requiredOptions: ["user_id", "username"], // At least one required
     description: "Get information about a specific member",
@@ -95,7 +86,6 @@ export const ACTION_REGISTRY = {
     category: ACTION_CATEGORIES.DATA_RETRIEVE,
     requiresGuild: true,
     triggersReQuery: false,
-    blocked: false,
     requiresOptions: true,
     requiredOptions: ["role_id", "role_name"], // At least one required
     description: "Get information about a specific role",
@@ -105,7 +95,6 @@ export const ACTION_REGISTRY = {
     category: ACTION_CATEGORIES.DATA_RETRIEVE,
     requiresGuild: true,
     triggersReQuery: false,
-    blocked: false,
     requiresOptions: true,
     requiredOptions: ["channel_id", "channel_name"], // At least one required
     description: "Get information about a specific channel",
@@ -115,7 +104,6 @@ export const ACTION_REGISTRY = {
     category: ACTION_CATEGORIES.DATA_RETRIEVE,
     requiresGuild: true,
     triggersReQuery: false,
-    blocked: false,
     requiresOptions: true,
     requiredOptions: ["role_id", "role_name"], // At least one required
     description: "Search for members with a specific role",
@@ -125,7 +113,6 @@ export const ACTION_REGISTRY = {
     category: ACTION_CATEGORIES.DATA_RETRIEVE,
     requiresGuild: true,
     triggersReQuery: false,
-    blocked: false,
     requiresOptions: false,
     description: "Get role reaction message IDs",
   },
@@ -134,7 +121,6 @@ export const ACTION_REGISTRY = {
     category: ACTION_CATEGORIES.DATA_RETRIEVE,
     requiresGuild: true,
     triggersReQuery: false,
-    blocked: false,
     requiresOptions: false,
     description: "Get scheduled role data",
   },
@@ -143,7 +129,6 @@ export const ACTION_REGISTRY = {
     category: ACTION_CATEGORIES.DATA_RETRIEVE,
     requiresGuild: true,
     triggersReQuery: false,
-    blocked: false,
     requiresOptions: false,
     description: "Get poll data",
   },
@@ -152,7 +137,6 @@ export const ACTION_REGISTRY = {
     category: ACTION_CATEGORIES.DATA_RETRIEVE,
     requiresGuild: true,
     triggersReQuery: false,
-    blocked: false,
     requiresOptions: false,
     description: "Get moderation history",
   },
@@ -165,174 +149,9 @@ export const ACTION_REGISTRY = {
     category: ACTION_CATEGORIES.COMMAND_EXEC,
     requiresGuild: true,
     triggersReQuery: false,
-    blocked: false,
     requiresOptions: false,
     requiredOptions: ["command"], // command is required, but not in options object
     description: "Execute a general bot command",
-  },
-
-  // ============================================================================
-  // ADMIN ACTIONS (BLOCKED - Security Restriction)
-  // ============================================================================
-  add_role: {
-    type: "add_role",
-    category: ACTION_CATEGORIES.ADMIN,
-    requiresGuild: true,
-    triggersReQuery: false,
-    blocked: true,
-    blockReason:
-      "Admin and guild management actions must be performed manually by administrators using bot commands",
-    requiresOptions: true,
-    requiredOptions: ["user_id", "role_id", "role_name"], // user_id + (role_id or role_name)
-    description: "Add a role to a user (BLOCKED)",
-  },
-  remove_role: {
-    type: "remove_role",
-    category: ACTION_CATEGORIES.ADMIN,
-    requiresGuild: true,
-    triggersReQuery: false,
-    blocked: true,
-    blockReason:
-      "Admin and guild management actions must be performed manually by administrators using bot commands",
-    requiresOptions: true,
-    requiredOptions: ["user_id", "role_id", "role_name"],
-    description: "Remove a role from a user (BLOCKED)",
-  },
-  create_channel: {
-    type: "create_channel",
-    category: ACTION_CATEGORIES.ADMIN,
-    requiresGuild: true,
-    triggersReQuery: false,
-    blocked: true,
-    blockReason:
-      "Admin and guild management actions must be performed manually by administrators using bot commands",
-    requiresOptions: true,
-    requiredOptions: ["name"],
-    description: "Create a channel (BLOCKED)",
-  },
-  delete_channel: {
-    type: "delete_channel",
-    category: ACTION_CATEGORIES.ADMIN,
-    requiresGuild: true,
-    triggersReQuery: false,
-    blocked: true,
-    blockReason:
-      "Admin and guild management actions must be performed manually by administrators using bot commands",
-    requiresOptions: true,
-    requiredOptions: ["channel_id"],
-    description: "Delete a channel (BLOCKED)",
-  },
-  modify_channel: {
-    type: "modify_channel",
-    category: ACTION_CATEGORIES.ADMIN,
-    requiresGuild: true,
-    triggersReQuery: false,
-    blocked: true,
-    blockReason:
-      "Admin and guild management actions must be performed manually by administrators using bot commands",
-    requiresOptions: true,
-    requiredOptions: ["channel_id"],
-    description: "Modify a channel (BLOCKED)",
-  },
-  send_message: {
-    type: "send_message",
-    category: ACTION_CATEGORIES.ADMIN,
-    requiresGuild: true,
-    triggersReQuery: false,
-    blocked: true,
-    blockReason:
-      "Admin and guild management actions must be performed manually by administrators using bot commands",
-    requiresOptions: true,
-    requiredOptions: ["content", "embed"], // At least one required
-    description: "Send a message (BLOCKED)",
-  },
-  delete_message: {
-    type: "delete_message",
-    category: ACTION_CATEGORIES.ADMIN,
-    requiresGuild: true,
-    triggersReQuery: false,
-    blocked: true,
-    blockReason:
-      "Admin and guild management actions must be performed manually by administrators using bot commands",
-    requiresOptions: true,
-    requiredOptions: ["message_id"],
-    description: "Delete a message (BLOCKED)",
-  },
-  pin_message: {
-    type: "pin_message",
-    category: ACTION_CATEGORIES.ADMIN,
-    requiresGuild: true,
-    triggersReQuery: false,
-    blocked: true,
-    blockReason:
-      "Admin and guild management actions must be performed manually by administrators using bot commands",
-    requiresOptions: true,
-    requiredOptions: ["message_id"],
-    description: "Pin a message (BLOCKED)",
-  },
-  unpin_message: {
-    type: "unpin_message",
-    category: ACTION_CATEGORIES.ADMIN,
-    requiresGuild: true,
-    triggersReQuery: false,
-    blocked: true,
-    blockReason:
-      "Admin and guild management actions must be performed manually by administrators using bot commands",
-    requiresOptions: true,
-    requiredOptions: ["message_id"],
-    description: "Unpin a message (BLOCKED)",
-  },
-
-  // ============================================================================
-  // MODERATION ACTIONS (BLOCKED - Security Restriction)
-  // ============================================================================
-  kick_member: {
-    type: "kick_member",
-    category: ACTION_CATEGORIES.MODERATION,
-    requiresGuild: true,
-    triggersReQuery: false,
-    blocked: true,
-    blockReason:
-      "Moderation actions must be performed manually by administrators using moderation commands",
-    requiresOptions: true,
-    requiredOptions: ["user_id"],
-    description: "Kick a member (BLOCKED)",
-  },
-  ban_member: {
-    type: "ban_member",
-    category: ACTION_CATEGORIES.MODERATION,
-    requiresGuild: true,
-    triggersReQuery: false,
-    blocked: true,
-    blockReason:
-      "Moderation actions must be performed manually by administrators using moderation commands",
-    requiresOptions: true,
-    requiredOptions: ["user_id"],
-    description: "Ban a member (BLOCKED)",
-  },
-  timeout_member: {
-    type: "timeout_member",
-    category: ACTION_CATEGORIES.MODERATION,
-    requiresGuild: true,
-    triggersReQuery: false,
-    blocked: true,
-    blockReason:
-      "Moderation actions must be performed manually by administrators using moderation commands",
-    requiresOptions: true,
-    requiredOptions: ["user_id", "duration_seconds"],
-    description: "Timeout a member (BLOCKED)",
-  },
-  warn_member: {
-    type: "warn_member",
-    category: ACTION_CATEGORIES.MODERATION,
-    requiresGuild: true,
-    triggersReQuery: false,
-    blocked: true,
-    blockReason:
-      "Moderation actions must be performed manually by administrators using moderation commands",
-    requiresOptions: true,
-    requiredOptions: ["user_id"],
-    description: "Warn a member (BLOCKED)",
   },
 };
 
@@ -343,16 +162,6 @@ export const ACTION_REGISTRY = {
  */
 export function getActionConfig(actionType) {
   return ACTION_REGISTRY[actionType] || null;
-}
-
-/**
- * Check if action is blocked
- * @param {string} actionType - Action type
- * @returns {boolean} True if action is blocked
- */
-export function isActionBlocked(actionType) {
-  const config = getActionConfig(actionType);
-  return config?.blocked === true;
 }
 
 /**
@@ -396,23 +205,11 @@ export function getReQueryActions() {
 }
 
 /**
- * Get all blocked actions
- * @returns {string[]} Array of action types
- */
-export function getBlockedActions() {
-  return Object.values(ACTION_REGISTRY)
-    .filter(config => config.blocked)
-    .map(config => config.type);
-}
-
-/**
- * Get all allowed (non-blocked) actions
+ * Get all available actions
  * @returns {string[]} Array of action types
  */
 export function getAllowedActions() {
-  return Object.values(ACTION_REGISTRY)
-    .filter(config => !config.blocked)
-    .map(config => config.type);
+  return Object.values(ACTION_REGISTRY).map(config => config.type);
 }
 
 /**
@@ -437,14 +234,6 @@ export function validateActionOptions(action) {
     return {
       isValid: false,
       error: `Unknown action type: ${action.type}`,
-    };
-  }
-
-  // Check if blocked
-  if (config.blocked) {
-    return {
-      isValid: false,
-      error: `${action.type} is not available. ${config.blockReason}`,
     };
   }
 
@@ -490,7 +279,7 @@ export function validateActionOptions(action) {
         }
       }
 
-      // Handle specific required options (e.g., user_id for kick_member)
+      // Handle specific required options
       const specificRequired = config.requiredOptions.filter(
         opt => !requiredGroups.includes(opt),
       );

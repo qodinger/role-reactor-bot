@@ -418,7 +418,7 @@ class ConnectionManager {
         .createIndex({ active: 1 });
       await this.db
         .collection("ai_conversations")
-        .createIndex({ userId: 1 }, { unique: true });
+        .createIndex({ userId: 1, guildId: 1 }, { unique: true });
       await this.db
         .collection("ai_conversations")
         .createIndex({ lastActivity: 1 });
@@ -1254,28 +1254,51 @@ class ConversationRepository extends BaseRepository {
     super(db, "ai_conversations", cache, logger);
   }
 
-  async getByUser(userId) {
+  async getByUser(userId, guildId = null) {
     try {
-      const cached = this.cache.get(`conversation_${userId}`);
+      // Create composite key for cache
+      const cacheKey = `conversation_${userId}_${guildId || "dm"}`;
+      const cached = this.cache.get(cacheKey);
       if (cached) return cached;
 
-      const conversation = await this.collection.findOne({ userId });
+      // Query by userId and guildId (or null for DMs)
+      const query = { userId };
+      if (guildId) {
+        query.guildId = guildId;
+      } else {
+        query.guildId = null; // Explicitly match null for DMs
+      }
+
+      const conversation = await this.collection.findOne(query);
       if (conversation) {
-        this.cache.set(`conversation_${userId}`, conversation);
+        this.cache.set(cacheKey, conversation);
       }
       return conversation || null;
     } catch (error) {
-      this.logger.error(`Failed to get conversation for user ${userId}`, error);
+      this.logger.error(
+        `Failed to get conversation for user ${userId} in guild ${guildId || "DM"}`,
+        error,
+      );
       return null;
     }
   }
 
-  async save(userId, messages, lastActivity) {
+  async save(userId, guildId, messages, lastActivity) {
     try {
+      // Use composite key: userId + guildId (or null for DMs)
+      const query = { userId };
+      if (guildId) {
+        query.guildId = guildId;
+      } else {
+        query.guildId = null; // Explicitly set null for DMs
+      }
+
       await this.collection.updateOne(
-        { userId },
+        query,
         {
           $set: {
+            userId,
+            guildId: guildId || null,
             messages,
             lastActivity: new Date(lastActivity),
             updatedAt: new Date(),
@@ -1283,29 +1306,43 @@ class ConversationRepository extends BaseRepository {
         },
         { upsert: true },
       );
-      this.cache.set(`conversation_${userId}`, {
+
+      // Update cache with composite key
+      const cacheKey = `conversation_${userId}_${guildId || "dm"}`;
+      this.cache.set(cacheKey, {
         userId,
+        guildId: guildId || null,
         messages,
         lastActivity,
       });
       return true;
     } catch (error) {
       this.logger.error(
-        `Failed to save conversation for user ${userId}`,
+        `Failed to save conversation for user ${userId} in guild ${guildId || "DM"}`,
         error,
       );
       return false;
     }
   }
 
-  async delete(userId) {
+  async delete(userId, guildId = null) {
     try {
-      await this.collection.deleteOne({ userId });
-      this.cache.delete(`conversation_${userId}`);
+      const query = { userId };
+      if (guildId) {
+        query.guildId = guildId;
+      } else {
+        query.guildId = null; // Explicitly match null for DMs
+      }
+
+      await this.collection.deleteOne(query);
+
+      // Delete from cache
+      const cacheKey = `conversation_${userId}_${guildId || "dm"}`;
+      this.cache.delete(cacheKey);
       return true;
     } catch (error) {
       this.logger.error(
-        `Failed to delete conversation for user ${userId}`,
+        `Failed to delete conversation for user ${userId} in guild ${guildId || "DM"}`,
         error,
       );
       return false;

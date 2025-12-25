@@ -274,7 +274,7 @@ export function getExplicitNSFWKeywords() {
     "nsfw",
     "adult",
     "18+",
-    "xxx",
+    "xxx", // Common shorthand for explicit content
     "sex",
     "nudity",
     "bare",

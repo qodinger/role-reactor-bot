@@ -21,7 +21,8 @@ The AI utilities are designed with a modular, reusable architecture:
 - **`commandDiscoverer.js`** - Discovers and formats bot commands for AI system prompts
 - **`serverInfoGatherer.js`** - Gathers server and bot information for AI context
 - **`commandExecutor.js`** - Executes bot commands programmatically from AI actions
-- **`discordActionExecutor.js`** - Executes Discord actions (roles, messages, moderation) from AI actions
+- **`discordActionExecutor.js`** - Executes bot commands programmatically from AI actions
+- **`actionRegistry.js`** - Centralized registry for all AI actions with validation and metadata
 - **`constants.js`** - Shared constants for all AI modules
 
 ### Exports
@@ -193,17 +194,26 @@ The `conversationManager` handles conversation history and long-term memory:
 ```javascript
 import { conversationManager } from "./utils/ai/conversationManager.js";
 
-// Get conversation history
-const history = await conversationManager.getConversationHistory(userId);
+// Get conversation history (separated by server)
+const guildId = guild?.id || null; // null for DMs
+const history = await conversationManager.getConversationHistory(
+  userId,
+  guildId,
+);
 
 // Add message to history
-await conversationManager.addToHistory(userId, {
+await conversationManager.addToHistory(userId, guildId, {
   role: "user",
   content: "Hello!",
 });
 
-// Clear conversation history
-await conversationManager.clearHistory(userId);
+// Clear conversation history for a specific server
+await conversationManager.clearHistory(userId, guildId);
+
+// Note: Conversations are now separated by user AND server
+// - Server conversations: userId_guildId
+// - DM conversations: dm_userId
+// This prevents context leakage between different Discord servers
 ```
 
 ### Response Validation
@@ -524,6 +534,9 @@ When all providers are disabled, AI commands will return user-friendly error mes
 - Long-term memory (MongoDB) integration
 - Conversation cleanup and expiration
 - History retrieval and storage
+- **Server isolation**: Conversations are separated by user AND server (composite key: `userId_guildId`)
+- **DM support**: Direct messages use `dm_userId` format
+- **Backward compatibility**: Automatically handles legacy `userId`-only format
 
 ### responseValidator.js
 
@@ -562,10 +575,10 @@ When all providers are disabled, AI commands will return user-friendly error mes
 
 ### discordActionExecutor.js
 
-- Executes Discord actions (roles, messages, moderation)
+- Executes bot commands programmatically
 - Validates permissions
 - Handles action errors
-- Provides action descriptions for AI
+- Note: Admin/moderation/guild management actions are not available (removed from registry for security)
 
 ### constants.js
 

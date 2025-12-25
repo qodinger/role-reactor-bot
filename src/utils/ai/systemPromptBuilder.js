@@ -205,9 +205,8 @@ export class SystemPromptBuilder {
    * Build dynamic actions list for AI prompt
    * @param {import('discord.js').Guild} guild - Discord guild
    * @param {import('discord.js').Client} client - Discord client
-   * @param {Function} getBotCommands - Function to get bot commands
-   * @param {Function} discoverDataFetchingCommands - Function to discover data fetching commands
-   * @param {Function} discoverDiscordActions - Function to discover Discord actions
+   * @param {import('discord.js').Guild} guild - Discord guild
+   * @param {import('discord.js').Client} client - Discord client
    * @returns {Promise<string>} Formatted actions list
    * @private
    */
@@ -246,7 +245,6 @@ export class SystemPromptBuilder {
    * @param {import('discord.js').Guild} guild - Discord guild
    * @param {import('discord.js').Client} client - Discord client
    * @param {Function} generateCommandExample - Function to generate command example
-   * @param {Function} generateActionExample - Function to generate action example
    * @returns {Promise<string>} Examples section
    */
   async buildResponseFormatExamples(guild, client, generateCommandExample) {
@@ -330,15 +328,20 @@ export class SystemPromptBuilder {
    * @returns {Promise<string>} Action example JSON
    */
   async generateActionExample() {
-    const discordActions = await this.discoverDiscordActions();
-    if (discordActions.length > 0) {
-      // Use add_role as a common example
-      const addRoleAction = discordActions.find(a => a.name === "add_role");
-      if (addRoleAction) {
-        return `{\n  "message": "I'll add that role for you.",\n  "actions": [{"type": "add_role", "options": {"user_id": "123456789", "role_name": "Member"}}]\n}`;
+    try {
+      const { getAllowedActions } = await import("./actionRegistry.js");
+      const availableActions = getAllowedActions();
+
+      if (availableActions.length > 0) {
+        // Use fetch_members as a common example (safe, read-only action)
+        if (availableActions.includes("fetch_members")) {
+          return `{\n  "message": "Let me fetch the member list for you.",\n  "actions": [{"type": "fetch_members"}]\n}`;
+        }
+        // Fallback to first available action
+        return `{\n  "message": "I'll perform that action.",\n  "actions": [{"type": "${availableActions[0]}", "options": {}}]\n}`;
       }
-      // Fallback to first available action
-      return `{\n  "message": "I'll perform that action.",\n  "actions": [{"type": "${discordActions[0].name}", "options": {}}]\n}`;
+    } catch (_error) {
+      // Ignore
     }
     return null;
   }
