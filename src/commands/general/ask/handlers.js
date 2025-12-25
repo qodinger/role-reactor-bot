@@ -1,7 +1,12 @@
-import { EmbedBuilder } from "discord.js";
+import {
+  EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+} from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
 import { chatService } from "../../../utils/ai/chatService.js";
-import { THEME } from "../../../config/theme.js";
+import { THEME, EMOJIS } from "../../../config/theme.js";
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 import { getUserData } from "../../general/core/utils.js";
 import {
@@ -21,6 +26,9 @@ const { customEmojis } = emojiConfig;
  * @param {import('discord.js').Client} client
  */
 export async function execute(interaction, client) {
+  // Store requestId for cancellation (declared outside try block for error handling)
+  let currentRequestId = null;
+
   try {
     const question = interaction.options.getString("question", true);
 
@@ -108,19 +116,56 @@ export async function execute(interaction, client) {
 
     let response;
 
+    // Helper function to update status embed
+    const updateStatusEmbed = async (
+      status,
+      description = null,
+      requestId = null,
+      _queuePosition = null, // Unused - kept for API consistency
+    ) => {
+      try {
+        // Store requestId if provided
+        if (requestId) {
+          currentRequestId = requestId;
+        }
+
+        const embed = new EmbedBuilder()
+          .setColor(THEME.PRIMARY)
+          .setDescription(description || `${EMOJIS.UI.LOADING} ${status}`)
+          .setFooter({
+            text: `Asked by ${interaction.user.tag} • Role Reactor`,
+          })
+          .setTimestamp();
+
+        const reply = await interaction.editReply({
+          embeds: [embed],
+          components: [], // No cancel button - users can delete the message to cancel
+        });
+
+        // Register status message for cancellation on delete
+        if (currentRequestId && reply && reply.id) {
+          try {
+            const { concurrencyManager } = await import(
+              "../../../utils/ai/concurrencyManager.js"
+            );
+            concurrencyManager.registerStatusMessage(
+              reply.id,
+              currentRequestId,
+              interaction.user.id,
+            );
+          } catch (error) {
+            logger.debug("[ask] Failed to register status message:", error);
+          }
+        }
+      } catch (error) {
+        // Ignore edit errors (e.g., interaction expired)
+        logger.debug("[ask] Failed to update status embed:", error);
+      }
+    };
+
     if (useStreaming) {
-      // Create initial "thinking..." message
-      await interaction.editReply({
-        embeds: [
-          new EmbedBuilder()
-            .setColor(THEME.PRIMARY)
-            .setDescription("🤔 Thinking...")
-            .setFooter({
-              text: `Asked by ${interaction.user.tag}`,
-              iconURL: interaction.user.displayAvatarURL({ dynamic: true }),
-            }),
-        ],
-      });
+      // Create initial status message
+      await updateStatusEmbed("Thinking about your question...");
 
       // Helper function to extract message from JSON
       const extractMessage = text => {
@@ -180,6 +225,15 @@ export async function execute(interaction, client) {
         return text;
       };
 
+      // Status callback for real processing steps (before streaming starts)
+      const onStatus = async (
+        status,
+        requestId = null,
+        _queuePosition = null,
+      ) => {
+        await updateStatusEmbed(status, null, requestId, _queuePosition);
+      };
+
       // Streaming callback - updates Discord message as chunks arrive
       const onChunk = async fullText => {
         // Extract message from JSON if possible
@@ -190,28 +244,29 @@ export async function execute(interaction, client) {
             ? `${messageText.substring(0, 1997)}...`
             : messageText;
 
-        try {
-          await interaction.editReply({
-            embeds: [
-              new EmbedBuilder()
-                .setColor(THEME.PRIMARY)
-                .setDescription(displayText || "🤔 Thinking...")
-                .setFooter({
-                  text: `Asked by ${interaction.user.tag}`,
-                  iconURL: interaction.user.displayAvatarURL({
-                    dynamic: true,
-                  }),
-                })
-                .setTimestamp(),
-            ],
-          });
-        } catch (error) {
-          // Ignore edit errors (e.g., interaction expired)
-          logger.debug("[ask] Failed to update streaming message:", error);
+        // Only update if we have actual content (not just status)
+        if (displayText && displayText.trim().length > 0) {
+          try {
+            await interaction.editReply({
+              embeds: [
+                new EmbedBuilder()
+                  .setColor(THEME.PRIMARY)
+                  .setDescription(displayText)
+                  .setFooter({
+                    text: `Asked by ${interaction.user.tag} • Role Reactor`,
+                  })
+                  .setTimestamp(),
+              ],
+              components: [], // Remove cancel button when streaming starts
+            });
+          } catch (error) {
+            // Ignore edit errors (e.g., interaction expired)
+            logger.debug("[ask] Failed to update streaming message:", error);
+          }
         }
       };
 
-      // Generate streaming AI response
+      // Generate streaming AI response with real status updates
       response = await chatService.generateResponseStreaming(
         question,
         interaction.guild,
@@ -224,10 +279,23 @@ export async function execute(interaction, client) {
           locale: interaction.locale || interaction.guildLocale || "en-US",
           rateLimitReserved: true,
           onChunk,
+          onStatus, // Real status callback for processing steps
         },
       );
     } else {
-      // Generate AI response (non-streaming)
+      // Non-streaming mode - show real status updates tied to actual processing
+      await updateStatusEmbed("Thinking about your question...");
+
+      // Status callback that will be called by chatService at actual processing steps
+      const onStatus = async (
+        status,
+        requestId = null,
+        queuePosition = null,
+      ) => {
+        await updateStatusEmbed(status, null, requestId, queuePosition);
+      };
+
+      // Generate AI response (non-streaming) with real status callback
       // Pass rateLimitReserved: true since we already checked and reserved the rate limit
       response = await chatService.generateResponse(
         question,
@@ -240,15 +308,16 @@ export async function execute(interaction, client) {
           channel: interaction.channel,
           locale: interaction.locale || interaction.guildLocale || "en-US",
           rateLimitReserved: true, // Already checked and reserved in handler
+          onStatus, // Real status callback - will be called at actual processing steps
         },
       );
     }
 
     // Handle response format (can be string or object with text and commandResponses)
     const responseText =
-      typeof response === "string" ? response : response.text;
+      typeof response === "string" ? response : response?.text || null;
     const commandResponses =
-      typeof response === "object" && response.commandResponses
+      typeof response === "object" && response?.commandResponses
         ? response.commandResponses
         : [];
 
@@ -257,6 +326,24 @@ export async function execute(interaction, client) {
       // Command already sent its response directly to channel, no need to send AI's message
       // Just delete the "thinking..." message - don't show any message
       try {
+        // Unregister status message before deleting (request is completing)
+        if (currentRequestId) {
+          try {
+            const reply = await interaction.fetchReply().catch(() => null);
+            if (reply && reply.id) {
+              const { concurrencyManager } = await import(
+                "../../../utils/ai/concurrencyManager.js"
+              );
+              concurrencyManager.unregisterStatusMessage(reply.id);
+            }
+          } catch (unregisterError) {
+            logger.debug(
+              "[ask] Failed to unregister status message:",
+              unregisterError,
+            );
+          }
+        }
+
         await interaction.deleteReply();
       } catch {
         // If delete fails (e.g., message already deleted or interaction expired), just return silently
@@ -265,25 +352,93 @@ export async function execute(interaction, client) {
       return;
     }
 
-    // Create embed with response
-    const embed = new EmbedBuilder()
-      .setColor(THEME.PRIMARY)
-      .setDescription(responseText)
-      .setFooter({
-        text: `Asked by ${interaction.user.tag}`,
-        iconURL: interaction.user.displayAvatarURL({ dynamic: true }),
-      })
-      .setTimestamp();
+    // Discord embed limits:
+    // - Description: 4096 chars max
+    // - Total embed: ~6000 chars (rarely hit)
+    // Use 4000 as safe limit for description
+    const maxDescriptionLength = 4000;
 
-    // Discord embed description limit is 4096, but we'll be safe with 2000
-    if (responseText.length > 2000) {
-      embed.setDescription(`${responseText.substring(0, 1997)}...`);
+    // Truncate response text if needed (before creating embed)
+    let finalResponseText = responseText;
+    if (responseText.length > maxDescriptionLength) {
+      finalResponseText = `${responseText.substring(0, maxDescriptionLength - 3)}...`;
       logger.warn(
-        `AI response truncated for user ${interaction.user.id} (${responseText.length} chars)`,
+        `AI response truncated for user ${interaction.user.id} (${responseText.length} -> ${finalResponseText.length} chars)`,
       );
     }
 
-    await interaction.editReply({ embeds: [embed] });
+    // Create embed with response
+    const embed = new EmbedBuilder()
+      .setColor(THEME.PRIMARY)
+      .setDescription(finalResponseText)
+      .setFooter({
+        text: `Asked by ${interaction.user.tag} • Role Reactor`,
+      })
+      .setTimestamp();
+
+    // Create feedback buttons
+    const feedbackRow = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`ai_feedback_positive_${interaction.id}`)
+        .setLabel("Helpful")
+        .setEmoji("👍")
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId(`ai_feedback_negative_${interaction.id}`)
+        .setLabel("Not Helpful")
+        .setEmoji("👎")
+        .setStyle(ButtonStyle.Secondary),
+    );
+
+    const replyMessage = await interaction.editReply({
+      embeds: [embed],
+      components: [feedbackRow],
+    });
+
+    // Unregister status message (request is complete)
+    if (currentRequestId && replyMessage && replyMessage.id) {
+      try {
+        const { concurrencyManager } = await import(
+          "../../../utils/ai/concurrencyManager.js"
+        );
+        concurrencyManager.unregisterStatusMessage(replyMessage.id);
+      } catch (error) {
+        logger.debug("[ask] Failed to unregister status message:", error);
+      }
+    }
+
+    // Store message ID and context for feedback in database
+    if (replyMessage && typeof replyMessage === "object" && replyMessage.id) {
+      try {
+        const { getDatabaseManager } = await import(
+          "../../../utils/storage/databaseManager.js"
+        );
+        const db = await getDatabaseManager();
+        if (db && db.aiFeedback) {
+          await db.aiFeedback.setFeedbackContext(replyMessage.id, {
+            userId: interaction.user.id,
+            guildId: interaction.guild?.id || null,
+            userMessage: question,
+            aiResponse: responseText,
+            timestamp: Date.now(),
+          });
+        }
+      } catch (error) {
+        // Fallback to in-memory storage if database fails
+        logger.debug(
+          "Failed to store feedback context in DB, using memory:",
+          error,
+        );
+        global.aiFeedbackContext = global.aiFeedbackContext || new Map();
+        global.aiFeedbackContext.set(replyMessage.id, {
+          userId: interaction.user.id,
+          guildId: interaction.guild?.id || null,
+          userMessage: question,
+          aiResponse: responseText,
+          timestamp: Date.now(),
+        });
+      }
+    }
 
     // Send command responses as separate messages (embeds) to make it look like commands were actually executed
     if (commandResponses.length > 0) {
@@ -344,7 +499,14 @@ export async function execute(interaction, client) {
           }
 
           // Send the command response as a separate message
-          await interaction.channel.send(messageContent);
+          // Check if channel exists and is sendable (not in DMs or deleted channels)
+          if (interaction.channel && interaction.channel.send) {
+            await interaction.channel.send(messageContent);
+          } else {
+            logger.warn(
+              `Cannot send command response: channel not available (DM or deleted channel)`,
+            );
+          }
         } catch (error) {
           logger.error(
             `Error sending command response for ${cmdResponse.command}:`,
@@ -356,15 +518,35 @@ export async function execute(interaction, client) {
   } catch (error) {
     logger.error("Ask command error:", error);
 
+    // Unregister status message on error (request failed)
+    if (currentRequestId) {
+      try {
+        const reply = await interaction.fetchReply().catch(() => null);
+        if (reply && reply.id) {
+          const { concurrencyManager } = await import(
+            "../../../utils/ai/concurrencyManager.js"
+          );
+          concurrencyManager.unregisterStatusMessage(reply.id);
+        }
+      } catch (unregisterError) {
+        logger.debug(
+          "[ask] Failed to unregister status message on error:",
+          unregisterError,
+        );
+      }
+    }
+
     let errorMessage =
       "Failed to generate AI response. Please try again later.";
 
-    if (error.message.includes("Rate limit exceeded")) {
-      errorMessage = error.message;
-    } else if (error.message.includes("not available")) {
-      errorMessage = error.message;
-    } else if (error.message.includes("disabled")) {
-      errorMessage = error.message;
+    if (error?.message) {
+      if (error.message.includes("Rate limit exceeded")) {
+        errorMessage = error.message;
+      } else if (error.message.includes("not available")) {
+        errorMessage = error.message;
+      } else if (error.message.includes("disabled")) {
+        errorMessage = error.message;
+      }
     }
 
     const errorResponse = errorEmbed({

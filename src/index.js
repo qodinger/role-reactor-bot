@@ -130,18 +130,43 @@ function createClient() {
   // Add enhanced rate limit event handlers
   client.rest.on("rateLimited", rateLimitInfo => {
     const logger = getLogger();
+    // Use nullish coalescing and explicit fallbacks to ensure values are never undefined
+    const method = rateLimitInfo?.method ?? "UNKNOWN";
+    const path =
+      rateLimitInfo?.path ??
+      rateLimitInfo?.route ??
+      rateLimitInfo?.url ??
+      "unknown";
+    const timeout =
+      rateLimitInfo?.timeout ??
+      rateLimitInfo?.resetAfter ??
+      rateLimitInfo?.retryAfter ??
+      0;
+
     logger.warn(
-      `🚫 Rate limited: ${rateLimitInfo.method} ${rateLimitInfo.path} - Retry after ${rateLimitInfo.timeout}ms`,
+      `🚫 Rate limited: ${method} ${path} - Retry after ${timeout}ms`,
     );
 
     // Log rate limit statistics for monitoring
     logger.debug(`Rate limit details:`, {
-      method: rateLimitInfo.method,
-      path: rateLimitInfo.path,
-      timeout: rateLimitInfo.timeout,
-      limit: rateLimitInfo.limit,
-      remaining: rateLimitInfo.remaining,
-      resetAfter: rateLimitInfo.resetAfter,
+      method: rateLimitInfo?.method ?? "UNKNOWN",
+      path:
+        rateLimitInfo?.path ??
+        rateLimitInfo?.route ??
+        rateLimitInfo?.url ??
+        "unknown",
+      timeout:
+        rateLimitInfo?.timeout ??
+        rateLimitInfo?.resetAfter ??
+        rateLimitInfo?.retryAfter ??
+        0,
+      limit: rateLimitInfo?.limit ?? "unknown",
+      remaining: rateLimitInfo?.remaining ?? "unknown",
+      resetAfter:
+        rateLimitInfo?.resetAfter ??
+        rateLimitInfo?.timeout ??
+        rateLimitInfo?.retryAfter ??
+        0,
     });
   });
 
@@ -561,6 +586,13 @@ async function main() {
       import("./commands/general/avatar/utils/generationHistory.js").then(
         ({ GenerationHistory }) => {
           GenerationHistory.startAutoCleanup();
+        },
+      );
+
+      // Start periodic cleanup for feedback contexts
+      import("./utils/ai/feedbackManager.js").then(
+        ({ startFeedbackContextCleanup }) => {
+          startFeedbackContextCleanup();
         },
       );
 

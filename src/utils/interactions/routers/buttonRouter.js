@@ -99,6 +99,18 @@ export async function routeButtonInteraction(interaction, _client) {
       return;
     }
 
+    // Handle AI feedback buttons
+    if (customId.startsWith("ai_feedback_")) {
+      const { handleAIFeedbackButton } = await import(
+        "../../../utils/ai/feedbackManager.js"
+      );
+      await handleAIFeedbackButton(interaction);
+      return;
+    }
+
+    // Cancel buttons removed - users can cancel by deleting the status message
+    // (Handler kept for backward compatibility but won't be called)
+
     if (customId.startsWith("leaderboard_")) {
       const { handleLeaderboardButton } = await import(
         "../handlers/leaderboardHandlers.js"

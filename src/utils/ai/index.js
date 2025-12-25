@@ -52,3 +52,8 @@ export {
   STREAMING_MIN_CHUNK_SIZE,
   JSON_MARKDOWN_PATTERNS,
 } from "./constants.js";
+export {
+  FeedbackManager,
+  feedbackManager,
+  handleAIFeedbackButton,
+} from "./feedbackManager.js";
