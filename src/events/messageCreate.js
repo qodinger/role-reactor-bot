@@ -9,6 +9,7 @@ import {
   getAICreditInfo,
 } from "../utils/ai/aiCreditManager.js";
 import { emojiConfig } from "../config/emojis.js";
+import { EMOJIS } from "../config/theme.js";
 
 const { customEmojis } = emojiConfig;
 
@@ -113,13 +114,20 @@ export async function execute(message, client) {
         // Ignore errors (e.g., no permission to send typing)
       });
 
+      // Declare replyMessage outside try block so it's accessible in catch block
+      let replyMessage = null; // Status message - will be created by updateStatusMessage
+
+      // Declare streaming variables outside try block for cleanup in catch
+      let useStreaming = false;
+      let updateTimer = null;
+
       try {
         // Note: Messages don't have locale, so we use guild's preferred locale or default to en-US
         const locale = message.guild?.preferredLocale || "en-US";
 
         // Check if streaming is enabled and supported
         const { STREAMING_ENABLED } = await import("../utils/ai/constants.js");
-        const useStreaming =
+        useStreaming =
           STREAMING_ENABLED &&
           chatService.aiService.getTextProvider() &&
           ["openrouter", "openai", "selfhosted"].includes(
@@ -127,11 +135,93 @@ export async function execute(message, client) {
           );
 
         let response;
-        let replyMessage = null;
+
+        // Store requestId for cancellation
+        let currentRequestId = null;
+
+        // Helper function to update status message (plain text, no embeds for mentions)
+        const updateStatusMessage = async (
+          status,
+          description = null,
+          requestId = null,
+          _queuePosition = null, // Unused - kept for API consistency
+        ) => {
+          if (!message.channel || !message.channel.send) {
+            logger.warn(
+              `Cannot send status message: channel not available (DM or deleted channel)`,
+            );
+            return;
+          }
+          try {
+            // Store requestId if provided
+            if (requestId) {
+              currentRequestId = requestId;
+            }
+
+            // Use plain text instead of embed for mention responses
+            const statusText = description || `${EMOJIS.UI.LOADING} ${status}`;
+
+            if (replyMessage) {
+              await replyMessage.edit({
+                content: statusText,
+                embeds: [], // No embeds for mention responses
+                components: [], // No cancel button - users can delete the message to cancel
+              });
+              // Register status message for cancellation on delete
+              if (currentRequestId) {
+                const { concurrencyManager } = await import(
+                  "../utils/ai/concurrencyManager.js"
+                );
+                concurrencyManager.registerStatusMessage(
+                  replyMessage.id,
+                  currentRequestId,
+                  message.author.id,
+                );
+              }
+            } else {
+              replyMessage = await message.reply({
+                content: statusText,
+                embeds: [], // No embeds for mention responses
+                components: [], // No cancel button - users can delete the message to cancel
+              });
+              // Register status message for cancellation on delete
+              if (currentRequestId) {
+                const { concurrencyManager } = await import(
+                  "../utils/ai/concurrencyManager.js"
+                );
+                concurrencyManager.registerStatusMessage(
+                  replyMessage.id,
+                  currentRequestId,
+                  message.author.id,
+                );
+              }
+            }
+          } catch (error) {
+            // Ignore edit errors (e.g., message deleted)
+            logger.debug(
+              "[messageCreate] Failed to update status message:",
+              error,
+            );
+          }
+        };
 
         if (useStreaming) {
-          // Send initial "thinking..." message
-          replyMessage = await message.reply("🤔 Thinking...");
+          // Send initial status message
+          await updateStatusMessage("Thinking about your message...");
+
+          // Track if message was deleted to prevent further update attempts
+          let messageDeleted = false;
+
+          // Throttle message updates to avoid Discord rate limits
+          // Discord allows 5 message edits per 5 seconds per channel
+          // We'll update at most once per 1.5 seconds to stay well under the limit
+          // Also only update when content changes significantly (50+ new characters)
+          let lastUpdateTime = 0;
+          const UPDATE_THROTTLE_MS = 1500; // 1.5 seconds between updates
+          const MIN_CONTENT_CHANGE = 50; // Only update if 50+ new characters
+          let pendingUpdate = null;
+          let lastDisplayedContent = "";
+          // updateTimer is declared above for cleanup in catch block
 
           // Helper function to extract message from JSON
           const extractMessage = text => {
@@ -195,45 +285,168 @@ export async function execute(message, client) {
             return text;
           };
 
+          // Status callback for real processing steps (before streaming starts)
+          const onStatus = async (
+            status,
+            requestId = null,
+            queuePosition = null,
+          ) => {
+            if (!messageDeleted) {
+              await updateStatusMessage(status, null, requestId, queuePosition);
+            }
+          };
+
           // Streaming callback - updates Discord message as chunks arrive
           const onChunk = async fullText => {
+            // Don't try to update if message was deleted
+            if (messageDeleted || !replyMessage) {
+              return;
+            }
+
             // Extract message from JSON if possible
             const messageText = extractMessage(fullText);
+            // Truncate if too long (Discord message limit is 2000 characters)
             const displayText =
               messageText.length > 2000
                 ? `${messageText.substring(0, 1997)}...`
                 : messageText;
 
-            try {
-              if (replyMessage) {
-                await replyMessage.edit(displayText || "🤔 Thinking...");
+            // Only update if we have actual content (not just status)
+            if (displayText && displayText.trim().length > 0) {
+              // Check if content has changed significantly
+              const contentChanged =
+                !lastDisplayedContent ||
+                displayText.length - lastDisplayedContent.length >=
+                  MIN_CONTENT_CHANGE ||
+                displayText.substring(0, lastDisplayedContent.length) !==
+                  lastDisplayedContent;
+
+              if (contentChanged) {
+                // Store the latest text for update
+                pendingUpdate = displayText;
+
+                // Clear any existing timer
+                if (updateTimer) {
+                  clearTimeout(updateTimer);
+                }
+
+                // Check if we can update immediately (throttle check)
+                const now = Date.now();
+                const timeSinceLastUpdate = now - lastUpdateTime;
+
+                if (timeSinceLastUpdate >= UPDATE_THROTTLE_MS) {
+                  // Enough time has passed, update immediately
+                  await performUpdate();
+                } else {
+                  // Schedule update after throttle period
+                  const delay = UPDATE_THROTTLE_MS - timeSinceLastUpdate;
+                  updateTimer = setTimeout(() => {
+                    performUpdate();
+                  }, delay);
+                }
               }
-            } catch (error) {
-              // Ignore edit errors (e.g., message deleted)
-              logger.debug(
-                "[messageCreate] Failed to update streaming message:",
-                error,
-              );
             }
           };
 
-          // Generate streaming AI response
-          response = await chatService.generateResponseStreaming(
-            userMessage,
-            message.guild,
-            client,
-            {
-              userId: message.author.id,
-              coreUserData,
-              user: message.author,
-              channel: message.channel,
-              locale,
-              rateLimitReserved: true,
-              onChunk,
-            },
-          );
+          // Helper function to actually perform the message update
+          const performUpdate = async () => {
+            if (messageDeleted || !replyMessage || !pendingUpdate) {
+              return;
+            }
+
+            try {
+              // For streaming, update with plain text (no embeds for mention responses)
+              // The final response will be converted to plain text
+              await replyMessage.edit({
+                content: pendingUpdate,
+                embeds: [], // No embeds for mention responses
+                components: [], // Remove cancel button when streaming starts
+              });
+
+              // Update last update time and track displayed content
+              lastUpdateTime = Date.now();
+              lastDisplayedContent = pendingUpdate;
+              pendingUpdate = null;
+            } catch (error) {
+              // Handle specific Discord error codes
+              if (error.code === 10008) {
+                // Unknown Message - message was deleted, stop trying to update
+                messageDeleted = true;
+                logger.debug(
+                  `[messageCreate] Message ${replyMessage?.id} was deleted, stopping updates`,
+                );
+              } else if (error.code === 50035) {
+                // Invalid Form Body - usually means content is too long or invalid
+                logger.debug(
+                  "[messageCreate] Invalid form body when updating message:",
+                  error.message,
+                );
+              } else if (error.code === 429) {
+                // Rate limited - wait longer before next update
+                logger.debug(
+                  "[messageCreate] Rate limited when updating message, increasing throttle",
+                );
+                // Increase throttle time temporarily
+                lastUpdateTime = Date.now() + 2000; // Wait 2 more seconds
+              } else {
+                // Other errors (network issues, etc.)
+                logger.debug(
+                  "[messageCreate] Failed to update streaming message:",
+                  error.code || error.message,
+                );
+              }
+            }
+          };
+
+          // Generate streaming AI response with real status updates
+          try {
+            response = await chatService.generateResponseStreaming(
+              userMessage,
+              message.guild,
+              client,
+              {
+                userId: message.author.id,
+                coreUserData,
+                user: message.author,
+                channel: message.channel,
+                locale,
+                rateLimitReserved: true,
+                onChunk,
+                onStatus, // Real status callback for processing steps
+              },
+            );
+          } finally {
+            // Always cleanup timer and flush pending updates, even if streaming fails
+            if (updateTimer) {
+              clearTimeout(updateTimer);
+              updateTimer = null;
+            }
+            if (pendingUpdate && !messageDeleted && replyMessage) {
+              try {
+                await performUpdate();
+              } catch (flushError) {
+                // Ignore flush errors - message might be deleted or rate limited
+                logger.debug(
+                  "[messageCreate] Failed to flush pending update:",
+                  flushError.code || flushError.message,
+                );
+              }
+            }
+          }
         } else {
-          // Generate AI response (non-streaming)
+          // Non-streaming mode - show real status updates tied to actual processing
+          await updateStatusMessage("Thinking about your message...");
+
+          // Status callback that will be called by chatService at actual processing steps
+          const onStatus = async (
+            status,
+            requestId = null,
+            queuePosition = null,
+          ) => {
+            await updateStatusMessage(status, null, requestId, queuePosition);
+          };
+
+          // Generate AI response (non-streaming) with real status callback
           // Pass rateLimitReserved: true since we already checked and reserved the rate limit
           response = await chatService.generateResponse(
             userMessage,
@@ -246,55 +459,136 @@ export async function execute(message, client) {
               channel: message.channel,
               locale,
               rateLimitReserved: true, // Already checked and reserved in handler
+              onStatus, // Real status callback - will be called at actual processing steps
             },
           );
         }
 
-        // Handle response format (can be string or object with text and commandResponses)
-        let replyText = typeof response === "string" ? response : response.text;
+        // Handle response format (can be string or object with text, actions, and commandResponses)
+        const responseText =
+          typeof response === "string" ? response : response?.text || null;
+        const actions =
+          typeof response === "object" && response?.actions
+            ? response.actions
+            : [];
         const commandResponses =
-          typeof response === "object" && response.commandResponses
+          typeof response === "object" && response?.commandResponses
             ? response.commandResponses
             : [];
 
-        // Don't send empty messages (e.g., when command already sent its response)
-        if (!replyText || replyText.trim().length === 0) {
-          // Command already sent its response, no need to send AI's message
-          // Delete the "thinking..." message if it exists
-          if (replyMessage) {
-            try {
-              await replyMessage.delete();
-            } catch {
-              // Ignore delete errors
-            }
-          }
-          return;
-        }
-
-        // Discord message limit is 2000 characters, truncate if needed
-        if (replyText.length > 2000) {
-          replyText = `${replyText.substring(0, 1997)}...`;
-        }
-
-        // Update or send the final message
-        if (replyMessage && useStreaming) {
-          // Update the streaming message with final text
+        // Delete status embed
+        if (replyMessage) {
           try {
-            await replyMessage.edit(replyText);
+            // Unregister status message before deleting (request is completing)
+            const { concurrencyManager } = await import(
+              "../utils/ai/concurrencyManager.js"
+            );
+            concurrencyManager.unregisterStatusMessage(replyMessage.id);
+
+            // Delete the status embed message
+            await replyMessage.delete();
           } catch (error) {
-            // If edit fails, send a new message
+            // Ignore delete errors (message might already be deleted)
             logger.debug(
-              "[messageCreate] Failed to edit streaming message, sending new:",
+              "[messageCreate] Failed to delete status message:",
               error,
             );
-            await message.reply(replyText);
           }
-        } else {
-          // Reply to the message with plain text (non-streaming)
-          await message.reply(replyText);
         }
 
-        // Send command responses as separate messages (embeds) to make it look like commands were actually executed
+        // Step 1: Send AI's text message first (if it exists)
+        if (responseText && responseText.trim().length > 0) {
+          // Discord message limit is 2000 characters, truncate if needed
+          let finalReplyText = responseText;
+          if (responseText.length > 2000) {
+            finalReplyText = `${responseText.substring(0, 1997)}...`;
+            logger.warn(
+              `AI response truncated for user ${message.author.id} (${responseText.length} -> ${finalReplyText.length} chars)`,
+            );
+          }
+
+          try {
+            await message.reply(finalReplyText);
+          } catch (error) {
+            logger.error(
+              "[messageCreate] Failed to send final response:",
+              error,
+            );
+          }
+        }
+
+        // Step 2: Execute actions in a second message (will appear below AI's text automatically)
+        // Note: For streaming mode, actions are returned separately and executed here
+        // For non-streaming mode, actions may have already been executed during generation
+        // (for follow-up queries), so we check if actions array is non-empty before executing
+        if (actions && actions.length > 0) {
+          try {
+            logger.info(
+              `[messageCreate] Executing ${actions.length} action(s) after sending AI message`,
+            );
+
+            // Execute actions (command responses will appear below automatically)
+            const actionResults = await chatService.executeStructuredActions(
+              actions,
+              message.guild,
+              client,
+              message.author,
+              message.channel,
+            );
+
+            // Store action execution results in conversation history
+            // This prevents the AI from retrying failed actions in future conversations
+            if (actionResults && actionResults.results) {
+              const { results } = actionResults;
+              const executedCommands = results
+                .filter(r => r.includes("Command Result:"))
+                .map(r => r.replace(/Command Result: /, ""));
+              const errorMessages = results.filter(
+                r => r.includes("Error") || r.includes("Failed"),
+              );
+
+              // Store successful command executions
+              if (executedCommands.length > 0) {
+                const commandHistoryMessage = `[Action completed - do not retry: ${executedCommands.join(", ")}]`;
+                await chatService.addToHistory(
+                  message.author.id,
+                  message.guild?.id || null,
+                  {
+                    role: "assistant",
+                    content: commandHistoryMessage,
+                  },
+                );
+              }
+
+              // Store failed actions with completion marker (not retry needed)
+              if (errorMessages.length > 0) {
+                const errorHistoryMessage = `[Action completed with errors - do not retry: ${errorMessages.map(e => e.replace(/Command Error: /, "")).join("; ")}]`;
+                await chatService.addToHistory(
+                  message.author.id,
+                  message.guild?.id || null,
+                  {
+                    role: "assistant",
+                    content: errorHistoryMessage,
+                  },
+                );
+              }
+            }
+          } catch (error) {
+            logger.error("[messageCreate] Failed to execute actions:", error);
+            // Store error as completed action to prevent retry
+            const errorHistoryMessage = `[Action execution failed and completed - do not retry: ${error.message || "Unknown error"}]`;
+            await chatService.addToHistory(
+              message.author.id,
+              message.guild?.id || null,
+              {
+                role: "assistant",
+                content: errorHistoryMessage,
+              },
+            );
+          }
+        }
+
+        // Send command responses as embeds (below AI's text message) - legacy support
         if (commandResponses.length > 0) {
           for (const cmdResponse of commandResponses) {
             try {
@@ -356,8 +650,15 @@ export async function execute(message, client) {
                 messageContent.components = cmdResponse.response.components;
               }
 
-              // Send the command response as a separate message
-              await message.channel.send(messageContent);
+              // Send the command response as a separate message (below AI's text)
+              // Check if channel exists and is sendable (not in DMs or deleted channels)
+              if (message.channel && message.channel.send) {
+                await message.channel.send(messageContent);
+              } else {
+                logger.warn(
+                  `Cannot send command response: channel not available (DM or deleted channel)`,
+                );
+              }
             } catch (error) {
               logger.error(
                 `Error sending command response for ${cmdResponse.command}:`,
@@ -368,13 +669,58 @@ export async function execute(message, client) {
         }
       } catch (error) {
         logger.error("Error generating AI response for mention:", error);
-        await message
-          .reply(
-            "Sorry, I encountered an error while processing your message. Please try again later or use the `/ask` command.",
-          )
-          .catch(() => {
+
+        // Cleanup streaming timer if it exists (in case of error during streaming)
+        if (useStreaming && updateTimer) {
+          try {
+            clearTimeout(updateTimer);
+            updateTimer = null;
+          } catch (timerError) {
+            logger.debug(
+              "[messageCreate] Failed to clear update timer:",
+              timerError,
+            );
+          }
+        }
+
+        // Unregister status message on error (request failed)
+        if (replyMessage) {
+          try {
+            const { concurrencyManager } = await import(
+              "../utils/ai/concurrencyManager.js"
+            );
+            concurrencyManager.unregisterStatusMessage(replyMessage.id);
+          } catch (unregisterError) {
+            logger.debug(
+              "[messageCreate] Failed to unregister status message on error:",
+              unregisterError,
+            );
+          }
+        }
+
+        // Try to edit existing status message first, otherwise send new message
+        const errorMessage =
+          "Sorry, I encountered an error while processing your message. Please try again later or use the `/ask` command.";
+
+        if (replyMessage) {
+          try {
+            await replyMessage.edit(errorMessage);
+          } catch (editError) {
+            // If edit fails, try to send a new message
+            logger.debug(
+              "[messageCreate] Failed to edit error message, sending new:",
+              editError,
+            );
+            await message.reply(errorMessage).catch(() => {
+              // Ignore reply errors
+            });
+          }
+        } else {
+          // No status message exists, send new error message
+          await message.reply(errorMessage).catch(() => {
             // Ignore reply errors
           });
+        }
       }
     }
 

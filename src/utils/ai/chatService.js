@@ -35,11 +35,12 @@ const FOLLOW_UP_PROMPT_TEMPLATE = dedent`
   **CRITICAL INSTRUCTIONS:**
   1. **If the fetch was successful:** Look at the "COMPLETE LIST OF HUMAN MEMBER NAMES" section in the system context above
   2. **If errors occurred:** You MUST inform the user about the errors. Explain what went wrong and what data is available (cached members, if any)
-  3. **If successful:** Find the numbered list (e.g., "1. Name1\\n2. Name2\\n3. Name3")
-  4. **If successful:** Copy the EXACT names from that numbered list - type them character by character as shown
-  5. Do NOT invent, guess, or make up ANY member names
-  6. Do NOT use generic names like "iFunny", "Reddit", "Discord", "John", "Alice", "Bob", "Charlie"
-  7. Use ONLY the actual member names from the numbered list in the "COMPLETE LIST OF HUMAN MEMBER NAMES" section (if available)
+  3. **If successful:** Use ONLY the member names from the list (format: "- Name 🟢 (status)")
+  4. **If successful:** Copy the EXACT names from that list - type them character by character as shown
+  5. **Format the list naturally** - you can use numbered lists, bullet points, or any clear format that makes sense
+  6. Do NOT invent, guess, or make up ANY member names
+  7. Do NOT use generic names like "iFunny", "Reddit", "Discord", "John", "Alice", "Bob", "Charlie"
+  8. Use ONLY the actual member names from the "COMPLETE LIST OF HUMAN MEMBER NAMES" section (if available)
 
   **IMPORTANT:** If there were errors fetching members, you MUST tell the user about the error clearly. Don't pretend the data was fetched successfully if it wasn't.
 `;
@@ -239,6 +240,117 @@ export class ChatService {
    */
   async clearHistory(userId, guildId = null) {
     return conversationManager.clearHistory(userId, guildId);
+  }
+
+  /**
+   * Get optimized parameters for a specific model
+   * Optimizes maxTokens and temperature based on model characteristics for better speed and quality
+   * @param {string|null} modelName - Model name/identifier
+   * @returns {Object} Optimized parameters { maxTokens, temperature }
+   */
+  getModelOptimizations(modelName) {
+    if (!modelName) {
+      // Default fallback
+      return { maxTokens: 2000, temperature: 0.7 };
+    }
+
+    const modelLower = modelName.toLowerCase();
+
+    // DeepSeek models (optimize based on model type)
+    if (modelLower.includes("deepseek-r2")) {
+      return { maxTokens: 1800, temperature: 0.5 }; // R2 is faster, can handle more tokens
+    }
+    if (modelLower.includes("deepseek-r1-0528")) {
+      return { maxTokens: 2000, temperature: 0.5 }; // Enhanced R1: Better performance, can handle more
+    }
+    if (modelLower.includes("deepseek-r1")) {
+      return { maxTokens: 1500, temperature: 0.5 }; // R1 is slower reasoning model, reduce tokens
+    }
+    if (
+      modelLower.includes("deepseek-chat") ||
+      modelLower.includes("deepseek-v3")
+    ) {
+      return { maxTokens: 2000, temperature: 0.7 }; // V3/Chat: Fast general purpose, matches GPT-4o
+    }
+    if (modelLower.includes("deepseek-v3-base")) {
+      return { maxTokens: 2000, temperature: 0.7 }; // V3 Base: Free model, good performance
+    }
+    if (modelLower.includes("deepseek")) {
+      return { maxTokens: 2000, temperature: 0.6 }; // Other DeepSeek variants
+    }
+
+    // Claude models (fast, excellent reasoning)
+    if (
+      modelLower.includes("claude-3.5-haiku") ||
+      modelLower.includes("claude-3-haiku")
+    ) {
+      return { maxTokens: 2000, temperature: 0.6 }; // Haiku is optimized for speed
+    }
+    if (
+      modelLower.includes("claude-3.5-sonnet") ||
+      modelLower.includes("claude-3-sonnet")
+    ) {
+      return { maxTokens: 2000, temperature: 0.7 }; // Sonnet is balanced
+    }
+    if (
+      modelLower.includes("claude-3.5-opus") ||
+      modelLower.includes("claude-3-opus")
+    ) {
+      return { maxTokens: 2000, temperature: 0.7 }; // Opus is high quality
+    }
+    if (modelLower.includes("claude")) {
+      return { maxTokens: 2000, temperature: 0.7 }; // Other Claude models
+    }
+
+    // GPT models
+    if (
+      modelLower.includes("gpt-4o-mini") ||
+      modelLower.includes("gpt-4-mini")
+    ) {
+      return { maxTokens: 2000, temperature: 0.7 }; // Fast and efficient
+    }
+    if (modelLower.includes("gpt-4o") || modelLower.includes("gpt-4-turbo")) {
+      return { maxTokens: 2000, temperature: 0.7 }; // Fast GPT-4 variants
+    }
+    if (modelLower.includes("gpt-4")) {
+      return { maxTokens: 2000, temperature: 0.7 }; // Standard GPT-4
+    }
+    if (modelLower.includes("gpt-3.5-turbo")) {
+      return { maxTokens: 2000, temperature: 0.7 }; // Fast GPT-3.5
+    }
+    if (modelLower.includes("gpt")) {
+      return { maxTokens: 2000, temperature: 0.7 }; // Other GPT models
+    }
+
+    // Mistral models
+    if (
+      modelLower.includes("mistral-medium") ||
+      modelLower.includes("mistral-large")
+    ) {
+      return { maxTokens: 2000, temperature: 0.7 }; // Balanced Mistral models
+    }
+    if (modelLower.includes("mistral")) {
+      return { maxTokens: 2000, temperature: 0.7 }; // Other Mistral models
+    }
+
+    // Gemini models
+    if (
+      modelLower.includes("gemini-pro") ||
+      modelLower.includes("gemini-flash")
+    ) {
+      return { maxTokens: 2000, temperature: 0.7 }; // Fast Gemini models
+    }
+    if (modelLower.includes("gemini")) {
+      return { maxTokens: 2000, temperature: 0.7 }; // Other Gemini models
+    }
+
+    // Self-hosted models (typically slower, optimize for speed)
+    if (modelLower.includes("llama") || modelLower.includes("ollama")) {
+      return { maxTokens: 1500, temperature: 0.6 }; // Self-hosted models benefit from lower limits
+    }
+
+    // Default fallback for unknown models
+    return { maxTokens: 2000, temperature: 0.7 };
   }
 
   /**
@@ -533,10 +645,35 @@ export class ChatService {
                 const { executeCommandProgrammatically } = await import(
                   "./commandExecutor.js"
                 );
+
+                // Parse command name - handle cases where AI puts "command subcommand" in command field
+                // e.g., "poll create" should become command="poll", subcommand="create"
+                let commandName = action.command;
+                let subcommand =
+                  action.subcommand ||
+                  (action.options && action.options.subcommand) ||
+                  null;
+
+                // If command name contains a space, split it into command and subcommand
+                if (commandName.includes(" ") && !subcommand) {
+                  const parts = commandName.split(" ");
+                  commandName = parts[0];
+                  subcommand = parts.slice(1).join(" ");
+                  logger.debug(
+                    `[executeStructuredActions] Parsed command "${action.command}" into command="${commandName}", subcommand="${subcommand}"`,
+                  );
+                }
+
+                // Remove subcommand from options if it's there (it's not a real option)
+                const cleanOptions = { ...(action.options || {}) };
+                if (cleanOptions.subcommand) {
+                  delete cleanOptions.subcommand;
+                }
+
                 const result = await executeCommandProgrammatically({
-                  commandName: action.command,
-                  subcommand: action.subcommand || null,
-                  options: action.options || {},
+                  commandName,
+                  subcommand,
+                  options: cleanOptions,
                   user,
                   guild,
                   channel,
@@ -1182,7 +1319,7 @@ export class ChatService {
   async generateResponse(userMessage, guild, client, options = {}) {
     // Track performance - start timer
     const requestStartTime = Date.now();
-    const { userId, coreUserData, locale } = options;
+    const { userId, coreUserData, locale, onStatus } = options;
 
     if (!this.aiService.isEnabled()) {
       throw new Error(
@@ -1191,12 +1328,14 @@ export class ChatService {
     }
 
     // Build system context with user message for on-demand command injection
+    if (onStatus) await onStatus("Preparing my response...");
     const systemMessage = await systemPromptBuilder.buildSystemContext(
       guild,
       client,
       userMessage,
       options.locale || "en-US",
       options.user || null, // Pass requester information
+      { userId: options.userId }, // Pass userId for preference loading
     );
 
     // Log system context summary for verification
@@ -1226,11 +1365,13 @@ export class ChatService {
         );
         if (memberListMatch) {
           const memberListSection = memberListMatch[0];
-          // Match numbered list items - handle various formats:
-          // "1. name", "1. name\n", etc.
+          // Match list items - handle various formats:
+          // "- name", "1. name", "- name 🟢 (status)", etc.
           // Use multiline flag and match across lines
           const memberLines =
-            memberListSection.match(/^\s*\d+\.\s+.+$/gm) || [];
+            memberListSection.match(/^\s*[-•*]\s+.+$/gm) ||
+            memberListSection.match(/^\s*\d+\.\s+.+$/gm) ||
+            [];
           const memberNames = memberLines.length;
 
           if (memberNames > 0) {
@@ -1247,6 +1388,7 @@ export class ChatService {
     // ============================================================================
     // Automatically fetch members if needed based on user query and cache coverage
     if (guild && userMessage) {
+      if (onStatus) await onStatus("Checking server details...");
       const fetchResult = await this.smartMemberFetch(guild, userMessage);
       if (fetchResult.fetched) {
         logger.info(
@@ -1260,6 +1402,8 @@ export class ChatService {
     }
 
     // Get conversation history for this user in this server (with LTM support)
+    // Trust the AI to understand context - it can naturally detect when greetings indicate a new topic
+    if (onStatus) await onStatus("Reviewing our conversation...");
     const guildId = guild?.id || null;
     const history = await this.getConversationHistory(userId, guildId);
 
@@ -1326,11 +1470,67 @@ export class ChatService {
 
     const requestId = `chat-${userId || "unknown"}-${Date.now()}`;
 
+    // Queue status callback for position updates
+    const onQueueStatus = options.onQueueStatus || null;
+
+    // Helper to format queue status message
+    const formatQueueStatus = (position, totalInSystem, waitTime) => {
+      if (position === null) {
+        // Processing or not in queue
+        return null;
+      }
+      if (position === 0) {
+        return "Starting processing...";
+      }
+
+      // Format wait time nicely
+      let waitText;
+      if (waitTime < 60) {
+        waitText = `${Math.ceil(waitTime)} sec`;
+      } else {
+        const minutes = Math.ceil(waitTime / 60);
+        waitText = minutes === 1 ? "~1 min" : `~${minutes} min`;
+      }
+
+      // Show position in queue (1-based for user-friendly display)
+      return `Waiting in queue (position ${position + 1}, ${waitText} estimated wait)`;
+    };
+
+    // Wrapper for queue status callback that also calls onStatus
+    const queueStatusCallback = (position, totalInSystem, waitTime) => {
+      if (onQueueStatus) {
+        // Pass requestId so handlers can show cancel button
+        onQueueStatus(position, totalInSystem, waitTime, requestId);
+      }
+      // Also update regular status if provided
+      if (onStatus) {
+        const queueMessage = formatQueueStatus(
+          position,
+          totalInSystem,
+          waitTime,
+        );
+        if (queueMessage) {
+          // Pass requestId for cancel button
+          onStatus(queueMessage, requestId, position);
+        } else if (position === null) {
+          // Request is now processing (no cancel button needed)
+          onStatus("Crafting my response...", null, null);
+        }
+      }
+    };
+
     return concurrencyManager.queueRequest(
       requestId,
       async () => {
         try {
-          // Determine maxTokens based on user's request
+          // Get model-specific optimizations
+          const currentModel =
+            this.aiService.config.providers.openrouter?.models?.text?.primary ||
+            this.aiService.config.providers.openai?.models?.text?.primary ||
+            this.aiService.config.providers.selfhosted?.models?.text?.primary;
+          const modelOpts = this.getModelOptimizations(currentModel);
+
+          // Determine maxTokens based on user's request and model capabilities
           // Check if user explicitly asks for detailed explanation
           const wantsDetail =
             userMessage.toLowerCase().includes("explain") ||
@@ -1341,7 +1541,12 @@ export class ChatService {
             userMessage.toLowerCase().includes("how does") ||
             userMessage.toLowerCase().includes("how do");
 
-          const maxTokens = wantsDetail ? 800 : 500; // Concise by default (500 tokens ≈ 350-400 chars), expand if asked
+          // Use model-optimized maxTokens, but scale down for concise responses
+          // Base maxTokens from model optimization, then adjust for detail preference
+          const baseMaxTokens = modelOpts.maxTokens;
+          const maxTokens = wantsDetail
+            ? Math.min(baseMaxTokens, 1200) // Cap at 1200 for detailed responses
+            : Math.min(Math.floor(baseMaxTokens * 0.4), 600); // ~40% of base for concise (capped at 600)
 
           // Add a final reminder about format to the user message
           // Note: messages[messages.length - 1] already contains userMessageWithContext
@@ -1369,8 +1574,8 @@ export class ChatService {
             ],
             config: {
               systemMessage,
-              temperature: 0.7,
-              maxTokens, // Adaptive: 500 for concise, 800 if user asks for detail
+              temperature: modelOpts.temperature, // Use model-optimized temperature
+              maxTokens, // Adaptive: based on model and user preference
               forceJson: false, // Don't force JSON - let AI choose based on whether actions are needed
             },
             // Use primary provider (self-hosted if enabled, otherwise fallback)
@@ -1545,7 +1750,15 @@ export class ChatService {
           let responseSuppressed = false;
 
           // Process structured actions if we have them
+          // For non-streaming, we still need to execute actions to get results for follow-up queries
+          // But we'll delay command response sending by returning actions separately
+          // Actions will be executed after the message is sent (in messageCreate.js)
+          // This allows the AI's text message to appear above command response embeds
+          let actionResults = [];
           if (actions.length > 0 && guild) {
+            // For now, we still execute actions here to get results for follow-up queries
+            // But commands will send responses immediately, so the order might not be perfect
+            // TODO: Refactor to separate action execution from command response sending
             try {
               const actionResult = await this.executeStructuredActions(
                 actions,
@@ -1555,7 +1768,7 @@ export class ChatService {
                 options.channel,
               );
 
-              const actionResults = actionResult.results;
+              actionResults = actionResult.results;
               // Commands now send responses directly to channel, so no need to capture them
 
               // Check if any actions trigger re-query (using registry)
@@ -1585,6 +1798,7 @@ export class ChatService {
                     options.locale || "en-US",
                     options.user || null,
                     {
+                      userId: options.userId,
                       forceIncludeMemberList:
                         memberActions.length > 0 ||
                         fetchActions.some(a => a.type === "fetch_all"),
@@ -1753,8 +1967,9 @@ export class ChatService {
                     });
 
                   // Store executed commands in LTM for future reference
+                  // Format: Mark as completed (not retry needed) so AI doesn't retry the action
                   if (executedCommands.length > 0) {
-                    const commandHistoryMessage = `[Command executed: ${executedCommands.join(", ")}]`;
+                    const commandHistoryMessage = `[Action completed - do not retry: ${executedCommands.join(", ")}]`;
                     await this.addToHistory(userId, guildId, {
                       role: "assistant",
                       content: commandHistoryMessage,
@@ -1815,7 +2030,8 @@ export class ChatService {
                     );
 
                     // Store error information in LTM so AI can learn from it
-                    const errorHistoryMessage = `[Command execution failed: ${errorMessages.map(e => e.replace(/Command Error: /, "")).join("; ")}]`;
+                    // Format: Mark as completed (not retry needed) so AI doesn't retry the action
+                    const errorHistoryMessage = `[Action completed with errors - do not retry: ${errorMessages.map(e => e.replace(/Command Error: /, "")).join("; ")}]`;
                     await this.addToHistory(userId, guildId, {
                       role: "assistant",
                       content: errorHistoryMessage,
@@ -1894,8 +2110,13 @@ export class ChatService {
             success: true,
           });
 
+          // Return message and actions
+          // Note: For non-streaming, actions may have already been executed for follow-up queries
+          // In that case, command responses were already sent, so we return empty actions array
+          // For streaming mode, actions are returned separately and executed after message is sent
           return {
             text: finalResponse,
+            actions: [], // Actions already executed for non-streaming (for follow-up queries), empty for streaming
             commandResponses: [], // Commands send directly, no need to return them
           };
         } catch (error) {
@@ -1915,6 +2136,7 @@ export class ChatService {
         userId,
         coreUserData,
         rateLimitReserved: options.rateLimitReserved || false,
+        onQueueStatus: queueStatusCallback, // Pass queue status callback wrapper
       },
     );
   }
@@ -1929,7 +2151,7 @@ export class ChatService {
    * @returns {Promise<Object>} Response with text and commandResponses
    */
   async generateResponseStreaming(userMessage, guild, client, options = {}) {
-    const { onChunk, userId } = options;
+    const { onChunk, userId, onStatus } = options;
 
     if (!onChunk || typeof onChunk !== "function") {
       throw new Error("onChunk callback is required for streaming");
@@ -1966,16 +2188,19 @@ export class ChatService {
     }
 
     // Build system context (same as non-streaming)
+    if (onStatus) await onStatus("Preparing my response...");
     const systemMessage = await systemPromptBuilder.buildSystemContext(
       guild,
       client,
       userMessage,
       options.locale || "en-US",
       options.user || null,
+      { userId: options.userId },
     );
 
     // Smart member fetch (same as non-streaming)
     if (guild && userMessage) {
+      if (onStatus) await onStatus("Checking server details...");
       const fetchResult = await this.smartMemberFetch(guild, userMessage);
       if (fetchResult.fetched) {
         logger.info(
@@ -1985,6 +2210,7 @@ export class ChatService {
     }
 
     // Get conversation history
+    if (onStatus) await onStatus("Reviewing our conversation...");
     const guildId = guild?.id || null;
     const history = await this.getConversationHistory(userId, guildId);
     const messages = [];
@@ -2015,11 +2241,16 @@ export class ChatService {
     // Detect if user is asking for an action (works for ALL actions, not just specific ones)
     const needsAction = await this.detectActionRequest(userMessage, client);
 
-    const enhancedUserMessage = needsAction
-      ? `${userMessage}\n\n[CRITICAL: The user is asking you to PERFORM AN ACTION (execute a command, play a game, fetch data, modify roles, etc.). You MUST use JSON format with actions array: {"message": "...", "actions": [...]}. DO NOT respond in plain text - you need to execute an action!]`
-      : userMessage;
+    const reminder = needsAction
+      ? `[CRITICAL: The user is asking you to PERFORM AN ACTION (execute a command, play a game, fetch data, modify roles, etc.). You MUST use JSON format with actions array: {"message": "...", "actions": [...]}. DO NOT respond in plain text - you need to execute an action!]`
+      : `[CRITICAL REMINDER: If you need to execute actions (commands, role changes, etc.), use JSON format: {"message": "...", "actions": [...]}. If you have NO actions (empty actions array), you MUST respond in plain text/markdown format - NO JSON, NO curly braces, NO code blocks. Just write your response directly.]`;
+
+    const enhancedUserMessage = `${userMessage}\n\n${reminder}`;
 
     messages.push({ role: "user", content: enhancedUserMessage });
+
+    // Update status before AI generation
+    if (onStatus) await onStatus("Crafting my response...");
 
     // Generate streaming response
     let fullText = "";
@@ -2069,14 +2300,15 @@ export class ChatService {
     };
 
     try {
-      // Get the current model to optimize for DeepSeek R1
+      // Get the current model for optimization
       const currentModel =
-        this.aiService.config.providers.openrouter?.models?.text?.primary;
-      const isDeepSeekR1 = currentModel && currentModel.includes("deepseek-r1");
+        this.aiService.config.providers.openrouter?.models?.text?.primary ||
+        this.aiService.config.providers.openai?.models?.text?.primary ||
+        this.aiService.config.providers.selfhosted?.models?.text?.primary;
 
-      // Optimize maxTokens for DeepSeek R1 (reduce for faster generation)
-      const maxTokens = isDeepSeekR1 ? 1500 : 2000;
-      const temperature = isDeepSeekR1 ? 0.5 : 0.7; // Lower temp = faster, more deterministic
+      // Optimize parameters based on model characteristics
+      const { maxTokens, temperature } =
+        this.getModelOptimizations(currentModel);
 
       const result = await this.aiService.generateTextStreaming({
         prompt: messages,
@@ -2148,28 +2380,6 @@ export class ChatService {
         content: finalMessage,
       });
 
-      // Execute actions if any
-      let commandResponses = [];
-      if (finalActions.length > 0) {
-        logger.info(
-          `[generateResponseStreaming] Executing ${finalActions.length} action(s): ${finalActions.map(a => a.type).join(", ")}`,
-        );
-        commandResponses = await this.executeStructuredActions(
-          finalActions,
-          guild,
-          client,
-          options.user,
-          options.channel,
-        );
-        logger.info(
-          `[generateResponseStreaming] Actions executed, commandResponses: ${commandResponses.length}`,
-        );
-      } else {
-        logger.debug(
-          `[generateResponseStreaming] No actions to execute (plain text response)`,
-        );
-      }
-
       // Track performance
       const responseTime = Date.now() - requestStartTime;
       performanceMonitor.recordRequest({
@@ -2179,9 +2389,12 @@ export class ChatService {
         type: "ai-chat-streaming",
       });
 
+      // Return message and actions separately - actions will be executed after message is sent
+      // This allows the AI's text message to appear above command response embeds
       return {
         text: finalMessage,
-        commandResponses,
+        actions: finalActions, // Return actions to be executed later
+        commandResponses: [], // Will be populated after actions are executed
       };
     } catch (error) {
       // Track error

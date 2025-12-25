@@ -33,12 +33,12 @@ export class CommandDiscoverer {
     }
 
     // Add choices if available (for string/integer/number options)
+    // Show ALL choices so AI understands all available options
     if (Array.isArray(option.choices) && option.choices.length > 0) {
       const choices = option.choices
-        .slice(0, 5)
         .map(c => c.name || String(c.value))
         .join(", ");
-      desc += ` [choices: ${choices}${option.choices.length > 5 ? "..." : ""}]`;
+      desc += ` [choices: ${choices}]`;
     }
 
     // Add min/max values for numeric types
@@ -348,7 +348,9 @@ export class CommandDiscoverer {
 
     if (commands.length === 0) return "";
 
-    let details = "\nRelevant Commands:\n";
+    let details = "\n**Relevant Commands (Complete Details):**\n";
+    details +=
+      "**IMPORTANT:** The information below shows ALL options, subcommands, choices, and constraints for each command. Use this to understand exactly how each command works.\n\n";
 
     const formatCommand = cmd => {
       let formatted = `/${cmd.name}: ${cmd.description}`;
@@ -362,51 +364,46 @@ export class CommandDiscoverer {
             for (const nestedSubcmd of subcmd.subcommands) {
               formatted += `\n      - /${cmd.name} ${subcmd.name} ${nestedSubcmd.name}: ${nestedSubcmd.description}`;
               if (nestedSubcmd.options && nestedSubcmd.options.length > 0) {
+                // Show ALL options with full details
                 const optionDetails = nestedSubcmd.options
-                  .slice(0, 5)
                   .map(o => {
+                    const formattedOpt = this.formatOption(o);
                     let optStr = o.name;
-                    if (o.description && !o.description.includes("type_")) {
-                      const desc =
-                        o.description.length > 40
-                          ? `${o.description.substring(0, 37)}...`
-                          : o.description;
-                      optStr = `${optStr} (${desc})`;
+                    // Mark required options clearly
+                    if (o.required !== false) {
+                      optStr = `**${optStr}** (REQUIRED)`;
+                    } else {
+                      optStr = `${optStr} (optional)`;
                     }
+                    // Add full description with all details
+                    optStr += ` - ${formattedOpt}`;
                     return optStr;
                   })
-                  .join(", ");
-                const moreOpts = nestedSubcmd.options.length > 5 ? "..." : "";
-                formatted += `\n        Options: ${optionDetails}${moreOpts}`;
+                  .join("\n        ");
+                formatted += `\n        Options:\n        ${optionDetails}`;
               }
             }
           } else {
             // Regular subcommand
             formatted += `\n    - /${cmd.name} ${subcmd.name}: ${subcmd.description}`;
             if (subcmd.options && subcmd.options.length > 0) {
+              // Show ALL options with full details
               const optionDetails = subcmd.options
-                .slice(0, 5)
                 .map(o => {
-                  // Use the full description from formatOption (includes choices, constraints)
+                  const formattedOpt = this.formatOption(o);
                   let optStr = o.name;
-                  if (o.description && !o.description.includes("type_")) {
-                    // Don't truncate if description contains choices or important info
-                    const hasChoices = o.description.includes("[choices:");
-                    const hasConstraints =
-                      o.description.includes("[min:") ||
-                      o.description.includes("[max:");
-                    const maxLen = hasChoices || hasConstraints ? 80 : 50;
-                    const desc =
-                      o.description.length > maxLen
-                        ? `${o.description.substring(0, maxLen - 3)}...`
-                        : o.description;
-                    optStr = `${optStr} (${desc})`;
+                  // Mark required options clearly
+                  if (o.required !== false) {
+                    optStr = `**${optStr}** (REQUIRED)`;
+                  } else {
+                    optStr = `${optStr} (optional)`;
                   }
+                  // Add full description with all details (choices, constraints, etc.)
+                  optStr += ` - ${formattedOpt}`;
                   return optStr;
                 })
-                .join(", ");
-              const moreOpts = subcmd.options.length > 5 ? "..." : "";
-              formatted += `\n      Options: ${optionDetails}${moreOpts}`;
+                .join("\n      ");
+              formatted += `\n      Options:\n      ${optionDetails}`;
             }
             // Add example usage for common commands
             if (subcmd.name === "play" && cmd.name === "rps") {
@@ -421,8 +418,8 @@ export class CommandDiscoverer {
           }
         }
       } else if (cmd.options && cmd.options.length > 0) {
+        // Show ALL options with full details - AI needs to see everything
         const optionDetails = cmd.options
-          .slice(0, 5)
           .map(o => {
             // Use formatOption to get full description with required/optional, choices, constraints
             const formattedOpt = this.formatOption(o);
@@ -433,27 +430,16 @@ export class CommandDiscoverer {
             } else {
               optStr = `${optStr} (optional)`;
             }
-            // Add description
-            if (o.description && !o.description.includes("type_")) {
-              // Don't truncate if description contains choices or important info
-              const hasChoices = formattedOpt.includes("[choices:");
-              const hasConstraints =
-                formattedOpt.includes("[min:") ||
-                formattedOpt.includes("[max:");
-              const maxLen = hasChoices || hasConstraints ? 80 : 50;
-              const desc =
-                formattedOpt.length > maxLen
-                  ? `${formattedOpt.substring(0, maxLen - 3)}...`
-                  : formattedOpt;
-              optStr += ` - ${desc}`;
-            }
+            // Add full description with all details (no truncation)
+            optStr += ` - ${formattedOpt}`;
             return optStr;
           })
-          .join(", ");
-        const moreOpts = cmd.options.length > 5 ? "..." : "";
-        formatted += `\n  Options: ${optionDetails}${moreOpts}`;
+          .join("\n  ");
+        formatted += `\n  Options:\n  ${optionDetails}`;
         // Add examples for commands with direct options
-        if (cmd.name === "avatar") {
+        if (cmd.name === "ask") {
+          formatted += `\n  Example: /${cmd.name} question:Explain quantum computing in technical terms`;
+        } else if (cmd.name === "avatar") {
           formatted += `\n  Example: /${cmd.name} prompt:"cyberpunk hacker" art_style:modern`;
         } else if (cmd.name === "leaderboard") {
           formatted += `\n  Example: /${cmd.name} limit:10 type:xp`;

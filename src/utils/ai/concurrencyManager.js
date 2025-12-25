@@ -13,6 +13,8 @@ export class ConcurrencyManager {
     this.requestTimeouts = new Map(); // requestId -> { requestTimeout, queueTimeout }
     // Track cleanup intervals for proper cleanup
     this.cleanupIntervals = [];
+    // Track status messages for cancellation on delete
+    this.statusMessages = new Map(); // messageId -> { requestId, userId }
 
     // Increased limits for better scalability
     // Default: 100 concurrent requests (good for high-traffic servers)
@@ -216,6 +218,226 @@ export class ConcurrencyManager {
   }
 
   /**
+   * Get queue position for a request
+   * @param {string} requestId - Request ID to check
+   * @returns {number|null} Queue position (0 = next to process, null if not in queue or already processing)
+   */
+  getQueuePosition(requestId) {
+    // Check if request is already processing
+    if (this.activeRequests.has(requestId)) {
+      return null; // Already processing, not in queue
+    }
+
+    // Find position in queue (after sorting by priority)
+    // Note: We need to sort the same way processQueue does
+    const sortedQueue = [...this.queue].sort((a, b) => {
+      if (a.priority !== b.priority) {
+        return b.priority - a.priority; // Higher priority first
+      }
+      return a.timestamp - b.timestamp; // Earlier timestamp first
+    });
+
+    const queueIndex = sortedQueue.findIndex(r => r.id === requestId);
+    if (queueIndex === -1) {
+      return null; // Not in queue
+    }
+
+    return queueIndex; // Return 0-based position (0 = next to process)
+  }
+
+  /**
+   * Get estimated wait time based on queue position and average processing time
+   * @param {number} queuePosition - Position in queue (0-based, null if processing)
+   * @returns {number} Estimated wait time in seconds
+   */
+  getEstimatedWaitTime(queuePosition) {
+    if (queuePosition === null) {
+      return 0; // Already processing
+    }
+
+    // Estimate: average 15-25 seconds per request (conservative for slow models)
+    const avgProcessingTime = 20; // seconds per request
+
+    // Time for requests ahead in queue (excluding current position)
+    const queueWaitTime = queuePosition * avgProcessingTime;
+
+    // Time for active requests to complete (average half their processing time remaining)
+    // If queue is full, active requests will finish soon, so less wait
+    const activeRequestsRemainingTime = Math.ceil(
+      (this.activeRequests.size / this.maxConcurrent) * (avgProcessingTime / 2),
+    );
+
+    return Math.max(0, queueWaitTime + activeRequestsRemainingTime);
+  }
+
+  /**
+   * Cancel a queued request
+   * @param {string} requestId - Request ID to cancel
+   * @param {string} userId - User ID who owns the request (for verification)
+   * @returns {boolean} True if request was cancelled, false if not found or already processing
+   */
+  cancelRequest(requestId, userId) {
+    // Check if request is already processing (can't cancel active requests)
+    if (this.activeRequests.has(requestId)) {
+      logger.debug(`Cannot cancel request ${requestId}: already processing`);
+      return false;
+    }
+
+    // Find request in queue
+    const queueIndex = this.queue.findIndex(
+      r => r.id === requestId && r.userId === userId,
+    );
+
+    if (queueIndex === -1) {
+      logger.debug(
+        `Cannot cancel request ${requestId}: not found in queue or user mismatch`,
+      );
+      return false;
+    }
+
+    // Remove from queue
+    const request = this.queue.splice(queueIndex, 1)[0];
+
+    // Clean up timeouts and intervals
+    const timeouts = this.requestTimeouts.get(requestId);
+    if (timeouts) {
+      clearTimeout(timeouts.requestTimeout);
+      clearTimeout(timeouts.queueTimeout);
+      if (timeouts.queueUpdateInterval) {
+        clearInterval(timeouts.queueUpdateInterval);
+      }
+      this.requestTimeouts.delete(requestId);
+    }
+
+    // Reject the promise
+    try {
+      request.reject(new Error("Request cancelled by user"));
+    } catch (_err) {
+      // Promise already resolved/rejected, ignore
+      logger.debug(
+        `Request ${requestId} cancel handler: promise already settled`,
+      );
+    }
+
+    logger.info(`Request ${requestId} cancelled by user ${userId}`);
+
+    // Clean up any status messages associated with this request
+    for (const [messageId, status] of this.statusMessages.entries()) {
+      if (status.requestId === requestId) {
+        this.statusMessages.delete(messageId);
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Register a status message for a request (so we can cancel if message is deleted)
+   * @param {string} messageId - Discord message ID
+   * @param {string} requestId - Request ID
+   * @param {string} userId - User ID
+   */
+  registerStatusMessage(messageId, requestId, userId) {
+    this.statusMessages.set(messageId, { requestId, userId });
+  }
+
+  /**
+   * Unregister a status message (when request completes or is cancelled)
+   * @param {string} messageId - Discord message ID
+   */
+  unregisterStatusMessage(messageId) {
+    this.statusMessages.delete(messageId);
+  }
+
+  /**
+   * Cancel request if status message was deleted
+   * @param {string} messageId - Discord message ID
+   * @returns {boolean} True if request was cancelled, false if not found
+   */
+  cancelRequestByMessageId(messageId) {
+    const status = this.statusMessages.get(messageId);
+    if (!status) {
+      return false;
+    }
+
+    // Cancel the request
+    const cancelled = this.cancelRequest(status.requestId, status.userId);
+
+    // Clean up the mapping (cancelRequest already does this, but be safe)
+    this.statusMessages.delete(messageId);
+
+    return cancelled;
+  }
+
+  /**
+   * Handle AI queue cancel button interaction
+   * @deprecated Cancel buttons have been removed. Users can cancel by deleting the status message.
+   * Kept for backward compatibility with old messages that may still have cancel buttons.
+   * @param {import('discord.js').ButtonInteraction} interaction - Button interaction
+   */
+  static async handleAIQueueCancel(interaction) {
+    await interaction.deferUpdate();
+
+    const { customId, user, message } = interaction;
+    const logger = getLogger();
+
+    // Extract requestId from customId: ai_queue_cancel_{requestId}
+    const requestId = customId.replace("ai_queue_cancel_", "");
+
+    if (!requestId) {
+      await interaction.followUp({
+        content: "❌ Invalid cancel request.",
+        ephemeral: true,
+      });
+      return;
+    }
+
+    // Get concurrency manager instance
+    const { concurrencyManager } = await import("./concurrencyManager.js");
+
+    // Cancel the request
+    const cancelled = concurrencyManager.cancelRequest(requestId, user.id);
+
+    if (cancelled) {
+      // Delete the message instead of showing cancellation
+      try {
+        await message.delete();
+      } catch (error) {
+        logger.debug("Failed to delete message after cancellation:", error);
+        // If delete fails, try to edit to show cancellation
+        try {
+          const { EmbedBuilder } = await import("discord.js");
+          await interaction.editReply({
+            embeds: [
+              new EmbedBuilder()
+                .setColor(0xff0000) // Red
+                .setDescription("❌ Request cancelled")
+                .setFooter({
+                  text: `Cancelled by ${user.tag} • Role Reactor`,
+                })
+                .setTimestamp(),
+            ],
+            components: [], // Remove cancel button
+          });
+        } catch (editError) {
+          logger.debug("Failed to edit message after cancellation:", editError);
+        }
+      }
+
+      await interaction.followUp({
+        content: "✅ Your request has been cancelled.",
+        ephemeral: true,
+      });
+    } else {
+      await interaction.followUp({
+        content:
+          "❌ Cannot cancel this request. It may have already started processing or doesn't exist.",
+        ephemeral: true,
+      });
+    }
+  }
+
+  /**
    * Queue an AI generation request
    * @param {string} requestId - Unique request identifier
    * @param {Function} generationFunction - Function to execute
@@ -228,6 +450,7 @@ export class ConcurrencyManager {
       const userId = options.userId;
       const coreUserData = options.coreUserData;
       const rateLimitReserved = options.rateLimitReserved || false;
+      const onQueueStatus = options.onQueueStatus; // Callback for queue position updates
 
       // Only check rate limit here if it wasn't already checked and reserved in the handler
       // This prevents double-counting and ensures atomic check-and-increment
@@ -276,6 +499,43 @@ export class ConcurrencyManager {
       };
 
       this.queue.push(request);
+
+      // Notify about initial queue position (after potential immediate processing)
+      // Use setTimeout to ensure queue is processed first
+      if (onQueueStatus) {
+        setTimeout(() => {
+          const position = this.getQueuePosition(requestId);
+          if (position !== null) {
+            const waitTime = this.getEstimatedWaitTime(position);
+            // Total includes both queued and active requests for context
+            const totalInSystem = this.queue.length + this.activeRequests.size;
+            onQueueStatus(position, totalInSystem, waitTime);
+          } else {
+            // Request started processing immediately (no queue)
+            onQueueStatus(null, this.activeRequests.size, 0);
+          }
+        }, 100); // Small delay to let processQueue run first
+      }
+
+      // Set up periodic queue position updates while waiting
+      let queueUpdateInterval = null;
+      if (onQueueStatus) {
+        queueUpdateInterval = setInterval(() => {
+          const position = this.getQueuePosition(requestId);
+          if (position !== null) {
+            const waitTime = this.getEstimatedWaitTime(position);
+            // Total includes both queued and active requests for context
+            const totalInSystem = this.queue.length + this.activeRequests.size;
+            onQueueStatus(position, totalInSystem, waitTime);
+          } else {
+            // Request is processing or completed, stop updates
+            if (queueUpdateInterval) {
+              clearInterval(queueUpdateInterval);
+            }
+          }
+        }, 5000); // Update every 5 seconds
+      }
+
       this.processQueue();
 
       // Set timeout for the request (store to clear if request completes)
@@ -302,7 +562,11 @@ export class ConcurrencyManager {
         const queueIndex = this.queue.findIndex(r => r.id === requestId);
         if (queueIndex !== -1) {
           this.queue.splice(queueIndex, 1);
-          // Clear the timeout tracking
+          // Clear the timeout tracking and interval
+          const timeouts = this.requestTimeouts.get(requestId);
+          if (timeouts && timeouts.queueUpdateInterval) {
+            clearInterval(timeouts.queueUpdateInterval);
+          }
           this.requestTimeouts.delete(requestId);
           // Check if promise is still pending before rejecting
           try {
@@ -320,6 +584,7 @@ export class ConcurrencyManager {
       this.requestTimeouts.set(requestId, {
         requestTimeout: requestTimeoutId,
         queueTimeout: queueTimeoutId,
+        queueUpdateInterval: queueUpdateInterval || null,
       });
     });
   }
@@ -358,7 +623,16 @@ export class ConcurrencyManager {
       if (timeouts) {
         clearTimeout(timeouts.requestTimeout);
         clearTimeout(timeouts.queueTimeout);
+        if (timeouts.queueUpdateInterval) {
+          clearInterval(timeouts.queueUpdateInterval);
+        }
         this.requestTimeouts.delete(request.id);
+      }
+
+      // Notify that request is now processing (no longer in queue)
+      if (request.options?.onQueueStatus) {
+        const totalInSystem = this.queue.length + this.activeRequests.size;
+        request.options.onQueueStatus(null, totalInSystem, 0); // null = processing
       }
 
       const result = await request.function(request.options);

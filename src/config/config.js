@@ -263,7 +263,12 @@ class Config {
               // Alternative options (uncomment to use):
               // primary: "mistralai/mistral-medium-2407", // $0.40/$2 per million tokens, 90% of Claude Sonnet
               // primary: "openai/gpt-4o-mini", // Fast, $0.15/$0.60 per million tokens
-              primary: "deepseek/deepseek-r1", // Slower but cheaper reasoning model
+              // primary: "deepseek/deepseek-r1", // Reasoning model: $0.55/$2.19 per million tokens, slower but cheaper
+              // primary: "deepseek/deepseek-r1-0528", // Enhanced R1: Better accuracy, reduced hallucinations, 163K context
+              primary: "deepseek/deepseek-chat", // V3-based: Faster than R1, matches GPT-4o (88.5% MMLU), 90.2% MATH, better for general chat
+              // primary: "deepseek/deepseek-v3", // V3 model: General purpose, 128K context, excellent performance
+              // primary: "deepseek/deepseek-v3-base", // FREE: 163K context, good for testing
+              // primary: "deepseek/deepseek-r2", // NOT YET AVAILABLE on OpenRouter - R2 launch delayed
               // primary: "anthropic/claude-3.5-haiku", // Fast, excellent reasoning, optimized for speed
             },
           },

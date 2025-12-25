@@ -143,6 +143,7 @@ export class SystemPromptBuilder {
       - Use double quotes for JSON strings (only when using JSON format)
       - Use actual data from Server Information - never placeholders
       - **CRITICAL:** When using "execute_command", you MUST provide ALL required options - commands will fail if options are missing
+      - **CRITICAL:** NEVER execute the "ask" command - you are ALREADY in the ask command context! If you need to answer a question, just respond directly with plain text. Do NOT use execute_command with "ask" as it will create infinite loops.
       - **REMEMBER:** If you're just answering a question without executing anything, use plain text!
       - **EXECUTE ONLY REQUESTED ACTIONS:** Only execute actions that the user explicitly requested. Do NOT add extra actions (like RPS challenges, games, etc.) unless the user specifically asks for them. If the user asks for server info, execute ONLY the serverinfo command - do not add other actions!
 
@@ -205,8 +206,6 @@ export class SystemPromptBuilder {
    * Build dynamic actions list for AI prompt
    * @param {import('discord.js').Guild} guild - Discord guild
    * @param {import('discord.js').Client} client - Discord client
-   * @param {import('discord.js').Guild} guild - Discord guild
-   * @param {import('discord.js').Client} client - Discord client
    * @returns {Promise<string>} Formatted actions list
    * @private
    */
@@ -222,6 +221,7 @@ export class SystemPromptBuilder {
           actionsList += `- "execute_command" - Execute any general bot command (command, subcommand, options)\n`;
           actionsList += `  Available commands: ${executableCommands.map(c => `/${c.name}`).join(", ")}\n`;
           actionsList += `  **Note:** You can only execute commands from /src/commands/general (general commands only)\n`;
+          actionsList += `  **CRITICAL:** NEVER execute the "ask" command - you are ALREADY in the ask command context! If you need to answer a question, just respond directly with plain text. Do NOT use execute_command with "ask" as it will create infinite loops.\n`;
         }
       } catch (_error) {
         // Ignore
@@ -258,9 +258,11 @@ export class SystemPromptBuilder {
 
       **Example 2 - List members (NO actions) - Use plain text:**
       Here are all members:
-      1. MemberName1
-      2. MemberName2
-      3. MemberName3
+      - MemberName1 (online)
+      - MemberName2 (offline)
+      - MemberName3 (idle)
+      
+      (You can format lists naturally - use numbered lists, bullet points, or any clear format that makes sense)
 
       **Example 3 - Execute command (HAS actions) - Use JSON:**
       {
@@ -268,11 +270,27 @@ export class SystemPromptBuilder {
         "actions": [{"type": "execute_command", "command": "serverinfo", "options": {}}]
       }
 
+      **Example 4 - Execute avatar/imagine with detailed user prompt (use EXACT, message EMPTY):**
+      User: "generate an avatar of a cyberpunk hacker with neon glasses and blue hair"
+      {
+        "message": "",
+        "actions": [{"type": "execute_command", "command": "avatar", "options": {"prompt": "cyberpunk hacker with neon glasses and blue hair"}}]
+      }
+      **Note:** Message is EMPTY because avatar/imagine commands send their own loading embeds.
+
+      **Example 5 - Execute avatar/imagine with basic user prompt (can enhance, message EMPTY):**
+      User: "generate an avatar" or "create an image of a city"
+      {
+        "message": "",
+        "actions": [{"type": "execute_command", "command": "avatar", "options": {"prompt": "anime character portrait, detailed, high quality"}}]
+      }
+      **Note:** Only enhance when the user's prompt is too vague. If they provide specific details, use their EXACT words. Message is always EMPTY for avatar/imagine commands.
+
     `;
 
     if (commandExample) {
       examples += dedent`
-        **Example 4 - Execute command:**
+        **Example 6 - Execute command (dynamic example):**
         ${commandExample}
 
       `;
@@ -291,6 +309,18 @@ export class SystemPromptBuilder {
       const { getExecutableCommands } = await import("./commandExecutor.js");
       const executableCommands = await getExecutableCommands(client);
       const botCommands = commandDiscoverer.getBotCommands(client);
+
+      // Prefer avatar command as example (common use case)
+      const avatarCmd = executableCommands.find(c => c.name === "avatar");
+      if (avatarCmd) {
+        const cmd = botCommands.find(c => c.name === "avatar");
+        if (cmd && cmd.options && cmd.options.length > 0) {
+          const promptOption = cmd.options.find(o => o.name === "prompt");
+          if (promptOption) {
+            return `{\n  "message": "",\n  "actions": [{"type": "execute_command", "command": "avatar", "options": {"prompt": "cyberpunk hacker with neon glasses"}}]\n}`;
+          }
+        }
+      }
 
       // Find a command with a subcommand for a good example
       for (const execCmd of executableCommands) {
@@ -363,18 +393,21 @@ export class SystemPromptBuilder {
     requester = null,
     options = {},
   ) {
+    const { userId = null } = options;
     const { forceIncludeMemberList = false } = options;
     const cacheKey = guild ? `guild_${guild.id}` : `dm_global`;
     const cached = this.systemMessageCache.get(cacheKey);
 
     // Check cache (5 minutes timeout for command updates)
     // Skip cache if forcing member list inclusion (after fetch_members action)
+    // Note: Cache contains base context (without user-specific preferences)
+    let baseContext = null;
     if (
       cached &&
       Date.now() - cached.timestamp < SYSTEM_MESSAGE_CACHE_TIMEOUT &&
       !forceIncludeMemberList
     ) {
-      return cached.content;
+      baseContext = cached.content;
     }
 
     // Determine if we need detailed info based on user message
@@ -399,15 +432,7 @@ export class SystemPromptBuilder {
         userMessage.toLowerCase().includes("what can") ||
         userMessage.toLowerCase().includes("how do"));
 
-    // Build system prompt sections
-    const responseFormat = await this.buildResponseFormatSection(
-      guild,
-      client,
-      this.generateCommandExample.bind(this),
-    );
-    const identity = this.buildIdentitySection();
-    const contextSection = this.buildContextSection(guild);
-    const botInfo = await serverInfoGatherer.getBotInfo(client);
+    // Get server info (needed for both cached and fresh contexts)
     const serverInfo = guild
       ? await serverInfoGatherer.getServerInfo(guild, client, {
           includeMemberList: needsMemberList,
@@ -420,34 +445,65 @@ export class SystemPromptBuilder {
 
       `;
 
-    // Add user-specific date/time if locale provided
-    const now = new Date();
-    const userDateTime = now.toLocaleString(locale, {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "numeric",
-      minute: "numeric",
-      second: "numeric",
-      timeZoneName: "short",
-    });
+    // Use cached base context if available, otherwise build it
+    let context = baseContext;
+    if (!context) {
+      // Build system prompt sections
+      const responseFormat = await this.buildResponseFormatSection(
+        guild,
+        client,
+        this.generateCommandExample.bind(this),
+      );
+      const identity = this.buildIdentitySection();
+      const contextSection = this.buildContextSection(guild);
+      const botInfo = await serverInfoGatherer.getBotInfo(client);
 
-    let context = dedent`
-      # Role Reactor Bot
+      // Add user-specific date/time if locale provided
+      const now = new Date();
+      const userDateTime = now.toLocaleString(locale, {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "numeric",
+        minute: "numeric",
+        second: "numeric",
+        timeZoneName: "short",
+      });
 
-      [Current Date and Time for User: ${userDateTime}]
+      context = dedent`
+        # Role Reactor Bot
 
-      ${responseFormat}
+        [Current Date and Time for User: ${userDateTime}]
 
-      ${identity}
+        ${responseFormat}
 
-      ${contextSection}
+        ${identity}
 
-      ## Bot Information
-      ${botInfo}
+        ${contextSection}
 
-    `;
+        ## Bot Information
+        ${botInfo}
+
+      `;
+    } else {
+      // Update date/time in cached context
+      const now = new Date();
+      const userDateTime = now.toLocaleString(locale, {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "numeric",
+        minute: "numeric",
+        second: "numeric",
+        timeZoneName: "short",
+      });
+      context = context.replace(
+        /\[Current Date and Time for User: .*?\]/,
+        `[Current Date and Time for User: ${userDateTime}]`,
+      );
+    }
 
     // Add requester information if available (for commands that need to target the requester)
     if (requester) {
@@ -477,6 +533,7 @@ export class SystemPromptBuilder {
     // Available Commands (on-demand injection)
     // This includes ALL commands (general, admin, developer) for information purposes
     // But AI can only EXECUTE general commands
+    // Always include ALL commands so AI has complete understanding
     const botCommands = commandDiscoverer.getBotCommands(client);
     if (userMessage && botCommands.length > 0) {
       const mentioned = commandDiscoverer.detectMentionedCommands(
@@ -485,7 +542,8 @@ export class SystemPromptBuilder {
       );
       if (mentioned.length > 0) {
         context += `## Available Commands (Relevant to User's Question)\n`;
-        context += `**Note:** This list includes ALL commands for information purposes. You can only EXECUTE general commands (see restrictions below).\n\n`;
+        context += `**Note:** This list includes ALL commands for information purposes. You can only EXECUTE general commands (see restrictions below).\n`;
+        context += `**IMPORTANT:** All options, subcommands, and details are shown below. Use this information to understand exactly how each command works.\n\n`;
         context += commandDiscoverer.getCommandDetails(
           mentioned,
           botCommands,
@@ -589,13 +647,21 @@ export class SystemPromptBuilder {
       - **When executing commands:** Use "execute_command" action in your JSON response (format: {"message": "...", "actions": [...]})
       - **When NOT executing commands:** Use plain text/markdown format (NO JSON)
       - **CRITICAL:** Always provide ALL required options (marked as "REQUIRED" in command details) - commands will fail without them
+      - **Understanding Command Options:**
+        * When you see command details, ALL options are shown with complete information
+        * Required options are marked with **REQUIRED** - you MUST provide these
+        * Optional options can be omitted, but you can include them if helpful
+        * For options with choices, use the EXACT choice values shown (case-sensitive)
+        * For numeric options, respect min/max constraints shown
+        * For string options, respect max length constraints shown
       - For RPS: Always provide both "user" (target requester) and "choice" options - both are required
       - **RPS CHOICE RANDOMIZATION:** For the "choice" option, you MUST randomly select between rock, paper, or scissors EACH TIME. DO NOT always pick "rock" - vary it! Use different choices on different requests.
-      - Commands send their own responses - keep your "message" field empty or minimal when executing commands
+      - **For Image/Avatar Generation (avatar, imagine):** When a user provides a detailed description, use their EXACT description as the "prompt" option. However, if the user's prompt is too basic or vague (e.g., "an avatar", "a picture", or less than 10 characters), you can enhance it with relevant details to improve the result. Always preserve the user's core intent and main elements. **CRITICAL:** These commands send their own loading embeds - keep your "message" field EMPTY when executing them to avoid duplicate messages.
+      - Commands send their own responses - keep your "message" field empty when executing commands (command provides the response)
       - Only works in servers (not in DMs)
 
       **Response Guidelines:**
-      - When executing commands successfully, keep "message" empty (command provides the response)
+      - When executing commands successfully, keep "message" empty (command provides its own response)
       - Only include a message for errors or important additional context
       - For admin/developer commands: provide information but remind users to run them manually
 
@@ -695,7 +761,17 @@ export class SystemPromptBuilder {
             context += `- Example: First use {"type": "get_role_reaction_messages"} to get IDs, then use the ID in the command\n\n`;
           }
           context += dedent`
-            **Note:** For detailed command information (options, examples, etc.), refer to the "Available Commands" section that appears when a user mentions a specific command.
+            **IMPORTANT - Command Details:**
+            - When a user mentions a specific command, you will see a detailed "Available Commands" section with ALL options, subcommands, and examples
+            - That section shows COMPLETE information including:
+              * All required and optional options
+              * All available choices for each option
+              * All constraints (min/max values, length limits)
+              * All subcommands and their options
+              * Usage examples
+            - Use that detailed information to understand exactly how each command works
+            - Always provide ALL required options when executing commands
+            - For commands with choices, use the exact choice values shown in the command details
 
           `;
         } else {
@@ -770,6 +846,7 @@ export class SystemPromptBuilder {
       - Count only HUMAN members for "members online" (Online + Idle + DND)
       - **Status meanings:** 🟢 online, 🟡 idle, 🔴 dnd (Do Not Disturb - NOT offline), ⚫ offline
       - **Important:** "dnd" (Do Not Disturb) is NOT the same as "offline" - dnd means user is online but set to Do Not Disturb
+      - **Format member lists naturally** - use numbered lists, bullet points, or any clear format that makes sense
       - Copy names EXACTLY as shown, never invent names
 
       ### Security
@@ -801,6 +878,12 @@ export class SystemPromptBuilder {
       - Remember: You ARE the bot, not an AI assistant helping the bot
       - **NEVER claim to be the server owner** - you are a bot installed in the server (the owner is a human user)
 
+      **Conversation Context:**
+      - Understand when users are starting a new topic (e.g., greetings like "hi", "hello" after a previous conversation)
+      - When a user greets you after a previous conversation, respond to the greeting naturally - don't continue the previous topic
+      - Use conversation history to understand user preferences and context, but recognize when users want to start fresh
+      - If a user says something simple like "hi" or "hello", treat it as a greeting, not a continuation of previous topics
+
       **Edge Cases:**
       - Don't know something? Say so honestly
       - Data doesn't exist? Tell them clearly
@@ -820,12 +903,33 @@ export class SystemPromptBuilder {
 
     context += guidelinesSection;
 
-    // Cache the system message
-    this.systemMessageCache.set(cacheKey, {
-      content: context,
-      timestamp: Date.now(),
-    });
-    this.limitSystemCacheSize();
+    // Cache the base system message (without user-specific preferences)
+    // This allows us to reuse the base context and add preferences per-user
+    if (!baseContext) {
+      // Only cache if we built it fresh (not from cache)
+      this.systemMessageCache.set(cacheKey, {
+        content: context,
+        timestamp: Date.now(),
+      });
+      this.limitSystemCacheSize();
+    }
+
+    // Add user preferences from feedback (if available)
+    // Note: Preferences are user-specific, so we add them after caching the base context
+    if (userId) {
+      try {
+        const { FeedbackManager } = await import("./feedbackManager.js");
+        const preferenceContext =
+          await FeedbackManager.buildPreferenceContext(userId);
+        if (preferenceContext) {
+          context += preferenceContext;
+        }
+      } catch (error) {
+        // Silently fail - preferences are optional
+        const logger = getLogger();
+        logger.debug("Failed to load user preferences:", error);
+      }
+    }
 
     return context;
   }
