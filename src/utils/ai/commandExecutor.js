@@ -374,6 +374,7 @@ function createMockInteraction({
   guild,
   channel,
   client,
+  commandConfig = null,
 }) {
   // Build options array for Discord.js format
   const optionsArray = [];
@@ -468,6 +469,9 @@ function createMockInteraction({
 
   // Create a minimal mock interaction
   // We'll use the actual ChatInputCommandInteraction but with our data
+  // Track the initial message for editReply to work properly
+  let initialMessage = null;
+
   const interaction = {
     id: `mock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     type: 2, // ApplicationCommand
@@ -495,7 +499,18 @@ function createMockInteraction({
     isStringSelectMenu: () => false,
     isModalSubmit: () => false,
     options: {
-      getSubcommand: () => subcommand,
+      getSubcommand: () => {
+        // If command requires subcommands but none provided, throw error (matches Discord.js behavior)
+        // Note: This validation should already be done before creating the mock, but this is a safety check
+        if (
+          !subcommand &&
+          commandConfig?.subcommands &&
+          commandConfig.subcommands.length > 0
+        ) {
+          throw new Error("No subcommand provided");
+        }
+        return subcommand;
+      },
       getString: name => {
         const value = options[name];
         // Special handling for role-reactions roles option
@@ -551,9 +566,28 @@ function createMockInteraction({
     // Mock reply methods - actually send to channel
     async reply(content) {
       this.replied = true;
-      // Actually send the message to the channel
+
+      // If we already have a message (from editReply), edit it instead of sending new one
+      if (initialMessage && typeof initialMessage.edit === "function") {
+        try {
+          return await initialMessage.edit(content);
+        } catch (error) {
+          // If edit fails, send a new one
+          logger.debug(
+            `[mockInteraction] Failed to edit message in reply(), sending new one:`,
+            error.message,
+          );
+          initialMessage = null;
+        }
+      }
+
+      // Send new message if no initial message exists
       if (channel && typeof channel.send === "function") {
-        return await channel.send(content);
+        const message = await channel.send(content);
+        if (!initialMessage) {
+          initialMessage = message; // Store for future edits
+        }
+        return message;
       }
       return { id: `mock_reply_${Date.now()}` };
     },
@@ -563,9 +597,27 @@ function createMockInteraction({
       return { id: `mock_defer_${Date.now()}` };
     },
     async editReply(content) {
-      // Actually send the message to the channel (since we "deferred")
+      // If we have an initial message, edit it instead of sending a new one
+      if (initialMessage && typeof initialMessage.edit === "function") {
+        try {
+          return await initialMessage.edit(content);
+        } catch (error) {
+          // If edit fails (e.g., message deleted), send a new one
+          logger.debug(
+            `[mockInteraction] Failed to edit message, sending new one:`,
+            error.message,
+          );
+          initialMessage = null; // Reset so next call sends new message
+        }
+      }
+
+      // Send new message if no initial message exists
       if (channel && typeof channel.send === "function") {
-        return await channel.send(content);
+        const message = await channel.send(content);
+        if (!initialMessage) {
+          initialMessage = message; // Store for future edits
+        }
+        return message;
       }
       return { id: `mock_edit_${Date.now()}` };
     },
@@ -637,8 +689,26 @@ export async function executeCommandProgrammatically({
   channel,
   client,
 }) {
+  // Parse command name - handle cases where AI puts "command subcommand" in commandName
+  // e.g., "poll create" should become commandName="poll", subcommand="create"
+  let parsedCommandName = commandName;
+  let parsedSubcommand = subcommand;
+
+  if (commandName.includes(" ") && !subcommand) {
+    const parts = commandName.split(" ");
+    parsedCommandName = parts[0];
+    parsedSubcommand = parts.slice(1).join(" ");
+    logger.debug(
+      `[executeCommandProgrammatically] Parsed command "${commandName}" into command="${parsedCommandName}", subcommand="${parsedSubcommand}"`,
+    );
+  }
+
   // Check if command is allowed (only general commands)
-  const isAllowed = await canExecuteCommand(commandName, subcommand, client);
+  const isAllowed = await canExecuteCommand(
+    parsedCommandName,
+    parsedSubcommand,
+    client,
+  );
   if (!isAllowed) {
     const generalCommands = await getGeneralCommands();
     throw new Error(
@@ -648,25 +718,35 @@ export async function executeCommandProgrammatically({
 
   // Get command config for subcommand validation
   const ALLOWED_COMMANDS = await getAllowedCommands(client);
-  const commandConfig = ALLOWED_COMMANDS[commandName];
+  const commandConfig = ALLOWED_COMMANDS[parsedCommandName];
 
-  // Check subcommand if provided
-  if (subcommand && commandConfig?.subcommands) {
+  // Check subcommand if provided (use parsed subcommand)
+  if (parsedSubcommand && commandConfig?.subcommands) {
     // Handle subcommand groups (e.g., "group subcommand")
-    const normalizedSubcommand = subcommand.replace(/\s+/g, " ");
+    const normalizedSubcommand = parsedSubcommand.replace(/\s+/g, " ");
     if (
-      !commandConfig.subcommands.includes(subcommand) &&
+      !commandConfig.subcommands.includes(parsedSubcommand) &&
       !commandConfig.subcommands.includes(normalizedSubcommand)
     ) {
       const validSubcommands = commandConfig.subcommands.join(", ");
       throw new Error(
-        `Subcommand "${subcommand}" is not valid for command "${commandName}". Valid subcommands are: ${validSubcommands}. If no subcommands are listed, this command doesn't use subcommands - remove the "subcommand" field from your action.`,
+        `Subcommand "${parsedSubcommand}" is not valid for command "${parsedCommandName}". Valid subcommands are: ${validSubcommands}. If no subcommands are listed, this command doesn't use subcommands - remove the "subcommand" field from your action.`,
       );
     }
-  } else if (subcommand && !commandConfig?.subcommands) {
+  } else if (parsedSubcommand && !commandConfig?.subcommands) {
     // Command doesn't have subcommands but one was provided
     throw new Error(
-      `Command "${commandName}" does not have subcommands. Remove the "subcommand" field from your action and use only "command" and "options".`,
+      `Command "${parsedCommandName}" does not have subcommands. Remove the "subcommand" field from your action and use only "command" and "options".`,
+    );
+  } else if (
+    !parsedSubcommand &&
+    commandConfig?.subcommands &&
+    commandConfig.subcommands.length > 0
+  ) {
+    // Command requires subcommands but none was provided
+    const validSubcommands = commandConfig.subcommands.join(", ");
+    throw new Error(
+      `Command "${parsedCommandName}" requires a subcommand. Valid subcommands are: ${validSubcommands}. Add a "subcommand" field to your action with one of these values.`,
     );
   }
 
@@ -678,7 +758,7 @@ export async function executeCommandProgrammatically({
     for (const [key, value] of Object.entries(options)) {
       // Check if this is a user option by checking command structure
       // For RPS, "user" is a user option (no subcommands anymore)
-      if (key === "user" && commandName === "rps") {
+      if (key === "user" && parsedCommandName === "rps") {
         if (value && typeof value === "string") {
           // Extract user ID from mention format: <@123456789> or <@!123456789>
           const mentionMatch = value.match(/<@!?(\d+)>/);
@@ -728,13 +808,14 @@ export async function executeCommandProgrammatically({
 
     // Create mock interaction
     const interaction = createMockInteraction({
-      commandName,
-      subcommand,
+      commandName: parsedCommandName,
+      subcommand: parsedSubcommand,
       options: resolvedOptions,
       user: executorUser, // Use bot if challenging requester, otherwise requester
       guild,
       channel,
       client,
+      commandConfig, // Pass command config for getSubcommand validation
     });
 
     // Execute the command - it will send its own response directly to the channel
@@ -767,8 +848,8 @@ export async function executeCommandProgrammatically({
 
     return {
       success: true,
-      command: commandName,
-      subcommand,
+      command: parsedCommandName,
+      subcommand: parsedSubcommand,
       // No response data needed - command sent it directly
     };
   } catch (error) {
@@ -799,11 +880,33 @@ export async function canExecuteCommand(
   subcommand = null,
   client = null,
 ) {
+  // Block recursive ask command execution to prevent infinite loops
+  if (commandName === "ask") {
+    logger.warn(
+      `AI attempted to execute ask command recursively (blocked to prevent infinite loops)`,
+    );
+    return false;
+  }
+
+  // Parse command name - handle cases where AI puts "command subcommand" in commandName
+  // e.g., "poll create" should become commandName="poll", subcommand="create"
+  let parsedCommandName = commandName;
+  let parsedSubcommand = subcommand;
+
+  if (commandName.includes(" ") && !subcommand) {
+    const parts = commandName.split(" ");
+    parsedCommandName = parts[0];
+    parsedSubcommand = parts.slice(1).join(" ");
+    logger.debug(
+      `[canExecuteCommand] Parsed command "${commandName}" into command="${parsedCommandName}", subcommand="${parsedSubcommand}"`,
+    );
+  }
+
   // Fast path: use sync version for immediate check (uses cache if available)
   const generalCommands = getGeneralCommandsSync();
 
   // Only allow general commands
-  if (!generalCommands.includes(commandName)) {
+  if (!generalCommands.includes(parsedCommandName)) {
     logger.warn(
       `AI attempted to execute non-general command: ${commandName} (blocked)`,
     );
@@ -812,17 +915,17 @@ export async function canExecuteCommand(
 
   // Get command config (cached after first call)
   const ALLOWED_COMMANDS = await getAllowedCommands(client);
-  const commandConfig = ALLOWED_COMMANDS[commandName];
+  const commandConfig = ALLOWED_COMMANDS[parsedCommandName];
 
   if (!commandConfig || !commandConfig.allowed) {
     return false;
   }
 
   // Validate subcommand if provided
-  if (subcommand && commandConfig.subcommands) {
-    const normalizedSubcommand = subcommand.replace(/\s+/g, " ");
+  if (parsedSubcommand && commandConfig.subcommands) {
+    const normalizedSubcommand = parsedSubcommand.replace(/\s+/g, " ");
     return (
-      commandConfig.subcommands.includes(subcommand) ||
+      commandConfig.subcommands.includes(parsedSubcommand) ||
       commandConfig.subcommands.includes(normalizedSubcommand)
     );
   }
