@@ -1,5 +1,6 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder } from "discord.js";
 import config from "../../../config/config.js";
+import { BUTTON_STYLES } from "../../../config/theme.js";
 
 /**
  * Create interactive buttons for support command
@@ -17,7 +18,7 @@ export function createSupportButtons() {
       new ButtonBuilder()
         .setLabel("Support Server")
         .setURL(links.support)
-        .setStyle(ButtonStyle.Link),
+        .setStyle(BUTTON_STYLES.LINK),
     );
   }
 
@@ -27,7 +28,7 @@ export function createSupportButtons() {
       new ButtonBuilder()
         .setLabel("GitHub Repository")
         .setURL(links.github)
-        .setStyle(ButtonStyle.Link),
+        .setStyle(BUTTON_STYLES.LINK),
     );
   }
 

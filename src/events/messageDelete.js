@@ -49,6 +49,25 @@ export async function execute(message, client) {
     } else {
       logger.info(`ℹ️ No poll found for deleted message: ${message.id}`);
     }
+
+    // Check if this is an AI status message that was deleted (cancel the request)
+    try {
+      const { concurrencyManager } = await import(
+        "../utils/ai/concurrencyManager.js"
+      );
+      const cancelled = concurrencyManager.cancelRequestByMessageId(message.id);
+      if (cancelled) {
+        logger.info(
+          `✅ AI request cancelled due to status message deletion: ${message.id}`,
+        );
+      }
+    } catch (error) {
+      logger.debug(
+        "Failed to check if deleted message was AI status message:",
+        error,
+      );
+      // Ignore errors - this is optional functionality
+    }
   } catch (error) {
     logger.error("Error handling message deletion", error);
   }

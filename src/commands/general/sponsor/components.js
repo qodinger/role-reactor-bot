@@ -1,5 +1,6 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder } from "discord.js";
 import config from "../../../config/config.js";
+import { BUTTON_STYLES } from "../../../config/theme.js";
 
 /**
  * Create interactive buttons for sponsor command
@@ -17,7 +18,7 @@ export function createSponsorButtons() {
       new ButtonBuilder()
         .setLabel("Become a Sponsor")
         .setURL(links.sponsor)
-        .setStyle(ButtonStyle.Link),
+        .setStyle(BUTTON_STYLES.LINK),
     );
   }
 

@@ -1,4 +1,6 @@
 // Enhanced theme configuration for improved UX/UI
+import { ButtonStyle } from "discord.js";
+
 export const THEME = {
   // Primary brand colors (softened)
   PRIMARY: 0x9b8bf0, // Soft lavender
@@ -117,6 +119,15 @@ export const UI_COMPONENTS = {
 
 // Default theme color (alias for PRIMARY)
 export const THEME_COLOR = THEME.PRIMARY;
+
+// Button styles mapping to Discord.js ButtonStyle constants
+export const BUTTON_STYLES = {
+  PRIMARY: ButtonStyle.Primary,
+  SECONDARY: ButtonStyle.Secondary,
+  SUCCESS: ButtonStyle.Success,
+  DANGER: ButtonStyle.Danger,
+  LINK: ButtonStyle.Link,
+};
 
 // Emoji sets for enhanced visual communication
 export const EMOJIS = {

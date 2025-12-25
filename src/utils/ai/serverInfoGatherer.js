@@ -222,8 +222,7 @@ export class ServerInfoGatherer {
 
             if (humanMembersWithStatus.length > 0) {
               info += `**COMPLETE LIST OF HUMAN MEMBER NAMES (with online status):**\n`;
-              info += `🚨 **CRITICAL: When asked for member names, use ONLY the names from this list below. Copy them EXACTLY as shown.**\n`;
-              info += `🚨 **When asked about offline/online/idle/dnd members, use the status shown next to each name.**\n`;
+              info += `🚨 **CRITICAL: When asked for member names, use ONLY the names from this list. NEVER invent, guess, or make up member names.**\n`;
               info += `🚨 **Status meanings:** 🟢 online, 🟡 idle, 🔴 dnd (Do Not Disturb - user is ONLINE but set to Do Not Disturb), ⚫ offline\n`;
               info += `🚨 **IMPORTANT: "dnd" (Do Not Disturb) is NOT offline - it means the user is online but has set their status to Do Not Disturb.**\n`;
               info += `🚨 **IMPORTANT: This list contains ONLY human members - bots are already excluded. Do NOT add any bots to your response.**\n`;
@@ -236,7 +235,8 @@ export class ServerInfoGatherer {
                 }
               }
               info += `\n`;
-              humanMembersWithStatus.forEach((member, index) => {
+              // Provide structured data - AI can format it naturally
+              humanMembersWithStatus.forEach(member => {
                 const statusEmoji =
                   {
                     online: "🟢",
@@ -244,7 +244,7 @@ export class ServerInfoGatherer {
                     dnd: "🔴",
                     offline: "⚫",
                   }[member.status] || "⚫";
-                info += `${index + 1}. ${member.name} ${statusEmoji} (${member.status})\n`;
+                info += `- ${member.name} ${statusEmoji} (${member.status})\n`;
               });
               info += `\n`;
             } else {
