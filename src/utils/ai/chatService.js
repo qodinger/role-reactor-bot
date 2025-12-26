@@ -5,26 +5,20 @@ import { getLogger } from "../logger.js";
 import { conversationManager } from "./conversationManager.js";
 import { responseValidator } from "./responseValidator.js";
 import { systemPromptBuilder } from "./systemPromptBuilder.js";
-import {
-  getActionConfig,
-  actionRequiresGuild,
-  actionTriggersReQuery,
-  validateActionOptions,
-} from "./actionRegistry.js";
+import { actionTriggersReQuery } from "./actionRegistry.js";
 import {
   DEFAULT_MAX_HISTORY_LENGTH,
   DEFAULT_CONVERSATION_TIMEOUT,
   DEFAULT_MAX_CONVERSATIONS,
-  MEMBER_FETCH_TIMEOUT,
-  MAX_MEMBER_FETCH_SERVER_SIZE,
-  MAX_MEMBERS_TO_DISPLAY,
   MAX_RESPONSE_LENGTH,
   FOLLOW_UP_QUERY_TIMEOUT,
-  JSON_MARKDOWN_PATTERNS,
   STREAMING_ENABLED,
   STREAMING_UPDATE_INTERVAL,
 } from "./constants.js";
 import { performanceMonitor } from "./performanceMonitor.js";
+import { jsonParser } from "./jsonParser.js";
+import { dataFetcher } from "./dataFetcher.js";
+import { actionExecutor } from "./actionExecutor.js";
 
 const logger = getLogger();
 
@@ -360,27 +354,7 @@ export class ChatService {
    * @private
    */
   validateAction(action) {
-    if (!action || typeof action !== "object") {
-      return { isValid: false, error: "Action must be an object" };
-    }
-
-    if (!action.type || typeof action.type !== "string") {
-      return { isValid: false, error: "Action must have a 'type' field" };
-    }
-
-    // Use action registry for validation
-    const validation = validateActionOptions(action);
-    if (!validation.isValid) {
-      return validation;
-    }
-
-    // Handle dynamic actions (get_* that aren't in registry)
-    if (action.type.startsWith("get_") && !getActionConfig(action.type)) {
-      // Dynamic actions don't require options validation
-      return { isValid: true, error: null };
-    }
-
-    return { isValid: true, error: null };
+    return actionExecutor.validateAction(action);
   }
 
   /**
@@ -393,363 +367,13 @@ export class ChatService {
    * @returns {Promise<{results: Array<string>, commandResponses: Array<{command: string, response: object}>}>}
    */
   async executeStructuredActions(actions, guild, client, user, channel) {
-    const results = [];
-    // Commands now send responses directly to channel, no need to store them
-
-    // Validate actions array
-    if (!Array.isArray(actions)) {
-      logger.warn("[executeStructuredActions] Actions is not an array");
-      return {
-        results: ["Invalid actions format: expected an array"],
-        commandResponses: [],
-      };
-    }
-
-    for (const action of actions) {
-      // Validate action structure
-      const validation = this.validateAction(action);
-      if (!validation.isValid) {
-        logger.warn(
-          `[executeStructuredActions] Invalid action: ${validation.error}`,
-        );
-        results.push(`Invalid action: ${validation.error}`);
-        continue;
-      }
-
-      // Check if guild is required for this action (using registry)
-      if (actionRequiresGuild(action.type) && !guild) {
-        results.push(
-          `${action.type} requires a server context (cannot be used in DMs)`,
-        );
-        continue;
-      }
-
-      try {
-        switch (action.type) {
-          case "fetch_members": {
-            if (!guild) {
-              results.push("Error: Cannot fetch members - not in a server");
-              break;
-            }
-            try {
-              const fetchResult = await this.fetchMembers(guild);
-              if (fetchResult.success) {
-                if (fetchResult.fetched && fetchResult.fetched > 0) {
-                  results.push(
-                    `Success: Fetched ${fetchResult.fetched} additional members (${fetchResult.cached}/${fetchResult.total} total now cached)`,
-                  );
-                } else if (fetchResult.message) {
-                  results.push(
-                    `Success: ${fetchResult.message} (${fetchResult.cached}/${fetchResult.total} cached)`,
-                  );
-                } else {
-                  results.push(
-                    `Success: All members already cached (${fetchResult.cached}/${fetchResult.total})`,
-                  );
-                }
-              } else {
-                // Error occurred - include error message for AI to report to user
-                results.push(`Error: ${fetchResult.error}`);
-              }
-            } catch (error) {
-              const errorMessage = error.message || "Unknown error occurred";
-              logger.error(
-                `[fetch_members] Unexpected error: ${errorMessage}`,
-                error,
-              );
-              results.push(`Error: Failed to fetch members - ${errorMessage}`);
-            }
-            break;
-          }
-
-          case "fetch_channels":
-            if (!guild) {
-              results.push("Cannot fetch channels: not in a server");
-              break;
-            }
-            await guild.channels.fetch();
-            results.push("Fetched all channels");
-            break;
-
-          case "fetch_roles":
-            if (!guild) {
-              results.push("Cannot fetch roles: not in a server");
-              break;
-            }
-            await guild.roles.fetch();
-            results.push("Fetched all roles");
-            break;
-
-          case "fetch_all":
-            if (!guild) {
-              results.push("Error: Cannot fetch data - not in a server");
-              break;
-            }
-            try {
-              const memberFetchResult = await this.fetchMembers(guild);
-              if (!memberFetchResult.success) {
-                results.push(
-                  `Error fetching members: ${memberFetchResult.error}`,
-                );
-              } else {
-                results.push(
-                  `Success: Fetched ${memberFetchResult.fetched || 0} members (${memberFetchResult.cached}/${memberFetchResult.total} cached)`,
-                );
-              }
-
-              await guild.channels.fetch();
-              await guild.roles.fetch();
-
-              if (memberFetchResult.success) {
-                results.push(
-                  "Success: Fetched all server data (members, channels, roles)",
-                );
-              } else {
-                results.push(
-                  "Partial success: Fetched channels and roles, but member fetch had errors",
-                );
-              }
-            } catch (error) {
-              const errorMessage = error.message || "Unknown error occurred";
-              logger.error(
-                `[fetch_all] Unexpected error: ${errorMessage}`,
-                error,
-              );
-              results.push(
-                `Error: Failed to fetch all server data - ${errorMessage}`,
-              );
-            }
-            break;
-
-          case "get_member_info":
-            if (!guild) {
-              results.push("Cannot get member info: not in a server");
-              break;
-            }
-            if (
-              !action.options ||
-              (!action.options.user_id && !action.options.username)
-            ) {
-              results.push(
-                "get_member_info requires 'user_id' or 'username' in options",
-              );
-              break;
-            }
-            {
-              const memberInfo = await this.getMemberInfo(
-                guild,
-                action.options,
-              );
-              if (memberInfo) {
-                results.push(`Data: ${memberInfo}`);
-              } else {
-                results.push("Member not found");
-              }
-            }
-            break;
-
-          case "get_role_info":
-            if (!guild) {
-              results.push("Cannot get role info: not in a server");
-              break;
-            }
-            if (
-              !action.options ||
-              (!action.options.role_id && !action.options.role_name)
-            ) {
-              results.push(
-                "get_role_info requires 'role_id' or 'role_name' in options",
-              );
-              break;
-            }
-            {
-              const roleInfo = await this.getRoleInfo(guild, action.options);
-              if (roleInfo) {
-                results.push(`Data: ${roleInfo}`);
-              } else {
-                results.push("Role not found");
-              }
-            }
-            break;
-
-          case "get_channel_info":
-            if (!guild) {
-              results.push("Cannot get channel info: not in a server");
-              break;
-            }
-            if (
-              !action.options ||
-              (!action.options.channel_id && !action.options.channel_name)
-            ) {
-              results.push(
-                "get_channel_info requires 'channel_id' or 'channel_name' in options",
-              );
-              break;
-            }
-            {
-              const channelInfo = await this.getChannelInfo(
-                guild,
-                action.options,
-              );
-              if (channelInfo) {
-                results.push(`Data: ${channelInfo}`);
-              } else {
-                results.push("Channel not found");
-              }
-            }
-            break;
-
-          case "search_members_by_role":
-            if (!guild) {
-              results.push("Cannot search members: not in a server");
-              break;
-            }
-            if (
-              !action.options ||
-              (!action.options.role_id && !action.options.role_name)
-            ) {
-              results.push(
-                "search_members_by_role requires 'role_id' or 'role_name' in options",
-              );
-              break;
-            }
-            {
-              const members = await this.searchMembersByRole(
-                guild,
-                action.options,
-              );
-              if (members && members.length > 0) {
-                const memberList = members
-                  .map((name, idx) => `${idx + 1}. ${name}`)
-                  .join("\n");
-                results.push(
-                  `Found: ${members.length} member(s) with that role:\n${memberList}`,
-                );
-              } else {
-                results.push("No members found with that role");
-              }
-            }
-            break;
-
-          case "execute_command":
-            if (!guild) {
-              results.push("Cannot execute command: not in a server");
-              break;
-            }
-            if (!action.command) {
-              results.push("execute_command requires a 'command' field");
-              break;
-            }
-            {
-              try {
-                const { executeCommandProgrammatically } = await import(
-                  "./commandExecutor.js"
-                );
-
-                // Parse command name - handle cases where AI puts "command subcommand" in command field
-                // e.g., "poll create" should become command="poll", subcommand="create"
-                let commandName = action.command;
-                let subcommand =
-                  action.subcommand ||
-                  (action.options && action.options.subcommand) ||
-                  null;
-
-                // If command name contains a space, split it into command and subcommand
-                if (commandName.includes(" ") && !subcommand) {
-                  const parts = commandName.split(" ");
-                  commandName = parts[0];
-                  subcommand = parts.slice(1).join(" ");
-                  logger.debug(
-                    `[executeStructuredActions] Parsed command "${action.command}" into command="${commandName}", subcommand="${subcommand}"`,
-                  );
-                }
-
-                // Remove subcommand from options if it's there (it's not a real option)
-                const cleanOptions = { ...(action.options || {}) };
-                if (cleanOptions.subcommand) {
-                  delete cleanOptions.subcommand;
-                }
-
-                const result = await executeCommandProgrammatically({
-                  commandName,
-                  subcommand,
-                  options: cleanOptions,
-                  user,
-                  guild,
-                  channel,
-                  client,
-                });
-                if (result.success) {
-                  // Command has already sent its response directly to the channel
-                  // We just need to mark it as executed for the AI context
-                  logger.info(
-                    `[executeStructuredActions] Command ${action.command} executed and sent response to channel`,
-                  );
-                  results.push(
-                    `Command Result: Command ${action.command} executed successfully`,
-                  );
-                } else {
-                  // Include detailed error information for AI to learn from
-                  const errorMsg = result.error || "Unknown error";
-                  const guidance = await this.getCommandErrorGuidance(
-                    errorMsg,
-                    action,
-                  );
-                  results.push(
-                    `Command Error: Failed to execute command "${action.command}"${action.subcommand ? ` with subcommand "${action.subcommand}"` : ""}. Error: ${errorMsg}. ${guidance}`,
-                  );
-                }
-              } catch (error) {
-                // Include detailed error information for AI to learn from
-                const errorMsg = error.message || "Unknown error";
-                const guidance = await this.getCommandErrorGuidance(
-                  errorMsg,
-                  action,
-                );
-                results.push(
-                  `Command Error: Error executing command "${action.command}"${action.subcommand ? ` with subcommand "${action.subcommand}"` : ""}. Error: ${errorMsg}. ${guidance}`,
-                );
-              }
-            }
-            break;
-
-          // Note: Admin/moderation/guild management actions are not in the action registry
-          // These actions (send_message, add_role, remove_role, delete_message, pin_message,
-          // unpin_message, create_channel, delete_channel, modify_channel, kick_member,
-          // ban_member, timeout_member, warn_member) are not available because anyone can use the AI
-          // They must be performed manually by administrators using bot commands
-
-          default:
-            // Check if this is a dynamic data fetching action
-            if (
-              action.type.startsWith("get_") &&
-              action.type !== "get_member_info" &&
-              action.type !== "get_role_info" &&
-              action.type !== "get_channel_info" &&
-              action.type !== "search_members_by_role"
-            ) {
-              const handled = await this.handleDynamicDataFetching(
-                action.type,
-                guild,
-                client,
-              );
-              if (handled !== null) {
-                results.push(handled);
-                break;
-              }
-            }
-            logger.warn(`Unknown action type: ${action.type}`);
-            results.push(`Unknown action type: ${action.type}`);
-        }
-      } catch (error) {
-        logger.error(`Error executing action ${action.type}:`, error);
-        results.push(
-          `Failed to execute ${action.type}: ${error.message || "Unknown error"}`,
-        );
-      }
-    }
-
-    return { results, commandResponses: [] }; // Commands send directly, no need to return them
+    return actionExecutor.executeStructuredActions(
+      actions,
+      guild,
+      client,
+      user,
+      channel,
+    );
   }
 
   /**
@@ -757,43 +381,10 @@ export class ChatService {
    * @param {import('discord.js').Guild} guild - Discord guild
    * @param {Object} options - Options with user_id or username
    * @returns {Promise<string|null>} Member information or null if not found
+   * @deprecated Use dataFetcher.getMemberInfo() instead
    */
   async getMemberInfo(guild, options) {
-    if (!guild) return null;
-
-    try {
-      let member = null;
-
-      // Try to find by user ID
-      if (options.user_id) {
-        member = guild.members.cache.get(options.user_id);
-        if (!member) {
-          member = await guild.members.fetch(options.user_id).catch(() => null);
-        }
-      }
-      // Try to find by username
-      else if (options.username) {
-        const username = options.username.toLowerCase();
-        member = guild.members.cache.find(
-          m =>
-            m.user.username.toLowerCase() === username ||
-            m.displayName.toLowerCase() === username ||
-            m.user.tag.toLowerCase() === username,
-        );
-      }
-
-      if (!member) return null;
-
-      const roles = member.roles.cache
-        .filter(role => role.name !== "@everyone")
-        .map(role => role.name)
-        .join(", ");
-
-      return `${member.user.tag} (${member.user.id}) - Roles: ${roles || "None"} - Joined: ${member.joinedAt?.toLocaleDateString() || "Unknown"}`;
-    } catch (error) {
-      logger.error("[getMemberInfo] Error:", error);
-      return null;
-    }
+    return dataFetcher.getMemberInfo(guild, options);
   }
 
   /**
@@ -801,35 +392,10 @@ export class ChatService {
    * @param {import('discord.js').Guild} guild - Discord guild
    * @param {Object} options - Options with role_name or role_id
    * @returns {Promise<string|null>} Role information or null if not found
+   * @deprecated Use dataFetcher.getRoleInfo() instead
    */
   async getRoleInfo(guild, options) {
-    if (!guild) return null;
-
-    try {
-      let role = null;
-
-      // Try to find by role ID
-      if (options.role_id) {
-        role = guild.roles.cache.get(options.role_id);
-      }
-      // Try to find by role name
-      else if (options.role_name) {
-        const roleName = options.role_name.toLowerCase();
-        role = guild.roles.cache.find(r => r.name.toLowerCase() === roleName);
-      }
-
-      if (!role || role.name === "@everyone") return null;
-
-      // Count members with this role
-      const membersWithRole = guild.members.cache.filter(m =>
-        m.roles.cache.has(role.id),
-      ).size;
-
-      return `${role.name} (${role.id}) - Members: ${membersWithRole} - Color: ${role.hexColor} - Position: ${role.position}`;
-    } catch (error) {
-      logger.error("[getRoleInfo] Error:", error);
-      return null;
-    }
+    return dataFetcher.getRoleInfo(guild, options);
   }
 
   /**
@@ -837,41 +403,10 @@ export class ChatService {
    * @param {import('discord.js').Guild} guild - Discord guild
    * @param {Object} options - Options with channel_name or channel_id
    * @returns {Promise<string|null>} Channel information or null if not found
+   * @deprecated Use dataFetcher.getChannelInfo() instead
    */
   async getChannelInfo(guild, options) {
-    if (!guild) return null;
-
-    try {
-      let channel = null;
-
-      // Try to find by channel ID
-      if (options.channel_id) {
-        channel = guild.channels.cache.get(options.channel_id);
-      }
-      // Try to find by channel name
-      else if (options.channel_name) {
-        const channelName = options.channel_name.toLowerCase();
-        channel = guild.channels.cache.find(
-          c => c.name?.toLowerCase() === channelName,
-        );
-      }
-
-      if (!channel) return null;
-
-      const typeMap = {
-        0: "Text",
-        2: "Voice",
-        4: "Category",
-        5: "News",
-        13: "Stage",
-        15: "Forum",
-      };
-
-      return `${channel.name} (${channel.id}) - Type: ${typeMap[channel.type] || "Unknown"} - Created: ${channel.createdAt?.toLocaleDateString() || "Unknown"}`;
-    } catch (error) {
-      logger.error("[getChannelInfo] Error:", error);
-      return null;
-    }
+    return dataFetcher.getChannelInfo(guild, options);
   }
 
   /**
@@ -879,59 +414,11 @@ export class ChatService {
    * @param {string} errorMessage - Error message
    * @param {Object} action - Action that failed
    * @returns {Promise<string>} Guidance message
+   * @deprecated Use actionExecutor.getCommandErrorGuidance() instead
    * @private
    */
   async getCommandErrorGuidance(errorMessage, action) {
-    const errorLower = errorMessage.toLowerCase();
-    const command = action.command || "unknown";
-
-    // Command not allowed
-    if (
-      errorLower.includes("not allowed") ||
-      errorLower.includes("only execute general")
-    ) {
-      // Dynamically discover general commands instead of hardcoding
-      try {
-        const { getGeneralCommands } = await import("./commandExecutor.js");
-        const generalCommands = await getGeneralCommands();
-        return `This command is not in the general commands list. AI can only execute commands from /src/commands/general. Available general commands: ${generalCommands.join(", ")}. If you need to use "${command}", it's likely an admin or developer command that must be run manually by a user.`;
-      } catch (error) {
-        logger.error(
-          "Failed to get general commands for error guidance:",
-          error,
-        );
-        return `This command is not in the general commands list. AI can only execute commands from /src/commands/general. Check the available commands using /help.`;
-      }
-    }
-
-    // Subcommand not allowed
-    if (
-      errorLower.includes("subcommand") &&
-      errorLower.includes("not allowed")
-    ) {
-      return `The subcommand "${action.subcommand}" doesn't exist for command "${command}". Check the command structure - some commands don't have subcommands (like /rps, /wyr, /ping).`;
-    }
-
-    // User not found
-    if (
-      errorLower.includes("user") &&
-      (errorLower.includes("not found") || errorLower.includes("invalid"))
-    ) {
-      return `The user ID or mention provided is invalid or the user doesn't exist. Use actual user IDs from the server member list, or use mention format like "<@123456789012345678>".`;
-    }
-
-    // Missing required options
-    if (errorLower.includes("required") || errorLower.includes("missing")) {
-      return `Required options are missing. Check the command structure - all required options must be provided.`;
-    }
-
-    // Invalid option values
-    if (errorLower.includes("invalid") || errorLower.includes("not valid")) {
-      return `One or more option values are invalid. Check the command's expected option types and values (e.g., choices must match predefined values, user options must be valid user IDs).`;
-    }
-
-    // Generic guidance
-    return `Review the command structure and options. Ensure all required options are provided with correct types and values.`;
+    return actionExecutor.getCommandErrorGuidance(errorMessage, action);
   }
 
   /**
@@ -939,36 +426,10 @@ export class ChatService {
    * @param {import('discord.js').Guild} guild - Discord guild
    * @param {Object} options - Options with role_name or role_id
    * @returns {Promise<Array<string>|null>} Array of member names or null if role not found
+   * @deprecated Use dataFetcher.searchMembersByRole() instead
    */
   async searchMembersByRole(guild, options) {
-    if (!guild) return null;
-
-    try {
-      let role = null;
-
-      // Try to find by role ID
-      if (options.role_id) {
-        role = guild.roles.cache.get(options.role_id);
-      }
-      // Try to find by role name
-      else if (options.role_name) {
-        const roleName = options.role_name.toLowerCase();
-        role = guild.roles.cache.find(r => r.name.toLowerCase() === roleName);
-      }
-
-      if (!role || role.name === "@everyone") return null;
-
-      // Get members with this role
-      const members = guild.members.cache
-        .filter(m => m.roles.cache.has(role.id) && !m.user.bot)
-        .map(m => m.displayName || m.user.username)
-        .slice(0, MAX_MEMBERS_TO_DISPLAY);
-
-      return members;
-    } catch (error) {
-      logger.error("[searchMembersByRole] Error:", error);
-      return null;
-    }
+    return dataFetcher.searchMembersByRole(guild, options);
   }
 
   /**
@@ -977,177 +438,20 @@ export class ChatService {
    * @param {import('discord.js').Guild} guild - Discord guild
    * @param {string} userMessage - User's message (for keyword detection)
    * @returns {Promise<{fetched: boolean, reason: string, cached: number, total: number}>}
+   * @deprecated Use dataFetcher.smartMemberFetch() instead
    */
   async smartMemberFetch(guild, userMessage = "") {
-    if (!guild) {
-      return { fetched: false, reason: "No guild context" };
-    }
-
-    // Detect if member data is needed based on keywords
-    const needsMemberList =
-      userMessage &&
-      (userMessage.toLowerCase().includes("member") ||
-        userMessage.toLowerCase().includes("who") ||
-        userMessage.toLowerCase().includes("list") ||
-        userMessage.toLowerCase().includes("people") ||
-        userMessage.toLowerCase().includes("users") ||
-        userMessage.toLowerCase().includes("offline") ||
-        userMessage.toLowerCase().includes("online") ||
-        userMessage.toLowerCase().includes("idle") ||
-        userMessage.toLowerCase().includes("dnd") ||
-        userMessage.toLowerCase().includes("do not disturb"));
-
-    if (!needsMemberList) {
-      return { fetched: false, reason: "No member keywords detected" };
-    }
-
-    const cachedBefore = guild.members.cache.size;
-    const totalMembers = guild.memberCount;
-
-    // Don't auto-fetch for large servers (>1000 members)
-    if (totalMembers > MAX_MEMBER_FETCH_SERVER_SIZE) {
-      logger.debug(
-        `[smartMemberFetch] Server has ${totalMembers} members (exceeds ${MAX_MEMBER_FETCH_SERVER_SIZE} limit) - skipping auto-fetch`,
-      );
-      return {
-        fetched: false,
-        reason: "Server too large",
-        cached: cachedBefore,
-        total: totalMembers,
-      };
-    }
-
-    // Calculate cache coverage
-    const cacheCoverage = totalMembers > 0 ? cachedBefore / totalMembers : 0;
-
-    // Only fetch if cache coverage is insufficient (< 50%)
-    if (cacheCoverage >= 0.5 && cachedBefore >= totalMembers) {
-      logger.debug(
-        `[smartMemberFetch] Cache coverage sufficient (${Math.round(cacheCoverage * 100)}%) - skipping fetch`,
-      );
-      return {
-        fetched: false,
-        reason: "Cache coverage sufficient",
-        cached: cachedBefore,
-        total: totalMembers,
-        coverage: cacheCoverage,
-      };
-    }
-
-    // Fetch members
-    const fetchResult = await this.fetchMembers(guild);
-    const cachedAfter = guild.members.cache.size;
-
-    return {
-      fetched: fetchResult.success,
-      reason: fetchResult.success
-        ? "Auto-fetched due to low cache coverage"
-        : `Auto-fetch failed: ${fetchResult.error || "Unknown error"}`,
-      cached: cachedAfter,
-      total: totalMembers,
-      coverage: totalMembers > 0 ? cachedAfter / totalMembers : 0,
-      fetchedCount: fetchResult.fetched || 0,
-      error: fetchResult.error,
-    };
+    return dataFetcher.smartMemberFetch(guild, userMessage);
   }
 
   /**
    * Fetch all members for a guild
    * @param {import('discord.js').Guild} guild - Discord guild
    * @returns {Promise<{success: boolean, error?: string, fetched?: number, total?: number}>}
+   * @deprecated Use dataFetcher.fetchMembers() instead
    */
   async fetchMembers(guild) {
-    const cachedBefore = guild.members.cache.size;
-    const totalMembers = guild.memberCount;
-
-    // For servers > 1000 members, don't attempt to fetch all (too slow/timeout risk)
-    if (totalMembers > MAX_MEMBER_FETCH_SERVER_SIZE) {
-      logger.debug(
-        `[fetchMembers] Server has ${totalMembers} members (exceeds ${MAX_MEMBER_FETCH_SERVER_SIZE} limit) - using cached members only`,
-      );
-      return {
-        success: true,
-        fetched: 0,
-        total: totalMembers,
-        cached: cachedBefore,
-        message: "Server too large - using cached members only",
-      };
-    }
-
-    if (cachedBefore < totalMembers) {
-      // Adaptive timeout: larger servers need more time
-      // Base timeout + 1ms per member (capped at 30 seconds)
-      const adaptiveTimeout = Math.min(
-        MEMBER_FETCH_TIMEOUT * 2 + Math.floor(totalMembers / 10),
-        30000,
-      );
-
-      try {
-        const fetchPromise = guild.members.fetch();
-        const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(
-            () => reject(new Error("Member fetch timed out")),
-            adaptiveTimeout,
-          );
-        });
-
-        await Promise.race([fetchPromise, timeoutPromise]);
-        const cachedAfter = guild.members.cache.size;
-        logger.debug(`[fetchMembers] Fetched ${cachedAfter} members`);
-        return {
-          success: true,
-          fetched: cachedAfter - cachedBefore,
-          total: totalMembers,
-          cached: cachedAfter,
-        };
-      } catch (fetchError) {
-        const errorMessage = fetchError.message || "Unknown error";
-        if (errorMessage.includes("timed out")) {
-          logger.debug(
-            `[fetchMembers] Fetch timed out after ${adaptiveTimeout}ms - using cached members`,
-          );
-          return {
-            success: false,
-            error: `Member fetch timed out after ${Math.round(adaptiveTimeout / 1000)} seconds. Using cached members only (${cachedBefore}/${totalMembers} cached).`,
-            fetched: 0,
-            total: totalMembers,
-            cached: cachedBefore,
-          };
-        } else if (
-          errorMessage.includes("Missing Access") ||
-          errorMessage.includes("GUILD_MEMBERS")
-        ) {
-          logger.debug(
-            `[fetchMembers] Missing GUILD_MEMBERS intent: ${errorMessage}`,
-          );
-          return {
-            success: false,
-            error: `Cannot fetch members: Missing GUILD_MEMBERS privileged intent. The bot needs this intent enabled in the Discord Developer Portal to fetch all members. Using cached members only (${cachedBefore}/${totalMembers} cached).`,
-            fetched: 0,
-            total: totalMembers,
-            cached: cachedBefore,
-          };
-        } else {
-          logger.debug(`[fetchMembers] Fetch failed: ${errorMessage}`);
-          return {
-            success: false,
-            error: `Failed to fetch members: ${errorMessage}. Using cached members only (${cachedBefore}/${totalMembers} cached).`,
-            fetched: 0,
-            total: totalMembers,
-            cached: cachedBefore,
-          };
-        }
-      }
-    } else {
-      // All members already cached
-      return {
-        success: true,
-        fetched: 0,
-        total: totalMembers,
-        cached: cachedBefore,
-        message: "All members already cached",
-      };
-    }
+    return dataFetcher.fetchMembers(guild);
   }
 
   /**
@@ -1156,151 +460,22 @@ export class ChatService {
    * @param {import('discord.js').Guild} guild - Discord guild
    * @param {import('discord.js').Client} _client - Discord client (unused)
    * @returns {Promise<string|null>} Formatted data string or null if action not handled
+   * @deprecated Use dataFetcher.handleDynamicDataFetching() instead
    * @private
    */
   async handleDynamicDataFetching(actionType, guild, _client) {
-    if (!guild) {
-      return "This action requires a server context (cannot be used in DMs)";
-    }
-
-    try {
-      const { getStorageManager } = await import(
-        "../storage/storageManager.js"
-      );
-      const storageManager = getStorageManager();
-
-      switch (actionType) {
-        case "get_role_reaction_messages": {
-          const mappings = await storageManager.getRoleMappingsPaginated(
-            guild.id,
-            1,
-            100, // Get up to 100 messages
-          );
-          if (
-            !mappings ||
-            !mappings.mappings ||
-            Object.keys(mappings.mappings).length === 0
-          ) {
-            return "No role reaction messages found in this server";
-          }
-          const messageIds = Object.keys(mappings.mappings);
-          return `Found ${messageIds.length} role reaction message(s):\n${messageIds.map((id, idx) => `${idx + 1}. Message ID: ${id}`).join("\n")}`;
-        }
-
-        case "get_scheduled_roles": {
-          const { getDatabaseManager } = await import(
-            "../storage/databaseManager.js"
-          );
-          const dbManager = await getDatabaseManager();
-          if (!dbManager?.scheduledRoles) {
-            return "Scheduled roles data not available (database not connected)";
-          }
-          const allSchedules = await dbManager.scheduledRoles.getAll();
-          const guildSchedules = Object.values(allSchedules).filter(
-            s => s.guildId === guild.id && !s.executed,
-          );
-          if (guildSchedules.length === 0) {
-            return "No active scheduled roles found in this server";
-          }
-          return `Found ${guildSchedules.length} scheduled role(s):\n${guildSchedules.map((s, idx) => `${idx + 1}. Schedule ID: ${s.id} - Role: ${s.roleId} - Scheduled for: ${s.scheduledAt ? new Date(s.scheduledAt).toLocaleString() : "Unknown"}`).join("\n")}`;
-        }
-
-        case "get_polls": {
-          const { getDatabaseManager } = await import(
-            "../storage/databaseManager.js"
-          );
-          const dbManager = await getDatabaseManager();
-          if (!dbManager?.polls) {
-            return "Polls data not available (database not connected)";
-          }
-          const allPolls = await dbManager.polls.getAll();
-          const guildPolls = Object.values(allPolls).filter(
-            p => p.guildId === guild.id && !p.ended,
-          );
-          if (guildPolls.length === 0) {
-            return "No active polls found in this server";
-          }
-          return `Found ${guildPolls.length} active poll(s):\n${guildPolls.map((p, idx) => `${idx + 1}. Poll ID: ${p.id} - Question: ${p.question || "N/A"}`).join("\n")}`;
-        }
-
-        case "get_moderation_history": {
-          // Moderation history would need to be implemented based on your moderation system
-          // This is a placeholder - adjust based on your actual moderation storage
-          return "Moderation history feature not yet implemented";
-        }
-
-        default:
-          return null; // Not a handled dynamic action
-      }
-    } catch (error) {
-      logger.error(
-        `[handleDynamicDataFetching] Error handling ${actionType}:`,
-        error,
-      );
-      return `Error fetching data: ${error.message || "Unknown error"}`;
-    }
+    return dataFetcher.handleDynamicDataFetching(actionType, guild, _client);
   }
 
   /**
    * Parse JSON response from AI, handling markdown code blocks and extra text
    * @param {string} rawResponse - Raw AI response text
    * @returns {Object} Parsed result with {success: boolean, data?: object, error?: string}
+   * @deprecated Use jsonParser.parseJsonResponse() instead
    * @private
    */
   parseJsonResponse(rawResponse) {
-    try {
-      let jsonString = rawResponse.trim();
-
-      // Remove markdown code blocks if present
-      jsonString = jsonString.replace(JSON_MARKDOWN_PATTERNS.jsonBlock, "");
-      jsonString = jsonString.replace(JSON_MARKDOWN_PATTERNS.codeBlock, "");
-      jsonString = jsonString.replace(JSON_MARKDOWN_PATTERNS.closingBlock, "");
-      jsonString = jsonString.trim();
-
-      // Try to extract JSON if there's extra text before/after
-      const jsonMatch = jsonString.match(JSON_MARKDOWN_PATTERNS.jsonObject);
-      if (jsonMatch) {
-        jsonString = jsonMatch[0];
-      }
-
-      const parsed = JSON.parse(jsonString);
-
-      // Validate structure
-      if (
-        typeof parsed === "object" &&
-        parsed !== null &&
-        "message" in parsed
-      ) {
-        // Ensure message is a string (handle null/undefined)
-        const message =
-          typeof parsed.message === "string"
-            ? parsed.message
-            : String(parsed.message || "");
-
-        // Ensure actions is an array (handle null/undefined/invalid types)
-        const actions = Array.isArray(parsed.actions) ? parsed.actions : [];
-
-        return {
-          success: true,
-          data: {
-            message,
-            actions,
-          },
-        };
-      }
-
-      return {
-        success: false,
-        error: "Invalid JSON structure - missing 'message' field",
-        parsedKeys: Object.keys(parsed),
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error.message || "Failed to parse JSON",
-        rawResponse: rawResponse.substring(0, 500),
-      };
-    }
+    return jsonParser.parseJsonResponse(rawResponse);
   }
 
   /**
@@ -1389,7 +564,10 @@ export class ChatService {
     // Automatically fetch members if needed based on user query and cache coverage
     if (guild && userMessage) {
       if (onStatus) await onStatus("Checking server details...");
-      const fetchResult = await this.smartMemberFetch(guild, userMessage);
+      const fetchResult = await dataFetcher.smartMemberFetch(
+        guild,
+        userMessage,
+      );
       if (fetchResult.fetched) {
         logger.info(
           `[generateResponse] Auto-fetched ${fetchResult.fetchedCount} members (${fetchResult.cached}/${fetchResult.total} total, ${Math.round((fetchResult.coverage || 0) * 100)}% coverage)`,
@@ -1602,7 +780,7 @@ export class ChatService {
           let finalResponse;
           let actions = [];
 
-          const parseResult = this.parseJsonResponse(rawResponse);
+          const parseResult = jsonParser.parseJsonResponse(rawResponse);
 
           if (parseResult.success) {
             // JSON format detected
@@ -1900,7 +1078,7 @@ export class ChatService {
 
                 // Parse follow-up response
                 const followUpParseResult =
-                  this.parseJsonResponse(followUpResponse);
+                  jsonParser.parseJsonResponse(followUpResponse);
                 if (followUpParseResult.success) {
                   finalResponse = followUpParseResult.data.message;
                   logger.info(
@@ -2201,7 +1379,10 @@ export class ChatService {
     // Smart member fetch (same as non-streaming)
     if (guild && userMessage) {
       if (onStatus) await onStatus("Checking server details...");
-      const fetchResult = await this.smartMemberFetch(guild, userMessage);
+      const fetchResult = await dataFetcher.smartMemberFetch(
+        guild,
+        userMessage,
+      );
       if (fetchResult.fetched) {
         logger.info(
           `[generateResponseStreaming] Auto-fetched ${fetchResult.fetchedCount} members`,
@@ -2325,7 +1506,7 @@ export class ChatService {
       finalCallback();
 
       // Parse JSON response if needed (same as non-streaming)
-      const parsed = this.parseJsonResponse(result.text || fullText);
+      const parsed = jsonParser.parseJsonResponse(result.text || fullText);
 
       // Log raw response for debugging
       const rawResponseText = result.text || fullText;
