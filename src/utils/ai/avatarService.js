@@ -163,6 +163,7 @@ export class AvatarService {
             type: "image",
             prompt: enhancedPrompt,
             provider: "stability", // Explicitly use Stability AI only (no fallback)
+            progressCallback, // Pass progress callback for real-time updates
             config: {
               size: "1024x1024",
               quality: "standard",
