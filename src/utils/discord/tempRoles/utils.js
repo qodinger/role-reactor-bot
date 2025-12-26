@@ -4,6 +4,11 @@
  * @returns {string} Formatted duration
  */
 export function formatDurationMs(ms) {
+  // Validate input
+  if (typeof ms !== "number" || isNaN(ms) || ms < 0) {
+    return "Invalid duration";
+  }
+
   const seconds = Math.floor(ms / 1000);
   const minutes = Math.floor(seconds / 60);
   const hours = Math.floor(minutes / 60);
@@ -26,6 +31,11 @@ export function formatDurationMs(ms) {
  * @returns {number|null}
  */
 export function parseDuration(durationStr) {
+  // Validate input
+  if (typeof durationStr !== "string" || !durationStr.trim()) {
+    return null;
+  }
+
   const regex = /(\d+)\s*(w|d|h|m)/g;
   let totalMs = 0;
   let match;

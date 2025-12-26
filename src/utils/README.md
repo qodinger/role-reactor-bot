@@ -55,11 +55,12 @@ src/utils/
 │   ├── security.js
 │   ├── slashCommandOptions.js
 │   ├── tempRoles.js
-│   ├── tempRoles/
+│   ├── tempRoles/                    # Temporary role utilities (see tempRoles/README.md)
 │   │   ├── embeds.js
 │   │   ├── handlers.js
 │   │   ├── index.js
-│   │   └── utils.js
+│   │   ├── utils.js
+│   │   └── README.md
 │   ├── version.js
 │   └── welcomeUtils.js
 ├── interactions/
@@ -120,6 +121,7 @@ The utils directory follows a modular architecture where each module has a speci
 ### **Discord-Specific Utilities**
 
 - **discord/** - A collection of modules for interacting with the Discord API, validating inputs, managing permissions, and creating message components. This directory now contains highly specialized modules for role management, separating parsing, validation, and storage interaction.
+  - **tempRoles/** - Reusable utilities for temporary role management with optimized performance, member caching, and bulk operations. See `tempRoles/README.md` for detailed documentation.
 
 ### **Storage & Data Modules**
 

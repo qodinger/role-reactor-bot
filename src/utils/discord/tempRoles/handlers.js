@@ -1,7 +1,11 @@
 import { getStorageManager } from "../../storage/storageManager.js";
 import { getDatabaseManager } from "../../storage/databaseManager.js";
 import { getLogger } from "../../logger.js";
+import { getCachedMember, bulkAddRoles } from "../roleManager.js";
 import { sendAssignmentNotification } from "./embeds.js";
+
+// Constants
+const MAX_USERS_PER_ASSIGNMENT = 10;
 
 /**
  * Adds a temporary role to a user.
@@ -34,7 +38,7 @@ export async function addTemporaryRole(
         return false;
       }
 
-      const member = await guild.members.fetch(userId);
+      const member = await getCachedMember(guild, userId);
       if (!member) {
         logger.error(`Member ${userId} not found in guild ${guildId}`);
         return false;
@@ -44,12 +48,6 @@ export async function addTemporaryRole(
       if (!role) {
         logger.error(`Role ${roleId} not found in guild ${guildId}`);
         return false;
-      }
-
-      // Check if user already has the role
-      if (member.roles.cache.has(roleId)) {
-        logger.info(`User ${userId} already has role ${role.name}`);
-        // Don't return early - still need to store in database
       }
 
       // Assign the role only if user doesn't already have it
@@ -93,7 +91,7 @@ export async function addTemporaryRole(
       try {
         const guild = client?.guilds?.cache?.get(guildId);
         if (guild) {
-          const member = await guild.members.fetch(userId);
+          const member = await getCachedMember(guild, userId);
           const role = guild.roles.cache.get(roleId);
           if (member && role) {
             await member.roles.remove(
@@ -143,17 +141,12 @@ export async function addTemporaryRolesForMultipleUsers(
 ) {
   const logger = getLogger();
   const results = [];
-  let successCount = 0;
-  let failedCount = 0;
-
-  // Maximum users per assignment to prevent abuse and ensure good UX
-  const MAX_USERS = 10;
 
   try {
     // Validate user count
-    if (userIds.length > MAX_USERS) {
+    if (userIds.length > MAX_USERS_PER_ASSIGNMENT) {
       logger.warn(
-        `Too many users requested: ${userIds.length} (max: ${MAX_USERS})`,
+        `Too many users requested: ${userIds.length} (max: ${MAX_USERS_PER_ASSIGNMENT})`,
       );
       return {
         success: 0,
@@ -162,10 +155,10 @@ export async function addTemporaryRolesForMultipleUsers(
           {
             userId: "system",
             success: false,
-            error: `Too many users. Maximum allowed: ${MAX_USERS}, requested: ${userIds.length}`,
+            error: `Too many users. Maximum allowed: ${MAX_USERS_PER_ASSIGNMENT}, requested: ${userIds.length}`,
           },
         ],
-        error: `Too many users. Maximum allowed: ${MAX_USERS}, requested: ${userIds.length}`,
+        error: `Too many users. Maximum allowed: ${MAX_USERS_PER_ASSIGNMENT}, requested: ${userIds.length}`,
       };
     }
 
@@ -182,88 +175,89 @@ export async function addTemporaryRolesForMultipleUsers(
       return { success: 0, failed: userIds.length, results: [] };
     }
 
-    // Process users in batches to respect rate limits
-    const batchSize = 5; // Discord API rate limit
-    const batchDelay = 100; // 100ms between batches
+    // Prepare members and filter out those who already have the role
+    const memberOperations = [];
+    const userMapping = new Map(); // Maps userId to index in memberOperations
 
-    for (let i = 0; i < userIds.length; i += batchSize) {
-      const batch = userIds.slice(i, i + batchSize);
-
-      logger.info(
-        `Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(userIds.length / batchSize)}`,
-        {
-          batchSize: batch.length,
-          totalUsers: userIds.length,
-          currentBatch: batch,
-        },
-      );
-
-      // Process batch in parallel
-      const batchPromises = batch.map(async userId => {
-        try {
-          const member = await guild.members.fetch(userId);
-          if (!member) {
-            logger.error(`User ${userId} not found in guild ${guildId}`);
-            return { userId, success: false, error: "User not found" };
-          }
-
-          // Check if user already has the role
-          if (member.roles.cache.has(roleId)) {
-            logger.info(`User ${userId} already has role ${role.name}`);
-            return { userId, success: true, message: "Already has role" };
-          }
-
-          // Assign the role
-          await member.roles.add(
-            role,
-            `Temporary role assignment - expires at ${expiresAt.toISOString()}`,
-          );
-          logger.info(
-            `✅ Successfully assigned temporary role ${role.name} to user ${userId}`,
-          );
-
-          // Send immediate DM notification if requested
-          if (notify) {
-            try {
-              await sendAssignmentNotification(member, role, expiresAt, guild);
-              logger.info(
-                `📧 Sent assignment notification to ${member.user.tag}`,
-              );
-            } catch (dmError) {
-              logger.warn(
-                `Failed to send assignment notification to ${member.user.tag}:`,
-                dmError.message,
-              );
-            }
-          }
-
-          return { userId, success: true, message: "Role assigned" };
-        } catch (discordError) {
-          logger.error(
-            `Failed to assign Discord role to user ${userId}:`,
-            discordError,
-          );
-          return { userId, success: false, error: discordError.message };
+    for (const userId of userIds) {
+      try {
+        const member = await getCachedMember(guild, userId);
+        if (!member) {
+          logger.error(`User ${userId} not found in guild ${guildId}`);
+          results.push({ userId, success: false, error: "User not found" });
+          continue;
         }
-      });
 
-      // Wait for batch to complete
-      const batchResults = await Promise.all(batchPromises);
-      results.push(...batchResults);
-
-      // Count successes and failures
-      for (const result of batchResults) {
-        if (result.success) {
-          successCount++;
-        } else {
-          failedCount++;
+        // Check if user already has the role
+        if (member.roles.cache.has(roleId)) {
+          logger.info(`User ${userId} already has role ${role.name}`);
+          results.push({ userId, success: true, message: "Already has role" });
+          continue;
         }
+
+        // Add to operations for bulk processing
+        const operationIndex = memberOperations.length;
+        memberOperations.push({ member, role });
+        userMapping.set(userId, {
+          operationIndex,
+          member,
+          needsNotification: notify,
+        });
+      } catch (error) {
+        logger.error(`Failed to prepare member ${userId}:`, error);
+        results.push({ userId, success: false, error: error.message });
       }
+    }
 
-      // Add delay between batches (except for the last batch)
-      if (i + batchSize < userIds.length) {
-        await new Promise(resolve => {
-          setTimeout(resolve, batchDelay);
+    // Use bulk operations for role assignment
+    let bulkResults = [];
+    if (memberOperations.length > 0) {
+      bulkResults = await bulkAddRoles(
+        memberOperations,
+        `Temporary role assignment - expires at ${expiresAt.toISOString()}`,
+      );
+    }
+
+    // Process bulk results and map back to users
+    let successCount = results.filter(r => r.success).length;
+    let failedCount = results.filter(r => r.success === false).length;
+
+    for (const [userId, mapping] of userMapping.entries()) {
+      const bulkResult = bulkResults[mapping.operationIndex];
+
+      if (bulkResult && bulkResult.success) {
+        successCount++;
+        results.push({
+          userId,
+          success: true,
+          message: "Role assigned",
+        });
+
+        // Send immediate DM notification if requested
+        if (mapping.needsNotification && mapping.member) {
+          try {
+            await sendAssignmentNotification(
+              mapping.member,
+              role,
+              expiresAt,
+              guild,
+            );
+            logger.info(
+              `📧 Sent assignment notification to ${mapping.member.user.tag}`,
+            );
+          } catch (dmError) {
+            logger.warn(
+              `Failed to send assignment notification to ${mapping.member.user.tag}:`,
+              dmError.message,
+            );
+          }
+        }
+      } else {
+        failedCount++;
+        results.push({
+          userId,
+          success: false,
+          error: bulkResult?.error || "Failed to assign role",
         });
       }
     }
@@ -290,7 +284,7 @@ export async function addTemporaryRolesForMultipleUsers(
           for (const result of results) {
             if (result.success) {
               try {
-                const member = await guild.members.fetch(result.userId);
+                const member = await getCachedMember(guild, result.userId);
                 if (member) {
                   await member.roles.remove(
                     role,
