@@ -934,9 +934,8 @@ export class ChatService {
           // This allows the AI's text message to appear above command response embeds
           let actionResults = [];
           if (actions.length > 0 && guild) {
-            // For now, we still execute actions here to get results for follow-up queries
-            // But commands will send responses immediately, so the order might not be perfect
-            // TODO: Refactor to separate action execution from command response sending
+            // Execute actions and collect results for follow-up queries
+            // Commands send their responses directly to the channel
             try {
               const actionResult = await this.executeStructuredActions(
                 actions,

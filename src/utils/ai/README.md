@@ -25,6 +25,15 @@ The AI utilities are designed with a modular, reusable architecture:
 - **`actionRegistry.js`** - Centralized registry for all AI actions with validation and metadata
 - **`constants.js`** - Shared constants for all AI modules
 
+### Extracted Modules (Internal)
+
+- **`jsonParser.js`** - Parses JSON responses from AI, handling markdown code blocks
+- **`dataFetcher.js`** - Fetches Discord data (members, roles, channels) for AI context
+- **`actionExecutor.js`** - Validates and executes AI actions
+- **`commandExecutor/`** - Command discovery, validation, and mock interaction creation
+- **`promptSections/`** - Modular prompt sections (identity, context, response format)
+- **`providers/`** - Provider-specific implementations (OpenRouter, OpenAI, Stability, Self-hosted)
+
 ### Exports
 
 - **`index.js`** - Central export file for easy imports
