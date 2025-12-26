@@ -30,6 +30,7 @@ The AI utilities are designed with a modular, reusable architecture:
 - **`jsonParser.js`** - Parses JSON responses from AI, handling markdown code blocks
 - **`dataFetcher.js`** - Fetches Discord data (members, roles, channels) for AI context
 - **`actionExecutor.js`** - Validates and executes AI actions
+- **`modelOptimizer.js`** - Provides optimized parameters (maxTokens, temperature) for different AI models
 - **`commandExecutor/`** - Command discovery, validation, and mock interaction creation
 - **`promptSections/`** - Modular prompt sections (identity, context, response format)
 - **`providers/`** - Provider-specific implementations (OpenRouter, OpenAI, Stability, Self-hosted)

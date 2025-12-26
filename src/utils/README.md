@@ -7,16 +7,47 @@ This directory contains all utility modules for the Role Reactor Bot, providing 
 ```
 src/utils/
 ├── README.md
+├── ai/                          # AI utilities (see ai/README.md)
+│   ├── actionExecutor.js
+│   ├── actionRegistry.js
+│   ├── aiCreditManager.js
+│   ├── avatarService.js
+│   ├── chatService.js
+│   ├── commandDiscoverer.js
+│   ├── commandExecutor/
+│   ├── commandExecutor.js
+│   ├── commandSuggester.js
+│   ├── concurrencyManager.js
+│   ├── constants.js
+│   ├── conversationManager.js
+│   ├── dataFetcher.js
+│   ├── discordActionExecutor.js
+│   ├── feedbackManager.js
+│   ├── jsonParser.js
+│   ├── modelOptimizer.js
+│   ├── multiProviderAIService.js
+│   ├── performanceMonitor.js
+│   ├── promptSections/
+│   ├── providers/
+│   ├── README.md
+│   ├── responseValidator.js
+│   ├── serverInfoGatherer.js
+│   └── systemPromptBuilder.js
 ├── core/
 │   ├── commandHandler.js
 │   ├── errorHandler.js
 │   └── eventHandler.js
 ├── discord/
+│   ├── batchOperations.js
 │   ├── commandValidation.js
+│   ├── exportControls.js
+│   ├── goodbyeUtils.js
 │   ├── inputUtils.js
 │   ├── invite.js
 │   ├── permissions.js
 │   ├── rateLimiter.js
+│   ├── responseMessages.js
+│   ├── roleManager.js
 │   ├── roleMappingManager.js
 │   ├── roleMessageComponents.js
 │   ├── roleParser.js
@@ -24,7 +55,20 @@ src/utils/
 │   ├── security.js
 │   ├── slashCommandOptions.js
 │   ├── tempRoles.js
-│   └── version.js
+│   ├── tempRoles/
+│   │   ├── embeds.js
+│   │   ├── handlers.js
+│   │   ├── index.js
+│   │   └── utils.js
+│   ├── version.js
+│   └── welcomeUtils.js
+├── interactions/
+│   ├── errorHandler.js
+│   ├── handlers/
+│   ├── index.js
+│   ├── InteractionManager.js
+│   ├── README.md
+│   └── routers/
 ├── logger.js
 ├── monitoring/
 │   ├── checkers/
@@ -34,11 +78,35 @@ src/utils/
 │   │   └── performance.js
 │   ├── healthCheck.js
 │   ├── performanceMonitor.js
-│   └── requestHandler.js
+│   ├── requestHandler.js
+│   └── slaMonitor.js
+├── scheduleParser.js
 ├── storage/
 │   ├── databaseManager.js
+│   ├── dataProcessingAgreements.js
+│   ├── imageJobsStorageManager.js
+│   ├── repositories/
+│   │   ├── BaseRepository.js
+│   │   ├── RoleMappingRepository.js
+│   │   ├── TemporaryRoleRepository.js
+│   │   ├── UserExperienceRepository.js
+│   │   ├── WelcomeSettingsRepository.js
+│   │   ├── GoodbyeSettingsRepository.js
+│   │   ├── VoiceControlRepository.js
+│   │   ├── GuildSettingsRepository.js
+│   │   ├── ConversationRepository.js
+│   │   ├── ImageJobRepository.js
+│   │   ├── PollRepository.js
+│   │   ├── CoreCreditsRepository.js
+│   │   ├── ScheduledRoleRepository.js
+│   │   ├── RecurringScheduleRepository.js
+│   │   ├── AIFeedbackRepository.js
+│   │   └── index.js
+│   ├── sessionManager.js
 │   └── storageManager.js
-└── terminal.js
+├── terminal.js
+└── validation/
+    └── welcomeValidation.js
 ```
 
 ## 🏗️ Architecture Overview
@@ -56,15 +124,29 @@ The utils directory follows a modular architecture where each module has a speci
 ### **Storage & Data Modules**
 
 - **storage/** - Handles the database connection (MongoDB), data repositories, caching, and a provider-based storage system that can fall back to local files, ensuring data persistence even if the database is unavailable.
+  - **repositories/** - Modular repository classes for MongoDB collections. Each repository extends `BaseRepository` and provides collection-specific methods for data access, caching, and management.
 
 ### **Performance & Monitoring**
 
 - **monitoring/** - Provides system health checks, performance monitoring, and an HTTP server for exposing health endpoints. It includes individual checker modules for different services (Database, Discord API, etc.).
 
+### **AI Utilities**
+
+- **ai/** - Comprehensive AI services for chat, avatar generation, and multi-provider support. See `ai/README.md` for detailed documentation.
+
+### **Interaction Management**
+
+- **interactions/** - Handles Discord interactions (buttons, modals, select menus) with routing and specialized handlers. See `interactions/README.md` for details.
+
+### **Validation**
+
+- **validation/** - Input validation utilities for commands and user data.
+
 ### **Generic Utilities**
 
 - **logger.js** - A comprehensive, structured logger for the entire application.
 - **terminal.js** - A collection of simple utilities for styling terminal output.
+- **scheduleParser.js** - Parses various schedule formats for role assignments (one-time, recurring, natural language).
 
 ## 🔧 Module Dependencies
 
@@ -79,6 +161,7 @@ graph TD
     subgraph Storage
         StorageManager[storage/storageManager.js]
         DatabaseManager[storage/databaseManager.js]
+        Repositories[storage/repositories/]
     end
 
     subgraph Monitoring
@@ -102,12 +185,13 @@ graph TD
 
     StorageManager --> DatabaseManager
     StorageManager --> Logger
+    DatabaseManager --> Repositories
     DatabaseManager --> Logger
+    Repositories --> Logger
 
     HealthCheck --> Logger
     HealthCheck --> PerformanceMonitor
     HealthCheck --> DatabaseManager
-    HealthServer --> HealthCheck
 
     RoleMappingManager --> StorageManager
 

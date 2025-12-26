@@ -19,6 +19,7 @@ import { performanceMonitor } from "./performanceMonitor.js";
 import { jsonParser } from "./jsonParser.js";
 import { dataFetcher } from "./dataFetcher.js";
 import { actionExecutor } from "./actionExecutor.js";
+import { getModelOptimizations } from "./modelOptimizer.js";
 
 const logger = getLogger();
 
@@ -208,16 +209,6 @@ export class ChatService {
   }
 
   /**
-   * Get conversation history for a user in a specific server (delegates to conversationManager)
-   * @param {string} userId - User ID
-   * @param {string|null} guildId - Guild ID (null for DMs)
-   * @returns {Promise<Array>} Conversation messages
-   */
-  async getConversationHistory(userId, guildId = null) {
-    return conversationManager.getConversationHistory(userId, guildId);
-  }
-
-  /**
    * Add message to conversation history (delegates to conversationManager)
    * @param {string} userId - User ID
    * @param {string|null} guildId - Guild ID (null for DMs)
@@ -225,136 +216,6 @@ export class ChatService {
    */
   async addToHistory(userId, guildId, message) {
     return conversationManager.addToHistory(userId, guildId, message);
-  }
-
-  /**
-   * Clear conversation history for a user in a specific server (delegates to conversationManager)
-   * @param {string} userId - User ID
-   * @param {string|null} guildId - Guild ID (null for DMs)
-   */
-  async clearHistory(userId, guildId = null) {
-    return conversationManager.clearHistory(userId, guildId);
-  }
-
-  /**
-   * Get optimized parameters for a specific model
-   * Optimizes maxTokens and temperature based on model characteristics for better speed and quality
-   * @param {string|null} modelName - Model name/identifier
-   * @returns {Object} Optimized parameters { maxTokens, temperature }
-   */
-  getModelOptimizations(modelName) {
-    if (!modelName) {
-      // Default fallback
-      return { maxTokens: 2000, temperature: 0.7 };
-    }
-
-    const modelLower = modelName.toLowerCase();
-
-    // DeepSeek models (optimize based on model type)
-    if (modelLower.includes("deepseek-r2")) {
-      return { maxTokens: 1800, temperature: 0.5 }; // R2 is faster, can handle more tokens
-    }
-    if (modelLower.includes("deepseek-r1-0528")) {
-      return { maxTokens: 2000, temperature: 0.5 }; // Enhanced R1: Better performance, can handle more
-    }
-    if (modelLower.includes("deepseek-r1")) {
-      return { maxTokens: 1500, temperature: 0.5 }; // R1 is slower reasoning model, reduce tokens
-    }
-    if (
-      modelLower.includes("deepseek-chat") ||
-      modelLower.includes("deepseek-v3")
-    ) {
-      return { maxTokens: 2000, temperature: 0.7 }; // V3/Chat: Fast general purpose, matches GPT-4o
-    }
-    if (modelLower.includes("deepseek-v3-base")) {
-      return { maxTokens: 2000, temperature: 0.7 }; // V3 Base: Free model, good performance
-    }
-    if (modelLower.includes("deepseek")) {
-      return { maxTokens: 2000, temperature: 0.6 }; // Other DeepSeek variants
-    }
-
-    // Claude models (fast, excellent reasoning)
-    if (
-      modelLower.includes("claude-3.5-haiku") ||
-      modelLower.includes("claude-3-haiku")
-    ) {
-      return { maxTokens: 2000, temperature: 0.6 }; // Haiku is optimized for speed
-    }
-    if (
-      modelLower.includes("claude-3.5-sonnet") ||
-      modelLower.includes("claude-3-sonnet")
-    ) {
-      return { maxTokens: 2000, temperature: 0.7 }; // Sonnet is balanced
-    }
-    if (
-      modelLower.includes("claude-3.5-opus") ||
-      modelLower.includes("claude-3-opus")
-    ) {
-      return { maxTokens: 2000, temperature: 0.7 }; // Opus is high quality
-    }
-    if (modelLower.includes("claude")) {
-      return { maxTokens: 2000, temperature: 0.7 }; // Other Claude models
-    }
-
-    // GPT models
-    if (
-      modelLower.includes("gpt-4o-mini") ||
-      modelLower.includes("gpt-4-mini")
-    ) {
-      return { maxTokens: 2000, temperature: 0.7 }; // Fast and efficient
-    }
-    if (modelLower.includes("gpt-4o") || modelLower.includes("gpt-4-turbo")) {
-      return { maxTokens: 2000, temperature: 0.7 }; // Fast GPT-4 variants
-    }
-    if (modelLower.includes("gpt-4")) {
-      return { maxTokens: 2000, temperature: 0.7 }; // Standard GPT-4
-    }
-    if (modelLower.includes("gpt-3.5-turbo")) {
-      return { maxTokens: 2000, temperature: 0.7 }; // Fast GPT-3.5
-    }
-    if (modelLower.includes("gpt")) {
-      return { maxTokens: 2000, temperature: 0.7 }; // Other GPT models
-    }
-
-    // Mistral models
-    if (
-      modelLower.includes("mistral-medium") ||
-      modelLower.includes("mistral-large")
-    ) {
-      return { maxTokens: 2000, temperature: 0.7 }; // Balanced Mistral models
-    }
-    if (modelLower.includes("mistral")) {
-      return { maxTokens: 2000, temperature: 0.7 }; // Other Mistral models
-    }
-
-    // Gemini models
-    if (
-      modelLower.includes("gemini-pro") ||
-      modelLower.includes("gemini-flash")
-    ) {
-      return { maxTokens: 2000, temperature: 0.7 }; // Fast Gemini models
-    }
-    if (modelLower.includes("gemini")) {
-      return { maxTokens: 2000, temperature: 0.7 }; // Other Gemini models
-    }
-
-    // Self-hosted models (typically slower, optimize for speed)
-    if (modelLower.includes("llama") || modelLower.includes("ollama")) {
-      return { maxTokens: 1500, temperature: 0.6 }; // Self-hosted models benefit from lower limits
-    }
-
-    // Default fallback for unknown models
-    return { maxTokens: 2000, temperature: 0.7 };
-  }
-
-  /**
-   * Validate action structure and required fields
-   * @param {Object} action - Action object to validate
-   * @returns {Object} Validation result with isValid and error message
-   * @private
-   */
-  validateAction(action) {
-    return actionExecutor.validateAction(action);
   }
 
   /**
@@ -374,108 +235,6 @@ export class ChatService {
       user,
       channel,
     );
-  }
-
-  /**
-   * Get detailed information about a specific member
-   * @param {import('discord.js').Guild} guild - Discord guild
-   * @param {Object} options - Options with user_id or username
-   * @returns {Promise<string|null>} Member information or null if not found
-   * @deprecated Use dataFetcher.getMemberInfo() instead
-   */
-  async getMemberInfo(guild, options) {
-    return dataFetcher.getMemberInfo(guild, options);
-  }
-
-  /**
-   * Get detailed information about a specific role
-   * @param {import('discord.js').Guild} guild - Discord guild
-   * @param {Object} options - Options with role_name or role_id
-   * @returns {Promise<string|null>} Role information or null if not found
-   * @deprecated Use dataFetcher.getRoleInfo() instead
-   */
-  async getRoleInfo(guild, options) {
-    return dataFetcher.getRoleInfo(guild, options);
-  }
-
-  /**
-   * Get detailed information about a specific channel
-   * @param {import('discord.js').Guild} guild - Discord guild
-   * @param {Object} options - Options with channel_name or channel_id
-   * @returns {Promise<string|null>} Channel information or null if not found
-   * @deprecated Use dataFetcher.getChannelInfo() instead
-   */
-  async getChannelInfo(guild, options) {
-    return dataFetcher.getChannelInfo(guild, options);
-  }
-
-  /**
-   * Get guidance for command errors to help AI understand what went wrong
-   * @param {string} errorMessage - Error message
-   * @param {Object} action - Action that failed
-   * @returns {Promise<string>} Guidance message
-   * @deprecated Use actionExecutor.getCommandErrorGuidance() instead
-   * @private
-   */
-  async getCommandErrorGuidance(errorMessage, action) {
-    return actionExecutor.getCommandErrorGuidance(errorMessage, action);
-  }
-
-  /**
-   * Search for members with a specific role
-   * @param {import('discord.js').Guild} guild - Discord guild
-   * @param {Object} options - Options with role_name or role_id
-   * @returns {Promise<Array<string>|null>} Array of member names or null if role not found
-   * @deprecated Use dataFetcher.searchMembersByRole() instead
-   */
-  async searchMembersByRole(guild, options) {
-    return dataFetcher.searchMembersByRole(guild, options);
-  }
-
-  /**
-   * Smart member fetch with auto-detection
-   * Automatically fetches members if needed based on cache coverage and user query
-   * @param {import('discord.js').Guild} guild - Discord guild
-   * @param {string} userMessage - User's message (for keyword detection)
-   * @returns {Promise<{fetched: boolean, reason: string, cached: number, total: number}>}
-   * @deprecated Use dataFetcher.smartMemberFetch() instead
-   */
-  async smartMemberFetch(guild, userMessage = "") {
-    return dataFetcher.smartMemberFetch(guild, userMessage);
-  }
-
-  /**
-   * Fetch all members for a guild
-   * @param {import('discord.js').Guild} guild - Discord guild
-   * @returns {Promise<{success: boolean, error?: string, fetched?: number, total?: number}>}
-   * @deprecated Use dataFetcher.fetchMembers() instead
-   */
-  async fetchMembers(guild) {
-    return dataFetcher.fetchMembers(guild);
-  }
-
-  /**
-   * Handle dynamic data fetching actions (get_role_reaction_messages, get_scheduled_roles, etc.)
-   * @param {string} actionType - Action type (e.g., "get_role_reaction_messages")
-   * @param {import('discord.js').Guild} guild - Discord guild
-   * @param {import('discord.js').Client} _client - Discord client (unused)
-   * @returns {Promise<string|null>} Formatted data string or null if action not handled
-   * @deprecated Use dataFetcher.handleDynamicDataFetching() instead
-   * @private
-   */
-  async handleDynamicDataFetching(actionType, guild, _client) {
-    return dataFetcher.handleDynamicDataFetching(actionType, guild, _client);
-  }
-
-  /**
-   * Parse JSON response from AI, handling markdown code blocks and extra text
-   * @param {string} rawResponse - Raw AI response text
-   * @returns {Object} Parsed result with {success: boolean, data?: object, error?: string}
-   * @deprecated Use jsonParser.parseJsonResponse() instead
-   * @private
-   */
-  parseJsonResponse(rawResponse) {
-    return jsonParser.parseJsonResponse(rawResponse);
   }
 
   /**
@@ -583,7 +342,10 @@ export class ChatService {
     // Trust the AI to understand context - it can naturally detect when greetings indicate a new topic
     if (onStatus) await onStatus("Reviewing our conversation...");
     const guildId = guild?.id || null;
-    const history = await this.getConversationHistory(userId, guildId);
+    const history = await conversationManager.getConversationHistory(
+      userId,
+      guildId,
+    );
 
     // Build messages array with conversation history (optimized)
     const messages = [];
@@ -706,7 +468,7 @@ export class ChatService {
             this.aiService.config.providers.openrouter?.models?.text?.primary ||
             this.aiService.config.providers.openai?.models?.text?.primary ||
             this.aiService.config.providers.selfhosted?.models?.text?.primary;
-          const modelOpts = this.getModelOptimizations(currentModel);
+          const modelOpts = getModelOptimizations(currentModel);
 
           // Determine maxTokens based on user's request and model capabilities
           // Check if user explicitly asks for detailed explanation
@@ -991,10 +753,11 @@ export class ChatService {
                 );
 
                 // Get updated conversation history
-                const updatedHistory = await this.getConversationHistory(
-                  userId,
-                  guildId,
-                );
+                const updatedHistory =
+                  await conversationManager.getConversationHistory(
+                    userId,
+                    guildId,
+                  );
 
                 // Build messages array with updated context
                 const updatedMessages = [];
@@ -1392,7 +1155,10 @@ export class ChatService {
     // Get conversation history
     if (onStatus) await onStatus("Reviewing our conversation...");
     const guildId = guild?.id || null;
-    const history = await this.getConversationHistory(userId, guildId);
+    const history = await conversationManager.getConversationHistory(
+      userId,
+      guildId,
+    );
     const messages = [];
 
     // Add system message
@@ -1487,8 +1253,7 @@ export class ChatService {
         this.aiService.config.providers.selfhosted?.models?.text?.primary;
 
       // Optimize parameters based on model characteristics
-      const { maxTokens, temperature } =
-        this.getModelOptimizations(currentModel);
+      const { maxTokens, temperature } = getModelOptimizations(currentModel);
 
       const result = await this.aiService.generateTextStreaming({
         prompt: messages,
