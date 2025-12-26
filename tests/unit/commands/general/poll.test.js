@@ -119,7 +119,7 @@ import {
   handlePollList,
   handlePollEnd,
   handlePollCreateModal,
-} from "../../src/commands/general/poll/handlers.js";
+} from "../../../../src/commands/general/poll/handlers.js";
 
 describe("Poll Command", () => {
   let mockInteraction;

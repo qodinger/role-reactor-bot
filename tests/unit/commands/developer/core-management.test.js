@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, jest } from "@jest/globals";
-import { handleCoreManagement } from "../../src/commands/developer/core-management/handlers.js";
+import { handleCoreManagement } from "../../../../src/commands/developer/core-management/handlers.js";
 
 // Mock logger
 jest.mock("src/utils/logger.js", () => ({

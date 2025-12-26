@@ -1,5 +1,5 @@
 import { jest } from "@jest/globals";
-import { ConversationManager } from "../../src/utils/ai/conversationManager.js";
+import { ConversationManager } from "../../../../src/utils/ai/conversationManager.js";
 
 // Mock dependencies
 jest.mock("src/utils/logger.js", () => ({

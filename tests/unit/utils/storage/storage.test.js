@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, jest } from "@jest/globals";
-import { handleStorageCheck } from "../../src/commands/developer/storage/handlers.js";
+import { handleStorageCheck } from "../../../../src/commands/developer/storage/handlers.js";
 
 // Mock logger
 jest.mock("src/utils/logger.js", () => ({

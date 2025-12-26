@@ -91,7 +91,7 @@ jest.mock("src/features/experience/VoiceTracker.js", () => {
 // Import execute after mocks are set up
 let execute;
 beforeAll(async () => {
-  const module = await import("../../src/events/voiceStateUpdate.js");
+  const module = await import("../../../src/events/voiceStateUpdate.js");
   execute = module.execute;
 });
 

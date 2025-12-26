@@ -82,7 +82,7 @@ jest.mock("src/commands/general/core/utils.js", () => ({
 }));
 
 // Import EventHandler after mocks are set up
-import { EventHandler } from "../../src/utils/core/eventHandler.js";
+import { EventHandler } from "../../../../src/utils/core/eventHandler.js";
 
 describe("EventHandler - Core-Aware Command Rate Limiting", () => {
   let eventHandler;

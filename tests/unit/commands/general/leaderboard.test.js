@@ -75,15 +75,11 @@ jest.mock("src/utils/logger.js", () => ({
 
 // Mock experience manager
 const mockExperienceManager = {
-  getUserData: jest.fn().mockResolvedValue({
-    totalXP: 1000,
-    level: 5,
-  }),
-  calculateProgress: jest.fn().mockReturnValue({
-    currentLevel: 5,
-    nextLevel: 6,
-    progress: 50,
-  }),
+  getLeaderboard: jest.fn().mockResolvedValue([
+    { userId: "user1", totalXP: 5000, level: 10 },
+    { userId: "user2", totalXP: 3000, level: 8 },
+    { userId: "user3", totalXP: 2000, level: 6 },
+  ]),
   isInitialized: true,
   initialize: jest.fn().mockResolvedValue(undefined),
 };
@@ -94,18 +90,18 @@ jest.mock("src/features/experience/ExperienceManager.js", () => ({
 }));
 
 // Mock embeds
-jest.mock("src/commands/general/level/embeds.js", () => ({
-  createLevelEmbed: jest.fn(() => ({
+jest.mock("src/commands/general/leaderboard/embeds.js", () => ({
+  createLeaderboardEmbed: jest.fn(() => ({
     data: {
-      title: "Level",
-      description: "User level information",
+      title: "Leaderboard",
+      description: "XP leaderboard",
     },
   })),
 }));
 
 // Mock response messages
 jest.mock("src/utils/discord/responseMessages.js", () => ({
-  errorEmbed: jest.fn((options) => ({
+  errorEmbed: jest.fn(options => ({
     data: {
       title: options.title,
       description: options.description,
@@ -113,9 +109,9 @@ jest.mock("src/utils/discord/responseMessages.js", () => ({
   })),
 }));
 
-import { handleLevel } from "../../src/commands/general/level/handlers.js";
+import { handleLeaderboard } from "../../../../src/commands/general/leaderboard/handlers.js";
 
-describe("Level Command", () => {
+describe("Leaderboard Command", () => {
   let mockInteraction;
   let mockClient;
 
@@ -130,15 +126,11 @@ describe("Level Command", () => {
     });
 
     // Reset experience manager mocks
-    mockExperienceManager.getUserData.mockResolvedValue({
-      totalXP: 1000,
-      level: 5,
-    });
-    mockExperienceManager.calculateProgress.mockReturnValue({
-      currentLevel: 5,
-      nextLevel: 6,
-      progress: 50,
-    });
+    mockExperienceManager.getLeaderboard.mockResolvedValue([
+      { userId: "user1", totalXP: 5000, level: 10 },
+      { userId: "user2", totalXP: 3000, level: 8 },
+      { userId: "user3", totalXP: 2000, level: 6 },
+    ]);
 
     mockInteraction = {
       user: {
@@ -148,17 +140,10 @@ describe("Level Command", () => {
       guild: {
         id: "guild123",
         name: "Test Guild",
-        members: {
-          cache: {
-            get: jest.fn().mockReturnValue({
-              id: "user123",
-              user: { id: "user123" },
-            }),
-          },
-        },
       },
       options: {
-        getUser: jest.fn().mockReturnValue(null),
+        getInteger: jest.fn().mockReturnValue(10),
+        getString: jest.fn().mockReturnValue("xp"),
       },
       editReply: jest.fn().mockResolvedValue(undefined),
       reply: jest.fn().mockResolvedValue(undefined),
@@ -172,33 +157,48 @@ describe("Level Command", () => {
     };
   });
 
-  describe("handleLevel", () => {
-    it("should display level for current user", async () => {
-      // Inject mocks directly
-      const mockGetDatabaseManager = jest.fn().mockResolvedValue(mockDbManagerInstance);
-      const mockGetExperienceManager = jest.fn().mockResolvedValue(mockExperienceManager);
+  describe("handleLeaderboard", () => {
+    it("should display leaderboard with default limit", async () => {
+      mockInteraction.options.getInteger.mockReturnValue(null);
 
-      await handleLevel(mockInteraction, mockClient, {
+      // Inject mocks directly
+      const mockGetDatabaseManager = jest
+        .fn()
+        .mockResolvedValue(mockDbManagerInstance);
+      const mockGetExperienceManager = jest
+        .fn()
+        .mockResolvedValue(mockExperienceManager);
+      const mockGetStorageManager = jest
+        .fn()
+        .mockResolvedValue(mockStorageManager);
+
+      await handleLeaderboard(mockInteraction, mockClient, {
         getDatabaseManager: mockGetDatabaseManager,
         getExperienceManager: mockGetExperienceManager,
+        getStorageManager: mockGetStorageManager,
       });
 
       expect(mockInteraction.editReply).toHaveBeenCalled();
     });
 
-    it("should display level for specified user", async () => {
-      mockInteraction.options.getUser.mockReturnValue({
-        id: "other-user",
-        tag: "OtherUser#5678",
-      });
+    it("should display leaderboard with custom limit", async () => {
+      mockInteraction.options.getInteger.mockReturnValue(25);
 
       // Inject mocks directly
-      const mockGetDatabaseManager = jest.fn().mockResolvedValue(mockDbManagerInstance);
-      const mockGetExperienceManager = jest.fn().mockResolvedValue(mockExperienceManager);
+      const mockGetDatabaseManager = jest
+        .fn()
+        .mockResolvedValue(mockDbManagerInstance);
+      const mockGetExperienceManager = jest
+        .fn()
+        .mockResolvedValue(mockExperienceManager);
+      const mockGetStorageManager = jest
+        .fn()
+        .mockResolvedValue(mockStorageManager);
 
-      await handleLevel(mockInteraction, mockClient, {
+      await handleLeaderboard(mockInteraction, mockClient, {
         getDatabaseManager: mockGetDatabaseManager,
         getExperienceManager: mockGetExperienceManager,
+        getStorageManager: mockGetStorageManager,
       });
 
       expect(mockInteraction.editReply).toHaveBeenCalled();
@@ -213,34 +213,46 @@ describe("Level Command", () => {
       });
 
       // Inject mocks directly
-      const mockGetDatabaseManager = jest.fn().mockResolvedValue(mockDbManagerInstance);
-      const mockGetExperienceManager = jest.fn().mockResolvedValue(mockExperienceManager);
+      const mockGetDatabaseManager = jest
+        .fn()
+        .mockResolvedValue(mockDbManagerInstance);
+      const mockGetExperienceManager = jest
+        .fn()
+        .mockResolvedValue(mockExperienceManager);
+      const mockGetStorageManager = jest
+        .fn()
+        .mockResolvedValue(mockStorageManager);
 
-      await handleLevel(mockInteraction, mockClient, {
+      await handleLeaderboard(mockInteraction, mockClient, {
         getDatabaseManager: mockGetDatabaseManager,
         getExperienceManager: mockGetExperienceManager,
+        getStorageManager: mockGetStorageManager,
       });
 
       expect(mockInteraction.editReply).toHaveBeenCalled();
     });
 
-    it("should handle user not found", async () => {
-      mockInteraction.options.getUser.mockReturnValue({
-        id: "unknown-user",
-      });
-      mockInteraction.guild.members.cache.get.mockReturnValue(null);
+    it("should handle empty leaderboard", async () => {
+      mockExperienceManager.getLeaderboard.mockResolvedValueOnce([]);
 
       // Inject mocks directly
-      const mockGetDatabaseManager = jest.fn().mockResolvedValue(mockDbManagerInstance);
-      const mockGetExperienceManager = jest.fn().mockResolvedValue(mockExperienceManager);
+      const mockGetDatabaseManager = jest
+        .fn()
+        .mockResolvedValue(mockDbManagerInstance);
+      const mockGetExperienceManager = jest
+        .fn()
+        .mockResolvedValue(mockExperienceManager);
+      const mockGetStorageManager = jest
+        .fn()
+        .mockResolvedValue(mockStorageManager);
 
-      await handleLevel(mockInteraction, mockClient, {
+      await handleLeaderboard(mockInteraction, mockClient, {
         getDatabaseManager: mockGetDatabaseManager,
         getExperienceManager: mockGetExperienceManager,
+        getStorageManager: mockGetStorageManager,
       });
 
       expect(mockInteraction.editReply).toHaveBeenCalled();
     });
   });
 });
-

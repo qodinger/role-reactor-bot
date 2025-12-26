@@ -2,11 +2,11 @@ import { describe, it, expect, beforeEach, jest } from "@jest/globals";
 import {
   detectTargetingType,
   validateSchedule,
-} from "../../src/commands/admin/schedule-role/utils.js";
+} from "../../../../src/commands/admin/schedule-role/utils.js";
 import {
   parseOneTimeSchedule,
   parseRecurringSchedule,
-} from "../../src/utils/scheduleParser.js";
+} from "../../../../src/utils/scheduleParser.js";
 
 describe("Schedule Role - Mention Detection", () => {
   let mockGuild;

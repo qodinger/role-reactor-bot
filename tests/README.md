@@ -9,9 +9,45 @@ tests/
 ├── README.md                 # This file
 ├── setup.js                  # Jest setup and global mocks
 ├── unit/                     # Unit tests for individual modules
-│   └── commandHandler.test.js
+│   ├── commands/             # Command-specific tests
+│   │   ├── admin/            # Admin command tests
+│   │   │   ├── welcome.test.js
+│   │   │   ├── goodbye.test.js
+│   │   │   ├── moderation.test.js
+│   │   │   ├── role-reactions.test.js
+│   │   │   ├── temp-roles.test.js
+│   │   │   ├── schedule-role.test.js
+│   │   │   └── xp.test.js
+│   │   ├── developer/        # Developer command tests
+│   │   │   ├── core-management.test.js
+│   │   │   ├── health.test.js
+│   │   │   └── performance.test.js
+│   │   └── general/          # General command tests
+│   │       ├── help.test.js
+│   │       ├── level.test.js
+│   │       ├── leaderboard.test.js
+│   │       ├── poll.test.js
+│   │       ├── serverinfo.test.js
+│   │       └── userinfo.test.js
+│   ├── events/               # Event handler tests
+│   │   ├── guildMemberUpdate.test.js
+│   │   └── voiceStateUpdate.test.js
+│   ├── utils/                # Utility tests
+│   │   ├── core/             # Core utility tests
+│   │   │   ├── commandHandler.test.js
+│   │   │   └── eventHandler.test.js
+│   │   ├── discord/          # Discord utility tests
+│   │   │   └── roleManagerParseRoleString.test.js
+│   │   ├── storage/          # Storage utility tests
+│   │   │   └── storage.test.js
+│   │   └── ai/               # AI utility tests
+│   │       └── conversationManager.test.js
+│   └── features/             # Feature-specific tests
+│       └── databaseReconnection.test.js
 ├── integration/              # Integration tests for API interactions
-│   └── discord-api.test.js
+│   ├── discord-api.test.js
+│   ├── database.test.js
+│   └── setup-roles.test.js
 └── e2e/                      # End-to-end workflow tests
     └── role-management.test.js
 ```
@@ -50,10 +86,21 @@ pnpm test
 ### Specific Test Types
 
 ```bash
-# Run specific test files directly
+# Run specific test categories
 pnpm test tests/unit/
 pnpm test tests/integration/
 pnpm test tests/e2e/
+
+# Run specific test subdirectories
+pnpm test tests/unit/commands/
+pnpm test tests/unit/events/
+pnpm test tests/unit/utils/
+pnpm test tests/unit/features/
+
+# Run specific command category tests
+pnpm test tests/unit/commands/admin/
+pnpm test tests/unit/commands/developer/
+pnpm test tests/unit/commands/general/
 ```
 
 ### Development Mode
@@ -161,8 +208,10 @@ describe("ModuleName", () => {
 ### Mocking Guidelines
 
 ```javascript
-// Mock modules
-jest.mock("../../src/utils/logger.js", () => ({
+// Mock modules (adjust path depth based on test location)
+// For tests in tests/unit/commands/*/: use ../../../../src/
+// For tests in tests/unit/utils/*/: use ../../../src/
+jest.mock("../../../src/utils/logger.js", () => ({
   getLogger: jest.fn(() => ({
     info: jest.fn(),
     error: jest.fn(),
@@ -212,7 +261,7 @@ process.env.PORT = "3001";
 pnpm test --testNamePattern="should handle error"
 
 # Run tests in a specific file
-pnpm test tests/unit/commandHandler.test.js
+pnpm test tests/unit/utils/core/commandHandler.test.js
 
 # Run tests with verbose output
 pnpm test --verbose

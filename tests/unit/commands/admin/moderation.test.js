@@ -92,7 +92,7 @@ import {
   validateTimeoutDuration,
   formatDuration,
   parseMultipleUsers,
-} from "../../src/commands/admin/moderation/utils.js";
+} from "../../../../src/commands/admin/moderation/utils.js";
 
 describe("Moderation - Core Functionality", () => {
   describe("canModerateMember", () => {

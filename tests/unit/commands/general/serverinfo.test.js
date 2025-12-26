@@ -40,14 +40,14 @@ jest.mock("src/commands/general/serverinfo/embeds.js", () => ({
   createErrorEmbed: mockCreateErrorEmbed,
 }));
 
-import { execute } from "../../src/commands/general/serverinfo/handlers.js";
+import { execute } from "../../../../src/commands/general/serverinfo/handlers.js";
 import {
   formatNumber,
   getChannelCounts,
   getMemberCounts,
   calculateServerAge,
   formatFeatures,
-} from "../../src/commands/general/serverinfo/utils.js";
+} from "../../../../src/commands/general/serverinfo/utils.js";
 
 describe("Serverinfo Command", () => {
   let mockInteraction;

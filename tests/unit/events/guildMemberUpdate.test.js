@@ -77,7 +77,7 @@ jest.mock("src/utils/discord/rateLimiter.js", () => ({
 // Import execute after mocks are set up
 let execute;
 beforeAll(async () => {
-  const module = await import("../../src/events/guildMemberUpdate.js");
+  const module = await import("../../../src/events/guildMemberUpdate.js");
   execute = module.execute;
 });
 

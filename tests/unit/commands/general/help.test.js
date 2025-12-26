@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, jest } from "@jest/globals";
 import {
   handleGeneralHelp,
   handleSpecificCommandHelp,
-} from "../../src/commands/general/help/handlers.js";
+} from "../../../../src/commands/general/help/handlers.js";
 
 // Mock logger
 jest.mock("src/utils/logger.js", () => ({

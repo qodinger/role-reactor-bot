@@ -86,13 +86,13 @@ jest.mock("src/commands/general/userinfo/embeds.js", () => ({
   createErrorEmbed: mockCreateErrorEmbed,
 }));
 
-import { execute } from "../../src/commands/general/userinfo/handlers.js";
+import { execute } from "../../../../src/commands/general/userinfo/handlers.js";
 import {
   formatUserFlags,
   formatRoles,
   formatUserStatus,
   formatUserActivity,
-} from "../../src/commands/general/userinfo/utils.js";
+} from "../../../../src/commands/general/userinfo/utils.js";
 
 describe("Userinfo Command", () => {
   let mockInteraction;

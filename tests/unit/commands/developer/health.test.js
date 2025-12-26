@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, jest } from "@jest/globals";
-import { handleHealthCheck } from "../../src/commands/developer/health/handlers.js";
+import { handleHealthCheck } from "../../../../src/commands/developer/health/handlers.js";
 import {
   formatMemory,
   formatDuration,
   isHealthy,
   getHealthEmoji,
-} from "../../src/commands/developer/health/utils.js";
+} from "../../../../src/commands/developer/health/utils.js";
 
 // Mock logger
 jest.mock("src/utils/logger.js", () => ({
