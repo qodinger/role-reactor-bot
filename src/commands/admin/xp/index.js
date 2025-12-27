@@ -34,9 +34,9 @@ export const metadata = {
     },
     {
       name: `Subcommands`,
-      value: [
-        "**settings** - View and configure XP system settings",
-      ].join("\n"),
+      value: ["**settings** - View and configure XP system settings"].join(
+        "\n",
+      ),
       inline: false,
     },
     {
