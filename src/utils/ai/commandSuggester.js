@@ -1,5 +1,5 @@
 import { getLogger } from "../logger.js";
-import { commandDiscoverer } from "./commandDiscoverer.js";
+import { commandRegistry } from "../core/commandRegistry.js";
 
 const logger = getLogger();
 
@@ -28,7 +28,14 @@ export class CommandSuggester {
         return;
       }
       this.client = client;
-      this.commands = commandDiscoverer.getBotCommands(client);
+
+      // Initialize command registry first
+      await commandRegistry.initialize(client);
+
+      // Get commands from registry (auto-discovered)
+      this.commands = commandRegistry.getAllCommandNames();
+
+      // Build keyword map from registry
       this.buildKeywordMap();
       this.initialized = true;
       logger.debug(
@@ -41,31 +48,16 @@ export class CommandSuggester {
 
   /**
    * Build keyword map for command matching
+   * Now uses centralized command registry
    */
   buildKeywordMap() {
     this.commandKeywords.clear();
 
-    // Command-specific keywords
-    const keywordMap = {
-      help: ["help", "commands", "what can you do", "list commands"],
-      ping: ["ping", "latency", "response time", "speed"],
-      avatar: ["avatar", "profile picture", "pfp", "picture"],
-      "8ball": ["8ball", "magic 8 ball", "question", "predict"],
-      poll: ["poll", "vote", "survey", "opinion"],
-      rps: ["rock paper scissors", "rps", "game", "play"],
-      wyr: ["would you rather", "wyr", "choice", "prefer"],
-      serverinfo: ["server", "server info", "guild", "server details"],
-      userinfo: ["user", "user info", "member", "profile"],
-      level: ["level", "xp", "experience", "rank"],
-      leaderboard: ["leaderboard", "top", "ranking", "best"],
-      core: ["core", "credits", "balance", "currency"],
-      invite: ["invite", "link", "join", "add bot"],
-      support: ["support", "help", "discord", "server"],
-      sponsor: ["sponsor", "donate", "premium", "ko-fi"],
-      ask: ["ask", "question", "chat", "ai"],
-    };
+    // Get keywords from command registry (auto-discovered from commands)
+    const keywordMap = commandRegistry.getAllCommandKeywords();
 
-    for (const [command, keywords] of Object.entries(keywordMap)) {
+    // Only include commands that exist
+    for (const [command, keywords] of keywordMap.entries()) {
       if (this.commands.includes(command)) {
         this.commandKeywords.set(command, keywords);
       }
@@ -140,30 +132,12 @@ export class CommandSuggester {
 
   /**
    * Get command description for suggestions
+   * Now uses centralized command registry
    * @param {string} commandName - Command name
    * @returns {string} Command description
    */
   getCommandDescription(commandName) {
-    const descriptions = {
-      help: "View all available commands",
-      ping: "Check bot latency and response time",
-      avatar: "Generate or view user avatars",
-      "8ball": "Ask the magic 8-ball a question",
-      poll: "Create a poll for voting",
-      rps: "Play rock paper scissors",
-      wyr: "Would you rather questions",
-      serverinfo: "View server information",
-      userinfo: "View user information",
-      level: "Check your level and XP",
-      leaderboard: "View server leaderboard",
-      core: "Check your Core balance",
-      invite: "Get bot invite link",
-      support: "Get support server link",
-      sponsor: "View sponsorship information",
-      ask: "Chat with the AI",
-    };
-
-    return descriptions[commandName] || `Use the /${commandName} command`;
+    return commandRegistry.getCommandDescription(commandName);
   }
 }
 

@@ -25,7 +25,6 @@ const FALLBACK_GENERAL_COMMANDS = [
   "poll",
   "rps",
   "serverinfo",
-  "sponsor",
   "support",
   "userinfo",
   "wyr",
