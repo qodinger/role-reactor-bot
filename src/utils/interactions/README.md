@@ -19,7 +19,6 @@ Contains specialized handlers for different types of interactions:
 - **`welcomeHandlers.js`** - Welcome system button interactions
 - **`xpHandlers.js`** - XP system button interactions
 - **`leaderboardHandlers.js`** - Leaderboard button interactions
-- **`sponsorHandlers.js`** - Sponsor/support button interactions
 - **`helpHandlers.js`** - Help system button interactions
 
 ### Routers Directory

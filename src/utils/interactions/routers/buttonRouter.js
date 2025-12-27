@@ -367,15 +367,6 @@ export async function routeButtonInteraction(interaction, _client) {
         break;
       }
 
-      // Sponsor command buttons
-      case "sponsor_perks": {
-        const { handleSponsorPerks } = await import(
-          "../handlers/sponsorHandlers.js"
-        );
-        await handleSponsorPerks(interaction);
-        break;
-      }
-
       // Goodbye system buttons
       case "goodbye_configure":
       case "goodbye_edit": {

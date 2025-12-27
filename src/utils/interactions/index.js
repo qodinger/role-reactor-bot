@@ -22,7 +22,6 @@ export {
 export * from "./handlers/welcomeHandlers.js";
 export * from "./handlers/xpHandlers.js";
 export * from "./handlers/leaderboardHandlers.js";
-export * from "./handlers/sponsorHandlers.js";
 export * from "./handlers/helpHandlers.js";
 
 // Export routers
