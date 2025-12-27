@@ -39,53 +39,90 @@ export function isValidCommandName(commandName) {
 }
 
 /**
- * Get command category from command name
+ * Get command category from command name using registry
  * @param {string} commandName - The command name
- * @returns {string} Category name
+ * @param {import('discord.js').Client} [client] - Discord client (optional, for registry initialization)
+ * @returns {Promise<string>} Category name
  */
-export function getCommandCategory(commandName) {
+export async function getCommandCategory(commandName, client = null) {
   if (!commandName) return "general";
 
-  // Check for admin commands
-  if (
-    commandName.includes("role-reactions") ||
-    commandName.includes("temp-roles") ||
-    commandName.includes("welcome") ||
-    commandName.includes("goodbye") ||
-    commandName.includes("xp")
-  ) {
-    return "admin";
+  // Initialize registry if client is provided
+  if (client) {
+    const { commandRegistry } = await import(
+      "../../../utils/core/commandRegistry.js"
+    );
+    await commandRegistry.initialize(client);
+    const metadata = commandRegistry.getCommandMetadata(commandName);
+    if (metadata?.category) {
+      return metadata.category;
+    }
   }
 
-  // Check for developer commands
-  if (
-    commandName.includes("health") ||
-    commandName.includes("performance") ||
-    commandName.includes("storage")
-  ) {
-    return "developer";
-  }
-
-  // Default to general
+  // Fallback to general if registry not available
   return "general";
 }
 
 /**
- * Sort commands by category and name
+ * Sort commands by category and name using registry (if client provided) or fallback pattern matching
  * @param {Array} commands - Array of command objects
- * @returns {Object} Sorted commands by category
+ * @param {import('discord.js').Client} [client] - Discord client (optional, for registry initialization)
+ * @returns {Promise<Object>} Sorted commands by category
  */
-export function sortCommandsByCategory(commands) {
+export async function sortCommandsByCategory(commands, client = null) {
   const sorted = {
     admin: [],
     general: [],
     developer: [],
   };
 
-  commands.forEach(command => {
-    const category = getCommandCategory(command.name);
-    sorted[category].push(command);
-  });
+  // Initialize registry if client is provided
+  if (client) {
+    const { commandRegistry } = await import(
+      "../../../utils/core/commandRegistry.js"
+    );
+    await commandRegistry.initialize(client);
+
+    commands.forEach(command => {
+      const metadata = commandRegistry.getCommandMetadata(command.name);
+      const category = metadata?.category || "general";
+      if (sorted[category]) {
+        sorted[category].push(command);
+      } else {
+        sorted.general.push(command);
+      }
+    });
+  } else {
+    // Fallback: use simple pattern matching if no client
+    commands.forEach(command => {
+      let category = "general";
+      const name = command.name?.toLowerCase() || "";
+
+      // Simple pattern matching fallback
+      if (
+        name.includes("role-reactions") ||
+        name.includes("temp-roles") ||
+        name.includes("welcome") ||
+        name.includes("goodbye") ||
+        name.includes("xp") ||
+        name.includes("moderation") ||
+        name.includes("voice-control") ||
+        name.includes("schedule-role")
+      ) {
+        category = "admin";
+      } else if (
+        name.includes("health") ||
+        name.includes("performance") ||
+        name.includes("storage") ||
+        name.includes("core-management") ||
+        name.includes("imagine")
+      ) {
+        category = "developer";
+      }
+
+      sorted[category].push(command);
+    });
+  }
 
   // Sort each category alphabetically
   Object.keys(sorted).forEach(category => {

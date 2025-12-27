@@ -92,9 +92,9 @@ export class HelpEmbedBuilder {
    * Create an embed showing all commands (first 25 due to Discord limits)
    * @param {import('discord.js').Client} client
    * @param {import('discord.js').GuildMember} member
-   * @returns {import('discord.js').EmbedBuilder}
+   * @returns {Promise<import('discord.js').EmbedBuilder>}
    */
-  static createAllCommandsEmbed(client, member = null) {
+  static async createAllCommandsEmbed(client, member = null) {
     const embed = new EmbedBuilder()
       .setTitle(`All Commands`)
       .setColor(THEME_COLOR)
@@ -102,7 +102,7 @@ export class HelpEmbedBuilder {
 
     try {
       const { COMMAND_METADATA, COMMAND_CATEGORIES } =
-        getDynamicHelpData(client);
+        await getDynamicHelpData(client);
 
       // Filter commands based on user permissions
       const all = Object.entries(COMMAND_METADATA)
@@ -110,11 +110,9 @@ export class HelpEmbedBuilder {
           // If no member provided, show all commands (for backward compatibility)
           if (!member) return true;
 
-          // Find the category this command belongs to
+          // Find the category this command belongs to using registry
           const category = Object.values(COMMAND_CATEGORIES).find(cat =>
-            cat.commandPatterns.some(pattern =>
-              cmdName.toLowerCase().includes(pattern.toLowerCase()),
-            ),
+            cat.commands.includes(cmdName),
           );
 
           if (!category) return true; // Show if no category found
@@ -180,15 +178,15 @@ export class HelpEmbedBuilder {
    * Create category-specific embed
    * @param {string} categoryKey
    * @param {import('discord.js').Client} client
-   * @returns {import('discord.js').EmbedBuilder|null}
+   * @returns {Promise<import('discord.js').EmbedBuilder|null>}
    */
-  static createCategoryEmbed(categoryKey, client) {
+  static async createCategoryEmbed(categoryKey, client) {
     if (categoryKey === "all") {
       return this.createMainHelpEmbed(client);
     }
 
     try {
-      const { COMMAND_CATEGORIES } = getDynamicHelpData(client);
+      const { COMMAND_CATEGORIES } = await getDynamicHelpData(client);
       const category = COMMAND_CATEGORIES[categoryKey];
       if (!category) return null;
 
@@ -211,7 +209,7 @@ export class HelpEmbedBuilder {
         );
 
       // Add commands as fields
-      const { COMMAND_METADATA } = getDynamicHelpData(client);
+      const { COMMAND_METADATA } = await getDynamicHelpData(client);
       category.commands.forEach(cmdName => {
         const meta = COMMAND_METADATA[cmdName];
         if (meta) {
@@ -717,32 +715,6 @@ export class HelpEmbedBuilder {
             name: `What You'll See`,
             value:
               "Bot latency information including API latency, heartbeat, and overall connection status. Great for checking if the bot is running smoothly!",
-            inline: false,
-          },
-        );
-        break;
-
-      case "sponsor":
-        embed.addFields(
-          {
-            name: `How to Use`,
-            value: "```/sponsor```",
-            inline: false,
-          },
-          {
-            name: `What You Need`,
-            value: "No parameters needed - just run the command!",
-            inline: false,
-          },
-          {
-            name: `Permissions`,
-            value: "• No special permissions required",
-            inline: false,
-          },
-          {
-            name: `What You'll See`,
-            value:
-              "Information about supporting the bot's development to help keep it free and running for everyone, including why support is needed, how to contribute, and an interactive 'Become a Sponsor' button!",
             inline: false,
           },
         );

@@ -77,17 +77,15 @@ export async function handleSpecificCommandHelp(
     }
 
     // Check if this is a developer command and user has permission
-    const developerCommands = [
-      "health",
-      "performance",
-      "storage",
-      "core-management",
-      "verify",
-      "imagine",
-    ];
+    // Use registry to check command category
+    const { commandRegistry } = await import(
+      "../../../utils/core/commandRegistry.js"
+    );
+    await commandRegistry.initialize(interaction.client);
+    const metadata = commandRegistry.getCommandMetadata(commandName);
 
     if (
-      developerCommands.includes(commandName) &&
+      metadata?.category === "developer" &&
       !isDeveloper(interaction.user.id)
     ) {
       logger.warn("Permission denied for developer command help", {
@@ -136,7 +134,7 @@ export async function handleCategoryHelp(
 
   try {
     logger.debug(`Creating category embed for: ${categoryKey}`);
-    const embed = HelpEmbedBuilder.createCategoryEmbed(
+    const embed = await HelpEmbedBuilder.createCategoryEmbed(
       categoryKey,
       interaction.client,
     );
@@ -179,7 +177,7 @@ export async function handleAllCommandsHelp(interaction, deferred = true) {
   const logger = getLogger();
 
   try {
-    const embed = HelpEmbedBuilder.createAllCommandsEmbed(
+    const embed = await HelpEmbedBuilder.createAllCommandsEmbed(
       interaction.client,
       interaction.member,
     );

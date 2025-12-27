@@ -55,7 +55,7 @@ export class ComponentBuilder {
    * @returns {Promise<import('discord.js').ActionRowBuilder[]>}
    */
   static async createMainComponents(member = null, client = null) {
-    const categoryMenu = this.createCategoryMenu(member, client);
+    const categoryMenu = await this.createCategoryMenu(member, client);
     const buttons = await this.createCommandButtons(null, client);
     const viewToggles = this.createViewToggleButtons();
 
@@ -71,15 +71,15 @@ export class ComponentBuilder {
    * @param {import('discord.js').GuildMember} member
    * @param {import('discord.js').Client} client
    * @param {string} selectedCategory - Currently selected category key
-   * @returns {import('discord.js').StringSelectMenuBuilder}
+   * @returns {Promise<import('discord.js').StringSelectMenuBuilder>}
    */
-  static createCategoryMenu(
+  static async createCategoryMenu(
     member = null,
     client = null,
     selectedCategory = null,
   ) {
     try {
-      const { COMMAND_CATEGORIES } = getDynamicHelpData(client);
+      const { COMMAND_CATEGORIES } = await getDynamicHelpData(client);
       const options = Object.entries(COMMAND_CATEGORIES)
         .filter(([_key, category]) => {
           // If no member provided, show all categories (for backward compatibility)
@@ -201,7 +201,11 @@ export class ComponentBuilder {
     member = null,
     client = null,
   ) {
-    const categoryMenu = this.createCategoryMenu(member, client, categoryKey);
+    const categoryMenu = await this.createCategoryMenu(
+      member,
+      client,
+      categoryKey,
+    );
     const buttons = await this.createCommandButtons(categoryKey, client);
     const viewToggles = this.createViewToggleButtons();
 
