@@ -438,7 +438,6 @@ Automatically manage users in voice channels based on roles:
 | `/ping`         | Check bot latency and status                    | None        |
 | `/invite`       | Get bot invite link with proper permissions     | None        |
 | `/support`      | Get support server and GitHub links             | None        |
-| `/sponsor`      | Support bot development (donations)             | None        |
 | `/8ball`        | Ask the magic 8ball with intelligent responses  | None        |
 | `/avatar`       | Generate AI-powered avatars with custom prompts | None        |
 | `/core balance` | Check your current Core balance and tier status | None        |
