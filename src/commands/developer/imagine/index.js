@@ -4,14 +4,30 @@ import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 import { handleImagineCommand } from "./handlers.js";
 
 // ============================================================================
+// COMMAND METADATA
+// ============================================================================
+
+/**
+ * Command metadata for centralized registry
+ * This allows the command to be automatically discovered and integrated
+ * into help system, command suggestions, and other features
+ * This is the single source of truth for command information
+ */
+export const metadata = {
+  name: "imagine",
+  category: "developer",
+  description: "Generate AI artwork from any text prompt",
+  keywords: ["imagine", "generate", "art", "image", "ai", "artwork", "create"],
+  emoji: "🖼️",
+};
+
+// ============================================================================
 // COMMAND DEFINITION
 // ============================================================================
 
 export const data = new SlashCommandBuilder()
-  .setName("imagine")
-  .setDescription(
-    "🔒 [DEVELOPER ONLY] Generate AI artwork from any text prompt",
-  )
+  .setName(metadata.name)
+  .setDescription(`🔒 [DEVELOPER ONLY] ${metadata.description}`)
   .addStringOption(option =>
     option
       .setName("prompt")

@@ -4,14 +4,30 @@ import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 import { handlePerformanceCheck } from "./handlers.js";
 
 // ============================================================================
+// COMMAND METADATA
+// ============================================================================
+
+/**
+ * Command metadata for centralized registry
+ * This allows the command to be automatically discovered and integrated
+ * into help system, command suggestions, and other features
+ * This is the single source of truth for command information
+ */
+export const metadata = {
+  name: "performance",
+  category: "developer",
+  description: "View bot performance metrics and statistics",
+  keywords: ["performance", "metrics", "stats", "monitoring", "speed"],
+  emoji: "🚀",
+};
+
+// ============================================================================
 // COMMAND DEFINITION
 // ============================================================================
 
 export const data = new SlashCommandBuilder()
-  .setName("performance")
-  .setDescription(
-    "🔒 [DEVELOPER ONLY] View bot performance metrics and statistics",
-  )
+  .setName(metadata.name)
+  .setDescription(`🔒 [DEVELOPER ONLY] ${metadata.description}`)
   .setDefaultMemberPermissions(0n) // Visible to all, but restricted by isDeveloper() check
   .setDMPermission(false);
 

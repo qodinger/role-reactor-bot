@@ -4,12 +4,30 @@ import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 import { handleStorageCheck } from "./handlers.js";
 
 // ============================================================================
+// COMMAND METADATA
+// ============================================================================
+
+/**
+ * Command metadata for centralized registry
+ * This allows the command to be automatically discovered and integrated
+ * into help system, command suggestions, and other features
+ * This is the single source of truth for command information
+ */
+export const metadata = {
+  name: "storage",
+  category: "developer",
+  description: "Show storage configuration status",
+  keywords: ["storage", "database", "config", "status", "backup", "data"],
+  emoji: "💾",
+};
+
+// ============================================================================
 // COMMAND DEFINITION
 // ============================================================================
 
 export const data = new SlashCommandBuilder()
-  .setName("storage")
-  .setDescription("🔒 [DEVELOPER ONLY] Show storage configuration status")
+  .setName(metadata.name)
+  .setDescription(`🔒 [DEVELOPER ONLY] ${metadata.description}`)
   .setDefaultMemberPermissions(0n) // Visible to all, but restricted by isDeveloper() check
   .setDMPermission(false);
 

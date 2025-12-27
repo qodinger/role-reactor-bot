@@ -4,14 +4,37 @@ import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 import { handleCoreManagement } from "./handlers.js";
 
 // ============================================================================
+// COMMAND METADATA
+// ============================================================================
+
+/**
+ * Command metadata for centralized registry
+ * This allows the command to be automatically discovered and integrated
+ * into help system, command suggestions, and other features
+ * This is the single source of truth for command information
+ */
+export const metadata = {
+  name: "core-management",
+  category: "developer",
+  description: "Manage user bonus Cores (donation Cores only)",
+  keywords: [
+    "core-management",
+    "core",
+    "credits",
+    "manage",
+    "donation",
+    "bonus",
+  ],
+  emoji: "⚙️",
+};
+
+// ============================================================================
 // COMMAND DEFINITION
 // ============================================================================
 
 export const data = new SlashCommandBuilder()
-  .setName("core-management")
-  .setDescription(
-    "🔒 [DEVELOPER ONLY] Manage user bonus Cores (donation Cores only)",
-  )
+  .setName(metadata.name)
+  .setDescription(`🔒 [DEVELOPER ONLY] ${metadata.description}`)
   .addSubcommand(subcommand =>
     subcommand
       .setName("add")

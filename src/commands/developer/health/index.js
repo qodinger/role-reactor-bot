@@ -4,14 +4,30 @@ import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 import { handleHealthCheck } from "./handlers.js";
 
 // ============================================================================
+// COMMAND METADATA
+// ============================================================================
+
+/**
+ * Command metadata for centralized registry
+ * This allows the command to be automatically discovered and integrated
+ * into help system, command suggestions, and other features
+ * This is the single source of truth for command information
+ */
+export const metadata = {
+  name: "health",
+  category: "developer",
+  description: "Check the bot's health and performance status",
+  keywords: ["health", "status", "check", "monitor", "system", "diagnostics"],
+  emoji: "💚",
+};
+
+// ============================================================================
 // COMMAND DEFINITION
 // ============================================================================
 
 export const data = new SlashCommandBuilder()
-  .setName("health")
-  .setDescription(
-    "🔒 [DEVELOPER ONLY] Check the bot's health and performance status",
-  )
+  .setName(metadata.name)
+  .setDescription(`🔒 [DEVELOPER ONLY] ${metadata.description}`)
   .setDefaultMemberPermissions(0n) // Visible to all, but restricted by isDeveloper() check
   .setDMPermission(false);
 
