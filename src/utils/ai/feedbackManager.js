@@ -51,33 +51,6 @@ export class FeedbackManager {
   }
 
   /**
-   * Get user preferences from feedback history
-   * @param {string} userId - User ID
-   * @returns {Promise<Object>} User preferences
-   */
-  static async getUserPreferences(userId) {
-    try {
-      const db = await getDatabaseManager();
-      if (!db || !db.aiFeedback) {
-        return {
-          responseStyle: "balanced",
-          preferredLength: "medium",
-          corrections: [],
-        };
-      }
-
-      return await db.aiFeedback.getUserPreferences(userId);
-    } catch (error) {
-      logger.error("Failed to get user preferences:", error);
-      return {
-        responseStyle: "balanced",
-        preferredLength: "medium",
-        corrections: [],
-      };
-    }
-  }
-
-  /**
    * Get feedback statistics for a user
    * @param {string} userId - User ID
    * @returns {Promise<Object>} Feedback statistics
@@ -86,59 +59,13 @@ export class FeedbackManager {
     try {
       const db = await getDatabaseManager();
       if (!db || !db.aiFeedback) {
-        return { total: 0, positive: 0, negative: 0, withCorrections: 0 };
+        return { total: 0, positive: 0, negative: 0 };
       }
 
       return await db.aiFeedback.getUserFeedbackStats(userId);
     } catch (error) {
       logger.error("Failed to get feedback stats:", error);
-      return { total: 0, positive: 0, negative: 0, withCorrections: 0 };
-    }
-  }
-
-  /**
-   * Build preference context for system prompt
-   * @param {string} userId - User ID
-   * @returns {Promise<string>} Preference context string
-   */
-  static async buildPreferenceContext(userId) {
-    try {
-      const preferences = await this.getUserPreferences(userId);
-
-      if (
-        preferences.corrections.length === 0 &&
-        preferences.responseStyle === "balanced"
-      ) {
-        return ""; // No preferences to include
-      }
-
-      let context = "\n## User Preferences (Learn from Feedback)\n";
-
-      if (preferences.responseStyle !== "balanced") {
-        context += `- **Response Style**: ${preferences.responseStyle} (${preferences.responseStyle === "detailed" ? "prefers longer, more detailed responses" : "prefers shorter, more concise responses"})\n`;
-      }
-
-      if (preferences.preferredLength !== "medium") {
-        context += `- **Preferred Length**: ${preferences.preferredLength}\n`;
-      }
-
-      if (preferences.corrections.length > 0) {
-        context += "\n### Previous Corrections (Learn from these):\n";
-        // Include last 3 corrections to avoid overwhelming the prompt
-        const recentCorrections = preferences.corrections.slice(0, 3);
-        for (const correction of recentCorrections) {
-          context += `- **User said**: "${correction.userMessage}"\n`;
-          context += `  - **You responded**: "${correction.original.substring(0, 200)}${correction.original.length > 200 ? "..." : ""}"\n`;
-          context += `  - **User corrected**: "${correction.correction}"\n`;
-        }
-        context +=
-          "\n**Important**: When similar situations arise, remember these corrections and adjust your responses accordingly.\n";
-      }
-
-      return context;
-    } catch (error) {
-      logger.error("Failed to build preference context:", error);
-      return "";
+      return { total: 0, positive: 0, negative: 0 };
     }
   }
 }

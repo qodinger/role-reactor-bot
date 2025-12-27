@@ -496,9 +496,6 @@ export class ServerInfoGatherer {
       if (externalLinks.support) {
         info += `- Support Server: ${externalLinks.support}\n`;
       }
-      if (externalLinks.sponsor) {
-        info += `- Sponsor: ${externalLinks.sponsor}\n`;
-      }
 
       // Server count (may vary)
       try {
