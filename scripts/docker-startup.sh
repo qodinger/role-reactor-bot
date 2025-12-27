@@ -24,7 +24,7 @@ fi
 
 if [ -d "/usr/src/app/logs" ]; then
     chown -R 1001:1001 /usr/src/app/logs 2>/dev/null || true
-    chmod -R 755 /usr/src/logs 2>/dev/null || true
+    chmod -R 755 /usr/src/app/logs 2>/dev/null || true
 fi
 
 # Wait for system to stabilize
