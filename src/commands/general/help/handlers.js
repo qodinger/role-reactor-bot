@@ -56,12 +56,6 @@ export async function handleSpecificCommandHelp(
   const logger = getLogger();
 
   try {
-    // Debug: Log available commands and what we're looking for
-    logger.debug(`Looking for command: ${commandName}`);
-    logger.debug(
-      `Available commands: ${Array.from(interaction.client.commands.keys()).join(", ")}`,
-    );
-
     // Validate command name
     if (!isValidCommandName(commandName)) {
       await handleCommandNotFound(interaction, commandName, deferred);
@@ -101,7 +95,7 @@ export async function handleSpecificCommandHelp(
     // Log help usage for analytics
     logHelpUsage(commandName, null, interaction.user.id);
 
-    const embed = HelpEmbedBuilder.createCommandDetailEmbed(
+    const embed = await HelpEmbedBuilder.createCommandDetailEmbed(
       command,
       interaction.client,
     );
@@ -133,7 +127,6 @@ export async function handleCategoryHelp(
   const logger = getLogger();
 
   try {
-    logger.debug(`Creating category embed for: ${categoryKey}`);
     const embed = await HelpEmbedBuilder.createCategoryEmbed(
       categoryKey,
       interaction.client,
@@ -281,7 +274,6 @@ export async function routeHelpInteraction(interaction, deferred = true) {
       }
 
       const categoryKey = interaction.values[0].replace("category_", "");
-      logger.debug(`Selected category: ${categoryKey}`);
       await handleCategoryHelp(interaction, categoryKey, deferred);
     } else if (interaction.customId.startsWith("help_cmd_")) {
       const cmdName = interaction.customId.replace("help_cmd_", "");

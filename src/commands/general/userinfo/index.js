@@ -17,6 +17,30 @@ export const metadata = {
   description: "Display detailed information about a user",
   keywords: ["userinfo", "user", "info", "information", "profile", "details"],
   emoji: "👤",
+  helpFields: [
+    {
+      name: `How to Use`,
+      value: "```/userinfo [user:@username]```",
+      inline: false,
+    },
+    {
+      name: `What You Need`,
+      value:
+        "**user** *(optional)* - The user to get information about (leave empty to see your own info)",
+      inline: false,
+    },
+    {
+      name: `Permissions`,
+      value: "• **View Channel** permission required",
+      inline: false,
+    },
+    {
+      name: `What You'll See`,
+      value:
+        "Detailed user information including account creation date, server join date, roles, permissions, and more! Great for checking user details and account information.",
+      inline: false,
+    },
+  ],
 };
 
 // ============================================================================

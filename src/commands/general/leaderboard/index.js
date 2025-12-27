@@ -23,6 +23,42 @@ export const metadata = {
   description: "View the XP leaderboard for this server",
   keywords: ["leaderboard", "top", "ranking", "xp", "levels", "rank", "stats"],
   emoji: "🏆",
+  helpFields: [
+    {
+      name: `How to Use`,
+      value: "```/leaderboard [limit:10] [type:xp]```",
+      inline: false,
+    },
+    {
+      name: `What You Need`,
+      value: [
+        "**limit** *(optional)* - Number of users to show (1-20, default: 10)",
+        "**type** *(optional)* - Choose from: xp, level, messages, voice (default: xp)",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `Permissions`,
+      value: "• **View Channel** permission required",
+      inline: false,
+    },
+    {
+      name: `Leaderboard Types`,
+      value: [
+        "**xp** - Total experience points (default)",
+        "**level** - Current level",
+        "**messages** - Total messages sent",
+        "**voice** - Total voice time",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `What You'll See`,
+      value:
+        "A beautiful leaderboard showing top users by XP, level, messages, or voice time. Choose from different ranking types to see who's most active in your server!",
+      inline: false,
+    },
+  ],
 };
 
 // ============================================================================

@@ -30,6 +30,30 @@ export const metadata = {
     "assistance",
   ],
   emoji: "❓",
+  helpFields: [
+    {
+      name: `How to Use`,
+      value: "```/help [command]```",
+      inline: false,
+    },
+    {
+      name: `What You Need`,
+      value:
+        "**command** *(optional)* - Get detailed help for a specific command",
+      inline: false,
+    },
+    {
+      name: `Permissions`,
+      value: "• No special permissions required",
+      inline: false,
+    },
+    {
+      name: `What You'll See`,
+      value:
+        "Detailed instructions, examples, and everything you need to know about using the bot effectively!",
+      inline: false,
+    },
+  ],
 };
 
 // ============================================================================

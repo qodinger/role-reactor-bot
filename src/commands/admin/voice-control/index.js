@@ -40,6 +40,75 @@ export const metadata = {
     "move",
   ],
   emoji: "🎤",
+  helpFields: [
+    {
+      name: `How to Use`,
+      value: [
+        "```/voice-control disconnect add role:@MutedRole```",
+        "```/voice-control disconnect remove role:@MutedRole```",
+        "```/voice-control mute add role:@QuietRole```",
+        "```/voice-control mute remove role:@QuietRole```",
+        "```/voice-control deafen add role:@DeafenedRole```",
+        "```/voice-control deafen remove role:@DeafenedRole```",
+        "```/voice-control move add role:@MovedRole channel:#waiting-room```",
+        "```/voice-control move remove role:@MovedRole```",
+        "```/voice-control list```",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `Subcommand Groups`,
+      value: [
+        "**disconnect** - Manage roles that automatically disconnect users from voice channels",
+        "**mute** - Manage roles that automatically mute users in voice channels",
+        "**deafen** - Manage roles that automatically deafen users in voice channels",
+        "**move** - Manage roles that automatically move users to a specific voice channel",
+        "**list** - List all roles configured for voice control",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `Subcommands`,
+      value: [
+        "**add** - Add a role to the voice control list (for disconnect/mute/deafen/move groups)",
+        "**remove** - Remove a role from the voice control list (for disconnect/mute/deafen/move groups)",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `Options`,
+      value: [
+        "**role** *(required)* - The role to add or remove from voice control",
+        "**channel** *(required for move add)* - The voice channel to move users to",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `Permissions`,
+      value:
+        "• **Manage Roles** permission required\n• Bot needs **Move Members** (disconnect/move), **Mute Members** (mute), **Deafen Members** (deafen)",
+      inline: false,
+    },
+    {
+      name: `How It Works`,
+      value: [
+        "When a user joins a voice channel and has one of the configured roles:",
+        "• **Disconnect** - User is automatically disconnected from voice",
+        "• **Mute** - User is automatically muted in voice",
+        "• **Deafen** - User is automatically deafened in voice",
+        "• **Move** - User is automatically moved to the specified voice channel",
+        "",
+        "This happens automatically whenever the user joins or switches voice channels!",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `Perfect For`,
+      value:
+        "Automated voice channel management, role-based restrictions, VIP voice channels, or any scenario where you need automatic voice control based on user roles!",
+      inline: false,
+    },
+  ],
 };
 
 // ============================================================================

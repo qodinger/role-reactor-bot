@@ -28,6 +28,50 @@ export const metadata = {
   description: "Create and manage native Discord polls",
   keywords: ["poll", "vote", "survey", "question", "election", "choice"],
   emoji: "🗳️",
+  helpFields: [
+    {
+      name: `How to Use`,
+      value: [
+        "```/poll create```",
+        "```/poll list```",
+        "```/poll end poll-id:1234567890```",
+        "```/poll delete poll-id:1234567890```",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `What You Need`,
+      value: [
+        "**create** - No parameters needed, opens interactive form",
+        "**list** - No parameters needed, shows all polls",
+        "**end** - **poll-id** *(required)* - The poll ID to end",
+        "**delete** - **poll-id** *(required)* - The poll ID to delete",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `Subcommands`,
+      value: [
+        "**create** - Open an interactive form to create a new poll",
+        "**list** - List all active polls in the server (with pagination)",
+        "**end** - End an active poll early",
+        "**delete** - Delete a poll permanently",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `Permissions`,
+      value:
+        "• **Send Messages** permission required\n• **Create Polls** - Anyone can create polls\n• **Manage Polls** - Poll creators and admins can close polls",
+      inline: false,
+    },
+    {
+      name: `What You'll See`,
+      value:
+        "Interactive poll creation form, real-time voting with progress bars, and automatic closing. Great for community decisions and feedback collection!",
+      inline: false,
+    },
+  ],
 };
 
 // ============================================================================

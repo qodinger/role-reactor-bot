@@ -25,6 +25,14 @@ const __dirname = path.dirname(__filename);
  *   description: "Command description for help system and Discord",
  *   keywords: ["keyword1", "keyword2"], // For AI command suggestions
  *   emoji: "🎯", // Optional emoji for help display
+ *   helpFields: [ // Optional detailed help fields for /help command
+ *     {
+ *       name: "How to Use",
+ *       value: "```/command example```",
+ *       inline: false,
+ *     },
+ *     // ... more fields
+ *   ],
  * };
  * ```
  */
@@ -131,6 +139,8 @@ class CommandRegistry {
           description,
           // Emoji: use from metadata if provided, otherwise null (help system will use default emoji)
           emoji: metadata.emoji || null,
+          // HelpFields: use from metadata if provided (for dynamic help content)
+          helpFields: metadata.helpFields || null,
         });
       } catch (error) {
         logger.debug(`Failed to load metadata for ${commandName}:`, error);
@@ -178,6 +188,7 @@ class CommandRegistry {
         delete metadata.name;
         delete metadata.category;
         delete metadata.helpDescription; // Remove helpDescription, we use description now
+        // Keep helpFields - it's used for dynamic help content
       }
 
       // Fallback: Get description from command definition if not in metadata
@@ -431,6 +442,16 @@ class CommandRegistry {
   getCommandDescription(commandName) {
     const metadata = this.metadataCache.get(commandName);
     return metadata?.description || `Use the /${commandName} command`;
+  }
+
+  /**
+   * Get help fields for a command (detailed help content)
+   * @param {string} commandName - Name of the command
+   * @returns {Array<Object>|null} Array of embed field objects or null if not found
+   */
+  getCommandHelpFields(commandName) {
+    const metadata = this.metadataCache.get(commandName);
+    return metadata?.helpFields || null;
   }
 
   /**

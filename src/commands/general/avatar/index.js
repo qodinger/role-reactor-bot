@@ -26,6 +26,32 @@ export const metadata = {
     "generate",
   ],
   emoji: "🎨",
+  // Detailed help fields for /help command
+  helpFields: [
+    {
+      name: `How to Use`,
+      value:
+        "```/avatar prompt:cyberpunk hacker with neon hair color_style:vibrant```",
+      inline: false,
+    },
+    {
+      name: `What You Need`,
+      value:
+        "**prompt** *(required)* - Describe the avatar you want to generate (e.g., 'cyberpunk hacker with neon hair')\n**color_style** *(optional)* - Choose a color palette (vibrant, pastel, monochrome, neon, warm, cool)\n**mood** *(optional)* - Choose the character's mood (happy, serious, mysterious, cute, cool, elegant)\n**art_style** *(optional)* - Choose the artistic style (studio, manga, modern, retro, realistic, chibi, lofi)",
+      inline: false,
+    },
+    {
+      name: `Permissions`,
+      value: "• **Send Messages** permission required",
+      inline: false,
+    },
+    {
+      name: `What You'll See`,
+      value:
+        "A unique AI-generated anime-style avatar based on your description, with download options and generation details. Uses advanced AI to create custom avatars tailored to your specifications!",
+      inline: false,
+    },
+  ],
 };
 
 // ============================================================================

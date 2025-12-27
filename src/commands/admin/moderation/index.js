@@ -46,6 +46,69 @@ export const metadata = {
     "moderate",
   ],
   emoji: "🛡️",
+  helpFields: [
+    {
+      name: `How to Use`,
+      value:
+        "```/moderation timeout users:@User duration:1h reason:Spam\n/moderation warn users:@User reason:Inappropriate behavior\n/moderation ban users:@User reason:Repeated violations delete-days:1```",
+      inline: false,
+    },
+    {
+      name: `Subcommands`,
+      value: [
+        "**timeout** - Timeout (mute) users for a specified duration (supports bulk operations up to 15 users)",
+        "**warn** - Warn users with logging and tracking (supports bulk operations up to 15 users)",
+        "**ban** - Ban users from the server permanently (supports bulk operations up to 15 users)",
+        "**kick** - Kick users from the server (supports bulk operations up to 15 users)",
+        "**unban** - Unban previously banned users (supports bulk operations up to 15 users)",
+        "**purge** - Delete multiple messages from a channel (1-100 messages)",
+        "**history** - View moderation history for a user or entire server with pagination",
+        "**remove-warn** - Remove a specific warning from a user by case ID",
+        "**list-bans** - List all banned users in the server",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `Options`,
+      value: [
+        "**users** *(required for timeout/warn/ban/kick/unban)* - User mentions or IDs separated by commas (e.g., @user1 @user2 or 123456789 987654321). Supports bulk operations up to 15 users",
+        "**duration** *(required for timeout)* - Duration in format like `30m`, `1h`, `2d`, `1w` (minimum 10 seconds, maximum 28 days)",
+        "**reason** *(optional for timeout/warn/ban/kick)* - Reason for the moderation action",
+        "**delete-days** *(optional for ban)* - Days of messages to delete (0-7, default: 0)",
+        "**amount** *(required for purge)* - Number of messages to delete (1-100)",
+        "**channel** *(optional for purge)* - Channel to purge (default: current channel)",
+        "**user** *(optional for history, required for remove-warn)* - User to view history for or remove warning from",
+        "**case-id** *(required for remove-warn)* - Case ID of the warning to remove",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `Permissions`,
+      value:
+        "• **Administrator** permission required for all moderation commands\n• Bot needs **Moderate Members** (timeout), **Ban Members** (ban/unban), **Kick Members** (kick), **Manage Messages** (purge)",
+      inline: false,
+    },
+    {
+      name: `Key Features`,
+      value: [
+        "**Bulk Operations** - Moderate up to 15 users at once for timeout, warn, ban, kick, and unban",
+        "**Role Hierarchy** - Automatically validates that moderators can only moderate members below them",
+        "**Moderation Logging** - All actions are logged with unique case IDs, timestamps, and reasons",
+        "**Warning System** - Track warnings with automatic escalation to timeout or kick based on thresholds",
+        "**DM Notifications** - Users receive direct messages when warned, timed out, banned, kicked, or unbanned",
+        "**History Tracking** - View moderation history for individual users or entire server with pagination",
+        "**Bot Protection** - Prevents moderating bots to avoid breaking bot functionality",
+        "**Rate Limit Handling** - Built-in rate limit handling with retries for bulk operations",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `What You'll See`,
+      value:
+        "Comprehensive moderation system with bulk operations, automatic logging, warning tracking, and history management. All actions include detailed success/error messages with case IDs for reference.",
+      inline: false,
+    },
+  ],
 };
 
 // ============================================================================

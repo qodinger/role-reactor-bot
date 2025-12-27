@@ -31,6 +31,72 @@ export const metadata = {
     "assign",
   ],
   emoji: "⏰",
+  helpFields: [
+    {
+      name: `How to Use`,
+      value: [
+        "```/temp-roles assign users:@user1,@user2 role:@EventRole duration:2h reason:Tournament participation notify:true```",
+        "```/temp-roles assign users:@RoleName role:@Mute duration:5m notify-expiry:true```",
+        "```/temp-roles list user:@user1```",
+        "```/temp-roles remove users:@user1,@user2 role:@EventRole reason:Early removal notify:true```",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `Subcommands`,
+      value: [
+        "**assign** - Assign temporary roles to users that expire after a set duration",
+        "**list** - List active temporary roles for a user or all users",
+        "**remove** - Remove a temporary role from users before it expires",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `User Targeting`,
+      value: [
+        "• **User mentions** - `@user1,@user2` (target specific users)",
+        "• **Role mentions** - `@RoleName` (target all members with that role)",
+        "• **User IDs** - `123456789,987654321` (target by ID)",
+        "• **@everyone** - Target all server members",
+        "• **Mix formats** - Combine any of the above (e.g., `@user1,@RoleName,123456789`)",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `Options`,
+      value: [
+        "**users** *(required)* - Users to assign/remove role from (supports mentions, IDs, role mentions, @everyone)",
+        "**role** *(required)* - The role to assign or remove",
+        "**duration** *(required for assign)* - How long the role lasts (e.g., 30m, 2h, 1d, 1w)",
+        "**reason** *(optional)* - Reason for the role assignment/removal",
+        "**notify** *(optional)* - Send DM notification when role is assigned/removed (default: false)",
+        "**notify-expiry** *(optional)* - Send DM notification when role expires (default: false)",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `Time Examples`,
+      value: [
+        "`30m` - 30 minutes (perfect for quick events)",
+        "`2h` - 2 hours (great for tournaments)",
+        "`1d` - 1 day (good for day-long events)",
+        "`1w` - 1 week (for longer special access)",
+        "`1h30m` - 1 hour 30 minutes (flexible timing)",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `Permissions`,
+      value: "• **Manage Roles** permission required",
+      inline: false,
+    },
+    {
+      name: `Perfect For`,
+      value:
+        "Events, tournaments, giveaways, VIP access, beta testing, temporary mutes, or any temporary special access!",
+      inline: false,
+    },
+  ],
 };
 
 // ============================================================================

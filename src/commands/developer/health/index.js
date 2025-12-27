@@ -19,6 +19,29 @@ export const metadata = {
   description: "Check the bot's health and performance status",
   keywords: ["health", "status", "check", "monitor", "system", "diagnostics"],
   emoji: "💚",
+  helpFields: [
+    {
+      name: `How to Use`,
+      value: "```/health```",
+      inline: false,
+    },
+    {
+      name: `What You Need`,
+      value: "No parameters needed - just run the command!",
+      inline: false,
+    },
+    {
+      name: `Permissions`,
+      value: "• **Developer** access required",
+      inline: false,
+    },
+    {
+      name: `What You'll See`,
+      value:
+        "Bot uptime, memory usage, server count, and overall health status - perfect for checking if everything is running smoothly!",
+      inline: false,
+    },
+  ],
 };
 
 // ============================================================================

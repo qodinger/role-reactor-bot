@@ -13,6 +13,29 @@ export const metadata = {
   description: "Get support and help information",
   keywords: ["support", "help", "assistance", "contact", "issue", "problem"],
   emoji: "🆘",
+  helpFields: [
+    {
+      name: `How to Use`,
+      value: "```/support```",
+      inline: false,
+    },
+    {
+      name: `What You Need`,
+      value: "No parameters needed - just run the command!",
+      inline: false,
+    },
+    {
+      name: `Permissions`,
+      value: "• No special permissions required",
+      inline: false,
+    },
+    {
+      name: `What You'll See`,
+      value:
+        "Support information including how to get help, report issues, suggest features, and interactive buttons for Discord support server and GitHub repository!",
+      inline: false,
+    },
+  ],
 };
 
 export const data = new SlashCommandBuilder()

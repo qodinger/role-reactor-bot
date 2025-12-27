@@ -37,6 +37,86 @@ export const metadata = {
     "schedule",
   ],
   emoji: "📅",
+  helpFields: [
+    {
+      name: `How to Use`,
+      value: [
+        "```/schedule-role create action:assign role:@EventRole users:@user1,@RoleName schedule-type:one-time schedule:tomorrow 8am```",
+        "```/schedule-role create action:remove role:@Mute users:@RoleName schedule-type:daily schedule:9am```",
+        "```/schedule-role list page:1 show-all:false```",
+        "```/schedule-role view schedule-id:abc123```",
+        "```/schedule-role cancel schedule-id:abc123```",
+        "```/schedule-role delete schedule-id:abc123```",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `What You Need`,
+      value: [
+        "**create** - **action** *(required)*, **role** *(required)*, **users** *(required)*, **schedule-type** *(required)*, **schedule** *(required)*, **reason** *(optional)*",
+        "**list** - **page** *(optional)*, **show-all** *(optional)*",
+        "**view** - **schedule-id** *(required)*",
+        "**cancel** - **schedule-id** *(required)*",
+        "**delete** - **schedule-id** *(required)*",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `Subcommands`,
+      value: [
+        "**create** - Create a new scheduled role assignment or removal",
+        "**list** - List all active scheduled roles with pagination",
+        "**view** - View details of a specific scheduled role",
+        "**cancel** - Cancel a scheduled role (keeps in database)",
+        "**delete** - Permanently delete a scheduled role from database",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `Schedule Types`,
+      value: [
+        "**one-time** - Execute once at the specified time",
+        "**daily** - Execute every day at the specified time",
+        "**weekly** - Execute every week on the specified day and time",
+        "**monthly** - Execute every month on the specified date and time",
+        "**custom** - Execute at custom intervals (specified in minutes)",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `Schedule Format Examples`,
+      value: [
+        "`tomorrow 8am` - Tomorrow at 8:00 AM",
+        "`9am` - Today at 9:00 AM (if before 9am) or tomorrow",
+        "`monday 9am` - Next Monday at 9:00 AM",
+        "`15 2pm` - 15th of this month at 2:00 PM",
+        "`60` - 60 minutes from now (for custom intervals)",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `User Targeting`,
+      value: [
+        "• **User mentions** - `@user1,@user2` (target specific users)",
+        "• **Role mentions** - `@RoleName` (target all members with that role)",
+        "• **User IDs** - `123456789,987654321` (target by ID)",
+        "• **@everyone** - Target all server members",
+        "• **Mix formats** - Combine any of the above",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `Permissions`,
+      value: "• **Manage Roles** permission required",
+      inline: false,
+    },
+    {
+      name: `Perfect For`,
+      value:
+        "Automated role assignments for events, scheduled maintenance, recurring tasks, or any time-based role management!",
+      inline: false,
+    },
+  ],
 };
 
 // ============================================================================

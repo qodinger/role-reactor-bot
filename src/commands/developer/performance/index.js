@@ -19,6 +19,29 @@ export const metadata = {
   description: "View bot performance metrics and statistics",
   keywords: ["performance", "metrics", "stats", "monitoring", "speed"],
   emoji: "🚀",
+  helpFields: [
+    {
+      name: `How to Use`,
+      value: "```/performance```",
+      inline: false,
+    },
+    {
+      name: `What You Need`,
+      value: "No parameters needed - just run the command!",
+      inline: false,
+    },
+    {
+      name: `Permissions`,
+      value: "• **Developer** access required",
+      inline: false,
+    },
+    {
+      name: `What You'll See`,
+      value:
+        "Command usage statistics, event processing metrics, and performance data - great for understanding how your community uses the bot!",
+      inline: false,
+    },
+  ],
 };
 
 // ============================================================================

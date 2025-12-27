@@ -26,6 +26,65 @@ export const metadata = {
     "bonus",
   ],
   emoji: "⚙️",
+  helpFields: [
+    {
+      name: `How to Use`,
+      value: [
+        "```/core-management add user:@username amount:10 reason:Donation bonus```",
+        "```/core-management remove user:@username amount:5 reason:Refund```",
+        "```/core-management set user:@username amount:100 reason:Reset balance```",
+        "```/core-management view user:@username```",
+        "```/core-management add-donation user:@username amount:5.00 ko-fi-url:https://ko-fi.com/...```",
+        "```/core-management cancel-subscription user:@username reason:User request```",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `What You Need`,
+      value: [
+        "**add** - **user** *(required)*, **amount** *(required)*, **reason** *(optional)*",
+        "**remove** - **user** *(required)*, **amount** *(required)*, **reason** *(optional)*",
+        "**set** - **user** *(required)*, **amount** *(required)*, **reason** *(optional)*",
+        "**view** - **user** *(required)*",
+        "**add-donation** - **user** *(required)*, **amount** *(required)*, **ko-fi-url** *(optional)*, **reason** *(optional)*",
+        "**cancel-subscription** - **user** *(required)*, **reason** *(optional)*",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `Subcommands`,
+      value: [
+        "**add** - Add bonus Cores (donation Cores only) to a user's account",
+        "**remove** - Remove bonus Cores (donation Cores only) from a user's account",
+        "**set** - Set a user's bonus Core balance to a specific amount (donation Cores only, not subscription Cores)",
+        "**view** - View a user's Core information and breakdown",
+        "**add-donation** - Verify a Ko-fi donation and grant bonus Cores",
+        "**cancel-subscription** - Manually cancel a user's Core subscription",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `Options`,
+      value: [
+        "**user** *(required)* - The user to manage Cores for",
+        "**amount** *(required)* - Amount of Cores to add/remove/set (1-10000 for add/remove, 0-10000 for set)",
+        "**reason** *(optional)* - Reason for the Core management action",
+        "**ko-fi-url** *(optional for add-donation)* - Ko-fi donation URL for verification",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `Permissions`,
+      value: "• **Developer** access required",
+      inline: false,
+    },
+    {
+      name: `What You'll See`,
+      value:
+        "Complete Core credit and tier management system for developers to add, remove, set, and monitor user Core balances and membership tiers across the entire bot!",
+      inline: false,
+    },
+  ],
 };
 
 // ============================================================================

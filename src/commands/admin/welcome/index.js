@@ -20,6 +20,35 @@ export const metadata = {
   description: "Manage the welcome message system",
   keywords: ["welcome", "greet", "join", "member join", "new member"],
   emoji: "🎉",
+  helpFields: [
+    {
+      name: `How to Use`,
+      value: [
+        "```/welcome setup channel:#welcome message:Welcome {user} to {server}! 🎉 auto-role:@Member enabled:true```",
+        "```/welcome settings```",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `Subcommands`,
+      value: [
+        "**setup** - Configure the welcome system with channel, message, and auto-role",
+        "**settings** - View and manage current welcome system settings",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `Permissions`,
+      value: "• **Manage Server** permission required",
+      inline: false,
+    },
+    {
+      name: `What You'll See`,
+      value:
+        "Interactive welcome system with channel selection, message customization, auto-role assignment, and real-time settings management for new members!",
+      inline: false,
+    },
+  ],
 };
 
 // ============================================================================

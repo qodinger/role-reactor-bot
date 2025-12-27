@@ -16,6 +16,35 @@ export const metadata = {
   description: "Manage the goodbye message system",
   keywords: ["goodbye", "farewell", "leave", "member leave", "departure"],
   emoji: "👋",
+  helpFields: [
+    {
+      name: `How to Use`,
+      value: [
+        "```/goodbye setup channel:#general message:**{user}** left the server! Thanks for being part of **{server}**! 👋 enabled:true```",
+        "```/goodbye settings```",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `Subcommands`,
+      value: [
+        "**setup** - Configure the goodbye system with channel and message",
+        "**settings** - View and manage current goodbye system settings",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `Permissions`,
+      value: "• **Manage Server** permission required",
+      inline: false,
+    },
+    {
+      name: `What You'll See`,
+      value:
+        "Interactive goodbye system with channel selection, message customization, and real-time settings management for members leaving!",
+      inline: false,
+    },
+  ],
 };
 
 export const data = new SlashCommandBuilder()

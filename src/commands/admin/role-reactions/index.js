@@ -34,6 +34,50 @@ export const metadata = {
     "reaction roles",
   ],
   emoji: "⭐",
+  helpFields: [
+    {
+      name: `How to Use`,
+      value: [
+        "```/role-reactions setup title:Choose Your Roles description:React to get roles! roles:🎮:@Gamer, 🎨:@Artist```",
+        "```/role-reactions setup title:Game Roles description:Pick your role! roles:🎮:Gamer, 🎨:Artist```",
+        "```/role-reactions list```",
+        "```/role-reactions update message_id:1234567890 title:Updated Title```",
+        "```/role-reactions delete message_id:1234567890```",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `Subcommands`,
+      value: [
+        "**setup** - Create a new role-reaction message",
+        "**list** - List all role-reaction messages",
+        "**update** - Update an existing role-reaction message",
+        "**delete** - Delete a role-reaction message",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `Permissions`,
+      value: "• **Manage Roles** permission required",
+      inline: false,
+    },
+    {
+      name: `What You'll See`,
+      value:
+        "Interactive role assignment via emoji reactions with customizable embeds, automatic reaction addition, and comprehensive management tools!",
+      inline: false,
+    },
+    {
+      name: `Role Format Tips`,
+      value: [
+        "• **@RoleName** - Use @ symbol (e.g., `@Gamer`)",
+        "• **RoleName** - Use role name directly (e.g., `Gamer`)",
+        "• **<@&ID>** - Use role mention (e.g., `<@&123456789>`)",
+        '• **"Role Name"** - Use quotes for spaces (e.g., `"Gaming Role"`)',
+      ].join("\n"),
+      inline: false,
+    },
+  ],
 };
 
 // ============================================================================

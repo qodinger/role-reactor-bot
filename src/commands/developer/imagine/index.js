@@ -19,6 +19,44 @@ export const metadata = {
   description: "Generate AI artwork from any text prompt",
   keywords: ["imagine", "generate", "art", "image", "ai", "artwork", "create"],
   emoji: "🖼️",
+  helpFields: [
+    {
+      name: `How to Use`,
+      value: [
+        "```/imagine prompt:a futuristic city at sunset with flying cars```",
+        "```/imagine prompt:a fantasy dragon breathing fire in a magical forest```",
+        "```/imagine prompt:cyberpunk street scene with neon lights and rain```",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `What You Need`,
+      value:
+        "**prompt** *(required)* - A text description of what you want to generate (max 2000 characters)",
+      inline: false,
+    },
+    {
+      name: `Permissions`,
+      value: "• **Developer** access required",
+      inline: false,
+    },
+    {
+      name: `What You'll See`,
+      value:
+        "AI-generated artwork based on your text prompt. The image is created using advanced AI image generation technology and will appear as a high-quality image result!",
+      inline: false,
+    },
+    {
+      name: `Tips for Better Results`,
+      value: [
+        "• Be specific and descriptive in your prompts",
+        "• Include style keywords (e.g., 'photorealistic', 'anime style', 'oil painting')",
+        "• Mention colors, lighting, and mood for better results",
+        "• Combine multiple concepts for creative compositions",
+      ].join("\n"),
+      inline: false,
+    },
+  ],
 };
 
 // ============================================================================

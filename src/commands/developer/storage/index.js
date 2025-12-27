@@ -19,6 +19,29 @@ export const metadata = {
   description: "Show storage configuration status",
   keywords: ["storage", "database", "config", "status", "backup", "data"],
   emoji: "💾",
+  helpFields: [
+    {
+      name: `How to Use`,
+      value: "```/storage```",
+      inline: false,
+    },
+    {
+      name: `What You Need`,
+      value: "No parameters needed - just run the command!",
+      inline: false,
+    },
+    {
+      name: `Permissions`,
+      value: "• **Developer** access required",
+      inline: false,
+    },
+    {
+      name: `What You'll See`,
+      value:
+        "Database connection status, local file storage info, and sync status - ensures your role data is safe and backed up!",
+      inline: false,
+    },
+  ],
 };
 
 // ============================================================================

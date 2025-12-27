@@ -20,6 +20,37 @@ export const metadata = {
     "prediction",
   ],
   emoji: "🎱",
+  // Detailed help fields for /help command
+  helpFields: [
+    {
+      name: `How to Use`,
+      value: "```/8ball question:Will I succeed in my career?```",
+      inline: false,
+    },
+    {
+      name: `What You Need`,
+      value:
+        "**question** *(required)* - Ask the intelligent magic 8-ball anything you want to know!",
+      inline: false,
+    },
+    {
+      name: `Permissions`,
+      value: "• No special permissions required",
+      inline: false,
+    },
+    {
+      name: `What You'll See`,
+      value:
+        "An intelligent response from the mystical oracle with 5 smart categories: Very Positive, Positive, Neutral, Negative, and Very Negative. The 8-ball analyzes your question's sentiment and context to provide more relevant answers!",
+      inline: false,
+    },
+    {
+      name: `Smart Features`,
+      value:
+        "**Sentiment Analysis** - Detects positive/negative keywords in your question\n**Context Awareness** - Recognizes personal, urgent, and emotional questions\n**Smart Weighting** - Adjusts response probabilities based on question type\n**5 Response Levels** - From exceptional fortune to dangerous warnings",
+      inline: false,
+    },
+  ],
 };
 
 export const data = new SlashCommandBuilder()

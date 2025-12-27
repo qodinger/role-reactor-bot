@@ -20,6 +20,51 @@ export const metadata = {
   description: "Manage the XP system settings and configuration",
   keywords: ["xp", "experience", "level", "settings", "config", "points"],
   emoji: "📈",
+  helpFields: [
+    {
+      name: `How to Use`,
+      value: "```/xp settings```",
+      inline: false,
+    },
+    {
+      name: `What You Need`,
+      value:
+        "No parameters needed - just run the subcommand to access the XP system settings!",
+      inline: false,
+    },
+    {
+      name: `Subcommands`,
+      value: [
+        "**settings** - View and configure XP system settings",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `Permissions`,
+      value: "• **Manage Server** permission required",
+      inline: false,
+    },
+    {
+      name: `What You'll See`,
+      value: [
+        "Interactive XP system management interface with buttons to:",
+        "• Toggle the entire XP system on/off",
+        "• Enable/disable message XP, command XP, role XP, and voice XP individually",
+        "• View current XP amounts, cooldowns, and settings",
+        "• Access configuration help and reset options",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `Quick Actions`,
+      value: [
+        "Use the buttons to quickly toggle features on/off",
+        "All changes are applied immediately",
+        "Settings use optimized default values",
+      ].join("\n"),
+      inline: false,
+    },
+  ],
 };
 
 // ============================================================================
