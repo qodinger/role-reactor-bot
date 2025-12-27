@@ -2,16 +2,30 @@ import { SlashCommandBuilder, PermissionFlagsBits } from "discord.js";
 import { execute } from "./handlers.js";
 
 // ============================================================================
-// COMMAND DEFINITION
+// COMMAND METADATA
 // ============================================================================
 
 /**
- * Ask command definition
- * Allows users to ask questions to an AI assistant about the bot and server
+ * Command metadata for centralized registry
+ * This allows the command to be automatically discovered and integrated
+ * into help system, command suggestions, and other features
+ * This is the single source of truth for command information
  */
+export const metadata = {
+  name: "ask",
+  category: "general",
+  description: "Ask the AI assistant about the bot or server",
+  keywords: ["ask", "question", "chat", "ai", "assistant", "help me"],
+  emoji: "💬",
+};
+
+// ============================================================================
+// COMMAND DEFINITION
+// ============================================================================
+
 export const data = new SlashCommandBuilder()
-  .setName("ask")
-  .setDescription("Ask the AI assistant about the bot or server")
+  .setName(metadata.name)
+  .setDescription(metadata.description)
   .addStringOption(option =>
     option
       .setName("question")

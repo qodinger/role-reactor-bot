@@ -1,9 +1,23 @@
 import { SlashCommandBuilder } from "discord.js";
 import { execute } from "./handlers.js";
 
+/**
+ * Command metadata for centralized registry
+ * This allows the command to be automatically discovered and integrated
+ * into help system, command suggestions, and other features
+ * This is the single source of truth for command information
+ */
+export const metadata = {
+  name: "rps",
+  category: "general",
+  description: "Challenge someone to Rock Paper Scissors",
+  keywords: ["rps", "rock paper scissors", "game", "challenge", "play"],
+  emoji: "✂️",
+};
+
 export const data = new SlashCommandBuilder()
-  .setName("rps")
-  .setDescription("Challenge someone to Rock Paper Scissors")
+  .setName(metadata.name)
+  .setDescription(metadata.description)
   .addUserOption(option =>
     option
       .setName("user")

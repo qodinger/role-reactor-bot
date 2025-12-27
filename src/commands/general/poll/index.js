@@ -13,6 +13,24 @@ import {
 } from "./handlers.js";
 
 // ============================================================================
+// COMMAND METADATA
+// ============================================================================
+
+/**
+ * Command metadata for centralized registry
+ * This allows the command to be automatically discovered and integrated
+ * into help system, command suggestions, and other features
+ * This is the single source of truth for command information
+ */
+export const metadata = {
+  name: "poll",
+  category: "general",
+  description: "Create and manage native Discord polls",
+  keywords: ["poll", "vote", "survey", "question", "election", "choice"],
+  emoji: "🗳️",
+};
+
+// ============================================================================
 // INTERACTION MANAGEMENT
 // ============================================================================
 
@@ -33,8 +51,8 @@ async function deferInteraction(interaction) {
 }
 
 export const data = new SlashCommandBuilder()
-  .setName("poll")
-  .setDescription("Create and manage native Discord polls")
+  .setName(metadata.name)
+  .setDescription(metadata.description)
   .addSubcommand(subcommand =>
     subcommand
       .setName("create")

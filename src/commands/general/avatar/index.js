@@ -4,12 +4,37 @@ import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 import { handleAvatarGeneration } from "./handlers.js";
 
 // ============================================================================
+// COMMAND METADATA
+// ============================================================================
+
+/**
+ * Command metadata for centralized registry
+ * This allows the command to be automatically discovered and integrated
+ * into help system, command suggestions, and other features
+ * This is the single source of truth for command information
+ */
+export const metadata = {
+  name: "avatar",
+  category: "general",
+  description: "Generate a unique anime-style avatar using AI",
+  keywords: [
+    "avatar",
+    "profile picture",
+    "pfp",
+    "picture",
+    "anime",
+    "generate",
+  ],
+  emoji: "🎨",
+};
+
+// ============================================================================
 // COMMAND DEFINITION
 // ============================================================================
 
 export const data = new SlashCommandBuilder()
-  .setName("avatar")
-  .setDescription("Generate a unique anime-style avatar using AI")
+  .setName(metadata.name)
+  .setDescription(metadata.description)
   .addStringOption(option =>
     option
       .setName("prompt")

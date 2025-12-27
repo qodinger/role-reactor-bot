@@ -8,12 +8,30 @@ import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 import { handleLevel } from "./handlers.js";
 
 // ============================================================================
+// COMMAND METADATA
+// ============================================================================
+
+/**
+ * Command metadata for centralized registry
+ * This allows the command to be automatically discovered and integrated
+ * into help system, command suggestions, and other features
+ * This is the single source of truth for command information
+ */
+export const metadata = {
+  name: "level",
+  category: "general",
+  description: "View your current level and XP progress",
+  keywords: ["level", "xp", "experience", "progress", "rank", "stats"],
+  emoji: "📊",
+};
+
+// ============================================================================
 // COMMAND DEFINITION
 // ============================================================================
 
 export const data = new SlashCommandBuilder()
-  .setName("level")
-  .setDescription("View your current level and XP progress")
+  .setName(metadata.name)
+  .setDescription(metadata.description)
   .addUserOption(option =>
     option
       .setName("user")

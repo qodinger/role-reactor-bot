@@ -8,12 +8,37 @@ import {
 import { isDeveloper } from "../../../utils/discord/permissions.js";
 
 // ============================================================================
+// COMMAND METADATA
+// ============================================================================
+
+/**
+ * Command metadata for centralized registry
+ * This allows the command to be automatically discovered and integrated
+ * into help system, command suggestions, and other features
+ * This is the single source of truth for command information
+ */
+export const metadata = {
+  name: "help",
+  category: "general",
+  description: "Get help and information about bot commands",
+  keywords: [
+    "help",
+    "commands",
+    "info",
+    "guide",
+    "documentation",
+    "assistance",
+  ],
+  emoji: "❓",
+};
+
+// ============================================================================
 // COMMAND DEFINITION
 // ============================================================================
 
 export const data = new SlashCommandBuilder()
-  .setName("help")
-  .setDescription(`Get help and information about bot commands`)
+  .setName(metadata.name)
+  .setDescription(metadata.description)
   .addStringOption(option =>
     option
       .setName("command")
@@ -114,37 +139,98 @@ async function handleCommandError(interaction, _error) {
 // ============================================================================
 
 export async function autocomplete(interaction) {
-  const focusedValue = interaction.options.getFocused().toLowerCase();
-  const commands = Array.from(interaction.client.commands.keys());
+  const focusedValue = interaction.options.getFocused().toLowerCase().trim();
 
-  // Filter out developer commands if user is not a developer
-  const developerCommands = [
-    "health",
-    "performance",
-    "storage",
-    "core-management",
-    "verify",
-  ];
+  // Use registry as the source of truth for all commands
+  const { commandRegistry } = await import(
+    "../../../utils/core/commandRegistry.js"
+  );
+  await commandRegistry.initialize(interaction.client);
 
   const userIsDeveloper = isDeveloper(interaction.user.id);
 
-  const filtered = commands
-    .filter(choice => {
-      // Filter by search term
-      if (!choice.toLowerCase().includes(focusedValue)) {
-        return false;
-      }
+  // Get all commands from registry (more reliable than client.commands)
+  const allCommandNames = commandRegistry.getAllCommandNames();
+
+  // If search is empty or very short, show all commands (just filter by permissions)
+  const showAll = !focusedValue || focusedValue.length < 2;
+
+  // Score commands based on match quality
+  const scoredCommands = allCommandNames
+    .map(choice => {
+      // Get command metadata to check category
+      const metadata = commandRegistry.getCommandMetadata(choice);
 
       // Filter out developer commands if user is not a developer
-      if (developerCommands.includes(choice) && !userIsDeveloper) {
-        return false;
+      // Developer commands should ONLY be visible to developers
+      if (metadata?.category === "developer") {
+        if (!userIsDeveloper) {
+          // User is not a developer, hide this command
+          return null;
+        }
+        // User is a developer, show this command
       }
 
-      return true;
+      // If showing all commands, give all a base score
+      if (showAll) {
+        return { name: choice, score: 1 };
+      }
+
+      // Check if command name matches
+      const nameLower = choice.toLowerCase();
+      let score = 0;
+      let matches = false;
+
+      if (nameLower === focusedValue) {
+        // Exact match gets highest score
+        score = 100;
+        matches = true;
+      } else if (nameLower.startsWith(focusedValue)) {
+        // Starts with gets high score
+        score = 50;
+        matches = true;
+      } else if (nameLower.includes(focusedValue)) {
+        // Contains gets medium score
+        score = 25;
+        matches = true;
+      } else {
+        // Check keywords from registry
+        const keywords = commandRegistry.getCommandKeywords(choice);
+        if (keywords && keywords.length > 0) {
+          for (const keyword of keywords) {
+            const keywordLower = keyword.toLowerCase();
+            if (keywordLower === focusedValue) {
+              score = 40; // Keyword exact match
+              matches = true;
+              break;
+            } else if (keywordLower.startsWith(focusedValue)) {
+              score = Math.max(score, 30); // Keyword starts with
+              matches = true;
+            } else if (keywordLower.includes(focusedValue)) {
+              score = Math.max(score, 15); // Keyword contains
+              matches = true;
+            }
+          }
+        }
+      }
+
+      if (!matches && !showAll) {
+        return null;
+      }
+
+      return { name: choice, score };
+    })
+    .filter(cmd => cmd !== null)
+    .sort((a, b) => {
+      // Sort by score (descending), then alphabetically
+      if (b.score !== a.score) {
+        return b.score - a.score;
+      }
+      return a.name.localeCompare(b.name);
     })
     .slice(0, 25);
 
   await interaction.respond(
-    filtered.map(choice => ({ name: `/${choice}`, value: choice })),
+    scoredCommands.map(cmd => ({ name: `/${cmd.name}`, value: cmd.name })),
   );
 }

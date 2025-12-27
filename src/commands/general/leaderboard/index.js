@@ -8,12 +8,30 @@ import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 import { handleLeaderboard } from "./handlers.js";
 
 // ============================================================================
+// COMMAND METADATA
+// ============================================================================
+
+/**
+ * Command metadata for centralized registry
+ * This allows the command to be automatically discovered and integrated
+ * into help system, command suggestions, and other features
+ * This is the single source of truth for command information
+ */
+export const metadata = {
+  name: "leaderboard",
+  category: "general",
+  description: "View the XP leaderboard for this server",
+  keywords: ["leaderboard", "top", "ranking", "xp", "levels", "rank", "stats"],
+  emoji: "🏆",
+};
+
+// ============================================================================
 // COMMAND DEFINITION
 // ============================================================================
 
 export const data = new SlashCommandBuilder()
-  .setName("leaderboard")
-  .setDescription("View the XP leaderboard for this server")
+  .setName(metadata.name)
+  .setDescription(metadata.description)
   .addIntegerOption(option =>
     option
       .setName("limit")
