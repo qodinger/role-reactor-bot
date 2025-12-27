@@ -2,7 +2,7 @@
   "type": "module",
   "name": "role-reactor-bot",
   "version": "1.5.0",
-  "description": "A Discord bot for self-assignable roles through reactions. Features role management, permission controls, and customizable role-emoji mappings.",
+  "description": "A powerful Discord bot that helps you manage your server with role management, AI features, moderation tools, and community engagement features. Perfect for communities of all sizes.",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
@@ -47,12 +47,12 @@
   "keywords": [
     "discord",
     "bot",
-    "roles",
-    "reactions",
-    "self-assign",
+    "discord-js",
     "role-management",
-    "discord.js",
-    "automation"
+    "ai",
+    "automation",
+    "server-management",
+    "moderation"
   ],
   "author": {
     "name": "tyecode",

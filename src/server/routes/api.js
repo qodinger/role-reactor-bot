@@ -46,7 +46,8 @@ function getPackageData() {
     return {
       name: "role-reactor-bot",
       version: "Unknown",
-      description: "A Discord bot for self-assignable roles through reactions.",
+      description:
+        "A powerful Discord bot that helps you manage your server with role management, AI features, moderation tools, and community engagement features. Perfect for communities of all sizes.",
     };
   }
 }
