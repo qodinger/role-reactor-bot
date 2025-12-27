@@ -4,9 +4,31 @@ import { getLogger } from "../../../utils/logger.js";
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 import { handleSetup, handleSettings } from "./handlers.js";
 
+// ============================================================================
+// COMMAND METADATA
+// ============================================================================
+
+/**
+ * Command metadata for centralized registry
+ * This allows the command to be automatically discovered and integrated
+ * into help system, command suggestions, and other features
+ * This is the single source of truth for command information
+ */
+export const metadata = {
+  name: "welcome",
+  category: "admin",
+  description: "Manage the welcome message system",
+  keywords: ["welcome", "greet", "join", "member join", "new member"],
+  emoji: "🎉",
+};
+
+// ============================================================================
+// COMMAND DEFINITION
+// ============================================================================
+
 export const data = new SlashCommandBuilder()
-  .setName("welcome")
-  .setDescription("Manage the welcome message system")
+  .setName(metadata.name)
+  .setDescription(metadata.description)
   .addSubcommand(sub =>
     sub
       .setName("setup")

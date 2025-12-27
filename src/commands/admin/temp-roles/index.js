@@ -8,9 +8,38 @@ import { getLogger } from "../../../utils/logger.js";
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 import { handleAssign, handleList, handleRemove } from "./handlers.js";
 
+// ============================================================================
+// COMMAND METADATA
+// ============================================================================
+
+/**
+ * Command metadata for centralized registry
+ * This allows the command to be automatically discovered and integrated
+ * into help system, command suggestions, and other features
+ * This is the single source of truth for command information
+ */
+export const metadata = {
+  name: "temp-roles",
+  category: "admin",
+  description: "Manage temporary role assignments",
+  keywords: [
+    "temp-roles",
+    "temporary roles",
+    "temp roles",
+    "temporary",
+    "roles",
+    "assign",
+  ],
+  emoji: "⏰",
+};
+
+// ============================================================================
+// COMMAND DEFINITION
+// ============================================================================
+
 export const data = new SlashCommandBuilder()
-  .setName("temp-roles")
-  .setDescription("Manage temporary role assignments")
+  .setName(metadata.name)
+  .setDescription(metadata.description)
   .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles)
   .addSubcommand(subcommand =>
     subcommand

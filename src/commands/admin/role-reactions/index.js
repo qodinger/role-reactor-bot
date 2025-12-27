@@ -11,11 +11,38 @@ import {
 } from "./handlers.js";
 import { getColorChoices } from "./utils.js";
 
-// (no dynamic imports needed; handlers are co-located)
+// ============================================================================
+// COMMAND METADATA
+// ============================================================================
+
+/**
+ * Command metadata for centralized registry
+ * This allows the command to be automatically discovered and integrated
+ * into help system, command suggestions, and other features
+ * This is the single source of truth for command information
+ */
+export const metadata = {
+  name: "role-reactions",
+  category: "admin",
+  description: "Manage role reaction messages",
+  keywords: [
+    "role-reactions",
+    "role reactions",
+    "reactions",
+    "self-assign",
+    "roles",
+    "reaction roles",
+  ],
+  emoji: "⭐",
+};
+
+// ============================================================================
+// COMMAND DEFINITION
+// ============================================================================
 
 export const data = new SlashCommandBuilder()
-  .setName("role-reactions")
-  .setDescription("Manage role reaction messages")
+  .setName(metadata.name)
+  .setDescription(metadata.description)
   .addSubcommand(sub =>
     sub
       .setName("setup")

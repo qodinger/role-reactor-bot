@@ -5,12 +5,30 @@ import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 import { handleXpCommand } from "./handlers.js";
 
 // ============================================================================
+// COMMAND METADATA
+// ============================================================================
+
+/**
+ * Command metadata for centralized registry
+ * This allows the command to be automatically discovered and integrated
+ * into help system, command suggestions, and other features
+ * This is the single source of truth for command information
+ */
+export const metadata = {
+  name: "xp",
+  category: "admin",
+  description: "Manage the XP system settings and configuration",
+  keywords: ["xp", "experience", "level", "settings", "config", "points"],
+  emoji: "📈",
+};
+
+// ============================================================================
 // COMMAND DEFINITION
 // ============================================================================
 
 export const data = new SlashCommandBuilder()
-  .setName("xp")
-  .setDescription("Manage the XP system settings and configuration")
+  .setName(metadata.name)
+  .setDescription(metadata.description)
   .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
   .addSubcommand(subcommand =>
     subcommand

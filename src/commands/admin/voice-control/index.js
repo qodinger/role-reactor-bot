@@ -14,11 +14,41 @@ import {
   handleList,
 } from "./handlers.js";
 
-export const data = new SlashCommandBuilder()
-  .setName("voice-control")
-  .setDescription(
+// ============================================================================
+// COMMAND METADATA
+// ============================================================================
+
+/**
+ * Command metadata for centralized registry
+ * This allows the command to be automatically discovered and integrated
+ * into help system, command suggestions, and other features
+ * This is the single source of truth for command information
+ */
+export const metadata = {
+  name: "voice-control",
+  category: "admin",
+  description:
     "Manage roles that automatically control users in voice channels (disconnect/mute/deafen/move)",
-  )
+  keywords: [
+    "voice-control",
+    "voice control",
+    "voice",
+    "vc",
+    "disconnect",
+    "mute",
+    "deafen",
+    "move",
+  ],
+  emoji: "🎤",
+};
+
+// ============================================================================
+// COMMAND DEFINITION
+// ============================================================================
+
+export const data = new SlashCommandBuilder()
+  .setName(metadata.name)
+  .setDescription(metadata.description)
   .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles)
   .addSubcommandGroup(group =>
     group

@@ -14,9 +14,38 @@ import {
   handleDelete,
 } from "./handlers.js";
 
+// ============================================================================
+// COMMAND METADATA
+// ============================================================================
+
+/**
+ * Command metadata for centralized registry
+ * This allows the command to be automatically discovered and integrated
+ * into help system, command suggestions, and other features
+ * This is the single source of truth for command information
+ */
+export const metadata = {
+  name: "schedule-role",
+  category: "admin",
+  description: "Schedule automatic role assignments and removals",
+  keywords: [
+    "schedule-role",
+    "schedule role",
+    "scheduled",
+    "automatic",
+    "roles",
+    "schedule",
+  ],
+  emoji: "📅",
+};
+
+// ============================================================================
+// COMMAND DEFINITION
+// ============================================================================
+
 export const data = new SlashCommandBuilder()
-  .setName("schedule-role")
-  .setDescription("Schedule automatic role assignments and removals")
+  .setName(metadata.name)
+  .setDescription(metadata.description)
   .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles)
   .addSubcommand(subcommand =>
     subcommand

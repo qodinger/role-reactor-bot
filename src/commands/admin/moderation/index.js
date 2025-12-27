@@ -20,11 +20,41 @@ import {
 
 const logger = getLogger();
 
-export const data = new SlashCommandBuilder()
-  .setName("moderation")
-  .setDescription(
+// ============================================================================
+// COMMAND METADATA
+// ============================================================================
+
+/**
+ * Command metadata for centralized registry
+ * This allows the command to be automatically discovered and integrated
+ * into help system, command suggestions, and other features
+ * This is the single source of truth for command information
+ */
+export const metadata = {
+  name: "moderation",
+  category: "admin",
+  description:
     "Moderate server members with timeout, warn, ban, kick, and purge",
-  )
+  keywords: [
+    "moderation",
+    "mod",
+    "timeout",
+    "warn",
+    "ban",
+    "kick",
+    "purge",
+    "moderate",
+  ],
+  emoji: "🛡️",
+};
+
+// ============================================================================
+// COMMAND DEFINITION
+// ============================================================================
+
+export const data = new SlashCommandBuilder()
+  .setName(metadata.name)
+  .setDescription(metadata.description)
   .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
   .addSubcommand(subcommand =>
     subcommand
