@@ -1,6 +1,7 @@
 import { getStorageManager } from "../utils/storage/storageManager.js";
 import { getLogger } from "../utils/logger.js";
 import { config } from "../config/config.js";
+import { timingSafeEqual } from "crypto";
 
 const logger = getLogger();
 
@@ -67,7 +68,21 @@ export async function handleKoFiWebhook(req, res) {
 
       const providedToken = webhookData.verification_token;
 
-      if (providedToken !== expectedToken) {
+      // Use timing-safe comparison to prevent timing attacks
+      let isValid = false;
+      try {
+        if (providedToken.length === expectedToken.length) {
+          isValid = timingSafeEqual(
+            Buffer.from(providedToken),
+            Buffer.from(expectedToken),
+          );
+        }
+      } catch (_error) {
+        // If comparison fails (shouldn't happen with same length), treat as invalid
+        isValid = false;
+      }
+
+      if (!isValid) {
         logger.warn("❌ Invalid webhook token", {
           providedToken: `${providedToken.substring(0, 10)}...`,
         });

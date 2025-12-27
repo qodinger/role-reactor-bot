@@ -5,8 +5,11 @@ const logger = getLogger();
 
 // Auto cleanup configuration
 const CLEANUP_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours
-const DEFAULT_RETENTION_DAYS =
-  parseInt(process.env.AI_IMAGE_JOBS_RETENTION_DAYS) || 7;
+// Use nullish coalescing to allow 0 as a valid value (disables cleanup)
+const DEFAULT_RETENTION_DAYS = parseInt(
+  process.env.AI_IMAGE_JOBS_RETENTION_DAYS ?? "7",
+  10,
+);
 
 // Start automatic cleanup
 let cleanupInterval = null;

@@ -48,8 +48,7 @@ export async function execute(client) {
   // Log bot startup
   const titleText = `🤖 Role Reactor Bot 🤖`;
   const titleBox = createWelcomeBox(titleText, "cristal");
-  console.log("");
-  console.log(titleBox);
+  logger.info(`\n${titleBox}`);
 
   // Set bot activity
   client.user.setActivity("role reactions", {
@@ -79,8 +78,7 @@ export async function execute(client) {
   const statsBox = createInfoBox("📊 Bot Status", statLines, {
     borderColor: "cyan",
   });
-  console.log("");
-  console.log(statsBox);
+  logger.info(`\n${statsBox}`);
 
   // Generate invite link
   try {
@@ -102,12 +100,10 @@ export async function execute(client) {
     const inviteBox = createInfoBox("🔗 Invitation Details", inviteSection, {
       borderColor: "green",
     });
-    console.log("");
-    console.log(inviteBox);
-    console.log("");
+    logger.info(`\n${inviteBox}\n`);
   } catch (error) {
     logger.error("Failed to generate invite link:", error);
-    console.log(
+    logger.warn(
       "Failed to generate invite link. Please check your bot token and permissions.",
     );
   }
