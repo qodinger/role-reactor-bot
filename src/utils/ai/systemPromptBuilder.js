@@ -88,7 +88,6 @@ export class SystemPromptBuilder {
     requester = null,
     options = {},
   ) {
-    const { userId = null } = options;
     const { forceIncludeMemberList = false } = options;
     const cacheKey = guild ? `guild_${guild.id}` : `dm_global`;
     const cached = this.systemMessageCache.get(cacheKey);
@@ -373,7 +372,7 @@ export class SystemPromptBuilder {
           "./commandExecutor/commandValidator.js"
         );
 
-        const helpData = getDynamicHelpData(client);
+        const helpData = await getDynamicHelpData(client);
         const executableCommands = await getExecutableCommands(client);
         const executableNames = new Set(executableCommands.map(c => c.name));
         const botCommandsList = commandDiscoverer.getBotCommands(client);
@@ -599,8 +598,7 @@ export class SystemPromptBuilder {
 
     context += guidelinesSection;
 
-    // Cache the base system message (without user-specific preferences)
-    // This allows us to reuse the base context and add preferences per-user
+    // Cache the system message
     if (!baseContext) {
       // Only cache if we built it fresh (not from cache)
       this.systemMessageCache.set(cacheKey, {
@@ -608,23 +606,6 @@ export class SystemPromptBuilder {
         timestamp: Date.now(),
       });
       this.limitSystemCacheSize();
-    }
-
-    // Add user preferences from feedback (if available)
-    // Note: Preferences are user-specific, so we add them after caching the base context
-    if (userId) {
-      try {
-        const { FeedbackManager } = await import("./feedbackManager.js");
-        const preferenceContext =
-          await FeedbackManager.buildPreferenceContext(userId);
-        if (preferenceContext) {
-          context += preferenceContext;
-        }
-      } catch (error) {
-        // Silently fail - preferences are optional
-        const logger = getLogger();
-        logger.debug("Failed to load user preferences:", error);
-      }
     }
 
     return context;
