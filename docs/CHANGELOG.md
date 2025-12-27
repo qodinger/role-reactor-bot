@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Help System: Improved help documentation with more detailed information for all commands. Help content is now automatically kept up to date with command features
 - Userinfo Activity Display: Enhanced activity information display with better support for streaming activities and status types
 
 ### Removed
@@ -39,13 +40,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Avatar Generation Progress: Fixed progress updates not displaying during avatar generation, now showing real-time status messages
 - Serverinfo Member Counts: Fixed incorrect online member counts by properly separating human members from bots in status displays
 - Temp Roles Notifications: Improved error handling for DM notification failures to prevent breaking role assignment process
-- OAuth Authentication: Fixed authentication failures by standardizing to DISCORD_CLIENT_ID environment variable for consistency
+- Authentication: Fixed authentication failures for improved reliability
 
 ### Performance
 
 - Voice Control Operations: Improved processing speed and reliability for voice control operations on large servers
 - Voice Control Background Processing: Large operations now process in the background without blocking command responses
-- Temp Roles Operations: Faster temporary role assignments through optimized bulk operations and member caching, significantly faster for multi-user assignments
+- Temp Roles Operations: Significantly faster temporary role assignments, especially when assigning roles to multiple users at once
 
 ## [1.5.0] - 2025-12-15
 
@@ -98,8 +99,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Temp-Roles Documentation: Updated to include voice restrictions feature
-
 ### Performance
 
 - Voice Operations: Significantly improved voice restriction enforcement speed and efficiency, especially for servers with many members
@@ -111,7 +110,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Role Reactions: Custom emojis (including animated) now correctly grant and remove roles. This fix ensures reactions using server emojis work the same as standard Unicode emojis, with no setup changes required.
-- Core Credits Storage: Fixed issue where credits were not properly saved after donations and subscriptions, ensuring credits persist correctly
+- Core Credits: Fixed issue where credits were not properly saved after donations and subscriptions, ensuring credits are correctly recorded
 - Ko-fi Payments: Fixed payment processing issues that prevented payments from being processed correctly
 
 ## [1.3.0] - 2025-10-28
@@ -121,7 +120,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Temp-Roles Removal Notifications: Added `notify` option to `/temp-roles remove` command to send DM notifications to users when their roles are manually removed
 - Temp-Roles Notification System: Comprehensive notification system with removal details including who removed the role, reason, and timestamp
 - Webhook Security: Enhanced webhook verification for improved security
-- PNG Fallback System: Improved image generation reliability with better error handling
+- Image Generation: Improved image generation reliability with better error handling
 
 ### Changed
 
@@ -135,7 +134,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - General Command Embeds: Simplified invite, poll, 8ball, avatar, core, support, sponsor, ping, level, and leaderboard command embeds for cleaner design
 - Help System: Simplified button layout and removed redundant buttons for better user experience
 - Role-Reactions Color System: Updated color options with cyberpunk-themed colors and improved consistency
-- Core Management: Merged `/verify` command into `/core-management` for streamlined credit management
 - Temp-Roles Embeds: Enhanced embeds and simplified DM messages for better user experience
 
 ### Removed
@@ -148,7 +146,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Channel Display Logic: Fixed channel selection pages to properly show current channel status instead of always "Not Set"
 - XP Button Navigation: Fixed "back_to_settings" button error that occurred after XP command simplification
-- Temp-Roles Storage: Fixed storage conflicts that could prevent temporary roles from being saved correctly
+- Temp-Roles: Fixed issues that could prevent temporary roles from being saved correctly
 - Interaction Stability: Fixed bot stability issues and interaction timeouts
 - Ko-fi Webhook Processing: Resolved webhook processing limitations
 - Member Permission Errors: Fixed permission checking across commands
@@ -184,7 +182,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Goodbye System Commands: Added `/goodbye` command with comprehensive configuration options
 - Goodbye Message Placeholders: Support for {user}, {user.name}, {user.tag}, {user.id}, {server}, {server.id}, {memberCount}, {memberCount.ordinal}
 - Goodbye Embed Support: Rich embed format for goodbye messages with member information
-- Goodbye System Storage: Automatic saving of goodbye settings for each server
+- Goodbye System: Automatic saving of goodbye settings for each server
 - Goodbye System Security: Enhanced permission checks for configuration access
 - Goodbye System Features: Improved message formatting and placeholder support
 - Channel Selection Dropdown: Interactive channel selection for goodbye system configuration
@@ -210,8 +208,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Back to Settings Button: Fixed 'Back to Settings' button to show actual settings interface
 - Role Reactions Delete Command: Fixed "Message Not Found" error when deleting role reactions
 - Permission Parameter Issues: Fixed incorrect permission parameter usage in temp-roles and welcome commands
-- Button Router: Updated pagination button routing to use correct custom ID prefix (rolelist\_)
-- Cache Invalidation: Fixed potential cache issues between list and delete commands
+- Role List Pagination: Fixed pagination buttons to work correctly when navigating role lists
+- Role Reactions: Fixed issues where role list and delete commands could show outdated information
 - Role Reactions Setup: Fixed permission errors in role-reactions setup command
 - Channel Permission Validation: Added proper channel-specific permission checks for SendMessages and EmbedLinks
 
@@ -299,14 +297,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Avatar Command UI: Replaced interactive buttons with direct URL download buttons for better UX
 - Avatar Command Colors: Changed embed color from SUCCESS to PRIMARY theme
 - Avatar Command Information: Removed misleading image size claims and unnecessary download text
-- Experience System Storage: Improved XP data storage reliability
+- Experience System: Improved XP data reliability
 - Leaderboard UI: Enhanced with time filters and cleaner presentation
 - Theme Consistency: Fixed emoji display issues across all commands
 
 ### Fixed
 
 - Avatar Download Formats: Fixed Discord CDN format parameters for proper PNG/JPG/WebP downloads
-- Experience System Integration: Fixed XP data storage and retrieval issues
+- Experience System: Fixed XP data not being saved or retrieved correctly
 - Command XP Awarding: Fixed XP not being awarded when using commands
 - Theme Emojis: Resolved "undefined" emoji display issues
 - Leaderboard Display: Fixed leaderboard display errors
@@ -322,7 +320,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced Role Parser: Improved parsing for role mentions with spaces and flexible formatting
 - Timeout Protection: Added 10-second timeout for reaction adding process
 - Automatic Reconnection: Bot now automatically reconnects when internet connection is restored
-- Connection Monitoring: Enhanced connection monitoring with periodic health checks
+- Connection Reliability: Enhanced connection monitoring for improved stability
 - Network Interruptions: Improved handling of network interruptions without requiring manual restart
 
 ### Changed
@@ -377,24 +375,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Persistent data storage for temporary roles
+- Temporary roles now persist across bot restarts
 - Enhanced role management validation
 - Automated bot update script
 
 ### Changed
 
-- Renamed "bot owner" to "developer" throughout codebase
-- Added "🔒 [DEVELOPER ONLY]" descriptions to developer commands
-- Simplified deployment scripts (reduced from 8 to 4 commands: `deploy:dev`, `deploy:prod`, `deploy:global`, `delete:commands`)
+- Developer Commands: Updated developer command descriptions for clarity
 - Improved command visibility and permission handling
-
-- Error Handling: Improved error handling for data operations
-- Improved scheduler cleanup process
 - Better error messages and validation
 
 ### Fixed
 
-- Discord Compatibility: Fixed compatibility issues with Discord API updates
+- Discord Compatibility: Fixed compatibility issues with Discord updates
 - Temp-Roles List: Fixed errors in `/list-temp-roles` command
 - Fixed date parsing issues in temporary role display
 - Temp-Roles Data: Fixed data handling issues for temporary roles
@@ -402,7 +395,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Performance
 
 - Command Response Times: Improved command response times with better error handling
-- Data Sync: Added automatic data synchronization
+- Data Reliability: Added automatic data synchronization for improved reliability
 
 ## [0.1.0] - 2025-07-10
 
@@ -413,10 +406,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Temporary role system with auto-expiration
 - Role management commands (`/setup-roles`, `/update-roles`, `/delete-roles`, `/list-roles`)
 - Temporary role commands (`/assign-temp-role`, `/list-temp-roles`, `/remove-temp-role`)
-- Health monitoring and performance metrics (`/health`, `/performance`)
-- Structured logging system with file output
+- Health monitoring and performance metrics
 - Docker deployment support
-- Persistent data storage
+- Data persistence across bot restarts
 - Permission controls and validation
 - Custom emoji support (Unicode and server emojis)
 - Role categories and organization

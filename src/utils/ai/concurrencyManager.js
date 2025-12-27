@@ -47,43 +47,6 @@ export class ConcurrencyManager {
   }
 
   /**
-   * Check if user has exceeded rate limit (read-only check, doesn't increment counter)
-   * @param {string} userId - User ID to check
-   * @param {Object} coreUserData - User data including Core tier info
-   * @returns {boolean} True if rate limited
-   * @deprecated Use checkAndReserveRateLimit() for atomic check-and-increment to avoid race conditions
-   */
-  checkUserRateLimit(userId, coreUserData = null) {
-    if (!userId) return false;
-
-    const now = Date.now();
-    const userData = this.userRequests.get(userId);
-
-    // Calculate effective rate limit based on Core tier
-    let effectiveRateLimit = this.userRateLimit;
-    if (coreUserData && coreUserData.isCore && coreUserData.coreTier) {
-      const tierConfig = this.coreTierLimits[coreUserData.coreTier];
-      if (tierConfig) {
-        effectiveRateLimit = Math.floor(
-          this.userRateLimit * tierConfig.multiplier,
-        );
-      }
-    }
-
-    if (!userData) {
-      return false; // No previous requests, not rate limited
-    }
-
-    // Reset counter if window has passed
-    if (now - userData.lastRequest > this.userRateWindow) {
-      return false; // Window expired, not rate limited
-    }
-
-    // Check if user has exceeded their effective limit
-    return userData.count >= effectiveRateLimit;
-  }
-
-  /**
    * Atomically check and reserve rate limit (increments counter if not rate limited)
    * This prevents race conditions where multiple requests pass the check before any increment
    * @param {string} userId - User ID to check
@@ -373,6 +336,7 @@ export class ConcurrencyManager {
    * Handle AI queue cancel button interaction
    * @deprecated Cancel buttons have been removed. Users can cancel by deleting the status message.
    * Kept for backward compatibility with old messages that may still have cancel buttons.
+   * TODO: Remove this method after 2026-03-01 (3 months from deprecation) when all old messages have expired.
    * @param {import('discord.js').ButtonInteraction} interaction - Button interaction
    */
   static async handleAIQueueCancel(interaction) {

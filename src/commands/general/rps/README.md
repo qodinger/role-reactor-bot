@@ -8,20 +8,22 @@ The `/rps` command allows users to challenge anyone (including the bot) to Rock 
 
 ```
 rps/
-├── index.js      # Command definition
-├── handlers.js   # Command execution logic
-├── embeds.js     # Discord embed creation
-├── utils.js      # Game logic and utilities
-└── README.md     # This documentation
+├── index.js              # Command definition and entry point
+├── handlers.js           # Core command logic and game execution
+├── embeds.js             # Discord embed creation with result display
+├── components.js         # Interactive button components for challenges
+├── utils.js              # Game logic, winner determination, and utilities
+└── README.md             # This documentation
 ```
 
 ## Architecture
 
 Following the modular pattern established by other general commands:
 
-- **`index.js`**: Command definition with user and choice options (no subcommands)
+- **`index.js`**: Command definition and main execution flow
 - **`handlers.js`**: Core command logic and game execution
 - **`embeds.js`**: Discord embed creation with result display
+- **`components.js`**: Interactive UI components (buttons for challenge responses)
 - **`utils.js`**: Game logic, winner determination, and utilities
 
 ## Usage Examples
@@ -83,3 +85,9 @@ The embed shows:
 - Bot's choice with emoji
 - Winner announcement
 - Color-coded result (Success/Error/Info theme colors)
+
+## Dependencies
+
+- Discord.js
+- Theme configuration for colors and styling
+- Interactive component system for button handling

@@ -7,18 +7,20 @@ The `/core` command allows users to check their Core balance and view pricing in
 ## File Structure
 
 ```
-src/commands/general/core/
-├── index.js          # Command definition and structure
-├── handlers.js       # Main command execution logic
-├── embeds.js         # Embed creation functions
-├── utils.js          # Utility functions for data management
-├── validation.js     # Input validation functions
-└── README.md         # This documentation
+core/
+├── index.js              # Command definition and entry point
+├── handlers.js           # Core command logic and interaction handling
+├── embeds.js             # Discord embed creation and formatting
+├── utils.js              # Helper functions, data management, and pricing calculations
+├── validation.js         # Input validation and user data verification
+├── payment.js             # Payment processing and cryptocurrency integration
+├── paymentEmbeds.js       # Payment-related embed creation
+└── README.md             # This documentation
 ```
 
 ## Architecture
 
-Following the modular pattern established by other commands:
+Following the modular pattern established by other general commands:
 
 - **`index.js`**: Command definition, subcommands, and main execution flow
 - **`handlers.js`**: Core business logic, balance checking, and pricing display

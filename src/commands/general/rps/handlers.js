@@ -15,24 +15,64 @@ const logger = getLogger();
 // Challenge expiration time: 10 minutes (reasonable time for users to respond)
 const CHALLENGE_EXPIRATION_MS = 10 * 60 * 1000; // 10 minutes in milliseconds
 
+// Periodic cleanup interval: 5 minutes (cleanup runs every 5 minutes)
+const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes in milliseconds
+
 // In-memory challenge storage (challengeId -> challenge data)
-// Challenges expire after 10 minutes and are cleaned up lazily (when accessed)
+// Challenges expire after 10 minutes and are cleaned up lazily (when accessed) and periodically
 const challenges = new Map();
 
+// Track cleanup interval to prevent multiple intervals
+let cleanupInterval = null;
+
 /**
- * Clean up expired challenges (lazy cleanup - only removes from memory)
- * Called when creating new challenges or when button is clicked
+ * Clean up expired challenges (removes from memory)
+ * Called periodically and when creating new challenges or when button is clicked
  */
 function cleanupExpiredChallenges() {
   const now = Date.now();
+  let cleanedCount = 0;
 
   for (const [challengeId, challenge] of challenges.entries()) {
     if (now - challenge.createdAt > CHALLENGE_EXPIRATION_MS) {
       challenges.delete(challengeId);
-      logger.debug(`Cleaned up expired challenge: ${challengeId}`);
+      cleanedCount++;
     }
   }
+
+  if (cleanedCount > 0) {
+    logger.debug(`Cleaned up ${cleanedCount} expired RPS challenge(s)`);
+  }
 }
+
+/**
+ * Start periodic cleanup of expired challenges
+ * This prevents memory leaks if challenges are not accessed frequently
+ */
+function startPeriodicCleanup() {
+  // Only start if not already running
+  if (cleanupInterval) return;
+
+  cleanupInterval = setInterval(() => {
+    cleanupExpiredChallenges();
+  }, CLEANUP_INTERVAL_MS);
+
+  logger.debug("Started periodic RPS challenge cleanup");
+}
+
+/**
+ * Stop periodic cleanup (for testing or shutdown)
+ */
+export function stopPeriodicCleanup() {
+  if (cleanupInterval) {
+    clearInterval(cleanupInterval);
+    cleanupInterval = null;
+    logger.debug("Stopped periodic RPS challenge cleanup");
+  }
+}
+
+// Start periodic cleanup when module loads
+startPeriodicCleanup();
 
 export async function execute(interaction, _client) {
   try {

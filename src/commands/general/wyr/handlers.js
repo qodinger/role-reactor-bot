@@ -18,17 +18,60 @@ const wyrVotes = new Map();
 // Cleanup old votes after 24 hours
 const VOTE_EXPIRY_TIME = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
+// Periodic cleanup interval: 1 hour (cleanup runs every hour)
+const CLEANUP_INTERVAL_MS = 60 * 60 * 1000; // 1 hour in milliseconds
+
+// Track cleanup interval to prevent multiple intervals
+let cleanupInterval = null;
+
 /**
  * Clean up expired votes
+ * Called periodically and when accessing vote data
  */
 function cleanupExpiredVotes() {
   const now = Date.now();
+  let cleanedCount = 0;
+
   for (const [messageId, voteData] of wyrVotes.entries()) {
     if (now - voteData.createdAt > VOTE_EXPIRY_TIME) {
       wyrVotes.delete(messageId);
+      cleanedCount++;
     }
   }
+
+  if (cleanedCount > 0) {
+    logger.debug(`Cleaned up ${cleanedCount} expired WYR vote(s)`);
+  }
 }
+
+/**
+ * Start periodic cleanup of expired votes
+ * This prevents memory leaks if votes are not accessed frequently
+ */
+function startPeriodicCleanup() {
+  // Only start if not already running
+  if (cleanupInterval) return;
+
+  cleanupInterval = setInterval(() => {
+    cleanupExpiredVotes();
+  }, CLEANUP_INTERVAL_MS);
+
+  logger.debug("Started periodic WYR vote cleanup");
+}
+
+/**
+ * Stop periodic cleanup (for testing or shutdown)
+ */
+export function stopPeriodicCleanup() {
+  if (cleanupInterval) {
+    clearInterval(cleanupInterval);
+    cleanupInterval = null;
+    logger.debug("Stopped periodic WYR vote cleanup");
+  }
+}
+
+// Start periodic cleanup when module loads
+startPeriodicCleanup();
 
 /**
  * Get vote data for a message

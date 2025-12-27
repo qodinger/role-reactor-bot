@@ -225,6 +225,25 @@ async function gracefulShutdown(client) {
       clearInterval(global.subscriptionCleanupInterval);
     }
 
+    // Stop command-specific cleanup intervals
+    try {
+      const { stopPeriodicCleanup: stopRPSCleanup } = await import(
+        "./commands/general/rps/handlers.js"
+      );
+      stopRPSCleanup();
+    } catch (error) {
+      logger.debug("Failed to stop RPS cleanup:", error);
+    }
+
+    try {
+      const { stopPeriodicCleanup: stopWYRCleanup } = await import(
+        "./commands/general/wyr/handlers.js"
+      );
+      stopWYRCleanup();
+    } catch (error) {
+      logger.debug("Failed to stop WYR cleanup:", error);
+    }
+
     // Close Discord connection
     if (client) {
       client.destroy();

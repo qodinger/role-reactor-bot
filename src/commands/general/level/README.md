@@ -17,7 +17,7 @@ level/
 
 ## Architecture
 
-Following the modular pattern established by other commands:
+Following the modular pattern established by other general commands:
 
 - **`index.js`**: Command definition and main execution flow
 - **`handlers.js`**: Core business logic and experience data handling

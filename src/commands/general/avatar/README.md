@@ -7,21 +7,22 @@ Generate unique anime-style avatars using AI with advanced style customization! 
 ## File Structure
 
 ```
-src/commands/general/avatar/
+avatar/
 ├── index.js                 # Command definition and main execution
 ├── handlers.js              # Avatar generation handler
 ├── embeds.js                # Discord embed creation
 ├── utils.js                 # Utility functions
-├── README.md               # This documentation
-└── utils/                  # Specialized utility modules
-    ├── creditManager.js    # Credit system management
-    ├── imageUtils.js       # Image generation utilities
+├── README.md                # This documentation
+└── utils/                   # Specialized utility modules
+    ├── creditManager.js     # Credit system management
+    ├── generationHistory.js # Generation history tracking
+    ├── imageUtils.js        # Image generation utilities
     └── interactionHandler.js # Interaction handling utilities
 ```
 
 ## Architecture
 
-Following the modular pattern established by other commands:
+Following the modular pattern established by other general commands:
 
 - **`index.js`**: Command definition, permission validation, and main execution flow
 - **`handlers.js`**: Core business logic, avatar generation, and interaction processing

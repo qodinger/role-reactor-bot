@@ -8,18 +8,19 @@ The `/wyr` command provides random "Would You Rather" questions to spark discuss
 
 ```
 wyr/
-├── index.js      # Command definition
-├── handlers.js   # Command execution logic and button handlers
-├── embeds.js     # Discord embed creation with vote statistics
-├── utils.js      # Question database and utilities
-└── README.md     # This documentation
+├── index.js              # Command definition and entry point
+├── handlers.js           # Core command logic, vote tracking, and button interaction handling
+├── embeds.js             # Discord embed creation with vote visualization
+├── utils.js              # Question database organized by categories and utility functions
+├── wyr_questions.json    # Question database file
+└── README.md             # This documentation
 ```
 
 ## Architecture
 
 Following the modular pattern established by other general commands:
 
-- **`index.js`**: Command definition and exports
+- **`index.js`**: Command definition and main execution flow
 - **`handlers.js`**: Core command logic, vote tracking, and button interaction handling
 - **`embeds.js`**: Discord embed creation with vote visualization
 - **`utils.js`**: Question database organized by categories and utility functions
@@ -96,3 +97,9 @@ Returns a random "Would You Rather" question with interactive voting buttons.
 - Button handlers are registered in the button router
 - Supports vote buttons (1️⃣ and 2️⃣) and new question button
 - Proper error handling and user feedback
+
+## Dependencies
+
+- Discord.js
+- Theme configuration for colors and styling
+- Interactive component system for button handling
