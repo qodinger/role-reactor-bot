@@ -2,7 +2,6 @@ import { multiProviderAIService } from "./multiProviderAIService.js";
 import { concurrencyManager } from "./concurrencyManager.js";
 import { getLogger } from "../logger.js";
 
-// Load prompt configuration with caching
 let promptConfigCache = null;
 async function loadPromptConfig() {
   if (!promptConfigCache) {
@@ -44,10 +43,8 @@ export class AvatarService {
         this.aiService.getPrimaryProvider(),
       );
 
-      // Simulate the cache key generation logic
       let styleHash = "default";
       if (styleOptions) {
-        // Create a more robust hash by using a simple hash function
         const styleString = JSON.stringify(
           styleOptions,
           Object.keys(styleOptions).sort(),
@@ -56,9 +53,9 @@ export class AvatarService {
         for (let i = 0; i < styleString.length; i++) {
           const char = styleString.charCodeAt(i);
           hash = (hash << 5) - hash + char;
-          hash = hash & hash; // Convert to 32-bit integer
+          hash = hash & hash;
         }
-        styleHash = Math.abs(hash).toString(36); // Convert to base36 for shorter string
+        styleHash = Math.abs(hash).toString(36);
       }
       const cacheKey = `openrouter_image_${this.aiService.config.providers.openrouter.models.image.primary}_${styleHash}_${Buffer.from(enhancedPrompt).toString("base64").slice(0, 32)}`;
 

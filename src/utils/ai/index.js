@@ -27,8 +27,15 @@ export {
 export {
   checkAICredits,
   deductAICredits,
+  checkAndDeductAICredits,
   getAICreditInfo,
+  checkAIImageCredits,
+  deductAIImageCredits,
+  checkAndDeductAIImageCredits,
+  refundAICredits,
+  refundAIImageCredits,
 } from "./aiCreditManager.js";
+export { getUserFacingErrorMessage } from "./errorMessages.js";
 export {
   DEFAULT_MAX_HISTORY_LENGTH,
   DEFAULT_CONVERSATION_TIMEOUT,
