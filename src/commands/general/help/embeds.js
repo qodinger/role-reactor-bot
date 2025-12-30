@@ -1,7 +1,6 @@
 import { EmbedBuilder, PermissionFlagsBits } from "discord.js";
 import { THEME_COLOR, UI_COMPONENTS } from "../../../config/theme.js";
 import { getDynamicHelpData } from "./data.js";
-import config from "../../../config/config.js";
 import { getLogger } from "../../../utils/logger.js";
 import { ComponentBuilder } from "./components.js";
 
@@ -13,9 +12,9 @@ export class HelpEmbedBuilder {
    * Check if user has required permissions for a category
    * @param {import('discord.js').GuildMember} member
    * @param {string[]} requiredPermissions
-   * @returns {boolean}
+   * @returns {Promise<boolean>}
    */
-  static hasCategoryPermissions(member, requiredPermissions) {
+  static async hasCategoryPermissions(member, requiredPermissions) {
     if (!requiredPermissions || requiredPermissions.length === 0) {
       return true; // No permissions required
     }
@@ -23,8 +22,8 @@ export class HelpEmbedBuilder {
     for (const permission of requiredPermissions) {
       if (permission === "DEVELOPER") {
         // Check if user is developer
-        const developers = config.discord.developers;
-        if (!developers || !developers.includes(member.user.id)) {
+        const { isDeveloper } = await import("../../../utils/discord/permissions.js");
+        if (!isDeveloper(member.user.id)) {
           return false;
         }
       } else {
@@ -105,25 +104,39 @@ export class HelpEmbedBuilder {
         await getDynamicHelpData(client);
 
       // Filter commands based on user permissions
-      const all = Object.entries(COMMAND_METADATA)
-        .filter(([cmdName, _meta]) => {
-          // If no member provided, show all commands (for backward compatibility)
-          if (!member) return true;
+      const allEntries = Object.entries(COMMAND_METADATA);
+      const filtered = [];
 
-          // Find the category this command belongs to using registry
-          const category = Object.values(COMMAND_CATEGORIES).find(cat =>
-            cat.commands.includes(cmdName),
-          );
+      for (const [cmdName, _meta] of allEntries) {
+        // If no member provided, show all commands (for backward compatibility)
+        if (!member) {
+          filtered.push([cmdName, _meta]);
+          continue;
+        }
 
-          if (!category) return true; // Show if no category found
+        // Find the category this command belongs to using registry
+        const category = Object.values(COMMAND_CATEGORIES).find(cat =>
+          cat.commands.includes(cmdName),
+        );
 
-          // Check if user has permissions for this category
-          return ComponentBuilder.hasCategoryPermissions(
-            member,
-            category.requiredPermissions,
-          );
-        })
-        .sort((a, b) => a[0].localeCompare(b[0]));
+        if (!category) {
+          // Show if no category found
+          filtered.push([cmdName, _meta]);
+          continue;
+        }
+
+        // Check if user has permissions for this category
+        const hasPermissions = await ComponentBuilder.hasCategoryPermissions(
+          member,
+          category.requiredPermissions,
+        );
+
+        if (hasPermissions) {
+          filtered.push([cmdName, _meta]);
+        }
+      }
+
+      const all = filtered.sort((a, b) => a[0].localeCompare(b[0]));
 
       const shown = all.slice(0, 25);
 
