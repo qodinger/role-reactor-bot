@@ -11,10 +11,9 @@ const logger = getLogger();
 /**
  * Validate request body against schema
  * @param {Object} schema - Validation schema
- * @param {Object} options - Validation options
  * @returns {Function} Express middleware
  */
-export function validateBody(schema, options = {}) {
+export function validateBody(schema) {
   return (req, res, next) => {
     try {
       const { body } = req;
@@ -45,14 +44,19 @@ export function validateBody(schema, options = {}) {
               errors.push(`Field ${field} must be a boolean`);
             } else if (type === "array" && !Array.isArray(value)) {
               errors.push(`Field ${field} must be an array`);
-            } else if (type === "object" && (typeof value !== "object" || Array.isArray(value))) {
+            } else if (
+              type === "object" &&
+              (typeof value !== "object" || Array.isArray(value))
+            ) {
               errors.push(`Field ${field} must be an object`);
             }
 
             // String validations
             if (type === "string" && typeof value === "string") {
               if (min !== undefined && value.length < min) {
-                errors.push(`Field ${field} must be at least ${min} characters`);
+                errors.push(
+                  `Field ${field} must be at least ${min} characters`,
+                );
               }
               if (max !== undefined && value.length > max) {
                 errors.push(`Field ${field} must be at most ${max} characters`);
@@ -74,7 +78,9 @@ export function validateBody(schema, options = {}) {
 
             // Enum validation
             if (enumValues && !enumValues.includes(value)) {
-              errors.push(`Field ${field} must be one of: ${enumValues.join(", ")}`);
+              errors.push(
+                `Field ${field} must be one of: ${enumValues.join(", ")}`,
+              );
             }
           }
         }
@@ -130,16 +136,22 @@ export function validateQuery(schema) {
                 errors.push(`Query parameter ${field} must be a number`);
               } else {
                 if (min !== undefined && numValue < min) {
-                  errors.push(`Query parameter ${field} must be at least ${min}`);
+                  errors.push(
+                    `Query parameter ${field} must be at least ${min}`,
+                  );
                 }
                 if (max !== undefined && numValue > max) {
-                  errors.push(`Query parameter ${field} must be at most ${max}`);
+                  errors.push(
+                    `Query parameter ${field} must be at most ${max}`,
+                  );
                 }
               }
             }
 
             if (enumValues && !enumValues.includes(value)) {
-              errors.push(`Query parameter ${field} must be one of: ${enumValues.join(", ")}`);
+              errors.push(
+                `Query parameter ${field} must be one of: ${enumValues.join(", ")}`,
+              );
             }
           }
         }
@@ -219,4 +231,3 @@ export function validateParams(schema) {
     }
   };
 }
-

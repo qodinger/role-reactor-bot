@@ -10,7 +10,9 @@ const logger = getLogger();
  * @param {import('express').NextFunction} _next - Express next function (unused)
  */
 export function errorHandler(error, req, res, _next) {
+  const requestId = req.requestId || "unknown";
   logger.error("❌ API server error:", {
+    requestId,
     error: error.message,
     stack: error.stack,
     url: req.url,
@@ -26,6 +28,7 @@ export function errorHandler(error, req, res, _next) {
   res.status(500).json({
     status: "error",
     message: "Internal server error",
+    requestId,
     ...(isDevelopment && {
       error: error.message,
       stack: error.stack,
@@ -40,7 +43,9 @@ export function errorHandler(error, req, res, _next) {
  * @param {import('express').Response} res - Express response object
  */
 export function notFoundHandler(req, res) {
+  const requestId = req.requestId || "unknown";
   logger.warn("🔍 404 Not Found", {
+    requestId,
     url: req.url,
     method: req.method,
     ip: req.ip,
@@ -51,6 +56,7 @@ export function notFoundHandler(req, res) {
   res.status(404).json({
     status: "error",
     message: "Endpoint not found",
+    requestId,
     url: req.url,
     method: req.method,
     timestamp: new Date().toISOString(),

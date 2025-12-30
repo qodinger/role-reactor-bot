@@ -10,9 +10,11 @@ const logger = getLogger();
  */
 export function requestLogger(req, res, next) {
   const startTime = Date.now();
+  const requestId = req.requestId || "unknown";
 
   // Log request details
   logger.debug("📥 Incoming request", {
+    requestId,
     method: req.method,
     url: req.url,
     ip: req.ip,
@@ -27,6 +29,7 @@ export function requestLogger(req, res, next) {
     const duration = Date.now() - startTime;
 
     logger.debug("📤 Response sent", {
+      requestId,
       method: req.method,
       url: req.url,
       statusCode: res.statusCode,
