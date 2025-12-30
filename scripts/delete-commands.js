@@ -2,17 +2,15 @@
 import "./load-env.js";
 
 import { REST, Routes } from "discord.js";
-import config from "../src/config/config.js";
 import { createSpinner } from "../src/utils/terminal.js";
 import { getLogger } from "../src/utils/logger.js";
 
 const logger = getLogger();
-const rest = new REST({ version: "10" }).setToken(config.discord.token);
 
-async function deleteGlobalCommands() {
+async function deleteGlobalCommands(rest, clientId) {
   const spinner = createSpinner("Deleting global commands...").start();
   try {
-    await rest.put(Routes.applicationCommands(config.discord.clientId), {
+    await rest.put(Routes.applicationCommands(clientId), {
       body: [],
     });
     spinner.succeed("Global commands deleted.");
@@ -22,15 +20,14 @@ async function deleteGlobalCommands() {
   }
 }
 
-async function deleteGuildCommands(guildId) {
+async function deleteGuildCommands(rest, clientId, guildId) {
   const spinner = createSpinner(
     `Deleting commands for guild ${guildId}...`,
   ).start();
   try {
-    await rest.put(
-      Routes.applicationGuildCommands(config.discord.clientId, guildId),
-      { body: [] },
-    );
+    await rest.put(Routes.applicationGuildCommands(clientId, guildId), {
+      body: [],
+    });
     spinner.succeed(`Commands for guild ${guildId} deleted.`);
   } catch (error) {
     spinner.fail(`Failed to delete commands for guild ${guildId}.`);
@@ -39,20 +36,33 @@ async function deleteGuildCommands(guildId) {
 }
 
 async function main() {
+  // Load config with fallback to environment variables
+  const configModule = await import("../src/config/config.js").catch(
+    () => null,
+  );
+  const config =
+    configModule?.config || configModule?.default || configModule || {};
+
+  const discordToken =
+    config.discord?.token || process.env.DISCORD_TOKEN || process.env.BOT_TOKEN;
+  const clientId = config.discord?.clientId || process.env.DISCORD_CLIENT_ID;
+
   // Validate required environment variables
-  if (!config.discord.token || !config.discord.clientId) {
+  if (!discordToken || !clientId) {
     logger.error(
-      "Missing required environment variables: DISCORD_TOKEN, DISCORD_CLIENT_ID",
+      "Missing required environment variables: DISCORD_TOKEN (or BOT_TOKEN) and DISCORD_CLIENT_ID",
     );
     process.exit(1);
   }
 
+  const rest = new REST({ version: "10" }).setToken(discordToken);
+
   const guildId = process.argv[2];
 
   if (guildId) {
-    await deleteGuildCommands(guildId);
+    await deleteGuildCommands(rest, clientId, guildId);
   } else {
-    await deleteGlobalCommands();
+    await deleteGlobalCommands(rest, clientId);
   }
 
   // Exit after completion

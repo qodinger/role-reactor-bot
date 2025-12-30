@@ -5,7 +5,6 @@ import { REST, Routes } from "discord.js";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import config from "../src/config/config.js";
 import {
   createSpinner,
   createInfoBox,
@@ -101,30 +100,57 @@ async function loadCommands() {
 async function deployCommands() {
   const spinner = createSpinner("Starting command deployment...").start();
   try {
+    // Load config with fallback to environment variables
+    const configModule = await import("../src/config/config.js").catch(
+      () => null,
+    );
+    const config =
+      configModule?.config || configModule?.default || configModule || {};
+
+    const discordToken =
+      config.discord?.token ||
+      process.env.DISCORD_TOKEN ||
+      process.env.BOT_TOKEN;
+    const clientId = config.discord?.clientId || process.env.DISCORD_CLIENT_ID;
+    const guildId = config.discord?.guildId || process.env.DISCORD_GUILD_ID;
+
+    if (!discordToken) {
+      throw new Error(
+        "Discord token not found. Set DISCORD_TOKEN or BOT_TOKEN environment variable.",
+      );
+    }
+
+    if (!clientId) {
+      throw new Error(
+        "Discord client ID not found. Set DISCORD_CLIENT_ID environment variable.",
+      );
+    }
+
     const categories = await loadCommands();
     const allCommands = Object.values(categories).flat();
     spinner.text = `Deploying ${allCommands.length} commands...`;
 
-    const rest = new REST({ version: "10" }).setToken(config.discord.token);
+    const rest = new REST({ version: "10" }).setToken(discordToken);
 
     if (process.env.NODE_ENV === "production") {
-      await rest.put(Routes.applicationCommands(config.discord.clientId), {
+      await rest.put(Routes.applicationCommands(clientId), {
         body: allCommands,
       });
       spinner.succeed(
         createSuccessMessage("Successfully deployed global commands."),
       );
     } else {
-      await rest.put(
-        Routes.applicationGuildCommands(
-          config.discord.clientId,
-          config.discord.guildId,
-        ),
-        { body: allCommands },
-      );
+      if (!guildId) {
+        throw new Error(
+          "Discord guild ID not found. Set DISCORD_GUILD_ID environment variable for development deployment.",
+        );
+      }
+      await rest.put(Routes.applicationGuildCommands(clientId, guildId), {
+        body: allCommands,
+      });
       spinner.succeed(
         createSuccessMessage(
-          `Successfully deployed guild commands to ${config.discord.guildId}.`,
+          `Successfully deployed guild commands to ${guildId}.`,
         ),
       );
     }
@@ -137,7 +163,7 @@ async function deployCommands() {
           `${
             process.env.NODE_ENV === "production"
               ? `${icons.server} Global`
-              : `${icons.server} Guild: ${config.discord.guildId}`
+              : `${icons.server} Guild: ${guildId}`
           }`,
         ],
         { borderColor: "green" },
