@@ -135,7 +135,6 @@ function calculateBotStats(useCache = true) {
   const guildCount = client.guilds.cache.size;
 
   // Calculate total user count across all guilds
-  // Note: This counts unique users across all guilds the bot is in
   const uniqueUsers = new Set();
   client.guilds.cache.forEach(guild => {
     guild.members.cache.forEach(member => {

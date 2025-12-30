@@ -4,11 +4,10 @@ import {
   createSuccessResponse,
   createErrorResponse,
 } from "../utils/responseHelpers.js";
+import { validateQuery } from "../middleware/validation.js";
 
 const logger = getLogger();
 const router = express.Router();
-
-// Node.js 18+ has native fetch
 
 // Discord OAuth2 configuration
 const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
@@ -68,101 +67,113 @@ router.get("/discord", (req, res) => {
  * Handle Discord OAuth2 callback
  * GET /auth/discord/callback
  */
-router.get("/discord/callback", async (req, res) => {
-  try {
-    const { code, state } = req.query;
+router.get(
+  "/discord/callback",
+  validateQuery({
+    required: ["code", "state"],
+    properties: {
+      code: { type: "string" },
+      state: { type: "string" },
+      redirect: { type: "string" },
+    },
+  }),
+  async (req, res) => {
+    try {
+      const { code, state } = req.query;
 
-    // Verify state (CSRF protection)
-    if (!state || state !== req.session.oauthState) {
-      logger.warn("Invalid OAuth state - possible CSRF attack");
-      return res
-        .status(400)
-        .json(createErrorResponse("Invalid state parameter", 400).response);
-    }
+      // Verify state (CSRF protection)
+      if (state !== req.session.oauthState) {
+        logger.warn("Invalid OAuth state - possible CSRF attack");
+        return res
+          .status(400)
+          .json(createErrorResponse("Invalid state parameter", 400).response);
+      }
 
-    // Verify authorization code
-    if (!code) {
-      return res
-        .status(400)
-        .json(
-          createErrorResponse("No authorization code provided", 400).response,
-        );
-    }
+      // Verify authorization code
+      if (!code) {
+        return res
+          .status(400)
+          .json(
+            createErrorResponse("No authorization code provided", 400).response,
+          );
+      }
 
-    // Exchange code for access token
-    const searchParams = new URLSearchParams({
-      client_id: DISCORD_CLIENT_ID,
-      client_secret: DISCORD_CLIENT_SECRET,
-      grant_type: "authorization_code",
-      code,
-      redirect_uri: DISCORD_REDIRECT_URI,
-    });
+      // Exchange code for access token
+      const searchParams = new URLSearchParams({
+        client_id: DISCORD_CLIENT_ID,
+        client_secret: DISCORD_CLIENT_SECRET,
+        grant_type: "authorization_code",
+        code,
+        redirect_uri: DISCORD_REDIRECT_URI,
+      });
 
-    const tokenResponse = await fetch(`${DISCORD_API_BASE}/oauth2/token`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: searchParams,
-    });
+      const tokenResponse = await fetch(`${DISCORD_API_BASE}/oauth2/token`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: searchParams,
+      });
 
-    if (!tokenResponse.ok) {
-      const errorText = await tokenResponse.text();
-      logger.error(`Discord token exchange failed: ${errorText}`);
-      return res
+      if (!tokenResponse.ok) {
+        const errorText = await tokenResponse.text();
+        logger.error(`Discord token exchange failed: ${errorText}`);
+        return res
+          .status(500)
+          .json(
+            createErrorResponse("Failed to exchange authorization code", 500)
+              .response,
+          );
+      }
+
+      const tokenData = await tokenResponse.json();
+      const { access_token: accessToken } = tokenData;
+
+      // Get user information from Discord
+      const userResponse = await fetch(`${DISCORD_API_BASE}/users/@me`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      if (!userResponse.ok) {
+        logger.error("Failed to fetch Discord user info");
+        return res
+          .status(500)
+          .json(
+            createErrorResponse("Failed to fetch user information", 500)
+              .response,
+          );
+      }
+
+      const userData = await userResponse.json();
+
+      // Store user session
+      req.session.discordUser = {
+        id: userData.id,
+        username: userData.username,
+        discriminator: userData.discriminator,
+        avatar: userData.avatar,
+        email: userData.email,
+      };
+
+      // Clear OAuth state
+      delete req.session.oauthState;
+
+      logger.info(`User logged in: ${userData.username} (${userData.id})`);
+
+      // Redirect to website (or return success)
+      // Validate redirect URL to prevent open redirect attacks
+      const redirectUrl = validateRedirectUrl(req.query.redirect) || "/";
+      res.redirect(redirectUrl);
+    } catch (error) {
+      logger.error("Error in Discord OAuth callback:", error);
+      res
         .status(500)
-        .json(
-          createErrorResponse("Failed to exchange authorization code", 500)
-            .response,
-        );
+        .json(createErrorResponse("Authentication failed", 500).response);
     }
-
-    const tokenData = await tokenResponse.json();
-    const { access_token: accessToken } = tokenData;
-
-    // Get user information from Discord
-    const userResponse = await fetch(`${DISCORD_API_BASE}/users/@me`, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-
-    if (!userResponse.ok) {
-      logger.error("Failed to fetch Discord user info");
-      return res
-        .status(500)
-        .json(
-          createErrorResponse("Failed to fetch user information", 500).response,
-        );
-    }
-
-    const userData = await userResponse.json();
-
-    // Store user session
-    req.session.discordUser = {
-      id: userData.id,
-      username: userData.username,
-      discriminator: userData.discriminator,
-      avatar: userData.avatar,
-      email: userData.email,
-    };
-
-    // Clear OAuth state
-    delete req.session.oauthState;
-
-    logger.info(`User logged in: ${userData.username} (${userData.id})`);
-
-    // Redirect to website (or return success)
-    // Validate redirect URL to prevent open redirect attacks
-    const redirectUrl = validateRedirectUrl(req.query.redirect) || "/";
-    res.redirect(redirectUrl);
-  } catch (error) {
-    logger.error("Error in Discord OAuth callback:", error);
-    res
-      .status(500)
-      .json(createErrorResponse("Authentication failed", 500).response);
-  }
-});
+  },
+);
 
 /**
  * Get current user information
