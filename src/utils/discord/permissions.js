@@ -1,7 +1,22 @@
 import { PermissionFlagsBits } from "discord.js";
-import config from "../../config/config.js";
 
-const DEVELOPER_IDS = config.discord.developers || [];
+// Load developer IDs with fallback
+let DEVELOPER_IDS = [];
+(async () => {
+  try {
+    const configModule = await import("../../config/config.js");
+    const config =
+      configModule?.config || configModule?.default || configModule || {};
+    DEVELOPER_IDS =
+      config.discord?.developers ||
+      process.env.DISCORD_DEVELOPER_IDS?.split(",").filter(Boolean) ||
+      [];
+  } catch {
+    // Use environment variable as fallback
+    DEVELOPER_IDS =
+      process.env.DISCORD_DEVELOPER_IDS?.split(",").filter(Boolean) || [];
+  }
+})();
 
 /**
  * All required bot permissions for the Role Reactor bot
@@ -35,6 +50,11 @@ export const BOT_PERMISSIONS = [
  * @returns {boolean}
  */
 export function isDeveloper(userId) {
+  // Reload developer IDs if not yet loaded (for async initialization)
+  if (DEVELOPER_IDS.length === 0 && process.env.DISCORD_DEVELOPER_IDS) {
+    DEVELOPER_IDS =
+      process.env.DISCORD_DEVELOPER_IDS.split(",").filter(Boolean);
+  }
   return DEVELOPER_IDS.includes(userId);
 }
 

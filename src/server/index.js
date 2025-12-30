@@ -22,3 +22,28 @@ export { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 export { healthCheck, dockerHealthCheck } from "./routes/health.js";
 export { verifyWebhookToken } from "./routes/webhook.js";
 export { apiInfo, apiStats } from "./routes/api.js";
+export { getServices, getService } from "./routes/services.js";
+
+// Services
+export {
+  ServiceRegistry,
+  serviceRegistry,
+  BaseService,
+} from "./services/index.js";
+export {
+  loadService,
+  loadServices,
+  autoLoadServices,
+} from "./utils/serviceLoader.js";
+
+// Middleware
+export {
+  validateBody,
+  validateQuery,
+  validateParams,
+} from "./middleware/validation.js";
+export {
+  requireAuth,
+  optionalAuth,
+  requirePermission,
+} from "./middleware/authentication.js";

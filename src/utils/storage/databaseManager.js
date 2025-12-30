@@ -1,6 +1,5 @@
 import { MongoClient } from "mongodb";
 import { getLogger } from "../logger.js";
-import config from "../../config/config.js";
 import {
   RoleMappingRepository,
   TemporaryRoleRepository,
@@ -494,10 +493,10 @@ class ConnectionManager {
 class DatabaseManager {
   constructor() {
     this.logger = getLogger();
-    this.connectionManager = new ConnectionManager(
-      this.logger,
-      config.database,
-    );
+    // Load database config with fallback to environment variables
+    this._dbConfig = null;
+    this._configPromise = this._loadDatabaseConfig();
+    this.connectionManager = null;
     this.cacheManager = new CacheManager();
     this.roleMappings = null;
     this.temporaryRoles = null;
@@ -514,10 +513,56 @@ class DatabaseManager {
     this.avatarJobs = null;
     this.imagineJobs = null;
     this.aiFeedback = null;
+    // Initialize connection manager asynchronously (non-blocking)
+    this._initializeConnectionManager().catch(() => {
+      // Silently fail - will be initialized on first connect
+    });
+  }
+
+  async _loadDatabaseConfig() {
+    try {
+      const configModule = await import("../../config/config.js").catch(
+        () => null,
+      );
+      const config =
+        configModule?.config || configModule?.default || configModule || {};
+      return (
+        config.database || {
+          uri: process.env.MONGODB_URI || process.env.MONGO_URI || "",
+          name:
+            process.env.MONGODB_DB_NAME ||
+            process.env.MONGO_DB_NAME ||
+            "role_reactor",
+          options: {},
+        }
+      );
+    } catch {
+      return {
+        uri: process.env.MONGODB_URI || process.env.MONGO_URI || "",
+        name:
+          process.env.MONGODB_DB_NAME ||
+          process.env.MONGO_DB_NAME ||
+          "role_reactor",
+        options: {},
+      };
+    }
+  }
+
+  async _initializeConnectionManager() {
+    this._dbConfig = await this._configPromise;
+    this.connectionManager = new ConnectionManager(this.logger, this._dbConfig);
+  }
+
+  async _ensureConnectionManager() {
+    if (!this.connectionManager) {
+      await this._initializeConnectionManager();
+    }
+    return this.connectionManager;
   }
 
   async connect() {
     try {
+      await this._ensureConnectionManager();
       const db = await this.connectionManager.connect();
       if (db) {
         this.roleMappings = new RoleMappingRepository(
@@ -624,10 +669,13 @@ class DatabaseManager {
   }
 
   async close() {
-    await this.connectionManager.close();
+    if (this.connectionManager) {
+      await this.connectionManager.close();
+    }
   }
 
   async healthCheck() {
+    await this._ensureConnectionManager();
     if (!this.connectionManager.isConnectionHealthy()) return false;
     try {
       await this.connectionManager.db.admin().ping();

@@ -1,7 +1,6 @@
 import chalk from "chalk";
 import fs from "fs";
 import path from "path";
-import config from "../config/config.js";
 
 /**
  * Log levels and their configurations
@@ -19,10 +18,39 @@ const LOG_LEVELS = {
  */
 class Logger {
   constructor() {
-    const { level, file, console: enableConsole } = config.logging;
-    this.maxLogLevel = LOG_LEVELS[level]?.level ?? 2;
-    this.logFile = file;
-    this.enableConsole = enableConsole;
+    // Initialize with environment variables or defaults
+    const logLevel = process.env.LOG_LEVEL || "INFO";
+    this.maxLogLevel = LOG_LEVELS[logLevel]?.level ?? 2;
+    this.logFile = process.env.LOG_FILE || null;
+    this.enableConsole = process.env.LOG_CONSOLE !== "false";
+
+    // Try to load config asynchronously and update settings (non-blocking)
+    this._loadConfigAsync().catch(() => {
+      // Silently fail - we have defaults
+    });
+  }
+
+  async _loadConfigAsync() {
+    try {
+      const configModule = await import("../config/config.js");
+      const config =
+        configModule?.config || configModule?.default || configModule || {};
+
+      if (config.logging) {
+        const { level, file, console: enableConsole } = config.logging;
+        if (level) {
+          this.maxLogLevel = LOG_LEVELS[level]?.level ?? this.maxLogLevel;
+        }
+        if (file !== undefined) {
+          this.logFile = file || null;
+        }
+        if (enableConsole !== undefined) {
+          this.enableConsole = enableConsole;
+        }
+      }
+    } catch {
+      // Use defaults already set
+    }
   }
 
   /**

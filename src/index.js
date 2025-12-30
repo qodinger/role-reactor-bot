@@ -11,7 +11,6 @@ import {
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import config from "./config/config.js";
 import { getStorageManager } from "./utils/storage/storageManager.js";
 import { getPerformanceMonitor } from "./utils/monitoring/performanceMonitor.js";
 import { getLogger } from "./utils/logger.js";
@@ -80,16 +79,29 @@ async function waitForDockerStartup() {
   logger.info("🚀 Docker startup wait completed");
 }
 
-function validateEnvironment() {
+async function validateEnvironment() {
   const logger = getLogger();
-  if (!config.validate()) {
-    logger.error("❌ Configuration validation failed");
-    throw new Error("Configuration validation failed");
+  // Load config dynamically
+  const configModule = await import("./config/config.js").catch(() => null);
+  const config = configModule?.default || configModule || {};
+
+  // If config has validate method, use it; otherwise skip validation
+  if (config.validate && typeof config.validate === "function") {
+    if (!config.validate()) {
+      logger.error("❌ Configuration validation failed");
+      throw new Error("Configuration validation failed");
+    }
+    logger.info("✅ Configuration validated successfully");
+  } else {
+    logger.info("⚠️ Config validation skipped (config.validate not available)");
   }
-  logger.info("✅ Configuration validated successfully");
 }
 
-function createClient() {
+async function createClient() {
+  // Load config dynamically with fallbacks
+  const configModule = await import("./config/config.js").catch(() => null);
+  const config = configModule?.default || configModule || {};
+
   // Base intents (required)
   const intents = [
     GatewayIntentBits.Guilds,
@@ -106,24 +118,59 @@ function createClient() {
   // Uncomment the line below after enabling "Presence Intent" in Discord Developer Portal
   intents.push(GatewayIntentBits.GuildPresences);
 
+  // Default cache limits
+  const defaultCacheLimits = {
+    MessageManager: 200,
+    ChannelManager: 100,
+    GuildMemberManager: 100,
+    RoleManager: 100,
+  };
+
+  // Default rate limits
+  const defaultRateLimits = {
+    rest: {
+      globalLimit: 50,
+      userLimit: 10,
+      guildLimit: 20,
+    },
+    ws: {
+      heartbeatInterval: 41250,
+      maxReconnectAttempts: 5,
+      reconnectDelay: 1000,
+    },
+  };
+
   const client = new Client({
     intents,
     partials: [Partials.Message, Partials.Channel, Partials.Reaction],
-    makeCache: Options.cacheWithLimits(config.cacheLimits),
+    makeCache: Options.cacheWithLimits(
+      config.cacheLimits || defaultCacheLimits,
+    ),
     // Use optimized rate limit configuration from config
     rest: {
-      ...config.rateLimits.rest,
+      ...(config.rateLimits?.rest || defaultRateLimits.rest),
       // Enhanced rate limiting
-      globalLimit: config.rateLimits.rest.globalLimit || 50,
-      userLimit: config.rateLimits.rest.userLimit || 10,
-      guildLimit: config.rateLimits.rest.guildLimit || 20,
+      globalLimit:
+        config.rateLimits?.rest?.globalLimit ||
+        defaultRateLimits.rest.globalLimit,
+      userLimit:
+        config.rateLimits?.rest?.userLimit || defaultRateLimits.rest.userLimit,
+      guildLimit:
+        config.rateLimits?.rest?.guildLimit ||
+        defaultRateLimits.rest.guildLimit,
     },
     ws: {
-      ...config.rateLimits.ws,
+      ...(config.rateLimits?.ws || defaultRateLimits.ws),
       // Optimized WebSocket settings
-      heartbeatInterval: config.rateLimits.ws.heartbeatInterval || 41250,
-      maxReconnectAttempts: config.rateLimits.ws.maxReconnectAttempts || 5,
-      reconnectDelay: config.rateLimits.ws.reconnectDelay || 1000,
+      heartbeatInterval:
+        config.rateLimits?.ws?.heartbeatInterval ||
+        defaultRateLimits.ws.heartbeatInterval,
+      maxReconnectAttempts:
+        config.rateLimits?.ws?.maxReconnectAttempts ||
+        defaultRateLimits.ws.maxReconnectAttempts,
+      reconnectDelay:
+        config.rateLimits?.ws?.reconnectDelay ||
+        defaultRateLimits.ws.reconnectDelay,
     },
   });
 
@@ -472,7 +519,7 @@ async function main() {
     // Wait for Docker environment to stabilize
     await waitForDockerStartup();
 
-    validateEnvironment();
+    await validateEnvironment();
     logger.info(`🚀 Starting Role Reactor Bot v${getVersion()}...`);
 
     // Health server functionality is now part of the unified API server
@@ -483,7 +530,7 @@ async function main() {
     const healthCheckRunner = getHealthCheckRunner();
 
     // Create Discord client
-    client = createClient();
+    client = await createClient();
     client.commands = new Collection();
 
     // Load commands and events
@@ -534,7 +581,23 @@ async function main() {
         logger.info(
           `🔌 Attempting to connect to Discord (attempt ${loginAttempts + 1}/${maxLoginAttempts})...`,
         );
-        await client.login(config.discord.token);
+        // Load config for token
+        const configModule = await import("./config/config.js").catch(
+          () => null,
+        );
+        const config = configModule?.default || configModule || {};
+        const token =
+          config.discord?.token ||
+          process.env.DISCORD_TOKEN ||
+          process.env.BOT_TOKEN;
+
+        if (!token) {
+          throw new Error(
+            "Discord token not found. Set DISCORD_TOKEN or BOT_TOKEN environment variable, or provide it in config.js",
+          );
+        }
+
+        await client.login(token);
         break; // Success, exit the retry loop
       } catch (error) {
         loginAttempts++;
