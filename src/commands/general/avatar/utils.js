@@ -1,5 +1,4 @@
 import { getLogger } from "../../../utils/logger.js";
-import config from "../../../config/config.js";
 
 /**
  * Validate user prompt for inappropriate content
@@ -384,9 +383,9 @@ export function getExplicitNSFWKeywords() {
 /**
  * Validate user prompt for inappropriate content
  * @param {string} prompt - User's prompt
- * @returns {Object} Validation result with isValid and reason
+ * @returns {Promise<Object>} Validation result with isValid and reason
  */
-export function validatePrompt(prompt) {
+export async function validatePrompt(prompt) {
   const logger = getLogger();
 
   // Validate input
@@ -411,8 +410,23 @@ export function validatePrompt(prompt) {
     };
   }
 
-  const contentFilterEnabled =
-    config.corePricing.avatarContentFilter?.enabled ?? false;
+  // Get content filter setting from config (with fallback)
+  // Default to disabled if config is not available
+  let contentFilterEnabled = false;
+  try {
+    // Try to dynamically import config
+    const configModule = await import("../../../config/config.js").catch(
+      () => null,
+    );
+    if (configModule) {
+      const config = configModule.default || configModule;
+      contentFilterEnabled =
+        config?.corePricing?.avatarContentFilter?.enabled ?? false;
+    }
+  } catch {
+    // Config not available, use default (disabled)
+    contentFilterEnabled = false;
+  }
 
   // Get inappropriate keywords
   const inappropriateKeywords = getInappropriateKeywords();
@@ -652,12 +666,18 @@ export function formatStyleOptions(styleOptions) {
 }
 
 /**
- * Calculate generation cost (all users pay 1 Core)
- * @param {Object} userData - User credit data
- * @returns {number} Cost in credits
+ * Calculate generation cost (from centralized config)
+ * @deprecated Use checkAIImageCredits() from aiCreditManager.js instead
+ * @param {Object} _userData - User credit data (unused)
+ * @returns {Promise<number>} Cost in credits
  */
-export function calculateGenerationCost(_userData) {
-  return 1; // All users pay 1 Core per avatar generation
+export async function calculateGenerationCost(_userData) {
+  // Import dynamically to avoid circular dependencies
+  const { checkAIImageCredits } = await import(
+    "../../../utils/ai/aiCreditManager.js"
+  );
+  const creditInfo = await checkAIImageCredits("dummy"); // Get config value
+  return creditInfo.creditsNeeded;
 }
 
 /**

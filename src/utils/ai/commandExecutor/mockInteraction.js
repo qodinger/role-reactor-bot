@@ -151,7 +151,6 @@ export function createMockInteraction({
     options: {
       getSubcommand: () => {
         // If command requires subcommands but none provided, throw error (matches Discord.js behavior)
-        // Note: This validation should already be done before creating the mock, but this is a safety check
         if (
           !subcommand &&
           commandConfig?.subcommands &&

@@ -88,7 +88,6 @@ export async function getExecutableCommands(client = null) {
   ]);
 
   // Filter to only general commands (double-check for safety)
-  // Note: getAllowedCommands already filters to general commands, but we verify again
   return Object.entries(ALLOWED_COMMANDS)
     .filter(([name]) => generalCommands.includes(name))
     .filter(([, config]) => config.allowed)

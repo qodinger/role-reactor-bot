@@ -42,8 +42,6 @@ export async function handleAssign(interaction, client, deferred = false) {
   const logger = getLogger();
 
   try {
-    // Note: Deferral is already handled in the main execute function
-
     // Validate bot permissions
     if (!botHasRequiredPermissions(interaction.guild)) {
       const missingPermissions = getMissingBotPermissions(interaction.guild);
@@ -759,8 +757,6 @@ export async function handleList(interaction, client, deferred = false) {
   const logger = getLogger();
 
   try {
-    // Note: Deferral is already handled in the main execute function
-
     // Check bot permissions
     if (!botHasRequiredPermissions(interaction.guild)) {
       const missingPermissions = getMissingBotPermissions(interaction.guild);
@@ -889,8 +885,6 @@ export async function handleRemove(interaction, client, deferred = false) {
   const logger = getLogger();
 
   try {
-    // Note: Deferral is already handled in the main execute function
-
     // Validate bot permissions
     if (!botHasRequiredPermissions(interaction.guild)) {
       const missingPermissions = getMissingBotPermissions(interaction.guild);

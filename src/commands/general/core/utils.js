@@ -61,14 +61,32 @@ export function formatTierDisplay(userData) {
 /**
  * Gets Core pricing information
  * Note: Only one-time crypto payments are supported (subscriptions removed)
+ * Uses centralized config for all pricing values
+ * Package plans: $5 (125 Cores), $10 (300 Cores), $25 (825 Cores)
+ * Base rate: 25 Cores per $1 (with tiered bonuses for higher packages)
  * @returns {Object} Pricing information object
  */
 export function getCorePricing() {
   return {
-    donations: {
-      $10: 100,
-      $25: 250,
-      $50: 500,
+    packages: {
+      $5: {
+        name: "Starter",
+        baseCores: 125,
+        bonusCores: 0,
+        value: "25 Cores/$1",
+      },
+      $10: {
+        name: "Popular",
+        baseCores: 250,
+        bonusCores: 50,
+        value: "30 Cores/$1",
+      },
+      $25: {
+        name: "Power",
+        baseCores: 625,
+        bonusCores: 200,
+        value: "33 Cores/$1",
+      },
     },
     // Subscriptions removed - only one-time crypto payments supported
     subscriptions: {},
@@ -76,35 +94,46 @@ export function getCorePricing() {
       "Never expires",
       "Instant delivery",
       "Secure crypto payments",
-      "10 Cores per $1",
-      "1 Core = 10 AI requests (bundle pricing)",
+      "Flexible usage (chat + images)",
+      "Transferable (gift to others)",
+      `1 Core = ${Math.floor(1 / 0.05)} AI requests`, // Default: 0.05 per request
     ],
   };
 }
 
 /**
  * Calculates credit value from donation amount
+ * Uses centralized config for donation rate
  * @param {number} amount - Donation amount in USD
  * @returns {number} Credits earned
  */
-export function calculateCreditsFromDonation(amount) {
-  // $0.10 per credit (10 credits per $1)
-  return Math.floor(amount / 0.1);
+export async function calculateCreditsFromDonation(amount) {
+  // Load config dynamically
+  const configModule = await import("../../../config/config.js").catch(
+    () => null,
+  );
+  const config =
+    configModule?.config || configModule?.default || configModule || {};
+  const donationRate = config.corePricing?.donation?.rate || 10; // Cores per $1
+  return Math.floor(amount * donationRate);
 }
 
 /**
- * Gets monthly credits for Core tier
+ * Gets monthly credits for Core tier (LEGACY - subscriptions removed)
+ * @deprecated Subscriptions are no longer accepted. This function is kept for legacy support only.
  * @param {string} tier - Core tier name
- * @returns {number} Monthly credits
+ * @returns {number} Monthly credits from config
  */
-export function getMonthlyCreditsForTier(tier) {
-  const tierCredits = {
-    "Core Basic": 150,
-    "Core Premium": 400,
-    "Core Elite": 850,
-  };
-
-  return tierCredits[tier] || 150; // Default to Basic tier credits
+export async function getMonthlyCreditsForTier(tier) {
+  // Load config dynamically
+  const configModule = await import("../../../config/config.js").catch(
+    () => null,
+  );
+  const config =
+    configModule?.config || configModule?.default || configModule || {};
+  const subscriptions = config.corePricing?.subscriptions || {};
+  const tierInfo = subscriptions[tier];
+  return tierInfo?.cores || 0;
 }
 
 /**
@@ -411,29 +440,14 @@ export function handleCoreError(error, operation, context = {}) {
   });
 }
 
-/**
- * Creates a standardized error response
- * @param {string} operation - Operation that failed
- * @param {Error} error - Error object
- * @returns {Object} Error response
- */
-export function createErrorResponse(operation, error) {
-  return {
-    success: false,
-    error: error.message,
-    operation,
-    timestamp: new Date().toISOString(),
-  };
-}
-
 // ============================================================================
 // PERFORMANCE UTILITIES
 // ============================================================================
 
 /**
- * Measures operation duration
- * @param {number} startTime - Start timestamp
- * @param {string} operation - Operation name
+ * Measures operation duration and logs it
+ * @param {number} startTime - Start timestamp (from Date.now())
+ * @param {string} operation - Operation name for logging
  * @param {string} username - Username for logging
  * @returns {number} Duration in milliseconds
  */
@@ -444,11 +458,11 @@ export function logOperationDuration(startTime, operation, username) {
 }
 
 /**
- * Creates a performance context object
+ * Creates a performance context object for tracking command execution
  * @param {string} operation - Operation name
  * @param {string} username - Username
  * @param {string} userId - User ID
- * @returns {Object} Performance context
+ * @returns {Object} Performance context with startTime, operation, username, userId
  */
 export function createPerformanceContext(operation, username, userId) {
   return {

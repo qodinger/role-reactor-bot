@@ -46,7 +46,6 @@ export class SelfHostedProvider {
 
     // Build request body (OpenAI-compatible format)
     // Default to llama3.1:8b (minimum for structured JSON output)
-    // Note: llama3.2 (3B) is too small for structured JSON output
     const requestBody = {
       model: model || "llama3.1:8b",
       messages,

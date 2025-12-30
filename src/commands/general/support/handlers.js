@@ -10,7 +10,7 @@ export async function execute(interaction, _client) {
     await interaction.deferReply({ ephemeral: true });
 
     const embed = createSupportEmbed(interaction.user);
-    const components = createSupportButtons();
+    const components = await createSupportButtons();
 
     await interaction.editReply({
       embeds: [embed],

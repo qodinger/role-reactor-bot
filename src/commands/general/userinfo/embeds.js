@@ -61,7 +61,6 @@ export function createUserInfoEmbed(user, memberData, guild, warnCount = null) {
   }
 
   // Status (if member is in guild)
-  // Note: Presence data requires GUILD_PRESENCES privileged intent
   // If intent is enabled, presence will show real-time status
   // If intent is not enabled or presence is not cached, status field is omitted
   if (memberData) {

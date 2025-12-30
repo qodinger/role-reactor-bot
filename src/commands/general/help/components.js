@@ -7,7 +7,6 @@ import {
 } from "discord.js";
 import { getDynamicHelpData } from "./data.js";
 import { EMOJIS } from "../../../config/theme.js";
-import config from "../../../config/config.js";
 import { getLogger } from "../../../utils/logger.js";
 
 /**
@@ -20,7 +19,7 @@ export class ComponentBuilder {
    * @param {string[]} requiredPermissions
    * @returns {boolean}
    */
-  static hasCategoryPermissions(member, requiredPermissions) {
+  static async hasCategoryPermissions(member, requiredPermissions) {
     if (!member || !requiredPermissions || requiredPermissions.length === 0) {
       return true; // No permissions required
     }
@@ -32,9 +31,11 @@ export class ComponentBuilder {
 
     for (const permission of requiredPermissions) {
       if (permission === "DEVELOPER") {
-        // Check if user is developer
-        const developers = config.discord.developers;
-        if (!developers || !developers.includes(member.user.id)) {
+        // Check if user is developer (use isDeveloper from permissions.js)
+        const { isDeveloper } = await import(
+          "../../../utils/discord/permissions.js"
+        );
+        if (!isDeveloper(member.user.id)) {
           return false;
         }
       } else {
@@ -57,7 +58,7 @@ export class ComponentBuilder {
   static async createMainComponents(member = null, client = null) {
     const categoryMenu = await this.createCategoryMenu(member, client);
     const buttons = await this.createCommandButtons(null, client);
-    const viewToggles = this.createViewToggleButtons();
+    const viewToggles = await this.createViewToggleButtons();
 
     const rows = [];
     rows.push(new ActionRowBuilder().addComponents(categoryMenu));
@@ -80,24 +81,37 @@ export class ComponentBuilder {
   ) {
     try {
       const { COMMAND_CATEGORIES } = await getDynamicHelpData(client);
-      const options = Object.entries(COMMAND_CATEGORIES)
-        .filter(([_key, category]) => {
-          // If no member provided, show all categories (for backward compatibility)
-          if (!member) return true;
 
-          // Check if user has permissions for this category
-          return this.hasCategoryPermissions(
-            member,
-            category.requiredPermissions,
-          );
-        })
-        .map(([key, category]) => ({
-          label: category.name,
-          description: category.description,
-          value: `category_${key}`,
-          emoji: category.emoji,
-          default: selectedCategory === key,
-        }));
+      const options = [];
+      for (const [key, category] of Object.entries(COMMAND_CATEGORIES)) {
+        // If no member provided, show all categories (for backward compatibility)
+        if (!member) {
+          options.push({
+            label: category.name,
+            description: category.description,
+            value: `category_${key}`,
+            emoji: category.emoji,
+            default: selectedCategory === key,
+          });
+          continue;
+        }
+
+        // Check if user has permissions for this category
+        const hasPermissions = await this.hasCategoryPermissions(
+          member,
+          category.requiredPermissions,
+        );
+
+        if (hasPermissions) {
+          options.push({
+            label: category.name,
+            description: category.description,
+            value: `category_${key}`,
+            emoji: category.emoji,
+            default: selectedCategory === key,
+          });
+        }
+      }
 
       return new StringSelectMenuBuilder()
         .setCustomId("help_category_select")
@@ -126,7 +140,7 @@ export class ComponentBuilder {
    * Create view toggle buttons (Overview / All Commands)
    * @returns {import('discord.js').ActionRowBuilder}
    */
-  static createViewToggleButtons() {
+  static async createViewToggleButtons() {
     const row = new ActionRowBuilder();
 
     // Internal buttons
@@ -141,8 +155,23 @@ export class ComponentBuilder {
         .setStyle(ButtonStyle.Secondary),
     );
 
+    // Load config dynamically for external links
+    let links = {
+      guide: process.env.GUIDE_URL || null,
+      github: process.env.GITHUB_REPO_URL || null,
+    };
+    try {
+      const configModule = await import("../../../config/config.js").catch(
+        () => null,
+      );
+      const config =
+        configModule?.config || configModule?.default || configModule || {};
+      links = config.externalLinks || links;
+    } catch {
+      // Use environment variables or defaults
+    }
+
     // External link buttons
-    const links = config.externalLinks;
     if (links.guide) {
       row.addComponents(
         new ButtonBuilder()
@@ -207,7 +236,7 @@ export class ComponentBuilder {
       categoryKey,
     );
     const buttons = await this.createCommandButtons(categoryKey, client);
-    const viewToggles = this.createViewToggleButtons();
+    const viewToggles = await this.createViewToggleButtons();
 
     const rows = [];
     rows.push(new ActionRowBuilder().addComponents(categoryMenu));

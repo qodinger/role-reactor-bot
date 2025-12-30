@@ -2,7 +2,11 @@ import { AttachmentBuilder } from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
 import { generateAvatar as generateAIAvatar } from "../../../utils/ai/avatarService.js";
 import { multiProviderAIService } from "../../../utils/ai/multiProviderAIService.js";
-import { CreditManager } from "./utils/creditManager.js";
+import {
+  checkAIImageCredits,
+  checkAndDeductAIImageCredits,
+} from "../../../utils/ai/aiCreditManager.js";
+import { getUserFacingErrorMessage } from "../../../utils/ai/errorMessages.js";
 import { GenerationHistory } from "./utils/generationHistory.js";
 import {
   createErrorEmbed,
@@ -31,57 +35,21 @@ async function replyToInteraction(interaction, deferred, options) {
   }
 }
 
-function getUserFacingErrorMessage(error) {
-  if (!error || !error.message) {
-    return "Something went wrong. Please try again shortly.";
-  }
-
-  const message = error.message;
-
-  if (/ai features are disabled/i.test(message)) {
-    return "AI features are currently disabled. All providers are disabled in the configuration. Please contact the bot administrator.";
-  }
-
-  if (/rate limit/i.test(message)) {
-    return "You're sending prompts too quickly. Please wait a moment before trying again.";
-  }
-
-  if (/api key not configured/i.test(message)) {
-    return "The AI provider is not properly configured. Please contact the bot administrator.";
-  }
-
-  if (/queue is full/i.test(message)) {
-    return "Generation queue is full right now. Please try again in a moment.";
-  }
-
-  if (/timed out/i.test(message)) {
-    return "The AI provider took too long to respond. Try a shorter prompt or retry later.";
-  }
-
-  if (/content moderation/i.test(message)) {
-    return "The AI provider blocked image generation due to content moderation. The prompt was detected as inappropriate. Try using a less explicit prompt.";
-  }
-
-  return message;
-}
-
 export async function handleAvatarGeneration(
   interaction,
   _client,
   _deferred = true,
-  options = {},
+  _options = {},
 ) {
   const promptOption = interaction.options.getString("prompt", true);
   const artStyle = interaction.options.getString("art_style") || null;
 
-  // Debug logging for AI-generated prompts
   if (promptOption) {
     logger.debug(
       `[avatar] Received prompt (${promptOption.length} chars): "${promptOption.substring(0, 100)}${promptOption.length > 100 ? "..." : ""}"`,
     );
   }
 
-  // Check if AI features are enabled
   if (!multiProviderAIService.isEnabled()) {
     const validationEmbed = createAvatarValidationEmbed(
       "AI features are currently disabled. All providers are disabled in the configuration. Please contact the bot administrator.",
@@ -92,8 +60,7 @@ export async function handleAvatarGeneration(
     return;
   }
 
-  // Validate prompt
-  const validation = validatePrompt(promptOption);
+  const validation = await validatePrompt(promptOption);
   if (!validation.isValid) {
     logger.warn(
       `[avatar] Prompt validation failed for user ${interaction.user.id}: "${promptOption.substring(0, 100)}..." - Reason: ${validation.reason}`,
@@ -107,21 +74,18 @@ export async function handleAvatarGeneration(
 
   const prompt = validation.prompt;
 
-  // Check for help request
   if (prompt.toLowerCase().includes("help")) {
     const helpEmbed = createHelpEmbed();
     await replyToInteraction(interaction, _deferred, { embeds: [helpEmbed] });
     return;
   }
 
-  // Check NSFW content and server settings
   const explicitNSFWKeywords = getExplicitNSFWKeywords();
   const promptLower = prompt.toLowerCase();
   const containsNSFWKeywords = explicitNSFWKeywords.some(keyword =>
     promptLower.includes(keyword),
   );
 
-  // Calculate account age and channel NSFW status
   const user = interaction.user;
   const guild = interaction.guild;
   const channelNSFW = interaction.channel?.nsfw === true;
@@ -135,7 +99,6 @@ export async function handleAvatarGeneration(
     const isCommunityServer = guild?.features?.includes("COMMUNITY") ?? false;
     const userSettingsMessage = `\n**⚠️ Required user setting:**\nYour account must be **age-verified (18+)** to view NSFW content.\nIf not verified, visit: https://dis.gd/request`;
 
-    // If filter is enabled and channel is not NSFW, block the request
     if (filterEnabled && !channelNSFW) {
       let errorMessage = `This server has **Explicit Content Filter** enabled, and this channel is not marked as NSFW.\n\n**To generate NSFW avatars:**\n1. **Use a channel marked as NSFW (🔞)** - This is the only option for Community Servers\n`;
 
@@ -162,7 +125,6 @@ export async function handleAvatarGeneration(
       return;
     }
 
-    // If channel is not NSFW but filter is disabled, warn but allow
     if (!channelNSFW && !filterEnabled) {
       let warningMessage = `You're generating NSFW content in a non-NSFW channel.\n\n**Recommendation:** Use a channel marked as NSFW (🔞) for NSFW content to avoid issues with Discord's content detection.`;
 
@@ -202,14 +164,10 @@ export async function handleAvatarGeneration(
     }
   }
 
-  // Check user credits
-  const creditInfo = await CreditManager.checkUserCredits(
-    interaction.user.id,
-    options,
-  );
-  const { userData, creditsNeeded } = creditInfo;
+  const creditInfo = await checkAIImageCredits(interaction.user.id);
+  const { userData, creditsNeeded, hasCredits } = creditInfo;
 
-  if (userData.credits < creditsNeeded) {
+  if (!hasCredits) {
     const coreEmbed = createCoreEmbed(
       interaction,
       userData,
@@ -226,8 +184,6 @@ export async function handleAvatarGeneration(
     embeds: [loadingEmbed],
   });
 
-  // Progress callback to update embed with status messages
-  // Note: Progress updates only work if interaction was deferred
   const progressCallback = async status => {
     if (!_deferred) return; // Can't update if not deferred
     try {
@@ -269,7 +225,6 @@ export async function handleAvatarGeneration(
       throw new Error("Invalid image buffer: buffer is empty");
     }
 
-    // Check for content moderation blocks
     if (avatarData.imageBuffer.length < 1000) {
       logger.error(
         `[avatar] Content moderation block detected for user ${interaction.user.id}: image buffer is only ${avatarData.imageBuffer.length} bytes`,
@@ -279,15 +234,20 @@ export async function handleAvatarGeneration(
       );
     }
 
-    // Deduct credits on success
-    const deductionResult = await CreditManager.deductCredits(
+    const deductionResult = await checkAndDeductAIImageCredits(
       interaction.user.id,
-      creditsNeeded,
-      options,
     );
+    if (!deductionResult.success) {
+      logger.error(
+        `Failed to deduct credits after successful generation for user ${interaction.user.id}: ${deductionResult.error}`,
+      );
+    } else {
+      logger.debug(
+        `Deducted ${deductionResult.creditsDeducted} Core from user ${interaction.user.id} for image generation (${deductionResult.creditsRemaining} remaining)`,
+      );
+    }
     const deductionBreakdown = deductionResult.deductionBreakdown;
 
-    // Create attachment
     const fileName = `avatar-${interaction.user.id}-${Date.now()}.png`;
 
     const attachment = new AttachmentBuilder(avatarData.imageBuffer, {
@@ -309,15 +269,12 @@ export async function handleAvatarGeneration(
       containsNSFWKeywords && channelNSFW,
     );
 
-    // For NSFW content in NSFW channels, send image as follow-up
     const shouldUseFollowUp = containsNSFWKeywords && channelNSFW;
 
     if (shouldUseFollowUp && _deferred) {
-      // Deferred interaction: send embed first, then follow-up with file
       await interaction.editReply({ embeds: [successEmbed] });
       await interaction.followUp({ files: [attachment] });
     } else {
-      // Not deferred or not using follow-up: send everything in one reply
       await replyToInteraction(interaction, _deferred, {
         embeds: [successEmbed],
         files: [attachment],
@@ -366,7 +323,7 @@ export async function handleAvatarGeneration(
     const errorEmbed = createErrorEmbed(
       interaction,
       "Unable to generate avatar",
-      getUserFacingErrorMessage(error),
+      getUserFacingErrorMessage(error, { includeContentModeration: true }),
     );
 
     await replyToInteraction(interaction, _deferred, { embeds: [errorEmbed] });

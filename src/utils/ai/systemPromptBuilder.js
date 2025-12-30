@@ -94,7 +94,6 @@ export class SystemPromptBuilder {
 
     // Check cache (5 minutes timeout for command updates)
     // Skip cache if forcing member list inclusion (after fetch_members action)
-    // Note: Cache contains base context (without user-specific preferences)
     let baseContext = null;
     if (
       cached &&

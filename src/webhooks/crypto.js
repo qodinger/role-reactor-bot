@@ -1,6 +1,5 @@
 import { getStorageManager } from "../utils/storage/storageManager.js";
 import { getLogger } from "../utils/logger.js";
-import { config } from "../config/config.js";
 import crypto from "crypto";
 
 const logger = getLogger();
@@ -172,7 +171,6 @@ async function processCryptoPayment(charge) {
     // Get email from metadata:
     // 1. discord_email (from our API when user is logged in)
     // 2. email (from Coinbase Commerce payment links that collect email - stored in metadata)
-    // Note: According to Coinbase Commerce docs, customer email is stored in metadata.email
     const discordEmail = metadata.discord_email || metadata.email || null;
 
     const tier = metadata.tier;
@@ -300,10 +298,17 @@ async function processCryptoPayment(charge) {
     let coresToAdd = 0;
     const paymentAmount = parseFloat(amount);
 
+    // Load config dynamically
+    const configModule = await import("../config/config.js").catch(() => null);
+    const config =
+      configModule?.config || configModule?.default || configModule || {};
+    const minimumAmount = config.corePricing?.donation?.minimum || 5;
+    const donationRate = config.corePricing?.donation?.rate || 10;
+    const subscriptions = config.corePricing?.subscriptions || {};
+
     // Validate minimum payment amount for one-time payments (donations)
     // Subscriptions are removed, so all payments should be donations
     if (paymentType !== "subscription") {
-      const minimumAmount = config.corePricing.donation.minimum;
       if (paymentAmount < minimumAmount) {
         logger.warn(
           `❌ Payment below minimum: $${paymentAmount} < $${minimumAmount} (chargeId: ${chargeId})`,
@@ -317,7 +322,7 @@ async function processCryptoPayment(charge) {
 
     if (paymentType === "subscription") {
       // Subscription payment - get monthly credits for tier
-      const tierInfo = config.corePricing.subscriptions[tier];
+      const tierInfo = subscriptions[tier];
       if (!tierInfo) {
         logger.warn(`❌ Unknown tier: ${tier}`);
         return { success: false, error: `Unknown tier: ${tier}` };
@@ -360,7 +365,7 @@ async function processCryptoPayment(charge) {
       }
     } else {
       // Donation payment - calculate credits (10 Cores per $1)
-      coresToAdd = Math.floor(paymentAmount * config.corePricing.donation.rate);
+      coresToAdd = Math.floor(paymentAmount * donationRate);
 
       // Add as bonus credits
       userData.bonusCredits = (userData.bonusCredits || 0) + coresToAdd;

@@ -14,7 +14,6 @@ import {
   removeWarning,
   parseMultipleUsers,
 } from "./utils.js";
-import config from "../../../config/config.js";
 import {
   createTimeoutEmbed,
   createWarnEmbed,
@@ -423,6 +422,11 @@ export async function handleWarn(interaction, client) {
       }
 
       // Check for auto-escalation
+      const configModule = await import("../../../config/config.js").catch(
+        () => null,
+      );
+      const config =
+        configModule?.config || configModule?.default || configModule || {};
       const autoEscalation = config.corePricing?.autoEscalation || {};
       const timeoutAfterWarnings = autoEscalation.timeoutAfterWarnings || 0;
       const kickAfterWarnings = autoEscalation.kickAfterWarnings || 0;
@@ -574,6 +578,11 @@ export async function handleWarn(interaction, client) {
           }
 
           // Check for auto-escalation
+          const configModule = await import("../../../config/config.js").catch(
+            () => null,
+          );
+          const config =
+            configModule?.config || configModule?.default || configModule || {};
           const autoEscalation = config.corePricing?.autoEscalation || {};
           const timeoutAfterWarnings = autoEscalation.timeoutAfterWarnings || 0;
           const kickAfterWarnings = autoEscalation.kickAfterWarnings || 0;

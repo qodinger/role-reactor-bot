@@ -123,7 +123,6 @@ class CommandRegistry {
           this.getDefaultDescription(commandName, client);
 
         // Store with defaults if metadata not found
-        // Note: name and category are removed from metadata before spreading
         // to ensure they match the file location, not metadata values
         // Spread metadata first, then override with explicit values to ensure correct order
         this.metadataCache.set(commandName, {

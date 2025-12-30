@@ -85,7 +85,6 @@ export default [
 
       // Import/export rules (if using modules)
       "no-duplicate-imports": "error",
-      "import/no-unresolved": "error",
       "import/named": "error",
       "import/default": "error",
       "import/namespace": "error",

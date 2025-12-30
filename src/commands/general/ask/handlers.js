@@ -11,7 +11,7 @@ import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 import { getUserData } from "../../general/core/utils.js";
 import {
   checkAICredits,
-  deductAICredits,
+  checkAndDeductAICredits,
   getAICreditInfo,
 } from "../../../utils/ai/aiCreditManager.js";
 import { emojiConfig } from "../../../config/emojis.js";
@@ -43,13 +43,15 @@ export async function execute(interaction, client) {
       return;
     }
 
-    // Check if user has credits for AI request (0.1 Core per request)
+    // Check if user has credits for AI request
     const creditCheck = await checkAICredits(interaction.user.id);
     if (!creditCheck.hasCredits) {
       const creditInfo = await getAICreditInfo(interaction.user.id);
+      const chatCost = creditCheck.creditsNeeded; // Use creditsNeeded from check (already has fallback in aiCreditManager)
+      const requestsPerCore = Math.floor(1 / chatCost);
       const errorResponse = errorEmbed({
         title: "Insufficient Credits",
-        description: `You need **0.1 ${customEmojis.core}** to use AI chat!\n\n**Your Balance:** ${creditInfo.credits.toFixed(1)} ${customEmojis.core}\n**Cost:** 0.1 ${customEmojis.core} per request (1 ${customEmojis.core} = 10 requests)\n**Requests Available:** ${creditInfo.requestsRemaining}\n\nGet Cores: \`/core pricing\` or visit [rolereactor.app/sponsor](https://rolereactor.app/sponsor)`,
+        description: `You need **${chatCost} ${customEmojis.core}** to use AI chat!\n\n**Your Balance:** ${creditInfo.credits.toFixed(2)} ${customEmojis.core}\n**Cost:** ${chatCost} ${customEmojis.core} per request (1 ${customEmojis.core} = ${requestsPerCore} requests)\n**Requests Available:** ${creditInfo.requestsRemaining}\n\nGet Cores: Visit [rolereactor.app/sponsor](https://rolereactor.app/sponsor)`,
       });
       await interaction.reply(errorResponse);
       return;
@@ -92,19 +94,7 @@ export async function execute(interaction, client) {
       return;
     }
 
-    // Defer reply since AI generation may take time
     await interaction.deferReply();
-
-    // Deduct credits before generation (bundle system)
-    const deductionResult = await deductAICredits(interaction.user.id);
-    if (!deductionResult.success) {
-      const errorResponse = errorEmbed({
-        title: "Error",
-        description: "Failed to process credits. Please try again.",
-      });
-      await interaction.editReply(errorResponse);
-      return;
-    }
 
     // Check if streaming is enabled and supported
     const useStreaming =
@@ -405,6 +395,17 @@ export async function execute(interaction, client) {
       } catch (error) {
         logger.debug("[ask] Failed to unregister status message:", error);
       }
+    }
+
+    const deductionResult = await checkAndDeductAICredits(interaction.user.id);
+    if (!deductionResult.success) {
+      logger.error(
+        `Failed to deduct credits after successful generation for user ${interaction.user.id}: ${deductionResult.error}`,
+      );
+    } else {
+      logger.debug(
+        `Deducted ${deductionResult.creditsDeducted} Core from user ${interaction.user.id} (${deductionResult.creditsRemaining} remaining)`,
+      );
     }
 
     // Store message ID and context for feedback in database

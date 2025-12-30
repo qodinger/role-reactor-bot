@@ -14,26 +14,18 @@ import { execute } from "./handlers.js";
 export const metadata = {
   name: "core",
   category: "general",
-  description: "Check your Core balance and view pricing information",
-  keywords: ["core", "balance", "credits", "pricing", "energy", "currency"],
+  description: "Check your Core balance",
+  keywords: ["core", "balance", "credits", "energy", "currency"],
   emoji: "⚡",
   helpFields: [
     {
       name: `How to Use`,
-      value: ["```/core balance```", "```/core pricing```"].join("\n"),
+      value: "```/core balance```",
       inline: false,
     },
     {
       name: `What You Need`,
-      value: "No parameters needed - just run the subcommand!",
-      inline: false,
-    },
-    {
-      name: `Subcommands`,
-      value: [
-        "**balance** - View your current Core balance and tier status",
-        "**pricing** - View Core pricing, membership benefits, and donation options",
-      ].join("\n"),
+      value: "No parameters needed - just run the command!",
       inline: false,
     },
     {
@@ -44,7 +36,7 @@ export const metadata = {
     {
       name: `What You'll See`,
       value:
-        "Your Core balance, tier information, and transaction history. Core credits are used for AI avatar generation and can be purchased or transferred between users!",
+        "Your Core balance and tier information. Core credits are used for AI avatar generation and can be purchased or transferred between users!",
       inline: false,
     },
   ],
@@ -56,7 +48,7 @@ export const metadata = {
 
 /**
  * Core command definition
- * Allows users to check their Core balance and view pricing information
+ * Allows users to check their Core balance
  */
 export const data = new SlashCommandBuilder()
   .setName(metadata.name)
@@ -65,11 +57,6 @@ export const data = new SlashCommandBuilder()
     subcommand
       .setName("balance")
       .setDescription("Check your current Core balance and tier status"),
-  )
-  .addSubcommand(subcommand =>
-    subcommand
-      .setName("pricing")
-      .setDescription("View Core pricing and purchase options"),
   )
   .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages);
 

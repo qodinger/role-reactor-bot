@@ -22,7 +22,9 @@ export class HelpEmbedBuilder {
     for (const permission of requiredPermissions) {
       if (permission === "DEVELOPER") {
         // Check if user is developer
-        const { isDeveloper } = await import("../../../utils/discord/permissions.js");
+        const { isDeveloper } = await import(
+          "../../../utils/discord/permissions.js"
+        );
         if (!isDeveloper(member.user.id)) {
           return false;
         }

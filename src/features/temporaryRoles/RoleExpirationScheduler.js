@@ -227,7 +227,6 @@ class RoleExpirationScheduler {
     }
 
     // Clean up all expired roles from database
-    // Note: expiredRoles contains all expired roles (including those in rolesToCleanup)
     // so we only need to pass expiredRoles to avoid duplicates
     await this.cleanupExpiredRolesFromDB(expiredRoles);
   }

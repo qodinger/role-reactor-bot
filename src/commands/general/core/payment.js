@@ -1,7 +1,6 @@
 import { SlashCommandBuilder, MessageFlags } from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";
-import { config } from "../../../config/config.js";
 import { createPaymentEmbed, createErrorEmbed } from "./paymentEmbeds.js";
 
 const logger = getLogger();
@@ -35,7 +34,6 @@ async function createCryptoPaymentLink(userId, _tier, price, _paymentType) {
     }
 
     // Create charge using Coinbase Commerce API
-    // Note: Only one-time payments are supported
     const chargeData = {
       name: "Core Credits",
       description: "One-time Core credits purchase",
@@ -116,8 +114,16 @@ export async function execute(interaction, _client) {
  * @param {import('discord.js').ChatInputCommandInteraction} interaction - The interaction object
  */
 async function handleDonationPayment(interaction) {
+  // Load config dynamically
+  const configModule = await import("../../../config/config.js").catch(
+    () => null,
+  );
+  const config =
+    configModule?.config || configModule?.default || configModule || {};
+  const minimumAmount = config.corePricing?.donation?.minimum || 5;
+  const donationRate = config.corePricing?.donation?.rate || 10;
+
   const amount = interaction.options.getNumber("amount");
-  const minimumAmount = config.corePricing.donation.minimum;
 
   if (!amount || amount < minimumAmount) {
     const errorEmbed = createErrorEmbed(
@@ -129,8 +135,8 @@ async function handleDonationPayment(interaction) {
     return;
   }
 
-  // Calculate credits (10 Cores per $1)
-  const cores = Math.floor(amount * config.corePricing.donation.rate);
+  // Calculate credits using config donation rate
+  const cores = Math.floor(amount * donationRate);
 
   // Create payment link
   const paymentUrl = await createCryptoPaymentLink(

@@ -5,7 +5,7 @@ import { chatService } from "../utils/ai/index.js";
 import { getUserData } from "../commands/general/core/utils.js";
 import {
   checkAICredits,
-  deductAICredits,
+  checkAndDeductAICredits,
   getAICreditInfo,
 } from "../utils/ai/aiCreditManager.js";
 import { emojiConfig } from "../config/emojis.js";
@@ -57,12 +57,14 @@ export async function execute(message, client) {
         return;
       }
 
-      // Check if user has credits for AI request (0.1 Core per request)
+      // Check if user has credits for AI request
       const creditCheck = await checkAICredits(message.author.id);
       if (!creditCheck.hasCredits) {
         const creditInfo = await getAICreditInfo(message.author.id);
+        const chatCost = creditCheck.creditsNeeded; // Use creditsNeeded from check (already has fallback in aiCreditManager)
+        const requestsPerCore = Math.floor(1 / chatCost);
         await message.reply(
-          `❌ **Insufficient Credits**\n\nYou need **0.1 ${customEmojis.core}** to use AI chat!\n\n**Your Balance:** ${creditInfo.credits.toFixed(1)} ${customEmojis.core}\n**Cost:** 0.1 ${customEmojis.core} per request (1 ${customEmojis.core} = 10 requests)\n**Requests Available:** ${creditInfo.requestsRemaining}\n\nGet Cores: \`/core pricing\` or visit https://rolereactor.app/sponsor`,
+          `❌ **Insufficient Credits**\n\nYou need **${chatCost} ${customEmojis.core}** to use AI chat!\n\n**Your Balance:** ${creditInfo.credits.toFixed(2)} ${customEmojis.core}\n**Cost:** ${chatCost} ${customEmojis.core} per request (1 ${customEmojis.core} = ${requestsPerCore} requests)\n**Requests Available:** ${creditInfo.requestsRemaining}\n\nGet Cores: Visit https://rolereactor.app/sponsor`,
         );
         return;
       }
@@ -102,27 +104,18 @@ export async function execute(message, client) {
         return;
       }
 
-      // Deduct credits before generation (bundle system)
-      const deductionResult = await deductAICredits(message.author.id);
-      if (!deductionResult.success) {
-        await message.reply("❌ Failed to process credits. Please try again.");
-        return;
-      }
-
       // Show typing indicator
       await message.channel.sendTyping().catch(() => {
         // Ignore errors (e.g., no permission to send typing)
       });
 
-      // Declare replyMessage outside try block so it's accessible in catch block
-      let replyMessage = null; // Status message - will be created by updateStatusMessage
+      let replyMessage = null;
 
       // Declare streaming variables outside try block for cleanup in catch
       let useStreaming = false;
       let updateTimer = null;
 
       try {
-        // Note: Messages don't have locale, so we use guild's preferred locale or default to en-US
         const locale = message.guild?.preferredLocale || "en-US";
 
         // Check if streaming is enabled and supported
@@ -496,6 +489,19 @@ export async function execute(message, client) {
           }
         }
 
+        const deductionResult = await checkAndDeductAICredits(
+          message.author.id,
+        );
+        if (!deductionResult.success) {
+          logger.error(
+            `Failed to deduct credits after successful generation for user ${message.author.id}: ${deductionResult.error}`,
+          );
+        } else {
+          logger.debug(
+            `Deducted ${deductionResult.creditsDeducted} Core from user ${message.author.id} (${deductionResult.creditsRemaining} remaining)`,
+          );
+        }
+
         // Step 1: Send AI's text message first (if it exists)
         if (responseText && responseText.trim().length > 0) {
           // Discord message limit is 2000 characters, truncate if needed
@@ -517,10 +523,6 @@ export async function execute(message, client) {
           }
         }
 
-        // Step 2: Execute actions in a second message (will appear below AI's text automatically)
-        // Note: For streaming mode, actions are returned separately and executed here
-        // For non-streaming mode, actions may have already been executed during generation
-        // (for follow-up queries), so we check if actions array is non-empty before executing
         if (actions && actions.length > 0) {
           try {
             logger.info(

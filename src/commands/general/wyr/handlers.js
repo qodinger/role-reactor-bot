@@ -137,7 +137,6 @@ function createVoteButtons(
   _requesterId = null,
 ) {
   // Always keep the refresh button enabled
-  // Note: Since Discord buttons are global, we can't show different states to different users.
   // The permission check in handleWYRButton (line 177) prevents unauthorized use.
   // This allows the requester to refresh multiple times while still blocking others.
   const canRefresh = true;
@@ -307,9 +306,6 @@ export async function handleWYRButton(interaction, _client) {
 
       await interaction.deferUpdate();
 
-      // Get requester ID to determine if refresh button should be shown
-      // Note: We pass null for userId because button state should be based on stored requesterId,
-      // not on who just voted. The button handler will check permissions on click.
       const requesterId = voteData.requesterId;
 
       await interaction.editReply({

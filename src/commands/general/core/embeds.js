@@ -1,6 +1,6 @@
 import { EMOJIS, THEME } from "../../../config/theme.js";
 import { emojiConfig } from "../../../config/emojis.js";
-import { formatTierDisplay, getCorePricing } from "./utils.js";
+import { formatTierDisplay } from "./utils.js";
 
 // Get custom emojis object
 const { customEmojis } = emojiConfig;
@@ -55,7 +55,7 @@ export function createBalanceEmbed(userData, username, avatarURL) {
   // Add payment link field
   fields.push({
     name: `Get More Cores`,
-    value: `[Purchase Cores](https://rolereactor.app/sponsor) • View \`/core pricing\``,
+    value: `[Purchase Cores](https://rolereactor.app/sponsor)`,
     inline: false,
   });
 
@@ -66,51 +66,6 @@ export function createBalanceEmbed(userData, username, avatarURL) {
       icon_url: avatarURL,
     },
     fields,
-  };
-}
-
-/**
- * Creates a pricing embed showing Core pricing and membership benefits
- * @param {string} botAvatarURL - Bot's avatar URL for footer
- * @returns {Object} Discord embed object
- */
-export function createPricingEmbed(botAvatarURL) {
-  const pricing = getCorePricing();
-
-  // Format one-time payment pricing (crypto payments only)
-  const paymentPricing = Object.entries(pricing.donations)
-    .map(([price, credits]) => `**${price}** → ${credits} ${customEmojis.core}`)
-    .join("\n");
-
-  // Format benefits (updated for one-time payments)
-  const benefits = [
-    "Never expires",
-    "Instant delivery",
-    "Secure crypto payments",
-    "10 Cores per $1",
-  ].join(" • ");
-
-  return {
-    color: THEME.PRIMARY,
-    title: `Core Pricing`,
-    description: "Purchase Core credits with cryptocurrency (one-time payment)",
-    fields: [
-      {
-        name: `Pricing`,
-        value: paymentPricing,
-        inline: false,
-      },
-      {
-        name: `Benefits`,
-        value: benefits,
-        inline: false,
-      },
-    ],
-    timestamp: new Date().toISOString(),
-    footer: {
-      text: "Purchase on website • Use /core balance to check balance",
-      icon_url: botAvatarURL,
-    },
   };
 }
 

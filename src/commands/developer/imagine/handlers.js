@@ -4,6 +4,11 @@ import { isDeveloper } from "../../../utils/discord/permissions.js";
 import { concurrencyManager } from "../../../utils/ai/concurrencyManager.js";
 import { multiProviderAIService } from "../../../utils/ai/multiProviderAIService.js";
 import {
+  checkAIImageCredits,
+  checkAndDeductAIImageCredits,
+} from "../../../utils/ai/aiCreditManager.js";
+import { getUserFacingErrorMessage } from "../../../utils/ai/errorMessages.js";
+import {
   createImagineProcessingEmbed,
   createImagineResultEmbed,
   createImagineErrorEmbed,
@@ -14,42 +19,11 @@ import { ImagineGenerationHistory } from "./utils/generationHistory.js";
 
 const logger = getLogger();
 
-function getUserFacingErrorMessage(error) {
-  if (!error || !error.message) {
-    return "Something went wrong. Please try again shortly.";
-  }
-
-  const message = error.message;
-
-  if (/ai features are disabled/i.test(message)) {
-    return "AI features are currently disabled. All providers are disabled in the configuration. Please contact the bot administrator.";
-  }
-
-  if (/rate limit/i.test(message)) {
-    return "You're sending prompts too quickly. Please wait a moment before trying again.";
-  }
-
-  if (/api key not configured/i.test(message)) {
-    return "The AI provider is not properly configured. Please contact the bot administrator.";
-  }
-
-  if (/queue is full/i.test(message)) {
-    return "Generation queue is full right now. Please try again in a moment.";
-  }
-
-  if (/timed out/i.test(message)) {
-    return "The AI provider took too long to respond. Try a shorter prompt or retry later.";
-  }
-
-  return message;
-}
-
 export async function handleImagineCommand(
   interaction,
   _client,
   deferred = true,
 ) {
-  // Check developer permissions
   if (!isDeveloper(interaction.user.id)) {
     logger.warn("Permission denied for imagine command", {
       userId: interaction.user.id,
@@ -75,7 +49,6 @@ export async function handleImagineCommand(
   // Safety tolerance: 6 = most permissive (default for Stability AI)
   const safetyTolerance = 6;
 
-  // Check if AI features are enabled
   if (!multiProviderAIService.isEnabled()) {
     const validationEmbed = createImagineValidationEmbed(
       "AI features are currently disabled. All providers are disabled in the configuration. Please contact the bot administrator.",
@@ -84,7 +57,6 @@ export async function handleImagineCommand(
     return;
   }
 
-  // Validate prompt
   const validation = validatePrompt(promptOption);
   if (!validation.isValid) {
     const validationEmbed = createImagineValidationEmbed(validation.reason);
@@ -93,6 +65,19 @@ export async function handleImagineCommand(
   }
 
   const prompt = validation.prompt;
+
+  const creditInfo = await checkAIImageCredits(interaction.user.id);
+  const { userData, creditsNeeded, hasCredits } = creditInfo;
+
+  if (!hasCredits) {
+    const errorEmbed = createImagineErrorEmbed({
+      interaction,
+      prompt,
+      error: `Insufficient credits. You need **${creditsNeeded} Core** to generate images. Your balance: **${userData.credits || 0} Core**.`,
+    });
+    await interaction.editReply({ embeds: [errorEmbed] });
+    return;
+  }
 
   let processingEmbed = createImagineProcessingEmbed({
     prompt,
@@ -143,6 +128,19 @@ export async function handleImagineCommand(
       throw new Error("Image data was missing from the provider response.");
     }
 
+    const deductionResult = await checkAndDeductAIImageCredits(
+      interaction.user.id,
+    );
+    if (!deductionResult.success) {
+      logger.error(
+        `Failed to deduct credits after successful generation for user ${interaction.user.id}: ${deductionResult.error}`,
+      );
+    } else {
+      logger.debug(
+        `Deducted ${deductionResult.creditsDeducted} Core from user ${interaction.user.id} for image generation (${deductionResult.creditsRemaining} remaining)`,
+      );
+    }
+
     const attachment = new AttachmentBuilder(result.imageBuffer, {
       name: `imagine-${interaction.user.id}-${Date.now()}.png`,
     });
@@ -186,7 +184,9 @@ export async function handleImagineCommand(
     const errorEmbed = createImagineErrorEmbed({
       interaction,
       prompt,
-      error: getUserFacingErrorMessage(error),
+      error: getUserFacingErrorMessage(error, {
+        includeContentModeration: false,
+      }),
     });
 
     await interaction.editReply({ embeds: [errorEmbed] });

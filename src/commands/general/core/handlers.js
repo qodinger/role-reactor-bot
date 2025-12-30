@@ -3,7 +3,6 @@ import { getLogger } from "../../../utils/logger.js";
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 import {
   createBalanceEmbed,
-  createPricingEmbed,
   createErrorEmbed,
   createValidationErrorEmbed,
 } from "./embeds.js";
@@ -16,7 +15,6 @@ import {
 import {
   validateCoreCommandInputs,
   validateBalanceInputs,
-  validatePricingInputs,
   validateInteractionState,
   validateCommandPermissions,
 } from "./validation.js";
@@ -75,9 +73,6 @@ export async function execute(interaction, _client) {
     switch (subcommand) {
       case "balance":
         await handleBalance(interaction);
-        break;
-      case "pricing":
-        await handlePricing(interaction);
         break;
       default: {
         const errorEmbed = createErrorEmbed(
@@ -157,56 +152,6 @@ async function handleBalance(interaction) {
     const errorEmbed = createErrorEmbed(
       "Balance Check Failed",
       "There was an error checking your Core balance. Please try again.",
-      interaction.client.user.displayAvatarURL(),
-    );
-
-    await interaction.editReply({ embeds: [errorEmbed] });
-  }
-}
-
-/**
- * Handles the pricing subcommand to show Core pricing information
- * @param {import("discord.js").ChatInputCommandInteraction} interaction - The interaction object
- */
-async function handlePricing(interaction) {
-  const perfContext = createPerformanceContext(
-    "pricing display",
-    interaction.user.username,
-    interaction.user.id,
-  );
-
-  try {
-    // Validate pricing inputs
-    const inputValidation = validatePricingInputs(interaction);
-    if (!inputValidation.valid) {
-      const errorEmbed = createValidationErrorEmbed(
-        inputValidation.errors,
-        interaction.client,
-      );
-      await interaction.editReply({ embeds: [errorEmbed] });
-      return;
-    }
-
-    // Create and send pricing embed
-    const pricingEmbed = createPricingEmbed(
-      interaction.client.user.displayAvatarURL(),
-    );
-    await interaction.editReply({ embeds: [pricingEmbed] });
-
-    logOperationDuration(
-      perfContext.startTime,
-      "Pricing display",
-      perfContext.username,
-    );
-  } catch (error) {
-    handleCoreError(error, "pricing display", {
-      userId: perfContext.userId,
-      username: perfContext.username,
-    });
-
-    const errorEmbed = createErrorEmbed(
-      "Pricing Display Failed",
-      "There was an error displaying Core pricing. Please try again.",
       interaction.client.user.displayAvatarURL(),
     );
 

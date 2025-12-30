@@ -38,7 +38,6 @@ export async function execute(interaction, _client) {
     }
 
     // Get presence data - try multiple sources
-    // Note: Activities might not be in member.presence, need to check guild's presence cache
     let presence = null;
     if (member && _client && interaction.guild) {
       // Try guild's presence cache first (this is more reliable for activities)

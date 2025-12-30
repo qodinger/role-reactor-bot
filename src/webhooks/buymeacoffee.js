@@ -1,6 +1,5 @@
 import { getStorageManager } from "../utils/storage/storageManager.js";
 import { getLogger } from "../utils/logger.js";
-import { config } from "../config/config.js";
 
 const logger = getLogger();
 
@@ -253,8 +252,11 @@ async function processDonation(data) {
       };
     }
 
-    // Calculate Cores (10 Cores per $1 for donations)
-    const donationRate = config.corePricing.donation.rate;
+    // Load config dynamically
+    const configModule = await import("../config/config.js").catch(() => null);
+    const config =
+      configModule?.config || configModule?.default || configModule || {};
+    const donationRate = config.corePricing?.donation?.rate || 10;
     const cores = Math.floor(amount * donationRate);
 
     logger.debug("💰 Credit Calculation:", {
@@ -469,17 +471,23 @@ async function processSubscription(data) {
       };
     }
 
+    // Load config dynamically
+    const configModule = await import("../config/config.js").catch(() => null);
+    const config =
+      configModule?.config || configModule?.default || configModule || {};
+    const subscriptions = config.corePricing?.subscriptions || {};
+
     // Map membership tier to Core tier
     logger.debug("🔍 Mapping membership tier to Core tier...", {
       amount,
       membershipTier,
-      availableTiers: Object.keys(config.corePricing.subscriptions),
+      availableTiers: Object.keys(subscriptions),
     });
 
     const detectedTier = mapMembershipTierToCoreTier(amount, membershipTier);
     logger.debug("🔍 Detected tier:", detectedTier);
 
-    const tierInfo = config.corePricing.subscriptions[detectedTier];
+    const tierInfo = subscriptions[detectedTier];
 
     if (!tierInfo) {
       logger.warn(`❌ Unknown tier for amount $${amount}`);
@@ -487,7 +495,7 @@ async function processSubscription(data) {
         amount,
         membershipTier,
         detectedTier,
-        availableTiers: Object.keys(config.corePricing.subscriptions),
+        availableTiers: Object.keys(subscriptions),
       });
       return { success: false, error: `Unknown tier for amount $${amount}` };
     }

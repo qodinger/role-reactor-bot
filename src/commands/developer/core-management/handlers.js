@@ -2,7 +2,6 @@ import { getLogger } from "../../../utils/logger.js";
 import { isDeveloper } from "../../../utils/discord/permissions.js";
 import { getStorageManager } from "../../../utils/storage/storageManager.js";
 import { createDetailedCoreManagementEmbed } from "./embeds.js";
-import { config } from "../../../config/config.js";
 import { EmbedBuilder } from "discord.js";
 import { THEME } from "../../../config/theme.js";
 
@@ -677,15 +676,23 @@ async function handleListPending(interaction, deferred) {
       .setColor(THEME.PRIMARY)
       .setTimestamp();
 
+    // Load config dynamically
+    const configModule = await import("../../../config/config.js").catch(
+      () => null,
+    );
+    const config =
+      configModule?.config || configModule?.default || configModule || {};
+    const donationRate = config.corePricing?.donation?.rate || 10;
+    const subscriptions = config.corePricing?.subscriptions || {};
+
     // Add fields for each pending payment (limit to 25 fields - Discord limit)
     const paymentsToShow = pendingPayments.slice(0, 25);
     paymentsToShow.forEach((payment, index) => {
       const cores =
         payment.type === "donation"
-          ? Math.floor(payment.amount * config.corePricing.donation.rate)
+          ? Math.floor(payment.amount * donationRate)
           : payment.membershipTier
-            ? config.corePricing.subscriptions[payment.membershipTier]?.cores ||
-              0
+            ? subscriptions[payment.membershipTier]?.cores || 0
             : 0;
 
       const date = new Date(payment.timestamp).toLocaleDateString();
@@ -769,14 +776,21 @@ async function handleProcessPending(interaction, targetUser, deferred) {
 
     const payment = pendingPayments[paymentIndex];
 
+    // Load config dynamically
+    const configModule = await import("../../../config/config.js").catch(
+      () => null,
+    );
+    const config =
+      configModule?.config || configModule?.default || configModule || {};
+    const donationRate = config.corePricing?.donation?.rate || 10;
+    const subscriptions = config.corePricing?.subscriptions || {};
+
     // Calculate cores based on payment type
     let coresToAdd = 0;
     let tier = null;
 
     if (payment.type === "donation") {
-      coresToAdd = Math.floor(
-        payment.amount * config.corePricing.donation.rate,
-      );
+      coresToAdd = Math.floor(payment.amount * donationRate);
     } else if (payment.type === "subscription") {
       // Map subscription amount to tier (same logic as webhook handler)
       // First try to use membershipTier from payment if available
@@ -804,7 +818,7 @@ async function handleProcessPending(interaction, targetUser, deferred) {
         }
       }
 
-      const tierInfo = config.corePricing.subscriptions[tier];
+      const tierInfo = subscriptions[tier];
       coresToAdd = tierInfo ? tierInfo.cores : 0;
     }
 

@@ -23,7 +23,6 @@ export function formatUserFlags(flags) {
     BotHTTPInteractions: "Bot",
     ActiveDeveloper: "Active Developer",
     Quarantined: "Quarantined",
-    // Note: Some flags like "Spam" and "DisablePremium" may not be available in all Discord.js versions
     // We'll check them safely
   };
 

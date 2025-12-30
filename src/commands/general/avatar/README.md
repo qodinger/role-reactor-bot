@@ -57,7 +57,7 @@ Following the modular pattern established by other general commands:
 
 - AI-powered anime avatar generation
 - Art style customization
-- Credit system integration (1 Core per generation)
+- Credit system integration (2 Core per generation)
 - Advanced prompt enhancement
 - Multiple AI provider fallback
 - Loading experience with static gradient

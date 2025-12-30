@@ -1,6 +1,5 @@
 import { getStorageManager } from "../utils/storage/storageManager.js";
 import { getLogger } from "../utils/logger.js";
-import { config } from "../config/config.js";
 import { timingSafeEqual } from "crypto";
 
 const logger = getLogger();
@@ -374,7 +373,14 @@ async function processDonation(data) {
     }
 
     // ===== CALCULATE CORES =====
-    const corePricing = config.corePricing;
+    // Load config dynamically
+    const configModule = await import("../config/config.js").catch(() => null);
+    const config =
+      configModule?.config || configModule?.default || configModule || {};
+    const corePricing = config.corePricing || {
+      donation: { rate: 10, minimum: 5 },
+      subscriptions: {},
+    };
     const cores = Math.floor(donationAmount * corePricing.donation.rate);
 
     // Validate minimum donation
@@ -634,7 +640,14 @@ async function processSubscription(data) {
 
     // Calculate monthly credits based on config tier system
     const subscriptionAmount = parseFloat(amount);
-    const corePricing = config.corePricing;
+    // Load config dynamically (reuse if already loaded in same function scope)
+    const configModule = await import("../config/config.js").catch(() => null);
+    const config =
+      configModule?.config || configModule?.default || configModule || {};
+    const corePricing = config.corePricing || {
+      donation: { rate: 10, minimum: 5 },
+      subscriptions: {},
+    };
 
     // Determine Core tier based on Ko-fi tier name or subscription amount
     let detectedTier = null;
@@ -908,7 +921,16 @@ async function processRefund(data) {
 
     if (coreCredits[finalDiscordUserId]) {
       // Calculate credits to remove (same rate as donation)
-      const corePricing = config.corePricing;
+      // Load config dynamically (reuse if already loaded in same function scope)
+      const configModule = await import("../config/config.js").catch(
+        () => null,
+      );
+      const config =
+        configModule?.config || configModule?.default || configModule || {};
+      const corePricing = config.corePricing || {
+        donation: { rate: 10, minimum: 5 },
+        subscriptions: {},
+      };
       const creditsToRemove = Math.floor(
         refundAmount * corePricing.donation.rate,
       );

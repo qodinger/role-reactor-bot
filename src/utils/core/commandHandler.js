@@ -338,7 +338,6 @@ class CommandHandler {
                 `⏰ User ${interaction.user.tag} is on cooldown for command XP`,
               );
             }
-            // Note: If xpData is null, it means the user is on cooldown (normal behavior)
           } catch (xpError) {
             // Don't let XP errors break the command
             this.logger.error("Failed to award command XP (async)", xpError);

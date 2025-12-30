@@ -21,7 +21,7 @@ export async function execute(interaction, client) {
     const userName = interaction.user.displayName || interaction.user.username;
 
     const embed = createInviteEmbed(botName, botAvatar, userName, inviteLink);
-    const buttons = createInviteButtons(inviteLink);
+    const buttons = await createInviteButtons(inviteLink);
 
     await interaction.editReply({
       embeds: [embed],

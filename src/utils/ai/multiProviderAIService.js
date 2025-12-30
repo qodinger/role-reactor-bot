@@ -1,4 +1,3 @@
-import config from "../../config/config.js";
 import { getLogger } from "../logger.js";
 import {
   PROVIDER_FALLBACK_ENABLED,
@@ -14,21 +13,92 @@ import { SelfHostedProvider } from "./providers/selfHostedProvider.js";
 
 const logger = getLogger();
 
+// Config loading with fallback
+let configCache = null;
+let configLoadPromise = null;
+
+async function loadConfig() {
+  if (configCache) {
+    return configCache;
+  }
+
+  if (configLoadPromise) {
+    return configLoadPromise;
+  }
+
+  configLoadPromise = (async () => {
+    try {
+      const configModule = await import("../../config/config.js").catch(
+        () => null,
+      );
+      if (configModule) {
+        configCache = (configModule.default || configModule)?.aiModels || {};
+        return configCache;
+      }
+    } catch (error) {
+      logger.debug("Failed to load config, using empty config:", error);
+    }
+
+    // Return empty config as fallback
+    configCache = {
+      providers: {
+        openrouter: { enabled: false },
+        openai: { enabled: false },
+        stability: { enabled: false },
+        selfhosted: { enabled: false },
+      },
+    };
+    return configCache;
+  })();
+
+  return configLoadPromise;
+}
+
 /**
  * Multi-provider AI service supporting both OpenRouter and OpenAI
  */
 export class MultiProviderAIService {
   constructor() {
-    this.config = config.aiModels;
+    // Initialize with empty config (will be loaded asynchronously)
+    this.config = {
+      providers: {
+        openrouter: { enabled: false },
+        openai: { enabled: false },
+        stability: { enabled: false },
+        selfhosted: { enabled: false },
+      },
+    };
     this.providerManager = new ProviderManager(this.config);
 
-    // Initialize provider instances
+    // Initialize provider instances with empty configs
     this.providers = {
       openrouter: new OpenRouterProvider(this.config.providers.openrouter),
       openai: new OpenAIProvider(this.config.providers.openai),
       stability: new StabilityProvider(this.config.providers.stability),
       selfhosted: new SelfHostedProvider(this.config.providers.selfhosted),
     };
+
+    // Load config asynchronously in background
+    loadConfig()
+      .then(loadedConfig => {
+        this.config = loadedConfig;
+        this.providerManager = new ProviderManager(this.config);
+        this.providers = {
+          openrouter: new OpenRouterProvider(
+            this.config.providers?.openrouter || {},
+          ),
+          openai: new OpenAIProvider(this.config.providers?.openai || {}),
+          stability: new StabilityProvider(
+            this.config.providers?.stability || {},
+          ),
+          selfhosted: new SelfHostedProvider(
+            this.config.providers?.selfhosted || {},
+          ),
+        };
+      })
+      .catch(() => {
+        // Ignore errors, already have fallback
+      });
   }
 
   /**
@@ -75,6 +145,25 @@ export class MultiProviderAIService {
    * @returns {Promise<Object>} Generated content
    */
   async generate(options) {
+    // Ensure config is loaded before generating
+    await loadConfig();
+    if (configCache && configCache !== this.config) {
+      this.config = configCache;
+      this.providerManager = new ProviderManager(this.config);
+      this.providers = {
+        openrouter: new OpenRouterProvider(
+          this.config.providers?.openrouter || {},
+        ),
+        openai: new OpenAIProvider(this.config.providers?.openai || {}),
+        stability: new StabilityProvider(
+          this.config.providers?.stability || {},
+        ),
+        selfhosted: new SelfHostedProvider(
+          this.config.providers?.selfhosted || {},
+        ),
+      };
+    }
+
     const {
       type = "image",
       prompt,
@@ -352,8 +441,8 @@ export class MultiProviderAIService {
   getConfig() {
     return {
       primary: this.providerManager.getPrimaryProvider(),
-      providers: Object.keys(this.config.providers),
-      enabledProviders: Object.entries(this.config.providers)
+      providers: Object.keys(this.config.providers || {}),
+      enabledProviders: Object.entries(this.config.providers || {})
         .filter(([, provider]) => provider.enabled === true)
         .map(([key]) => key),
     };

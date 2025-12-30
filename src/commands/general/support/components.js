@@ -1,14 +1,27 @@
 import { ActionRowBuilder, ButtonBuilder } from "discord.js";
-import config from "../../../config/config.js";
 import { BUTTON_STYLES } from "../../../config/theme.js";
 
 /**
  * Create interactive buttons for support command
- * @returns {import('discord.js').ActionRowBuilder}
+ * @returns {Promise<import('discord.js').ActionRowBuilder>}
  */
-export function createSupportButtons() {
+export async function createSupportButtons() {
+  // Load config with fallback
+  let links = {
+    support: process.env.SUPPORT_SERVER_URL || "https://discord.gg/example",
+    github: process.env.GITHUB_REPO_URL || "https://github.com/example",
+  };
+
+  try {
+    const configModule = await import("../../../config/config.js");
+    const config =
+      configModule?.config || configModule?.default || configModule || {};
+    links = config.externalLinks || links;
+  } catch {
+    // Use environment variables or defaults
+  }
+
   const row = new ActionRowBuilder();
-  const links = config.externalLinks;
 
   const buttons = [];
 

@@ -188,7 +188,6 @@ async function createPollFromData(interaction, pollData) {
   }
 
   // Store basic poll metadata for management
-  // Note: createPollFromData is called from handlePollCreateFromModal
   // which doesn't support dependency injection yet, so we use the default
   const storageManager = await defaultGetStorageManager();
 
@@ -954,7 +953,6 @@ export async function handlePollDelete(
 
   try {
     const pollId = interaction.options.getString("poll-id");
-    // Note: handlePollDelete is called from command interactions
     // which don't support dependency injection yet, so we use the default
     const storageManager = await defaultGetStorageManager();
     const poll = await storageManager.getPollById(pollId);
@@ -1057,7 +1055,6 @@ export async function handlePollListButton(interaction, _client) {
       await interaction.deferUpdate();
 
       // Get the same data as handlePollList but directly
-      // Note: handlePollListButton is called from button interactions
       // which don't support dependency injection yet, so we use the default
       const storageManager = await defaultGetStorageManager();
       const guildPolls = await storageManager.getPollsByGuild(

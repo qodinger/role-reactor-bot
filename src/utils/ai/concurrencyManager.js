@@ -192,7 +192,6 @@ export class ConcurrencyManager {
     }
 
     // Find position in queue (after sorting by priority)
-    // Note: We need to sort the same way processQueue does
     const sortedQueue = [...this.queue].sort((a, b) => {
       if (a.priority !== b.priority) {
         return b.priority - a.priority; // Higher priority first
