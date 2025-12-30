@@ -31,7 +31,14 @@ export class ServiceRegistry {
    * @returns {boolean} True if registered successfully
    */
   registerService(service) {
-    const { name, version = "v1", router, basePath, middleware = [], metadata = {} } = service;
+    const {
+      name,
+      version = "v1",
+      router,
+      basePath,
+      middleware = [],
+      metadata = {},
+    } = service;
 
     if (!name || !router || !basePath) {
       logger.error("Service registration failed: missing required fields", {
@@ -143,7 +150,9 @@ export class ServiceRegistry {
    * @returns {Array} Array of service configurations
    */
   getServicesByName(name) {
-    return Array.from(this.services.values()).filter(service => service.name === name);
+    return Array.from(this.services.values()).filter(
+      service => service.name === name,
+    );
   }
 
   /**
@@ -175,4 +184,3 @@ export class ServiceRegistry {
 
 // Export singleton instance
 export const serviceRegistry = new ServiceRegistry();
-

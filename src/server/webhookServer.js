@@ -6,6 +6,7 @@ import { getLogger } from "../utils/logger.js";
 
 // Import middleware
 import { corsMiddleware } from "./middleware/cors.js";
+import { requestIdMiddleware } from "./middleware/requestId.js";
 import { requestLogger } from "./middleware/requestLogger.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import {
@@ -18,9 +19,15 @@ import {
 import { healthCheck, dockerHealthCheck } from "./routes/health.js";
 import { verifyWebhookToken } from "./routes/webhook.js";
 import { apiInfo, apiStats, setDiscordClient } from "./routes/api.js";
+import { getServices, getService } from "./routes/services.js";
 import authRoutes from "./routes/auth.js";
-import paymentRoutes from "./routes/payments.js";
-import supporterRoutes from "./routes/supporters.js";
+
+// Import services
+import { SupportersService } from "./services/supporters/SupportersService.js";
+import { PaymentsService } from "./services/payments/PaymentsService.js";
+
+// Import service registry
+import { serviceRegistry } from "./services/ServiceRegistry.js";
 
 // Import configuration
 import {
@@ -49,7 +56,6 @@ async function initializeMiddleware() {
   app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
   // Session middleware (for Discord OAuth)
-  // Note: You'll need to install express-session: npm install express-session
   // For production, use a session store like connect-mongo or redis
   if (process.env.SESSION_SECRET) {
     try {
@@ -86,6 +92,7 @@ async function initializeMiddleware() {
   }
 
   // Custom middleware
+  app.use(requestIdMiddleware);
   app.use(corsMiddleware);
 
   if (serverConfig.logging.enabled) {
@@ -112,25 +119,54 @@ function initializeRoutes() {
   app.post("/webhook/crypto", webhookRateLimiter, handleCryptoWebhook);
   app.post("/webhook/bmac", webhookRateLimiter, handleBuyMeACoffeeWebhook);
 
-  // API routes with rate limiting
+  // Core API routes with rate limiting
   app.get("/api/info", apiRateLimiter, apiInfo);
   app.get("/api/stats", apiRateLimiter, apiStats);
+  app.get("/api/services", apiRateLimiter, getServices);
+  app.get("/api/services/:name", apiRateLimiter, getService);
 
-  // Authentication routes (Discord OAuth) with rate limiting
+  // Register existing routes as services for discovery
   if (process.env.DISCORD_CLIENT_ID) {
+    serviceRegistry.registerRouteGroup("auth", {
+      path: "/auth",
+      router: authRoutes,
+      middleware: [apiRateLimiter],
+    });
     app.use("/auth", apiRateLimiter, authRoutes);
     logger.info("✅ Discord OAuth routes enabled");
   }
 
-  // Payment routes (require authentication)
   if (process.env.COINBASE_ENABLED === "true") {
-    app.use("/api/payments", paymentRoutes);
-    logger.info("✅ Payment routes enabled");
+    // Register PaymentsService (migrated to BaseService)
+    const paymentsService = new PaymentsService();
+    serviceRegistry.registerService(paymentsService.getRegistrationInfo());
+    app.use(
+      paymentsService.basePath,
+      ...paymentsService.middleware,
+      paymentsService.router,
+    );
+    logger.info("✅ Payments service registered (BaseService)");
   }
 
-  // Supporter routes (public leaderboard)
-  app.use("/api/supporters", apiRateLimiter, supporterRoutes);
-  logger.info("✅ Supporter routes enabled");
+  // Register SupportersService (migrated to BaseService)
+  const supportersService = new SupportersService();
+  serviceRegistry.registerService(supportersService.getRegistrationInfo());
+  app.use(
+    supportersService.basePath,
+    ...supportersService.middleware,
+    supportersService.router,
+  );
+  logger.info("✅ Supporters service registered (BaseService)");
+
+  // Register all services from registry
+  const registeredServices = serviceRegistry.getAllServices();
+  for (const service of registeredServices) {
+    const { basePath, router, middleware } = service;
+    app.use(basePath, ...middleware, router);
+    logger.info(
+      `✅ Registered service: ${service.name} v${service.version} at ${basePath}`,
+    );
+  }
 }
 
 /**
@@ -219,6 +255,20 @@ export async function startWebhookServer() {
       logger.info(
         `  API Stats: http://localhost:${serverConfig.port}/api/stats`,
       );
+      logger.info(
+        `  Services: http://localhost:${serverConfig.port}/api/services`,
+      );
+
+      // Log registered services
+      const services = serviceRegistry.getAllServices();
+      if (services.length > 0) {
+        logger.info(`  Registered Services (${services.length}):`);
+        services.forEach(service => {
+          logger.info(
+            `    - ${service.name} v${service.version}: ${service.basePath}`,
+          );
+        });
+      }
 
       if (process.env.DISCORD_CLIENT_ID) {
         logger.info(

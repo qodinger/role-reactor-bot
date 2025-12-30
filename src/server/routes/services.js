@@ -69,4 +69,3 @@ export function getService(req, res) {
     res.status(statusCode).json(response);
   }
 }
-
