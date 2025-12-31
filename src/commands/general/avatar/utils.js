@@ -413,15 +413,37 @@ export async function validatePrompt(prompt) {
   // Get content filter setting from config (with fallback)
   // Default to disabled if config is not available
   let contentFilterEnabled = false;
+  let newConfigLoaded = false;
   try {
-    // Try to dynamically import config
-    const configModule = await import("../../../config/config.js").catch(
+    // Try new AI config first
+    const aiConfigModule = await import("../../../config/ai.js").catch(
       () => null,
     );
-    if (configModule) {
-      const config = configModule.default || configModule;
-      contentFilterEnabled =
-        config?.corePricing?.avatarContentFilter?.enabled ?? false;
+    if (aiConfigModule) {
+      const getAvatarFilter =
+        aiConfigModule.getAvatarContentFilter ||
+        aiConfigModule.default?.getAvatarContentFilter;
+      if (getAvatarFilter) {
+        const avatarFilter =
+          typeof getAvatarFilter === "function"
+            ? getAvatarFilter()
+            : getAvatarFilter;
+        contentFilterEnabled = avatarFilter?.enabled ?? false;
+        newConfigLoaded = true;
+      }
+    }
+
+    // Fallback to old config location for backward compatibility
+    // Only check if new config wasn't successfully loaded
+    if (!newConfigLoaded) {
+      const configModule = await import("../../../config/config.js").catch(
+        () => null,
+      );
+      if (configModule) {
+        const config = configModule.default || configModule;
+        contentFilterEnabled =
+          config?.corePricing?.avatarContentFilter?.enabled ?? false;
+      }
     }
   } catch {
     // Config not available, use default (disabled)

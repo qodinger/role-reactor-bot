@@ -107,6 +107,19 @@ export async function handleImagineCommand(
   const startTime = Date.now();
   const requestId = `imagine-${interaction.id}`;
 
+  // ============================================================================
+  // LOG FULL PROMPT BEING SENT TO AI
+  // ============================================================================
+  logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  logger.info(
+    `[IMAGINE PROMPT LOG] User: ${interaction.user.id} | Request ID: ${requestId}`,
+  );
+  logger.info(
+    `[IMAGINE PROMPT LOG] Prompt (${prompt.length} chars): "${prompt}"`,
+  );
+  logger.info(`[IMAGINE PROMPT LOG] Safety Tolerance: ${safetyTolerance}`);
+  logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+
   try {
     const result = await concurrencyManager.queueRequest(
       requestId,
