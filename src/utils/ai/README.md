@@ -21,9 +21,27 @@ The AI utilities are designed with a modular, reusable architecture:
 - **`commandDiscoverer.js`** - Discovers and formats bot commands for AI system prompts
 - **`serverInfoGatherer.js`** - Gathers server and bot information for AI context
 - **`commandExecutor.js`** - Executes bot commands programmatically from AI actions
-- **`discordActionExecutor.js`** - Executes bot commands programmatically from AI actions
 - **`actionRegistry.js`** - Centralized registry for all AI actions with validation and metadata
 - **`constants.js`** - Shared constants for all AI modules
+
+### Chat Service Modules (`chat/`)
+
+Focused modules for chat service functionality:
+
+- **`actionHandler.js`** - Action processing, re-query logic, and non-fetch action handling
+- **`responseGenerator.js`** - Response generation, processing, finalization, and queue status callbacks
+- **`responseProcessor.js`** - Response parsing, validation, sanitization, and credit deduction
+- **`preparationHelpers.js`** - System context preparation, member fetching, and action detection
+- **`streamingHelpers.js`** - Streaming callbacks, generation, and response processing
+- **`conversationBuilder.js`** - Message array building and conversation context preparation
+
+### Memory Management (`memory/`)
+
+Hierarchical memory system for long-term conversation context:
+
+- **`memoryManager.js`** - Hierarchical memory management with summarization support
+- **`summarizer.js`** - Conversation summarization for reducing token usage in long conversations
+- **`summaryStorage.js`** - Summary storage (file or MongoDB) for persistent memory
 
 ### Extracted Modules (Internal)
 
@@ -537,6 +555,7 @@ When all providers are disabled, AI commands will return user-friendly error mes
 - Integrates all supporting modules
 - Handles response generation and action execution
 - Manages conversation flow
+- Core logic organized in `chat/` subdirectory modules
 
 ### conversationManager.js
 
@@ -547,6 +566,12 @@ When all providers are disabled, AI commands will return user-friendly error mes
 - **Server isolation**: Conversations are separated by user AND server (composite key: `userId_guildId`)
 - **DM support**: Direct messages use `dm_userId` format
 - **Backward compatibility**: Automatically handles legacy `userId`-only format
+
+### Memory Management (`memory/`)
+
+- **`memoryManager.js`** - Hierarchical memory system that combines recent messages with summarized older conversations
+- **`summarizer.js`** - Creates concise summaries of conversation history to reduce token usage
+- **`summaryStorage.js`** - Persistent storage for conversation summaries (file or MongoDB)
 
 ### responseValidator.js
 
@@ -583,13 +608,6 @@ When all providers are disabled, AI commands will return user-friendly error mes
 - Manages command responses
 - Provides command discovery utilities
 
-### discordActionExecutor.js
-
-- Executes bot commands programmatically
-- Validates permissions
-- Handles action errors
-- Note: Admin/moderation/guild management actions are not available (removed from registry for security)
-
 ### constants.js
 
 - Shared constants for all AI modules
@@ -606,8 +624,8 @@ The AI utilities are designed to be easily extensible:
 - **New content types** - Add video, audio, or other media generation
 - **Advanced features** - Enhanced conversation memory, context awareness, etc.
 - **Analytics** - Add usage tracking and analytics
-- **Provider fallback** - Automatic fallback to next enabled provider on failure
-- **Response streaming** - Stream responses for better user experience
+- **Provider fallback** - Automatic fallback to next enabled provider on failure (✅ Already implemented)
+- **Response streaming** - Stream responses for better user experience (✅ Already implemented)
 
 ## Best Practices
 

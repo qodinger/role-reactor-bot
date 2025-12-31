@@ -21,7 +21,6 @@ src/utils/
 │   ├── constants.js
 │   ├── conversationManager.js
 │   ├── dataFetcher.js
-│   ├── discordActionExecutor.js
 │   ├── jsonParser.js
 │   ├── modelOptimizer.js
 │   ├── multiProviderAIService.js
@@ -34,12 +33,10 @@ src/utils/
 │   └── systemPromptBuilder.js
 ├── core/
 │   ├── commandHandler.js
+│   ├── commandRegistry.js
 │   ├── errorHandler.js
 │   └── eventHandler.js
 ├── discord/
-│   ├── batchOperations.js
-│   ├── commandValidation.js
-│   ├── exportControls.js
 │   ├── goodbyeUtils.js
 │   ├── inputUtils.js
 │   ├── invite.js
@@ -48,11 +45,8 @@ src/utils/
 │   ├── responseMessages.js
 │   ├── roleManager.js
 │   ├── roleMappingManager.js
-│   ├── roleMessageComponents.js
 │   ├── roleParser.js
 │   ├── roleValidator.js
-│   ├── security.js
-│   ├── slashCommandOptions.js
 │   ├── tempRoles.js
 │   ├── tempRoles/                    # Temporary role utilities (see tempRoles/README.md)
 │   │   ├── embeds.js
@@ -77,13 +71,10 @@ src/utils/
 │   │   ├── memory.js
 │   │   └── performance.js
 │   ├── healthCheck.js
-│   ├── performanceMonitor.js
-│   ├── requestHandler.js
-│   └── slaMonitor.js
+│   └── performanceMonitor.js
 ├── scheduleParser.js
 ├── storage/
 │   ├── databaseManager.js
-│   ├── dataProcessingAgreements.js
 │   ├── imageJobsStorageManager.js
 │   ├── repositories/
 │   │   ├── BaseRepository.js
@@ -101,7 +92,6 @@ src/utils/
 │   │   ├── ScheduledRoleRepository.js
 │   │   ├── RecurringScheduleRepository.js
 │   │   └── index.js
-│   ├── sessionManager.js
 │   └── storageManager.js
 ├── terminal.js
 └── validation/
@@ -217,6 +207,20 @@ handler.registerCommand(myCommand);
 await handler.executeCommand(interaction);
 ```
 
+### **core/commandRegistry.js**
+
+Manages command metadata, keywords, descriptions, and help information. Provides utilities for command discovery and help system integration.
+
+**Usage:**
+
+```javascript
+import { commandRegistry } from "./utils/core/commandRegistry.js";
+
+await commandRegistry.initialize(client);
+const metadata = commandRegistry.getCommandMetadata("help");
+const keywords = commandRegistry.getCommandKeywords("help");
+```
+
 ### **core/errorHandler.js**
 
 Provides centralized error handling. It standardizes how errors are caught, logged, and reported, preventing crashes and improving debuggability.
@@ -273,7 +277,7 @@ runner.run(client);
 
 - Always use the centralized `errorHandler` for consistency.
 - Provide meaningful context when handling errors.
-- Send user-friendly error messages through `commandValidation.js` embeds.
+- Send user-friendly error messages through validation utilities.
 
 ### **Performance**
 
@@ -283,7 +287,7 @@ runner.run(client);
 
 ### **Security**
 
-- Sanitize and validate all user inputs using utilities from `inputUtils.js` and `commandValidation.js`.
+- Sanitize and validate all user inputs using utilities from `inputUtils.js` and `roleValidator.js`.
 - Check permissions with `permissions.js` before executing sensitive operations.
 - Use environment variables for all secrets.
 
@@ -298,7 +302,7 @@ runner.run(client);
 
 1.  **Permission Errors** - Check bot permissions in the Discord Developer Portal and server settings. The `permissions.js` module is the source of truth for required permissions.
 2.  **Database Connection** - Verify your MongoDB connection string in the environment variables. The `databaseManager.js` logs connection attempts.
-3.  **Invalid Input** - Check the validation logic in `commandValidation.js` and `roleValidator.js`.
+3.  **Invalid Input** - Check the validation logic in `roleValidator.js` and `inputUtils.js`.
 
 ### **Debugging Tools**
 
