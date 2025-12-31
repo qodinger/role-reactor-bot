@@ -335,7 +335,9 @@ export class ConcurrencyManager {
    * Handle AI queue cancel button interaction
    * @deprecated Cancel buttons have been removed. Users can cancel by deleting the status message.
    * Kept for backward compatibility with old messages that may still have cancel buttons.
-   * TODO: Remove this method after 2026-03-01 (3 months from deprecation) when all old messages have expired.
+   * This method is not actively used but kept until 2026-03-01 to handle legacy button interactions
+   * from messages sent before the cancel button removal.
+   * TODO: Remove this method after 2026-03-01 when all old messages with cancel buttons have expired.
    * @param {import('discord.js').ButtonInteraction} interaction - Button interaction
    */
   static async handleAIQueueCancel(interaction) {
