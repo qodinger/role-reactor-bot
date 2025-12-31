@@ -151,9 +151,14 @@ export function validateConfig() {
   }
 
   // Check port validity
-  const port = parseInt(serverConfig.port);
-  if (isNaN(port) || port < 1024 || port > 65535) {
-    errors.push("Port must be a number between 1024 and 65535");
+  const port = parseInt(serverConfig.port, 10);
+  if (isNaN(port) || port < 1 || port > 65535) {
+    errors.push("Port must be a number between 1 and 65535");
+  }
+  if (port < 1024 && serverConfig.isProduction) {
+    logger.warn(
+      "⚠️ Ports below 1024 require root privileges. Consider using a port >= 1024 in production.",
+    );
   }
 
   return {

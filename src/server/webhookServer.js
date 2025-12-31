@@ -20,6 +20,7 @@ import { healthCheck, dockerHealthCheck } from "./routes/health.js";
 import { verifyWebhookToken } from "./routes/webhook.js";
 import { apiInfo, apiStats, setDiscordClient } from "./routes/api.js";
 import { getServices, getService } from "./routes/services.js";
+import { getSwaggerUI, getOpenAPISpec } from "./routes/docs.js";
 import authRoutes from "./routes/auth.js";
 
 // Import services
@@ -95,6 +96,21 @@ async function initializeMiddleware() {
   app.use(requestIdMiddleware);
   app.use(corsMiddleware);
 
+  // Request timeout middleware (30 seconds)
+  app.use((req, res, next) => {
+    req.setTimeout(30000, () => {
+      if (!res.headersSent) {
+        res.status(408).json({
+          status: "error",
+          message: "Request timeout",
+          requestId: req.requestId || "unknown",
+          timestamp: new Date().toISOString(),
+        });
+      }
+    });
+    next();
+  });
+
   if (serverConfig.logging.enabled) {
     app.use(requestLogger);
   }
@@ -125,6 +141,10 @@ function initializeRoutes() {
   app.get("/api/services", apiRateLimiter, getServices);
   app.get("/api/services/:name", apiRateLimiter, getService);
 
+  // API Documentation routes
+  app.get("/api/docs", apiRateLimiter, getSwaggerUI);
+  app.get("/api/docs/openapi.json", apiRateLimiter, getOpenAPISpec);
+
   // Register existing routes as services for discovery
   if (process.env.DISCORD_CLIENT_ID) {
     serviceRegistry.registerRouteGroup("auth", {
@@ -136,35 +156,28 @@ function initializeRoutes() {
     logger.info("✅ Discord OAuth routes enabled");
   }
 
+  // Register services (conditionally for payments)
   if (process.env.COINBASE_ENABLED === "true") {
-    // Register PaymentsService (migrated to BaseService)
     const paymentsService = new PaymentsService();
     serviceRegistry.registerService(paymentsService.getRegistrationInfo());
-    app.use(
-      paymentsService.basePath,
-      ...paymentsService.middleware,
-      paymentsService.router,
-    );
     logger.info("✅ Payments service registered (BaseService)");
   }
 
-  // Register SupportersService (migrated to BaseService)
+  // Register SupportersService (always available)
   const supportersService = new SupportersService();
   serviceRegistry.registerService(supportersService.getRegistrationInfo());
-  app.use(
-    supportersService.basePath,
-    ...supportersService.middleware,
-    supportersService.router,
-  );
   logger.info("✅ Supporters service registered (BaseService)");
 
-  // Register all services from registry
+  // Register all services from registry (single registration point)
   const registeredServices = serviceRegistry.getAllServices();
   for (const service of registeredServices) {
     const { basePath, router, middleware } = service;
     app.use(basePath, ...middleware, router);
+    const versionDisplay = service.version.startsWith("v")
+      ? service.version
+      : `v${service.version}`;
     logger.info(
-      `✅ Registered service: ${service.name} v${service.version} at ${basePath}`,
+      `✅ Registered service: ${service.name} ${versionDisplay} at ${basePath}`,
     );
   }
 }
@@ -258,14 +271,21 @@ export async function startWebhookServer() {
       logger.info(
         `  Services: http://localhost:${serverConfig.port}/api/services`,
       );
+      logger.info(`  API Docs: http://localhost:${serverConfig.port}/api/docs`);
+      logger.info(
+        `  OpenAPI: http://localhost:${serverConfig.port}/api/docs/openapi.json`,
+      );
 
       // Log registered services
       const services = serviceRegistry.getAllServices();
       if (services.length > 0) {
         logger.info(`  Registered Services (${services.length}):`);
         services.forEach(service => {
+          const versionDisplay = service.version.startsWith("v")
+            ? service.version
+            : `v${service.version}`;
           logger.info(
-            `    - ${service.name} v${service.version}: ${service.basePath}`,
+            `    - ${service.name} ${versionDisplay}: ${service.basePath}`,
           );
         });
       }

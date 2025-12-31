@@ -1,4 +1,5 @@
 import { getLogger } from "../../utils/logger.js";
+import { createErrorResponse } from "../utils/responseHelpers.js";
 
 const logger = getLogger();
 
@@ -25,15 +26,16 @@ export function errorHandler(error, req, res, _next) {
   // Don't expose internal error details in production
   const isDevelopment = process.env.NODE_ENV === "development";
 
-  res.status(500).json({
-    status: "error",
-    message: "Internal server error",
+  const { statusCode, response } = createErrorResponse(
+    "Internal server error",
+    500,
+    isDevelopment ? error.message : null,
+    isDevelopment ? error.stack : null,
+  );
+
+  res.status(statusCode).json({
+    ...response,
     requestId,
-    ...(isDevelopment && {
-      error: error.message,
-      stack: error.stack,
-    }),
-    timestamp: new Date().toISOString(),
   });
 }
 
@@ -53,12 +55,16 @@ export function notFoundHandler(req, res) {
     timestamp: new Date().toISOString(),
   });
 
-  res.status(404).json({
-    status: "error",
-    message: "Endpoint not found",
+  const { statusCode, response } = createErrorResponse(
+    "Endpoint not found",
+    404,
+    `The requested endpoint ${req.method} ${req.url} does not exist`,
+  );
+
+  res.status(statusCode).json({
+    ...response,
     requestId,
     url: req.url,
     method: req.method,
-    timestamp: new Date().toISOString(),
   });
 }

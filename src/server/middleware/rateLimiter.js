@@ -9,8 +9,19 @@ const logger = getLogger();
  */
 export const webhookRateLimiter = rateLimit({
   windowMs:
-    parseInt(process.env.WEBHOOK_RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes default
-  max: parseInt(process.env.WEBHOOK_RATE_LIMIT_MAX) || 100, // 100 requests per window default
+    parseInt(process.env.WEBHOOK_RATE_LIMIT_WINDOW_MS, 10) || 15 * 60 * 1000, // 15 minutes default
+  max: (() => {
+    const envValue = process.env.WEBHOOK_RATE_LIMIT_MAX;
+    if (!envValue) {
+      return 100; // Default, no warning needed
+    }
+    const max = parseInt(envValue, 10);
+    if (isNaN(max) || max < 1) {
+      logger.warn("Invalid WEBHOOK_RATE_LIMIT_MAX, using default: 100");
+      return 100;
+    }
+    return max;
+  })(),
   message: {
     status: "error",
     message: "Too many webhook requests, please try again later",
@@ -43,8 +54,20 @@ export const webhookRateLimiter = rateLimit({
  */
 export const kofiWebhookRateLimiter = rateLimit({
   windowMs:
-    parseInt(process.env.KOFI_WEBHOOK_RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes default
-  max: parseInt(process.env.KOFI_WEBHOOK_RATE_LIMIT_MAX) || 50, // 50 requests per window default
+    parseInt(process.env.KOFI_WEBHOOK_RATE_LIMIT_WINDOW_MS, 10) ||
+    15 * 60 * 1000, // 15 minutes default
+  max: (() => {
+    const envValue = process.env.KOFI_WEBHOOK_RATE_LIMIT_MAX;
+    if (!envValue) {
+      return 50; // Default, no warning needed
+    }
+    const max = parseInt(envValue, 10);
+    if (isNaN(max) || max < 1) {
+      logger.warn("Invalid KOFI_WEBHOOK_RATE_LIMIT_MAX, using default: 50");
+      return 50;
+    }
+    return max;
+  })(),
   message: {
     status: "error",
     message: "Too many Ko-fi webhook requests, please try again later",
@@ -72,8 +95,20 @@ export const kofiWebhookRateLimiter = rateLimit({
  * More lenient than webhook limiters for public API access
  */
 export const apiRateLimiter = rateLimit({
-  windowMs: parseInt(process.env.API_RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes default
-  max: parseInt(process.env.API_RATE_LIMIT_MAX) || 60, // 60 requests per window default
+  windowMs:
+    parseInt(process.env.API_RATE_LIMIT_WINDOW_MS, 10) || 15 * 60 * 1000, // 15 minutes default
+  max: (() => {
+    const envValue = process.env.API_RATE_LIMIT_MAX;
+    if (!envValue) {
+      return 60; // Default, no warning needed
+    }
+    const max = parseInt(envValue, 10);
+    if (isNaN(max) || max < 1) {
+      logger.warn("Invalid API_RATE_LIMIT_MAX, using default: 60");
+      return 60;
+    }
+    return max;
+  })(),
   message: {
     status: "error",
     message: "Too many API requests, please try again later",

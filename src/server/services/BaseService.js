@@ -43,7 +43,10 @@ export class BaseService {
     // Register common middleware
     this.setupCommonMiddleware();
 
-    logger.debug(`Initialized service: ${name} v${version} at ${basePath}`);
+    const versionDisplay = version.startsWith("v") ? version : `v${version}`;
+    logger.debug(
+      `Initialized service: ${name} ${versionDisplay} at ${basePath}`,
+    );
   }
 
   /**
