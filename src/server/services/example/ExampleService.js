@@ -2,6 +2,9 @@
  * Example Service
  * Template for creating new API services
  *
+ * ⚠️ NOTE: This is a TEMPLATE/EXAMPLE file for reference only.
+ * It is NOT used in production. Use this as a guide when creating new services.
+ *
  * This is a reference implementation showing how to create a new service
  * using the BaseService class.
  */
