@@ -26,6 +26,14 @@ export class JsonParser {
         jsonString = jsonMatch[0];
       }
 
+      // Strip JSON comments (both // and /* */ style) before parsing
+      // This handles cases where AI adds comments like "// Randomly selected..."
+      jsonString = jsonString
+        // Remove single-line comments (// ...)
+        .replace(/\/\/.*$/gm, "")
+        // Remove multi-line comments (/* ... */)
+        .replace(/\/\*[\s\S]*?\*\//g, "");
+
       const parsed = JSON.parse(jsonString);
 
       // Validate structure

@@ -111,40 +111,21 @@ async function buildResponseFormatExamples(
   const commandExample = await generateCommandExampleFn(client);
 
   let examples = dedent`
-    **Examples (use ACTUAL data from Server Information above, not placeholders):**
+    **Additional Examples (use ACTUAL data from Server Information, not placeholders):**
 
-    **Example 1 - Simple response (NO actions) - Use plain text:**
-    There are 5 members in this server.
-
-    **Example 2 - List members (NO actions) - Use plain text:**
+    **Example A - List members (NO actions) - Use plain text:**
     Here are all members:
     - MemberName1 (online)
     - MemberName2 (offline)
     - MemberName3 (idle)
     
-    (You can format lists naturally - use numbered lists, bullet points, or any clear format that makes sense)
-
-    **Example 3 - Execute command (HAS actions) - Use JSON:**
-    {
-      "message": "Let me get server information for you.",
-      "actions": [{"type": "execute_command", "command": "serverinfo", "options": {}}]
-    }
-
-    **Example 4 - Execute avatar/imagine with detailed user prompt (use EXACT, message EMPTY):**
-    User: "generate an avatar of a cyberpunk hacker with neon glasses and blue hair"
+    **Example B - Execute avatar/imagine (message EMPTY):**
+    User: "generate an avatar of a cyberpunk hacker"
     {
       "message": "",
-      "actions": [{"type": "execute_command", "command": "avatar", "options": {"prompt": "cyberpunk hacker with neon glasses and blue hair"}}]
+      "actions": [{"type": "execute_command", "command": "avatar", "options": {"prompt": "cyberpunk hacker"}}]
     }
-    **Note:** Message is EMPTY because avatar/imagine commands send their own loading embeds.
-
-    **Example 5 - Execute avatar/imagine with basic user prompt (can enhance, message EMPTY):**
-    User: "generate an avatar" or "create an image of a city"
-    {
-      "message": "",
-      "actions": [{"type": "execute_command", "command": "avatar", "options": {"prompt": "anime character portrait, detailed, high quality"}}]
-    }
-    **Note:** Only enhance when the user's prompt is too vague. If they provide specific details, use their EXACT words. Message is always EMPTY for avatar/imagine commands.
+    **Note:** Message is EMPTY for avatar/imagine commands. Use user's EXACT prompt unless too vague.
 
   `;
 
@@ -207,6 +188,7 @@ export async function buildResponseFormatSection(guild, client) {
     
     **Additional Rules:**
     - Use double quotes for JSON strings (only when using JSON format)
+    - **CRITICAL:** JSON does NOT support comments (// or /* */). NEVER add comments inside JSON - they will break parsing!
     - Use actual data from Server Information - never placeholders
     - **CRITICAL:** When using "execute_command", you MUST provide ALL required options - commands will fail if options are missing
     - **CRITICAL:** NEVER execute the "ask" command - you are ALREADY in the ask command context! If you need to answer a question, just respond directly with plain text. Do NOT use execute_command with "ask" as it will create infinite loops.
@@ -235,29 +217,8 @@ export async function buildResponseFormatSection(guild, client) {
       "message": "Hello!",
       "actions": []
     }
-    ❌ This is WRONG! Empty actions array means NO actions - use plain text!
-    ✅ CORRECT: Just say "Hello!" directly (no JSON, no curly braces)
+    ❌ WRONG! Empty actions = use plain text! ✅ CORRECT: Just say "Hello!" directly.
 
-    **Example 5: INCORRECT - Don't use plain text when you have actions:**
-    I'll execute the serverinfo command for you.
-    ❌ WRONG! You have actions to execute - use JSON format!
-    ✅ CORRECT: Use JSON with actions array
-
-    **Example 6: INCORRECT - Don't execute multiple actions when user only asked for one:**
-    User: "Give me the details about this server"
-    ❌ WRONG:
-    {
-      "message": "Sure! Let's play Rock Paper Scissors and I'll show you the server details!",
-      "actions": [
-        {"type": "execute_command", "command": "rps", "options": {"user": "<@123>", "choice": "rock"}},
-        {"type": "execute_command", "command": "serverinfo", "options": {}}
-      ]
-    }
-    ✅ CORRECT - Only execute what was requested:
-    {
-      "message": "I'll show you the server details!",
-      "actions": [{"type": "execute_command", "command": "serverinfo", "options": {}}]
-    }
     **CRITICAL:** Only execute actions that the user explicitly requested. Do NOT add extra actions like games, challenges, or other commands unless the user specifically asks for them!
 
     **Available Actions - You can perform ANY action the bot can do!**
