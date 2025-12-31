@@ -2,9 +2,17 @@
 description: commit
 alwaysApply: false
 ---
+
 # Commit Standards
 
 This rule defines the standards and best practices for commit messages, commit practices, and version control workflow in the Role Reactor Discord Bot project.
+
+**CRITICAL PRINCIPLES**: Every commit must consider:
+
+1. **Code Review**: Is this commit reviewable as a single, logical unit?
+2. **Git History Clarity**: Does this commit clearly describe what changed and why?
+3. **Rollback of Specific Features**: Can this commit be rolled back without affecting other features?
+4. **Understanding What Changed and When**: Will future developers understand what this commit does?
 
 ## 1. Commit Message Format
 
@@ -159,11 +167,32 @@ BREAKING CHANGE: Avatar command now requires Core credits instead of free genera
 
 ## 3. Commit Practices
 
+### Critical Commit Principles
+
+**ALWAYS consider these four essential aspects when creating commits:**
+
+1. **Code Review**: Each commit should be reviewable as a single, logical unit
+2. **Git History Clarity**: Commit messages should clearly describe what changed and why
+3. **Rollback of Specific Features**: Commits should be granular enough to rollback individual features without affecting others
+4. **Understanding What Changed and When**: Each commit should tell a complete story that can be understood months later
+
+**These principles are non-negotiable and should guide every commit decision.**
+
 ### Atomic Commits
 
 - **One logical change per commit**
 - **Complete and working**: Each commit should leave the codebase in a working state
 - **Focused**: Address one specific issue or feature
+- **Reviewable**: Easy to review as a single unit
+- **Rollback-safe**: Can be reverted without breaking other features
+- **Self-documenting**: Clear what changed and why
+
+#### **Why Atomic Commits Matter:**
+
+- ✅ **Code Review**: Reviewers can understand and review one feature at a time
+- ✅ **Git History Clarity**: `git log` shows a clear progression of changes
+- ✅ **Rollback**: Can revert specific features without affecting others
+- ✅ **Understanding**: Future developers can understand the evolution of the codebase
 
 #### **Good Atomic Commits:**
 
@@ -173,6 +202,13 @@ fix(temp-roles): resolve database index conflicts
 refactor(embeds): consolidate embed creation functions
 ```
 
+Each commit:
+
+- Addresses one specific feature/fix/refactor
+- Can be reviewed independently
+- Can be rolled back independently
+- Tells a clear story in git history
+
 #### **Bad Non-Atomic Commits:**
 
 ```bash
@@ -180,6 +216,13 @@ feat: add XP system, fix temp-roles, update embeds, and refactor handlers
 fix: resolve multiple issues across different systems
 chore: update dependencies and fix linting errors and update documentation
 ```
+
+These commits:
+
+- ❌ Mix multiple unrelated changes (hard to review)
+- ❌ Obscure git history (unclear what changed)
+- ❌ Prevent selective rollback (must revert everything or nothing)
+- ❌ Confuse future developers (unclear what changed and when)
 
 ### Commit Frequency
 
@@ -192,8 +235,17 @@ chore: update dependencies and fix linting errors and update documentation
 
 - **Small commits**: 1-50 lines changed (preferred)
 - **Medium commits**: 50-200 lines changed (acceptable)
-- **Large commits**: 200+ lines changed (review carefully)
-- **Massive commits**: 500+ lines changed (consider splitting)
+- **Large commits**: 200+ lines changed (review carefully - consider splitting)
+- **Massive commits**: 500+ lines changed (MUST split into multiple commits)
+
+**Size Impact on Commit Principles:**
+
+- **Small commits**: ✅ Easy to review, ✅ Clear history, ✅ Easy rollback, ✅ Easy to understand
+- **Medium commits**: ⚠️ Reviewable but may need more time, ⚠️ History is clear, ⚠️ Rollback possible
+- **Large commits**: ❌ Hard to review, ❌ History becomes unclear, ❌ Difficult rollback, ❌ Hard to understand
+- **Massive commits**: ❌❌❌ Violates all commit principles - MUST be split
+
+**Rule of Thumb**: If a commit touches multiple files or systems, it should likely be split into multiple commits.
 
 ## 4. Branch and Workflow Standards
 
@@ -291,9 +343,27 @@ docs: fix typos and improve clarity
 ### Review Standards
 
 - **Self-review**: Review your own commits before pushing
+  - Check: Is this commit reviewable as a single unit?
+  - Check: Is the git history clear from this commit?
+  - Check: Can this feature be rolled back independently?
+  - Check: Will future developers understand what changed and when?
 - **Peer review**: Get feedback on significant changes
+  - Reviewers should be able to understand the commit without context
+  - Reviewers should be able to review the feature in isolation
+  - Reviewers should understand the impact of rolling back this commit
 - **Automated checks**: Ensure all automated checks pass
 - **Manual testing**: Test changes manually when possible
+
+### Commit Review Checklist
+
+Before committing, ask yourself:
+
+1. **Code Review**: ✅ Can a reviewer understand this change without asking questions?
+2. **Git History Clarity**: ✅ Will `git log` clearly show what this commit does?
+3. **Rollback Safety**: ✅ Can I rollback this commit without breaking other features?
+4. **Understanding**: ✅ Will I understand what this commit does 6 months from now?
+
+If any answer is "no", consider splitting the commit or improving the commit message.
 
 ## 7. Common Mistakes to Avoid
 
@@ -308,10 +378,19 @@ docs: fix typos and improve clarity
 ### Commit Practice Mistakes
 
 - ❌ **Non-atomic commits**: Multiple unrelated changes
+  - **Impact**: Makes code review difficult, obscures git history, prevents selective rollback
 - ❌ **Incomplete commits**: Committing broken code
+  - **Impact**: Breaks the codebase, makes rollback necessary, confuses history
 - ❌ **Massive commits**: Too many changes at once
+  - **Impact**: Impossible to review properly, unclear history, risky rollback, hard to understand
 - ❌ **Missing tests**: Not testing changes before commit
+  - **Impact**: May break functionality, requires follow-up commits to fix
 - ❌ **Skipping pre-commit**: Not running quality checks
+  - **Impact**: Introduces technical debt, makes review harder
+- ❌ **Mixing features**: Multiple features in one commit
+  - **Impact**: Cannot rollback one feature without affecting others
+- ❌ **Unclear commit messages**: Vague or missing descriptions
+  - **Impact**: Future developers cannot understand what changed and when
 
 ### Workflow Mistakes
 
@@ -436,9 +515,21 @@ feat: completely rewrite entire bot architecture
 ### During Development
 
 - **Commit frequently**: Don't wait until feature is complete
+  - Each logical step should be its own commit
+  - This creates clear git history showing the evolution of the feature
 - **Use descriptive messages**: Make it clear what each commit does
+  - Future developers (including yourself) need to understand what changed and when
+  - Clear messages make code review easier
 - **Test before commit**: Ensure changes work before committing
+  - Each commit should leave the codebase in a working state
+  - This ensures safe rollback if needed
 - **Update documentation**: Keep docs current with code changes
+  - Document changes in the same commit that makes them
+  - This keeps git history complete and understandable
+- **Think about rollback**: Consider if this commit can be safely reverted
+  - If rolling back would break other features, consider splitting the commit
+- **Think about review**: Consider if a reviewer can understand this commit
+  - If a commit is too complex, split it into smaller, reviewable pieces
 
 ### Before Release
 
@@ -454,457 +545,59 @@ feat: completely rewrite entire bot architecture
 - **Documentation**: Keep team updated on standards
 - **Training**: Ensure all developers understand standards
 
-This commit standard ensures consistent, clear, and maintainable version control practices throughout the Role Reactor Discord Bot project.
-# Commit Standards
+## 11. AI Assistant Guidelines
 
-This rule defines the standards and best practices for commit messages, commit practices, and version control workflow in the Role Reactor Discord Bot project.
+**IMPORTANT**: When creating commits as an AI assistant, ALWAYS:
 
-## 1. Commit Message Format
+1. **Read this file first**: Review commit standards before making any commits
+2. **Apply the four principles**: Always consider code review, git history clarity, rollback, and understanding
+3. **Split large changes**: Never create massive commits - always split into logical, atomic commits
+4. **Use descriptive messages**: Make commit messages clear and specific
+5. **Group related changes**: Commits should contain related changes, not random file modifications
+6. **Review before committing**: Check that each commit follows all standards
 
-### Conventional Commits
+### When Reorganizing Commits
 
-- **Format**: `<type>[optional scope]: <description>`
-- **Follow**: [Conventional Commits](https://www.conventionalcommits.org/) specification
-- **Language**: English only
-- **Case**: Use lowercase for type and scope, sentence case for description
+If you need to reorganize existing commits:
 
-### Commit Types
+1. **Identify logical groups**: Group files by feature/system/concern
+2. **Create atomic commits**: Each commit should address one logical change
+3. **Maintain working state**: Each commit should leave the codebase functional
+4. **Use clear messages**: Each commit message should clearly describe what changed
+5. **Verify rollback safety**: Ensure each commit can be rolled back independently
 
-#### **feat**: New features or functionality
+### Example: Reorganizing a Large Commit
 
-```bash
-feat: add AI avatar generation system
-feat(xp): implement level-up notifications
-feat(polls): add poll creation with custom duration
-```
-
-#### **fix**: Bug fixes and error corrections
-
-```bash
-fix: resolve interaction timeout errors
-fix(xp): fix button navigation after command refactor
-fix(embeds): correct embed color consistency
-```
-
-#### **docs**: Documentation changes only
+**Before (Bad)**:
 
 ```bash
-docs: update README with new setup instructions
-docs(changelog): add XP command simplification
-docs(api): document new webhook endpoints
+chore: add server improvements and config updates
+# 97 files, 8112 insertions, 2291 deletions
+# Mixes: status messages, memory system, feedback removal, credit system,
+#        JSON parser, prompts, tests, config, server improvements
 ```
 
-#### **style**: Code formatting, whitespace, semicolons (no logic changes)
+**After (Good)**:
 
 ```bash
-style: format code with prettier
-style(embeds): remove unused imports
-style: fix linting errors
+feat: centralize AI status messages
+feat: add conversation summarization memory system
+refactor: remove AI feedback system
+feat: implement per-API-call credit deduction
+fix: improve JSON parsing and action execution
+refactor: optimize AI prompt sections
+test: migrate from Jest to Vitest and add new tests
+feat: add prompt configuration system
+refactor: add centralized AI and config management
+feat: add OpenAPI documentation and server improvements
+chore: update workflows and environment config
 ```
 
-#### **refactor**: Code restructuring without changing functionality
-
-```bash
-refactor: simplify XP command structure
-refactor(handlers): consolidate duplicate logic
-refactor: extract common validation functions
-```
-
-#### **perf**: Performance improvements
-
-```bash
-perf: optimize database queries
-perf(embeds): reduce embed creation time
-perf: implement caching for role lookups
-```
-
-#### **test**: Adding or updating tests
-
-```bash
-test: add unit tests for role parser
-test(xp): add integration tests for XP system
-test: update test coverage for temp-roles
-```
-
-#### **chore**: Maintenance tasks, dependency updates
-
-```bash
-chore: update discord.js to v14.15.0
-chore(deps): bump axios from 1.4.0 to 1.5.0
-chore: update deployment scripts
-```
-
-#### **ci**: Continuous integration changes
-
-```bash
-ci: add automated testing workflow
-ci: update GitHub Actions configuration
-ci: fix deployment pipeline
-```
-
-#### **build**: Build system or external dependencies
-
-```bash
-build: update webpack configuration
-build: add Docker multi-stage builds
-build: optimize bundle size
-```
-
-### Scope Guidelines
-
-#### **Use Scopes For:**
-
-- **Commands**: `feat(xp)`, `fix(temp-roles)`, `refactor(welcome)`
-- **Systems**: `feat(embeds)`, `fix(database)`, `perf(interactions)`
-- **Components**: `feat(buttons)`, `fix(modals)`, `refactor(routers)`
-- **Infrastructure**: `chore(docker)`, `ci(github)`, `build(webpack)`
-
-#### **Don't Use Scopes For:**
-
-- **General changes**: `feat: add new feature` (not `feat(general)`)
-- **Multiple systems**: `fix: resolve multiple issues` (not `fix(multiple)`)
-- **Documentation**: `docs: update README` (not `docs(readme)`)
-
-### Description Guidelines
-
-#### **Good Descriptions:**
-
-- ✅ **Clear and concise**: "add AI avatar generation system"
-- ✅ **Action-oriented**: "fix interaction timeout errors"
-- ✅ **Specific**: "implement level-up notifications for XP system"
-- ✅ **Present tense**: "add", "fix", "implement", "update"
-
-#### **Bad Descriptions:**
-
-- ❌ **Vague**: "fix stuff", "update things", "changes"
-- ❌ **Past tense**: "added", "fixed", "implemented"
-- ❌ **Too long**: "This commit adds a comprehensive AI-powered avatar generation system with multiple style options and content filtering"
-- ❌ **Technical jargon**: "refactor handler architecture for improved maintainability"
-
-## 2. Commit Body Standards
-
-### When to Use Commit Body
-
-- **Complex changes**: Explain the reasoning behind the change
-- **Breaking changes**: Document what breaks and migration steps
-- **Multiple changes**: List all significant changes
-- **Context needed**: Provide background information
-
-### Commit Body Format
-
-```bash
-feat: add AI avatar generation system
-
-- Implement AI-powered avatar generation with multiple style options
-- Add content filtering with 97.6% accuracy for inappropriate content
-- Integrate Ko-fi credit system for avatar generation
-- Add comprehensive error handling and rate limiting
-
-BREAKING CHANGE: Avatar command now requires Core credits instead of free generation
-```
-
-### Breaking Changes
-
-- **Format**: `BREAKING CHANGE: <description>`
-- **Required**: For any commit that breaks existing functionality
-- **Location**: At the end of commit body
-- **Description**: Explain what breaks and how to migrate
-
-## 3. Commit Practices
-
-### Atomic Commits
-
-- **One logical change per commit**
-- **Complete and working**: Each commit should leave the codebase in a working state
-- **Focused**: Address one specific issue or feature
-
-#### **Good Atomic Commits:**
-
-```bash
-feat(xp): add level-up notification system
-fix(temp-roles): resolve database index conflicts
-refactor(embeds): consolidate embed creation functions
-```
-
-#### **Bad Non-Atomic Commits:**
-
-```bash
-feat: add XP system, fix temp-roles, update embeds, and refactor handlers
-fix: resolve multiple issues across different systems
-chore: update dependencies and fix linting errors and update documentation
-```
-
-### Commit Frequency
-
-- **Regular commits**: Commit working changes frequently
-- **Feature branches**: Commit progress regularly, not just at completion
-- **Bug fixes**: Commit fixes immediately when resolved
-- **Documentation**: Commit docs updates with related code changes
-
-### Commit Size Guidelines
-
-- **Small commits**: 1-50 lines changed (preferred)
-- **Medium commits**: 50-200 lines changed (acceptable)
-- **Large commits**: 200+ lines changed (review carefully)
-- **Massive commits**: 500+ lines changed (consider splitting)
-
-## 4. Branch and Workflow Standards
-
-### Branch Naming
-
-- **Feature branches**: `feat/feature-name` (e.g., `feat/ai-avatars`)
-- **Bug fix branches**: `fix/issue-description` (e.g., `fix/xp-timeout`)
-- **Hotfix branches**: `hotfix/critical-issue` (e.g., `hotfix/security-patch`)
-- **Refactor branches**: `refactor/component-name` (e.g., `refactor/xp-handlers`)
-
-### Commit Workflow
-
-1. **Create feature branch** from main
-2. **Make atomic commits** with clear messages
-3. **Test changes** before committing
-4. **Run pre-commit hooks** (linting, formatting)
-5. **Push regularly** to backup work
-6. **Create pull request** when feature is complete
-7. **Squash commits** if needed during review
-8. **Merge to main** after approval
-
-### Pre-commit Requirements
-
-- **Linting**: All code must pass ESLint checks
-- **Formatting**: All code must pass Prettier formatting
-- **Tests**: All tests must pass (when applicable)
-- **Build**: Project must build successfully
-
-## 5. Version Control Best Practices
-
-### File Organization
-
-- **Logical grouping**: Group related changes together
-- **Consistent structure**: Follow established project patterns
-- **Clear separation**: Separate concerns into different files
-- **Documentation**: Update docs with code changes
-
-### Commit Messages for Different Scenarios
-
-#### **New Feature Development:**
-
-```bash
-feat: add initial feature structure
-feat: implement core functionality
-feat: add user interface components
-feat: integrate with existing systems
-test: add comprehensive test coverage
-docs: update documentation for new feature
-```
-
-#### **Bug Fix Process:**
-
-```bash
-fix: identify and isolate the issue
-fix: implement the solution
-test: add regression tests
-docs: update changelog with fix details
-```
-
-#### **Refactoring Process:**
-
-```bash
-refactor: extract common functionality
-refactor: simplify complex logic
-refactor: improve code organization
-test: update tests for refactored code
-docs: update documentation for changes
-```
-
-#### **Documentation Updates:**
-
-```bash
-docs: update README with new features
-docs(changelog): add recent changes
-docs(api): document new endpoints
-docs: fix typos and improve clarity
-```
-
-## 6. Quality Standards
-
-### Commit Message Quality
-
-- **Clarity**: Clear what the commit does
-- **Consistency**: Follow established patterns
-- **Completeness**: Include all necessary information
-- **Accuracy**: Describe what actually changed
-
-### Code Quality
-
-- **Working code**: Each commit should leave the codebase functional
-- **Tested changes**: Test changes before committing
-- **Clean code**: Follow project coding standards
-- **Documentation**: Update docs with significant changes
-
-### Review Standards
-
-- **Self-review**: Review your own commits before pushing
-- **Peer review**: Get feedback on significant changes
-- **Automated checks**: Ensure all automated checks pass
-- **Manual testing**: Test changes manually when possible
-
-## 7. Common Mistakes to Avoid
-
-### Commit Message Mistakes
-
-- ❌ **Unclear messages**: "fix stuff", "update things"
-- ❌ **Wrong type**: Using "feat" for bug fixes
-- ❌ **Missing scope**: Not using scope when it would be helpful
-- ❌ **Too verbose**: Overly long descriptions
-- ❌ **Past tense**: Using "added" instead of "add"
-
-### Commit Practice Mistakes
-
-- ❌ **Non-atomic commits**: Multiple unrelated changes
-- ❌ **Incomplete commits**: Committing broken code
-- ❌ **Massive commits**: Too many changes at once
-- ❌ **Missing tests**: Not testing changes before commit
-- ❌ **Skipping pre-commit**: Not running quality checks
-
-### Workflow Mistakes
-
-- ❌ **Committing to main**: Making changes directly on main branch
-- ❌ **Inconsistent branching**: Not following branch naming conventions
-- ❌ **Missing documentation**: Not updating docs with code changes
-- ❌ **Ignoring feedback**: Not addressing review comments
-
-## 8. Tools and Automation
-
-### Pre-commit Hooks
-
-- **ESLint**: Code linting and style checking
-- **Prettier**: Code formatting
-- **Jest**: Test execution
-- **Commitlint**: Commit message validation
-
-### Git Configuration
-
-```bash
-# Set up commit message template
-git config commit.template .gitmessage
-
-# Set up pre-commit hooks
-npm install --save-dev husky lint-staged
-
-# Configure commit message validation
-npm install --save-dev @commitlint/cli @commitlint/config-conventional
-```
-
-### IDE Integration
-
-- **VS Code**: Use GitLens extension for better git integration
-- **Commitizen**: Use `cz` command for conventional commits
-- **Git hooks**: Configure pre-commit hooks in IDE
-
-## 9. Examples
-
-### Good Commit Examples
-
-#### **Feature Addition:**
-
-```bash
-feat(xp): add level-up notification system
-
-- Implement automatic level-up notifications
-- Add configurable notification channels
-- Support custom level-up messages
-- Integrate with existing XP system
-
-Closes #123
-```
-
-#### **Bug Fix:**
-
-```bash
-fix(temp-roles): resolve database index conflicts
-
-- Fix MongoDB duplicate key errors
-- Add proper error handling for conflicts
-- Implement retry logic for failed operations
-- Update error messages for better debugging
-
-Fixes #456
-```
-
-#### **Refactoring:**
-
-```bash
-refactor(embeds): consolidate embed creation functions
-
-- Extract common embed creation logic
-- Reduce code duplication across commands
-- Improve maintainability and consistency
-- Update all commands to use new functions
-```
-
-#### **Documentation:**
-
-```bash
-docs: update README with new setup instructions
-
-- Add Docker setup instructions
-- Update environment variable documentation
-- Include troubleshooting section
-- Fix outdated command examples
-```
-
-### Bad Commit Examples
-
-#### **Poor Messages:**
-
-```bash
-# Too vague
-fix: stuff
-
-# Wrong type
-feat: fix bug
-
-# Too verbose
-feat: implement comprehensive AI-powered avatar generation system with multiple style options, content filtering, Ko-fi integration, and extensive error handling
-
-# Past tense
-feat: added new feature
-```
-
-#### **Non-Atomic Commits:**
-
-```bash
-# Multiple unrelated changes
-feat: add XP system, fix temp-roles, update embeds, refactor handlers
-
-# Incomplete changes
-feat: start implementing avatar system
-
-# Too many changes
-feat: completely rewrite entire bot architecture
-```
-
-## 10. Integration with Development
-
-### During Development
-
-- **Commit frequently**: Don't wait until feature is complete
-- **Use descriptive messages**: Make it clear what each commit does
-- **Test before commit**: Ensure changes work before committing
-- **Update documentation**: Keep docs current with code changes
-
-### Before Release
-
-- **Review commit history**: Ensure all commits follow standards
-- **Squash if needed**: Combine related commits for cleaner history
-- **Update changelog**: Document all significant changes
-- **Tag releases**: Use semantic versioning for releases
-
-### Team Collaboration
-
-- **Consistent standards**: All team members follow same rules
-- **Code reviews**: Review commits for quality and standards
-- **Documentation**: Keep team updated on standards
-- **Training**: Ensure all developers understand standards
+Each commit is now:
+
+- ✅ Reviewable as a single unit
+- ✅ Clear in git history
+- ✅ Rollback-safe independently
+- ✅ Understandable months later
 
 This commit standard ensures consistent, clear, and maintainable version control practices throughout the Role Reactor Discord Bot project.
