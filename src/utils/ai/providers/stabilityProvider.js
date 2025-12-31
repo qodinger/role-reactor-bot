@@ -107,8 +107,6 @@ export class StabilityProvider {
       headers: {
         Authorization: `Bearer ${this.config.apiKey}`,
         Accept: "image/*",
-        "Stability-Client-ID": "rolereactor-bot",
-        "Stability-Client-Version": "1.0.0",
       },
       body: formData,
     });
