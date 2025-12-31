@@ -57,6 +57,37 @@ async function getConfig() {
   }
 
   try {
+    // Try new AI config first
+    const aiConfigModule = await import("../../config/ai.js").catch(() => null);
+    if (aiConfigModule) {
+      const getFeatureCosts =
+        aiConfigModule.getAIFeatureCosts ||
+        aiConfigModule.default?.getAIFeatureCosts;
+      if (getFeatureCosts) {
+        const featureCosts =
+          typeof getFeatureCosts === "function"
+            ? getFeatureCosts()
+            : getFeatureCosts;
+        const chatValue = featureCosts?.aiChat;
+        const imageValue = featureCosts?.aiImage;
+
+        if (typeof chatValue === "number" && chatValue > 0) {
+          chatConfigCache = chatValue;
+        } else {
+          chatConfigCache = DEFAULT_CREDITS_PER_CHAT;
+        }
+
+        if (typeof imageValue === "number" && imageValue > 0) {
+          imageConfigCache = imageValue;
+        } else {
+          imageConfigCache = DEFAULT_CREDITS_PER_IMAGE;
+        }
+
+        return { aiChat: chatConfigCache, aiImage: imageConfigCache };
+      }
+    }
+
+    // Fallback to old config location for backward compatibility
     const configModule = await import("../../config/config.js").catch(
       () => null,
     );
@@ -112,6 +143,7 @@ function validateUserId(userId) {
 
 /**
  * Check if user has enough credits for AI request
+ * Accounts for potential re-queries (checks for 2x cost to cover initial + re-query)
  * All users must pay Core credits for AI requests (no unlimited access)
  * @param {string} userId - User ID
  * @returns {Promise<{hasCredits: boolean, credits: number, creditsNeeded: number, isCoreMember: boolean}>}
@@ -139,15 +171,17 @@ export async function checkAICredits(userId) {
       credits: 0,
     };
 
-    // Check if user has enough credits
-    // All users must pay, including Core members
+    // Check if user has enough credits for potential re-queries
+    // Re-queries can happen when AI needs to fetch data or execute commands
+    // Check for 2x cost to cover initial API call + potential re-query
     const creditsPerRequest = getCreditsPerRequestValue();
-    const hasEnoughCredits = creditData.credits >= creditsPerRequest;
+    const creditsNeededForReQuery = creditsPerRequest * 2; // Initial + potential re-query
+    const hasEnoughCredits = creditData.credits >= creditsNeededForReQuery;
 
     return {
       hasCredits: hasEnoughCredits,
       credits: creditData.credits || 0,
-      creditsNeeded: creditsPerRequest,
+      creditsNeeded: creditsPerRequest, // Return single request cost for display
       isCoreMember: false, // Legacy field, always false now
     };
   } catch (error) {
