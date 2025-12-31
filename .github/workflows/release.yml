@@ -35,13 +35,7 @@ jobs:
         run: pnpm lint
 
       - name: Run tests
-        run: |
-          if pnpm test; then
-            echo "✅ All tests passed"
-          else
-            echo "❌ Tests failed - stopping release process"
-            exit 1
-          fi
+        run: pnpm test:ci
         env:
           CLIENT_ID: "123456789012345678"
           DISCORD_TOKEN: "test_token_for_release"
@@ -53,7 +47,8 @@ jobs:
           # Extract version from tag and package.json
           TAG_VERSION=${GITHUB_REF#refs/tags/}
           TAG_VERSION_CLEAN=${TAG_VERSION#v}
-          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          # Use ES module compatible method to read package.json (works with "type": "module")
+          PACKAGE_VERSION=$(node -e "import('fs').then(fs => console.log(JSON.parse(fs.readFileSync('./package.json', 'utf8')).version))")
 
           echo "Tag version: $TAG_VERSION_CLEAN"
           echo "Package.json version: $PACKAGE_VERSION"
