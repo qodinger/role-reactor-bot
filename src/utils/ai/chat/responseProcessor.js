@@ -1,0 +1,230 @@
+import { jsonParser } from "../jsonParser.js";
+import { responseValidator } from "../responseValidator.js";
+import { checkAndDeductAICredits } from "../aiCreditManager.js";
+import { MAX_RESPONSE_LENGTH } from "../constants.js";
+import { getLogger } from "../../logger.js";
+
+const logger = getLogger();
+
+/**
+ * Parse AI response (JSON or plain text)
+ * Handles JSON parsing, action extraction, and fallback logic
+ * @param {string} rawResponse - Raw response text from AI
+ * @param {boolean} hasDetectedActions - Whether actions were detected during streaming (for fallback)
+ * @returns {Object} Parsed response with message and actions
+ */
+export function parseAIResponse(rawResponse, hasDetectedActions = false) {
+  const parseResult = jsonParser.parseJsonResponse(rawResponse);
+
+  if (parseResult.success) {
+    // JSON format detected
+    let finalMessage =
+      typeof parseResult.data.message === "string"
+        ? parseResult.data.message
+        : String(parseResult.data.message || "");
+    const actions = Array.isArray(parseResult.data.actions)
+      ? parseResult.data.actions
+      : [];
+
+    // Post-processing: If actions array is empty, convert to plain text format
+    if (actions.length === 0) {
+      logger.debug(
+        `[AI] JSON format with empty actions - converting to plain text`,
+      );
+    }
+
+    // If parsed message is "No response generated" (fallback), treat it as empty
+    if (
+      finalMessage === "No response generated." ||
+      finalMessage.trim() === ""
+    ) {
+      finalMessage = "";
+    }
+
+    // Log parsed JSON structure (debug level)
+    if (actions.length > 0) {
+      logger.debug(`[AI] Parsed JSON response with ${actions.length} actions`);
+    }
+
+    return { success: true, message: finalMessage, actions };
+  } else {
+    // Plain text format - no actions
+    let finalMessage = rawResponse.trim();
+    let actions = [];
+
+    // Fallback: If parsing failed but we detected actions during streaming,
+    // try to extract actions manually from raw text
+    if (
+      !parseResult.success &&
+      hasDetectedActions &&
+      rawResponse.trim().startsWith("{")
+    ) {
+      logger.warn(
+        `[AI] JSON parsing failed but actions detected - attempting manual extraction`,
+      );
+      try {
+        // Try to extract actions array using regex as fallback
+        const actionsMatch = rawResponse.match(
+          /"actions"\s*:\s*\[([\s\S]*?)\]/,
+        );
+        if (actionsMatch) {
+          // Try to parse just the actions array
+          const actionsJson = `[${actionsMatch[1]}]`;
+          // Strip comments from actions JSON
+          const cleanedActionsJson = actionsJson
+            .replace(/\/\/.*$/gm, "")
+            .replace(/\/\*[\s\S]*?\*\//g, "");
+          const extractedActions = JSON.parse(cleanedActionsJson);
+          if (Array.isArray(extractedActions) && extractedActions.length > 0) {
+            actions = extractedActions;
+            // Try to extract message field
+            const messageMatch = rawResponse.match(
+              /"message"\s*:\s*"([^"]*)"|"message"\s*:\s*""/,
+            );
+            if (messageMatch) {
+              finalMessage = messageMatch[1] || "";
+            }
+            logger.info(
+              `[AI] Successfully extracted ${actions.length} action(s) from raw text`,
+            );
+          }
+        }
+      } catch (fallbackError) {
+        logger.warn(
+          `[AI] Fallback extraction failed: ${fallbackError.message}`,
+        );
+      }
+    }
+
+    logger.debug(`[AI] Plain text response (no actions)`);
+    return { success: false, message: finalMessage, actions };
+  }
+}
+
+/**
+ * Validate and sanitize AI response
+ * @param {string} response - AI response text
+ * @param {import('discord.js').Guild} guild - Discord guild (optional)
+ * @param {boolean} isJsonResponse - Whether response is from JSON parsing
+ * @returns {string} Validated and sanitized response
+ */
+export function validateAndSanitizeResponse(response, guild, isJsonResponse) {
+  // Handle null/undefined/empty responses
+  if (!response || typeof response !== "string") {
+    return response || "";
+  }
+
+  // Validate response data accuracy (only for plain text responses)
+  if (guild && !isJsonResponse) {
+    const validation = responseValidator.validateResponseData(response, guild);
+    if (!validation.valid || validation.warnings.length > 0) {
+      logger.warn(
+        `[AI] Data validation warnings: ${validation.warnings.length} issue(s)`,
+      );
+      validation.warnings.forEach(warning => {
+        logger.debug(`[AI] Validation: ${warning}`);
+      });
+    }
+
+    // Check for placeholder data usage
+    const placeholderPatterns = [
+      "[ACTUAL_MEMBER",
+      "[ACTUAL_USERNAME",
+      "[ACTUAL_ROLE_NAME",
+      "[ACTUAL_CHANNEL_NAME",
+      "[ACTUAL_USER_ID",
+      "[ACTUAL_ROLE_ID",
+      "[ACTUAL_CHANNEL_ID",
+      "[ROLE_NAME]",
+      "[ACTUAL_",
+    ];
+    const usedPlaceholders = placeholderPatterns.some(pattern =>
+      response.includes(pattern),
+    );
+    if (usedPlaceholders) {
+      logger.error(
+        `[AI] CRITICAL: Response contains placeholder patterns instead of real data`,
+      );
+    }
+  }
+
+  // Sanitize response
+  const beforeSanitize = response;
+  let sanitized = responseValidator.sanitizeData(response);
+
+  // Check response length
+  if (sanitized && sanitized.length > MAX_RESPONSE_LENGTH) {
+    logger.warn(
+      `[AI] Response exceeds max length (${sanitized.length} > ${MAX_RESPONSE_LENGTH}), truncating`,
+    );
+    sanitized = `${sanitized.substring(0, MAX_RESPONSE_LENGTH - 3)}...`;
+  }
+
+  // Log sanitization
+  if (beforeSanitize !== sanitized) {
+    logger.debug(`[AI] Response was sanitized (sensitive data removed)`);
+  }
+
+  return sanitized;
+}
+
+/**
+ * Deduct credits for an API call if it actually costs money
+ * Only deducts when API call succeeded and consumed tokens
+ * @param {string} userId - User ID
+ * @param {Object} result - API result object
+ * @param {string} callType - Type of call: 'initial', 're-query', 'streaming'
+ * @param {string} fallbackText - Fallback text for streaming (fullText)
+ * @returns {Promise<void>}
+ */
+export async function deductCreditsIfNeeded(
+  userId,
+  result,
+  callType,
+  fallbackText = "",
+) {
+  if (!userId) return;
+
+  const responseText = result?.text || result?.response || fallbackText || "";
+  const hasValidContent =
+    responseText.trim().length > 0 && responseText !== "No response generated.";
+
+  // Check usage data - definitive indicator that tokens were consumed = costs money
+  const hasUsageData =
+    result?.usage &&
+    (result.usage.prompt_tokens > 0 ||
+      result.usage.completion_tokens > 0 ||
+      result.usage.total_tokens > 0);
+
+  // For streaming, also check if we have content (stream completed = tokens consumed)
+  const hasContent = callType === "streaming" && fallbackText.trim().length > 0;
+  const shouldDeduct = hasValidContent && (hasUsageData || hasContent);
+
+  if (!shouldDeduct) {
+    if (!hasValidContent) {
+      logger.warn(
+        `Skipping credit deduction for ${callType} for user ${userId}: API call returned empty or invalid content`,
+      );
+    }
+    return;
+  }
+
+  // Warn if we're deducting without usage data (might be self-hosted)
+  if (!hasUsageData && hasValidContent) {
+    logger.warn(
+      `Deducting credits for ${callType} without usage data for user ${userId} (provider: ${result?.provider || "unknown"}) - assuming tokens were consumed`,
+    );
+  }
+
+  const deductionResult = await checkAndDeductAICredits(userId);
+  if (!deductionResult.success) {
+    logger.error(
+      `Failed to deduct credits for ${callType} API call for user ${userId}: ${deductionResult.error}`,
+    );
+    // Continue anyway - don't fail the request, but log the error
+  } else {
+    logger.debug(
+      `Deducted ${deductionResult.creditsDeducted} Core for ${callType} API call (${deductionResult.creditsRemaining} remaining)`,
+    );
+  }
+}
