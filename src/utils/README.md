@@ -22,7 +22,6 @@ src/utils/
 │   ├── conversationManager.js
 │   ├── dataFetcher.js
 │   ├── discordActionExecutor.js
-│   ├── feedbackManager.js
 │   ├── jsonParser.js
 │   ├── modelOptimizer.js
 │   ├── multiProviderAIService.js
@@ -101,7 +100,6 @@ src/utils/
 │   │   ├── CoreCreditsRepository.js
 │   │   ├── ScheduledRoleRepository.js
 │   │   ├── RecurringScheduleRepository.js
-│   │   ├── AIFeedbackRepository.js
 │   │   └── index.js
 │   ├── sessionManager.js
 │   └── storageManager.js

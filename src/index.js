@@ -93,7 +93,10 @@ async function validateEnvironment() {
     }
     logger.info("✅ Configuration validated successfully");
   } else {
-    logger.info("⚠️ Config validation skipped (config.validate not available)");
+    // Only log in debug mode - config.js is optional, using environment variables
+    logger.debug(
+      "Config validation skipped (config.js not found, using environment variables)",
+    );
   }
 }
 
@@ -668,13 +671,6 @@ async function main() {
       import("./commands/general/avatar/utils/generationHistory.js").then(
         ({ GenerationHistory }) => {
           GenerationHistory.startAutoCleanup();
-        },
-      );
-
-      // Start periodic cleanup for feedback contexts
-      import("./utils/ai/feedbackManager.js").then(
-        ({ startFeedbackContextCleanup }) => {
-          startFeedbackContextCleanup();
         },
       );
 

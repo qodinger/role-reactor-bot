@@ -1,9 +1,4 @@
-import {
-  EmbedBuilder,
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-} from "discord.js";
+import { EmbedBuilder } from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
 import { chatService } from "../../../utils/ai/chatService.js";
 import { THEME, EMOJIS } from "../../../config/theme.js";
@@ -11,7 +6,6 @@ import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 import { getUserData } from "../../general/core/utils.js";
 import {
   checkAICredits,
-  checkAndDeductAICredits,
   getAICreditInfo,
 } from "../../../utils/ai/aiCreditManager.js";
 import { emojiConfig } from "../../../config/emojis.js";
@@ -303,13 +297,41 @@ export async function execute(interaction, client) {
       );
     }
 
-    // Handle response format (can be string or object with text and commandResponses)
+    // Handle response format (can be string or object with text, actions, and commandResponses)
     const responseText =
       typeof response === "string" ? response : response?.text || null;
+    const responseActions =
+      typeof response === "object" && Array.isArray(response?.actions)
+        ? response.actions
+        : [];
     const commandResponses =
       typeof response === "object" && response?.commandResponses
         ? response.commandResponses
         : [];
+
+    // Execute actions if present (for streaming mode, actions are returned but not executed)
+    if (responseActions.length > 0 && interaction.guild) {
+      try {
+        const { ActionExecutor } = await import(
+          "../../../utils/ai/actionExecutor.js"
+        );
+        const actionExecutor = new ActionExecutor();
+        // Execute actions - commands send their responses directly to the channel
+        await actionExecutor.executeStructuredActions(
+          responseActions,
+          interaction.guild,
+          client,
+          interaction.user,
+          interaction.channel,
+        );
+        logger.debug(
+          `[ask] Executed ${responseActions.length} action(s) from streaming response`,
+        );
+      } catch (actionError) {
+        logger.error("[ask] Failed to execute actions:", actionError);
+        // Continue - don't fail the entire request if actions fail
+      }
+    }
 
     // If response is empty (e.g., command already sent its response), don't send an empty embed
     if (!responseText || responseText.trim().length === 0) {
@@ -366,23 +388,8 @@ export async function execute(interaction, client) {
       })
       .setTimestamp();
 
-    // Create feedback buttons
-    const feedbackRow = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId(`ai_feedback_positive_${interaction.id}`)
-        .setLabel("Helpful")
-        .setEmoji("👍")
-        .setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder()
-        .setCustomId(`ai_feedback_negative_${interaction.id}`)
-        .setLabel("Not Helpful")
-        .setEmoji("👎")
-        .setStyle(ButtonStyle.Secondary),
-    );
-
     const replyMessage = await interaction.editReply({
       embeds: [embed],
-      components: [feedbackRow],
     });
 
     // Unregister status message (request is complete)
@@ -397,49 +404,8 @@ export async function execute(interaction, client) {
       }
     }
 
-    const deductionResult = await checkAndDeductAICredits(interaction.user.id);
-    if (!deductionResult.success) {
-      logger.error(
-        `Failed to deduct credits after successful generation for user ${interaction.user.id}: ${deductionResult.error}`,
-      );
-    } else {
-      logger.debug(
-        `Deducted ${deductionResult.creditsDeducted} Core from user ${interaction.user.id} (${deductionResult.creditsRemaining} remaining)`,
-      );
-    }
-
-    // Store message ID and context for feedback in database
-    if (replyMessage && typeof replyMessage === "object" && replyMessage.id) {
-      try {
-        const { getDatabaseManager } = await import(
-          "../../../utils/storage/databaseManager.js"
-        );
-        const db = await getDatabaseManager();
-        if (db && db.aiFeedback) {
-          await db.aiFeedback.setFeedbackContext(replyMessage.id, {
-            userId: interaction.user.id,
-            guildId: interaction.guild?.id || null,
-            userMessage: question,
-            aiResponse: responseText,
-            timestamp: Date.now(),
-          });
-        }
-      } catch (error) {
-        // Fallback to in-memory storage if database fails
-        logger.debug(
-          "Failed to store feedback context in DB, using memory:",
-          error,
-        );
-        global.aiFeedbackContext = global.aiFeedbackContext || new Map();
-        global.aiFeedbackContext.set(replyMessage.id, {
-          userId: interaction.user.id,
-          guildId: interaction.guild?.id || null,
-          userMessage: question,
-          aiResponse: responseText,
-          timestamp: Date.now(),
-        });
-      }
-    }
+    // Credits are now deducted per API call in chatService, not per command
+    // This ensures users pay for each API call (including re-queries)
 
     // Send command responses as separate messages (embeds) to make it look like commands were actually executed
     if (commandResponses.length > 0) {

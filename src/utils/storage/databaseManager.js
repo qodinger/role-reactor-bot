@@ -14,7 +14,6 @@ import {
   CoreCreditsRepository,
   ScheduledRoleRepository,
   RecurringScheduleRepository,
-  AIFeedbackRepository,
 } from "./repositories/index.js";
 
 // Enhanced cache manager with TTL and size limits
@@ -450,22 +449,6 @@ class ConnectionManager {
       await this.db.collection("imagine_jobs").createIndex({ createdAt: 1 });
       await this.db.collection("imagine_jobs").createIndex({ expiresAt: 1 });
 
-      // AI Feedback indexes
-      await this.db.collection("ai_feedback").createIndex({ userId: 1 });
-      await this.db.collection("ai_feedback").createIndex({ messageId: 1 });
-      await this.db.collection("ai_feedback").createIndex({ timestamp: -1 });
-      await this.db
-        .collection("ai_feedback")
-        .createIndex({ userId: 1, guildId: 1 });
-
-      // AI Feedback Contexts (TTL index for auto-deletion after 1 hour)
-      await this.db
-        .collection("ai_feedback_contexts")
-        .createIndex({ messageId: 1 }, { unique: true });
-      await this.db
-        .collection("ai_feedback_contexts")
-        .createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
-
       this.logger.success("✅ Database indexes created successfully");
     } catch (error) {
       this.logger.warn("⚠️ Index creation failed (non-critical)", error);
@@ -512,7 +495,6 @@ class DatabaseManager {
     this.conversations = null;
     this.avatarJobs = null;
     this.imagineJobs = null;
-    this.aiFeedback = null;
     // Initialize connection manager asynchronously (non-blocking)
     this._initializeConnectionManager().catch(() => {
       // Silently fail - will be initialized on first connect
@@ -633,27 +615,6 @@ class DatabaseManager {
           this.logger,
           "imagine_jobs",
         );
-        this.aiFeedback = new AIFeedbackRepository(
-          db,
-          this.cacheManager,
-          this.logger,
-        );
-
-        // Create TTL index for feedback contexts (auto-delete after 1 hour)
-        try {
-          const contextCollection = db.collection("ai_feedback_contexts");
-          await contextCollection.createIndex(
-            { expiresAt: 1 },
-            { expireAfterSeconds: 0 },
-          );
-          this.logger.debug("✅ Created TTL index for ai_feedback_contexts");
-        } catch (error) {
-          // Index might already exist, ignore
-          this.logger.debug(
-            "TTL index for ai_feedback_contexts:",
-            error.message,
-          );
-        }
 
         this.logger.info(
           "✅ All database repositories initialized successfully",

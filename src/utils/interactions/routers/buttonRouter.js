@@ -99,12 +99,17 @@ export async function routeButtonInteraction(interaction, _client) {
       return;
     }
 
-    // Handle AI feedback buttons
+    // AI feedback buttons removed - ignore any legacy feedback button clicks
     if (customId.startsWith("ai_feedback_")) {
-      const { handleAIFeedbackButton } = await import(
-        "../../../utils/ai/feedbackManager.js"
+      logger.debug(
+        `Legacy AI feedback button clicked (system removed): ${customId}`,
       );
-      await handleAIFeedbackButton(interaction);
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({
+          content: "❌ Feedback system has been removed.",
+          ephemeral: true,
+        });
+      }
       return;
     }
 
