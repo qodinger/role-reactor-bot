@@ -1,23 +1,41 @@
-import { describe, test, expect, jest } from "@jest/globals";
+import { describe, test, expect, vi } from "vitest";
 
 // IMPORTANT: Mocks must be defined BEFORE importing the module under test
 // Mock MongoDB directly to prevent real connections
-jest.mock("mongodb", () => {
-  const mockMongoClient = {
-    connect: jest.fn().mockResolvedValue({
-      db: jest.fn().mockReturnValue({
-        collection: jest.fn().mockReturnValue({
-          find: jest.fn(),
-          updateOne: jest.fn(),
-          deleteOne: jest.fn(),
-        }),
-      }),
-      close: jest.fn().mockResolvedValue(undefined),
+vi.mock("mongodb", () => {
+  const mockCollection = {
+    find: vi.fn().mockReturnValue({
+      toArray: vi.fn().mockResolvedValue([]),
     }),
-    close: jest.fn().mockResolvedValue(undefined),
+    findOne: vi.fn().mockResolvedValue(null),
+    insertOne: vi.fn().mockResolvedValue({ insertedId: "mock-id" }),
+    updateOne: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
+    replaceOne: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
+    deleteOne: vi.fn().mockResolvedValue({ deletedCount: 1 }),
+    deleteMany: vi.fn().mockResolvedValue({ deletedCount: 0 }),
+    createIndex: vi.fn().mockResolvedValue({}),
   };
+  const mockDb = {
+    collection: vi.fn().mockReturnValue(mockCollection),
+    admin: vi.fn().mockReturnValue({
+      ping: vi.fn().mockResolvedValue({}),
+    }),
+  };
+  const mockMongoClient = {
+    connect: vi.fn().mockResolvedValue({
+      db: vi.fn().mockReturnValue(mockDb),
+      close: vi.fn().mockResolvedValue(undefined),
+    }),
+    db: vi.fn().mockReturnValue(mockDb),
+    close: vi.fn().mockResolvedValue(undefined),
+  };
+  class MongoClient {
+    constructor() {
+      Object.assign(this, mockMongoClient);
+    }
+  }
   return {
-    MongoClient: jest.fn(() => mockMongoClient),
+    MongoClient,
   };
 });
 
@@ -27,41 +45,41 @@ const mockDbManager = {
   welcomeSettings: { exists: true },
   goodbyeSettings: {},
   connectionManager: {
-    db: { collection: jest.fn() },
-    connect: jest.fn().mockResolvedValue(undefined),
+    db: { collection: vi.fn() },
+    connect: vi.fn().mockResolvedValue(undefined),
   },
-  connect: jest.fn().mockResolvedValue(undefined),
-  logger: { warn: jest.fn(), error: jest.fn(), info: jest.fn() },
+  connect: vi.fn().mockResolvedValue(undefined),
+  logger: { warn: vi.fn(), error: vi.fn(), info: vi.fn() },
 };
 
-jest.mock("src/utils/storage/databaseManager.js", () => ({
-  getDatabaseManager: jest.fn().mockResolvedValue(mockDbManager),
-  DatabaseManager: jest.fn(() => mockDbManager),
+vi.mock("src/utils/storage/databaseManager.js", () => ({
+  getDatabaseManager: vi.fn().mockResolvedValue(mockDbManager),
+  DatabaseManager: vi.fn(() => mockDbManager),
 }));
 
 // Mock storage manager to prevent MongoDB connections
 const mockStorageManager = {
-  read: jest.fn().mockResolvedValue({}),
-  write: jest.fn().mockResolvedValue(true),
-  get: jest.fn().mockResolvedValue({}),
-  save: jest.fn().mockResolvedValue(true),
-  delete: jest.fn().mockResolvedValue(true),
-  initialize: jest.fn().mockResolvedValue(undefined),
+  read: vi.fn().mockResolvedValue({}),
+  write: vi.fn().mockResolvedValue(true),
+  get: vi.fn().mockResolvedValue({}),
+  save: vi.fn().mockResolvedValue(true),
+  delete: vi.fn().mockResolvedValue(true),
+  initialize: vi.fn().mockResolvedValue(undefined),
   isInitialized: true,
 };
 
-jest.mock("src/utils/storage/storageManager.js", () => ({
-  getStorageManager: jest.fn().mockResolvedValue(mockStorageManager),
-  StorageManager: jest.fn(() => mockStorageManager),
+vi.mock("src/utils/storage/storageManager.js", () => ({
+  getStorageManager: vi.fn().mockResolvedValue(mockStorageManager),
+  StorageManager: vi.fn(() => mockStorageManager),
 }));
 
 // Mock logger
-jest.mock("src/utils/logger.js", () => ({
-  getLogger: jest.fn(() => ({
-    info: jest.fn(),
-    error: jest.fn(),
-    warn: jest.fn(),
-    debug: jest.fn(),
+vi.mock("src/utils/logger.js", () => ({
+  getLogger: vi.fn(() => ({
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
   })),
 }));
 

@@ -1,3 +1,5 @@
+import { describe, test, expect, beforeEach, vi } from "vitest";
+
 // Test file for XP functionality
 
 describe("XP - Core Functionality", () => {

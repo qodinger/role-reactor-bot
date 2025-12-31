@@ -1,77 +1,96 @@
-import {
-  describe,
-  it,
-  expect,
-  beforeEach,
-  jest,
-  beforeAll,
-} from "@jest/globals";
+import { describe, it, expect, beforeEach, vi, beforeAll } from "vitest";
 
 // Mock logger - Jest hoists this and resolves from project root
-jest.mock("src/utils/logger.js", () => ({
-  getLogger: jest.fn(() => ({
-    info: jest.fn(),
-    error: jest.fn(),
-    warn: jest.fn(),
-    debug: jest.fn(),
+vi.mock("src/utils/logger.js", () => ({
+  getLogger: vi.fn(() => ({
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
   })),
 }));
 
 // Mock MongoDB directly to prevent real connections
-jest.mock("mongodb", () => {
-  const mockMongoClient = {
-    connect: jest.fn().mockResolvedValue({
-      db: jest.fn().mockReturnValue({
-        collection: jest.fn().mockReturnValue({
-          find: jest.fn(),
-          updateOne: jest.fn(),
-          deleteOne: jest.fn(),
-        }),
-      }),
-      close: jest.fn().mockResolvedValue(undefined),
+vi.mock("mongodb", () => {
+  const mockCollection = {
+    find: vi.fn().mockReturnValue({
+      toArray: vi.fn().mockResolvedValue([]),
     }),
-    close: jest.fn().mockResolvedValue(undefined),
+    findOne: vi.fn().mockResolvedValue(null),
+    insertOne: vi.fn().mockResolvedValue({ insertedId: "mock-id" }),
+    updateOne: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
+    replaceOne: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
+    deleteOne: vi.fn().mockResolvedValue({ deletedCount: 1 }),
+    deleteMany: vi.fn().mockResolvedValue({ deletedCount: 0 }),
+    createIndex: vi.fn().mockResolvedValue({}),
   };
+  const mockDb = {
+    collection: vi.fn().mockReturnValue(mockCollection),
+    admin: vi.fn().mockReturnValue({
+      ping: vi.fn().mockResolvedValue({}),
+    }),
+  };
+  const mockMongoClient = {
+    connect: vi.fn().mockResolvedValue({
+      db: vi.fn().mockReturnValue(mockDb),
+      close: vi.fn().mockResolvedValue(undefined),
+    }),
+    db: vi.fn().mockReturnValue(mockDb),
+    close: vi.fn().mockResolvedValue(undefined),
+  };
+  class MongoClient {
+    constructor() {
+      Object.assign(this, mockMongoClient);
+    }
+  }
   return {
-    MongoClient: jest.fn(() => mockMongoClient),
+    MongoClient,
   };
 });
 
 // Mock database manager to prevent MongoDB connections
-jest.mock("src/utils/storage/databaseManager.js", () => ({
-  getDatabaseManager: jest.fn().mockResolvedValue({
+vi.mock("src/utils/storage/databaseManager.js", () => ({
+  getDatabaseManager: vi.fn().mockResolvedValue({
     connectionManager: {
       db: null,
-      connect: jest.fn().mockResolvedValue(undefined),
+      connect: vi.fn().mockResolvedValue(undefined),
     },
   }),
 }));
 
 // Mock storage manager to prevent MongoDB connections
-jest.mock("src/utils/storage/storageManager.js", () => ({
-  getStorageManager: jest.fn().mockResolvedValue({
-    save: jest.fn(),
-    get: jest.fn(),
-    delete: jest.fn(),
-    read: jest.fn().mockResolvedValue(null),
-    write: jest.fn(),
+vi.mock("src/utils/storage/storageManager.js", () => ({
+  getStorageManager: vi.fn().mockResolvedValue({
+    save: vi.fn(),
+    get: vi.fn(),
+    delete: vi.fn(),
+    read: vi.fn().mockResolvedValue(null),
+    write: vi.fn(),
+    getVoiceControlRoles: vi.fn().mockResolvedValue({
+      guildId: "guild123",
+      disconnectRoleIds: [],
+      muteRoleIds: [],
+      deafenRoleIds: [],
+      moveRoleMappings: {},
+      updatedAt: new Date(),
+    }),
     isInitialized: true,
   }),
 }));
 
 // Mock Core utils to prevent MongoDB connections
-jest.mock("src/commands/general/core/utils.js", () => ({
-  getUserCorePriority: jest.fn().mockResolvedValue({
+vi.mock("src/commands/general/core/utils.js", () => ({
+  getUserCorePriority: vi.fn().mockResolvedValue({
     hasCore: false,
     tier: null,
     priority: 0,
   }),
-  getCoreRateLimitMultiplier: jest.fn().mockReturnValue(1.0),
+  getCoreRateLimitMultiplier: vi.fn().mockReturnValue(1.0),
 }));
 
 // Mock rate limiter to prevent MongoDB connections
-jest.mock("src/utils/discord/rateLimiter.js", () => ({
-  isRateLimited: jest.fn().mockResolvedValue(false),
+vi.mock("src/utils/discord/rateLimiter.js", () => ({
+  isRateLimited: vi.fn().mockResolvedValue(false),
 }));
 
 // Import execute after mocks are set up
@@ -91,7 +110,7 @@ describe("Guild Member Update Event", () => {
   let role2;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Mock voice channel
     mockVoiceChannel = {
@@ -130,7 +149,7 @@ describe("Guild Member Update Event", () => {
       roles: {
         cache: oldRoleMap,
       },
-      fetch: jest.fn().mockResolvedValue(undefined),
+      fetch: vi.fn().mockResolvedValue(undefined),
     };
 
     // Mock new member (after role change)
@@ -156,7 +175,7 @@ describe("Guild Member Update Event", () => {
       roles: {
         cache: newRoleMap,
       },
-      fetch: jest.fn().mockResolvedValue(undefined),
+      fetch: vi.fn().mockResolvedValue(undefined),
     };
 
     // Mock client
@@ -189,7 +208,7 @@ describe("Guild Member Update Event", () => {
         [role1.id, role1],
         [role2.id, role2],
       ]);
-      sameRoleMap.map = jest.fn(callback => {
+      sameRoleMap.map = vi.fn(callback => {
         return Array.from(sameRoleMap.values()).map(callback);
       });
 

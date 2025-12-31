@@ -1,34 +1,52 @@
-import { describe, it, expect, beforeEach, jest } from "@jest/globals";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 
 // IMPORTANT: Mocks must be defined BEFORE importing the module under test
 
 // Mock logger
-jest.mock("src/utils/logger.js", () => ({
-  getLogger: jest.fn(() => ({
-    info: jest.fn(),
-    error: jest.fn(),
-    warn: jest.fn(),
-    debug: jest.fn(),
+vi.mock("src/utils/logger.js", () => ({
+  getLogger: vi.fn(() => ({
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
   })),
 }));
 
 // Mock MongoDB directly to prevent real connections
-jest.mock("mongodb", () => {
-  const mockMongoClient = {
-    connect: jest.fn().mockResolvedValue({
-      db: jest.fn().mockReturnValue({
-        collection: jest.fn().mockReturnValue({
-          find: jest.fn(),
-          updateOne: jest.fn(),
-          deleteOne: jest.fn(),
-        }),
-      }),
-      close: jest.fn().mockResolvedValue(undefined),
+vi.mock("mongodb", () => {
+  const mockCollection = {
+    find: vi.fn().mockReturnValue({
+      toArray: vi.fn().mockResolvedValue([]),
     }),
-    close: jest.fn().mockResolvedValue(undefined),
+    findOne: vi.fn().mockResolvedValue(null),
+    insertOne: vi.fn().mockResolvedValue({ insertedId: "mock-id" }),
+    updateOne: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
+    replaceOne: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
+    deleteOne: vi.fn().mockResolvedValue({ deletedCount: 1 }),
+    deleteMany: vi.fn().mockResolvedValue({ deletedCount: 0 }),
+    createIndex: vi.fn().mockResolvedValue({}),
   };
+  const mockDb = {
+    collection: vi.fn().mockReturnValue(mockCollection),
+    admin: vi.fn().mockReturnValue({
+      ping: vi.fn().mockResolvedValue({}),
+    }),
+  };
+  const mockMongoClient = {
+    connect: vi.fn().mockResolvedValue({
+      db: vi.fn().mockReturnValue(mockDb),
+      close: vi.fn().mockResolvedValue(undefined),
+    }),
+    db: vi.fn().mockReturnValue(mockDb),
+    close: vi.fn().mockResolvedValue(undefined),
+  };
+  class MongoClient {
+    constructor() {
+      Object.assign(this, mockMongoClient);
+    }
+  }
   return {
-    MongoClient: jest.fn(() => mockMongoClient),
+    MongoClient,
   };
 });
 
@@ -39,54 +57,54 @@ const mockDbManager = {
   welcomeSettings: { exists: true }, // Non-empty object to prevent reconnect
   goodbyeSettings: {},
   connectionManager: {
-    db: { collection: jest.fn() },
-    connect: jest.fn().mockResolvedValue(undefined),
+    db: { collection: vi.fn() },
+    connect: vi.fn().mockResolvedValue(undefined),
   },
-  connect: jest.fn().mockResolvedValue(undefined),
-  logger: { warn: jest.fn(), error: jest.fn(), info: jest.fn() },
+  connect: vi.fn().mockResolvedValue(undefined),
+  logger: { warn: vi.fn(), error: vi.fn(), info: vi.fn() },
 };
 
-jest.mock("src/utils/storage/databaseManager.js", () => ({
-  getDatabaseManager: jest.fn().mockResolvedValue(mockDbManager),
-  DatabaseManager: jest.fn(() => mockDbManager),
+vi.mock("src/utils/storage/databaseManager.js", () => ({
+  getDatabaseManager: vi.fn().mockResolvedValue(mockDbManager),
+  DatabaseManager: vi.fn(() => mockDbManager),
 }));
 
 // Mock storage manager - prevent initialization to avoid MongoDB connection
 // This MUST be hoisted before any imports
-jest.mock("src/utils/storage/storageManager.js", () => {
+vi.mock("src/utils/storage/storageManager.js", () => {
   // Create mock functions inside the factory
-  const mockGetPollById = jest.fn();
-  const mockGetPollsByGuild = jest.fn().mockResolvedValue([]);
-  const mockDeletePoll = jest.fn().mockResolvedValue(true);
+  const mockGetPollById = vi.fn();
+  const mockGetPollsByGuild = vi.fn().mockResolvedValue([]);
+  const mockDeletePoll = vi.fn().mockResolvedValue(true);
 
   const mockInstance = {
     getPollById: mockGetPollById,
     getPollsByGuild: mockGetPollsByGuild,
     deletePoll: mockDeletePoll,
-    read: jest.fn().mockResolvedValue({}),
-    write: jest.fn().mockResolvedValue(true),
-    get: jest.fn().mockResolvedValue({}),
-    save: jest.fn().mockResolvedValue(true),
-    delete: jest.fn().mockResolvedValue(true),
-    initialize: jest.fn().mockResolvedValue(undefined),
+    read: vi.fn().mockResolvedValue({}),
+    write: vi.fn().mockResolvedValue(true),
+    get: vi.fn().mockResolvedValue({}),
+    save: vi.fn().mockResolvedValue(true),
+    delete: vi.fn().mockResolvedValue(true),
+    initialize: vi.fn().mockResolvedValue(undefined),
     isInitialized: true,
   };
 
   return {
-    getStorageManager: jest.fn().mockResolvedValue(mockInstance),
-    StorageManager: jest.fn(() => mockInstance),
+    getStorageManager: vi.fn().mockResolvedValue(mockInstance),
+    StorageManager: vi.fn(() => mockInstance),
   };
 });
 
 // Mock response messages
-jest.mock("src/utils/discord/responseMessages.js", () => ({
-  errorEmbed: jest.fn(options => ({
+vi.mock("src/utils/discord/responseMessages.js", () => ({
+  errorEmbed: vi.fn(options => ({
     data: {
       title: options.title,
       description: options.description,
     },
   })),
-  successEmbed: jest.fn(options => ({
+  successEmbed: vi.fn(options => ({
     data: {
       title: options.title,
       description: options.description,
@@ -95,19 +113,19 @@ jest.mock("src/utils/discord/responseMessages.js", () => ({
 }));
 
 // Mock modals
-jest.mock("src/commands/general/poll/modals.js", () => {
+vi.mock("src/commands/general/poll/modals.js", () => {
   // Create mock functions inside the factory
-  const mockCreatePollCreationMenuFn = jest.fn().mockReturnValue({
+  const mockCreatePollCreationMenuFn = vi.fn().mockReturnValue({
     embed: { data: { title: "Create Poll" } },
     components: [],
   });
 
   return {
-    createPollCreationModal: jest.fn().mockReturnValue({
+    createPollCreationModal: vi.fn().mockReturnValue({
       data: { title: "Create Poll" },
     }),
     createPollCreationMenu: mockCreatePollCreationMenuFn,
-    createPollCreationMenuWithSelections: jest.fn().mockReturnValue({
+    createPollCreationMenuWithSelections: vi.fn().mockReturnValue({
       embed: { data: { title: "Create Poll" } },
       components: [],
     }),
@@ -126,7 +144,7 @@ describe("Poll Command", () => {
   let mockClient;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     mockInteraction = {
       user: {
@@ -135,32 +153,34 @@ describe("Poll Command", () => {
       },
       guild: {
         id: "guild123",
+        iconURL: vi.fn().mockReturnValue("https://example.com/icon.png"),
       },
       channel: {
         id: "channel123",
       },
-      isRepliable: jest.fn().mockReturnValue(true),
+      isRepliable: vi.fn().mockReturnValue(true),
       options: {
-        getString: jest.fn(),
-        getInteger: jest.fn(),
+        getString: vi.fn(),
+        getInteger: vi.fn(),
+        getBoolean: vi.fn(),
       },
-      editReply: jest.fn().mockResolvedValue(undefined),
-      reply: jest.fn().mockResolvedValue(undefined),
-      showModal: jest.fn().mockResolvedValue(undefined),
+      editReply: vi.fn().mockResolvedValue(undefined),
+      reply: vi.fn().mockResolvedValue(undefined),
+      showModal: vi.fn().mockResolvedValue(undefined),
       member: {
         permissions: {
-          has: jest.fn().mockReturnValue(false),
+          has: vi.fn().mockReturnValue(false),
         },
       },
     };
 
     mockClient = {
       channels: {
-        fetch: jest.fn().mockResolvedValue({
+        fetch: vi.fn().mockResolvedValue({
           messages: {
-            fetch: jest.fn().mockResolvedValue({
+            fetch: vi.fn().mockResolvedValue({
               poll: {
-                end: jest.fn().mockResolvedValue(undefined),
+                end: vi.fn().mockResolvedValue(undefined),
               },
             }),
           },
@@ -173,7 +193,7 @@ describe("Poll Command", () => {
     it("should list polls for a guild", async () => {
       // Create mock storage manager
       const mockStorage = {
-        getPollsByGuild: jest
+        getPollsByGuild: vi
           .fn()
           .mockResolvedValueOnce([
             { id: "poll1", question: "Test poll", isActive: true },
@@ -181,7 +201,7 @@ describe("Poll Command", () => {
       };
 
       // Inject mock directly
-      const mockGetStorageManager = jest.fn().mockResolvedValue(mockStorage);
+      const mockGetStorageManager = vi.fn().mockResolvedValue(mockStorage);
 
       await handlePollList(mockInteraction, mockClient, true, {
         getStorageManager: mockGetStorageManager,
@@ -193,13 +213,13 @@ describe("Poll Command", () => {
     it("should handle errors gracefully", async () => {
       // Create mock storage manager
       const mockStorage = {
-        getPollsByGuild: jest
+        getPollsByGuild: vi
           .fn()
           .mockRejectedValueOnce(new Error("Database error")),
       };
 
       // Inject mock directly
-      const mockGetStorageManager = jest.fn().mockResolvedValue(mockStorage);
+      const mockGetStorageManager = vi.fn().mockResolvedValue(mockStorage);
 
       await expect(
         handlePollList(mockInteraction, mockClient, true, {
@@ -213,11 +233,11 @@ describe("Poll Command", () => {
     it("should handle poll not found", async () => {
       // Create mock storage manager
       const mockStorage = {
-        getPollById: jest.fn().mockResolvedValueOnce(null),
+        getPollById: vi.fn().mockResolvedValueOnce(null),
       };
 
       // Inject mock directly
-      const mockGetStorageManager = jest.fn().mockResolvedValue(mockStorage);
+      const mockGetStorageManager = vi.fn().mockResolvedValue(mockStorage);
       mockInteraction.options.getString.mockReturnValue("invalid-poll-id");
 
       await handlePollEnd(mockInteraction, mockClient, true, {
@@ -232,14 +252,14 @@ describe("Poll Command", () => {
     it("should handle permission denied", async () => {
       // Create mock storage manager
       const mockStorage = {
-        getPollById: jest.fn().mockResolvedValueOnce({
+        getPollById: vi.fn().mockResolvedValueOnce({
           creatorId: "other-user",
           isActive: true,
         }),
       };
 
       // Inject mock directly
-      const mockGetStorageManager = jest.fn().mockResolvedValue(mockStorage);
+      const mockGetStorageManager = vi.fn().mockResolvedValue(mockStorage);
       mockInteraction.options.getString.mockReturnValue("poll123");
 
       await handlePollEnd(mockInteraction, mockClient, true, {

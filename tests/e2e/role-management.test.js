@@ -1,4 +1,4 @@
-import { jest, describe, test, expect, beforeEach } from "@jest/globals";
+import { vi, describe, test, expect, beforeEach, afterAll } from "vitest";
 
 describe("Role Management E2E Workflows", () => {
   let mockGuild;
@@ -6,7 +6,7 @@ describe("Role Management E2E Workflows", () => {
   let mockChannel;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     mockGuild = {
       id: "123456789012345678",
@@ -29,21 +29,21 @@ describe("Role Management E2E Workflows", () => {
       user: { username: "TestUser", id: "member1" },
       roles: {
         cache: new Map(),
-        add: jest.fn(),
-        remove: jest.fn(),
+        add: vi.fn(),
+        remove: vi.fn(),
       },
       permissions: {
-        has: jest.fn().mockReturnValue(true),
+        has: vi.fn().mockReturnValue(true),
       },
     };
 
     mockChannel = {
       id: "channel1",
       name: "role-setup",
-      send: jest.fn(),
+      send: vi.fn(),
       messages: {
-        create: jest.fn(),
-        fetch: jest.fn(),
+        create: vi.fn(),
+        fetch: vi.fn(),
       },
     };
   });
@@ -51,7 +51,7 @@ describe("Role Management E2E Workflows", () => {
   describe("Role Assignment Workflow", () => {
     test("should simulate role assignment process", async () => {
       const mockRoleManager = {
-        assignRole: jest.fn().mockResolvedValue({
+        assignRole: vi.fn().mockResolvedValue({
           success: true,
           roleName: "Developer",
           action: "added",
@@ -81,7 +81,7 @@ describe("Role Management E2E Workflows", () => {
 
     test("should simulate role removal process", async () => {
       const mockRoleManager = {
-        removeRole: jest.fn().mockResolvedValue({
+        removeRole: vi.fn().mockResolvedValue({
           success: true,
           roleName: "Developer",
           action: "removed",
@@ -112,7 +112,7 @@ describe("Role Management E2E Workflows", () => {
   describe("Temporary Role Workflow", () => {
     test("should simulate temporary role assignment", async () => {
       const mockTemporaryRoleManager = {
-        assignTemporaryRole: jest.fn().mockResolvedValue({
+        assignTemporaryRole: vi.fn().mockResolvedValue({
           success: true,
           roleName: "Developer",
           duration: 24,
@@ -135,7 +135,7 @@ describe("Role Management E2E Workflows", () => {
 
     test("should simulate expired role cleanup", async () => {
       const mockTemporaryRoleManager = {
-        cleanupExpiredRoles: jest.fn().mockResolvedValue({
+        cleanupExpiredRoles: vi.fn().mockResolvedValue({
           removed: 1,
           remaining: 0,
         }),
@@ -154,7 +154,7 @@ describe("Role Management E2E Workflows", () => {
       mockMember.permissions.has.mockReturnValue(false);
 
       const mockRoleManager = {
-        assignRole: jest.fn().mockResolvedValue({
+        assignRole: vi.fn().mockResolvedValue({
           success: false,
           error: "Insufficient permissions",
         }),
@@ -173,9 +173,7 @@ describe("Role Management E2E Workflows", () => {
 
     test("should handle storage failures", async () => {
       const mockStorageManager = {
-        saveRoleConfig: jest
-          .fn()
-          .mockRejectedValue(new Error("Storage failed")),
+        saveRoleConfig: vi.fn().mockRejectedValue(new Error("Storage failed")),
       };
 
       const config = {
@@ -192,7 +190,7 @@ describe("Role Management E2E Workflows", () => {
 
   afterAll(() => {
     // Clear any remaining timers
-    jest.clearAllTimers();
+    vi.clearAllTimers();
 
     // Force garbage collection if available
     if (global.gc) {

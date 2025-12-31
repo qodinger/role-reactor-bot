@@ -1,9 +1,16 @@
-import { jest } from "@jest/globals";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
-// Mock the entire mongodb module
-const mockMongoClient = jest.fn();
-jest.mock("mongodb", () => ({
-  MongoClient: mockMongoClient,
+// Mock the entire mongodb module - use a shared object for hoisting compatibility
+const mockState = { client: null };
+
+class MongoClient {
+  constructor() {
+    return mockState.client || {};
+  }
+}
+
+vi.mock("mongodb", () => ({
+  MongoClient,
 }));
 
 describe("Database Reconnection Tests", () => {
@@ -13,43 +20,41 @@ describe("Database Reconnection Tests", () => {
 
   beforeEach(() => {
     // Reset mocks
-    jest.clearAllMocks();
-    jest.clearAllTimers();
+    vi.clearAllMocks();
+    vi.clearAllTimers();
 
     // Setup mock MongoDB client
     mockCollection = {
-      find: jest
-        .fn()
-        .mockReturnValue({ toArray: jest.fn().mockResolvedValue([]) }),
-      updateOne: jest.fn().mockResolvedValue({ modifiedCount: 1 }),
-      deleteOne: jest.fn().mockResolvedValue({ deletedCount: 1 }),
-      createIndex: jest.fn().mockResolvedValue({}),
+      find: vi.fn().mockReturnValue({ toArray: vi.fn().mockResolvedValue([]) }),
+      updateOne: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
+      deleteOne: vi.fn().mockResolvedValue({ deletedCount: 1 }),
+      createIndex: vi.fn().mockResolvedValue({}),
     };
 
     mockDb = {
-      collection: jest.fn().mockReturnValue(mockCollection),
-      admin: jest.fn().mockReturnValue({
-        ping: jest.fn().mockResolvedValue({}),
+      collection: vi.fn().mockReturnValue(mockCollection),
+      admin: vi.fn().mockReturnValue({
+        ping: vi.fn().mockResolvedValue({}),
       }),
     };
 
     mockClient = {
-      connect: jest.fn().mockResolvedValue(mockClient),
-      db: jest.fn().mockReturnValue(mockDb),
-      close: jest.fn().mockResolvedValue(),
+      connect: vi.fn().mockResolvedValue(mockClient),
+      db: vi.fn().mockReturnValue(mockDb),
+      close: vi.fn().mockResolvedValue(),
     };
 
-    // Set up the mock implementation
-    mockMongoClient.mockImplementation(() => mockClient);
+    // Set up the mock state
+    mockState.client = mockClient;
   });
 
   afterEach(() => {
     // Clean up any remaining timers
-    jest.clearAllTimers();
+    vi.clearAllTimers();
   });
 
   describe("Connection Manager Reconnection", () => {
-    test("should have reconnection configuration", () => {
+    it("should have reconnection configuration", () => {
       // Test the expected configuration values that would be set in ConnectionManager
       const expectedMaxReconnectAttempts = 5;
       const expectedReconnectDelay = 2000;
@@ -58,7 +63,7 @@ describe("Database Reconnection Tests", () => {
       expect(expectedReconnectDelay).toBe(2000);
     });
 
-    test("should detect connection loss", () => {
+    it("should detect connection loss", () => {
       // Test the concept of connection loss detection
       const isConnectionHealthy = false;
       const healthStatus = isConnectionHealthy;
@@ -67,7 +72,7 @@ describe("Database Reconnection Tests", () => {
       expect(healthStatus).toBe(false);
     });
 
-    test("should handle connection state changes", () => {
+    it("should handle connection state changes", () => {
       // Test basic connection state management concepts
       const connectionManager = {
         isConnected: true,

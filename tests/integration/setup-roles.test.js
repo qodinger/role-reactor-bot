@@ -1,24 +1,25 @@
 import {
-  jest,
+  vi,
   describe,
   test,
   expect,
   beforeEach,
   afterEach,
-} from "@jest/globals";
+  afterAll,
+} from "vitest";
 
 describe("Setup Roles Command Integration", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   afterAll(() => {
     // Clear any remaining timers
-    jest.clearAllTimers();
+    vi.clearAllTimers();
 
     // Force garbage collection if available
     if (global.gc) {
@@ -35,13 +36,13 @@ describe("Setup Roles Command Integration", () => {
 
       const adminMember = {
         permissions: {
-          has: jest.fn().mockReturnValue(true),
+          has: vi.fn().mockReturnValue(true),
         },
       };
 
       const regularMember = {
         permissions: {
-          has: jest.fn().mockReturnValue(false),
+          has: vi.fn().mockReturnValue(false),
         },
       };
 
@@ -64,7 +65,7 @@ describe("Setup Roles Command Integration", () => {
               "bot123",
               {
                 permissions: {
-                  has: jest.fn().mockReturnValue(true),
+                  has: vi.fn().mockReturnValue(true),
                 },
               },
             ],
@@ -80,7 +81,7 @@ describe("Setup Roles Command Integration", () => {
               "bot123",
               {
                 permissions: {
-                  has: jest.fn().mockReturnValue(false),
+                  has: vi.fn().mockReturnValue(false),
                 },
               },
             ],

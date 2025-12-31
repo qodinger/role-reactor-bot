@@ -1,24 +1,25 @@
 import {
-  jest,
+  vi,
   describe,
   test,
   expect,
   beforeEach,
   afterEach,
-} from "@jest/globals";
+  afterAll,
+} from "vitest";
 
 describe("CommandHandler", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   afterAll(() => {
     // Clear any remaining timers
-    jest.clearAllTimers();
+    vi.clearAllTimers();
 
     // Force garbage collection if available
     if (global.gc) {
@@ -31,7 +32,7 @@ describe("CommandHandler", () => {
       // Test command validation logic
       const validCommand = {
         data: { name: "test-command", description: "Test command" },
-        execute: jest.fn(),
+        execute: vi.fn(),
       };
 
       const invalidCommand = { data: { name: "test" } }; // Missing execute
@@ -47,7 +48,7 @@ describe("CommandHandler", () => {
       const commands = new Map();
       const command = {
         data: { name: "test-command", description: "Test command" },
-        execute: jest.fn(),
+        execute: vi.fn(),
       };
 
       commands.set(command.data.name, command);

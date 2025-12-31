@@ -1,23 +1,41 @@
-import { describe, it, expect, beforeEach, jest } from "@jest/globals";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 
 // IMPORTANT: Mocks must be defined BEFORE importing the module under test
 // Mock MongoDB directly to prevent real connections
-jest.mock("mongodb", () => {
-  const mockMongoClient = {
-    connect: jest.fn().mockResolvedValue({
-      db: jest.fn().mockReturnValue({
-        collection: jest.fn().mockReturnValue({
-          find: jest.fn(),
-          updateOne: jest.fn(),
-          deleteOne: jest.fn(),
-        }),
-      }),
-      close: jest.fn().mockResolvedValue(undefined),
+vi.mock("mongodb", () => {
+  const mockCollection = {
+    find: vi.fn().mockReturnValue({
+      toArray: vi.fn().mockResolvedValue([]),
     }),
-    close: jest.fn().mockResolvedValue(undefined),
+    findOne: vi.fn().mockResolvedValue(null),
+    insertOne: vi.fn().mockResolvedValue({ insertedId: "mock-id" }),
+    updateOne: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
+    replaceOne: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
+    deleteOne: vi.fn().mockResolvedValue({ deletedCount: 1 }),
+    deleteMany: vi.fn().mockResolvedValue({ deletedCount: 0 }),
+    createIndex: vi.fn().mockResolvedValue({}),
   };
+  const mockDb = {
+    collection: vi.fn().mockReturnValue(mockCollection),
+    admin: vi.fn().mockReturnValue({
+      ping: vi.fn().mockResolvedValue({}),
+    }),
+  };
+  const mockMongoClient = {
+    connect: vi.fn().mockResolvedValue({
+      db: vi.fn().mockReturnValue(mockDb),
+      close: vi.fn().mockResolvedValue(undefined),
+    }),
+    db: vi.fn().mockReturnValue(mockDb),
+    close: vi.fn().mockResolvedValue(undefined),
+  };
+  class MongoClient {
+    constructor() {
+      Object.assign(this, mockMongoClient);
+    }
+  }
   return {
-    MongoClient: jest.fn(() => mockMongoClient),
+    MongoClient,
   };
 });
 
@@ -25,7 +43,7 @@ jest.mock("mongodb", () => {
 // This MUST be hoisted before any imports
 const mockDbManagerInstance = {
   guildSettings: {
-    getByGuild: jest.fn().mockResolvedValue({
+    getByGuild: vi.fn().mockResolvedValue({
       experienceSystem: {
         enabled: true,
       },
@@ -35,63 +53,63 @@ const mockDbManagerInstance = {
   goodbyeSettings: {},
   experienceSystem: {},
   connectionManager: {
-    db: { collection: jest.fn() },
-    connect: jest.fn().mockResolvedValue(undefined),
+    db: { collection: vi.fn() },
+    connect: vi.fn().mockResolvedValue(undefined),
   },
-  connect: jest.fn().mockResolvedValue(undefined),
+  connect: vi.fn().mockResolvedValue(undefined),
   logger: {
-    warn: jest.fn(),
-    error: jest.fn(),
-    info: jest.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
   },
 };
 
-jest.mock("src/utils/storage/databaseManager.js", () => ({
-  getDatabaseManager: jest.fn().mockResolvedValue(mockDbManagerInstance),
-  DatabaseManager: jest.fn(() => mockDbManagerInstance),
+vi.mock("src/utils/storage/databaseManager.js", () => ({
+  getDatabaseManager: vi.fn().mockResolvedValue(mockDbManagerInstance),
+  DatabaseManager: vi.fn(() => mockDbManagerInstance),
 }));
 
 // Mock storage manager to prevent real connections
 const mockStorageManager = {
-  read: jest.fn().mockResolvedValue({}),
-  write: jest.fn().mockResolvedValue(true),
+  read: vi.fn().mockResolvedValue({}),
+  write: vi.fn().mockResolvedValue(true),
   isInitialized: true,
 };
 
-jest.mock("src/utils/storage/storageManager.js", () => ({
-  getStorageManager: jest.fn(() => Promise.resolve(mockStorageManager)),
-  StorageManager: jest.fn(() => mockStorageManager),
+vi.mock("src/utils/storage/storageManager.js", () => ({
+  getStorageManager: vi.fn(() => Promise.resolve(mockStorageManager)),
+  StorageManager: vi.fn(() => mockStorageManager),
 }));
 
 // Mock logger
-jest.mock("src/utils/logger.js", () => ({
-  getLogger: jest.fn(() => ({
-    info: jest.fn(),
-    error: jest.fn(),
-    warn: jest.fn(),
-    debug: jest.fn(),
+vi.mock("src/utils/logger.js", () => ({
+  getLogger: vi.fn(() => ({
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
   })),
 }));
 
 // Mock experience manager
 const mockExperienceManager = {
-  getLeaderboard: jest.fn().mockResolvedValue([
+  getLeaderboard: vi.fn().mockResolvedValue([
     { userId: "user1", totalXP: 5000, level: 10 },
     { userId: "user2", totalXP: 3000, level: 8 },
     { userId: "user3", totalXP: 2000, level: 6 },
   ]),
   isInitialized: true,
-  initialize: jest.fn().mockResolvedValue(undefined),
+  initialize: vi.fn().mockResolvedValue(undefined),
 };
 
-jest.mock("src/features/experience/ExperienceManager.js", () => ({
-  getExperienceManager: jest.fn(() => Promise.resolve(mockExperienceManager)),
-  ExperienceManager: jest.fn(() => mockExperienceManager),
+vi.mock("src/features/experience/ExperienceManager.js", () => ({
+  getExperienceManager: vi.fn(() => Promise.resolve(mockExperienceManager)),
+  ExperienceManager: vi.fn(() => mockExperienceManager),
 }));
 
 // Mock embeds
-jest.mock("src/commands/general/leaderboard/embeds.js", () => ({
-  createLeaderboardEmbed: jest.fn(() => ({
+vi.mock("src/commands/general/leaderboard/embeds.js", () => ({
+  createLeaderboardEmbed: vi.fn(() => ({
     data: {
       title: "Leaderboard",
       description: "XP leaderboard",
@@ -100,8 +118,8 @@ jest.mock("src/commands/general/leaderboard/embeds.js", () => ({
 }));
 
 // Mock response messages
-jest.mock("src/utils/discord/responseMessages.js", () => ({
-  errorEmbed: jest.fn(options => ({
+vi.mock("src/utils/discord/responseMessages.js", () => ({
+  errorEmbed: vi.fn(options => ({
     data: {
       title: options.title,
       description: options.description,
@@ -116,7 +134,7 @@ describe("Leaderboard Command", () => {
   let mockClient;
 
   beforeEach(async () => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Reset guild settings mock
     mockDbManagerInstance.guildSettings.getByGuild.mockResolvedValue({
@@ -140,13 +158,26 @@ describe("Leaderboard Command", () => {
       guild: {
         id: "guild123",
         name: "Test Guild",
+        iconURL: vi.fn().mockReturnValue("https://example.com/guild-icon.png"),
+        members: {
+          cache: {
+            get: vi.fn().mockReturnValue({
+              id: "user1",
+              displayName: "User1",
+              user: {
+                id: "user1",
+                username: "user1",
+              },
+            }),
+          },
+        },
       },
       options: {
-        getInteger: jest.fn().mockReturnValue(10),
-        getString: jest.fn().mockReturnValue("xp"),
+        getInteger: vi.fn().mockReturnValue(10),
+        getString: vi.fn().mockReturnValue("xp"),
       },
-      editReply: jest.fn().mockResolvedValue(undefined),
-      reply: jest.fn().mockResolvedValue(undefined),
+      editReply: vi.fn().mockResolvedValue(undefined),
+      reply: vi.fn().mockResolvedValue(undefined),
     };
 
     mockClient = {
@@ -162,13 +193,13 @@ describe("Leaderboard Command", () => {
       mockInteraction.options.getInteger.mockReturnValue(null);
 
       // Inject mocks directly
-      const mockGetDatabaseManager = jest
+      const mockGetDatabaseManager = vi
         .fn()
         .mockResolvedValue(mockDbManagerInstance);
-      const mockGetExperienceManager = jest
+      const mockGetExperienceManager = vi
         .fn()
         .mockResolvedValue(mockExperienceManager);
-      const mockGetStorageManager = jest
+      const mockGetStorageManager = vi
         .fn()
         .mockResolvedValue(mockStorageManager);
 
@@ -185,13 +216,13 @@ describe("Leaderboard Command", () => {
       mockInteraction.options.getInteger.mockReturnValue(25);
 
       // Inject mocks directly
-      const mockGetDatabaseManager = jest
+      const mockGetDatabaseManager = vi
         .fn()
         .mockResolvedValue(mockDbManagerInstance);
-      const mockGetExperienceManager = jest
+      const mockGetExperienceManager = vi
         .fn()
         .mockResolvedValue(mockExperienceManager);
-      const mockGetStorageManager = jest
+      const mockGetStorageManager = vi
         .fn()
         .mockResolvedValue(mockStorageManager);
 
@@ -213,13 +244,13 @@ describe("Leaderboard Command", () => {
       });
 
       // Inject mocks directly
-      const mockGetDatabaseManager = jest
+      const mockGetDatabaseManager = vi
         .fn()
         .mockResolvedValue(mockDbManagerInstance);
-      const mockGetExperienceManager = jest
+      const mockGetExperienceManager = vi
         .fn()
         .mockResolvedValue(mockExperienceManager);
-      const mockGetStorageManager = jest
+      const mockGetStorageManager = vi
         .fn()
         .mockResolvedValue(mockStorageManager);
 
@@ -236,13 +267,13 @@ describe("Leaderboard Command", () => {
       mockExperienceManager.getLeaderboard.mockResolvedValueOnce([]);
 
       // Inject mocks directly
-      const mockGetDatabaseManager = jest
+      const mockGetDatabaseManager = vi
         .fn()
         .mockResolvedValue(mockDbManagerInstance);
-      const mockGetExperienceManager = jest
+      const mockGetExperienceManager = vi
         .fn()
         .mockResolvedValue(mockExperienceManager);
-      const mockGetStorageManager = jest
+      const mockGetStorageManager = vi
         .fn()
         .mockResolvedValue(mockStorageManager);
 

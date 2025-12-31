@@ -1,87 +1,105 @@
-import { describe, it, expect, beforeEach, jest } from "@jest/globals";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 
 // Mock logger
-jest.mock("src/utils/logger.js", () => ({
-  getLogger: jest.fn(() => ({
-    info: jest.fn(),
-    error: jest.fn(),
-    warn: jest.fn(),
-    debug: jest.fn(),
+vi.mock("src/utils/logger.js", () => ({
+  getLogger: vi.fn(() => ({
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
   })),
 }));
 
 // Mock theme/config dependencies first
-jest.mock("src/config/theme.js", () => ({
+vi.mock("src/config/theme.js", () => ({
   THEME: {
     PRIMARY: 0x5865f2,
     ERROR: 0xed4245,
   },
   UI_COMPONENTS: {
-    createFooter: jest.fn((text, icon) => ({ text, icon })),
+    createFooter: vi.fn((text, icon) => ({ text, icon })),
   },
 }));
 
 // Mock MongoDB and storage manager (needed for getWarnCount)
-jest.mock("mongodb", () => {
-  const mockMongoClient = {
-    connect: jest.fn().mockResolvedValue({
-      db: jest.fn().mockReturnValue({
-        collection: jest.fn().mockReturnValue({
-          find: jest.fn(),
-          updateOne: jest.fn(),
-          deleteOne: jest.fn(),
-        }),
-      }),
-      close: jest.fn().mockResolvedValue(undefined),
+vi.mock("mongodb", () => {
+  const mockCollection = {
+    find: vi.fn().mockReturnValue({
+      toArray: vi.fn().mockResolvedValue([]),
     }),
-    close: jest.fn().mockResolvedValue(undefined),
+    findOne: vi.fn().mockResolvedValue(null),
+    insertOne: vi.fn().mockResolvedValue({ insertedId: "mock-id" }),
+    updateOne: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
+    replaceOne: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
+    deleteOne: vi.fn().mockResolvedValue({ deletedCount: 1 }),
+    deleteMany: vi.fn().mockResolvedValue({ deletedCount: 0 }),
+    createIndex: vi.fn().mockResolvedValue({}),
   };
+  const mockDb = {
+    collection: vi.fn().mockReturnValue(mockCollection),
+    admin: vi.fn().mockReturnValue({
+      ping: vi.fn().mockResolvedValue({}),
+    }),
+  };
+  const mockMongoClient = {
+    connect: vi.fn().mockResolvedValue({
+      db: vi.fn().mockReturnValue(mockDb),
+      close: vi.fn().mockResolvedValue(undefined),
+    }),
+    db: vi.fn().mockReturnValue(mockDb),
+    close: vi.fn().mockResolvedValue(undefined),
+  };
+  class MongoClient {
+    constructor() {
+      Object.assign(this, mockMongoClient);
+    }
+  }
   return {
-    MongoClient: jest.fn(() => mockMongoClient),
+    MongoClient,
   };
 });
 
 const mockStorageManager = {
-  read: jest.fn().mockResolvedValue({}),
-  write: jest.fn().mockResolvedValue(true),
-  get: jest.fn().mockResolvedValue({}),
-  set: jest.fn().mockResolvedValue(true),
-  save: jest.fn().mockResolvedValue(true),
-  delete: jest.fn().mockResolvedValue(true),
-  initialize: jest.fn().mockResolvedValue(undefined),
+  read: vi.fn().mockResolvedValue({}),
+  write: vi.fn().mockResolvedValue(true),
+  get: vi.fn().mockResolvedValue({}),
+  set: vi.fn().mockResolvedValue(true),
+  save: vi.fn().mockResolvedValue(true),
+  delete: vi.fn().mockResolvedValue(true),
+  initialize: vi.fn().mockResolvedValue(undefined),
   isInitialized: true,
 };
 
-jest.mock("src/utils/storage/storageManager.js", () => ({
-  getStorageManager: jest.fn().mockResolvedValue(mockStorageManager),
-  StorageManager: jest.fn(() => mockStorageManager),
+vi.mock("src/utils/storage/storageManager.js", () => ({
+  getStorageManager: vi.fn().mockResolvedValue(mockStorageManager),
+  StorageManager: vi.fn(() => mockStorageManager),
 }));
 
 // Mock moderation utils (needed for getWarnCount)
-jest.mock("src/commands/admin/moderation/utils.js", () => ({
-  getWarnCount: jest.fn().mockResolvedValue(0),
-  canModerateMember: jest.fn(),
-  botCanModerateMember: jest.fn(),
-  validateTimeoutDuration: jest.fn(),
-  formatDuration: jest.fn(),
-  parseMultipleUsers: jest.fn(),
+vi.mock("src/commands/admin/moderation/utils.js", () => ({
+  getWarnCount: vi.fn().mockResolvedValue(0),
+  canModerateMember: vi.fn(),
+  botCanModerateMember: vi.fn(),
+  validateTimeoutDuration: vi.fn(),
+  formatDuration: vi.fn(),
+  parseMultipleUsers: vi.fn(),
 }));
 
 // Mock embeds - define mocks outside factory (like help.test.js pattern)
-const mockCreateUserInfoEmbed = jest.fn(() => ({
+const mockCreateUserInfoEmbed = vi.fn(() => ({
   data: {
     title: "User Information",
     description: "User info",
   },
 }));
-const mockCreateErrorEmbed = jest.fn(() => ({
+const mockCreateErrorEmbed = vi.fn(() => ({
   data: {
     title: "Error",
     description: "An error occurred",
   },
 }));
 
-jest.mock("src/commands/general/userinfo/embeds.js", () => ({
+vi.mock("src/commands/general/userinfo/embeds.js", () => ({
   createUserInfoEmbed: mockCreateUserInfoEmbed,
   createErrorEmbed: mockCreateErrorEmbed,
 }));
@@ -99,7 +117,7 @@ describe("Userinfo Command", () => {
   let mockClient;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     mockInteraction = {
       user: {
@@ -109,12 +127,12 @@ describe("Userinfo Command", () => {
         displayName: "TestUser",
         bot: false,
         createdAt: new Date("2020-01-01"),
-        displayAvatarURL: jest
+        displayAvatarURL: vi
           .fn()
           .mockReturnValue("https://example.com/avatar.png"),
         flags: {
           bitfield: 0,
-          has: jest.fn().mockReturnValue(false),
+          has: vi.fn().mockReturnValue(false),
         },
       },
       guild: {
@@ -122,21 +140,38 @@ describe("Userinfo Command", () => {
         name: "Test Guild",
         members: {
           cache: {
-            get: jest.fn(),
+            get: vi.fn(),
+          },
+        },
+        presences: {
+          cache: {
+            get: vi.fn(),
           },
         },
       },
       options: {
-        getUser: jest.fn().mockReturnValue(null),
+        getUser: vi.fn().mockReturnValue(null),
       },
-      deferReply: jest.fn().mockResolvedValue(undefined),
-      editReply: jest.fn().mockResolvedValue(undefined),
+      deferReply: vi.fn().mockResolvedValue(undefined),
+      editReply: vi.fn().mockResolvedValue(undefined),
     };
 
     mockClient = {
       user: {
         id: "bot123",
         tag: "TestBot#1234",
+      },
+      guilds: {
+        cache: {
+          get: vi.fn().mockReturnValue({
+            id: "guild123",
+            presences: {
+              cache: {
+                get: vi.fn(),
+              },
+            },
+          }),
+        },
       },
     };
   });
@@ -146,12 +181,12 @@ describe("Userinfo Command", () => {
       // Create a mock Collection for roles
       const mockRolesCollection = {
         size: 1,
-        filter: jest.fn().mockReturnValue({
-          sort: jest.fn().mockReturnValue({
-            map: jest.fn().mockReturnValue(["<@&role1>"]),
+        filter: vi.fn().mockReturnValue({
+          sort: vi.fn().mockReturnValue({
+            map: vi.fn().mockReturnValue(["<@&role1>"]),
           }),
         }),
-        get: jest.fn(),
+        get: vi.fn(),
       };
 
       const mockMember = {
@@ -162,7 +197,7 @@ describe("Userinfo Command", () => {
         },
         permissions: {
           bitfield: 0,
-          has: jest.fn().mockReturnValue(false),
+          has: vi.fn().mockReturnValue(false),
         },
         displayName: "TestUser",
         nickname: null,
@@ -193,20 +228,20 @@ describe("Userinfo Command", () => {
         displayName: "TargetUser",
         bot: false,
         createdAt: new Date("2019-01-01"),
-        displayAvatarURL: jest
+        displayAvatarURL: vi
           .fn()
           .mockReturnValue("https://example.com/avatar.png"),
         flags: {
           bitfield: 0,
-          has: jest.fn().mockReturnValue(false),
+          has: vi.fn().mockReturnValue(false),
         },
       };
 
       const mockRolesCollection = {
         size: 0,
-        filter: jest.fn().mockReturnValue({
-          sort: jest.fn().mockReturnValue({
-            map: jest.fn().mockReturnValue([]),
+        filter: vi.fn().mockReturnValue({
+          sort: vi.fn().mockReturnValue({
+            map: vi.fn().mockReturnValue([]),
           }),
         }),
       };
@@ -219,7 +254,7 @@ describe("Userinfo Command", () => {
         },
         permissions: {
           bitfield: 0,
-          has: jest.fn().mockReturnValue(false),
+          has: vi.fn().mockReturnValue(false),
         },
         displayName: "TargetUser",
         nickname: "Target",
@@ -247,12 +282,12 @@ describe("Userinfo Command", () => {
         displayName: "TargetUser",
         bot: false,
         createdAt: new Date("2019-01-01"),
-        displayAvatarURL: jest
+        displayAvatarURL: vi
           .fn()
           .mockReturnValue("https://example.com/avatar.png"),
         flags: {
           bitfield: 0,
-          has: jest.fn().mockReturnValue(false),
+          has: vi.fn().mockReturnValue(false),
         },
       };
 
@@ -277,7 +312,7 @@ describe("Userinfo Command", () => {
     it("should return None for empty flags", () => {
       const flags = {
         bitfield: 0,
-        has: jest.fn().mockReturnValue(false),
+        has: vi.fn().mockReturnValue(false),
       };
 
       const result = formatUserFlags(flags);
@@ -292,7 +327,7 @@ describe("Userinfo Command", () => {
     it("should format valid flags", () => {
       const flags = {
         bitfield: 1,
-        has: jest.fn(flag => flag === "Staff"),
+        has: vi.fn(flag => flag === "Staff"),
       };
 
       const result = formatUserFlags(flags);
@@ -302,7 +337,7 @@ describe("Userinfo Command", () => {
     it("should handle invalid flags gracefully", () => {
       const flags = {
         bitfield: 1,
-        has: jest.fn(() => {
+        has: vi.fn(() => {
           throw new Error("Invalid flag");
         }),
       };
@@ -328,13 +363,13 @@ describe("Userinfo Command", () => {
 
     it("should call filter on roles collection", () => {
       const mockFiltered = {
-        sort: jest.fn().mockReturnValue({
-          map: jest.fn().mockReturnValue(["<@&role1>"]),
+        sort: vi.fn().mockReturnValue({
+          map: vi.fn().mockReturnValue(["<@&role1>"]),
         }),
       };
       const roles = {
         size: 1,
-        filter: jest.fn().mockReturnValue(mockFiltered),
+        filter: vi.fn().mockReturnValue(mockFiltered),
       };
 
       formatRoles(roles);

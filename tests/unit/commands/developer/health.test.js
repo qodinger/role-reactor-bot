@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, jest } from "@jest/globals";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { handleHealthCheck } from "../../../../src/commands/developer/health/handlers.js";
 import {
   formatMemory,
@@ -8,23 +8,23 @@ import {
 } from "../../../../src/commands/developer/health/utils.js";
 
 // Mock logger
-jest.mock("src/utils/logger.js", () => ({
-  getLogger: jest.fn(() => ({
-    info: jest.fn(),
-    error: jest.fn(),
-    warn: jest.fn(),
-    debug: jest.fn(),
+vi.mock("src/utils/logger.js", () => ({
+  getLogger: vi.fn(() => ({
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
   })),
 }));
 
 // Mock permissions
-jest.mock("src/utils/discord/permissions.js", () => ({
-  isDeveloper: jest.fn(userId => userId === "dev123"),
+vi.mock("src/utils/discord/permissions.js", () => ({
+  isDeveloper: vi.fn(userId => userId === "dev123"),
 }));
 
 // Mock embeds
-jest.mock("src/commands/developer/health/embeds.js", () => ({
-  createHealthEmbed: jest.fn().mockResolvedValue({
+vi.mock("src/commands/developer/health/embeds.js", () => ({
+  createHealthEmbed: vi.fn().mockResolvedValue({
     data: {
       title: "Bot Health Status",
       description: "All systems are operating normally! 🚀",
@@ -37,7 +37,7 @@ describe("Health Command", () => {
   let mockClient;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     mockInteraction = {
       user: {
@@ -52,16 +52,16 @@ describe("Health Command", () => {
           },
         },
       },
-      isRepliable: jest.fn().mockReturnValue(true),
-      editReply: jest.fn().mockResolvedValue(undefined),
-      reply: jest.fn().mockResolvedValue(undefined),
+      isRepliable: vi.fn().mockReturnValue(true),
+      editReply: vi.fn().mockResolvedValue(undefined),
+      reply: vi.fn().mockResolvedValue(undefined),
     };
 
     mockClient = {
       user: {
         id: "bot123",
         tag: "TestBot#1234",
-        displayAvatarURL: jest
+        displayAvatarURL: vi
           .fn()
           .mockReturnValue("https://example.com/avatar.png"),
       },

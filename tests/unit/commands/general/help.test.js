@@ -1,39 +1,39 @@
-import { describe, it, expect, beforeEach, jest } from "@jest/globals";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
   handleGeneralHelp,
   handleSpecificCommandHelp,
 } from "../../../../src/commands/general/help/handlers.js";
 
 // Mock logger
-jest.mock("src/utils/logger.js", () => ({
-  getLogger: jest.fn(() => ({
-    info: jest.fn(),
-    error: jest.fn(),
-    warn: jest.fn(),
-    debug: jest.fn(),
+vi.mock("src/utils/logger.js", () => ({
+  getLogger: vi.fn(() => ({
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
   })),
 }));
 
 // Mock permissions
-jest.mock("src/utils/discord/permissions.js", () => ({
-  isDeveloper: jest.fn((userId) => userId === "dev123"),
+vi.mock("src/utils/discord/permissions.js", () => ({
+  isDeveloper: vi.fn(userId => userId === "dev123"),
 }));
 
 // Mock embeds
-const mockCreateMainHelpEmbed = jest.fn(() => ({
+const mockCreateMainHelpEmbed = vi.fn(() => ({
   data: {
     title: "Help",
     description: "Bot help information",
   },
 }));
-const mockCreateCommandHelpEmbed = jest.fn(() => ({
+const mockCreateCommandHelpEmbed = vi.fn(() => ({
   data: {
     title: "Command Help",
     description: "Command information",
   },
 }));
 
-jest.mock("src/commands/general/help/embeds.js", () => ({
+vi.mock("src/commands/general/help/embeds.js", () => ({
   HelpEmbedBuilder: {
     createMainHelpEmbed: mockCreateMainHelpEmbed,
     createCommandHelpEmbed: mockCreateCommandHelpEmbed,
@@ -41,21 +41,21 @@ jest.mock("src/commands/general/help/embeds.js", () => ({
 }));
 
 // Mock components
-jest.mock("src/commands/general/help/components.js", () => ({
+vi.mock("src/commands/general/help/components.js", () => ({
   ComponentBuilder: {
-    createMainComponents: jest.fn().mockResolvedValue([]),
+    createMainComponents: vi.fn().mockResolvedValue([]),
   },
 }));
 
 // Mock utils
-jest.mock("src/commands/general/help/utils.js", () => ({
-  logHelpUsage: jest.fn(),
-  isValidCommandName: jest.fn((name) => name && name.length > 0),
+vi.mock("src/commands/general/help/utils.js", () => ({
+  logHelpUsage: vi.fn(),
+  isValidCommandName: vi.fn(name => name && name.length > 0),
 }));
 
 // Mock response messages
-jest.mock("src/utils/discord/responseMessages.js", () => ({
-  errorEmbed: jest.fn((options) => ({
+vi.mock("src/utils/discord/responseMessages.js", () => ({
+  errorEmbed: vi.fn(options => ({
     data: {
       title: options.title,
       description: options.description,
@@ -65,10 +65,9 @@ jest.mock("src/utils/discord/responseMessages.js", () => ({
 
 describe("Help Command", () => {
   let mockInteraction;
-  let mockClient;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     mockInteraction = {
       user: {
@@ -82,21 +81,27 @@ describe("Help Command", () => {
         id: "user123",
       },
       client: {
+        user: {
+          id: "bot123",
+          tag: "TestBot#1234",
+          username: "TestBot",
+          displayAvatarURL: vi
+            .fn()
+            .mockReturnValue("https://example.com/bot.png"),
+        },
+        guilds: {
+          cache: {
+            size: 10,
+          },
+        },
         commands: new Map([
           ["ping", { data: { name: "ping", description: "Ping command" } }],
           ["help", { data: { name: "help", description: "Help command" } }],
         ]),
       },
-      isRepliable: jest.fn().mockReturnValue(true),
-      editReply: jest.fn().mockResolvedValue(undefined),
-      reply: jest.fn().mockResolvedValue(undefined),
-    };
-
-    mockClient = {
-      user: {
-        id: "bot123",
-        tag: "TestBot#1234",
-      },
+      isRepliable: vi.fn().mockReturnValue(true),
+      editReply: vi.fn().mockResolvedValue(undefined),
+      reply: vi.fn().mockResolvedValue(undefined),
     };
   });
 
@@ -118,10 +123,10 @@ describe("Help Command", () => {
       mockCreateMainHelpEmbed.mockImplementationOnce(() => {
         throw new Error("Embed creation failed");
       });
-      
+
       // The error handler should catch this and call handleHelpError
       await handleGeneralHelp(mockInteraction, true);
-      
+
       // Should have attempted to edit reply (either with embed or error)
       expect(mockInteraction.editReply).toHaveBeenCalled();
     });
@@ -152,4 +157,3 @@ describe("Help Command", () => {
     });
   });
 });
-

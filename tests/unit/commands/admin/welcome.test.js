@@ -1,3 +1,5 @@
+import { describe, test, expect, beforeEach, vi } from "vitest";
+
 // Test file for welcome functionality
 
 describe("Welcome - Core Functionality", () => {

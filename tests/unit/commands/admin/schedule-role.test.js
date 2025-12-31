@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, jest } from "@jest/globals";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
   detectTargetingType,
   validateSchedule,
@@ -35,7 +35,7 @@ describe("Schedule Role - Mention Detection", () => {
     mockRolesCache.set(mockRole2.id, mockRole2);
 
     // Add find method to the cache (Discord.js Collection has find)
-    mockRolesCache.find = jest.fn(predicate => {
+    mockRolesCache.find = vi.fn(predicate => {
       for (const role of mockRolesCache.values()) {
         if (typeof predicate === "function" && predicate(role)) {
           return role;

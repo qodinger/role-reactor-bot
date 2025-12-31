@@ -1,3 +1,5 @@
+import { describe, test, expect, beforeEach, vi } from "vitest";
+
 // Test file for role-reactions functionality
 
 describe("Role Reactions - Core Functionality", () => {

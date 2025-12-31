@@ -1,24 +1,24 @@
-import { describe, it, expect, beforeEach, jest } from "@jest/globals";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { handleStorageCheck } from "../../../../src/commands/developer/storage/handlers.js";
 
 // Mock logger
-jest.mock("src/utils/logger.js", () => ({
-  getLogger: jest.fn(() => ({
-    info: jest.fn(),
-    error: jest.fn(),
-    warn: jest.fn(),
-    debug: jest.fn(),
+vi.mock("src/utils/logger.js", () => ({
+  getLogger: vi.fn(() => ({
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
   })),
 }));
 
 // Mock permissions
-jest.mock("src/utils/discord/permissions.js", () => ({
-  isDeveloper: jest.fn((userId) => userId === "dev123"),
+vi.mock("src/utils/discord/permissions.js", () => ({
+  isDeveloper: vi.fn(userId => userId === "dev123"),
 }));
 
 // Mock embeds
-jest.mock("src/commands/developer/storage/embeds.js", () => ({
-  createStorageEmbed: jest.fn().mockResolvedValue({
+vi.mock("src/commands/developer/storage/embeds.js", () => ({
+  createStorageEmbed: vi.fn().mockResolvedValue({
     data: {
       title: "Storage Status",
       description: "Storage configuration and status",
@@ -31,7 +31,7 @@ describe("Storage Command", () => {
   let mockClient;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     mockInteraction = {
       user: {
@@ -41,9 +41,9 @@ describe("Storage Command", () => {
       guild: {
         id: "guild123",
       },
-      isRepliable: jest.fn().mockReturnValue(true),
-      editReply: jest.fn().mockResolvedValue(undefined),
-      reply: jest.fn().mockResolvedValue(undefined),
+      isRepliable: vi.fn().mockReturnValue(true),
+      editReply: vi.fn().mockResolvedValue(undefined),
+      reply: vi.fn().mockResolvedValue(undefined),
     };
 
     mockClient = {
@@ -83,4 +83,3 @@ describe("Storage Command", () => {
     });
   });
 });
-

@@ -1,38 +1,40 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 import { ConversationManager } from "../../../../src/utils/ai/conversationManager.js";
 
 // Mock dependencies
-jest.mock("src/utils/logger.js", () => ({
-  getLogger: jest.fn(() => ({
-    debug: jest.fn(),
-    info: jest.fn(),
-    error: jest.fn(),
-    warn: jest.fn(),
+vi.mock("src/utils/logger.js", () => ({
+  getLogger: vi.fn(() => ({
+    debug: vi.fn(),
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
   })),
 }));
 
-jest.mock("src/utils/storage/databaseManager.js", () => ({
-  getDatabaseManager: jest.fn().mockResolvedValue({
+vi.mock("src/utils/storage/databaseManager.js", () => ({
+  getDatabaseManager: vi.fn().mockResolvedValue({
     conversations: {
-      getByUser: jest.fn().mockResolvedValue(null),
-      save: jest.fn().mockResolvedValue(true),
-      delete: jest.fn().mockResolvedValue(true),
+      getByUser: vi.fn().mockResolvedValue(null),
+      save: vi.fn().mockResolvedValue(true),
+      delete: vi.fn().mockResolvedValue(true),
     },
   }),
 }));
 
-jest.mock("src/utils/storage/storageManager.js", () => ({
-  getStorageManager: jest.fn().mockResolvedValue({
-    read: jest.fn().mockResolvedValue({}),
-    write: jest.fn().mockResolvedValue(true),
+vi.mock("src/utils/storage/storageManager.js", () => ({
+  getStorageManager: vi.fn().mockResolvedValue({
+    read: vi.fn().mockResolvedValue({}),
+    write: vi.fn().mockResolvedValue(true),
   }),
 }));
+
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
 describe("ConversationManager", () => {
   let conversationManager;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     // Set environment variables for testing
     process.env.AI_USE_LONG_TERM_MEMORY = "false";
     process.env.AI_CONVERSATION_STORAGE_TYPE = "memory";
@@ -46,20 +48,20 @@ describe("ConversationManager", () => {
   });
 
   describe("getConversationKey", () => {
-    test("should generate composite key for server conversations", () => {
+    it("should generate composite key for server conversations", () => {
       const userId = "123456789";
       const guildId = "987654321";
       const key = conversationManager.getConversationKey(userId, guildId);
       expect(key).toBe("123456789_987654321");
     });
 
-    test("should generate dm_ prefix for DM conversations", () => {
+    it("should generate dm_ prefix for DM conversations", () => {
       const userId = "123456789";
       const key = conversationManager.getConversationKey(userId, null);
       expect(key).toBe("dm_123456789");
     });
 
-    test("should handle undefined guildId as DM", () => {
+    it("should handle undefined guildId as DM", () => {
       const userId = "123456789";
       const key = conversationManager.getConversationKey(userId, undefined);
       expect(key).toBe("dm_123456789");
@@ -67,7 +69,7 @@ describe("ConversationManager", () => {
   });
 
   describe("parseConversationKey", () => {
-    test("should parse server conversation key correctly", () => {
+    it("should parse server conversation key correctly", () => {
       const key = "123456789_987654321";
       const parsed = conversationManager.parseConversationKey(key);
       expect(parsed).toEqual({
@@ -76,7 +78,7 @@ describe("ConversationManager", () => {
       });
     });
 
-    test("should parse DM conversation key correctly", () => {
+    it("should parse DM conversation key correctly", () => {
       const key = "dm_123456789";
       const parsed = conversationManager.parseConversationKey(key);
       expect(parsed).toEqual({
@@ -85,7 +87,7 @@ describe("ConversationManager", () => {
       });
     });
 
-    test("should handle legacy userId-only format", () => {
+    it("should handle legacy userId-only format", () => {
       const key = "123456789";
       const parsed = conversationManager.parseConversationKey(key);
       expect(parsed).toEqual({
@@ -96,7 +98,7 @@ describe("ConversationManager", () => {
   });
 
   describe("Server Isolation", () => {
-    test("should separate conversations by server", async () => {
+    it("should separate conversations by server", async () => {
       const userId = "123456789";
       const guildId1 = "111111111";
       const guildId2 = "222222222";
@@ -133,7 +135,7 @@ describe("ConversationManager", () => {
       expect(history1).not.toEqual(history2);
     });
 
-    test("should separate DM conversations from server conversations", async () => {
+    it("should separate DM conversations from server conversations", async () => {
       const userId = "123456789";
       const guildId = "111111111";
 
@@ -169,7 +171,7 @@ describe("ConversationManager", () => {
       expect(dmHistory).not.toEqual(serverHistory);
     });
 
-    test("should allow same user to have different conversations in different servers", async () => {
+    it("should allow same user to have different conversations in different servers", async () => {
       const userId = "123456789";
       const guildId1 = "111111111";
       const guildId2 = "222222222";
@@ -207,7 +209,7 @@ describe("ConversationManager", () => {
   });
 
   describe("clearHistory", () => {
-    test("should clear history for specific server only", async () => {
+    it("should clear history for specific server only", async () => {
       const userId = "123456789";
       const guildId1 = "111111111";
       const guildId2 = "222222222";
@@ -241,7 +243,7 @@ describe("ConversationManager", () => {
       expect(history2[0].content).toBe("Message in server 2");
     });
 
-    test("should clear DM history separately from server history", async () => {
+    it("should clear DM history separately from server history", async () => {
       const userId = "123456789";
       const guildId = "111111111";
 
@@ -277,7 +279,7 @@ describe("ConversationManager", () => {
   });
 
   describe("Backward Compatibility", () => {
-    test("should handle legacy userId-only keys in preload", async () => {
+    it("should handle legacy userId-only keys in preload", async () => {
       // This test verifies that the preload logic handles legacy keys
       // The actual implementation converts legacy keys to dm_userId format
       const legacyKey = "123456789";
@@ -288,7 +290,7 @@ describe("ConversationManager", () => {
   });
 
   describe("Edge Cases", () => {
-    test("should handle empty history", async () => {
+    it("should handle empty history", async () => {
       const userId = "123456789";
       const guildId = "111111111";
       const history = await conversationManager.getConversationHistory(
@@ -298,7 +300,7 @@ describe("ConversationManager", () => {
       expect(history).toEqual([]);
     });
 
-    test("should handle multiple users in same server", async () => {
+    it("should handle multiple users in same server", async () => {
       const userId1 = "111111111";
       const userId2 = "222222222";
       const guildId = "999999999";

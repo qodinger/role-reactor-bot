@@ -1,41 +1,41 @@
-import { describe, it, expect, beforeEach, jest } from "@jest/globals";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 
 // Mock logger
-jest.mock("src/utils/logger.js", () => ({
-  getLogger: jest.fn(() => ({
-    info: jest.fn(),
-    error: jest.fn(),
-    warn: jest.fn(),
-    debug: jest.fn(),
+vi.mock("src/utils/logger.js", () => ({
+  getLogger: vi.fn(() => ({
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
   })),
 }));
 
 // Mock theme/config dependencies first
-jest.mock("src/config/theme.js", () => ({
+vi.mock("src/config/theme.js", () => ({
   THEME: {
     PRIMARY: 0x5865f2,
     ERROR: 0xed4245,
   },
   UI_COMPONENTS: {
-    createFooter: jest.fn((text, icon) => ({ text, icon })),
+    createFooter: vi.fn((text, icon) => ({ text, icon })),
   },
 }));
 
 // Mock embeds - define mocks outside factory (like help.test.js pattern)
-const mockCreateServerInfoEmbed = jest.fn(() => ({
+const mockCreateServerInfoEmbed = vi.fn(() => ({
   data: {
     title: "Server Information",
     description: "Server info",
   },
 }));
-const mockCreateErrorEmbed = jest.fn(() => ({
+const mockCreateErrorEmbed = vi.fn(() => ({
   data: {
     title: "Error",
     description: "An error occurred",
   },
 }));
 
-jest.mock("src/commands/general/serverinfo/embeds.js", () => ({
+vi.mock("src/commands/general/serverinfo/embeds.js", () => ({
   createServerInfoEmbed: mockCreateServerInfoEmbed,
   createErrorEmbed: mockCreateErrorEmbed,
 }));
@@ -55,7 +55,7 @@ describe("Serverinfo Command", () => {
   let mockGuild;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     mockGuild = {
       id: "guild123",
@@ -64,52 +64,62 @@ describe("Serverinfo Command", () => {
       ownerId: "owner123",
       createdAt: new Date("2020-01-01"),
       memberCount: 100,
-      fetch: jest.fn().mockResolvedValue(undefined),
+      fetch: vi.fn().mockResolvedValue(undefined),
       members: {
         cache: (() => {
           const member1 = {
             id: "member1",
-            user: { id: "member1", bot: false },
+            user: { id: "member1", tag: "member1#0001", bot: false },
             presence: { status: "online" },
           };
           const member2 = {
             id: "member2",
-            user: { id: "member2", bot: true },
+            user: { id: "member2", tag: "member2#0002", bot: true },
             presence: { status: "offline" },
           };
-          const members = [member1, member2];
+          const ownerMember = {
+            id: "owner123",
+            user: { id: "owner123", tag: "owner#0001", bot: false },
+            presence: { status: "online" },
+          };
+          const membersMap = new Map([
+            ["member1", member1],
+            ["member2", member2],
+            ["owner123", ownerMember],
+          ]);
           return {
-            size: members.length,
-            filter: jest.fn(callback => {
-              const filtered = members.filter(callback);
+            size: membersMap.size,
+            get: vi.fn(id => membersMap.get(id)),
+            filter: vi.fn(callback => {
+              const filtered = Array.from(membersMap.values()).filter(callback);
               return {
                 size: filtered.length,
               };
             }),
           };
         })(),
-        fetch: jest.fn().mockResolvedValue(undefined),
+        fetch: vi.fn().mockResolvedValue(undefined),
       },
       channels: {
         cache: (() => {
           const channel1 = {
             id: "channel1",
             type: 0,
-            isTextBased: jest.fn().mockReturnValue(true),
-            isThread: jest.fn().mockReturnValue(false),
-            isVoiceBased: jest.fn().mockReturnValue(false),
+            isTextBased: vi.fn().mockReturnValue(true),
+            isThread: vi.fn().mockReturnValue(false),
+            isVoiceBased: vi.fn().mockReturnValue(false),
           };
           const channel2 = {
             id: "channel2",
             type: 2,
-            isTextBased: jest.fn().mockReturnValue(false),
-            isThread: jest.fn().mockReturnValue(false),
-            isVoiceBased: jest.fn().mockReturnValue(true),
+            isTextBased: vi.fn().mockReturnValue(false),
+            isThread: vi.fn().mockReturnValue(false),
+            isVoiceBased: vi.fn().mockReturnValue(true),
           };
           const channels = [channel1, channel2];
           return {
             size: channels.length,
-            filter: jest.fn(callback => {
+            filter: vi.fn(callback => {
               const filtered = channels.filter(callback);
               return {
                 size: filtered.length,
@@ -135,28 +145,28 @@ describe("Serverinfo Command", () => {
       },
       premiumTier: 0,
       premiumSubscriptionCount: 0,
-      iconURL: jest.fn().mockReturnValue("https://example.com/icon.png"),
-      bannerURL: jest.fn().mockReturnValue(null),
+      iconURL: vi.fn().mockReturnValue("https://example.com/icon.png"),
+      bannerURL: vi.fn().mockReturnValue(null),
     };
 
     mockInteraction = {
       user: {
         id: "user123",
         tag: "TestUser#1234",
-        displayAvatarURL: jest
+        displayAvatarURL: vi
           .fn()
           .mockReturnValue("https://example.com/avatar.png"),
       },
       guild: mockGuild,
-      deferReply: jest.fn().mockResolvedValue(undefined),
-      editReply: jest.fn().mockResolvedValue(undefined),
+      deferReply: vi.fn().mockResolvedValue(undefined),
+      editReply: vi.fn().mockResolvedValue(undefined),
     };
 
     mockClient = {
       user: {
         id: "bot123",
         tag: "TestBot#1234",
-        displayAvatarURL: jest
+        displayAvatarURL: vi
           .fn()
           .mockReturnValue("https://example.com/bot.png"),
       },
@@ -205,10 +215,10 @@ describe("Serverinfo Command", () => {
       );
 
       // Mock setTimeout to simulate timeout
-      jest.useFakeTimers();
+      vi.useFakeTimers();
       const executePromise = execute(mockInteraction, mockClient);
-      jest.advanceTimersByTime(35000); // Exceed timeout
-      jest.useRealTimers();
+      vi.advanceTimersByTime(35000); // Exceed timeout
+      vi.useRealTimers();
 
       await executePromise;
 
@@ -245,7 +255,7 @@ describe("Serverinfo Command", () => {
     it("should handle empty channels", () => {
       mockGuild.channels.cache = {
         size: 0,
-        filter: jest.fn().mockReturnValue({ size: 0 }),
+        filter: vi.fn().mockReturnValue({ size: 0 }),
       };
       const counts = getChannelCounts(mockGuild);
       expect(counts.total).toBe(0);
@@ -256,15 +266,15 @@ describe("Serverinfo Command", () => {
     it("should count members correctly", () => {
       const counts = getMemberCounts(mockGuild);
       expect(counts.total).toBe(100);
-      expect(counts.cached).toBe(2);
-      expect(counts.uncached).toBe(98);
+      expect(counts.cached).toBe(3);
+      expect(counts.uncached).toBe(97);
       expect(mockGuild.members.cache.filter).toHaveBeenCalled();
     });
 
     it("should handle empty members cache", () => {
       mockGuild.members.cache = {
         size: 0,
-        filter: jest.fn().mockReturnValue({ size: 0 }),
+        filter: vi.fn().mockReturnValue({ size: 0 }),
       };
       const counts = getMemberCounts(mockGuild);
       expect(counts.total).toBe(100);

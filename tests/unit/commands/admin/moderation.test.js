@@ -1,23 +1,41 @@
-import { describe, test, expect, beforeEach, jest } from "@jest/globals";
+import { describe, test, expect, beforeEach, vi } from "vitest";
 
 // IMPORTANT: Mocks must be defined BEFORE importing the module under test
 // Mock MongoDB directly to prevent real connections
-jest.mock("mongodb", () => {
-  const mockMongoClient = {
-    connect: jest.fn().mockResolvedValue({
-      db: jest.fn().mockReturnValue({
-        collection: jest.fn().mockReturnValue({
-          find: jest.fn(),
-          updateOne: jest.fn(),
-          deleteOne: jest.fn(),
-        }),
-      }),
-      close: jest.fn().mockResolvedValue(undefined),
+vi.mock("mongodb", () => {
+  const mockCollection = {
+    find: vi.fn().mockReturnValue({
+      toArray: vi.fn().mockResolvedValue([]),
     }),
-    close: jest.fn().mockResolvedValue(undefined),
+    findOne: vi.fn().mockResolvedValue(null),
+    insertOne: vi.fn().mockResolvedValue({ insertedId: "mock-id" }),
+    updateOne: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
+    replaceOne: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
+    deleteOne: vi.fn().mockResolvedValue({ deletedCount: 1 }),
+    deleteMany: vi.fn().mockResolvedValue({ deletedCount: 0 }),
+    createIndex: vi.fn().mockResolvedValue({}),
   };
+  const mockDb = {
+    collection: vi.fn().mockReturnValue(mockCollection),
+    admin: vi.fn().mockReturnValue({
+      ping: vi.fn().mockResolvedValue({}),
+    }),
+  };
+  const mockMongoClient = {
+    connect: vi.fn().mockResolvedValue({
+      db: vi.fn().mockReturnValue(mockDb),
+      close: vi.fn().mockResolvedValue(undefined),
+    }),
+    db: vi.fn().mockReturnValue(mockDb),
+    close: vi.fn().mockResolvedValue(undefined),
+  };
+  class MongoClient {
+    constructor() {
+      Object.assign(this, mockMongoClient);
+    }
+  }
   return {
-    MongoClient: jest.fn(() => mockMongoClient),
+    MongoClient,
   };
 });
 
@@ -25,47 +43,47 @@ jest.mock("mongodb", () => {
 const mockDbManager = {
   guildSettings: { exists: true },
   connectionManager: {
-    db: { collection: jest.fn() },
-    connect: jest.fn().mockResolvedValue(undefined),
+    db: { collection: vi.fn() },
+    connect: vi.fn().mockResolvedValue(undefined),
   },
-  connect: jest.fn().mockResolvedValue(undefined),
-  logger: { warn: jest.fn(), error: jest.fn(), info: jest.fn() },
+  connect: vi.fn().mockResolvedValue(undefined),
+  logger: { warn: vi.fn(), error: vi.fn(), info: vi.fn() },
 };
 
-jest.mock("src/utils/storage/databaseManager.js", () => ({
-  getDatabaseManager: jest.fn().mockResolvedValue(mockDbManager),
-  DatabaseManager: jest.fn(() => mockDbManager),
+vi.mock("src/utils/storage/databaseManager.js", () => ({
+  getDatabaseManager: vi.fn().mockResolvedValue(mockDbManager),
+  DatabaseManager: vi.fn(() => mockDbManager),
 }));
 
 // Mock storage manager to prevent MongoDB connections
 const mockStorageManager = {
-  read: jest.fn().mockResolvedValue({}),
-  write: jest.fn().mockResolvedValue(true),
-  get: jest.fn().mockResolvedValue({}),
-  set: jest.fn().mockResolvedValue(true),
-  save: jest.fn().mockResolvedValue(true),
-  delete: jest.fn().mockResolvedValue(true),
-  initialize: jest.fn().mockResolvedValue(undefined),
+  read: vi.fn().mockResolvedValue({}),
+  write: vi.fn().mockResolvedValue(true),
+  get: vi.fn().mockResolvedValue({}),
+  set: vi.fn().mockResolvedValue(true),
+  save: vi.fn().mockResolvedValue(true),
+  delete: vi.fn().mockResolvedValue(true),
+  initialize: vi.fn().mockResolvedValue(undefined),
   isInitialized: true,
 };
 
-jest.mock("src/utils/storage/storageManager.js", () => ({
-  getStorageManager: jest.fn().mockResolvedValue(mockStorageManager),
-  StorageManager: jest.fn(() => mockStorageManager),
+vi.mock("src/utils/storage/storageManager.js", () => ({
+  getStorageManager: vi.fn().mockResolvedValue(mockStorageManager),
+  StorageManager: vi.fn(() => mockStorageManager),
 }));
 
 // Mock logger
-jest.mock("src/utils/logger.js", () => ({
-  getLogger: jest.fn(() => ({
-    info: jest.fn(),
-    error: jest.fn(),
-    warn: jest.fn(),
-    debug: jest.fn(),
+vi.mock("src/utils/logger.js", () => ({
+  getLogger: vi.fn(() => ({
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
   })),
 }));
 
 // Mock theme
-jest.mock("src/config/theme.js", () => ({
+vi.mock("src/config/theme.js", () => ({
   THEME: {
     PRIMARY: 0x5865f2,
     ERROR: 0xed4245,
@@ -100,7 +118,7 @@ describe("Moderation - Core Functionality", () => {
       const moderator = {
         id: "mod123",
         permissions: {
-          has: jest.fn().mockReturnValue(false), // Not admin
+          has: vi.fn().mockReturnValue(false), // Not admin
         },
         roles: {
           highest: {
@@ -134,7 +152,7 @@ describe("Moderation - Core Functionality", () => {
       const moderator = {
         id: "user123",
         permissions: {
-          has: jest.fn().mockReturnValue(false),
+          has: vi.fn().mockReturnValue(false),
         },
         roles: {
           highest: {
@@ -169,7 +187,7 @@ describe("Moderation - Core Functionality", () => {
       const moderator = {
         id: "mod123",
         permissions: {
-          has: jest.fn().mockReturnValue(false),
+          has: vi.fn().mockReturnValue(false),
         },
         roles: {
           highest: {
@@ -204,7 +222,7 @@ describe("Moderation - Core Functionality", () => {
       const moderator = {
         id: "mod123",
         permissions: {
-          has: jest.fn().mockReturnValue(false),
+          has: vi.fn().mockReturnValue(false),
         },
         roles: {
           highest: {
@@ -239,7 +257,7 @@ describe("Moderation - Core Functionality", () => {
       const moderator = {
         id: "admin123",
         permissions: {
-          has: jest.fn().mockReturnValue(true), // Has admin permission
+          has: vi.fn().mockReturnValue(true), // Has admin permission
         },
         roles: {
           highest: {
@@ -273,7 +291,7 @@ describe("Moderation - Core Functionality", () => {
       const moderator = {
         id: "mod123",
         permissions: {
-          has: jest.fn().mockReturnValue(false),
+          has: vi.fn().mockReturnValue(false),
         },
         roles: {
           highest: {
@@ -572,13 +590,13 @@ describe("Moderation - Core Functionality", () => {
         id: "guild123",
         members: {
           cache: new Map(),
-          fetch: jest.fn(),
+          fetch: vi.fn(),
         },
       };
 
       mockClient = {
         users: {
-          fetch: jest.fn(),
+          fetch: vi.fn(),
         },
       };
     });
@@ -663,7 +681,7 @@ describe("Moderation - Core Functionality", () => {
       };
 
       mockClient.users.fetch.mockResolvedValue(user);
-      mockGuild.members.fetch = jest
+      mockGuild.members.fetch = vi
         .fn()
         .mockRejectedValue(new Error("Member not found"));
 
@@ -771,7 +789,7 @@ describe("Moderation - Core Functionality", () => {
       };
 
       mockClient.users.fetch.mockResolvedValue(user);
-      mockGuild.members.fetch = jest.fn().mockResolvedValue(member);
+      mockGuild.members.fetch = vi.fn().mockResolvedValue(member);
 
       const result = await parseMultipleUsers(
         "<@123456789012345678>",

@@ -1,25 +1,25 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 
 // Create mock functions that will be hoisted
-const mockInfo = jest.fn();
-const mockError = jest.fn();
-const mockWarn = jest.fn();
-const mockDebug = jest.fn();
-const mockLogRateLimit = jest.fn();
+const mockInfo = vi.fn();
+const mockError = vi.fn();
+const mockWarn = vi.fn();
+const mockDebug = vi.fn();
+const mockLogRateLimit = vi.fn();
 
-// Create rate limiter mocks outside factory to ensure they're jest.fn() instances
-const mockIsRateLimitedFn = jest.fn();
-const mockGetRateLimitRemainingTimeFn = jest.fn();
+// Create rate limiter mocks outside factory to ensure they're vi.fn() instances
+const mockIsRateLimitedFn = vi.fn();
+const mockGetRateLimitRemainingTimeFn = vi.fn();
 
 // Mock rate limiter - must be hoisted before any imports
-jest.mock("src/utils/discord/rateLimiter.js", () => ({
+vi.mock("src/utils/discord/rateLimiter.js", () => ({
   isRateLimited: mockIsRateLimitedFn,
   getRateLimitRemainingTime: mockGetRateLimitRemainingTimeFn,
 }));
 
 // Mock logger - must be hoisted before any imports
-jest.mock("src/utils/logger.js", () => ({
-  getLogger: jest.fn(() => ({
+vi.mock("src/utils/logger.js", () => ({
+  getLogger: vi.fn(() => ({
     info: mockInfo,
     error: mockError,
     warn: mockWarn,
@@ -29,59 +29,78 @@ jest.mock("src/utils/logger.js", () => ({
 }));
 
 // Mock MongoDB to prevent real connections
-jest.mock("mongodb", () => {
-  const mockMongoClient = {
-    connect: jest.fn().mockResolvedValue({
-      db: jest.fn().mockReturnValue({
-        collection: jest.fn().mockReturnValue({
-          find: jest.fn(),
-          updateOne: jest.fn(),
-          deleteOne: jest.fn(),
-        }),
-      }),
-      close: jest.fn().mockResolvedValue(undefined),
+vi.mock("mongodb", () => {
+  const mockCollection = {
+    find: vi.fn().mockReturnValue({
+      toArray: vi.fn().mockResolvedValue([]),
     }),
-    close: jest.fn().mockResolvedValue(undefined),
+    findOne: vi.fn().mockResolvedValue(null),
+    insertOne: vi.fn().mockResolvedValue({ insertedId: "mock-id" }),
+    updateOne: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
+    replaceOne: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
+    deleteOne: vi.fn().mockResolvedValue({ deletedCount: 1 }),
+    deleteMany: vi.fn().mockResolvedValue({ deletedCount: 0 }),
+    createIndex: vi.fn().mockResolvedValue({}),
   };
+  const mockDb = {
+    collection: vi.fn().mockReturnValue(mockCollection),
+    admin: vi.fn().mockReturnValue({
+      ping: vi.fn().mockResolvedValue({}),
+    }),
+  };
+  const mockMongoClient = {
+    connect: vi.fn().mockResolvedValue({
+      db: vi.fn().mockReturnValue(mockDb),
+      close: vi.fn().mockResolvedValue(undefined),
+    }),
+    db: vi.fn().mockReturnValue(mockDb),
+    close: vi.fn().mockResolvedValue(undefined),
+  };
+  class MongoClient {
+    constructor() {
+      Object.assign(this, mockMongoClient);
+    }
+  }
   return {
-    MongoClient: jest.fn(() => mockMongoClient),
+    MongoClient,
   };
 });
 
 // Mock database manager
-jest.mock("src/utils/storage/databaseManager.js", () => ({
-  getDatabaseManager: jest.fn().mockResolvedValue({
-    connect: jest.fn().mockResolvedValue(true),
-    disconnect: jest.fn().mockResolvedValue(true),
+vi.mock("src/utils/storage/databaseManager.js", () => ({
+  getDatabaseManager: vi.fn().mockResolvedValue({
+    connect: vi.fn().mockResolvedValue(true),
+    disconnect: vi.fn().mockResolvedValue(true),
   }),
 }));
 
 // Mock storage manager
-jest.mock("src/utils/storage/storageManager.js", () => ({
-  getStorageManager: jest.fn().mockResolvedValue({
-    save: jest.fn(),
-    get: jest.fn(),
-    delete: jest.fn(),
-    read: jest.fn().mockResolvedValue(null),
-    write: jest.fn(),
+vi.mock("src/utils/storage/storageManager.js", () => ({
+  getStorageManager: vi.fn().mockResolvedValue({
+    save: vi.fn(),
+    get: vi.fn(),
+    delete: vi.fn(),
+    read: vi.fn().mockResolvedValue(null),
+    write: vi.fn(),
   }),
 }));
 
 // Mock Core utils to prevent storage lookups
-// Create mock functions outside factory to ensure they're jest.fn() instances
-const mockGetUserCorePriority = jest.fn().mockResolvedValue({
+// Create mock functions outside factory to ensure they're vi.fn() instances
+const mockGetUserCorePriority = vi.fn().mockResolvedValue({
   hasCore: false,
   tier: null,
   priority: 0,
 });
-const mockGetCoreRateLimitMultiplier = jest.fn().mockReturnValue(1.0);
+const mockGetCoreRateLimitMultiplier = vi.fn().mockReturnValue(1.0);
 
-jest.mock("src/commands/general/core/utils.js", () => ({
+vi.mock("src/commands/general/core/utils.js", () => ({
   getUserCorePriority: mockGetUserCorePriority,
   getCoreRateLimitMultiplier: mockGetCoreRateLimitMultiplier,
 }));
 
 // Import EventHandler after mocks are set up
+import { describe, test, it, expect, beforeEach, vi } from "vitest";
 import { EventHandler } from "../../../../src/utils/core/eventHandler.js";
 
 describe("EventHandler - Core-Aware Command Rate Limiting", () => {
@@ -91,7 +110,7 @@ describe("EventHandler - Core-Aware Command Rate Limiting", () => {
 
   beforeEach(() => {
     eventHandler = new EventHandler();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Create mock interaction
     mockInteraction = {
@@ -102,18 +121,18 @@ describe("EventHandler - Core-Aware Command Rate Limiting", () => {
       commandName: "help",
       replied: false,
       deferred: false,
-      reply: jest.fn().mockResolvedValue(),
-      editReply: jest.fn().mockResolvedValue(),
+      reply: vi.fn().mockResolvedValue(),
+      editReply: vi.fn().mockResolvedValue(),
     };
 
     // Create mock handler
-    mockHandler = jest.fn().mockResolvedValue();
+    mockHandler = vi.fn().mockResolvedValue();
   });
 
   describe("processEvent - Legacy Rate Limiting", () => {
     test("should use legacy rate limiting for non-command events", async () => {
       // Non-command events use legacy rate limiting (no MongoDB needed)
-      jest.spyOn(eventHandler, "isRateLimited").mockReturnValue(false);
+      vi.spyOn(eventHandler, "isRateLimited").mockReturnValue(false);
 
       await eventHandler.processEvent(
         "button:click",
@@ -131,7 +150,7 @@ describe("EventHandler - Core-Aware Command Rate Limiting", () => {
 
     test("should block non-command events when rate limited", async () => {
       // Test legacy rate limiting blocking
-      jest.spyOn(eventHandler, "isRateLimited").mockReturnValue(true);
+      vi.spyOn(eventHandler, "isRateLimited").mockReturnValue(true);
 
       await eventHandler.processEvent(
         "button:click",
@@ -149,10 +168,10 @@ describe("EventHandler - Core-Aware Command Rate Limiting", () => {
     test("should not throw when handler errors", async () => {
       // When handler throws an error, should catch it and not throw
       // Use non-command event to avoid MongoDB connection
-      const errorHandler = jest
+      const errorHandler = vi
         .fn()
         .mockRejectedValue(new Error("Handler failed"));
-      jest.spyOn(eventHandler, "isRateLimited").mockReturnValue(false);
+      vi.spyOn(eventHandler, "isRateLimited").mockReturnValue(false);
 
       // Process event - should not throw, should catch error
       await expect(

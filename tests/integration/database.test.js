@@ -1,24 +1,25 @@
 import {
-  jest,
+  vi,
   describe,
   test,
   expect,
   beforeEach,
   afterEach,
-} from "@jest/globals";
+  afterAll,
+} from "vitest";
 
 describe("Database Integration Tests", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   afterAll(() => {
     // Clear any remaining timers
-    jest.clearAllTimers();
+    vi.clearAllTimers();
 
     // Force garbage collection if available
     if (global.gc) {

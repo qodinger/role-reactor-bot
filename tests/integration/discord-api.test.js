@@ -3,7 +3,15 @@
  * Tests real Discord API calls and command execution with actual data
  */
 
-import { jest } from "@jest/globals";
+import {
+  vi,
+  describe,
+  test,
+  expect,
+  beforeAll,
+  afterAll,
+  beforeEach,
+} from "vitest";
 
 // Environment variables are set in tests/setup.js
 
@@ -362,16 +370,16 @@ describe("Discord API Integration Tests", () => {
 
   afterAll(async () => {
     // Clear any remaining timers
-    jest.clearAllTimers();
+    vi.clearAllTimers();
 
     // Only run pending timers if fake timers are enabled
-    if (jest.isMockFunction(setTimeout)) {
-      jest.runOnlyPendingTimers();
-      jest.useRealTimers();
+    if (vi.isMockFunction(setTimeout)) {
+      vi.runOnlyPendingTimers();
+      vi.useRealTimers();
     }
 
     // Clear all mocks
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Force garbage collection if available
     if (global.gc) {
@@ -391,7 +399,7 @@ describe("Discord API Integration Tests", () => {
     mockMember.roles.clear();
 
     // Clear any lingering timers from previous tests
-    jest.clearAllTimers();
+    vi.clearAllTimers();
   });
 
   describe("Client Connection and Authentication", () => {
@@ -404,7 +412,7 @@ describe("Discord API Integration Tests", () => {
       const client = new MockDiscordClient();
       const error = new Error("Connection failed");
 
-      jest.spyOn(client, "login").mockRejectedValueOnce(error);
+      vi.spyOn(client, "login").mockRejectedValueOnce(error);
 
       await expect(client.login("invalid-token")).rejects.toThrow(
         "Connection failed",

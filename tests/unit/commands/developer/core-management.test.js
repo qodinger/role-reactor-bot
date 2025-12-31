@@ -1,53 +1,71 @@
-import { describe, it, expect, beforeEach, jest } from "@jest/globals";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { handleCoreManagement } from "../../../../src/commands/developer/core-management/handlers.js";
 
 // Mock logger
-jest.mock("src/utils/logger.js", () => ({
-  getLogger: jest.fn(() => ({
-    info: jest.fn(),
-    error: jest.fn(),
-    warn: jest.fn(),
-    debug: jest.fn(),
+vi.mock("src/utils/logger.js", () => ({
+  getLogger: vi.fn(() => ({
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
   })),
 }));
 
 // Mock permissions
-jest.mock("src/utils/discord/permissions.js", () => ({
-  isDeveloper: jest.fn((userId) => userId === "dev123"),
+vi.mock("src/utils/discord/permissions.js", () => ({
+  isDeveloper: vi.fn((userId) => userId === "dev123"),
 }));
 
 // Mock MongoDB directly to prevent real connections
-jest.mock("mongodb", () => {
-  const mockMongoClient = {
-    connect: jest.fn().mockResolvedValue({
-      db: jest.fn().mockReturnValue({
-        collection: jest.fn().mockReturnValue({
-          find: jest.fn(),
-          updateOne: jest.fn(),
-          deleteOne: jest.fn(),
-        }),
-      }),
-      close: jest.fn().mockResolvedValue(undefined),
+vi.mock("mongodb", () => {
+  const mockCollection = {
+    find: vi.fn().mockReturnValue({
+      toArray: vi.fn().mockResolvedValue([]),
     }),
-    close: jest.fn().mockResolvedValue(undefined),
+    findOne: vi.fn().mockResolvedValue(null),
+    insertOne: vi.fn().mockResolvedValue({ insertedId: "mock-id" }),
+    updateOne: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
+    replaceOne: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
+    deleteOne: vi.fn().mockResolvedValue({ deletedCount: 1 }),
+    deleteMany: vi.fn().mockResolvedValue({ deletedCount: 0 }),
+    createIndex: vi.fn().mockResolvedValue({}),
   };
+  const mockDb = {
+    collection: vi.fn().mockReturnValue(mockCollection),
+    admin: vi.fn().mockReturnValue({
+      ping: vi.fn().mockResolvedValue({}),
+    }),
+  };
+  const mockMongoClient = {
+    connect: vi.fn().mockResolvedValue({
+      db: vi.fn().mockReturnValue(mockDb),
+      close: vi.fn().mockResolvedValue(undefined),
+    }),
+    db: vi.fn().mockReturnValue(mockDb),
+    close: vi.fn().mockResolvedValue(undefined),
+  };
+  class MongoClient {
+    constructor() {
+      Object.assign(this, mockMongoClient);
+    }
+  }
   return {
-    MongoClient: jest.fn(() => mockMongoClient),
+    MongoClient,
   };
 });
 
 // Mock storage manager
-jest.mock("src/utils/storage/storageManager.js", () => ({
-  getStorageManager: jest.fn().mockResolvedValue({
-    save: jest.fn(),
-    get: jest.fn(),
-    delete: jest.fn(),
+vi.mock("src/utils/storage/storageManager.js", () => ({
+  getStorageManager: vi.fn().mockResolvedValue({
+    save: vi.fn(),
+    get: vi.fn(),
+    delete: vi.fn(),
   }),
 }));
 
 // Mock embeds
-jest.mock("src/commands/developer/core-management/embeds.js", () => ({
-  createDetailedCoreManagementEmbed: jest.fn().mockResolvedValue({
+vi.mock("src/commands/developer/core-management/embeds.js", () => ({
+  createDetailedCoreManagementEmbed: vi.fn().mockResolvedValue({
     data: {
       title: "Core Management",
       description: "Core credit management",
@@ -60,7 +78,7 @@ describe("Core Management Command", () => {
   let mockClient;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     mockInteraction = {
       user: {
@@ -70,16 +88,16 @@ describe("Core Management Command", () => {
       guild: {
         id: "guild123",
       },
-      isRepliable: jest.fn().mockReturnValue(true),
+      isRepliable: vi.fn().mockReturnValue(true),
       options: {
-        getSubcommand: jest.fn().mockReturnValue("view"),
-        getUser: jest.fn().mockReturnValue({
+        getSubcommand: vi.fn().mockReturnValue("view"),
+        getUser: vi.fn().mockReturnValue({
           id: "user123",
           tag: "TestUser#1234",
         }),
       },
-      editReply: jest.fn().mockResolvedValue(undefined),
-      reply: jest.fn().mockResolvedValue(undefined),
+      editReply: vi.fn().mockResolvedValue(undefined),
+      reply: vi.fn().mockResolvedValue(undefined),
     };
 
     mockClient = {
