@@ -5,11 +5,11 @@ import { chatService } from "../utils/ai/index.js";
 import { getUserData } from "../commands/general/core/utils.js";
 import {
   checkAICredits,
-  checkAndDeductAICredits,
   getAICreditInfo,
 } from "../utils/ai/aiCreditManager.js";
 import { emojiConfig } from "../config/emojis.js";
 import { EMOJIS } from "../config/theme.js";
+import { AI_STATUS_MESSAGES } from "../utils/ai/statusMessages.js";
 
 const { customEmojis } = emojiConfig;
 
@@ -200,7 +200,7 @@ export async function execute(message, client) {
 
         if (useStreaming) {
           // Send initial status message
-          await updateStatusMessage("Thinking about your message...");
+          await updateStatusMessage(AI_STATUS_MESSAGES.THINKING_ABOUT_MESSAGE);
 
           // Track if message was deleted to prevent further update attempts
           let messageDeleted = false;
@@ -428,7 +428,7 @@ export async function execute(message, client) {
           }
         } else {
           // Non-streaming mode - show real status updates tied to actual processing
-          await updateStatusMessage("Thinking about your message...");
+          await updateStatusMessage(AI_STATUS_MESSAGES.THINKING_ABOUT_MESSAGE);
 
           // Status callback that will be called by chatService at actual processing steps
           const onStatus = async (
@@ -489,18 +489,8 @@ export async function execute(message, client) {
           }
         }
 
-        const deductionResult = await checkAndDeductAICredits(
-          message.author.id,
-        );
-        if (!deductionResult.success) {
-          logger.error(
-            `Failed to deduct credits after successful generation for user ${message.author.id}: ${deductionResult.error}`,
-          );
-        } else {
-          logger.debug(
-            `Deducted ${deductionResult.creditsDeducted} Core from user ${message.author.id} (${deductionResult.creditsRemaining} remaining)`,
-          );
-        }
+        // Credits are now deducted per API call in chatService, not per command
+        // This ensures users pay for each API call (including re-queries)
 
         // Step 1: Send AI's text message first (if it exists)
         if (responseText && responseText.trim().length > 0) {

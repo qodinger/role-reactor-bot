@@ -1,3 +1,5 @@
+import { AI_STATUS_MESSAGES } from "../statusMessages.js";
+
 const fetch = globalThis.fetch;
 const { TextDecoder } = globalThis;
 
@@ -31,18 +33,37 @@ export class OpenAIProvider {
       messages.unshift({ role: "system", content: config.systemMessage });
     }
 
+    const requestBody = {
+      model: model || "gpt-3.5-turbo",
+      messages,
+      temperature: config.temperature || 0.7,
+      max_tokens: config.maxTokens || 1000,
+    };
+
+    // ============================================================================
+    // LOG FULL REQUEST BEING SENT TO API
+    // ============================================================================
+    const { getLogger } = await import("../../logger.js");
+    const logger = getLogger();
+    logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    logger.info(
+      `[OPENAI API REQUEST] Model: ${requestBody.model} | Provider: openai`,
+    );
+    logger.info(
+      `[OPENAI API REQUEST] Temperature: ${requestBody.temperature} | Max Tokens: ${requestBody.max_tokens}`,
+    );
+    logger.info(`[OPENAI API REQUEST] Messages Count: ${messages.length}`);
+    logger.info("[OPENAI API REQUEST] Full Request Body:");
+    logger.info(JSON.stringify(requestBody, null, 2));
+    logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+
     const response = await fetch(`${this.config.baseUrl}/chat/completions`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${this.config.apiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        model: model || "gpt-3.5-turbo",
-        messages,
-        temperature: config.temperature || 0.7,
-        max_tokens: config.maxTokens || 1000,
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
@@ -174,7 +195,7 @@ export class OpenAIProvider {
    */
   async generateImage(prompt, model, config, progressCallback = null) {
     if (progressCallback) {
-      progressCallback("Sending generation request...");
+      progressCallback(AI_STATUS_MESSAGES.OPENAI_SENDING);
     }
     const response = await fetch(`${this.config.baseUrl}/images/generations`, {
       method: "POST",
@@ -208,7 +229,7 @@ export class OpenAIProvider {
     }
 
     if (progressCallback) {
-      progressCallback("Downloading generated image...");
+      progressCallback(AI_STATUS_MESSAGES.OPENAI_DOWNLOADING);
     }
 
     // Download and convert to buffer

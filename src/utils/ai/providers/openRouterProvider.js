@@ -4,6 +4,7 @@ import {
   createHeaders,
   extractImageUrl,
 } from "./providerUtils.js";
+import { AI_STATUS_MESSAGES } from "../statusMessages.js";
 
 const logger = getLogger();
 const fetch = globalThis.fetch;
@@ -45,6 +46,23 @@ export class OpenRouterProvider {
       temperature: config.temperature || 0.7,
       max_tokens: config.maxTokens || 1000,
     };
+
+    // ============================================================================
+    // LOG FULL REQUEST BEING SENT TO API
+    // ============================================================================
+    const { getLogger } = await import("../../logger.js");
+    const logger = getLogger();
+    logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    logger.info(
+      `[OPENROUTER API REQUEST] Model: ${requestBody.model} | Provider: openrouter`,
+    );
+    logger.info(
+      `[OPENROUTER API REQUEST] Temperature: ${requestBody.temperature} | Max Tokens: ${requestBody.max_tokens}`,
+    );
+    logger.info(`[OPENROUTER API REQUEST] Messages Count: ${messages.length}`);
+    logger.info("[OPENROUTER API REQUEST] Full Request Body:");
+    logger.info(JSON.stringify(requestBody, null, 2));
+    logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
     // Model-specific optimizations for speed
     // DeepSeek R1 is a reasoning model (inherently slower), but we can optimize parameters
@@ -203,7 +221,7 @@ export class OpenRouterProvider {
    */
   async generateImage(prompt, model, config, progressCallback = null) {
     if (progressCallback) {
-      progressCallback("Sending generation request...");
+      progressCallback(AI_STATUS_MESSAGES.OPENROUTER_SENDING);
     }
     const requestBody = {
       model,
@@ -218,7 +236,7 @@ export class OpenRouterProvider {
     });
 
     if (progressCallback) {
-      progressCallback("Processing image response...");
+      progressCallback(AI_STATUS_MESSAGES.OPENROUTER_PROCESSING);
     }
 
     const imageUrl = extractImageUrl(data);
@@ -236,7 +254,7 @@ export class OpenRouterProvider {
     }
 
     if (progressCallback) {
-      progressCallback("Downloading generated image...");
+      progressCallback(AI_STATUS_MESSAGES.OPENROUTER_DOWNLOADING);
     }
 
     // Handle different image URL formats

@@ -10,6 +10,7 @@ import { OpenRouterProvider } from "./providers/openRouterProvider.js";
 import { OpenAIProvider } from "./providers/openAIProvider.js";
 import { StabilityProvider } from "./providers/stabilityProvider.js";
 import { SelfHostedProvider } from "./providers/selfHostedProvider.js";
+import { AI_STATUS_MESSAGES } from "./statusMessages.js";
 
 const logger = getLogger();
 
@@ -28,6 +29,20 @@ async function loadConfig() {
 
   configLoadPromise = (async () => {
     try {
+      // Try new AI config first
+      const aiConfigModule = await import("../../config/ai.js").catch(
+        () => null,
+      );
+      if (aiConfigModule) {
+        const aiConfig =
+          aiConfigModule.getAIModels || aiConfigModule.default?.getAIModels;
+        if (aiConfig) {
+          configCache = typeof aiConfig === "function" ? aiConfig() : aiConfig;
+          return configCache;
+        }
+      }
+
+      // Fallback to old config location for backward compatibility
       const configModule = await import("../../config/config.js").catch(
         () => null,
       );
@@ -362,7 +377,7 @@ export class MultiProviderAIService {
     const model = providerConfig.models.image.primary;
 
     if (progressCallback) {
-      progressCallback("Initializing image generation...");
+      progressCallback(AI_STATUS_MESSAGES.MULTIPROVIDER_INITIALIZING);
     }
 
     const providerInstance = this.providers[provider];

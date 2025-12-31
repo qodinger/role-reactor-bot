@@ -1,11 +1,12 @@
 import { multiProviderAIService } from "./multiProviderAIService.js";
 import { concurrencyManager } from "./concurrencyManager.js";
 import { getLogger } from "../logger.js";
+import { AI_STATUS_MESSAGES } from "./statusMessages.js";
 
 let promptConfigCache = null;
 async function loadPromptConfig() {
   if (!promptConfigCache) {
-    promptConfigCache = await import("../../config/prompts.js");
+    promptConfigCache = await import("../../config/prompts/index.js");
   }
   return promptConfigCache;
 }
@@ -98,7 +99,8 @@ export class AvatarService {
       async () => {
         try {
           // Step 1: Initialize
-          if (progressCallback) progressCallback("Initializing AI service...");
+          if (progressCallback)
+            progressCallback(AI_STATUS_MESSAGES.AVATAR_INITIALIZING);
 
           // Validate input
           if (
@@ -116,7 +118,8 @@ export class AvatarService {
           }
 
           // Step 2: Build enhanced prompt
-          if (progressCallback) progressCallback("Building enhanced prompt...");
+          if (progressCallback)
+            progressCallback(AI_STATUS_MESSAGES.AVATAR_BUILDING_PROMPT);
 
           // Determine provider for prompt optimization
           const targetProvider = this.aiService.getPrimaryProvider();
@@ -126,8 +129,25 @@ export class AvatarService {
             targetProvider,
           );
 
-          logger.info(`Generating AI avatar for user ${userId}: "${prompt}"`);
-          logger.debug(`Enhanced prompt: "${enhancedPrompt}"`);
+          // ============================================================================
+          // LOG FULL PROMPT BEING SENT TO AI
+          // ============================================================================
+          logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+          logger.info(
+            `[AVATAR PROMPT LOG] User: ${userId} | Request ID: ${requestId}`,
+          );
+          logger.info(`[AVATAR PROMPT LOG] Original Prompt: "${prompt}"`);
+          logger.info(
+            `[AVATAR PROMPT LOG] Style Options: ${JSON.stringify(styleOptions)}`,
+          );
+          logger.info(
+            `[AVATAR PROMPT LOG] Provider: ${targetProvider || "stability"}`,
+          );
+          logger.info(
+            `[AVATAR PROMPT LOG] Enhanced Prompt (${enhancedPrompt.length} chars):`,
+          );
+          logger.info(`[AVATAR PROMPT LOG] "${enhancedPrompt}"`);
+          logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
           if (showDebugPrompt) {
             return {
@@ -138,11 +158,11 @@ export class AvatarService {
 
           // Step 3: Connect to AI provider
           if (progressCallback)
-            progressCallback("Connecting to AI provider...");
+            progressCallback(AI_STATUS_MESSAGES.AVATAR_CONNECTING);
 
           // Step 4: Generate image
           if (progressCallback)
-            progressCallback("Generating image (this may take 30-60s)...");
+            progressCallback(AI_STATUS_MESSAGES.AVATAR_GENERATING);
 
           // Avatar generation uses ONLY Stability AI (no fallback)
           const stabilityProvider = this.aiService.config.providers.stability;
@@ -170,7 +190,8 @@ export class AvatarService {
           });
 
           // Step 5: Process image data
-          if (progressCallback) progressCallback("Processing image data...");
+          if (progressCallback)
+            progressCallback(AI_STATUS_MESSAGES.AVATAR_PROCESSING);
 
           const processingTime = Date.now() - startTime;
           logger.info(
@@ -178,7 +199,8 @@ export class AvatarService {
           );
 
           // Step 6: Finalize result
-          if (progressCallback) progressCallback("Finalizing result...");
+          if (progressCallback)
+            progressCallback(AI_STATUS_MESSAGES.AVATAR_FINALIZING);
 
           return {
             ...result,

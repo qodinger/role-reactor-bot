@@ -1,4 +1,5 @@
 import { parseAspectRatio } from "./providerUtils.js";
+import { AI_STATUS_MESSAGES } from "../statusMessages.js";
 
 const fetch = globalThis.fetch;
 const { TextDecoder } = globalThis;
@@ -7,7 +8,7 @@ const { TextDecoder } = globalThis;
 let promptConfigCache = null;
 async function loadPromptConfig() {
   if (!promptConfigCache) {
-    promptConfigCache = await import("../../../config/prompts.js");
+    promptConfigCache = await import("../../../config/prompts/index.js");
   }
   return promptConfigCache;
 }
@@ -53,6 +54,23 @@ export class SelfHostedProvider {
       max_tokens: config.maxTokens || 1000,
       stream: false,
     };
+
+    // ============================================================================
+    // LOG FULL REQUEST BEING SENT TO API
+    // ============================================================================
+    const { getLogger } = await import("../../logger.js");
+    const logger = getLogger();
+    logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    logger.info(
+      `[SELF-HOSTED API REQUEST] Model: ${requestBody.model} | Provider: selfhosted`,
+    );
+    logger.info(
+      `[SELF-HOSTED API REQUEST] Temperature: ${requestBody.temperature} | Max Tokens: ${requestBody.max_tokens}`,
+    );
+    logger.info(`[SELF-HOSTED API REQUEST] Messages Count: ${messages.length}`);
+    logger.info("[SELF-HOSTED API REQUEST] Full Request Body:");
+    logger.info(JSON.stringify(requestBody, null, 2));
+    logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
     // Build API URL - try OpenAI-compatible endpoint first, fallback to Ollama native
     const baseUrl = this.config.baseUrl;
@@ -279,7 +297,7 @@ export class SelfHostedProvider {
    */
   async generateImage(prompt, _model, config, progressCallback = null) {
     if (progressCallback) {
-      progressCallback("Sending generation request...");
+      progressCallback(AI_STATUS_MESSAGES.SELFHOSTED_SENDING);
     }
     // Load prompt configuration
     const promptConfig = await loadPromptConfig();
@@ -315,7 +333,7 @@ export class SelfHostedProvider {
     }
 
     if (progressCallback) {
-      progressCallback("Generating image (this may take 30-60s)...");
+      progressCallback(AI_STATUS_MESSAGES.SELFHOSTED_GENERATING);
     }
 
     // Build API URL
@@ -347,7 +365,7 @@ export class SelfHostedProvider {
       }
 
       if (progressCallback) {
-        progressCallback("Processing generated image...");
+        progressCallback(AI_STATUS_MESSAGES.SELFHOSTED_PROCESSING);
       }
 
       // Decode base64 image
@@ -389,7 +407,7 @@ export class SelfHostedProvider {
     }
 
     if (progressCallback) {
-      progressCallback("Processing generated image...");
+      progressCallback(AI_STATUS_MESSAGES.SELFHOSTED_PROCESSING);
     }
 
     // Decode base64 image

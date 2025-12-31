@@ -1,10 +1,12 @@
+import { AI_STATUS_MESSAGES } from "../statusMessages.js";
+
 const fetch = globalThis.fetch;
 
 // Load prompt configuration with caching
 let promptConfigCache = null;
 async function loadPromptConfig() {
   if (!promptConfigCache) {
-    promptConfigCache = await import("../../../config/prompts.js");
+    promptConfigCache = await import("../../../config/prompts/index.js");
   }
   return promptConfigCache;
 }
@@ -30,7 +32,7 @@ export class StabilityProvider {
    */
   async generateImage(prompt, model, config, progressCallback = null) {
     if (progressCallback) {
-      progressCallback("Preparing request for Stability AI...");
+      progressCallback(AI_STATUS_MESSAGES.STABILITY_PREPARING);
     }
     // Load prompt configuration
     const promptConfig = await loadPromptConfig();
@@ -76,8 +78,28 @@ export class StabilityProvider {
       promptConfig.NEGATIVE_PROMPT;
     formData.append("negative_prompt", negativePrompt);
 
+    // ============================================================================
+    // LOG FULL REQUEST BEING SENT TO API
+    // ============================================================================
+    const { getLogger } = await import("../../logger.js");
+    const logger = getLogger();
+    logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    logger.info(
+      `[STABILITY API REQUEST] Model: ${model} | Provider: stability`,
+    );
+    logger.info(
+      `[STABILITY API REQUEST] Prompt (${prompt.length} chars): "${prompt}"`,
+    );
+    logger.info(
+      `[STABILITY API REQUEST] Negative Prompt (${negativePrompt.length} chars): "${negativePrompt}"`,
+    );
+    logger.info(
+      `[STABILITY API REQUEST] Config: CFG Scale: ${config.cfgScale || 7}, Steps: ${config.steps || 20}, Safety Tolerance: ${config.safetyTolerance || 6}`,
+    );
+    logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+
     if (progressCallback) {
-      progressCallback("Generating image (this may take 30-60s)...");
+      progressCallback(AI_STATUS_MESSAGES.STABILITY_GENERATING);
     }
 
     const response = await fetch(this.config.baseUrl, {
@@ -99,7 +121,7 @@ export class StabilityProvider {
     }
 
     if (progressCallback) {
-      progressCallback("Processing generated image...");
+      progressCallback(AI_STATUS_MESSAGES.STABILITY_PROCESSING);
     }
 
     const imageBuffer = await response.arrayBuffer();

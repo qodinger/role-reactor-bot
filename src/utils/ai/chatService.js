@@ -1,8 +1,8 @@
-import dedent from "dedent";
 import { multiProviderAIService } from "./multiProviderAIService.js";
 import { concurrencyManager } from "./concurrencyManager.js";
 import { getLogger } from "../logger.js";
 import { conversationManager } from "./conversationManager.js";
+import { MemoryManager } from "./memory/memoryManager.js";
 import { responseValidator } from "./responseValidator.js";
 import { systemPromptBuilder } from "./systemPromptBuilder.js";
 import { actionTriggersReQuery } from "./actionRegistry.js";
@@ -20,25 +20,17 @@ import { jsonParser } from "./jsonParser.js";
 import { dataFetcher } from "./dataFetcher.js";
 import { actionExecutor } from "./actionExecutor.js";
 import { getModelOptimizations } from "./modelOptimizer.js";
+import { checkAndDeductAICredits } from "./aiCreditManager.js";
+import { AI_STATUS_MESSAGES } from "./statusMessages.js";
 
 const logger = getLogger();
 
-// Follow-up prompt template (when data is fetched)
-const FOLLOW_UP_PROMPT_TEMPLATE = dedent`
-  I've attempted to fetch the member data. Check the action results below to see if it was successful or if errors occurred.
+// Follow-up prompt template (loaded dynamically with caching)
+import { getPrompt } from "../../config/prompts/index.js";
 
-  **CRITICAL INSTRUCTIONS:**
-  1. **If the fetch was successful:** Look at the "COMPLETE LIST OF HUMAN MEMBER NAMES" section in the system context above
-  2. **If errors occurred:** You MUST inform the user about the errors. Explain what went wrong and what data is available (cached members, if any)
-  3. **If successful:** Use ONLY the member names from the list (format: "- Name 🟢 (status)")
-  4. **If successful:** Copy the EXACT names from that list - type them character by character as shown
-  5. **Format the list naturally** - you can use numbered lists, bullet points, or any clear format that makes sense
-  6. Do NOT invent, guess, or make up ANY member names
-  7. Do NOT use generic names like "iFunny", "Reddit", "Discord", "John", "Alice", "Bob", "Charlie"
-  8. Use ONLY the actual member names from the "COMPLETE LIST OF HUMAN MEMBER NAMES" section (if available)
-
-  **IMPORTANT:** If there were errors fetching members, you MUST tell the user about the error clearly. Don't pretend the data was fetched successfully if it wasn't.
-`;
+async function getFollowUpPromptTemplate(variables = {}) {
+  return await getPrompt("chat", "followUpTemplate", variables);
+}
 
 // ============================================================================
 // CHAT SERVICE CLASS
@@ -70,6 +62,15 @@ export class ChatService {
       conversationTimeout,
       maxConversations,
     });
+
+    // Initialize memory manager for summarization
+    this.memoryManager = new MemoryManager(conversationManager);
+
+    // Set callback to clear summaries when conversations are cleared
+    conversationManager.setClearCallback((userId, guildId) => {
+      return this.memoryManager.clearSummary(userId, guildId);
+    });
+
     conversationManager.startCleanup();
   }
 
@@ -262,7 +263,7 @@ export class ChatService {
     }
 
     // Build system context with user message for on-demand command injection
-    if (onStatus) await onStatus("Preparing my response...");
+    if (onStatus) await onStatus(AI_STATUS_MESSAGES.PREPARING);
     const systemMessage = await systemPromptBuilder.buildSystemContext(
       guild,
       client,
@@ -272,20 +273,16 @@ export class ChatService {
       { userId: options.userId }, // Pass userId for preference loading
     );
 
-    // Log system context summary for verification
-    logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-    logger.info(
-      `[AI CONTEXT LOG] User: ${userId || "unknown"} | Guild: ${guild?.name || "DM"}`,
-    );
-    logger.info(
-      `[AI CONTEXT LOG] System prompt length: ${systemMessage.length} chars (~${Math.ceil(systemMessage.length / 4)} tokens)`,
+    // Log system context summary (debug level)
+    logger.debug(
+      `[AI] Context: User ${userId || "unknown"} | Guild: ${guild?.name || "DM"} | Prompt: ${systemMessage.length} chars`,
     );
     if (guild) {
       const memberCount = guild.members.cache.filter(m => !m.user.bot).size;
       const roleCount = guild.roles.cache.size;
       const channelCount = guild.channels.cache.size;
-      logger.info(
-        `[AI CONTEXT LOG] Server context: ${memberCount} members, ${roleCount} roles, ${channelCount} channels`,
+      logger.debug(
+        `[AI] Server context: ${memberCount} members, ${roleCount} roles, ${channelCount} channels`,
       );
 
       // Check if member list is in the prompt
@@ -309,9 +306,7 @@ export class ChatService {
           const memberNames = memberLines.length;
 
           if (memberNames > 0) {
-            logger.info(
-              `[AI CONTEXT LOG] Member list found in prompt: ${memberNames} members`,
-            );
+            logger.debug(`[AI] Member list in prompt: ${memberNames} members`);
           }
         }
       }
@@ -322,14 +317,14 @@ export class ChatService {
     // ============================================================================
     // Automatically fetch members if needed based on user query and cache coverage
     if (guild && userMessage) {
-      if (onStatus) await onStatus("Checking server details...");
+      if (onStatus) await onStatus(AI_STATUS_MESSAGES.CHECKING_SERVER);
       const fetchResult = await dataFetcher.smartMemberFetch(
         guild,
         userMessage,
       );
       if (fetchResult.fetched) {
-        logger.info(
-          `[generateResponse] Auto-fetched ${fetchResult.fetchedCount} members (${fetchResult.cached}/${fetchResult.total} total, ${Math.round((fetchResult.coverage || 0) * 100)}% coverage)`,
+        logger.debug(
+          `[generateResponse] Auto-fetched ${fetchResult.fetchedCount} members (${fetchResult.cached}/${fetchResult.total} cached)`,
         );
       } else {
         logger.debug(
@@ -338,11 +333,11 @@ export class ChatService {
       }
     }
 
-    // Get conversation history for this user in this server (with LTM support)
+    // Get conversation context with summarization (if enabled)
     // Trust the AI to understand context - it can naturally detect when greetings indicate a new topic
-    if (onStatus) await onStatus("Reviewing our conversation...");
+    if (onStatus) await onStatus(AI_STATUS_MESSAGES.REVIEWING_CONVERSATION);
     const guildId = guild?.id || null;
-    const history = await conversationManager.getConversationHistory(
+    const history = await this.memoryManager.getConversationContext(
       userId,
       guildId,
     );
@@ -351,17 +346,25 @@ export class ChatService {
     const messages = [];
 
     // Optimized: Check if system message exists (usually first message)
+    // Also check if summary exists (memory manager may add it as system message)
     const hasSystemMessage =
       history.length > 0 && history[0]?.role === "system";
+    const hasSummary =
+      hasSystemMessage &&
+      history[0]?.content?.includes("Previous conversation summary:");
 
     if (hasSystemMessage) {
-      // Update system message in case server context changed (use cached version)
-      messages.push({ role: "system", content: systemMessage });
-      // Update in memory only (system messages are not persisted to storage)
-      if (history[0].content !== systemMessage) {
-        history[0].content = systemMessage;
-        // System messages are kept in memory only, not persisted to storage
-        // They're dynamically generated and very large, so we don't save them
+      // If summary exists, add it first, then add main system message
+      if (hasSummary) {
+        messages.push(history[0]); // Add summary
+        messages.push({ role: "system", content: systemMessage }); // Add main system message
+      } else {
+        // Update system message in case server context changed (use cached version)
+        messages.push({ role: "system", content: systemMessage });
+        // Update in memory only (system messages are not persisted to storage)
+        if (history[0].content !== systemMessage) {
+          history[0].content = systemMessage;
+        }
       }
     } else {
       // First message in conversation - add system message
@@ -374,7 +377,7 @@ export class ChatService {
       });
     }
 
-    // Optimized: Add conversation history (skip system, already added)
+    // Optimized: Add conversation history (skip system/summary, already added)
     // More efficient: start from index 1 if system exists, otherwise 0
     const startIndex = hasSystemMessage ? 1 : 0;
     for (let i = startIndex; i < history.length; i++) {
@@ -413,27 +416,13 @@ export class ChatService {
     // Queue status callback for position updates
     const onQueueStatus = options.onQueueStatus || null;
 
-    // Helper to format queue status message
+    // Helper to format queue status message (uses centralized status messages)
     const formatQueueStatus = (position, totalInSystem, waitTime) => {
-      if (position === null) {
-        // Processing or not in queue
-        return null;
-      }
-      if (position === 0) {
-        return "Starting processing...";
-      }
-
-      // Format wait time nicely
-      let waitText;
-      if (waitTime < 60) {
-        waitText = `${Math.ceil(waitTime)} sec`;
-      } else {
-        const minutes = Math.ceil(waitTime / 60);
-        waitText = minutes === 1 ? "~1 min" : `~${minutes} min`;
-      }
-
-      // Show position in queue (1-based for user-friendly display)
-      return `Waiting in queue (position ${position + 1}, ${waitText} estimated wait)`;
+      return AI_STATUS_MESSAGES.QUEUE_POSITION(
+        position,
+        totalInSystem,
+        waitTime,
+      );
     };
 
     // Wrapper for queue status callback that also calls onStatus
@@ -454,7 +443,7 @@ export class ChatService {
           onStatus(queueMessage, requestId, position);
         } else if (position === null) {
           // Request is now processing (no cancel button needed)
-          onStatus("Crafting my response...", null, null);
+          onStatus(AI_STATUS_MESSAGES.CRAFTING_RESPONSE, null, null);
         }
       }
     };
@@ -503,15 +492,23 @@ export class ChatService {
 
           const userMessageWithReminder = `${messages[messages.length - 1].content}\n\n${reminder}`;
 
+          // Build final messages array with reminder
+          const finalMessages = [
+            ...messages.slice(0, -1), // All messages except the last one
+            {
+              ...messages[messages.length - 1],
+              content: userMessageWithReminder, // Replace last message with reminder
+            },
+          ];
+
+          // Log prompt summary (debug level for detailed logs)
+          logger.debug(
+            `[AI] Request ${requestId}: ${finalMessages.length} messages, ${JSON.stringify(finalMessages).length} chars`,
+          );
+
           const result = await this.aiService.generate({
             type: "text",
-            prompt: [
-              ...messages.slice(0, -1), // All messages except the last one
-              {
-                ...messages[messages.length - 1],
-                content: userMessageWithReminder, // Replace last message with reminder
-              },
-            ],
+            prompt: finalMessages,
             config: {
               systemMessage,
               temperature: modelOpts.temperature, // Use model-optimized temperature
@@ -521,22 +518,61 @@ export class ChatService {
             // Use primary provider (self-hosted if enabled, otherwise fallback)
           });
 
+          // Deduct credits for initial API call only if it actually costs money
+          // Only deduct if: result exists, has valid content (not empty), and tokens were consumed
+          // If API call failed, provider would have thrown an error before we reach here
+          const responseText = result?.text || result?.response || "";
+          const hasValidContent =
+            responseText.trim().length > 0 &&
+            responseText !== "No response generated.";
+          // Check usage data - this is the definitive indicator that tokens were consumed = costs money
+          // For non-streaming, usage data should always be present for successful calls
+          const hasUsageData =
+            result?.usage &&
+            (result.usage.prompt_tokens > 0 ||
+              result.usage.completion_tokens > 0 ||
+              result.usage.total_tokens > 0);
+
+          // Only deduct if we have valid content AND usage data shows tokens were consumed
+          // This ensures we only charge when the API actually processed tokens (costs money)
+          if (userId && hasValidContent && hasUsageData) {
+            const deductionResult = await checkAndDeductAICredits(userId);
+            if (!deductionResult.success) {
+              logger.error(
+                `Failed to deduct credits for initial API call for user ${userId}: ${deductionResult.error}`,
+              );
+              // Continue anyway - don't fail the request, but log the error
+            } else {
+              logger.debug(
+                `Deducted ${deductionResult.creditsDeducted} Core for initial API call (${deductionResult.creditsRemaining} remaining)`,
+              );
+            }
+          } else if (userId && hasValidContent && !hasUsageData) {
+            // Valid content but no usage data - might be self-hosted or provider doesn't report usage
+            // For safety, still deduct if we have valid content (API succeeded = likely cost money)
+            // But log a warning for monitoring
+            logger.warn(
+              `Deducting credits without usage data for user ${userId} (provider: ${result?.provider || "unknown"}) - assuming tokens were consumed`,
+            );
+            const deductionResult = await checkAndDeductAICredits(userId);
+            if (deductionResult.success) {
+              logger.debug(
+                `Deducted ${deductionResult.creditsDeducted} Core for initial API call (${deductionResult.creditsRemaining} remaining)`,
+              );
+            }
+          } else if (userId && !hasValidContent) {
+            logger.warn(
+              `Skipping credit deduction for user ${userId}: API call returned empty or invalid content`,
+            );
+          }
+
           const rawResponse =
             result.text || result.response || "No response generated.";
 
-          // ============================================================================
-          // LOG AI RESPONSE FOR VERIFICATION
-          // ============================================================================
-          logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-          logger.info(
-            `[AI RESPONSE LOG] User: ${userId || "unknown"} | Guild: ${guild?.name || "DM"}`,
+          // Log response summary (debug level for detailed logs)
+          logger.debug(
+            `[AI] Response: ${rawResponse.length} chars for user ${userId || "unknown"}`,
           );
-          logger.info(`[AI RESPONSE LOG] User Message: "${userMessage}"`);
-          logger.info(
-            `[AI RESPONSE LOG] Raw AI Response (${rawResponse.length} chars):`,
-          );
-          logger.info(rawResponse);
-          logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
           // Parse response - can be JSON (if actions) or plain text (if no actions)
           let finalResponse;
@@ -559,8 +595,8 @@ export class ChatService {
             // Post-processing: If actions array is empty, convert to plain text format
             // This ensures users see clean text even if AI uses JSON unnecessarily
             if (actions.length === 0) {
-              logger.info(
-                `[AI RESPONSE LOG] ⚠️ AI used JSON format with empty actions - converting to plain text`,
+              logger.debug(
+                `[AI] JSON format with empty actions - converting to plain text`,
               );
               // Treat as plain text response (no actions)
               // finalResponse already contains the message, actions is already empty
@@ -576,34 +612,17 @@ export class ChatService {
               finalResponse = "";
             }
 
-            // Log parsed JSON structure
+            // Log parsed JSON structure (debug level)
             if (actions.length > 0) {
-              logger.info(
-                `[AI RESPONSE LOG] ✅ Successfully parsed JSON response (with ${actions.length} actions)`,
-              );
-            } else {
-              logger.info(
-                `[AI RESPONSE LOG] ✅ Parsed JSON response (empty actions - treated as plain text)`,
+              logger.debug(
+                `[AI] Parsed JSON response with ${actions.length} actions`,
               );
             }
           } else {
             // Plain text format - no actions
             finalResponse = rawResponse.trim();
             actions = [];
-            logger.info(
-              `[AI RESPONSE LOG] ✅ Plain text response (no actions)`,
-            );
-            logger.info(
-              `[AI RESPONSE LOG] Parsed Message (${finalResponse.length} chars): "${finalResponse.substring(0, 200)}${finalResponse.length > 200 ? "..." : ""}"`,
-            );
-            logger.info(
-              `[AI RESPONSE LOG] Actions detected: ${actions.length}`,
-            );
-            if (actions.length > 0) {
-              logger.info(
-                `[AI RESPONSE LOG] Actions: ${JSON.stringify(actions, null, 2)}`,
-              );
-            }
+            logger.debug(`[AI] Plain text response (no actions)`);
 
             // Validate response data accuracy
             if (guild) {
@@ -613,25 +632,12 @@ export class ChatService {
               );
 
               if (!validation.valid || validation.warnings.length > 0) {
-                logger.warn(`[AI RESPONSE LOG] ⚠️ DATA VALIDATION WARNINGS:`);
+                logger.warn(
+                  `[AI] Data validation warnings: ${validation.warnings.length} issue(s)`,
+                );
                 validation.warnings.forEach(warning => {
-                  logger.warn(`[AI RESPONSE LOG] - ${warning}`);
+                  logger.debug(`[AI] Validation: ${warning}`);
                 });
-                if (validation.suggestions.length > 0) {
-                  logger.info(
-                    `[AI RESPONSE LOG] 💡 Suggestions for improvement:`,
-                  );
-                  validation.suggestions.forEach(suggestion => {
-                    logger.info(`[AI RESPONSE LOG] - ${suggestion}`);
-                  });
-                }
-                logger.info(
-                  `[AI RESPONSE LOG] Server has ${validation.actualDataCounts.members} members, ${validation.actualDataCounts.roles} roles, ${validation.actualDataCounts.channels} channels`,
-                );
-              } else {
-                logger.info(
-                  `[AI RESPONSE LOG] ✅ Data validation passed - response uses real server data`,
-                );
               }
             }
 
@@ -652,38 +658,16 @@ export class ChatService {
             );
             if (usedPlaceholders) {
               logger.error(
-                `[AI RESPONSE LOG] ❌ CRITICAL ERROR: Response contains placeholder patterns!`,
+                `[AI] CRITICAL: Response contains placeholder patterns instead of real data`,
               );
-              logger.error(
-                `[AI RESPONSE LOG] AI violated instructions by using placeholder data instead of real server data!`,
+              // Log first matching pattern for debugging
+              const foundPattern = placeholderPatterns.find(pattern =>
+                finalResponse.includes(pattern),
               );
-              placeholderPatterns.forEach(pattern => {
-                if (finalResponse.includes(pattern)) {
-                  logger.error(
-                    `[AI RESPONSE LOG] Found placeholder: "${pattern}"`,
-                  );
-                }
-              });
-              // Try to extract what the AI should have used
-              if (guild) {
-                const memberNames = Array.from(guild.members.cache.values())
-                  .filter(m => m && m.user && !m.user.bot)
-                  .slice(0, 5)
-                  .map(m => m.displayName || m.user.username)
-                  .join(", ");
-                logger.error(
-                  `[AI RESPONSE LOG] AI should have used these actual member names: ${memberNames}`,
-                );
+              if (foundPattern) {
+                logger.debug(`[AI] Found placeholder: "${foundPattern}"`);
               }
-            } else {
-              logger.info(
-                `[AI RESPONSE LOG] ✅ No placeholder patterns detected - AI used actual data`,
-              );
             }
-
-            logger.debug(
-              `[generateResponse] Parsed structured response with ${actions.length} actions`,
-            );
           }
 
           // Track if response was intentionally suppressed (e.g., command executed)
@@ -716,9 +700,11 @@ export class ChatService {
               );
 
               // If fetch actions or structure-modifying actions were executed, re-query AI with updated context
+              // SAFEGUARD: Only allow 1 re-query per request to prevent infinite loops and unexpected costs
+              // Re-query responses are treated as final (no further re-queries)
               if (fetchActions.length > 0) {
-                logger.info(
-                  `[generateResponse] Context-modifying actions executed: ${fetchActions.map(a => a.type).join(", ")}, re-querying AI with updated data`,
+                logger.debug(
+                  `[generateResponse] Re-querying after actions: ${fetchActions.map(a => a.type).join(", ")}`,
                 );
 
                 // Determine what data to force include based on action types
@@ -748,7 +734,7 @@ export class ChatService {
                 const hasMemberList = updatedSystemMessage.includes(
                   "COMPLETE LIST OF HUMAN MEMBER NAMES",
                 );
-                logger.info(
+                logger.debug(
                   `[generateResponse] Updated context includes member list: ${hasMemberList}`,
                 );
 
@@ -786,7 +772,7 @@ export class ChatService {
                 });
 
                 // Build follow-up prompt with action results
-                let followUpPrompt = FOLLOW_UP_PROMPT_TEMPLATE;
+                let followUpPrompt = await getFollowUpPromptTemplate();
 
                 // Include action results (including errors) for AI to report to users
                 if (actionResults && actionResults.length > 0) {
@@ -828,14 +814,76 @@ export class ChatService {
                   );
                 });
 
-                const followUpResult = await Promise.race([
-                  followUpPromise,
-                  timeoutPromise,
-                ]);
+                let followUpResult;
+                try {
+                  followUpResult = await Promise.race([
+                    followUpPromise,
+                    timeoutPromise,
+                  ]);
+
+                  // Deduct credits for re-query API call only if it actually costs money
+                  // Only deduct if: result exists, has valid content (not empty), and tokens were consumed
+                  const reQueryText =
+                    followUpResult?.text || followUpResult?.response || "";
+                  const reQueryHasValidContent =
+                    reQueryText.trim().length > 0 &&
+                    reQueryText !== "No response generated." &&
+                    reQueryText !== finalResponse; // Don't charge if we're using fallback
+                  // Check usage data - this is the definitive indicator that tokens were consumed = costs money
+                  const reQueryHasUsageData =
+                    followUpResult?.usage &&
+                    (followUpResult.usage.prompt_tokens > 0 ||
+                      followUpResult.usage.completion_tokens > 0 ||
+                      followUpResult.usage.total_tokens > 0);
+
+                  // Only deduct if we have valid content AND usage data shows tokens were consumed
+                  if (userId && reQueryHasValidContent && reQueryHasUsageData) {
+                    const reQueryDeduction =
+                      await checkAndDeductAICredits(userId);
+                    if (!reQueryDeduction.success) {
+                      logger.error(
+                        `Failed to deduct credits for re-query API call for user ${userId}: ${reQueryDeduction.error}`,
+                      );
+                      // Continue anyway - don't fail the request, but log the error
+                    } else {
+                      logger.debug(
+                        `Deducted ${reQueryDeduction.creditsDeducted} Core for re-query API call (${reQueryDeduction.creditsRemaining} remaining)`,
+                      );
+                    }
+                  } else if (
+                    userId &&
+                    reQueryHasValidContent &&
+                    !reQueryHasUsageData
+                  ) {
+                    // Valid content but no usage data - might be self-hosted or provider doesn't report usage
+                    // For safety, still deduct if we have valid content (API succeeded = likely cost money)
+                    logger.warn(
+                      `Deducting credits for re-query without usage data for user ${userId} (provider: ${followUpResult?.provider || "unknown"}) - assuming tokens were consumed`,
+                    );
+                    const reQueryDeduction =
+                      await checkAndDeductAICredits(userId);
+                    if (reQueryDeduction.success) {
+                      logger.debug(
+                        `Deducted ${reQueryDeduction.creditsDeducted} Core for re-query API call (${reQueryDeduction.creditsRemaining} remaining)`,
+                      );
+                    }
+                  } else if (userId && !reQueryHasValidContent) {
+                    logger.warn(
+                      `Skipping credit deduction for re-query for user ${userId}: API call returned empty or invalid content`,
+                    );
+                  }
+                } catch (error) {
+                  // Timeout or other error - don't deduct credits
+                  logger.warn(
+                    `Re-query failed or timed out for user ${userId}: ${error.message}`,
+                  );
+                  // Use fallback response
+                  followUpResult = { text: finalResponse };
+                }
 
                 const followUpResponse =
-                  followUpResult.text ||
-                  followUpResult.response ||
+                  followUpResult?.text ||
+                  followUpResult?.response ||
                   finalResponse;
 
                 // Parse follow-up response
@@ -843,8 +891,26 @@ export class ChatService {
                   jsonParser.parseJsonResponse(followUpResponse);
                 if (followUpParseResult.success) {
                   finalResponse = followUpParseResult.data.message;
-                  logger.info(
-                    `[generateResponse] ✅ Follow-up response generated with actual data`,
+
+                  // SAFEGUARD: Check if re-query response contains actions that would trigger another re-query
+                  // If so, log a warning but don't process them (prevent infinite loops and unexpected costs)
+                  const followUpActions = Array.isArray(
+                    followUpParseResult.data.actions,
+                  )
+                    ? followUpParseResult.data.actions
+                    : [];
+                  const followUpReQueryActions = followUpActions.filter(a =>
+                    actionTriggersReQuery(a.type),
+                  );
+
+                  if (followUpReQueryActions.length > 0) {
+                    logger.warn(
+                      `[generateResponse] ⚠️ Re-query response contains actions that would trigger another re-query (${followUpReQueryActions.map(a => a.type).join(", ")}). Ignoring to prevent infinite loops. Maximum 2 API calls per request.`,
+                    );
+                  }
+
+                  logger.debug(
+                    `[generateResponse] Follow-up response generated`,
                   );
                 } else {
                   logger.warn(
@@ -874,8 +940,8 @@ export class ChatService {
                 // Suppress AI messages when commands execute successfully
                 // The command's response is already visible to the user
                 if (commandResults.length > 0) {
-                  logger.info(
-                    `[generateResponse] Command executed - response already sent to channel by command handler`,
+                  logger.debug(
+                    `[generateResponse] Command executed - response sent by handler`,
                   );
 
                   // Track executed commands for LTM (Long-Term Memory)
@@ -933,13 +999,13 @@ export class ChatService {
                     // (empty, redundant, fallback, or acknowledgment)
                     finalResponse = "";
                     responseSuppressed = true;
-                    logger.info(
-                      `[generateResponse] Suppressed AI message (command executed successfully) - keeping response empty`,
+                    logger.debug(
+                      `[generateResponse] Suppressed AI message (command executed)`,
                     );
                   } else {
                     // Keep error messages even when command executed (might be important)
-                    logger.info(
-                      `[generateResponse] Keeping AI response (contains error info) despite command execution`,
+                    logger.debug(
+                      `[generateResponse] Keeping AI response (contains error info)`,
                     );
                   }
                 }
@@ -965,8 +1031,8 @@ export class ChatService {
                     }
                     const errorSection = `\n\n**⚠️ Action Errors:**\n${errorMessages.join("\n")}`;
                     finalResponse += errorSection;
-                    logger.info(
-                      `[generateResponse] Including error messages in response for AI learning: ${errorMessages.length} error(s)`,
+                    logger.debug(
+                      `[generateResponse] Including ${errorMessages.length} error(s) in response`,
                     );
 
                     // Store error information in LTM so AI can learn from it
@@ -1001,31 +1067,25 @@ export class ChatService {
               finalResponse =
                 "I couldn't generate a response. Please try rephrasing your question or use /help for available commands.";
             } else {
-              logger.info(
-                `[AI RESPONSE LOG] Response intentionally suppressed (command executed), keeping empty`,
-              );
+              logger.debug(`[AI] Response suppressed (command executed)`);
             }
           }
 
           // Check response length to prevent Discord embed limit issues
           if (finalResponse && finalResponse.length > MAX_RESPONSE_LENGTH) {
             logger.warn(
-              `[AI RESPONSE LOG] ⚠️ Response exceeds maximum length (${finalResponse.length} > ${MAX_RESPONSE_LENGTH}), truncating`,
+              `[AI] Response exceeds max length (${finalResponse.length} > ${MAX_RESPONSE_LENGTH}), truncating`,
             );
             finalResponse = `${finalResponse.substring(0, MAX_RESPONSE_LENGTH - 3)}...`;
           }
 
           // Log final response
-          logger.info(
-            `[AI RESPONSE LOG] Final Response (${finalResponse.length} chars):`,
-          );
-          logger.info(finalResponse);
+          logger.debug(`[AI] Final response: ${finalResponse.length} chars`);
           if (beforeSanitize !== finalResponse) {
-            logger.info(
-              `[AI RESPONSE LOG] ⚠️ Response was sanitized (sensitive data removed)`,
+            logger.debug(
+              `[AI] Response was sanitized (sensitive data removed)`,
             );
           }
-          logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
           // Add AI response to conversation history (sanitized, with LTM)
           // Don't store empty responses when command was executed (already stored command execution above)
@@ -1034,6 +1094,34 @@ export class ChatService {
               role: "assistant",
               content: finalResponse,
             });
+
+            // Periodically update summary if conversation is long enough
+            // Update every 10 messages to keep summary current
+            const allMessages =
+              await conversationManager.getConversationHistory(userId, guildId);
+            const nonSystemMessages = allMessages.filter(
+              m => m.role !== "system",
+            );
+            if (
+              nonSystemMessages.length > 0 &&
+              nonSystemMessages.length % 10 === 0
+            ) {
+              // Update summary with all old messages (beyond recent 5), not just last 10
+              // This ensures summary includes all accumulated old messages
+              const recentMessageCount = 5; // Match memoryManager.recentMessageCount
+              const oldMessages =
+                nonSystemMessages.length > recentMessageCount
+                  ? nonSystemMessages.slice(0, -recentMessageCount)
+                  : [];
+              if (oldMessages.length > 0) {
+                // Update summary in background (don't wait)
+                this.memoryManager
+                  .updateSummary(userId, guildId, oldMessages)
+                  .catch(error => {
+                    logger.debug("Failed to update summary:", error);
+                  });
+              }
+            }
           } else if (responseSuppressed) {
             // Command executed - command execution was already stored above, skip empty message
             logger.debug(
@@ -1128,7 +1216,7 @@ export class ChatService {
     }
 
     // Build system context (same as non-streaming)
-    if (onStatus) await onStatus("Preparing my response...");
+    if (onStatus) await onStatus(AI_STATUS_MESSAGES.PREPARING);
     const systemMessage = await systemPromptBuilder.buildSystemContext(
       guild,
       client,
@@ -1140,7 +1228,7 @@ export class ChatService {
 
     // Smart member fetch (same as non-streaming)
     if (guild && userMessage) {
-      if (onStatus) await onStatus("Checking server details...");
+      if (onStatus) await onStatus(AI_STATUS_MESSAGES.CHECKING_SERVER);
       const fetchResult = await dataFetcher.smartMemberFetch(
         guild,
         userMessage,
@@ -1153,7 +1241,7 @@ export class ChatService {
     }
 
     // Get conversation history
-    if (onStatus) await onStatus("Reviewing our conversation...");
+    if (onStatus) await onStatus(AI_STATUS_MESSAGES.REVIEWING_CONVERSATION);
     const guildId = guild?.id || null;
     const history = await conversationManager.getConversationHistory(
       userId,
@@ -1196,7 +1284,7 @@ export class ChatService {
     messages.push({ role: "user", content: enhancedUserMessage });
 
     // Update status before AI generation
-    if (onStatus) await onStatus("Crafting my response...");
+    if (onStatus) await onStatus(AI_STATUS_MESSAGES.CRAFTING_RESPONSE);
 
     // Generate streaming response
     let fullText = "";
@@ -1220,7 +1308,20 @@ export class ChatService {
           logger.debug(
             "[generateResponseStreaming] Detected actions in response - disabling streaming updates",
           );
-          // Don't call onChunk - wait for complete response
+          // Show a status message that we're processing actions
+          if (onChunk) {
+            // Try to extract any message text that might be in the JSON so far
+            const messageMatch = fullText.match(/"message"\s*:\s*"([^"]*)"/);
+            const extractedMessage = messageMatch ? messageMatch[1] : null;
+            if (extractedMessage && extractedMessage.trim().length > 0) {
+              // Show the message text if available
+              onChunk(extractedMessage);
+            } else {
+              // Otherwise show processing status
+              onChunk(AI_STATUS_MESSAGES.PROCESSING_REQUEST);
+            }
+          }
+          // Don't continue streaming - wait for complete response
           return;
         }
       }
@@ -1267,44 +1368,141 @@ export class ChatService {
         onChunk: chunkCallback,
       });
 
+      // Deduct credits for streaming API call only if it actually costs money
+      // Only deduct if: stream completed successfully with valid content
+      // If streaming failed, generateTextStreaming would have thrown an error before we reach here
+      const streamingText = result?.text || result?.response || fullText || "";
+      const streamingHasValidContent =
+        streamingText.trim().length > 0 &&
+        streamingText !== "No response generated.";
+      // For streaming, usage data is usually null, so we check if stream completed with content
+      // If the stream completed and we have content, it means tokens were consumed = costs money
+      const streamingHasContent = fullText.trim().length > 0;
+      // Check for usage data if available (some providers include it even for streaming)
+      const streamingHasUsageData =
+        result?.usage &&
+        (result.usage.prompt_tokens > 0 ||
+          result.usage.completion_tokens > 0 ||
+          result.usage.total_tokens > 0);
+
+      // Only deduct if we have valid content AND (usage data OR stream completed with content)
+      // For streaming, if we have content, tokens were consumed = costs money
+      if (
+        userId &&
+        streamingHasValidContent &&
+        (streamingHasUsageData || streamingHasContent)
+      ) {
+        const deductionResult = await checkAndDeductAICredits(userId);
+        if (!deductionResult.success) {
+          logger.error(
+            `Failed to deduct credits for streaming API call for user ${userId}: ${deductionResult.error}`,
+          );
+          // Continue anyway - don't fail the request, but log the error
+        } else {
+          logger.debug(
+            `Deducted ${deductionResult.creditsDeducted} Core for streaming API call (${deductionResult.creditsRemaining} remaining)`,
+          );
+        }
+      } else if (userId && !streamingHasValidContent) {
+        logger.warn(
+          `Skipping credit deduction for streaming for user ${userId}: Stream returned empty or invalid content`,
+        );
+      }
+
       finalCallback();
 
       // Parse JSON response if needed (same as non-streaming)
-      const parsed = jsonParser.parseJsonResponse(result.text || fullText);
+      const rawResponseText = result.text || fullText;
+      const parsed = jsonParser.parseJsonResponse(rawResponseText);
 
       // Log raw response for debugging
-      const rawResponseText = result.text || fullText;
       logger.debug(
         `[generateResponseStreaming] Raw response (${rawResponseText.length} chars): ${rawResponseText.substring(0, 300)}${rawResponseText.length > 300 ? "..." : ""}`,
       );
 
       // Post-processing: If JSON has empty actions, treat as plain text
-      const finalMessage = parsed.success
+      let finalMessage = parsed.success
         ? typeof parsed.data.message === "string"
           ? parsed.data.message
           : String(parsed.data.message || "")
-        : result.text || fullText || "";
-      const finalActions = parsed.success
+        : "";
+      let finalActions = parsed.success
         ? Array.isArray(parsed.data.actions)
           ? parsed.data.actions
           : []
         : [];
 
+      // Fallback: If parsing failed but we detected actions during streaming,
+      // try to extract actions manually from raw text
+      if (
+        !parsed.success &&
+        hasDetectedActions &&
+        rawResponseText.trim().startsWith("{")
+      ) {
+        logger.warn(
+          `[generateResponseStreaming] JSON parsing failed but actions detected - attempting manual extraction`,
+        );
+        try {
+          // Try to extract actions array using regex as fallback
+          const actionsMatch = rawResponseText.match(
+            /"actions"\s*:\s*\[([\s\S]*?)\]/,
+          );
+          if (actionsMatch) {
+            // Try to parse just the actions array
+            const actionsJson = `[${actionsMatch[1]}]`;
+            // Strip comments from actions JSON
+            const cleanedActionsJson = actionsJson
+              .replace(/\/\/.*$/gm, "")
+              .replace(/\/\*[\s\S]*?\*\//g, "");
+            const extractedActions = JSON.parse(cleanedActionsJson);
+            if (
+              Array.isArray(extractedActions) &&
+              extractedActions.length > 0
+            ) {
+              finalActions = extractedActions;
+              // Try to extract message field
+              const messageMatch = rawResponseText.match(
+                /"message"\s*:\s*"([^"]*)"|"message"\s*:\s*""/,
+              );
+              if (messageMatch) {
+                finalMessage = messageMatch[1] || "";
+              }
+              logger.info(
+                `[generateResponseStreaming] Successfully extracted ${finalActions.length} action(s) from raw text`,
+              );
+            }
+          }
+        } catch (fallbackError) {
+          logger.warn(
+            `[generateResponseStreaming] Fallback extraction failed: ${fallbackError.message}`,
+          );
+        }
+      }
+
+      // If we still don't have a message and parsing failed, use raw text
+      if (!finalMessage && !parsed.success) {
+        finalMessage = rawResponseText;
+      }
+
       // Log what we detected
       logger.info(
         `[generateResponseStreaming] Parsed response - JSON: ${parsed.success}, Actions: ${finalActions.length}, Detected during streaming: ${hasDetectedActions}`,
       );
-      if (parsed.success && finalActions.length > 0) {
+      if (finalActions.length > 0) {
         logger.info(
           `[generateResponseStreaming] Action details: ${JSON.stringify(finalActions)}`,
         );
       }
 
-      // If actions were detected during streaming, we didn't show updates
-      // Now that we have the complete response, update with the final message
+      // If actions were detected during streaming, we already showed a status message
+      // Now that we have the complete response, update with the final message (if different)
       if (hasDetectedActions && onChunk) {
-        // Extract and display only the message text (not the JSON)
-        onChunk(finalMessage || "🤔 Processing...");
+        // Only update if we have a message and it's different from what we might have shown
+        if (finalMessage && finalMessage.trim().length > 0) {
+          onChunk(finalMessage);
+        }
+        // If message is empty, the status message we showed earlier is fine
+        // Commands will send their own responses, so no need to update again
       }
 
       // If actions array is empty, convert to plain text format
