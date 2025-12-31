@@ -7,7 +7,7 @@ This directory contains comprehensive tests for the Role Reactor Bot, covering u
 ```
 tests/
 ├── README.md                 # This file
-├── setup.js                  # Jest setup and global mocks
+├── setup.js                  # Vitest setup and global mocks
 ├── unit/                     # Unit tests for individual modules
 │   ├── commands/             # Command-specific tests
 │   │   ├── admin/            # Admin command tests
@@ -172,13 +172,13 @@ const member = testUtils.createMockMember({
 ### Test File Structure
 
 ```javascript
-import { jest } from "@jest/globals";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 
 describe("ModuleName", () => {
   let mockDependency;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe("FunctionName", () => {
@@ -211,29 +211,29 @@ describe("ModuleName", () => {
 // Mock modules (adjust path depth based on test location)
 // For tests in tests/unit/commands/*/: use ../../../../src/
 // For tests in tests/unit/utils/*/: use ../../../src/
-jest.mock("../../../src/utils/logger.js", () => ({
-  getLogger: jest.fn(() => ({
-    info: jest.fn(),
-    error: jest.fn(),
+vi.mock("../../../src/utils/logger.js", () => ({
+  getLogger: vi.fn(() => ({
+    info: vi.fn(),
+    error: vi.fn(),
   })),
 }));
 
 // Mock functions
-const mockFunction = jest.fn().mockResolvedValue("result");
+const mockFunction = vi.fn().mockResolvedValue("result");
 
 // Mock Discord objects
 const mockInteraction = {
   commandName: "test-command",
-  reply: jest.fn(),
+  reply: vi.fn(),
   options: {
-    getString: jest.fn().mockReturnValue("test"),
+    getString: vi.fn().mockReturnValue("test"),
   },
 };
 ```
 
 ## 🔧 Configuration
 
-### Jest Configuration (`jest.config.js`)
+### Vitest Configuration (`vitest.config.js`)
 
 - **Environment**: Node.js
 - **Coverage**: Enabled with thresholds
@@ -271,7 +271,7 @@ pnpm test --verbose
 
 ```bash
 # Run tests with Node.js debugger
-node --inspect-brk node_modules/.bin/jest --runInBand
+node --inspect-brk node_modules/.bin/vitest --run
 
 # Run specific test with debugging
 NODE_OPTIONS='--inspect-brk' pnpm test tests/unit/commandHandler.test.js

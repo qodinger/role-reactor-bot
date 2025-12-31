@@ -1,15 +1,11 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 
-jest.setTimeout(10000);
+// Vitest timeout is set in config, but we can set it here too if needed
+// vi.setConfig({ testTimeout: 10000 });
 
-global.console = {
-  ...console,
-  log: jest.fn(),
-  debug: jest.fn(),
-  info: jest.fn(),
-  warn: jest.fn(),
-  error: jest.fn(),
-};
+// Vitest doesn't need console mocking by default
+// If you need to mock console, use vi.spyOn instead
+// vi.spyOn(console, 'log').mockImplementation(() => {});
 
 process.env.NODE_ENV = "test";
 process.env.DISCORD_TOKEN = "test-token";
@@ -25,16 +21,16 @@ global.testUtils = {
     channel: options.channel || { id: "channel123", name: "test-channel" },
     replied: false,
     deferred: false,
-    reply: jest.fn(),
-    editReply: jest.fn(),
-    followUp: jest.fn(),
+    reply: vi.fn(),
+    editReply: vi.fn(),
+    followUp: vi.fn(),
     options: {
-      getString: jest.fn().mockReturnValue(options.getString || ""),
-      getInteger: jest.fn().mockReturnValue(options.getInteger || 0),
-      getBoolean: jest.fn().mockReturnValue(options.getBoolean || false),
-      getUser: jest.fn().mockReturnValue(options.getUser || { id: "user123" }),
-      getRole: jest.fn().mockReturnValue(options.getRole || { id: "role123" }),
-      getChannel: jest
+      getString: vi.fn().mockReturnValue(options.getString || ""),
+      getInteger: vi.fn().mockReturnValue(options.getInteger || 0),
+      getBoolean: vi.fn().mockReturnValue(options.getBoolean || false),
+      getUser: vi.fn().mockReturnValue(options.getUser || { id: "user123" }),
+      getRole: vi.fn().mockReturnValue(options.getRole || { id: "role123" }),
+      getChannel: vi
         .fn()
         .mockReturnValue(options.getChannel || { id: "channel123" }),
     },
@@ -65,11 +61,11 @@ global.testUtils = {
     },
     roles: {
       cache: new Map(options.roles || []),
-      add: jest.fn(),
-      remove: jest.fn(),
+      add: vi.fn(),
+      remove: vi.fn(),
     },
     permissions: {
-      has: jest.fn().mockReturnValue(options.hasPermission !== false),
+      has: vi.fn().mockReturnValue(options.hasPermission !== false),
     },
     ...options,
   }),
@@ -80,7 +76,7 @@ global.testUtils = {
     author: options.author || { id: "user123", username: "TestUser" },
     guild: options.guild || { id: "guild123" },
     channel: options.channel || { id: "channel123" },
-    react: jest.fn(),
+    react: vi.fn(),
     ...options,
   }),
 
@@ -88,8 +84,8 @@ global.testUtils = {
     emoji: { name: options.emojiName || "👍" },
     message: options.message || { id: "message123" },
     users: {
-      fetch: jest.fn().mockResolvedValue({
-        first: jest.fn().mockReturnValue({ id: "user123" }),
+      fetch: vi.fn().mockResolvedValue({
+        first: vi.fn().mockReturnValue({ id: "user123" }),
       }),
     },
     ...options,
@@ -102,9 +98,9 @@ global.testUtils = {
     }),
 
   createMockClient: (options = {}) => ({
-    login: jest.fn().mockResolvedValue(undefined),
-    on: jest.fn(),
-    once: jest.fn(),
+    login: vi.fn().mockResolvedValue(undefined),
+    on: vi.fn(),
+    once: vi.fn(),
     user: {
       tag: options.userTag || "TestBot#1234",
       id: options.userId || "bot123",
@@ -112,30 +108,10 @@ global.testUtils = {
     guilds: {
       cache: new Map(options.guilds || []),
     },
-    destroy: jest.fn(),
+    destroy: vi.fn(),
     ...options,
   }),
 };
 
-beforeAll(() => {
-  process.env.NODE_ENV = "test";
-});
-
-afterAll(async () => {
-  jest.clearAllMocks();
-  // Clear any remaining timers
-  jest.clearAllTimers();
-
-  // Force cleanup of any remaining handles
-  if (global.gc) {
-    global.gc();
-  }
-});
-
-beforeEach(() => {
-  jest.clearAllMocks();
-});
-
-afterEach(() => {
-  jest.clearAllMocks();
-});
+// Vitest setup - hooks are defined in test files or config
+// beforeAll/afterAll/beforeEach/afterEach are available from vitest
