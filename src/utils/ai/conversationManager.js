@@ -169,6 +169,14 @@ export class ConversationManager {
   }
 
   /**
+   * Set callback for clearing related data (e.g., summaries) when conversations are cleared
+   * @param {Function} callback - Callback function (userId, guildId) => Promise<void>
+   */
+  setClearCallback(callback) {
+    this.onClearCallback = callback;
+  }
+
+  /**
    * Preload recent conversations from MongoDB into memory cache
    * Only loads conversations active in last 24 hours to avoid memory bloat
    */
@@ -295,6 +303,15 @@ export class ConversationManager {
         if (this.useLongTermMemory) {
           await this.deleteFromStorage(userId, guildId);
         }
+        // Clear summary for expired conversation if callback provided
+        if (this.onClearCallback) {
+          this.onClearCallback(userId, guildId).catch(error => {
+            logger.debug(
+              `Failed to clear summary for expired conversation ${conversationKey}:`,
+              error,
+            );
+          });
+        }
         return [];
       }
       return cached.messages || [];
@@ -356,6 +373,15 @@ export class ConversationManager {
             this.conversationTimeout
           ) {
             await this.deleteFromStorage(userId, guildId);
+            // Clear summary for expired conversation if callback provided
+            if (this.onClearCallback) {
+              this.onClearCallback(userId, guildId).catch(error => {
+                logger.debug(
+                  `Failed to clear summary for expired conversation ${conversationKey}:`,
+                  error,
+                );
+              });
+            }
             return [];
           }
           // Load into memory cache
@@ -547,14 +573,26 @@ export class ConversationManager {
    * Clear conversation history for a user in a specific server (with LTM support)
    * @param {string} userId - User ID
    * @param {string|null} guildId - Guild ID (null for DMs)
+   * @param {Function|null} onClear - Optional callback to clear related data (e.g., summaries)
    */
-  async clearHistory(userId, guildId = null) {
+  async clearHistory(userId, guildId = null, onClear = null) {
     if (userId) {
       const conversationKey = this.getConversationKey(userId, guildId);
       this.conversations.delete(conversationKey);
       // Also delete from storage if LTM enabled
       if (this.useLongTermMemory) {
         await this.deleteFromStorage(userId, guildId);
+      }
+      // Clear related data (e.g., summaries) if callback provided
+      if (onClear) {
+        try {
+          await onClear(userId, guildId);
+        } catch (error) {
+          logger.debug(
+            `Failed to clear related data for user ${userId} in guild ${guildId || "DM"}:`,
+            error,
+          );
+        }
       }
     }
   }
@@ -593,6 +631,16 @@ export class ConversationManager {
             this.deleteFromStorage(userId, guildId).catch(error => {
               logger.debug(
                 `Failed to delete expired conversation ${conversationKey}:`,
+                error,
+              );
+            });
+          }
+
+          // Clear summary for expired conversation if callback provided
+          if (this.onClearCallback) {
+            this.onClearCallback(userId, guildId).catch(error => {
+              logger.debug(
+                `Failed to clear summary for expired conversation ${conversationKey}:`,
                 error,
               );
             });
