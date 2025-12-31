@@ -65,15 +65,14 @@ export class ServerInfoGatherer {
         info += `**Member Statistics:**\n`;
         // Emphasize human members - when asked "how many members", use THIS number
         if (memberCounts.humans !== undefined) {
-          info += `🚨 **ANSWER: There are ${memberCounts.humans} human members in this server.**\n`;
-          info += `- When asked "how many members", ALWAYS use this number: **${memberCounts.humans}**\n`;
+          info += `- **Human Members:** ${memberCounts.humans} (use this when asked "how many members")\n`;
         }
         if (memberCounts.total !== undefined) {
-          info += `- Total Members (including bots): ${memberCounts.total}`;
+          info += `- Total (including bots): ${memberCounts.total}`;
           if (memberCounts.bots !== undefined) {
             info += ` (${memberCounts.bots} bots)`;
           }
-          info += ` - DO NOT use this number when asked about "members"\n`;
+          info += `\n`;
         }
 
         // Presence data (may be limited without GUILD_PRESENCES intent)
@@ -85,17 +84,9 @@ export class ServerInfoGatherer {
           const online = memberCounts.online || 0;
           const idle = memberCounts.idle || 0;
           const dnd = memberCounts.dnd || 0;
-          const offline = memberCounts.offline || 0;
-          info += `🚨 **CRITICAL: When asked "how many are online" or "who is online", use these HUMAN MEMBER counts (NOT including bots):**\n`;
-          info += `- **Online (Human Members):** ${online}\n`;
-          info += `- **Idle (Human Members):** ${idle}\n`;
-          info += `- **DND (Human Members):** ${dnd}\n`;
-          info += `- **Offline (Human Members):** ${offline}\n`;
-          info += `- **Total Online (Human Members):** ${online + idle + dnd} (Online + Idle + DND)\n`;
-          info += `- When asked "how many members are online", answer: **${online + idle + dnd}** (or just ${online} if they specifically ask for "online" status)\n`;
-          if (memberCounts.botsOnline !== undefined) {
-            info += `- Bots online: ${memberCounts.botsOnline} (do NOT include in "members online" count)\n`;
-          }
+          const totalOnline = online + idle + dnd;
+          info += `- **Online Status (Human Members Only):** Online: ${online}, Idle: ${idle}, DND: ${dnd}, Offline: ${memberCounts.offline || 0}\n`;
+          info += `- **Total Online:** ${totalOnline} (Online + Idle + DND - use this when asked "how many are online")\n`;
         }
         info += `\n`;
       }
@@ -221,17 +212,14 @@ export class ServerInfoGatherer {
             );
 
             if (humanMembersWithStatus.length > 0) {
-              info += `**COMPLETE LIST OF HUMAN MEMBER NAMES (with online status):**\n`;
-              info += `🚨 **CRITICAL: When asked for member names, use ONLY the names from this list. NEVER invent, guess, or make up member names.**\n`;
-              info += `🚨 **Status meanings:** 🟢 online, 🟡 idle, 🔴 dnd (Do Not Disturb - user is ONLINE but set to Do Not Disturb), ⚫ offline\n`;
-              info += `🚨 **IMPORTANT: "dnd" (Do Not Disturb) is NOT offline - it means the user is online but has set their status to Do Not Disturb.**\n`;
-              info += `🚨 **IMPORTANT: This list contains ONLY human members - bots are already excluded. Do NOT add any bots to your response.**\n`;
+              info += `**Human Member Names (Status: 🟢online 🟡idle 🔴dnd ⚫offline):**\n`;
+              info += `**CRITICAL:** Use ONLY names from this list. Never invent names. DND = online (Do Not Disturb). Bots excluded.\n`;
               if (!allMembersFetched) {
                 const totalHumanMembers = memberCounts?.humans || "unknown";
                 if (totalMembers > MAX_MEMBER_FETCH_SERVER_SIZE) {
-                  info += `⚠️ Note: Server has ${totalMembers} members (exceeds ${MAX_MEMBER_FETCH_SERVER_SIZE} limit). Showing first ${humanMembersWithStatus.length} cached human members (of ${totalHumanMembers} total). For complete list, use /serverinfo command.\n`;
+                  info += `⚠️ Partial list: ${humanMembersWithStatus.length} of ${totalHumanMembers} shown (server >${MAX_MEMBER_FETCH_SERVER_SIZE} members)\n`;
                 } else {
-                  info += `⚠️ Note: This is a partial list (${humanMembersWithStatus.length} of ${totalHumanMembers} members shown due to cache limits)\n`;
+                  info += `⚠️ Partial list: ${humanMembersWithStatus.length} of ${totalHumanMembers} shown\n`;
                 }
               }
               info += `\n`;
@@ -266,28 +254,21 @@ export class ServerInfoGatherer {
               .slice(0, MAX_MEMBERS_TO_DISPLAY);
 
             if (botMembers.length > 0) {
-              info += `**COMPLETE LIST OF BOT NAMES:**\n`;
-              info += `🚨 **CRITICAL: These are Discord BOTS, NOT human members.**\n`;
-              info += `- When user asks for "members", "users", or "people" = Use HUMAN MEMBER list above, NOT this bot list\n`;
-              info += `- When user asks for "bots" or "discord bots" = Use THIS bot list\n`;
-              info += `- Understand user intent: "members" = humans, "bots" = Discord bots\n`;
-              info += `\n`;
+              info += `**Bot Names (NOT human members):**\n`;
+              info += `**Note:** "members"/"users"/"people" = humans above. "bots" = this list.\n`;
               botMembers.forEach((name, index) => {
                 info += `${index + 1}. ${name} [BOT]\n`;
               });
               info += `\n`;
             }
           } else {
-            info += `**COMPLETE LIST OF HUMAN MEMBER NAMES:**\n`;
-            info += `- No members found in cache\n`;
-            info += `- This may be due to cache limitations or server permissions\n`;
-            info += `\n`;
+            info += `**Human Member Names:**\n`;
+            info += `- No members found in cache (may be due to cache limits or permissions)\n\n`;
           }
         } catch (error) {
           logger.debug("Error fetching member names:", error);
-          info += `**COMPLETE LIST OF HUMAN MEMBER NAMES:**\n`;
-          info += `- Error fetching member list: ${error.message}\n`;
-          info += `\n`;
+          info += `**Human Member Names:**\n`;
+          info += `- Error: ${error.message}\n\n`;
         }
       } else {
         // Skip member list for faster responses - can use fetch_members action if needed
@@ -469,7 +450,10 @@ export class ServerInfoGatherer {
     if (!client || !client.user) return "";
 
     try {
-      const config = (await import("../../config/config.js")).default;
+      const configModule = await import("../../config/config.js").catch(
+        () => null,
+      );
+      const config = configModule?.default || configModule || {};
       const externalLinks = config.externalLinks || {};
 
       let info = `Bot Information:\n`;

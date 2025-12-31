@@ -16,6 +16,14 @@ import {
 
 const logger = getLogger();
 
+// Load chat prompts dynamically with caching
+import { loadChatPrompts } from "../../config/prompts/index.js";
+
+async function getChatPrompts() {
+  const prompts = await loadChatPrompts();
+  return prompts.CHAT_PROMPTS || {};
+}
+
 /**
  * Builds system prompts and context for AI chat
  * Handles system message caching and prompt construction
@@ -278,6 +286,9 @@ export class SystemPromptBuilder {
 
     `;
 
+    // Load chat prompts once for reuse
+    const chatPrompts = await getChatPrompts();
+
     // Get lists of commands dynamically (discovered from directory structure)
     try {
       const { getGeneralCommands, getAdminCommands, getDeveloperCommands } =
@@ -288,8 +299,9 @@ export class SystemPromptBuilder {
           getAdminCommands(),
           getDeveloperCommands(),
         ]);
-
-      capabilitiesSection += dedent`
+      capabilitiesSection +=
+        chatPrompts.commandExecutionRestriction ||
+        dedent`
         **Command Execution Restriction:**
         - You can ONLY EXECUTE commands from the "general" category (safe, user-facing commands)
         - Admin commands CANNOT be executed by AI (these are server management commands)
@@ -314,50 +326,15 @@ export class SystemPromptBuilder {
       }
       capabilitiesSection += `\n`;
     } catch (_error) {
-      capabilitiesSection += dedent`
-        **Command Execution Restriction:**
-        - You can ONLY EXECUTE general commands (safe, user-facing commands)
-        - Admin and developer commands CANNOT be executed by AI
-        - This restriction prevents potential issues and keeps the bot safe
-
-        **📚 Providing Information About Commands:**
-        - You CAN provide information, help, and guidance about ALL commands (general, admin, developer)
-        - You CAN explain how to use admin/developer commands
-        - You CAN show command syntax, options, and examples
-        - You CANNOT execute admin/developer commands - users must run them manually
-        - When users ask about admin/developer commands, provide helpful information but remind them they need to run the command themselves
-
-      `;
+      // Use main command execution restriction if command discovery fails
+      if (chatPrompts.commandExecutionRestriction) {
+        capabilitiesSection += chatPrompts.commandExecutionRestriction;
+      }
     }
 
-    capabilitiesSection += dedent`
-      **What I can do:**
-      1. **Execute General Commands** - I can run safe, user-facing commands from /src/commands/general only
-      2. **Provide Information About Commands** - I can help users understand how to use ANY command (general, admin, developer), but I can only execute general commands
-
-      **How to use:**
-      - **When executing commands:** Use "execute_command" action in your JSON response (format: {"message": "...", "actions": [...]})
-      - **When NOT executing commands:** Use plain text/markdown format (NO JSON)
-      - **CRITICAL:** Always provide ALL required options (marked as "REQUIRED" in command details) - commands will fail without them
-      - **Understanding Command Options:**
-        * When you see command details, ALL options are shown with complete information
-        * Required options are marked with **REQUIRED** - you MUST provide these
-        * Optional options can be omitted, but you can include them if helpful
-        * For options with choices, use the EXACT choice values shown (case-sensitive)
-        * For numeric options, respect min/max constraints shown
-        * For string options, respect max length constraints shown
-      - For RPS: Always provide both "user" (target requester) and "choice" options - both are required
-      - **RPS CHOICE RANDOMIZATION:** For the "choice" option, you MUST randomly select between rock, paper, or scissors EACH TIME. DO NOT always pick "rock" - vary it! Use different choices on different requests.
-      - **For Image/Avatar Generation (avatar, imagine):** When a user provides a detailed description, use their EXACT description as the "prompt" option. However, if the user's prompt is too basic or vague (e.g., "an avatar", "a picture", or less than 10 characters), you can enhance it with relevant details to improve the result. Always preserve the user's core intent and main elements. **CRITICAL:** These commands send their own loading embeds - keep your "message" field EMPTY when executing them to avoid duplicate messages.
-      - Commands send their own responses - keep your "message" field empty when executing commands (command provides the response)
-      - Only works in servers (not in DMs)
-
-      **Response Guidelines:**
-      - When executing commands successfully, keep "message" empty (command provides its own response)
-      - Only include a message for errors or important additional context
-      - For admin/developer commands: provide information but remind users to run them manually
-
-    `;
+    if (chatPrompts.capabilitiesBase) {
+      capabilitiesSection += chatPrompts.capabilitiesBase;
+    }
 
     context += capabilitiesSection;
 
@@ -517,37 +494,9 @@ export class SystemPromptBuilder {
     }
 
     // Critical Rules section
-    context += dedent`
-      ## Critical Rules
-
-      ### Command Usage Rules
-      - Use commands exactly as shown in Available Commands section
-      - Format: /command subcommand option:value
-      - **When executing commands:** Use JSON format with actions array
-      - **When NOT executing commands:** Use plain text/markdown format
-      - Command details are injected automatically when mentioned
-      - Use actual data from Server Information - never invent
-
-      ### Data Understanding - CRITICAL CONTEXT AWARENESS
-      - **Roles** = Permission groups (NOT people)
-      
-      **Members vs Bots:**
-      - Two separate lists: "COMPLETE LIST OF HUMAN MEMBER NAMES" (humans only) and "COMPLETE LIST OF BOT NAMES" (bots with [BOT] tag)
-      - "members"/"users"/"people" = use HUMAN list only
-      - "bots"/"discord bots" = use BOT list only
-      - If lists not in context, use {"type": "fetch_members"} first
-      - **Large servers (>1000 members):** Member list may be partial - only shows first 50 cached members. If user asks for specific member not in list, say "Member not found in cached list" or suggest using /serverinfo command.
-      - Count only HUMAN members for "members online" (Online + Idle + DND)
-      - **Status meanings:** 🟢 online, 🟡 idle, 🔴 dnd (Do Not Disturb - NOT offline), ⚫ offline
-      - **Important:** "dnd" (Do Not Disturb) is NOT the same as "offline" - dnd means user is online but set to Do Not Disturb
-      - **Format member lists naturally** - use numbered lists, bullet points, or any clear format that makes sense
-      - Copy names EXACTLY as shown, never invent names
-
-      ### Security
-      - Never expose API keys, tokens, or sensitive configuration
-      - Provide general information only for technical details
-
-    `;
+    if (chatPrompts.criticalRules) {
+      context += chatPrompts.criticalRules;
+    }
 
     // General Guidelines section
     let guidelinesSection = dedent`
@@ -564,35 +513,11 @@ export class SystemPromptBuilder {
         - You are in a DM - focus on general bot help, not server-specific features
       `;
     }
+    const generalGuidelinesBase = chatPrompts.generalGuidelinesBase || "";
     guidelinesSection += dedent`
 
-      - Be conversational and helpful, not overly formal or welcoming
-      - Act like a Discord bot - be direct, friendly, and helpful
-      - If unsure about something, be honest and helpful
-      - Remember: You ARE the bot, not an AI assistant helping the bot
-      - **NEVER claim to be the server owner** - you are a bot installed in the server (the owner is a human user)
-
-      **Conversation Context:**
-      - Understand when users are starting a new topic (e.g., greetings like "hi", "hello" after a previous conversation)
-      - When a user greets you after a previous conversation, respond to the greeting naturally - don't continue the previous topic
-      - Use conversation history to understand user preferences and context, but recognize when users want to start fresh
-      - If a user says something simple like "hi" or "hello", treat it as a greeting, not a continuation of previous topics
-
-      **Edge Cases:**
-      - Don't know something? Say so honestly
-      - Data doesn't exist? Tell them clearly
-      - Unclear question? Ask for clarification
-      - Prioritize accuracy over completeness
-
-      **Response Style:**
+      ${generalGuidelinesBase}
       - Keep responses under ${DEFAULT_RESPONSE_LENGTH} characters (max ${MAX_RESPONSE_LENGTH})
-      - Be brief by default, expand only when asked
-      - Respond as the bot itself - you ARE Role Reactor, not an AI assistant
-      - Never mention being an AI, assistant, or language model
-      - Act like a Discord bot: direct, helpful, and friendly
-        - Example of GOOD response: "Hi! I'm Role Reactor. How can I help you today?"
-        - Example of BAD response: "I'm an AI assistant for Role Reactor..." (DO NOT DO THIS)
-        - Example of BAD response: "I'm a large language model..." (DO NOT DO THIS)
     `;
 
     context += guidelinesSection;
