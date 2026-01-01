@@ -530,6 +530,17 @@ export async function handleWarn(interaction, client) {
       // This delay prevents per-route rate limits (5 ops/5s per guild for moderation actions)
       const OPERATION_DELAY = 150; // 150ms delay = ~6.6 ops/sec (safe for 5 ops/5s limit)
 
+      // Load config once before the loop to avoid redundant imports
+      const configModule = await import("../../../config/config.js").catch(
+        () => null,
+      );
+      const config =
+        configModule?.config || configModule?.default || configModule || {};
+      const autoEscalation = config.corePricing?.autoEscalation || {};
+      const timeoutAfterWarnings = autoEscalation.timeoutAfterWarnings || 0;
+      const kickAfterWarnings = autoEscalation.kickAfterWarnings || 0;
+      const timeoutDuration = autoEscalation.timeoutDuration || "1h";
+
       for (let i = 0; i < validUsers.length; i++) {
         const { user, member } = validUsers[i];
 
@@ -577,17 +588,7 @@ export async function handleWarn(interaction, client) {
             );
           }
 
-          // Check for auto-escalation
-          const configModule = await import("../../../config/config.js").catch(
-            () => null,
-          );
-          const config =
-            configModule?.config || configModule?.default || configModule || {};
-          const autoEscalation = config.corePricing?.autoEscalation || {};
-          const timeoutAfterWarnings = autoEscalation.timeoutAfterWarnings || 0;
-          const kickAfterWarnings = autoEscalation.kickAfterWarnings || 0;
-          const timeoutDuration = autoEscalation.timeoutDuration || "1h";
-
+          // Check for auto-escalation (config already loaded before loop)
           let escalationNote = "";
           if (kickAfterWarnings > 0 && warnCount >= kickAfterWarnings) {
             try {

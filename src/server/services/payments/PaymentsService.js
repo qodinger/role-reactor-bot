@@ -70,7 +70,7 @@ export class PaymentsService extends BaseService {
       validateBody({
         required: ["type"],
         properties: {
-          type: { type: "string", enum: ["donation"] },
+          type: { type: "string", enum: ["payment"] },
           amount: { type: "number", min: 5 },
           tier: { type: "string" },
         },
@@ -130,8 +130,40 @@ export class PaymentsService extends BaseService {
       () => null,
     );
     const config = configModule?.config || configModule?.default || {};
-    const minimumAmount = config?.corePricing?.donation?.minimum ?? 5;
-    const donationRate = config?.corePricing?.donation?.rate ?? 10;
+    // All pricing values come from config - use package pricing
+    const packages = config?.corePricing?.packages || {};
+
+    if (!packages || Object.keys(packages).length === 0) {
+      logger.error("❌ Core pricing packages not found in config");
+      return this.sendError(res, "Payment system configuration error", 500);
+    }
+
+    // Get minimum payment amount from config
+    const minimumAmount = config?.corePricing?.coreSystem?.minimumPayment;
+    if (!minimumAmount) {
+      logger.error("❌ Minimum payment amount not found in config");
+      return this.sendError(res, "Payment system configuration error", 500);
+    }
+
+    // Calculate rate from packages (use $10 package as default)
+    // If packages not available, calculate from smallest package
+    let defaultRate = 0;
+    if (packages.$10) {
+      defaultRate = (packages.$10.baseCores + packages.$10.bonusCores) / 10;
+    } else if (packages.$5) {
+      defaultRate = (packages.$5.baseCores + packages.$5.bonusCores) / 5;
+    } else if (packages.$25) {
+      defaultRate = (packages.$25.baseCores + packages.$25.bonusCores) / 25;
+    } else if (packages.$50) {
+      defaultRate = (packages.$50.baseCores + packages.$50.bonusCores) / 50;
+    }
+
+    if (!defaultRate) {
+      logger.error(
+        "❌ Unable to calculate default rate - no packages found in config",
+      );
+      return this.sendError(res, "Payment processing configuration error", 500);
+    }
 
     if (amount && amount < minimumAmount) {
       return this.sendError(
@@ -141,8 +173,20 @@ export class PaymentsService extends BaseService {
       );
     }
 
+    // Use tiered rates based on amount
+    let paymentRate = defaultRate;
+    if (amount >= 50 && packages.$50) {
+      paymentRate = (packages.$50.baseCores + packages.$50.bonusCores) / 50;
+    } else if (amount >= 25 && packages.$25) {
+      paymentRate = (packages.$25.baseCores + packages.$25.bonusCores) / 25;
+    } else if (amount >= 10 && packages.$10) {
+      paymentRate = (packages.$10.baseCores + packages.$10.bonusCores) / 10;
+    } else if (amount >= 5 && packages.$5) {
+      paymentRate = (packages.$5.baseCores + packages.$5.bonusCores) / 5;
+    }
+
     const price = amount;
-    const credits = Math.floor(amount * donationRate);
+    const credits = Math.floor(amount * paymentRate);
     const description = "One-time Core credits purchase";
 
     // Create Coinbase Commerce charge
@@ -157,7 +201,7 @@ export class PaymentsService extends BaseService {
       metadata: {
         discord_user_id: userId,
         tier: null,
-        type: "donation",
+        type: "payment",
       },
     };
 

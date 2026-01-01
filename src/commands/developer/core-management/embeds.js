@@ -41,7 +41,6 @@ export async function createDetailedCoreManagementEmbed({
   userData = null,
   creditType = "bonus",
   showCreditBreakdown = false,
-  donationDetails = null,
   oldTotalCores = null,
   newTotalCores = null,
 }) {
@@ -95,18 +94,18 @@ export async function createDetailedCoreManagementEmbed({
     if (showCreditBreakdown && userData) {
       const subscriptionCredits = userData.subscriptionCredits || 0;
       const bonusCredits = userData.bonusCredits || 0;
-      const isSubscriptionUser = userData.koFiSubscription?.isActive;
+      const isSubscriptionUser = userData.cryptoSubscription?.isActive;
 
       if (isSubscriptionUser) {
         embed.addFields({
           name: `Credit Breakdown`,
-          value: `Subscription: ${subscriptionCredits} ${CORE_EMOJI} (monthly allowance)\nBonus: ${bonusCredits} ${CORE_EMOJI} (donation Cores, never expires)`,
+          value: `Subscription: ${subscriptionCredits} ${CORE_EMOJI} (monthly allowance)\nBonus: ${bonusCredits} ${CORE_EMOJI} (bonus Cores, never expires)`,
           inline: false,
         });
       } else {
         embed.addFields({
           name: `Credit Type`,
-          value: `Donation Cores: ${bonusCredits} ${CORE_EMOJI} (never expires)`,
+          value: `Bonus Cores: ${bonusCredits} ${CORE_EMOJI} (never expires)`,
           inline: false,
         });
       }
@@ -143,15 +142,6 @@ export async function createDetailedCoreManagementEmbed({
       embed.addFields({
         name: `Total Balance Impact`,
         value: `Previous Total: ${oldTotalCores} ${CORE_EMOJI}\nNew Total: ${newTotalCores} ${CORE_EMOJI}`,
-        inline: false,
-      });
-    }
-
-    // Add donation details if available
-    if (type === "add-donation" && donationDetails) {
-      embed.addFields({
-        name: `Donation Details`,
-        value: `Amount: $${donationDetails.amount}\nCores Calculated: ${donationDetails.coresCalculated} ${CORE_EMOJI} (10 per $1)\n${donationDetails.koFiUrl ? `Ko-fi URL: [View Donation](${donationDetails.koFiUrl})` : ""}`,
         inline: false,
       });
     }
@@ -194,10 +184,6 @@ function getEmbedColor(type) {
       return THEME.PRIMARY;
     case "view":
       return THEME.SECONDARY;
-    case "add-donation":
-      return THEME.SUCCESS;
-    case "cancel-subscription":
-      return THEME.ERROR;
     default:
       return THEME.PRIMARY;
   }
@@ -212,8 +198,7 @@ function getEmbedDescription(
   creditType = "bonus",
 ) {
   const username = targetUser?.username || targetUser?.tag || "Unknown User";
-  const creditTypeText =
-    creditType === "bonus" ? "bonus Cores (donation Cores)" : "Cores";
+  const creditTypeText = creditType === "bonus" ? "bonus Cores" : "Cores";
 
   switch (type) {
     case "add":
@@ -224,10 +209,6 @@ function getEmbedDescription(
       return `Successfully set ${username}'s ${creditTypeText} to ${amount} ${CORE_EMOJI}.`;
     case "view":
       return `Displaying ${username}'s Core account information and credit breakdown.`;
-    case "add-donation":
-      return `Successfully verified Ko-fi donation and added ${amount} ${CORE_EMOJI} bonus Cores to ${username}'s Core account.`;
-    case "cancel-subscription":
-      return `Successfully cancelled ${username}'s Core subscription and removed Core membership status.`;
     default:
       return "Core account management operation completed successfully.";
   }
@@ -241,10 +222,6 @@ function getOperationText(type) {
       return "Removed";
     case "set":
       return "Set To";
-    case "add-donation":
-      return "Donation Verified";
-    case "cancel-subscription":
-      return "Subscription Cancelled";
     default:
       return "Operation";
   }

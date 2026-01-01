@@ -234,10 +234,34 @@ class Config {
    */
   get corePricing() {
     return {
-      // Donation rates (Cores per $1) - Your preferred rates
-      donation: {
-        rate: 10, // 10 Cores per $1
-        minimum: parseFloat(process.env.KOFI_MINIMUM_DONATION) || 10, // Minimum payment amount (default $10)
+      // Package plans for display in /core pricing command
+      // Base value is consistent across all packages
+      // Larger packages get bonus Cores as incentive
+      packages: {
+        $5: {
+          name: "Core",
+          baseCores: 80,
+          bonusCores: 0,
+          value: "16 Cores/$1",
+        },
+        $10: {
+          name: "Edge",
+          baseCores: 160,
+          bonusCores: 20,
+          value: "18 Cores/$1",
+        },
+        $25: {
+          name: "Prime",
+          baseCores: 400,
+          bonusCores: 100,
+          value: "20 Cores/$1",
+        },
+        $50: {
+          name: "Ultra",
+          baseCores: 800,
+          bonusCores: 300,
+          value: "22 Cores/$1",
+        },
       },
 
       // Moderation auto-escalation thresholds
@@ -250,42 +274,16 @@ class Config {
         timeoutDuration: process.env.MODERATION_AUTO_TIMEOUT_DURATION || "1h", // Duration for auto-timeout
       },
 
-      // Subscription tiers (LEGACY SUPPORT ONLY)
-      // New subscriptions are not accepted, but existing subscriptions are still supported
-      // Used for: legacy user tier detection, rate limiting, and expired subscription cleanup
-      subscriptions: {
-        Bronze: {
-          price: 5,
-          cores: 50, // 10.0 Cores per $1 (test tier)
-          description: "Bronze test membership - INTERNAL TESTING ONLY",
-        },
-        "Core Basic": {
-          price: 10,
-          cores: 150, // 15.0 Cores per $1
-          description: "Basic Core membership",
-        },
-        "Core Premium": {
-          price: 25,
-          cores: 400, // 16.0 Cores per $1
-          description: "Premium Core membership",
-        },
-        "Core Elite": {
-          price: 50,
-          cores: 850, // 17.0 Cores per $1
-          description: "Elite Core membership",
-        },
-      },
-
       // Core system settings
       coreSystem: {
-        minimumSubscription: 5, // Minimum $5 for Core membership (includes Bronze test tier)
+        minimumPayment: 5, // Minimum $5 for one-time payments
         priorityProcessing: true, // Core members get priority (planned feature)
       },
 
       // Feature costs and avatar filter moved to config/ai.js
       // Kept here for backward compatibility
       featureCosts: {
-        aiChat: 0.05,
+        aiChat: 0.02,
         aiImage: 1,
       },
       avatarContentFilter: {

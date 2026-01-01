@@ -45,7 +45,7 @@ src/server/
 - **Auto-Documentation**: OpenAPI/Swagger documentation that automatically updates when services change
 - **Modular Design**: Clean separation of concerns with dedicated modules
 - **Health Checks**: Comprehensive health monitoring including service and database checks
-- **Webhook Support**: Ko-fi, Crypto, and Buy Me a Coffee webhook handling with token verification
+- **Webhook Support**: Crypto payment webhook handling with token verification
 - **CORS Support**: Cross-origin resource sharing for external API access
 - **Request Logging**: Detailed request/response logging with request ID tracking
 - **Error Handling**: Centralized error handling with proper logging and consistent response format
@@ -64,9 +64,7 @@ src/server/
 ### Webhooks
 
 - `POST /webhook/verify` - Webhook token verification
-- `POST /webhook/kofi` - Ko-fi webhook handler
 - `POST /webhook/crypto` - Crypto payment webhook handler
-- `POST /webhook/bmac` - Buy Me a Coffee webhook handler
 
 ### API
 
@@ -202,14 +200,13 @@ HEALTH_CHECKS=true              # Enable health checks (default: true)
 DOCKER_HEALTH_CHECK=true        # Enable Docker health check (default: true)
 
 # Webhook configuration
-KOFI_WEBHOOK_TOKEN=your_token   # Ko-fi webhook token
+WEBHOOK_TOKEN=your_token   # Webhook verification token
 WEBHOOK_VERIFICATION=true       # Enable webhook verification (default: true)
 
 # Rate limiting
 API_RATE_LIMIT_MAX=60           # API rate limit (default: 60 per 15min)
 API_RATE_LIMIT_WINDOW_MS=900000 # Rate limit window (default: 15min)
 WEBHOOK_RATE_LIMIT_MAX=100      # Webhook rate limit (default: 100 per 15min)
-KOFI_WEBHOOK_RATE_LIMIT_MAX=50  # Ko-fi rate limit (default: 50 per 15min)
 
 # Authentication
 DISCORD_CLIENT_ID=your_id       # Discord OAuth client ID
@@ -313,7 +310,6 @@ Different rate limits for different endpoint types:
 
 - **API endpoints**: 60 requests per 15 minutes (default)
 - **Webhook endpoints**: 100 requests per 15 minutes (default)
-- **Ko-fi webhooks**: 50 requests per 15 minutes (default)
 
 ### Authentication
 
@@ -382,4 +378,3 @@ Adjust rate limits via environment variables:
 
 - `API_RATE_LIMIT_MAX`
 - `WEBHOOK_RATE_LIMIT_MAX`
-- `KOFI_WEBHOOK_RATE_LIMIT_MAX`

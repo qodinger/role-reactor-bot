@@ -174,7 +174,7 @@ async function processCryptoPayment(charge) {
     const discordEmail = metadata.discord_email || metadata.email || null;
 
     const tier = metadata.tier;
-    const paymentType = metadata.type || "donation"; // 'donation' or 'subscription'
+    const paymentType = metadata.type || "payment";
     const amount = charge.pricing?.local?.amount || "0";
     const currency = charge.pricing?.local?.currency || "USD";
     const chargeId = charge.id;
@@ -235,7 +235,7 @@ async function processCryptoPayment(charge) {
       await storage.set("pending_crypto_payments", pendingPayments);
 
       logger.info(
-        `📋 Pending payment stored: ${chargeId} - Admin can verify using /core-management verify-payment`,
+        `📋 Pending payment stored: ${chargeId} - Admin can manually process using /core-management add`,
       );
 
       return {
@@ -302,76 +302,71 @@ async function processCryptoPayment(charge) {
     const configModule = await import("../config/config.js").catch(() => null);
     const config =
       configModule?.config || configModule?.default || configModule || {};
-    const minimumAmount = config.corePricing?.donation?.minimum || 5;
-    const donationRate = config.corePricing?.donation?.rate || 10;
-    const subscriptions = config.corePricing?.subscriptions || {};
+    // All pricing values come from config - use package pricing
+    const packages = config.corePricing?.packages || {};
 
-    // Validate minimum payment amount for one-time payments (donations)
-    // Subscriptions are removed, so all payments should be donations
-    if (paymentType !== "subscription") {
-      if (paymentAmount < minimumAmount) {
-        logger.warn(
-          `❌ Payment below minimum: $${paymentAmount} < $${minimumAmount} (chargeId: ${chargeId})`,
-        );
-        return {
-          success: false,
-          error: `Payment amount ($${paymentAmount}) is below the minimum required amount ($${minimumAmount}). No credits will be granted.`,
-        };
-      }
-    }
-
-    if (paymentType === "subscription") {
-      // Subscription payment - get monthly credits for tier
-      const tierInfo = subscriptions[tier];
-      if (!tierInfo) {
-        logger.warn(`❌ Unknown tier: ${tier}`);
-        return { success: false, error: `Unknown tier: ${tier}` };
-      }
-
-      coresToAdd = tierInfo.cores;
-      const isFirstPayment = !userData.cryptoSubscription?.isActive;
-
-      // Update subscription status
-      userData.cryptoSubscription = {
-        tier,
-        isActive: true,
-        chargeId,
-        lastPayment: new Date().toISOString(),
-        monthlyCredits: coresToAdd,
-        subscriptionStartDate: isFirstPayment
-          ? new Date().toISOString()
-          : userData.cryptoSubscription?.subscriptionStartDate ||
-            new Date().toISOString(),
+    // Get minimum payment amount from config
+    const minimumAmount = config.corePricing?.coreSystem?.minimumPayment;
+    if (!minimumAmount) {
+      logger.error("❌ Minimum payment amount not found in config");
+      return {
+        success: false,
+        error: "Payment processing configuration error",
       };
-
-      // Handle subscription credits (similar to Ko-fi logic)
-      if (isFirstPayment) {
-        userData.credits = coresToAdd;
-        userData.subscriptionCredits = coresToAdd;
-        userData.bonusCredits = 0;
-        userData.isCore = true;
-        userData.coreTier = tier;
-        logger.info(
-          `🎉 First crypto subscription payment: Set Cores to ${coresToAdd} (monthly allowance)`,
-        );
-      } else {
-        // Subsequent payments: Reset subscription allowance, preserve bonus Cores
-        const bonusCredits = userData.bonusCredits || 0;
-        userData.credits = coresToAdd + bonusCredits;
-        userData.subscriptionCredits = coresToAdd;
-        logger.info(
-          `🔄 Monthly crypto subscription renewal: Reset subscription allowance to ${coresToAdd}, preserved ${bonusCredits} bonus Cores (total: ${userData.credits})`,
-        );
-      }
-    } else {
-      // Donation payment - calculate credits (10 Cores per $1)
-      coresToAdd = Math.floor(paymentAmount * donationRate);
-
-      // Add as bonus credits
-      userData.bonusCredits = (userData.bonusCredits || 0) + coresToAdd;
-      userData.credits = (userData.credits || 0) + coresToAdd;
-      userData.totalGenerated = (userData.totalGenerated || 0) + coresToAdd;
     }
+
+    // Calculate rate from packages (use $10 package as default)
+    // If packages not available, calculate from smallest package
+    let defaultRate = 0;
+    if (packages.$10) {
+      defaultRate = (packages.$10.baseCores + packages.$10.bonusCores) / 10;
+    } else if (packages.$5) {
+      defaultRate = (packages.$5.baseCores + packages.$5.bonusCores) / 5;
+    } else if (packages.$25) {
+      defaultRate = (packages.$25.baseCores + packages.$25.bonusCores) / 25;
+    } else if (packages.$50) {
+      defaultRate = (packages.$50.baseCores + packages.$50.bonusCores) / 50;
+    }
+
+    if (!defaultRate) {
+      logger.error(
+        "❌ Unable to calculate default rate - no packages found in config",
+      );
+      return {
+        success: false,
+        error: "Payment processing configuration error",
+      };
+    }
+
+    // Validate minimum payment amount
+    if (paymentAmount < minimumAmount) {
+      logger.warn(
+        `❌ Payment below minimum: $${paymentAmount} < $${minimumAmount} (chargeId: ${chargeId})`,
+      );
+      return {
+        success: false,
+        error: `Payment amount ($${paymentAmount}) is below the minimum required amount ($${minimumAmount}). No credits will be granted.`,
+      };
+    }
+
+    // One-time payment - calculate credits based on package pricing
+    // Use tiered rates based on amount
+    let paymentRate = defaultRate;
+    if (paymentAmount >= 50 && packages.$50) {
+      paymentRate = (packages.$50.baseCores + packages.$50.bonusCores) / 50;
+    } else if (paymentAmount >= 25 && packages.$25) {
+      paymentRate = (packages.$25.baseCores + packages.$25.bonusCores) / 25;
+    } else if (paymentAmount >= 10 && packages.$10) {
+      paymentRate = (packages.$10.baseCores + packages.$10.bonusCores) / 10;
+    } else if (paymentAmount >= 5 && packages.$5) {
+      paymentRate = (packages.$5.baseCores + packages.$5.bonusCores) / 5;
+    }
+    coresToAdd = Math.floor(paymentAmount * paymentRate);
+
+    // Add as bonus credits
+    userData.bonusCredits = (userData.bonusCredits || 0) + coresToAdd;
+    userData.credits = (userData.credits || 0) + coresToAdd;
+    userData.totalGenerated = (userData.totalGenerated || 0) + coresToAdd;
 
     // Track payment
     userData.cryptoPayments = userData.cryptoPayments || [];

@@ -49,48 +49,6 @@ export const webhookRateLimiter = rateLimit({
 });
 
 /**
- * Create a strict rate limiter for Ko-fi webhook endpoint
- * More restrictive than general webhook limiter
- */
-export const kofiWebhookRateLimiter = rateLimit({
-  windowMs:
-    parseInt(process.env.KOFI_WEBHOOK_RATE_LIMIT_WINDOW_MS, 10) ||
-    15 * 60 * 1000, // 15 minutes default
-  max: (() => {
-    const envValue = process.env.KOFI_WEBHOOK_RATE_LIMIT_MAX;
-    if (!envValue) {
-      return 50; // Default, no warning needed
-    }
-    const max = parseInt(envValue, 10);
-    if (isNaN(max) || max < 1) {
-      logger.warn("Invalid KOFI_WEBHOOK_RATE_LIMIT_MAX, using default: 50");
-      return 50;
-    }
-    return max;
-  })(),
-  message: {
-    status: "error",
-    message: "Too many Ko-fi webhook requests, please try again later",
-    retryAfter: "15 minutes",
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-  handler: (req, res) => {
-    logger.warn("⚠️ Rate limit exceeded for Ko-fi webhook endpoint", {
-      ip: req.ip,
-      url: req.url,
-      userAgent: req.get("User-Agent"),
-      timestamp: new Date().toISOString(),
-    });
-    res.status(429).json({
-      status: "error",
-      message: "Too many Ko-fi webhook requests, please try again later",
-      retryAfter: "15 minutes",
-    });
-  },
-});
-
-/**
  * Create a rate limiter for API endpoints
  * More lenient than webhook limiters for public API access
  */

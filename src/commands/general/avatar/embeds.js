@@ -174,13 +174,13 @@ export function createCoreEmbed(interaction, userData, creditsNeeded, prompt) {
   // Enhanced Core breakdown for better user understanding
   const subscriptionCredits = userData.subscriptionCredits || 0;
   const bonusCredits = userData.bonusCredits || 0;
-  const isSubscriptionUser = userData.koFiSubscription?.isActive;
+  const isSubscriptionUser = userData.cryptoSubscription?.isActive;
 
   let coreBreakdown = `**Your Balance**: ${userData.credits} ${CORE_EMOJI}`;
 
   if (isSubscriptionUser) {
     coreBreakdown += `\n• **Subscription**: ${subscriptionCredits} ${CORE_EMOJI} (monthly allowance)`;
-    coreBreakdown += `\n• **Bonus**: ${bonusCredits} ${CORE_EMOJI} (from donations, never expires)`;
+    coreBreakdown += `\n• **Bonus**: ${bonusCredits} ${CORE_EMOJI} (bonus credits, never expires)`;
   }
 
   return new EmbedBuilder()
@@ -192,7 +192,7 @@ export function createCoreEmbed(interaction, userData, creditsNeeded, prompt) {
     .addFields([
       {
         name: "Get Cores",
-        value: `Donate on [Ko-fi](https://ko-fi.com/rolereactor) • Use \`/core pricing\``,
+        value: `Buy Core packages with crypto • Use \`/core pricing\``,
         inline: false,
       },
     ])

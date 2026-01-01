@@ -36,7 +36,7 @@ Following the modular pattern established by other general commands:
 ## Key Features
 
 - **AI-Powered Assistance**: Intelligent responses about bot features and usage
-- **Credit System Integration**: Uses 0.05 Core per request
+- **Credit System Integration**: Uses 0.02 Core per request
 - **Streaming Responses**: Real-time response streaming when enabled
 - **Context Awareness**: AI understands bot commands and server context
 - **Credit Checking**: Validates user credits before processing requests

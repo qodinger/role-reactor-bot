@@ -42,7 +42,7 @@ export const serverConfig = {
 
   // Webhook configuration
   webhook: {
-    token: process.env.KOFI_WEBHOOK_TOKEN,
+    token: process.env.WEBHOOK_TOKEN,
     verificationEnabled: process.env.WEBHOOK_VERIFICATION !== "false",
   },
 

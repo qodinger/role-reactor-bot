@@ -30,7 +30,7 @@ export function verifyWebhookToken(req, res) {
 
     // Get the token from request body or headers
     const providedToken = getWebhookToken(req);
-    const expectedToken = process.env.KOFI_WEBHOOK_TOKEN;
+    const expectedToken = process.env.WEBHOOK_TOKEN;
 
     if (!providedToken) {
       logger.warn("❌ No webhook token provided in verification request");
@@ -47,7 +47,7 @@ export function verifyWebhookToken(req, res) {
       const { statusCode, response } = createErrorResponse(
         "Webhook token not configured on server",
         500,
-        "Set KOFI_WEBHOOK_TOKEN environment variable",
+        "Set WEBHOOK_TOKEN environment variable",
       );
       return res.status(statusCode).json(response);
     }

@@ -62,78 +62,54 @@ export function formatTierDisplay(userData) {
  * Gets Core pricing information
  * Note: Only one-time crypto payments are supported (subscriptions removed)
  * Uses centralized config for all pricing values
- * Package plans: $5 (125 Cores), $10 (300 Cores), $25 (825 Cores)
- * Base rate: 25 Cores per $1 (with tiered bonuses for higher packages)
- * @returns {Object} Pricing information object
+ * @returns {Promise<Object>} Pricing information object
  */
-export function getCorePricing() {
+export async function getCorePricing() {
+  // Load config for all pricing values
+  const configModule = await import("../../../config/config.js").catch(
+    () => null,
+  );
+  const config =
+    configModule?.config || configModule?.default || configModule || {};
+  const corePricing = config.corePricing || {};
+
+  // Load AI feature costs for benefits calculation
+  const aiConfigModule = await import("../../../config/ai.js").catch(
+    () => null,
+  );
+  const getAIFeatureCosts =
+    aiConfigModule?.getAIFeatureCosts ||
+    aiConfigModule?.default?.getAIFeatureCosts;
+  // Get feature costs from config
+  let featureCosts = getAIFeatureCosts
+    ? typeof getAIFeatureCosts === "function"
+      ? getAIFeatureCosts()
+      : getAIFeatureCosts
+    : null;
+
+  // Ensure feature costs come from config
+  if (!featureCosts) {
+    const { getAIFeatureCosts: getCosts } = await import("../../config/ai.js");
+    featureCosts = getCosts();
+  }
+  const aiChatCost = featureCosts?.aiChat;
+
+  // Ensure packages come from config
+  if (!corePricing.packages) {
+    throw new Error("Core pricing packages not found in config");
+  }
+
   return {
-    packages: {
-      $5: {
-        name: "Starter",
-        baseCores: 125,
-        bonusCores: 0,
-        value: "25 Cores/$1",
-      },
-      $10: {
-        name: "Popular",
-        baseCores: 250,
-        bonusCores: 50,
-        value: "30 Cores/$1",
-      },
-      $25: {
-        name: "Power",
-        baseCores: 625,
-        bonusCores: 200,
-        value: "33 Cores/$1",
-      },
-    },
-    // Subscriptions removed - only one-time crypto payments supported
-    subscriptions: {},
+    packages: corePricing.packages,
     benefits: [
       "Never expires",
       "Instant delivery",
       "Secure crypto payments",
       "Flexible usage (chat + images)",
       "Transferable (gift to others)",
-      `1 Core = ${Math.floor(1 / 0.05)} AI requests`, // Default: 0.05 per request
+      `1 Core = ${Math.floor(1 / aiChatCost)} AI requests`, // Uses config value
     ],
   };
-}
-
-/**
- * Calculates credit value from donation amount
- * Uses centralized config for donation rate
- * @param {number} amount - Donation amount in USD
- * @returns {number} Credits earned
- */
-export async function calculateCreditsFromDonation(amount) {
-  // Load config dynamically
-  const configModule = await import("../../../config/config.js").catch(
-    () => null,
-  );
-  const config =
-    configModule?.config || configModule?.default || configModule || {};
-  const donationRate = config.corePricing?.donation?.rate || 10; // Cores per $1
-  return Math.floor(amount * donationRate);
-}
-
-/**
- * Gets monthly credits for Core tier (LEGACY - subscriptions removed)
- * @deprecated Subscriptions are no longer accepted. This function is kept for legacy support only.
- * @param {string} tier - Core tier name
- * @returns {number} Monthly credits from config
- */
-export async function getMonthlyCreditsForTier(tier) {
-  // Load config dynamically
-  const configModule = await import("../../../config/config.js").catch(
-    () => null,
-  );
-  const config =
-    configModule?.config || configModule?.default || configModule || {};
-  const subscriptions = config.corePricing?.subscriptions || {};
-  const tierInfo = subscriptions[tier];
-  return tierInfo?.cores || 0;
 }
 
 /**

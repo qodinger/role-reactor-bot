@@ -14,19 +14,11 @@ const { customEmojis } = emojiConfig;
  */
 export function createBalanceEmbed(userData, username, avatarURL) {
   const tierDisplay = formatTierDisplay(userData);
-  const subscriptionCredits = userData.subscriptionCredits || 0;
   const bonusCredits = userData.bonusCredits || 0;
 
   // Build breakdown text - show only if there are credits
   let breakdownText = "";
-  if (subscriptionCredits > 0 && bonusCredits > 0) {
-    // Legacy case: both subscription and bonus credits
-    breakdownText = `Subscription: ${subscriptionCredits} ${customEmojis.core}\nBonus: ${bonusCredits} ${customEmojis.core}`;
-  } else if (subscriptionCredits > 0) {
-    // Legacy case: only subscription credits
-    breakdownText = `Subscription: ${subscriptionCredits} ${customEmojis.core}`;
-  } else if (bonusCredits > 0) {
-    // Current case: only bonus credits (from crypto payments)
+  if (bonusCredits > 0) {
     breakdownText = `Bonus: ${bonusCredits} ${customEmojis.core}`;
   }
 

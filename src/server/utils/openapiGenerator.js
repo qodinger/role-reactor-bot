@@ -436,7 +436,7 @@ function inferRequestBody(route, service) {
     schema.properties = {
       type: {
         type: "string",
-        enum: ["donation"],
+        enum: ["payment"],
         description: "Payment type",
       },
       amount: {
@@ -447,7 +447,7 @@ function inferRequestBody(route, service) {
       tier: {
         type: "string",
         nullable: true,
-        description: "Subscription tier (if applicable)",
+        description: "Package tier (optional)",
       },
     };
     schema.required = ["type"];
@@ -633,57 +633,11 @@ function addWebhookRoutes(spec) {
     },
   };
 
-  spec.paths["/webhook/kofi"] = {
-    post: {
-      tags: ["Webhooks"],
-      summary: "Ko-fi webhook handler",
-      operationId: "kofiWebhook",
-      requestBody: {
-        required: true,
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-            },
-          },
-        },
-      },
-      responses: {
-        200: {
-          description: "Webhook processed",
-        },
-      },
-    },
-  };
-
   spec.paths["/webhook/crypto"] = {
     post: {
       tags: ["Webhooks"],
       summary: "Crypto payment webhook handler",
       operationId: "cryptoWebhook",
-      requestBody: {
-        required: true,
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-            },
-          },
-        },
-      },
-      responses: {
-        200: {
-          description: "Webhook processed",
-        },
-      },
-    },
-  };
-
-  spec.paths["/webhook/bmac"] = {
-    post: {
-      tags: ["Webhooks"],
-      summary: "Buy Me a Coffee webhook handler",
-      operationId: "bmacWebhook",
       requestBody: {
         required: true,
         content: {

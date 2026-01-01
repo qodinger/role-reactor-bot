@@ -1,7 +1,5 @@
 import express from "express";
-import { handleKoFiWebhook } from "../webhooks/kofi.js";
 import { handleCryptoWebhook } from "../webhooks/crypto.js";
-import { handleBuyMeACoffeeWebhook } from "../webhooks/buymeacoffee.js";
 import { getLogger } from "../utils/logger.js";
 
 // Import middleware
@@ -11,7 +9,6 @@ import { requestLogger } from "./middleware/requestLogger.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import {
   webhookRateLimiter,
-  kofiWebhookRateLimiter,
   apiRateLimiter,
 } from "./middleware/rateLimiter.js";
 
@@ -131,9 +128,7 @@ function initializeRoutes() {
 
   // Webhook routes with rate limiting
   app.post("/webhook/verify", webhookRateLimiter, verifyWebhookToken);
-  app.post("/webhook/kofi", kofiWebhookRateLimiter, handleKoFiWebhook);
   app.post("/webhook/crypto", webhookRateLimiter, handleCryptoWebhook);
-  app.post("/webhook/bmac", webhookRateLimiter, handleBuyMeACoffeeWebhook);
 
   // Core API routes with rate limiting
   app.get("/api/info", apiRateLimiter, apiInfo);
@@ -257,9 +252,6 @@ export async function startWebhookServer() {
 
       logger.info(
         `  Verify: http://localhost:${serverConfig.port}/webhook/verify`,
-      );
-      logger.info(
-        `  Ko-fi: http://localhost:${serverConfig.port}/webhook/kofi`,
       );
       logger.info(
         `  Crypto: http://localhost:${serverConfig.port}/webhook/crypto`,

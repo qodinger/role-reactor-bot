@@ -271,10 +271,6 @@ async function gracefulShutdown(client) {
       clearInterval(global.pollCleanupInterval);
     }
 
-    if (global.subscriptionCleanupInterval) {
-      clearInterval(global.subscriptionCleanupInterval);
-    }
-
     // Stop command-specific cleanup intervals
     try {
       const { stopPeriodicCleanup: stopRPSCleanup } = await import(
@@ -650,7 +646,7 @@ async function main() {
     client.once("clientReady", async () => {
       logger.success(`✅ ${client.user.tag} v${getVersion()} is ready!`);
 
-      // Start webhook server for Ko-fi integration
+      // Start webhook server for crypto payment integration
       try {
         await startWebhookServer();
         // Set Discord client for API endpoints
@@ -700,27 +696,6 @@ async function main() {
       ); // 6 hours
 
       global.pollCleanupInterval = pollCleanupInterval; // Store globally for shutdown
-
-      // Start subscription cleanup scheduler (runs every 24 hours)
-      const subscriptionCleanupInterval = setInterval(
-        async () => {
-          try {
-            const { checkExpiredSubscriptions } = await import(
-              "./webhooks/kofi.js"
-            );
-            const expiredCount = await checkExpiredSubscriptions();
-            if (expiredCount > 0) {
-              logger.info(
-                `🧹 Subscription cleanup: Removed ${expiredCount} expired Core memberships`,
-              );
-            }
-          } catch (error) {
-            logger.error("❌ Subscription cleanup failed:", error);
-          }
-        },
-        24 * 60 * 60 * 1000, // 24 hours
-      );
-      global.subscriptionCleanupInterval = subscriptionCleanupInterval; // Store globally for shutdown
 
       healthCheckRunner.run(client);
       performanceMonitor.startMonitoring();

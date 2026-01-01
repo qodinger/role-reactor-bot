@@ -48,7 +48,7 @@ jobs:
           TAG_VERSION=${GITHUB_REF#refs/tags/}
           TAG_VERSION_CLEAN=${TAG_VERSION#v}
           # Use ES module compatible method to read package.json (works with "type": "module")
-          PACKAGE_VERSION=$(node -e "import('fs').then(fs => console.log(JSON.parse(fs.readFileSync('./package.json', 'utf8')).version))")
+          PACKAGE_VERSION=$(node -e "(async () => { const fs = await import('fs'); console.log(JSON.parse(fs.readFileSync('./package.json', 'utf8')).version); })()")
 
           echo "Tag version: $TAG_VERSION_CLEAN"
           echo "Package.json version: $PACKAGE_VERSION"

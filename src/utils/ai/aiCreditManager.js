@@ -12,8 +12,9 @@ const logger = getLogger();
 
 let chatConfigCache = null;
 let imageConfigCache = null;
-const DEFAULT_CREDITS_PER_CHAT = 0.05;
-const DEFAULT_CREDITS_PER_IMAGE = 2;
+// Defaults will be loaded from config - these are only used as absolute fallback
+const DEFAULT_CREDITS_PER_CHAT = 0.02; // Fallback only - actual value comes from config/ai.js
+const DEFAULT_CREDITS_PER_IMAGE = 1; // Fallback only - actual value comes from config/ai.js
 
 // In-memory locks to prevent race conditions in credit operations
 // Maps userId -> Promise that resolves when lock is released
@@ -182,7 +183,7 @@ export async function checkAICredits(userId) {
       hasCredits: hasEnoughCredits,
       credits: creditData.credits || 0,
       creditsNeeded: creditsPerRequest, // Return single request cost for display
-      isCoreMember: false, // Legacy field, always false now
+      isCoreMember: false,
     };
   } catch (error) {
     logger.error("Error checking AI credits:", error);
@@ -268,7 +269,7 @@ export async function checkAndDeductAICredits(userId) {
 }
 
 /**
- * Deduct credits for AI request (0.05 Core per request)
+ * Deduct credits for AI request (0.02 Core per request)
  * DEPRECATED: Use checkAndDeductAICredits() for atomic operations
  * Kept for backward compatibility but now uses locking
  * @param {string} userId - User ID
@@ -280,7 +281,7 @@ export async function deductAICredits(userId) {
     success: result.success,
     creditsRemaining: result.creditsRemaining,
     error: result.error,
-    isCoreMember: false, // Legacy field
+    isCoreMember: false,
   };
 }
 
@@ -386,7 +387,7 @@ export async function checkAIImageCredits(userId) {
 
 /**
  * Atomic check and deduct credits for AI image generation
- * Uses FIFO order: Subscription credits first, then bonus credits
+ * Uses FIFO order: Existing subscription credits (if any) first, then bonus credits
  * Prevents race conditions by combining check and deduct in single locked operation
  * @param {string} userId - User ID
  * @returns {Promise<{success: boolean, creditsRemaining: number, creditsDeducted: number, deductionBreakdown: Object, error?: string}>}
@@ -446,7 +447,7 @@ export async function checkAndDeductAIImageCredits(userId) {
       const previousCount = userData.totalGenerated || 0;
 
       // ===== CORE DEDUCTION LOGIC =====
-      // FIFO Order: Subscription Cores first, then bonus Cores
+      // FIFO Order: Existing subscription Cores (if any) first, then bonus Cores
       let remainingToDeduct = creditsPerImage;
       let subscriptionDeducted = 0;
       let bonusDeducted = 0;

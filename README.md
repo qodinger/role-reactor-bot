@@ -39,7 +39,7 @@ A powerful Discord bot that helps you manage your server with role management, A
 - **🧠 Smart 8ball**: Intelligent question analysis with sentiment detection and context-aware responses
 - **📊 XP System**: Configurable experience system with level progression and leaderboards
 - **🎨 AI Avatar Generation**: AI-powered avatar generation with multiple style options
-- **💎 Core Credit System**: Credit-based economy for avatar generation with Ko-fi integration
+- **💎 Core Credit System**: Credit-based economy for avatar generation with crypto payment integration
 - **📊 Poll System**: Create and manage native Discord polls with interactive forms
 - **🛡️ Moderation System**: Comprehensive moderation tools with timeout, warnings, bans, kicks, and history tracking
 - **🎙️ Voice Control**: Automatically manage users in voice channels based on roles (disconnect, mute, deafen, move)
@@ -426,7 +426,6 @@ Automatically manage users in voice channels based on roles:
 | `/core-management remove`              | 🔒 [DEVELOPER ONLY] Remove bonus Cores from user | Developer   |
 | `/core-management set`                 | 🔒 [DEVELOPER ONLY] Set user Core balance        | Developer   |
 | `/core-management view`                | 🔒 [DEVELOPER ONLY] View user Core information   | Developer   |
-| `/core-management add-donation`        | 🔒 [DEVELOPER ONLY] Verify Ko-fi donation        | Developer   |
 | `/core-management cancel-subscription` | 🔒 [DEVELOPER ONLY] Cancel Core subscription     | Developer   |
 | `/imagine`                             | 🔒 [DEVELOPER ONLY] Generate AI artwork          | Developer   |
 
@@ -563,7 +562,7 @@ The bot includes comprehensive health monitoring:
 ### Recent Improvements
 
 - **🎨 AI Avatar Generation**: AI-powered avatar creation with multiple style options and content filtering
-- **💎 Core Credit System**: Credit-based economy for avatar generation with Ko-fi integration
+- **💎 Core Credit System**: Credit-based economy for avatar generation with crypto payment integration
 - **📊 Poll System**: Native Discord poll creation and management with interactive forms
 - **🛡️ Moderation System**: Comprehensive moderation tools with bulk operations and history tracking
 - **🎙️ Voice Control**: Automatic voice channel management based on roles
@@ -582,7 +581,7 @@ The bot includes comprehensive health monitoring:
 - **Bulk Management**: Multi-user operations for efficient role management
 - **AI Avatar Generation**: Custom avatar creation with multiple style options
 - **Poll Management**: Interactive poll creation and management with native Discord polls
-- **Core Credit System**: Credit-based economy with Ko-fi integration
+- **Core Credit System**: Credit-based economy with crypto payment integration
 - **Permission Checks**: Automatic permission validation with helpful feedback
 - **Error Recovery**: Graceful error handling with retry mechanisms
 - **Performance Tips**: Contextual advice based on connection status

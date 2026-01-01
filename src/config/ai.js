@@ -52,8 +52,8 @@ export function getAIModels() {
           },
           text: {
             // Recommended models (uncomment to switch):
-            // primary: "deepseek/deepseek-chat", // Current: Fast, matches GPT-4o performance, ~$0.14/$0.56 per million tokens
-            primary: "openai/gpt-4o-mini", // Fastest + cheapest: $0.15/$0.60 per million tokens
+            // primary: "deepseek/deepseek-chat", // Current: Fast, matches GPT-4o performance
+            primary: "openai/gpt-4o-mini", // Fastest + cheapest option
           },
         },
       },
@@ -81,8 +81,8 @@ export function getAIModels() {
  */
 export function getAIFeatureCosts() {
   return {
-    aiChat: 0.05, // 0.05 Cores per chat request
-    aiImage: 1, // 1 Core per image generation
+    aiChat: 0.02,
+    aiImage: 1,
   };
 }
 
