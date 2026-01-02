@@ -503,18 +503,12 @@ export async function execute(interaction, client) {
       }
     }
 
-    let errorMessage =
-      "Failed to generate AI response. Please try again later.";
-
-    if (error?.message) {
-      if (error.message.includes("Rate limit exceeded")) {
-        errorMessage = error.message;
-      } else if (error.message.includes("not available")) {
-        errorMessage = error.message;
-      } else if (error.message.includes("disabled")) {
-        errorMessage = error.message;
-      }
-    }
+    const { getUserFacingErrorMessage } = await import(
+      "../../../utils/ai/errorMessages.js"
+    );
+    const errorMessage = getUserFacingErrorMessage(error, {
+      includeContentModeration: false,
+    });
 
     const errorResponse = errorEmbed({
       title: "Error",

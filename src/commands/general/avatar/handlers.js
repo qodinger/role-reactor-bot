@@ -52,7 +52,7 @@ export async function handleAvatarGeneration(
 
   if (!multiProviderAIService.isEnabled()) {
     const validationEmbed = createAvatarValidationEmbed(
-      "AI features are currently disabled. All providers are disabled in the configuration. Please contact the bot administrator.",
+      "AI features are currently disabled. All AI services are unavailable.",
     );
     await replyToInteraction(interaction, _deferred, {
       embeds: [validationEmbed],
@@ -213,16 +213,22 @@ export async function handleAvatarGeneration(
     );
 
     if (!avatarData?.imageBuffer) {
-      throw new Error("Image data was missing from the provider response.");
+      throw new Error(
+        "Image generation completed but no image was received. Please try again.",
+      );
     }
 
     // Validate image buffer
     if (!Buffer.isBuffer(avatarData.imageBuffer)) {
-      throw new Error("Invalid image buffer: expected Buffer object");
+      throw new Error(
+        "Image generation completed but the image data was invalid. Please try again.",
+      );
     }
 
     if (avatarData.imageBuffer.length === 0) {
-      throw new Error("Invalid image buffer: buffer is empty");
+      throw new Error(
+        "Image generation completed but the image was empty. Please try again.",
+      );
     }
 
     if (avatarData.imageBuffer.length < 1000) {
@@ -254,7 +260,7 @@ export async function handleAvatarGeneration(
       name: fileName,
     });
 
-    // Mark as spoiler ONLY in non-NSFW channels
+    // Mark as spoiler ONLY in non-age-restricted channels
     if (containsNSFWKeywords && !channelNSFW) {
       attachment.setSpoiler(true);
     }
