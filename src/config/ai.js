@@ -13,22 +13,8 @@ export function getAIModels() {
     // Providers are checked in order - first enabled provider is used
     // Set enabled: true to use, enabled: false to disable
     providers: {
-      selfhosted: {
-        enabled: false, // Disabled - using OpenRouter GPT-4o-mini instead
-        name: "Self-Hosted",
-        baseUrl: process.env.SELF_HOSTED_API_URL || "http://127.0.0.1:11434",
-        apiKey: process.env.SELF_HOSTED_API_KEY || null,
-        models: {
-          image: {
-            primary: "default",
-          },
-          text: {
-            primary: process.env.SELF_HOSTED_TEXT_MODEL || "llama3.1:8b",
-          },
-        },
-      },
       stability: {
-        enabled: true,
+        enabled: false,
         name: "Stability AI",
         baseUrl: "https://api.stability.ai/v2beta/stable-image/generate/sd3",
         apiKey: process.env.STABILITY_API_KEY,
@@ -42,7 +28,7 @@ export function getAIModels() {
         },
       },
       openrouter: {
-        enabled: true,
+        enabled: false,
         name: "OpenRouter",
         baseUrl: "https://openrouter.ai/api/v1/chat/completions",
         apiKey: process.env.OPENROUTER_API_KEY,
@@ -68,6 +54,33 @@ export function getAIModels() {
           },
           text: {
             primary: "gpt-3.5-turbo",
+          },
+        },
+      },
+      comfyui: {
+        enabled: true, // Direct ComfyUI connection
+        name: "ComfyUI",
+        baseUrl: process.env.COMFYUI_API_URL || "http://127.0.0.1:8188",
+        apiKey: process.env.COMFYUI_API_KEY || null, // Optional for direct connection
+        workflowId: process.env.COMFYUI_WORKFLOW_ID || null, // Not needed for direct ComfyUI
+        models: {
+          image: {
+            primary: "default",
+            checkpoint:
+              process.env.COMFYUI_CHECKPOINT || "AnythingXL_xl.safetensors", // Checkpoint model name
+          },
+        },
+      },
+      runpod: {
+        enabled: false, // RunPod Serverless (set to true to use)
+        name: "RunPod Serverless",
+        apiKey: process.env.RUNPOD_API_KEY || null,
+        endpointId: process.env.RUNPOD_ENDPOINT_ID || null,
+        models: {
+          image: {
+            primary: "default",
+            checkpoint:
+              process.env.RUNPOD_CHECKPOINT || "AnythingXL_xl.safetensors",
           },
         },
       },
