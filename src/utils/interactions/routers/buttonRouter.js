@@ -32,6 +32,15 @@ export async function routeButtonInteraction(interaction, _client) {
     // Handle button interactions
     // Route based on customId patterns
 
+    // Handle Imagine regenerate buttons
+    if (customId.startsWith("imagine_regenerate_")) {
+      const { handleImagineRegenerate } = await import(
+        "../../../commands/developer/imagine/regenerateHandler.js"
+      );
+      await handleImagineRegenerate(interaction);
+      return;
+    }
+
     // Handle AI Avatar buttons
     if (customId.startsWith("ai_avatar_")) {
       const { handleAIAvatarButton } = await import(
