@@ -402,7 +402,7 @@ export class ServerInfoGatherer {
         logger.debug("Error getting verification level:", error);
       }
 
-      // NSFW level
+      // Age-restricted content level
       try {
         if (guild.nsfwLevel !== undefined) {
           const nsfwLevels = {

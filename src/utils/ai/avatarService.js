@@ -121,8 +121,8 @@ export class AvatarService {
           if (progressCallback)
             progressCallback(AI_STATUS_MESSAGES.AVATAR_BUILDING_PROMPT);
 
-          // Determine provider for prompt optimization
-          const targetProvider = this.aiService.getPrimaryProvider();
+          // Determine provider for prompt optimization (use comfyui for avatars)
+          const targetProvider = "comfyui"; // Always use ComfyUI for avatar generation
           const enhancedPrompt = await this.buildAnimePrompt(
             prompt,
             styleOptions,
@@ -141,7 +141,7 @@ export class AvatarService {
             `[AVATAR PROMPT LOG] Style Options: ${JSON.stringify(styleOptions)}`,
           );
           logger.info(
-            `[AVATAR PROMPT LOG] Provider: ${targetProvider || "stability"}`,
+            `[AVATAR PROMPT LOG] Provider: ${targetProvider || "comfyui"}`,
           );
           logger.info(
             `[AVATAR PROMPT LOG] Enhanced Prompt (${enhancedPrompt.length} chars):`,
@@ -164,26 +164,23 @@ export class AvatarService {
           if (progressCallback)
             progressCallback(AI_STATUS_MESSAGES.AVATAR_GENERATING);
 
-          // Avatar generation uses ONLY Stability AI (no fallback)
-          const stabilityProvider = this.aiService.config.providers.stability;
-          if (
-            !stabilityProvider ||
-            !stabilityProvider.enabled ||
-            !stabilityProvider.apiKey
-          ) {
+          // Avatar generation uses ComfyUI (AnythingXL) for best quality
+          const comfyUIProvider = this.aiService.config.providers.comfyui;
+          if (!comfyUIProvider || !comfyUIProvider.enabled) {
             throw new Error(
-              "Stability AI is required for avatar generation but is not configured or enabled. Please enable Stability AI in config.js and configure the API key.",
+              "Avatar generation is currently unavailable. The image generation service is not properly configured.",
             );
           }
 
           const result = await this.aiService.generate({
             type: "image",
             prompt: enhancedPrompt,
-            provider: "stability", // Explicitly use Stability AI only (no fallback)
+            provider: "comfyui", // Use ComfyUI (AnythingXL) for best quality
             progressCallback, // Pass progress callback for real-time updates
             config: {
-              size: "1024x1024",
-              quality: "standard",
+              aspectRatio: "1:1", // Square avatars (1024x1024 optimal for AnythingXL)
+              safetyTolerance: 6, // Most permissive safety tolerance
+              useAvatarPrompts: true, // Use avatar-specific prompts
               userId, // Pass userId for rate limiting
               styleOptions, // Include style options for cache key differentiation
             },
@@ -216,15 +213,28 @@ export class AvatarService {
 
           // Provide more specific error messages
           if (error.message.includes("API error: 401")) {
-            throw new Error("Authentication failed: Invalid API key");
+            throw new Error(
+              "The image generation service authentication failed. This feature is temporarily unavailable.",
+            );
           } else if (error.message.includes("API error: 429")) {
-            throw new Error("Rate limit exceeded: Please try again later");
+            throw new Error(
+              "The image generation service is busy right now. Please try again in a few moments.",
+            );
           } else if (error.message.includes("API error: 402")) {
-            throw new Error("Payment required: Insufficient credits");
+            throw new Error(
+              "The image generation service has insufficient credits. This feature is temporarily unavailable.",
+            );
           } else if (error.message.includes("No image generated")) {
             throw new Error(
-              "Image generation failed: Please try a different prompt",
+              "The image could not be generated. Please try a different prompt.",
             );
+          } else if (
+            error.message.includes("not properly configured") ||
+            error.message.includes("currently unavailable") ||
+            error.message.includes("temporarily unavailable")
+          ) {
+            // Already user-friendly, pass through
+            throw error;
           } else {
             throw new Error(`Avatar generation failed: ${error.message}`);
           }
@@ -240,11 +250,7 @@ export class AvatarService {
    * @param {Object} styleOptions - Optional style overrides
    * @returns {Promise<string>} Enhanced prompt
    */
-  async buildAnimePrompt(
-    userPrompt,
-    styleOptions = {},
-    provider = "stability",
-  ) {
+  async buildAnimePrompt(userPrompt, styleOptions = {}, provider = "comfyui") {
     const config = await loadPromptConfig();
 
     // Use original prompt or default character if empty
@@ -260,10 +266,13 @@ export class AvatarService {
     const providerConfig = config.PROVIDER_PROMPTS?.[provider];
     if (!providerConfig) {
       logger.warn(
-        `Provider ${provider} not found in PROVIDER_PROMPTS, falling back to stability`,
+        `Provider ${provider} not found in PROVIDER_PROMPTS, falling back to comfyui`,
       );
     }
-    const finalConfig = providerConfig || config.PROVIDER_PROMPTS.stability;
+    const finalConfig =
+      providerConfig ||
+      config.PROVIDER_PROMPTS.comfyui ||
+      config.PROVIDER_PROMPTS.stability;
 
     // Build prompt based on provider type
     let prompt;
@@ -382,14 +391,14 @@ export class AvatarService {
 
       prompt += ` ${finalConfig.suffix}`;
     } else {
-      // Stability AI uses comma-separated format - art style goes first
+      // ComfyUI/Stability AI uses comma-separated format - art style goes first
       const artStylePart = enhancements.artStyle
         ? enhancements.artStyle.toLowerCase().includes("chibi")
           ? `${enhancements.artStyle}, CHIBI CHARACTER`
           : enhancements.artStyle
         : null;
 
-      // Enhance color and mood styles for Stability AI
+      // Enhance color and mood styles for ComfyUI/Stability AI
       const enhancedColorStyle = enhancements.colorStyle
         ? enhancements.colorStyle.toLowerCase().includes("vibrant") ||
           enhancements.colorStyle.toLowerCase().includes("neon")

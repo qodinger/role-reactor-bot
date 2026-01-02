@@ -20,8 +20,10 @@ export function getUserFacingErrorMessage(error, options = {}) {
   const message = error.message;
 
   // AI features disabled
-  if (/ai features are disabled/i.test(message)) {
-    return "AI features are currently disabled. All providers are disabled in the configuration. Please contact the bot administrator.";
+  if (
+    /ai features are disabled|ai features are currently disabled/i.test(message)
+  ) {
+    return "AI features are currently disabled. All AI services are unavailable.";
   }
 
   // Rate limiting
@@ -30,8 +32,21 @@ export function getUserFacingErrorMessage(error, options = {}) {
   }
 
   // API configuration issues
-  if (/api key not configured/i.test(message)) {
-    return "The AI provider is not properly configured. Please contact the bot administrator.";
+  if (
+    /api key not configured|authentication failed|invalid api key/i.test(
+      message,
+    )
+  ) {
+    return "The AI service is not properly configured. This feature is temporarily unavailable.";
+  }
+
+  // Provider not configured or enabled (already user-friendly messages)
+  if (
+    /not properly configured|currently unavailable|temporarily unavailable/i.test(
+      message,
+    )
+  ) {
+    return message; // Already user-friendly, return as-is
   }
 
   // Queue full
@@ -39,9 +54,66 @@ export function getUserFacingErrorMessage(error, options = {}) {
     return "Generation queue is full right now. Please try again in a moment.";
   }
 
-  // Timeout
-  if (/timed out/i.test(message)) {
-    return "The AI provider took too long to respond. Try a shorter prompt or retry later.";
+  // Image generation specific errors
+  if (
+    /no image generated|no image found|failed to retrieve|failed to download|image.*missing|image.*invalid|image.*empty/i.test(
+      message,
+    )
+  ) {
+    return "Image generation failed. The image could not be retrieved. Please try again.";
+  }
+
+  // Text generation errors
+  if (
+    /no text generated|response missing|did not generate a response/i.test(
+      message,
+    )
+  ) {
+    return "The AI service did not generate a response. Please try again.";
+  }
+
+  // Prompt validation errors
+  if (/prompt too long|maximum.*characters/i.test(message)) {
+    return "Your prompt is too long. Please shorten it and try again.";
+  }
+
+  // Internal errors
+  if (
+    /internal error|unexpected response|encountered an error|service.*error/i.test(
+      message,
+    )
+  ) {
+    return "The AI service encountered an error. Please try again later.";
+  }
+
+  // Service unavailable errors
+  if (
+    /not available|unavailable|failed.*generate|all.*providers.*failed|ai chat.*unavailable/i.test(
+      message,
+    )
+  ) {
+    // Check if it's the specific "all services unavailable" message
+    if (/all.*services.*unavailable/i.test(message)) {
+      return message; // Already user-friendly, return as-is
+    }
+    return "The AI service is currently unavailable. Please try again later.";
+  }
+
+  // Workflow/process errors
+  if (
+    /workflow.*error|workflow.*failed|process.*failed|generation.*failed/i.test(
+      message,
+    )
+  ) {
+    return "Image generation failed. Please try a different prompt or try again later.";
+  }
+
+  // Timeout errors (more specific patterns)
+  if (/timed out|took too long|timeout/i.test(message)) {
+    if (/image|generation/i.test(message)) {
+      return "Image generation timed out. The process took too long to complete. Please try again with a simpler prompt.";
+    }
+    return "The AI service took too long to respond. Try a shorter prompt or retry later.";
   }
 
   // Content moderation (only for image generation)
@@ -49,6 +121,16 @@ export function getUserFacingErrorMessage(error, options = {}) {
     return "The AI provider blocked image generation due to content moderation. The prompt was detected as inappropriate. Try using a less explicit prompt.";
   }
 
-  // Return original message if no pattern matches
-  return message;
+  // Generic fallback for user-friendly messages that don't match patterns
+  // If the message already looks user-friendly (no technical jargon), return as-is
+  if (
+    !/api|error|status|code|exception|stack|trace|debug|log|config|key|token|endpoint|url|http|https|json|buffer|workflow|prompt_id|run_id/i.test(
+      message.toLowerCase(),
+    )
+  ) {
+    return message;
+  }
+
+  // Return generic error for unmatched technical errors
+  return "Something went wrong. Please try again later.";
 }

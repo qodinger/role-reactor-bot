@@ -9,41 +9,34 @@ export class ConcurrencyManager {
   constructor() {
     this.activeRequests = new Set();
     this.queue = [];
-    // Track timeouts to prevent race conditions
-    this.requestTimeouts = new Map(); // requestId -> { requestTimeout, queueTimeout }
-    // Track cleanup intervals for proper cleanup
+    this.requestTimeouts = new Map();
     this.cleanupIntervals = [];
-    // Track status messages for cancellation on delete
-    this.statusMessages = new Map(); // messageId -> { requestId, userId }
+    this.statusMessages = new Map();
 
-    // Increased limits for better scalability
-    // Default: 100 concurrent requests (good for high-traffic servers)
-    // For self-hosted Ollama, can be increased based on server CPU/RAM
-    // For paid APIs, keep lower to manage costs
+    // Concurrency limits based on provider type:
+    // - Local ComfyUI (CPU/MacBook): 1-2 concurrent requests
+    // - Local ComfyUI (GPU): 2-4 concurrent requests
+    // - Cloud ComfyUI (RunPod/server): 2-4 per GPU
+    // - Self-hosted Ollama: Can be increased based on server CPU/RAM
+    // - Cloud APIs (OpenRouter, Stability): 10-50 (depends on API limits)
+    // Default: 100 (too high for local ComfyUI - adjust via AI_MAX_CONCURRENT env var)
     this.maxConcurrent = parseInt(process.env.AI_MAX_CONCURRENT) || 100;
-    this.requestTimeout = parseInt(process.env.AI_REQUEST_TIMEOUT) || 120000; // 2 minutes
+    this.requestTimeout = parseInt(process.env.AI_REQUEST_TIMEOUT) || 300000;
     this.retryAttempts = parseInt(process.env.AI_RETRY_ATTEMPTS) || 2;
-    this.retryDelay = parseInt(process.env.AI_RETRY_DELAY) || 1000; // 1 second
+    this.retryDelay = parseInt(process.env.AI_RETRY_DELAY) || 1000;
 
-    // User-specific rate limiting
-    this.userRequests = new Map(); // userId -> { count, lastRequest, isCore, coreTier }
-    // Chat-specific rate limiting (more lenient for conversational AI)
-    // Default: 50 requests per 1 minute (very generous for natural conversations)
-    // For self-hosted models, this is safe since there are no API costs
-    this.userRateLimit = parseInt(process.env.AI_USER_RATE_LIMIT) || 50; // 50 requests per user (default)
-    this.userRateWindow = parseInt(process.env.AI_USER_RATE_WINDOW) || 300000; // 5 minutes
+    this.userRequests = new Map();
+    this.userRateLimit = parseInt(process.env.AI_USER_RATE_LIMIT) || 50;
+    this.userRateWindow = parseInt(process.env.AI_USER_RATE_WINDOW) || 300000;
 
-    // Core tier rate limiting benefits (multipliers applied to base rate limit)
-    // With default 50 requests per minute, Core users get even more generous limits
     this.coreTierLimits = {
-      "Core Basic": { multiplier: 1.5, priority: 1 }, // 75 requests per minute (50 * 1.5)
-      "Core Premium": { multiplier: 2.0, priority: 2 }, // 100 requests per minute (50 * 2.0)
-      "Core Elite": { multiplier: 3.0, priority: 3 }, // 150 requests per minute (50 * 3.0)
+      "Core Basic": { multiplier: 1.5, priority: 1 },
+      "Core Premium": { multiplier: 2.0, priority: 2 },
+      "Core Elite": { multiplier: 3.0, priority: 3 },
     };
 
-    // Queue management
     this.maxQueueSize = parseInt(process.env.AI_MAX_QUEUE_SIZE) || 1000;
-    this.queueTimeout = parseInt(process.env.AI_QUEUE_TIMEOUT) || 600000; // 10 minutes
+    this.queueTimeout = parseInt(process.env.AI_QUEUE_TIMEOUT) || 600000;
   }
 
   /**
@@ -73,7 +66,6 @@ export class ConcurrencyManager {
     }
 
     if (!userData) {
-      // First request - create entry and increment
       this.userRequests.set(userId, {
         count: 1,
         lastRequest: now,
@@ -83,9 +75,7 @@ export class ConcurrencyManager {
       return { rateLimited: false, effectiveRateLimit };
     }
 
-    // Reset counter if window has passed
     if (now - userData.lastRequest > this.userRateWindow) {
-      // Window expired - reset and increment
       this.userRequests.set(userId, {
         count: 1,
         lastRequest: now,
@@ -95,15 +85,12 @@ export class ConcurrencyManager {
       return { rateLimited: false, effectiveRateLimit };
     }
 
-    // Check if user has exceeded their effective limit
     if (userData.count >= effectiveRateLimit) {
       return { rateLimited: true, effectiveRateLimit };
     }
 
-    // Increment counter atomically
     userData.count++;
     userData.lastRequest = now;
-    // Update Core tier info if provided
     if (coreUserData) {
       userData.isCore = coreUserData.isCore || false;
       userData.coreTier = coreUserData.coreTier || null;
@@ -124,7 +111,6 @@ export class ConcurrencyManager {
     const now = Date.now();
     const userData = this.userRequests.get(userId);
 
-    // Calculate effective rate limit based on Core tier
     let effectiveRateLimit = this.userRateLimit;
     if (coreUserData && coreUserData.isCore && coreUserData.coreTier) {
       const tierConfig = this.coreTierLimits[coreUserData.coreTier];
@@ -145,7 +131,6 @@ export class ConcurrencyManager {
       return false;
     }
 
-    // Reset counter if window has passed
     if (now - userData.lastRequest > this.userRateWindow) {
       this.userRequests.set(userId, {
         count: 1,
@@ -156,12 +141,10 @@ export class ConcurrencyManager {
       return false;
     }
 
-    // Check if user has exceeded their effective limit
     if (userData.count >= effectiveRateLimit) {
       return true;
     }
 
-    // Increment counter
     userData.count++;
     userData.lastRequest = now;
     this.userRequests.set(userId, userData);
@@ -186,25 +169,23 @@ export class ConcurrencyManager {
    * @returns {number|null} Queue position (0 = next to process, null if not in queue or already processing)
    */
   getQueuePosition(requestId) {
-    // Check if request is already processing
     if (this.activeRequests.has(requestId)) {
-      return null; // Already processing, not in queue
+      return null;
     }
 
-    // Find position in queue (after sorting by priority)
     const sortedQueue = [...this.queue].sort((a, b) => {
       if (a.priority !== b.priority) {
-        return b.priority - a.priority; // Higher priority first
+        return b.priority - a.priority;
       }
-      return a.timestamp - b.timestamp; // Earlier timestamp first
+      return a.timestamp - b.timestamp;
     });
 
     const queueIndex = sortedQueue.findIndex(r => r.id === requestId);
     if (queueIndex === -1) {
-      return null; // Not in queue
+      return null;
     }
 
-    return queueIndex; // Return 0-based position (0 = next to process)
+    return queueIndex;
   }
 
   /**
@@ -214,17 +195,11 @@ export class ConcurrencyManager {
    */
   getEstimatedWaitTime(queuePosition) {
     if (queuePosition === null) {
-      return 0; // Already processing
+      return 0;
     }
 
-    // Estimate: average 15-25 seconds per request (conservative for slow models)
-    const avgProcessingTime = 20; // seconds per request
-
-    // Time for requests ahead in queue (excluding current position)
+    const avgProcessingTime = 20;
     const queueWaitTime = queuePosition * avgProcessingTime;
-
-    // Time for active requests to complete (average half their processing time remaining)
-    // If queue is full, active requests will finish soon, so less wait
     const activeRequestsRemainingTime = Math.ceil(
       (this.activeRequests.size / this.maxConcurrent) * (avgProcessingTime / 2),
     );
@@ -239,13 +214,11 @@ export class ConcurrencyManager {
    * @returns {boolean} True if request was cancelled, false if not found or already processing
    */
   cancelRequest(requestId, userId) {
-    // Check if request is already processing (can't cancel active requests)
     if (this.activeRequests.has(requestId)) {
       logger.debug(`Cannot cancel request ${requestId}: already processing`);
       return false;
     }
 
-    // Find request in queue
     const queueIndex = this.queue.findIndex(
       r => r.id === requestId && r.userId === userId,
     );
@@ -257,10 +230,7 @@ export class ConcurrencyManager {
       return false;
     }
 
-    // Remove from queue
     const request = this.queue.splice(queueIndex, 1)[0];
-
-    // Clean up timeouts and intervals
     const timeouts = this.requestTimeouts.get(requestId);
     if (timeouts) {
       clearTimeout(timeouts.requestTimeout);
@@ -271,11 +241,9 @@ export class ConcurrencyManager {
       this.requestTimeouts.delete(requestId);
     }
 
-    // Reject the promise
     try {
       request.reject(new Error("Request cancelled by user"));
     } catch (_err) {
-      // Promise already resolved/rejected, ignore
       logger.debug(
         `Request ${requestId} cancel handler: promise already settled`,
       );
@@ -283,7 +251,6 @@ export class ConcurrencyManager {
 
     logger.info(`Request ${requestId} cancelled by user ${userId}`);
 
-    // Clean up any status messages associated with this request
     for (const [messageId, status] of this.statusMessages.entries()) {
       if (status.requestId === requestId) {
         this.statusMessages.delete(messageId);
@@ -322,10 +289,7 @@ export class ConcurrencyManager {
       return false;
     }
 
-    // Cancel the request
     const cancelled = this.cancelRequest(status.requestId, status.userId);
-
-    // Clean up the mapping (cancelRequest already does this, but be safe)
     this.statusMessages.delete(messageId);
 
     return cancelled;
@@ -346,7 +310,6 @@ export class ConcurrencyManager {
     const { customId, user, message } = interaction;
     const logger = getLogger();
 
-    // Extract requestId from customId: ai_queue_cancel_{requestId}
     const requestId = customId.replace("ai_queue_cancel_", "");
 
     if (!requestId) {
@@ -357,32 +320,27 @@ export class ConcurrencyManager {
       return;
     }
 
-    // Get concurrency manager instance
     const { concurrencyManager } = await import("./concurrencyManager.js");
-
-    // Cancel the request
     const cancelled = concurrencyManager.cancelRequest(requestId, user.id);
 
     if (cancelled) {
-      // Delete the message instead of showing cancellation
       try {
         await message.delete();
       } catch (error) {
         logger.debug("Failed to delete message after cancellation:", error);
-        // If delete fails, try to edit to show cancellation
         try {
           const { EmbedBuilder } = await import("discord.js");
           await interaction.editReply({
             embeds: [
               new EmbedBuilder()
-                .setColor(0xff0000) // Red
+                .setColor(0xff0000)
                 .setDescription("❌ Request cancelled")
                 .setFooter({
                   text: `Cancelled by ${user.tag} • Role Reactor`,
                 })
                 .setTimestamp(),
             ],
-            components: [], // Remove cancel button
+            components: [],
           });
         } catch (editError) {
           logger.debug("Failed to edit message after cancellation:", editError);
@@ -411,17 +369,13 @@ export class ConcurrencyManager {
    */
   async queueRequest(requestId, generationFunction, options = {}) {
     return new Promise((resolve, reject) => {
-      // Check user rate limiting (only if not already checked and reserved in handler)
       const userId = options.userId;
       const coreUserData = options.coreUserData;
       const rateLimitReserved = options.rateLimitReserved || false;
-      const onQueueStatus = options.onQueueStatus; // Callback for queue position updates
+      const onQueueStatus = options.onQueueStatus;
 
-      // Only check rate limit here if it wasn't already checked and reserved in the handler
-      // This prevents double-counting and ensures atomic check-and-increment
       if (userId && !rateLimitReserved) {
         if (this.isUserRateLimited(userId, coreUserData)) {
-          // Get the actual effective rate limit that was used
           const userData = this.userRequests.get(userId);
           let effectiveRateLimit = this.userRateLimit;
           if (userData && userData.isCore && userData.coreTier) {
@@ -442,7 +396,6 @@ export class ConcurrencyManager {
         }
       }
 
-      // Check queue size limit
       if (this.queue.length >= this.maxQueueSize) {
         reject(new Error("Queue is full. Please try again later."));
         return;
@@ -465,79 +418,65 @@ export class ConcurrencyManager {
 
       this.queue.push(request);
 
-      // Notify about initial queue position (after potential immediate processing)
-      // Use setTimeout to ensure queue is processed first
       if (onQueueStatus) {
         setTimeout(() => {
           const position = this.getQueuePosition(requestId);
           if (position !== null) {
             const waitTime = this.getEstimatedWaitTime(position);
-            // Total includes both queued and active requests for context
             const totalInSystem = this.queue.length + this.activeRequests.size;
             onQueueStatus(position, totalInSystem, waitTime);
           } else {
-            // Request started processing immediately (no queue)
             onQueueStatus(null, this.activeRequests.size, 0);
           }
-        }, 100); // Small delay to let processQueue run first
+        }, 100);
       }
 
-      // Set up periodic queue position updates while waiting
       let queueUpdateInterval = null;
       if (onQueueStatus) {
         queueUpdateInterval = setInterval(() => {
           const position = this.getQueuePosition(requestId);
           if (position !== null) {
             const waitTime = this.getEstimatedWaitTime(position);
-            // Total includes both queued and active requests for context
             const totalInSystem = this.queue.length + this.activeRequests.size;
             onQueueStatus(position, totalInSystem, waitTime);
           } else {
-            // Request is processing or completed, stop updates
             if (queueUpdateInterval) {
               clearInterval(queueUpdateInterval);
             }
           }
-        }, 5000); // Update every 5 seconds
+        }, 5000);
       }
 
       this.processQueue();
 
-      // Set timeout for the request (store to clear if request completes)
+      const requestTimeout = options.timeout || this.requestTimeout;
+
       const requestTimeoutId = setTimeout(() => {
-        // Only reject if request is still active (not already resolved/rejected)
         if (this.activeRequests.has(requestId)) {
           this.activeRequests.delete(requestId);
-          // Clear the timeout tracking
           this.requestTimeouts.delete(requestId);
-          // Check if promise is still pending before rejecting
           try {
             reject(new Error("AI generation request timed out"));
           } catch (_err) {
-            // Promise already resolved/rejected, ignore
             logger.debug(
               `Request ${requestId} timeout handler: promise already settled`,
             );
           }
         }
-      }, this.requestTimeout);
+      }, requestTimeout);
 
-      // Set queue timeout (store to clear if request starts processing)
       const queueTimeoutId = setTimeout(() => {
         const queueIndex = this.queue.findIndex(r => r.id === requestId);
         if (queueIndex !== -1) {
           this.queue.splice(queueIndex, 1);
-          // Clear the timeout tracking and interval
           const timeouts = this.requestTimeouts.get(requestId);
           if (timeouts && timeouts.queueUpdateInterval) {
             clearInterval(timeouts.queueUpdateInterval);
           }
           this.requestTimeouts.delete(requestId);
-          // Check if promise is still pending before rejecting
           try {
             reject(new Error("Request timed out in queue"));
           } catch (_err) {
-            // Promise already resolved/rejected, ignore
             logger.debug(
               `Request ${requestId} queue timeout handler: promise already settled`,
             );
@@ -545,7 +484,6 @@ export class ConcurrencyManager {
         }
       }, this.queueTimeout);
 
-      // Store timeouts for cleanup
       this.requestTimeouts.set(requestId, {
         requestTimeout: requestTimeoutId,
         queueTimeout: queueTimeoutId,
@@ -565,12 +503,11 @@ export class ConcurrencyManager {
       return;
     }
 
-    // Sort queue by priority (higher priority first), then by timestamp
     this.queue.sort((a, b) => {
       if (a.priority !== b.priority) {
-        return b.priority - a.priority; // Higher priority first
+        return b.priority - a.priority;
       }
-      return a.timestamp - b.timestamp; // Earlier timestamp first
+      return a.timestamp - b.timestamp;
     });
 
     const request = this.queue.shift();
@@ -583,7 +520,6 @@ export class ConcurrencyManager {
         `Processing AI request ${request.id} (${this.activeRequests.size}/${this.maxConcurrent} active, ${this.queue.length} queued)`,
       );
 
-      // Clear timeouts since request is now processing
       const timeouts = this.requestTimeouts.get(request.id);
       if (timeouts) {
         clearTimeout(timeouts.requestTimeout);
@@ -594,10 +530,9 @@ export class ConcurrencyManager {
         this.requestTimeouts.delete(request.id);
       }
 
-      // Notify that request is now processing (no longer in queue)
       if (request.options?.onQueueStatus) {
         const totalInSystem = this.queue.length + this.activeRequests.size;
-        request.options.onQueueStatus(null, totalInSystem, 0); // null = processing
+        request.options.onQueueStatus(null, totalInSystem, 0);
       }
 
       const result = await request.function(request.options);
@@ -612,7 +547,6 @@ export class ConcurrencyManager {
           `Retrying AI request ${request.id} (attempt ${request.attempts}/${this.retryAttempts})`,
         );
 
-        // Add back to queue with delay
         setTimeout(() => {
           this.queue.unshift(request);
           this.processQueue();
@@ -626,7 +560,6 @@ export class ConcurrencyManager {
       }
     } finally {
       this.activeRequests.delete(request.id);
-      // Process next request in queue
       setTimeout(() => this.processQueue(), 0);
     }
   }
@@ -697,13 +630,11 @@ export class ConcurrencyManager {
    * Start periodic cleanup
    */
   startCleanup() {
-    // Clean up user rate limits every 5 minutes
     const cleanupInterval = setInterval(() => {
       this.cleanupUserRateLimits();
     }, 300000);
     this.cleanupIntervals.push(cleanupInterval);
 
-    // Log queue stats every minute
     const statsInterval = setInterval(() => {
       const stats = this.getQueueStats();
       if (stats.queuedRequests > 0 || stats.activeRequests > 0) {

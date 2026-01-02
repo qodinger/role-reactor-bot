@@ -54,15 +54,15 @@ export const AI_STATUS_MESSAGES = {
   // ============================================================================
 
   // Avatar generation steps
-  AVATAR_INITIALIZING: "Initializing AI service...",
+  AVATAR_INITIALIZING: "Initializing service...",
   AVATAR_BUILDING_PROMPT: "Building enhanced prompt...",
-  AVATAR_CONNECTING: "Connecting to AI provider...",
+  AVATAR_CONNECTING: "Connecting...",
   AVATAR_GENERATING: "Generating image (this may take 30-60s)...",
   AVATAR_PROCESSING: "Processing image data...",
   AVATAR_FINALIZING: "Finalizing result...",
 
   // Stability AI provider steps
-  STABILITY_PREPARING: "Preparing request for Stability AI...",
+  STABILITY_PREPARING: "Preparing request...",
   STABILITY_GENERATING: "Generating image (this may take 30-60s)...",
   STABILITY_PROCESSING: "Processing generated image...",
 
@@ -79,6 +79,12 @@ export const AI_STATUS_MESSAGES = {
   SELFHOSTED_SENDING: "Sending generation request...",
   SELFHOSTED_GENERATING: "Generating image (this may take 30-60s)...",
   SELFHOSTED_PROCESSING: "Processing generated image...",
+
+  // ComfyUI provider steps
+  COMFYUI_SENDING: "Sending generation request...",
+  COMFYUI_GENERATING: "Generating image (this may take 30-60s)...",
+  COMFYUI_QUEUED: "Image generation queued, waiting for completion...",
+  COMFYUI_PROCESSING: "Processing generated image...",
 
   // Multi-provider service steps
   MULTIPROVIDER_INITIALIZING: "Initializing image generation...",

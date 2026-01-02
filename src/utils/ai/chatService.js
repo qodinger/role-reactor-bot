@@ -430,7 +430,7 @@ export class ChatService {
 
     if (!this.aiService.isEnabled()) {
       throw new Error(
-        "AI chat is not available. Please enable a text-capable AI provider in the bot configuration.",
+        "AI chat is currently unavailable. All AI services are unavailable.",
       );
     }
 
@@ -580,7 +580,7 @@ export class ChatService {
 
     if (!this.aiService.isEnabled()) {
       throw new Error(
-        "AI chat is not available. Please enable a text-capable AI provider in the bot configuration.",
+        "AI chat is currently unavailable. All AI services are unavailable.",
       );
     }
 
