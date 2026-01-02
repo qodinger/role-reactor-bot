@@ -253,31 +253,37 @@ export const STYLE_MODIFIERS = {
  * Works for any image type: realistic, anime, fantasy, sci-fi, etc.
  * Style-agnostic: preserves user's artistic intent
  * Based on research: detailed quality tags significantly improve output quality
+ * Enhanced with better anatomy and composition keywords
  */
 export const IMAGINE_QUALITY_ENHANCEMENT =
-  ", masterpiece, best quality, ultra detailed, highly detailed, 8k resolution, sharp focus, professional, detailed, perfect composition, beautiful, high quality, perfect anatomy, correct anatomy, natural anatomy, anatomically correct, proper body proportions, realistic proportions, natural body structure, correct body structure, natural lighting, well lit, good lighting, proper proportions, realistic proportions";
+  ", masterpiece, best quality, ultra detailed, highly detailed, 8k resolution, sharp focus, professional, detailed, perfect composition, beautiful composition, cinematic composition, high quality, perfect anatomy, correct anatomy, natural anatomy, anatomically correct, proper body proportions, realistic proportions, natural body structure, correct body structure, natural lighting, soft lighting, beautiful lighting, well lit, good lighting, proper proportions, realistic proportions, detailed skin texture, smooth skin, perfect hands, detailed hands, correct hands, natural hands, detailed facial features, beautiful face, expressive eyes, detailed eyes";
 
 /**
  * Comprehensive negative prompt for /imagine command
  * Focuses on technical quality issues, not content/style restrictions
  * Organized by category: Quality → Anatomy → Composition → Technical → Style
  * Based on research: comprehensive negative prompts significantly reduce artifacts
+ * Enhanced with better anatomy and technical exclusions
  */
 export const IMAGINE_NEGATIVE_PROMPT = dedent`
   blurry, low quality, distorted, deformed, ugly, low resolution, pixelated, grainy, noisy, bad quality, worst quality,
-  bad anatomy, bad proportions, incorrect anatomy, wrong anatomy, malformed anatomy, distorted anatomy,
+  bad anatomy, bad proportions, incorrect anatomy, wrong anatomy, malformed anatomy, distorted anatomy, poor anatomy,
   extra limbs, missing limbs, malformed hands, malformed feet, malformed body, malformed torso, malformed legs, malformed arms,
   extra fingers, missing fingers, fused fingers, too many fingers, missing arms, extra arms, missing legs, extra legs,
-  long neck, short neck, bad hands, bad feet, bad eyes, bad ears, bad mouth, bad teeth, bad hair,
-  twisted body, broken spine, unnatural joints, dislocated joints, asymmetrical body, asymmetrical face, asymmetrical limbs,
+  bad hands, bad fingers, bad feet, bad eyes, bad ears, bad mouth, bad teeth, bad hair, bad face, bad nose,
+  long neck, short neck, twisted body, broken spine, unnatural joints, dislocated joints, 
+  asymmetrical body, asymmetrical face, asymmetrical limbs, asymmetrical hands, asymmetrical eyes,
   incorrect proportions, wrong proportions, disproportionate, disproportional, unnatural proportions,
-  malformed genitals, distorted genitals, incorrect genitals, wrong genitals,
+  poorly drawn hands, poorly drawn face, poorly drawn body, poorly drawn anatomy, poorly drawn features,
   multiple heads, multiple faces, double exposure, out of focus, motion blur, depth of field,
   bad composition, bad perspective, bad angle, awkward pose, unnatural pose, impossible pose,
   watermark, text, signature, username, jpeg artifacts, compression artifacts, artifacts, glitch,
   oversaturated, undersaturated, low contrast, high contrast, dark, too bright, overexposed, underexposed,
-  bad lighting, bad shadows, harsh shadows, flat lighting, unnatural lighting,
-  duplicate, mutation, mutated, cloned, clone, cloned face, floating limbs, disconnected limbs
+  bad lighting, bad shadows, harsh shadows, flat lighting, unnatural lighting, poor lighting,
+  duplicate, mutation, mutated, cloned, clone, cloned face, floating limbs, disconnected limbs,
+  three legs, three arms, four arms, four legs, six fingers, seven fingers, eight fingers,
+  missing body parts, extra body parts, fused body parts, merged body parts, conjoined,
+  distorted face, melted face, warped face, stretched face, compressed face, squished face
 `;
 
 /**
