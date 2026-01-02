@@ -13,9 +13,11 @@ import {
   createImagineResultEmbed,
   createImagineErrorEmbed,
   createImagineValidationEmbed,
+  createRegenerateButton,
 } from "./embeds.js";
-import { validatePrompt } from "./utils.js";
+import { validatePrompt, parseInlineParameters } from "./utils.js";
 import { ImagineGenerationHistory } from "./utils/generationHistory.js";
+import { enhanceImaginePrompt } from "../../../config/prompts/imagePrompts.js";
 
 const logger = getLogger();
 
@@ -46,25 +48,35 @@ export async function handleImagineCommand(
 
   const promptOption = interaction.options.getString("prompt", true);
 
+  // Parse inline parameters (--ar, --seed, etc.)
+  const {
+    prompt: rawPrompt,
+    aspectRatio,
+    seed,
+  } = parseInlineParameters(promptOption);
+
   // Safety tolerance: 6 = most permissive (default for Stability AI)
   const safetyTolerance = 6;
 
   if (!multiProviderAIService.isEnabled()) {
     const validationEmbed = createImagineValidationEmbed(
-      "AI features are currently disabled. All providers are disabled in the configuration. Please contact the bot administrator.",
+      "AI features are currently disabled. All AI services are unavailable.",
     );
     await interaction.editReply({ embeds: [validationEmbed] });
     return;
   }
 
-  const validation = validatePrompt(promptOption);
+  const validation = validatePrompt(rawPrompt);
   if (!validation.isValid) {
     const validationEmbed = createImagineValidationEmbed(validation.reason);
     await interaction.editReply({ embeds: [validationEmbed] });
     return;
   }
 
-  const prompt = validation.prompt;
+  // Enhance prompt with quality improvements (preserves user intent)
+  const prompt = enhanceImaginePrompt(validation.prompt);
+  // Use original prompt for display in embeds (not the enhanced one)
+  const originalPrompt = validation.prompt;
 
   const creditInfo = await checkAIImageCredits(interaction.user.id);
   const { userData, creditsNeeded, hasCredits } = creditInfo;
@@ -72,7 +84,7 @@ export async function handleImagineCommand(
   if (!hasCredits) {
     const errorEmbed = createImagineErrorEmbed({
       interaction,
-      prompt,
+      prompt: originalPrompt,
       error: `Insufficient credits. You need **${creditsNeeded} Core** to generate images. Your balance: **${userData.credits || 0} Core**.`,
     });
     await interaction.editReply({ embeds: [errorEmbed] });
@@ -80,7 +92,7 @@ export async function handleImagineCommand(
   }
 
   let processingEmbed = createImagineProcessingEmbed({
-    prompt,
+    prompt: originalPrompt,
     interaction,
   });
   await interaction.editReply({
@@ -91,7 +103,7 @@ export async function handleImagineCommand(
   const progressCallback = async status => {
     try {
       processingEmbed = createImagineProcessingEmbed({
-        prompt,
+        prompt: originalPrompt,
         status,
         interaction,
       });
@@ -107,18 +119,9 @@ export async function handleImagineCommand(
   const startTime = Date.now();
   const requestId = `imagine-${interaction.id}`;
 
-  // ============================================================================
-  // LOG FULL PROMPT BEING SENT TO AI
-  // ============================================================================
-  logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   logger.info(
-    `[IMAGINE PROMPT LOG] User: ${interaction.user.id} | Request ID: ${requestId}`,
+    `[IMAGINE] User: ${interaction.user.id} | Original: "${validation.prompt}" | Enhanced: "${prompt}" | Safety: ${safetyTolerance}`,
   );
-  logger.info(
-    `[IMAGINE PROMPT LOG] Prompt (${prompt.length} chars): "${prompt}"`,
-  );
-  logger.info(`[IMAGINE PROMPT LOG] Safety Tolerance: ${safetyTolerance}`);
-  logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
   try {
     const result = await concurrencyManager.queueRequest(
@@ -129,6 +132,9 @@ export async function handleImagineCommand(
           prompt,
           config: {
             safetyTolerance,
+            useAvatarPrompts: false, // Don't use avatar-specific prompts from imagePrompts.js
+            aspectRatio: aspectRatio || "1:1", // Default to 1:1 (square) for versatility
+            seed: seed !== null ? seed : undefined, // Only set if provided
           },
           progressCallback,
         }),
@@ -138,7 +144,9 @@ export async function handleImagineCommand(
     );
 
     if (!result?.imageBuffer) {
-      throw new Error("Image data was missing from the provider response.");
+      throw new Error(
+        "Image generation completed but no image was received. Please try again.",
+      );
     }
 
     const deductionResult = await checkAndDeductAIImageCredits(
@@ -160,14 +168,30 @@ export async function handleImagineCommand(
 
     const durationMs = Date.now() - startTime;
 
+    // Get seed from result if available, otherwise use the provided seed or generate one
+    const generatedSeed =
+      result.seed !== undefined ? result.seed : seed !== null ? seed : null;
+    const currentAspectRatio = aspectRatio || "1:1";
+
     const successEmbed = createImagineResultEmbed({
-      prompt,
+      prompt: originalPrompt,
       interaction,
+      seed: generatedSeed,
+      aspectRatio: currentAspectRatio,
     });
+
+    // Add regenerate button
+    const { ActionRowBuilder } = await import("discord.js");
+    const components = [
+      new ActionRowBuilder().addComponents(
+        createRegenerateButton(currentAspectRatio).components[0],
+      ),
+    ];
 
     await interaction.editReply({
       embeds: [successEmbed],
       files: [attachment],
+      components,
     });
 
     logger.info(
@@ -196,12 +220,26 @@ export async function handleImagineCommand(
 
     const errorEmbed = createImagineErrorEmbed({
       interaction,
-      prompt,
+      prompt: originalPrompt,
       error: getUserFacingErrorMessage(error, {
         includeContentModeration: false,
       }),
     });
 
-    await interaction.editReply({ embeds: [errorEmbed] });
+    try {
+      await interaction.editReply({ embeds: [errorEmbed] });
+    } catch (editError) {
+      // If edit fails, try a new reply instead
+      logger.error(
+        `Failed to edit reply with error embed: ${editError.message}`,
+      );
+      try {
+        await interaction.followUp({ embeds: [errorEmbed] });
+      } catch (followUpError) {
+        logger.error(
+          `Failed to send error message via followUp: ${followUpError.message}`,
+        );
+      }
+    }
   }
 }
