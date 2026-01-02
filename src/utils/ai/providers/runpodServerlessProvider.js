@@ -254,10 +254,10 @@ export class RunPodServerlessProvider {
             if (queueTime < 30) {
               progressCallback("⏳ Starting GPU worker (cold start)...");
             } else if (queueTime < 60) {
-              progressCallback(`⏳ Loading models... ${queueTime}s`);
+              progressCallback(`⏳ Loading models... (${queueTime}s)`);
             } else {
               progressCallback(
-                `⏳ Still loading... ${queueTime}s - Cold start may take up to 2 minutes`,
+                `⏳ Still loading... (${queueTime}s) - Cold start may take up to 2 minutes`,
               );
             }
           }
