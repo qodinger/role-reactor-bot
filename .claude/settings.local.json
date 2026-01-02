@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node test-comfyui.js:*)",
+      "Bash(curl -s https://ufl6r0wb2vy21j-8188.proxy.runpod.net/queue)",
+      "Bash(curl -s https://ufl6r0wb2vy21j-8188.proxy.runpod.net/history)"
+    ]
+  }
+}
