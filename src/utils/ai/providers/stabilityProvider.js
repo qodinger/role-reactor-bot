@@ -72,10 +72,24 @@ export class StabilityProvider {
       (config.safetyTolerance || 6).toString(),
     );
 
-    // Use provider-specific negative prompt
-    const negativePrompt =
-      promptConfig.PROVIDER_PROMPTS?.stability?.negative ||
-      promptConfig.NEGATIVE_PROMPT;
+    // Use avatar prompts only if explicitly requested (for /avatar command)
+    // For /imagine command, use imagine-specific negative prompt
+    let negativePrompt;
+    if (config.useAvatarPrompts !== false) {
+      // Default to true for backward compatibility (avatar command)
+      negativePrompt =
+        promptConfig.PROVIDER_PROMPTS?.stability?.negative ||
+        promptConfig.NEGATIVE_PROMPT;
+    } else {
+      // Use imagine-specific negative prompt for better quality
+      const imagePrompts = await import(
+        "../../../config/prompts/imagePrompts.js"
+      );
+      negativePrompt =
+        imagePrompts.IMAGINE_PROVIDER_NEGATIVE_PROMPTS?.stability ||
+        imagePrompts.IMAGINE_NEGATIVE_PROMPT ||
+        "text, watermark, low quality, blurry";
+    }
     formData.append("negative_prompt", negativePrompt);
 
     // ============================================================================
@@ -113,8 +127,13 @@ export class StabilityProvider {
 
     if (!response.ok) {
       const errorData = await response.text();
+      const { getLogger } = await import("../../logger.js");
+      const logger = getLogger();
+      logger.error(
+        `[Stability AI] API error: ${response.status} - ${errorData.substring(0, 200)}`,
+      );
       throw new Error(
-        `Stability AI API error: ${response.status} - ${errorData}`,
+        "The image generation service encountered an error. Please try again later.",
       );
     }
 

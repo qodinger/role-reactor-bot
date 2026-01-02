@@ -68,8 +68,13 @@ export class OpenAIProvider {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      const { getLogger } = await import("../../logger.js");
+      const logger = getLogger();
+      logger.error(
+        `[OpenAI] API error: ${response.status} - ${errorData.error?.message || response.statusText}`,
+      );
       throw new Error(
-        `OpenAI API error: ${response.status} - ${errorData.error?.message || response.statusText}`,
+        "The AI chat service encountered an error. Please try again later.",
       );
     }
 
@@ -77,7 +82,9 @@ export class OpenAIProvider {
 
     const content = data.choices?.[0]?.message?.content;
     if (!content) {
-      throw new Error("No text generated in response");
+      throw new Error(
+        "The AI service did not generate a response. Please try again.",
+      );
     }
 
     return {
@@ -98,7 +105,9 @@ export class OpenAIProvider {
    */
   async generateTextStreaming(prompt, model, config, onChunk) {
     if (!this.config?.enabled || !this.config?.apiKey) {
-      throw new Error("OpenAI is not enabled or API key is missing");
+      throw new Error(
+        "The AI service is not properly configured. This feature is temporarily unavailable.",
+      );
     }
 
     // Convert prompt to messages format
@@ -217,15 +226,22 @@ export class OpenAIProvider {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      const { getLogger } = await import("../../logger.js");
+      const logger = getLogger();
+      logger.error(
+        `[OpenAI] Image API error: ${response.status} - ${errorData.error?.message || response.statusText}`,
+      );
       throw new Error(
-        `OpenAI API error: ${response.status} - ${errorData.error?.message || response.statusText}`,
+        "The image generation service encountered an error. Please try again later.",
       );
     }
 
     const data = await response.json();
 
     if (!data.data || !data.data[0]?.url) {
-      throw new Error("No image generated in response");
+      throw new Error(
+        "Image generation completed but no image was received. Please try again.",
+      );
     }
 
     if (progressCallback) {

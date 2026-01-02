@@ -89,7 +89,9 @@ export class OpenRouterProvider {
 
     const content = data.choices?.[0]?.message?.content;
     if (!content) {
-      throw new Error("No text generated in response");
+      throw new Error(
+        "The AI service did not generate a response. Please try again.",
+      );
     }
 
     return {
@@ -110,7 +112,9 @@ export class OpenRouterProvider {
    */
   async generateTextStreaming(prompt, model, config, onChunk) {
     if (!this.config?.enabled || !this.config?.apiKey) {
-      throw new Error("OpenRouter is not enabled or API key is missing");
+      throw new Error(
+        "The AI service is not properly configured. This feature is temporarily unavailable.",
+      );
     }
 
     // Convert prompt to messages format
@@ -161,8 +165,13 @@ export class OpenRouterProvider {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      const { getLogger } = await import("../../logger.js");
+      const logger = getLogger();
+      logger.error(
+        `[OpenRouter] Streaming API error: ${response.status} - ${errorData.error?.message || response.statusText}`,
+      );
       throw new Error(
-        `OpenRouter API error: ${response.status} - ${errorData.error?.message || response.statusText}`,
+        "The AI chat service encountered an error. Please try again later.",
       );
     }
 
@@ -282,13 +291,13 @@ export class OpenRouterProvider {
 
     const finalBuffer = Buffer.from(imageBuffer);
 
-    // Validate image buffer size - content moderation blocks often return 2-byte placeholders
-    if (finalBuffer.length < 1000) {
+    // Validate image buffer size - removed content moderation check
+    if (finalBuffer.length < 100) {
       logger.error(
-        `OpenRouter returned suspiciously small image buffer: ${finalBuffer.length} bytes (likely content moderation block)`,
+        `OpenRouter returned suspiciously small image buffer: ${finalBuffer.length} bytes (likely error response)`,
       );
       throw new Error(
-        "The AI provider blocked image generation due to content moderation. The prompt was detected as inappropriate. Try using a less explicit prompt.",
+        "The AI provider returned an invalid image. Please try again.",
       );
     }
 

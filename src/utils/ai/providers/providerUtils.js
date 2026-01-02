@@ -91,37 +91,62 @@ export function extractImageUrl(data) {
 
 /**
  * Parse aspect ratio string to width and height
+ * Uses the most commonly used sizes for each aspect ratio
+ * (dimensions are multiples of 64 for Stable Diffusion efficiency when possible)
  * @param {string} aspectRatio - Aspect ratio string (e.g., "16:9", "1:1", "3:2")
  * @returns {[number, number]} [width, height]
  */
 export function parseAspectRatio(aspectRatio) {
-  // Common aspect ratios mapped to 512/768/1024 base sizes
+  // Optimal base sizes for 2-stage workflow (base -> upscale to 1024)
+  // Using 832 as base allows faster generation, then upscales to 1024
+  // All sizes are multiples of 64 (SDXL requirement) and optimized for speed + quality
   const ratioMap = {
-    "1:1": [512, 512],
-    "16:9": [768, 432],
-    "9:16": [432, 768],
-    "4:3": [640, 480],
-    "3:4": [480, 640],
-    "3:2": [768, 512],
-    "2:3": [512, 768],
+    "1:1": [832, 832], // Base size, upscales to 1024x1024 (faster generation)
+    "16:9": [1088, 640], // Base 16:9, upscales to ~1337x752
+    "9:16": [640, 1088], // Base 9:16, upscales to ~787x1338
+    "4:3": [960, 704], // Base 4:3, upscales to ~1180x866
+    "3:4": [704, 960], // Base 3:4, upscales to ~866x1180
+    "3:2": [960, 640], // Base 3:2, upscales to ~1180x787
+    "2:3": [640, 960], // Base 2:3, upscales to ~787x1180
   };
 
   if (ratioMap[aspectRatio]) {
     return ratioMap[aspectRatio];
   }
 
-  // Parse custom ratio (e.g., "16:9")
+  // Parse custom ratio
   const parts = aspectRatio.split(":");
   if (parts.length === 2) {
     const width = parseInt(parts[0], 10);
     const height = parseInt(parts[1], 10);
     if (!isNaN(width) && !isNaN(height) && width > 0 && height > 0) {
-      // Scale to reasonable size (base 512)
-      const scale = 512 / Math.max(width, height);
-      return [Math.round(width * scale), Math.round(height * scale)];
+      // Scale to base size (~690K pixels, similar to 832×832)
+      // Target total pixels around 692,224 (832²) for faster generation
+      const targetPixels = 832 * 832;
+      const aspectRatioValue = width / height;
+      let scaledHeight = Math.sqrt(targetPixels / aspectRatioValue);
+      let scaledWidth = scaledHeight * aspectRatioValue;
+
+      // Round to nearest multiple of 64 for SD efficiency
+      scaledWidth = Math.round(scaledWidth / 64) * 64;
+      scaledHeight = Math.round(scaledHeight / 64) * 64;
+
+      // Ensure minimum 768 (reasonable minimum for quality)
+      if (scaledWidth < 768) {
+        scaledHeight = 768 / aspectRatioValue;
+        scaledWidth = 768;
+        scaledHeight = Math.round(scaledHeight / 64) * 64;
+      }
+      if (scaledHeight < 768) {
+        scaledWidth = 768 * aspectRatioValue;
+        scaledHeight = 768;
+        scaledWidth = Math.round(scaledWidth / 64) * 64;
+      }
+
+      return [scaledWidth, scaledHeight];
     }
   }
 
-  // Default to 1:1
-  return [512, 512];
+  // Default to 1:1 (832x832 base - upscales to 1024x1024)
+  return [832, 832];
 }
