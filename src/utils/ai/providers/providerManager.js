@@ -30,18 +30,35 @@ export class ProviderManager {
 
   /**
    * Get the appropriate provider for image generation
-   * Skips self-hosted (Ollama doesn't do images) and prefers Stability AI
+   * Prefers ComfyUI, then Stability AI, then OpenAI, then OpenRouter
    * @returns {string|null} Provider key or null if none enabled
    */
   getImageProvider() {
-    // For images, prefer Stability AI, then OpenAI, then OpenRouter
-    // Skip self-hosted as it's for text/chat only
-    const imageProviders = ["stability", "openai", "openrouter"];
+    const imageProviders = [
+      "runpod",
+      "comfyui",
+      "stability",
+      "openai",
+      "openrouter",
+    ];
 
     for (const key of imageProviders) {
       const provider = this.config.providers[key];
-      if (provider && provider.enabled === true && provider.apiKey) {
-        return key;
+      if (provider && provider.enabled === true) {
+        // RunPod requires endpoint ID
+        if (key === "runpod") {
+          if (provider.endpointId && provider.apiKey) {
+            return key;
+          }
+        }
+        // ComfyUI doesn't require API key (optional)
+        else if (key === "comfyui") {
+          return key;
+        }
+        // Others require API key
+        else if (provider.apiKey) {
+          return key;
+        }
       }
     }
 
@@ -50,21 +67,17 @@ export class ProviderManager {
 
   /**
    * Get the appropriate provider for text/chat generation
-   * Prefers self-hosted (Ollama) for local AI, then falls back to others
+   * Prefers OpenRouter, then OpenAI
    * @returns {string|null} Provider key or null if none enabled
    */
   getTextProvider() {
-    // For text/chat, prefer self-hosted (Ollama), then OpenRouter, then OpenAI
-    const textProviders = ["selfhosted", "openrouter", "openai"];
+    // For text/chat, prefer OpenRouter, then OpenAI
+    const textProviders = ["openrouter", "openai"];
 
     for (const key of textProviders) {
       const provider = this.config.providers[key];
       if (provider && provider.enabled === true) {
-        // For self-hosted, API key is optional
-        if (key === "selfhosted") {
-          return key;
-        }
-        // For others, require API key
+        // Require API key
         if (provider.apiKey) {
           return key;
         }

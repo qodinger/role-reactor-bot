@@ -9,7 +9,8 @@ import { ProviderManager } from "./providers/providerManager.js";
 import { OpenRouterProvider } from "./providers/openRouterProvider.js";
 import { OpenAIProvider } from "./providers/openAIProvider.js";
 import { StabilityProvider } from "./providers/stabilityProvider.js";
-import { SelfHostedProvider } from "./providers/selfHostedProvider.js";
+import { ComfyUIProvider } from "./providers/comfyUIProvider.js";
+import { RunPodServerlessProvider } from "./providers/runpodServerlessProvider.js";
 import { AI_STATUS_MESSAGES } from "./statusMessages.js";
 
 const logger = getLogger();
@@ -60,7 +61,7 @@ async function loadConfig() {
         openrouter: { enabled: false },
         openai: { enabled: false },
         stability: { enabled: false },
-        selfhosted: { enabled: false },
+        comfyui: { enabled: false },
       },
     };
     return configCache;
@@ -80,7 +81,8 @@ export class MultiProviderAIService {
         openrouter: { enabled: false },
         openai: { enabled: false },
         stability: { enabled: false },
-        selfhosted: { enabled: false },
+        comfyui: { enabled: false },
+        runpod: { enabled: false },
       },
     };
     this.providerManager = new ProviderManager(this.config);
@@ -90,7 +92,8 @@ export class MultiProviderAIService {
       openrouter: new OpenRouterProvider(this.config.providers.openrouter),
       openai: new OpenAIProvider(this.config.providers.openai),
       stability: new StabilityProvider(this.config.providers.stability),
-      selfhosted: new SelfHostedProvider(this.config.providers.selfhosted),
+      comfyui: new ComfyUIProvider(this.config.providers.comfyui || {}),
+      runpod: new RunPodServerlessProvider(this.config.providers.runpod || {}),
     };
 
     // Load config asynchronously in background
@@ -106,9 +109,10 @@ export class MultiProviderAIService {
           stability: new StabilityProvider(
             this.config.providers?.stability || {},
           ),
-          selfhosted: new SelfHostedProvider(
-            this.config.providers?.selfhosted || {},
+          runpod: new RunPodServerlessProvider(
+            this.config.providers?.runpod || {},
           ),
+          comfyui: new ComfyUIProvider(this.config.providers?.comfyui || {}),
         };
       })
       .catch(() => {
@@ -173,9 +177,7 @@ export class MultiProviderAIService {
         stability: new StabilityProvider(
           this.config.providers?.stability || {},
         ),
-        selfhosted: new SelfHostedProvider(
-          this.config.providers?.selfhosted || {},
-        ),
+        comfyui: new ComfyUIProvider(this.config.providers?.comfyui || {}),
       };
     }
 
@@ -196,14 +198,14 @@ export class MultiProviderAIService {
         targetProvider = this.getImageProvider();
         if (!targetProvider) {
           throw new Error(
-            "No image generation provider available. Please enable Stability AI, OpenAI, or OpenRouter in config.js and configure their API keys.",
+            "Image generation is currently unavailable. No image generation service is configured.",
           );
         }
       } else if (type === "text" || type === "chat") {
         targetProvider = this.providerManager.getTextProvider();
         if (!targetProvider) {
           throw new Error(
-            "No text/chat provider available. Please enable self-hosted (Ollama), OpenRouter, or OpenAI in config.js and configure their API keys if needed.",
+            "AI chat is currently unavailable. No chat service is configured.",
           );
         }
       } else {
@@ -211,7 +213,7 @@ export class MultiProviderAIService {
         targetProvider = this.providerManager.getPrimaryProvider();
         if (!targetProvider) {
           throw new Error(
-            "AI features are disabled. All providers are disabled. Please enable at least one provider in config.js to use AI features.",
+            "AI features are currently disabled. All AI services are unavailable.",
           );
         }
       }
@@ -220,19 +222,27 @@ export class MultiProviderAIService {
     const providerConfig = this.config.providers[targetProvider];
 
     if (!providerConfig) {
-      throw new Error(`Unknown AI provider: ${targetProvider}`);
+      throw new Error(
+        "The AI service encountered an internal error. This feature is temporarily unavailable.",
+      );
     }
 
     // Check if provider is enabled (only if explicitly forced)
     if (provider && providerConfig.enabled !== true) {
       throw new Error(
-        `${providerConfig.name} is disabled. Please enable it in config or use a different provider.`,
+        "The requested AI service is currently unavailable. This feature is temporarily disabled.",
       );
     }
 
-    // API key is optional for self-hosted providers (e.g., Automatic1111)
-    if (targetProvider !== "selfhosted" && !providerConfig.apiKey) {
-      throw new Error(`${providerConfig.name} API key not configured`);
+    // API key is optional for self-hosted providers (e.g., ComfyUI)
+    if (
+      targetProvider !== "selfhosted" &&
+      targetProvider !== "comfyui" &&
+      !providerConfig.apiKey
+    ) {
+      throw new Error(
+        `The ${providerConfig.name} service is not properly configured. This feature is temporarily unavailable.`,
+      );
     }
 
     const startTime = Date.now();
@@ -244,14 +254,20 @@ export class MultiProviderAIService {
     if (PROVIDER_FALLBACK_ENABLED && !provider) {
       // Add fallback providers in priority order
       if (type === "image") {
-        const fallbacks = ["stability", "openai", "openrouter"];
+        const fallbacks = ["comfyui", "stability", "openai", "openrouter"];
         for (const fallback of fallbacks) {
           if (
             fallback !== targetProvider &&
-            this.config.providers[fallback]?.enabled &&
-            this.config.providers[fallback]?.apiKey
+            this.config.providers[fallback]?.enabled
           ) {
-            providersToTry.push(fallback);
+            // ComfyUI and selfhosted don't require API key
+            if (
+              fallback === "comfyui" ||
+              fallback === "selfhosted" ||
+              this.config.providers[fallback]?.apiKey
+            ) {
+              providersToTry.push(fallback);
+            }
           }
         }
       } else if (type === "text" || type === "chat") {
@@ -285,7 +301,11 @@ export class MultiProviderAIService {
         continue;
       }
 
-      if (currentProvider !== "selfhosted" && !currentProviderConfig.apiKey) {
+      if (
+        currentProvider !== "selfhosted" &&
+        currentProvider !== "comfyui" &&
+        !currentProviderConfig.apiKey
+      ) {
         continue;
       }
 
@@ -313,7 +333,7 @@ export class MultiProviderAIService {
           result = await this.generateText(prompt, genConfig, currentProvider);
         } else {
           throw new Error(
-            `Unsupported generation type: ${type}. Supported types: 'image', 'text', 'chat'.`,
+            "The AI service encountered an internal error. This feature is temporarily unavailable.",
           );
         }
 
@@ -361,7 +381,12 @@ export class MultiProviderAIService {
     logger.error(
       `AI generation failed with all providers (${attemptedProviders.size} attempted)`,
     );
-    throw lastError || new Error("All AI providers failed");
+    throw (
+      lastError ||
+      new Error(
+        "Image generation failed. All AI services are currently unavailable. Please try again later.",
+      )
+    );
   }
 
   /**
@@ -382,7 +407,9 @@ export class MultiProviderAIService {
 
     const providerInstance = this.providers[provider];
     if (!providerInstance) {
-      throw new Error(`Unsupported provider for image generation: ${provider}`);
+      throw new Error(
+        "The image generation service encountered an internal error. This feature is temporarily unavailable.",
+      );
     }
 
     return providerInstance.generateImage(
@@ -406,7 +433,9 @@ export class MultiProviderAIService {
 
     const providerInstance = this.providers[provider];
     if (!providerInstance) {
-      throw new Error(`Unsupported provider for text generation: ${provider}`);
+      throw new Error(
+        "The AI chat service encountered an internal error. This feature is temporarily unavailable.",
+      );
     }
 
     return providerInstance.generateText(prompt, model, config);
