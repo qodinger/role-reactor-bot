@@ -20,13 +20,17 @@ export class RunPodServerlessProvider {
 
     // Only validate if provider is enabled
     if (this.config.enabled && !this.endpointId) {
-      logger.warn("[RunPod Serverless] Endpoint ID is missing but provider is enabled");
+      logger.warn(
+        "[RunPod Serverless] Endpoint ID is missing but provider is enabled",
+      );
     }
 
     // Build API URL if endpoint ID exists
     if (this.endpointId) {
       this.apiUrl = `https://api.runpod.ai/v2/${this.endpointId}`;
-      logger.info(`[RunPod Serverless] Initialized with endpoint: ${this.endpointId}`);
+      logger.info(
+        `[RunPod Serverless] Initialized with endpoint: ${this.endpointId}`,
+      );
     }
   }
 
@@ -34,8 +38,18 @@ export class RunPodServerlessProvider {
    * Build ComfyUI workflow JSON
    * Uses the universal 2-stage workflow (base + refine)
    */
-  buildWorkflow(prompt, negativePrompt, width, height, steps, cfgScale, sampler, seed) {
-    const actualSeed = seed === -1 ? Math.floor(Math.random() * 1000000000) : seed;
+  buildWorkflow(
+    prompt,
+    negativePrompt,
+    width,
+    height,
+    steps,
+    cfgScale,
+    sampler,
+    seed,
+  ) {
+    const actualSeed =
+      seed === -1 ? Math.floor(Math.random() * 1000000000) : seed;
 
     // Calculate upscale dimensions (1.23x for faster generation)
     // 832 -> 1024 is optimal for speed while maintaining quality
@@ -43,27 +57,27 @@ export class RunPodServerlessProvider {
     const upscaleHeight = Math.round(height * 1.23);
 
     const workflow = {
-      "2": {
+      2: {
         inputs: {
           ckpt_name: this.config.checkpoint || "AnythingXL_xl.safetensors",
         },
         class_type: "CheckpointLoaderSimple",
       },
-      "3": {
+      3: {
         inputs: {
           text: prompt,
           clip: ["2", 1],
         },
         class_type: "CLIPTextEncode",
       },
-      "4": {
+      4: {
         inputs: {
           text: negativePrompt,
           clip: ["2", 1],
         },
         class_type: "CLIPTextEncode",
       },
-      "5": {
+      5: {
         inputs: {
           width,
           height,
@@ -71,7 +85,7 @@ export class RunPodServerlessProvider {
         },
         class_type: "EmptyLatentImage",
       },
-      "6": {
+      6: {
         inputs: {
           seed: actualSeed,
           steps,
@@ -86,7 +100,7 @@ export class RunPodServerlessProvider {
         },
         class_type: "KSampler",
       },
-      "8": {
+      8: {
         inputs: {
           upscale_method: "nearest-exact",
           width: upscaleWidth,
@@ -96,7 +110,7 @@ export class RunPodServerlessProvider {
         },
         class_type: "LatentUpscale",
       },
-      "10": {
+      10: {
         inputs: {
           seed: actualSeed,
           steps: Math.round(steps * 0.6), // 15 steps for refinement (60% of base, faster)
@@ -111,14 +125,14 @@ export class RunPodServerlessProvider {
         },
         class_type: "KSampler",
       },
-      "12": {
+      12: {
         inputs: {
           samples: ["10", 0],
           vae: ["2", 2],
         },
         class_type: "VAEDecode",
       },
-      "13": {
+      13: {
         inputs: {
           filename_prefix: "ComfyUI_Universal",
           images: ["12", 0],
@@ -141,7 +155,10 @@ export class RunPodServerlessProvider {
     try {
       // Debug: Log node 10 to verify it has all required inputs
       if (workflow["10"]) {
-        logger.debug("[RunPod Serverless] Node 10 inputs:", JSON.stringify(workflow["10"].inputs));
+        logger.debug(
+          "[RunPod Serverless] Node 10 inputs:",
+          JSON.stringify(workflow["10"].inputs),
+        );
       }
 
       // RunPod Worker ComfyUI expects just the workflow object directly
@@ -182,7 +199,12 @@ export class RunPodServerlessProvider {
   /**
    * Poll for job completion
    */
-  async pollForCompletion(jobId, maxWaitTime = 300000, pollInterval = 2000, progressCallback = null) {
+  async pollForCompletion(
+    jobId,
+    maxWaitTime = 300000,
+    pollInterval = 2000,
+    progressCallback = null,
+  ) {
     const startTime = Date.now();
     let queueStartTime = null;
 
@@ -205,7 +227,9 @@ export class RunPodServerlessProvider {
 
         const data = await response.json();
         const currentStatus = data.status;
-        logger.debug(`[RunPod Serverless] Job ${jobId} status: ${currentStatus}`);
+        logger.debug(
+          `[RunPod Serverless] Job ${jobId} status: ${currentStatus}`,
+        );
 
         if (currentStatus === "COMPLETED") {
           if (progressCallback) {
@@ -232,7 +256,9 @@ export class RunPodServerlessProvider {
             } else if (queueTime < 60) {
               progressCallback(`⏳ Loading models... (${queueTime}s)`);
             } else {
-              progressCallback(`⏳ Still loading... (${queueTime}s) - Cold start may take up to 2 minutes`);
+              progressCallback(
+                `⏳ Still loading... (${queueTime}s) - Cold start may take up to 2 minutes`,
+              );
             }
           }
         } else if (currentStatus === "IN_PROGRESS") {
@@ -241,7 +267,7 @@ export class RunPodServerlessProvider {
           }
         }
 
-        await new Promise((resolve) => {
+        await new Promise(resolve => {
           setTimeout(resolve, pollInterval);
         });
       } catch (error) {
@@ -268,7 +294,10 @@ export class RunPodServerlessProvider {
       // RunPod Worker ComfyUI returns image URL in output.message
       if (output.message && typeof output.message === "string") {
         // Check if it's a URL (RunPod Worker format)
-        if (output.message.startsWith("http://") || output.message.startsWith("https://")) {
+        if (
+          output.message.startsWith("http://") ||
+          output.message.startsWith("https://")
+        ) {
           return output.message;
         }
         // Check if it's base64
@@ -347,7 +376,8 @@ export class RunPodServerlessProvider {
 
     try {
       // Get negative prompt (use config or default)
-      const negativePrompt = config.negativePrompt ||
+      const negativePrompt =
+        config.negativePrompt ||
         "bad anatomy, bad hands, bad fingers, missing fingers, extra fingers, fused fingers, too many fingers, poorly drawn hands, poorly drawn face, deformed, ugly, blurry, bad proportions, extra limbs, missing limbs, bad feet, long neck, mutation, mutilated, out of frame, worst quality, low quality, jpeg artifacts, watermark, signature, username, text";
 
       // Parse aspect ratio
@@ -355,9 +385,10 @@ export class RunPodServerlessProvider {
       const [width, height] = parseAspectRatio(aspectRatio);
 
       // Get seed
-      const seedValue = config.seed !== undefined
-        ? config.seed
-        : Math.floor(Math.random() * 1000000000);
+      const seedValue =
+        config.seed !== undefined
+          ? config.seed
+          : Math.floor(Math.random() * 1000000000);
 
       // Build workflow
       const workflow = this.buildWorkflow(
