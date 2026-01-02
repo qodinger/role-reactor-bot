@@ -1,4 +1,5 @@
 import dotenv from "dotenv";
+import { getAIFeatureCosts, getAvatarContentFilter } from "./ai.js";
 
 // Load environment variables
 dotenv.config();
@@ -281,14 +282,10 @@ class Config {
       },
 
       // Feature costs and avatar filter moved to config/ai.js
+      // Reference functions from ai.js to avoid duplication
       // Kept here for backward compatibility
-      featureCosts: {
-        aiChat: 0.02,
-        aiImage: 1,
-      },
-      avatarContentFilter: {
-        enabled: false,
-      },
+      featureCosts: getAIFeatureCosts(),
+      avatarContentFilter: getAvatarContentFilter(),
     };
   }
 

@@ -691,8 +691,12 @@ export async function execute(message, client) {
         }
 
         // Try to edit existing status message first, otherwise send new message
-        const errorMessage =
-          "Sorry, I encountered an error while processing your message. Please try again later or use the `/ask` command.";
+        const { getUserFacingErrorMessage } = await import(
+          "../utils/ai/errorMessages.js"
+        );
+        const errorMessage = getUserFacingErrorMessage(error, {
+          includeContentModeration: false,
+        });
 
         if (replyMessage) {
           try {
