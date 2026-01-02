@@ -57,13 +57,13 @@ export const AI_STATUS_MESSAGES = {
   AVATAR_INITIALIZING: "Initializing service...",
   AVATAR_BUILDING_PROMPT: "Building enhanced prompt...",
   AVATAR_CONNECTING: "Connecting...",
-  AVATAR_GENERATING: "Generating image (this may take 30-60s)...",
+  AVATAR_GENERATING: "Generating image...",
   AVATAR_PROCESSING: "Processing image data...",
   AVATAR_FINALIZING: "Finalizing result...",
 
   // Stability AI provider steps
   STABILITY_PREPARING: "Preparing request...",
-  STABILITY_GENERATING: "Generating image (this may take 30-60s)...",
+  STABILITY_GENERATING: "Generating image...",
   STABILITY_PROCESSING: "Processing generated image...",
 
   // OpenRouter provider steps
@@ -77,12 +77,12 @@ export const AI_STATUS_MESSAGES = {
 
   // Self-hosted provider steps
   SELFHOSTED_SENDING: "Sending generation request...",
-  SELFHOSTED_GENERATING: "Generating image (this may take 30-60s)...",
+  SELFHOSTED_GENERATING: "Generating image...",
   SELFHOSTED_PROCESSING: "Processing generated image...",
 
   // ComfyUI provider steps
   COMFYUI_SENDING: "Sending generation request...",
-  COMFYUI_GENERATING: "Generating image (this may take 30-60s)...",
+  COMFYUI_GENERATING: "Generating image...",
   COMFYUI_QUEUED: "Image generation queued, waiting for completion...",
   COMFYUI_PROCESSING: "Processing generated image...",
 

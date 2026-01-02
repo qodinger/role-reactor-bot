@@ -528,7 +528,7 @@ export class ComfyUIProvider {
               );
               if (progressCallback) {
                 progressCallback(
-                  `Generating image... ${percentage}% (${value}/${max} steps)`,
+                  `Generating image... ${percentage}% - ${value}/${max} steps`,
                 );
               }
 
@@ -554,7 +554,7 @@ export class ComfyUIProvider {
                 `[ComfyUI] Execution started, prompt_id=${promptId || "none"}`,
               );
               if (progressCallback) {
-                progressCallback("Generating image... 0% (0 steps)");
+                progressCallback("Generating image... 0% - 0 steps");
               }
             }
           }
@@ -659,7 +659,7 @@ export class ComfyUIProvider {
         } else if (pollCount % 5 === 0) {
           // Every 5 polls - show elapsed time
           const elapsed = Math.round((Date.now() - startTime) / 1000);
-          progressCallback(`Generating image... (${elapsed}s elapsed)`);
+          progressCallback(`Generating image... ${elapsed}s elapsed`);
         }
       }
 
