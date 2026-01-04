@@ -751,7 +751,9 @@ describe("Voice Control - Core Functionality", () => {
           
           // Rate limit: delay between batches (except for the last batch)
           if (i + batchSize < members.length) {
-            await new Promise(resolve => setTimeout(resolve, delayMs));
+            await new Promise(resolve => {
+              setTimeout(resolve, delayMs);
+            });
           }
         }
         
@@ -780,6 +782,7 @@ describe("Voice Control - Core Functionality", () => {
               results.failed++;
               results.errors.push(error.message);
             }
+            return undefined;
           })
         );
         
@@ -1034,7 +1037,7 @@ describe("Voice Control - Core Functionality", () => {
     });
 
     test("should handle API rate limit errors", async () => {
-      const handleRateLimitedOperation = async (member, operation) => {
+      const handleRateLimitedOperation = async (_member, _operation) => {
         try {
           // Simulate rate limit error
           const error = new Error("Rate limited");
@@ -1112,7 +1115,7 @@ describe("Voice Control - Core Functionality", () => {
                 }
                 break;
             }
-          } catch (error) {
+          } catch (_error) {
             // Continue processing other members even if one fails
           }
         }
