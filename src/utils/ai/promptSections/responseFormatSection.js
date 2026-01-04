@@ -28,13 +28,12 @@ async function buildDynamicActionsList(guild, client) {
     }
     actionsList += `\n`;
 
-    actionsList += `**Data Fetching Actions:**\n`;
-    actionsList += `- "fetch_members" - Fetch all server members (human members and bots). Use this ONLY when member data is not already in the system context AND user asks about specific members, users, bots, or online/offline status.\n`;
-    actionsList += `  **When to use:** User asks about members/users/bots/online status AND the member list is NOT already shown in "COMPLETE LIST OF HUMAN MEMBER NAMES" section above.\n`;
-    actionsList += `  **When NOT to use:** If member list is already in context, use that data directly - do NOT fetch again.\n`;
-    actionsList += `  **Format:** {"type": "fetch_members"}\n`;
-    actionsList += `  **After execution:** The system will automatically re-query with updated member data, then you can respond with the fetched information.\n`;
-    actionsList += `  **Note:** For servers with >1000 members, fetching may be limited - use cached data if available.\n`;
+    // No data fetching actions available - guide users to Discord's built-in features
+    actionsList += `**Member Information:**\n`;
+    actionsList += `- For member lists: Use Discord's member list (right sidebar)\n`;
+    actionsList += `- For member search: Press Ctrl+K (Cmd+K on Mac)\n`;
+    actionsList += `- For online status: Check green/yellow/red dots in member list\n`;
+    actionsList += `- For role members: Server Settings → Roles → Click any role\n`;
     actionsList += `\n`;
   }
   return actionsList;

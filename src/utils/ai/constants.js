@@ -7,11 +7,6 @@ export const DEFAULT_MAX_HISTORY_LENGTH = 20;
 export const DEFAULT_CONVERSATION_TIMEOUT = 7 * 24 * 60 * 60 * 1000; // 7 days
 export const DEFAULT_MAX_CONVERSATIONS = 1000;
 
-// Member fetching constants
-export const MEMBER_FETCH_TIMEOUT = 5000; // 5 seconds
-export const MAX_MEMBER_FETCH_SERVER_SIZE = 1000;
-export const MAX_MEMBERS_TO_DISPLAY = 50;
-
 // Response length constants
 export const MAX_RESPONSE_LENGTH = 2000; // Discord embed limit is 4096, but we use 2000 for safety
 export const DEFAULT_RESPONSE_LENGTH = 500; // Default concise response length

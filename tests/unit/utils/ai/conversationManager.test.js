@@ -1,333 +1,398 @@
-import { vi } from "vitest";
-import { ConversationManager } from "../../../../src/utils/ai/conversationManager.js";
+/**
+ * Conversation Manager Tests
+ * Tests for AI conversation history management and long-term memory
+ */
+
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { ConversationManager } from '../../../../src/utils/ai/conversationManager.js';
 
 // Mock dependencies
-vi.mock("src/utils/logger.js", () => ({
-  getLogger: vi.fn(() => ({
+vi.mock('../../../../src/utils/logger.js', () => ({
+  getLogger: () => ({
     debug: vi.fn(),
     info: vi.fn(),
-    error: vi.fn(),
     warn: vi.fn(),
+    error: vi.fn(),
+  }),
+}));
+
+vi.mock('../../../../src/utils/storage/databaseManager.js', () => ({
+  getDatabaseManager: vi.fn(() => null),
+}));
+
+vi.mock('../../../../src/utils/storage/storageManager.js', () => ({
+  getStorageManager: vi.fn(() => ({
+    read: vi.fn(),
+    write: vi.fn(),
   })),
 }));
 
-vi.mock("src/utils/storage/databaseManager.js", () => ({
-  getDatabaseManager: vi.fn().mockResolvedValue({
-    conversations: {
-      getByUser: vi.fn().mockResolvedValue(null),
-      save: vi.fn().mockResolvedValue(true),
-      delete: vi.fn().mockResolvedValue(true),
-    },
-  }),
-}));
-
-vi.mock("src/utils/storage/storageManager.js", () => ({
-  getStorageManager: vi.fn().mockResolvedValue({
-    read: vi.fn().mockResolvedValue({}),
-    write: vi.fn().mockResolvedValue(true),
-  }),
-}));
-
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-
-describe("ConversationManager", () => {
+describe('ConversationManager', () => {
   let conversationManager;
+  let mockStorageManager;
 
-  beforeEach(() => {
-    vi.clearAllMocks();
-    // Set environment variables for testing
-    process.env.AI_USE_LONG_TERM_MEMORY = "false";
-    process.env.AI_CONVERSATION_STORAGE_TYPE = "memory";
+  beforeEach(async () => {
+    // Reset environment variables
+    delete process.env.AI_USE_LONG_TERM_MEMORY;
+    delete process.env.AI_CONVERSATION_STORAGE_TYPE;
+    delete process.env.AI_CONVERSATION_HISTORY_LENGTH;
+    delete process.env.AI_CONVERSATION_TIMEOUT;
+    delete process.env.AI_MAX_CONVERSATIONS;
+
+    // Create mock storage manager
+    mockStorageManager = {
+      read: vi.fn(),
+      write: vi.fn(),
+    };
+
+    // Mock getStorageManager to return our mock
+    const { getStorageManager } = await import('../../../../src/utils/storage/storageManager.js');
+    getStorageManager.mockResolvedValue(mockStorageManager);
+
     conversationManager = new ConversationManager();
   });
 
   afterEach(() => {
-    if (conversationManager.cleanupInterval) {
-      clearInterval(conversationManager.cleanupInterval);
+    if (conversationManager) {
+      conversationManager.stopCleanup();
     }
+    vi.clearAllMocks();
   });
 
-  describe("getConversationKey", () => {
-    it("should generate composite key for server conversations", () => {
-      const userId = "123456789";
-      const guildId = "987654321";
-      const key = conversationManager.getConversationKey(userId, guildId);
-      expect(key).toBe("123456789_987654321");
+  describe('Initialization', () => {
+    it('should initialize with default configuration', () => {
+      expect(conversationManager.useLongTermMemory).toBe(true);
+      expect(conversationManager.storageType).toBe('file');
+      expect(conversationManager.maxHistoryLength).toBe(20);
+      expect(conversationManager.conversationTimeout).toBe(7 * 24 * 60 * 60 * 1000);
+      expect(conversationManager.maxConversations).toBe(1000);
     });
 
-    it("should generate dm_ prefix for DM conversations", () => {
-      const userId = "123456789";
-      const key = conversationManager.getConversationKey(userId, null);
-      expect(key).toBe("dm_123456789");
-    });
+    it('should respect environment variable configuration', () => {
+      process.env.AI_USE_LONG_TERM_MEMORY = 'false';
+      process.env.AI_CONVERSATION_STORAGE_TYPE = 'memory';
+      process.env.AI_CONVERSATION_HISTORY_LENGTH = '15';
+      process.env.AI_CONVERSATION_TIMEOUT = '86400000'; // 1 day
+      process.env.AI_MAX_CONVERSATIONS = '500';
 
-    it("should handle undefined guildId as DM", () => {
-      const userId = "123456789";
-      const key = conversationManager.getConversationKey(userId, undefined);
-      expect(key).toBe("dm_123456789");
-    });
-  });
+      const manager = new ConversationManager();
+      
+      expect(manager.useLongTermMemory).toBe(false);
+      expect(manager.storageType).toBe('memory');
+      expect(manager.maxHistoryLength).toBe(15);
+      expect(manager.conversationTimeout).toBe(86400000);
+      expect(manager.maxConversations).toBe(500);
 
-  describe("parseConversationKey", () => {
-    it("should parse server conversation key correctly", () => {
-      const key = "123456789_987654321";
-      const parsed = conversationManager.parseConversationKey(key);
-      expect(parsed).toEqual({
-        userId: "123456789",
-        guildId: "987654321",
-      });
-    });
-
-    it("should parse DM conversation key correctly", () => {
-      const key = "dm_123456789";
-      const parsed = conversationManager.parseConversationKey(key);
-      expect(parsed).toEqual({
-        userId: "123456789",
-        guildId: null,
-      });
-    });
-
-    it("should handle legacy userId-only format", () => {
-      const key = "123456789";
-      const parsed = conversationManager.parseConversationKey(key);
-      expect(parsed).toEqual({
-        userId: "123456789",
-        guildId: null,
-      });
+      manager.stopCleanup();
     });
   });
 
-  describe("Server Isolation", () => {
-    it("should separate conversations by server", async () => {
-      const userId = "123456789";
-      const guildId1 = "111111111";
-      const guildId2 = "222222222";
-
-      // Add conversation in server 1
-      await conversationManager.addToHistory(userId, guildId1, {
-        role: "user",
-        content: "Hello from server 1",
-      });
-
-      // Add conversation in server 2
-      await conversationManager.addToHistory(userId, guildId2, {
-        role: "user",
-        content: "Hello from server 2",
-      });
-
-      // Get history for server 1
-      const history1 = await conversationManager.getConversationHistory(
-        userId,
-        guildId1,
-      );
-      expect(history1).toHaveLength(1);
-      expect(history1[0].content).toBe("Hello from server 1");
-
-      // Get history for server 2
-      const history2 = await conversationManager.getConversationHistory(
-        userId,
-        guildId2,
-      );
-      expect(history2).toHaveLength(1);
-      expect(history2[0].content).toBe("Hello from server 2");
-
-      // Verify they are separate
-      expect(history1).not.toEqual(history2);
+  describe('Conversation Key Management', () => {
+    it('should generate correct conversation keys for guild conversations', () => {
+      const key = conversationManager.getConversationKey('user123', 'guild456');
+      expect(key).toBe('user123_guild456');
     });
 
-    it("should separate DM conversations from server conversations", async () => {
-      const userId = "123456789";
-      const guildId = "111111111";
-
-      // Add DM conversation
-      await conversationManager.addToHistory(userId, null, {
-        role: "user",
-        content: "Hello from DM",
-      });
-
-      // Add server conversation
-      await conversationManager.addToHistory(userId, guildId, {
-        role: "user",
-        content: "Hello from server",
-      });
-
-      // Get DM history
-      const dmHistory = await conversationManager.getConversationHistory(
-        userId,
-        null,
-      );
-      expect(dmHistory).toHaveLength(1);
-      expect(dmHistory[0].content).toBe("Hello from DM");
-
-      // Get server history
-      const serverHistory = await conversationManager.getConversationHistory(
-        userId,
-        guildId,
-      );
-      expect(serverHistory).toHaveLength(1);
-      expect(serverHistory[0].content).toBe("Hello from server");
-
-      // Verify they are separate
-      expect(dmHistory).not.toEqual(serverHistory);
+    it('should generate correct conversation keys for DM conversations', () => {
+      const key = conversationManager.getConversationKey('user123', null);
+      expect(key).toBe('dm_user123');
     });
 
-    it("should allow same user to have different conversations in different servers", async () => {
-      const userId = "123456789";
-      const guildId1 = "111111111";
-      const guildId2 = "222222222";
+    it('should parse conversation keys correctly', () => {
+      const guildKey = conversationManager.parseConversationKey('user123_guild456');
+      expect(guildKey).toEqual({ userId: 'user123', guildId: 'guild456' });
 
-      // Add multiple messages in server 1
-      await conversationManager.addToHistory(userId, guildId1, {
-        role: "user",
-        content: "Message 1 in server 1",
-      });
-      await conversationManager.addToHistory(userId, guildId1, {
-        role: "assistant",
-        content: "Response 1 in server 1",
-      });
+      const dmKey = conversationManager.parseConversationKey('dm_user123');
+      expect(dmKey).toEqual({ userId: 'user123', guildId: null });
+    });
 
-      // Add different messages in server 2
-      await conversationManager.addToHistory(userId, guildId2, {
-        role: "user",
-        content: "Message 1 in server 2",
-      });
-
-      // Verify server 1 has 2 messages
-      const history1 = await conversationManager.getConversationHistory(
-        userId,
-        guildId1,
-      );
-      expect(history1).toHaveLength(2);
-
-      // Verify server 2 has 1 message
-      const history2 = await conversationManager.getConversationHistory(
-        userId,
-        guildId2,
-      );
-      expect(history2).toHaveLength(1);
+    it('should handle legacy conversation keys', () => {
+      const legacyKey = conversationManager.parseConversationKey('user123');
+      expect(legacyKey).toEqual({ userId: 'user123', guildId: null });
     });
   });
 
-  describe("clearHistory", () => {
-    it("should clear history for specific server only", async () => {
-      const userId = "123456789";
-      const guildId1 = "111111111";
-      const guildId2 = "222222222";
-
-      // Add conversations in both servers
-      await conversationManager.addToHistory(userId, guildId1, {
-        role: "user",
-        content: "Message in server 1",
-      });
-      await conversationManager.addToHistory(userId, guildId2, {
-        role: "user",
-        content: "Message in server 2",
+  describe('Configuration Management', () => {
+    it('should allow configuration updates', () => {
+      conversationManager.setConfig({
+        maxHistoryLength: 25,
+        conversationTimeout: 3600000, // 1 hour
+        maxConversations: 2000,
       });
 
-      // Clear history for server 1 only
-      await conversationManager.clearHistory(userId, guildId1);
-
-      // Verify server 1 is cleared
-      const history1 = await conversationManager.getConversationHistory(
-        userId,
-        guildId1,
-      );
-      expect(history1).toHaveLength(0);
-
-      // Verify server 2 still has history
-      const history2 = await conversationManager.getConversationHistory(
-        userId,
-        guildId2,
-      );
-      expect(history2).toHaveLength(1);
-      expect(history2[0].content).toBe("Message in server 2");
+      expect(conversationManager.maxHistoryLength).toBe(25);
+      expect(conversationManager.conversationTimeout).toBe(3600000);
+      expect(conversationManager.maxConversations).toBe(2000);
     });
 
-    it("should clear DM history separately from server history", async () => {
-      const userId = "123456789";
-      const guildId = "111111111";
-
-      // Add DM conversation
-      await conversationManager.addToHistory(userId, null, {
-        role: "user",
-        content: "DM message",
+    it('should allow partial configuration updates', () => {
+      const originalTimeout = conversationManager.conversationTimeout;
+      
+      conversationManager.setConfig({
+        maxHistoryLength: 30,
       });
 
-      // Add server conversation
-      await conversationManager.addToHistory(userId, guildId, {
-        role: "user",
-        content: "Server message",
-      });
-
-      // Clear DM only
-      await conversationManager.clearHistory(userId, null);
-
-      // Verify DM is cleared
-      const dmHistory = await conversationManager.getConversationHistory(
-        userId,
-        null,
-      );
-      expect(dmHistory).toHaveLength(0);
-
-      // Verify server history remains
-      const serverHistory = await conversationManager.getConversationHistory(
-        userId,
-        guildId,
-      );
-      expect(serverHistory).toHaveLength(1);
+      expect(conversationManager.maxHistoryLength).toBe(30);
+      expect(conversationManager.conversationTimeout).toBe(originalTimeout);
     });
   });
 
-  describe("Backward Compatibility", () => {
-    it("should handle legacy userId-only keys in preload", async () => {
-      // This test verifies that the preload logic handles legacy keys
-      // The actual implementation converts legacy keys to dm_userId format
-      const legacyKey = "123456789";
-      const parsed = conversationManager.parseConversationKey(legacyKey);
-      expect(parsed.userId).toBe("123456789");
-      expect(parsed.guildId).toBe(null);
-    });
-  });
-
-  describe("Edge Cases", () => {
-    it("should handle empty history", async () => {
-      const userId = "123456789";
-      const guildId = "111111111";
-      const history = await conversationManager.getConversationHistory(
-        userId,
-        guildId,
-      );
+  describe('Conversation History Management', () => {
+    it('should return empty array for new conversations', async () => {
+      mockStorageManager.read.mockResolvedValue({});
+      
+      const history = await conversationManager.getConversationHistory('user123', 'guild456');
       expect(history).toEqual([]);
     });
 
-    it("should handle multiple users in same server", async () => {
-      const userId1 = "111111111";
-      const userId2 = "222222222";
-      const guildId = "999999999";
+    it('should add messages to conversation history', async () => {
+      const userId = 'user123';
+      const guildId = 'guild456';
+      const message = { role: 'user', content: 'Hello!' };
 
-      await conversationManager.addToHistory(userId1, guildId, {
-        role: "user",
-        content: "User 1 message",
+      await conversationManager.addToHistory(userId, guildId, message);
+
+      const history = await conversationManager.getConversationHistory(userId, guildId);
+      expect(history).toHaveLength(1);
+      expect(history[0]).toEqual(message);
+    });
+
+    it('should not persist system messages to storage', async () => {
+      const userId = 'user123';
+      const guildId = 'guild456';
+      const systemMessage = { role: 'system', content: 'System prompt' };
+      const userMessage = { role: 'user', content: 'Hello!' };
+
+      await conversationManager.addToHistory(userId, guildId, systemMessage);
+      await conversationManager.addToHistory(userId, guildId, userMessage);
+
+      // System message should be in memory but not saved to storage
+      expect(mockStorageManager.write).toHaveBeenCalledWith(
+        'ai_conversations',
+        expect.objectContaining({
+          'user123_guild456': expect.objectContaining({
+            messages: [userMessage], // Only user message, no system message
+          }),
+        })
+      );
+    });
+
+    it('should limit conversation history length', async () => {
+      const userId = 'user123';
+      const guildId = 'guild456';
+      
+      // Set a small limit for testing
+      conversationManager.setConfig({ maxHistoryLength: 3 });
+
+      // Add 5 messages
+      for (let i = 1; i <= 5; i++) {
+        await conversationManager.addToHistory(userId, guildId, {
+          role: 'user',
+          content: `Message ${i}`,
+        });
+      }
+
+      const history = await conversationManager.getConversationHistory(userId, guildId);
+      expect(history).toHaveLength(3);
+      expect(history[0].content).toBe('Message 3');
+      expect(history[2].content).toBe('Message 5');
+    });
+
+    it('should handle DM conversations separately from guild conversations', async () => {
+      const userId = 'user123';
+      const guildId = 'guild456';
+
+      // Add message to guild conversation
+      await conversationManager.addToHistory(userId, guildId, {
+        role: 'user',
+        content: 'Guild message',
       });
 
-      await conversationManager.addToHistory(userId2, guildId, {
-        role: "user",
-        content: "User 2 message",
+      // Add message to DM conversation
+      await conversationManager.addToHistory(userId, null, {
+        role: 'user',
+        content: 'DM message',
       });
 
-      const history1 = await conversationManager.getConversationHistory(
-        userId1,
-        guildId,
-      );
-      const history2 = await conversationManager.getConversationHistory(
-        userId2,
-        guildId,
-      );
+      const guildHistory = await conversationManager.getConversationHistory(userId, guildId);
+      const dmHistory = await conversationManager.getConversationHistory(userId, null);
 
-      expect(history1).toHaveLength(1);
-      expect(history1[0].content).toBe("User 1 message");
-      expect(history2).toHaveLength(1);
-      expect(history2[0].content).toBe("User 2 message");
+      expect(guildHistory).toHaveLength(1);
+      expect(guildHistory[0].content).toBe('Guild message');
+      
+      expect(dmHistory).toHaveLength(1);
+      expect(dmHistory[0].content).toBe('DM message');
+    });
+  });
+
+  describe('Conversation Expiration', () => {
+    it('should expire old conversations', async () => {
+      const userId = 'user123';
+      const guildId = 'guild456';
+      
+      // Set short timeout for testing
+      conversationManager.setConfig({ conversationTimeout: 1000 }); // 1 second
+
+      // Add a message
+      await conversationManager.addToHistory(userId, guildId, {
+        role: 'user',
+        content: 'Test message',
+      });
+
+      // Verify message exists
+      let history = await conversationManager.getConversationHistory(userId, guildId);
+      expect(history).toHaveLength(1);
+
+      // Wait for expiration
+      await new Promise(resolve => {
+        setTimeout(resolve, 1100);
+      });
+
+      // Message should be expired and removed
+      history = await conversationManager.getConversationHistory(userId, guildId);
+      expect(history).toHaveLength(0);
+    });
+  });
+
+  describe('Conversation Clearing', () => {
+    it('should clear conversation history', async () => {
+      const userId = 'user123';
+      const guildId = 'guild456';
+
+      // Add messages
+      await conversationManager.addToHistory(userId, guildId, {
+        role: 'user',
+        content: 'Message 1',
+      });
+      await conversationManager.addToHistory(userId, guildId, {
+        role: 'assistant',
+        content: 'Response 1',
+      });
+
+      // Verify messages exist
+      let history = await conversationManager.getConversationHistory(userId, guildId);
+      expect(history).toHaveLength(2);
+
+      // Clear history
+      await conversationManager.clearHistory(userId, guildId);
+
+      // Verify history is cleared
+      history = await conversationManager.getConversationHistory(userId, guildId);
+      expect(history).toHaveLength(0);
+    });
+
+    it('should call clear callback when clearing history', async () => {
+      const userId = 'user123';
+      const guildId = 'guild456';
+      const clearCallback = vi.fn();
+
+      conversationManager.setClearCallback(clearCallback);
+
+      await conversationManager.clearHistory(userId, guildId, clearCallback);
+
+      expect(clearCallback).toHaveBeenCalledWith(userId, guildId);
+    });
+  });
+
+  describe('Storage Integration', () => {
+    it('should save conversations to file storage', async () => {
+      const userId = 'user123';
+      const guildId = 'guild456';
+      const message = { role: 'user', content: 'Test message' };
+
+      await conversationManager.addToHistory(userId, guildId, message);
+
+      expect(mockStorageManager.write).toHaveBeenCalledWith(
+        'ai_conversations',
+        expect.objectContaining({
+          'user123_guild456': expect.objectContaining({
+            messages: [message],
+            lastActivity: expect.any(Number),
+          }),
+        })
+      );
+    });
+
+    it('should load conversations from file storage', async () => {
+      const userId = 'user123';
+      const guildId = 'guild456';
+      const storedData = {
+        'user123_guild456': {
+          messages: [{ role: 'user', content: 'Stored message' }],
+          lastActivity: Date.now(),
+        },
+      };
+
+      mockStorageManager.read.mockResolvedValue(storedData);
+
+      const history = await conversationManager.getConversationHistory(userId, guildId);
+      expect(history).toHaveLength(1);
+      expect(history[0].content).toBe('Stored message');
+    });
+
+    it('should handle storage errors gracefully', async () => {
+      const userId = 'user123';
+      const guildId = 'guild456';
+
+      mockStorageManager.read.mockRejectedValue(new Error('Storage error'));
+      mockStorageManager.write.mockRejectedValue(new Error('Storage error'));
+
+      // Should not throw errors
+      const history = await conversationManager.getConversationHistory(userId, guildId);
+      expect(history).toEqual([]);
+
+      await expect(conversationManager.addToHistory(userId, guildId, {
+        role: 'user',
+        content: 'Test',
+      })).resolves.not.toThrow();
+    });
+  });
+
+  describe('Memory Management', () => {
+    it('should evict oldest conversation when at capacity', async () => {
+      // Set small capacity for testing
+      conversationManager.setConfig({ maxConversations: 2 });
+
+      // Add conversations
+      await conversationManager.addToHistory('user1', 'guild1', {
+        role: 'user',
+        content: 'Message 1',
+      });
+
+      await conversationManager.addToHistory('user2', 'guild2', {
+        role: 'user',
+        content: 'Message 2',
+      });
+
+      // Wait a bit to ensure different timestamps
+      await new Promise(resolve => {
+        setTimeout(resolve, 10);
+      });
+
+      // Add third conversation (should evict oldest)
+      await conversationManager.addToHistory('user3', 'guild3', {
+        role: 'user',
+        content: 'Message 3',
+      });
+
+      // First conversation should be evicted
+      const history1 = await conversationManager.getConversationHistory('user1', 'guild1');
+      const history2 = await conversationManager.getConversationHistory('user2', 'guild2');
+      const history3 = await conversationManager.getConversationHistory('user3', 'guild3');
+
+      expect(history1).toHaveLength(0); // Evicted
+      expect(history2).toHaveLength(1); // Still exists
+      expect(history3).toHaveLength(1); // Still exists
+    });
+  });
+
+  describe('Cleanup Process', () => {
+    it('should start and stop cleanup interval', () => {
+      const manager = new ConversationManager();
+      expect(manager.cleanupInterval).toBeTruthy();
+
+      manager.stopCleanup();
+      expect(manager.cleanupInterval).toBeNull();
     });
   });
 });

@@ -13,11 +13,6 @@ const responseValidator = {
     return data.replace(/[<>@#&]/g, "").trim();
   },
 };
-import {
-  MEMBER_FETCH_TIMEOUT,
-  MAX_MEMBER_FETCH_SERVER_SIZE,
-  MAX_MEMBERS_TO_DISPLAY,
-} from "./constants.js";
 
 const logger = getLogger();
 
@@ -31,7 +26,7 @@ export class ServerInfoGatherer {
    * @param {import('discord.js').Guild} guild - Discord guild
    * @param {import('discord.js').Client} _client - Discord client (unused)
    * @param {Object} options - Options for server info
-   * @param {boolean} options.includeMemberList - Whether to include full member list (default: true)
+   * @param {boolean} options.includeMemberList - Whether to include member guidance (default: true)
    * @returns {Promise<string>} Formatted server information
    */
   async getServerInfo(guild, _client, options = {}) {
@@ -98,190 +93,23 @@ export class ServerInfoGatherer {
         info += `\n`;
       }
 
-      // Member names - Only fetch if needed (can be slow for large servers)
-      // IMPORTANT: This section MUST be used when asked for member names
+      // Member information - Guide users to Discord's built-in features instead of fetching
       if (includeMemberList) {
-        try {
-          let membersCollection = guild.members.cache;
-          const cachedBeforeFetch = membersCollection.size;
-          const totalMembers = guild.memberCount;
-          let allMembersFetched = false;
-
-          // If we don't have all members cached, try to fetch them
-          // For servers > 1000 members, only use cached members (fetching all is too slow)
-          if (
-            cachedBeforeFetch < totalMembers &&
-            totalMembers <= MAX_MEMBER_FETCH_SERVER_SIZE
-          ) {
-            try {
-              logger.debug(
-                `[getServerInfo] Fetching members: ${cachedBeforeFetch}/${totalMembers} cached`,
-              );
-              const fetchPromise = guild.members.fetch();
-              const timeoutPromise = new Promise((_, reject) => {
-                setTimeout(
-                  () => reject(new Error("Member fetch timed out")),
-                  MEMBER_FETCH_TIMEOUT,
-                );
-              });
-
-              await Promise.race([fetchPromise, timeoutPromise]);
-              membersCollection = guild.members.cache;
-              allMembersFetched = membersCollection.size >= totalMembers * 0.95; // 95% threshold
-              logger.debug(
-                `[getServerInfo] Fetched members: ${membersCollection.size}/${totalMembers} (${allMembersFetched ? "complete" : "partial"})`,
-              );
-            } catch (fetchError) {
-              if (fetchError.message?.includes("timed out")) {
-                logger.debug(
-                  `[getServerInfo] Member fetch timed out - using cached members`,
-                );
-              } else if (fetchError.message?.includes("Missing Access")) {
-                logger.debug(
-                  `[getServerInfo] Missing GUILD_MEMBERS intent - using cached members`,
-                );
-              } else {
-                logger.debug(
-                  `[getServerInfo] Failed to fetch members: ${fetchError.message} - using cached`,
-                );
-              }
-              // Continue with cached members
-              membersCollection = guild.members.cache;
-            }
-          } else if (cachedBeforeFetch >= totalMembers) {
-            allMembersFetched = true;
-          } else if (totalMembers > MAX_MEMBER_FETCH_SERVER_SIZE) {
-            // Server too large - only use cached members
-            logger.debug(
-              `[getServerInfo] Server has ${totalMembers} members (exceeds ${MAX_MEMBER_FETCH_SERVER_SIZE} limit) - using cached members only`,
-            );
-            allMembersFetched = false; // Mark as partial since we can't fetch all
-          }
-
-          if (membersCollection && membersCollection.size > 0) {
-            // Get human members only (exclude bots)
-            // Double-check bot status: check both member.user.bot and application flags
-            const humanMembersWithStatus = Array.from(
-              membersCollection.values(),
-            )
-              .filter(member => {
-                if (!member || !member.user) return false;
-                // Exclude if marked as bot
-                if (member.user.bot) return false;
-                // Exclude if has bot tag (application flag)
-                if (member.user.flags?.has?.("BotHTTPInteractions"))
-                  return false;
-                // Additional check: exclude common bot name patterns
-                const username = member.user.username?.toLowerCase() || "";
-                const displayName = member.displayName?.toLowerCase() || "";
-                const nameToCheck = displayName || username;
-                // Exclude if name contains common bot indicators
-                if (
-                  nameToCheck.includes("bot") ||
-                  nameToCheck.includes("chatgpt") ||
-                  nameToCheck.includes("gpt") ||
-                  nameToCheck.includes("[bot]") ||
-                  nameToCheck.includes("(bot)")
-                ) {
-                  // But allow if it's clearly a human (e.g., "ChatGPT User" vs "ChatGPT Bot")
-                  // Only exclude if it's clearly a bot name pattern
-                  if (
-                    nameToCheck.startsWith("bot") ||
-                    nameToCheck.endsWith("bot") ||
-                    nameToCheck.includes("chatgpt") ||
-                    nameToCheck.includes("gpt-")
-                  ) {
-                    return false;
-                  }
-                }
-                return true;
-              })
-              .map(member => {
-                // Use displayName if available, otherwise username
-                const name =
-                  member.displayName || member.user?.username || "Unknown";
-                const sanitizedName = responseValidator.sanitizeData(name);
-
-                // Get presence status (if available)
-                const presence = member.presence;
-                const status = presence?.status || "offline"; // "online", "idle", "dnd", "offline"
-
-                return {
-                  name: sanitizedName,
-                  status,
-                };
-              })
-              .filter(({ name }) => name && name !== "Unknown")
-              .slice(0, MAX_MEMBERS_TO_DISPLAY);
-
-            logger.debug(
-              `[getServerInfo] Human members found: ${humanMembersWithStatus.length} (${allMembersFetched ? "complete" : "partial"})`,
-            );
-
-            if (humanMembersWithStatus.length > 0) {
-              info += `**Human Member Names (Status: 🟢online 🟡idle 🔴dnd ⚫offline):**\n`;
-              info += `**CRITICAL:** Use ONLY names from this list. Never invent names. DND = online (Do Not Disturb). Bots excluded.\n`;
-              if (!allMembersFetched) {
-                const totalHumanMembers = memberCounts?.humans || "unknown";
-                if (totalMembers > MAX_MEMBER_FETCH_SERVER_SIZE) {
-                  info += `⚠️ Partial list: ${humanMembersWithStatus.length} of ${totalHumanMembers} shown (server >${MAX_MEMBER_FETCH_SERVER_SIZE} members)\n`;
-                } else {
-                  info += `⚠️ Partial list: ${humanMembersWithStatus.length} of ${totalHumanMembers} shown\n`;
-                }
-              }
-              info += `\n`;
-              // Provide structured data - AI can format it naturally
-              humanMembersWithStatus.forEach(member => {
-                const statusEmoji =
-                  {
-                    online: "🟢",
-                    idle: "🟡",
-                    dnd: "🔴",
-                    offline: "⚫",
-                  }[member.status] || "⚫";
-                info += `- ${member.name} ${statusEmoji} (${member.status})\n`;
-              });
-              info += `\n`;
-            } else {
-              info += `**COMPLETE LIST OF HUMAN MEMBER NAMES:**\n`;
-              info += `- No human members found in cache\n`;
-              info += `- This may be due to cache limitations or server permissions\n`;
-              info += `\n`;
-            }
-
-            // Get bot members (for reference, but not included in "members" count)
-            const botMembers = Array.from(membersCollection.values())
-              .filter(member => member && member.user && member.user.bot)
-              .map(member => {
-                const name =
-                  member.displayName || member.user?.username || "Unknown";
-                return responseValidator.sanitizeData(name);
-              })
-              .filter(name => name && name !== "Unknown")
-              .slice(0, MAX_MEMBERS_TO_DISPLAY);
-
-            if (botMembers.length > 0) {
-              info += `**Bot Names (NOT human members):**\n`;
-              info += `**Note:** "members"/"users"/"people" = humans above. "bots" = this list.\n`;
-              botMembers.forEach((name, index) => {
-                info += `${index + 1}. ${name} [BOT]\n`;
-              });
-              info += `\n`;
-            }
-          } else {
-            info += `**Human Member Names:**\n`;
-            info += `- No members found in cache (may be due to cache limits or permissions)\n\n`;
-          }
-        } catch (error) {
-          logger.debug("Error fetching member names:", error);
-          info += `**Human Member Names:**\n`;
-          info += `- Error: ${error.message}\n\n`;
-        }
-      } else {
-        // Skip member list for faster responses - can use fetch_members action if needed
-        info += `**Member Names:**\n`;
-        info += `- Use "fetch_members" action to get complete member list when needed\n`;
-        info += `- Current cached: ${memberCounts?.humans || 0} human members\n\n`;
+        info += `**Member Information:**\n`;
+        info += `**IMPORTANT:** For member lists, names, and status - guide users to Discord's built-in features:\n`;
+        info += `- **Member List:** Check the right sidebar for all members with live status indicators\n`;
+        info += `- **Search Members:** Press Ctrl+K (Cmd+K on Mac) to search for specific users\n`;
+        info += `- **Online Status:** 🟢 Online, 🟡 Idle, 🔴 Do Not Disturb, ⚫ Offline\n`;
+        info += `- **Role Members:** Server Settings → Roles → Click any role to see its members\n`;
+        info += `- **Member Profiles:** Click any member to see their profile, roles, and join date\n`;
+        info += `\n`;
+        info += `**Why Discord's features are better:**\n`;
+        info += `- ✅ Always up-to-date (real-time)\n`;
+        info += `- ✅ Shows live status changes\n`;
+        info += `- ✅ Includes all members (no limits)\n`;
+        info += `- ✅ Interactive (click for profiles)\n`;
+        info += `- ✅ Fast and reliable\n`;
+        info += `\n`;
       }
 
       // Channel information

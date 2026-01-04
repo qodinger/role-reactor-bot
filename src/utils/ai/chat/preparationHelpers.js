@@ -1,26 +1,4 @@
 import { systemPromptBuilder } from "../systemPromptBuilder.js";
-// Simple inline data fetcher (replaces deleted dataFetcher)
-const dataFetcher = {
-  smartMemberFetch: async (guild, userMessage) => {
-    const needsFetch = userMessage.toLowerCase().includes("member");
-    if (!needsFetch) {
-      return { fetched: false, reason: "Not needed" };
-    }
-    try {
-      const before = guild.members.cache.size;
-      await guild.members.fetch();
-      const after = guild.members.cache.size;
-      return {
-        fetched: true,
-        fetchedCount: after - before,
-        cached: after,
-        total: guild.memberCount,
-      };
-    } catch (error) {
-      return { fetched: false, reason: error.message };
-    }
-  },
-};
 import { AI_STATUS_MESSAGES } from "../statusMessages.js";
 import { getLogger } from "../../logger.js";
 
@@ -230,7 +208,7 @@ export async function prepareSystemContextAndLog(
 }
 
 /**
- * Perform smart member fetching based on user query
+ * Smart member fetch - now guides users to Discord's built-in features instead
  * @param {import('discord.js').Guild} guild - Discord guild
  * @param {string} userMessage - User's message
  * @param {Function} onStatus - Optional status callback
@@ -239,22 +217,18 @@ export async function prepareSystemContextAndLog(
 export async function performSmartMemberFetch(
   guild,
   userMessage,
-  onStatus = null,
+  _onStatus = null,
 ) {
   if (!guild || !userMessage) {
     return { fetched: false, reason: "No guild or message" };
   }
 
-  if (onStatus) await onStatus(AI_STATUS_MESSAGES.CHECKING_SERVER);
-  const fetchResult = await dataFetcher.smartMemberFetch(guild, userMessage);
-  if (fetchResult.fetched) {
-    logger.debug(
-      `[generateResponse] Auto-fetched ${fetchResult.fetchedCount} members (${fetchResult.cached}/${fetchResult.total} cached)`,
-    );
-  } else {
-    logger.debug(
-      `[generateResponse] Smart fetch skipped: ${fetchResult.reason} (${fetchResult.cached || 0}/${fetchResult.total || 0} cached)`,
-    );
-  }
-  return fetchResult;
+  // Member fetching has been removed - guide users to Discord's built-in features
+  logger.debug(
+    `[generateResponse] Member fetching disabled - guiding user to Discord features`,
+  );
+  return { 
+    fetched: false, 
+    reason: "Member fetching disabled - users guided to Discord's member list" 
+  };
 }

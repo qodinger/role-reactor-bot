@@ -109,7 +109,7 @@ export class SystemPromptBuilder {
     const cached = this.systemMessageCache.get(cacheKey);
 
     // Check cache (5 minutes timeout for command updates)
-    // Skip cache if forcing member list inclusion (after fetch_members action)
+    // Skip cache if forcing member list inclusion (after fetch_all action)
     let baseContext = null;
     if (
       cached &&
@@ -120,7 +120,7 @@ export class SystemPromptBuilder {
     }
 
     // Determine if we need detailed info based on user message
-    // Force include if fetch_members was just executed
+    // Force include if fetch_all was just executed
     const needsMemberList =
       forceIncludeMemberList ||
       (userMessage &&

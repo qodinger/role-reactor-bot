@@ -186,7 +186,7 @@ export async function performStreamingGeneration(
 
   const result = await aiService.generateTextStreaming({
     prompt: messages,
-    model: null, // Use default
+    model: currentModel, // Use the determined model
     config: {
       systemMessage: null, // Already in messages
       temperature,

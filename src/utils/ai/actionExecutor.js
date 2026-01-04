@@ -4,28 +4,11 @@ import {
   actionRequiresGuild,
   validateActionOptions,
 } from "./actionRegistry.js";
+
+const logger = getLogger();
+
 // Simple inline data fetcher (replaces deleted dataFetcher)
 const dataFetcher = {
-  fetchMembers: async guild => {
-    try {
-      const before = guild.members.cache.size;
-      await guild.members.fetch();
-      const after = guild.members.cache.size;
-      return {
-        success: true,
-        fetched: after - before,
-        cached: after,
-        total: guild.memberCount,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error.message,
-        cached: guild.members.cache.size,
-        total: guild.memberCount,
-      };
-    }
-  },
   getMemberInfo: async (guild, options) => {
     const member = options.user_id
       ? guild.members.cache.get(options.user_id)
@@ -61,17 +44,14 @@ const dataFetcher = {
     }
     return null;
   },
-  smartMemberFetch: async (guild, userMessage) => {
-    const needsFetch = userMessage.toLowerCase().includes("member");
-    if (!needsFetch) {
-      return { fetched: false, reason: "Not needed" };
-    }
-    const result = await dataFetcher.fetchMembers(guild);
-    return { ...result, fetched: result.success };
+  smartMemberFetch: async (_guild, _userMessage) => {
+    // Member fetching has been removed - guide users to Discord's built-in features
+    return { 
+      fetched: false, 
+      reason: "Member fetching disabled - guide users to Discord's member list" 
+    };
   },
 };
-
-const logger = getLogger();
 
 /**
  * Action Executor for AI chat service
@@ -211,41 +191,6 @@ export class ActionExecutor {
 
       try {
         switch (action.type) {
-          case "fetch_members": {
-            if (!guild) {
-              results.push("Error: Cannot fetch members - not in a server");
-              break;
-            }
-            try {
-              const fetchResult = await dataFetcher.fetchMembers(guild);
-              if (fetchResult.success) {
-                if (fetchResult.fetched && fetchResult.fetched > 0) {
-                  results.push(
-                    `Success: Fetched ${fetchResult.fetched} additional members (${fetchResult.cached}/${fetchResult.total} total now cached)`,
-                  );
-                } else if (fetchResult.message) {
-                  results.push(
-                    `Success: ${fetchResult.message} (${fetchResult.cached}/${fetchResult.total} cached)`,
-                  );
-                } else {
-                  results.push(
-                    `Success: All members already cached (${fetchResult.cached}/${fetchResult.total})`,
-                  );
-                }
-              } else {
-                // Error occurred - include error message for AI to report to user
-                results.push(`Error: ${fetchResult.error}`);
-              }
-            } catch (error) {
-              const errorMessage = error.message || "Unknown error occurred";
-              logger.error(
-                `[fetch_members] Unexpected error: ${errorMessage}`,
-                error,
-              );
-              results.push(`Error: Failed to fetch members - ${errorMessage}`);
-            }
-            break;
-          }
 
           case "fetch_channels":
             if (!guild) {
@@ -271,29 +216,13 @@ export class ActionExecutor {
               break;
             }
             try {
-              const memberFetchResult = await dataFetcher.fetchMembers(guild);
-              if (!memberFetchResult.success) {
-                results.push(
-                  `Error fetching members: ${memberFetchResult.error}`,
-                );
-              } else {
-                results.push(
-                  `Success: Fetched ${memberFetchResult.fetched || 0} members (${memberFetchResult.cached}/${memberFetchResult.total} cached)`,
-                );
-              }
-
+              // Note: Member fetching has been removed for security and performance
+              // Only fetch channels and roles now
               await guild.channels.fetch();
               await guild.roles.fetch();
-
-              if (memberFetchResult.success) {
-                results.push(
-                  "Success: Fetched all server data (members, channels, roles)",
-                );
-              } else {
-                results.push(
-                  "Partial success: Fetched channels and roles, but member fetch had errors",
-                );
-              }
+              results.push(
+                "Success: Fetched server data (channels, roles). For member information, users should check Discord's member list.",
+              );
             } catch (error) {
               const errorMessage = error.message || "Unknown error occurred";
               logger.error(
@@ -301,7 +230,7 @@ export class ActionExecutor {
                 error,
               );
               results.push(
-                `Error: Failed to fetch all server data - ${errorMessage}`,
+                `Error: Failed to fetch server data - ${errorMessage}`,
               );
             }
             break;

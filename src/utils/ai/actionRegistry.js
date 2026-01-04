@@ -36,14 +36,6 @@ export const ACTION_REGISTRY = {
   // ============================================================================
   // DATA FETCHING ACTIONS (Trigger Re-Query)
   // ============================================================================
-  fetch_members: {
-    type: "fetch_members",
-    category: ACTION_CATEGORIES.DATA_FETCH,
-    requiresGuild: true,
-    triggersReQuery: true,
-    requiresOptions: false,
-    description: "Fetch all server members (human members and bots)",
-  },
   fetch_channels: {
     type: "fetch_channels",
     category: ACTION_CATEGORIES.DATA_FETCH,

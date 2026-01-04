@@ -151,7 +151,7 @@ export async function executeReQuery(
   );
 
   // Determine what data to force include based on action types
-  const memberActions = fetchActions.filter(a => a.type === "fetch_members");
+  // Note: fetch_members has been removed - no longer supported
 
   // Rebuild system context with freshly fetched/updated data
   const updatedSystemMessage = await systemPromptBuilder.buildSystemContext(
@@ -162,9 +162,7 @@ export async function executeReQuery(
     user || null,
     {
       userId,
-      forceIncludeMemberList:
-        memberActions.length > 0 ||
-        fetchActions.some(a => a.type === "fetch_all"),
+      forceIncludeMemberList: fetchActions.some(a => a.type === "fetch_all"),
     },
   );
 
