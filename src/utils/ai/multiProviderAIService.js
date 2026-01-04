@@ -1,15 +1,10 @@
 import { getLogger } from "../logger.js";
-import {
-  PROVIDER_FALLBACK_ENABLED,
-  PROVIDER_RETRY_ATTEMPTS,
-  PROVIDER_RETRY_DELAY,
-} from "./constants.js";
 import { performanceMonitor } from "./performanceMonitor.js";
 import { ProviderManager } from "./providers/providerManager.js";
 import { OpenRouterProvider } from "./providers/openRouterProvider.js";
 import { OpenAIProvider } from "./providers/openAIProvider.js";
 import { StabilityProvider } from "./providers/stabilityProvider.js";
-import { ComfyUIProvider } from "./providers/comfyUIProvider.js";
+import { ComfyUIProvider } from "./providers/ComfyUIProvider.js";
 import { RunPodServerlessProvider } from "./providers/runpodServerlessProvider.js";
 import { AI_STATUS_MESSAGES } from "./statusMessages.js";
 
@@ -138,11 +133,12 @@ export class MultiProviderAIService {
 
   /**
    * Get the appropriate provider for image generation
-   * Skips self-hosted (Ollama doesn't do images) and prefers Stability AI
+   * Smart routing based on content type for optimal results
+   * @param {boolean} isNSFW - Whether content is NSFW for smart routing
    * @returns {string|null} Provider key or null if none enabled
    */
-  getImageProvider() {
-    return this.providerManager.getImageProvider();
+  getImageProvider(isNSFW = false) {
+    return this.providerManager.getImageProvider(isNSFW);
   }
 
   /**
@@ -177,6 +173,9 @@ export class MultiProviderAIService {
         stability: new StabilityProvider(
           this.config.providers?.stability || {},
         ),
+        runpod: new RunPodServerlessProvider(
+          this.config.providers?.runpod || {},
+        ),
         comfyui: new ComfyUIProvider(this.config.providers?.comfyui || {}),
       };
     }
@@ -195,7 +194,9 @@ export class MultiProviderAIService {
     if (!targetProvider) {
       // Route to appropriate provider based on type
       if (type === "image") {
-        targetProvider = this.getImageProvider();
+        // Pass NSFW flag for smart provider routing
+        const isNSFW = genConfig.isNSFW || false;
+        targetProvider = this.getImageProvider(isNSFW);
         if (!targetProvider) {
           throw new Error(
             "Image generation is currently unavailable. No image generation service is configured.",
@@ -246,151 +247,86 @@ export class MultiProviderAIService {
     }
 
     const startTime = Date.now();
-    let lastError = null;
-    const attemptedProviders = new Set();
 
-    // Try primary provider first, then fallback to others if enabled
-    const providersToTry = [targetProvider];
-    if (PROVIDER_FALLBACK_ENABLED && !provider) {
-      // Add fallback providers in priority order
-      if (type === "image") {
-        const fallbacks = ["comfyui", "stability", "openai", "openrouter"];
-        for (const fallback of fallbacks) {
-          if (
-            fallback !== targetProvider &&
-            this.config.providers[fallback]?.enabled
-          ) {
-            // ComfyUI and selfhosted don't require API key
-            if (
-              fallback === "comfyui" ||
-              fallback === "selfhosted" ||
-              this.config.providers[fallback]?.apiKey
-            ) {
-              providersToTry.push(fallback);
-            }
-          }
-        }
-      } else if (type === "text" || type === "chat") {
-        const fallbacks = ["selfhosted", "openrouter", "openai"];
-        for (const fallback of fallbacks) {
-          if (
-            fallback !== targetProvider &&
-            this.config.providers[fallback]?.enabled
-          ) {
-            if (
-              fallback === "selfhosted" ||
-              this.config.providers[fallback]?.apiKey
-            ) {
-              providersToTry.push(fallback);
-            }
-          }
-        }
-      }
+    // ONLY use the exact configured provider - NO FALLBACKS
+
+    // Try ONLY the configured provider - NO FALLBACKS OR RETRIES
+    const currentProvider = targetProvider;
+    const currentProviderConfig = this.config.providers[currentProvider];
+
+    if (!currentProviderConfig || !currentProviderConfig.enabled) {
+      throw new Error(
+        `The configured AI provider '${currentProvider}' is not enabled. Please check your AI configuration.`,
+      );
     }
 
-    // Try each provider until one succeeds
-    for (
-      let attempt = 0;
-      attempt < Math.min(providersToTry.length, PROVIDER_RETRY_ATTEMPTS + 1);
-      attempt++
+    if (
+      currentProvider !== "selfhosted" &&
+      currentProvider !== "comfyui" &&
+      !currentProviderConfig.apiKey
     ) {
-      const currentProvider = providersToTry[attempt];
-      const currentProviderConfig = this.config.providers[currentProvider];
-
-      if (!currentProviderConfig || !currentProviderConfig.enabled) {
-        continue;
-      }
-
-      if (
-        currentProvider !== "selfhosted" &&
-        currentProvider !== "comfyui" &&
-        !currentProviderConfig.apiKey
-      ) {
-        continue;
-      }
-
-      if (attemptedProviders.has(currentProvider)) {
-        continue; // Already tried this provider
-      }
-
-      attemptedProviders.add(currentProvider);
-
-      try {
-        logger.debug(
-          `Using ${currentProviderConfig.name} for ${type} generation${attempt > 0 ? ` (fallback attempt ${attempt})` : ""}`,
-        );
-
-        let result;
-
-        if (type === "image") {
-          result = await this.generateImage(
-            prompt,
-            genConfig,
-            currentProvider,
-            progressCallback,
-          );
-        } else if (type === "text" || type === "chat") {
-          result = await this.generateText(prompt, genConfig, currentProvider);
-        } else {
-          throw new Error(
-            "The AI service encountered an internal error. This feature is temporarily unavailable.",
-          );
-        }
-
-        const responseTime = Date.now() - startTime;
-
-        // Record successful request
-        performanceMonitor.recordRequest({
-          provider: currentProvider,
-          responseTime,
-          success: true,
-        });
-
-        logger.info(
-          `AI generation completed using ${currentProviderConfig.name} in ${responseTime}ms${attempt > 0 ? ` (after ${attempt} fallback attempt(s))` : ""}`,
-        );
-        return result;
-      } catch (error) {
-        lastError = error;
-        const responseTime = Date.now() - startTime;
-
-        // Record failed request
-        performanceMonitor.recordRequest({
-          provider: currentProvider,
-          responseTime,
-          success: false,
-          error: error.message,
-        });
-
-        logger.warn(
-          `AI generation failed with ${currentProviderConfig.name}: ${error.message}${attempt < providersToTry.length - 1 ? " - trying fallback provider..." : ""}`,
-        );
-
-        // If there are more providers to try, wait before retrying
-        if (attempt < providersToTry.length - 1) {
-          await new Promise(resolve => {
-            setTimeout(() => {
-              resolve();
-            }, PROVIDER_RETRY_DELAY);
-          });
-        }
-      }
+      throw new Error(
+        `The configured AI provider '${currentProvider}' is missing API key. Please configure the API key.`,
+      );
     }
 
-    // All providers failed
-    logger.error(
-      `AI generation failed with all providers (${attemptedProviders.size} attempted)`,
-    );
-    throw (
-      lastError ||
-      new Error(
-        "Image generation failed. All AI services are currently unavailable. Please try again later.",
-      )
-    );
+    try {
+      logger.debug(
+        `Using ${currentProviderConfig.name} for ${type} generation (NO FALLBACKS)`,
+      );
+
+      let result;
+
+      if (type === "image") {
+        result = await this.generateImage(
+          prompt,
+          genConfig,
+          currentProvider,
+          progressCallback,
+        );
+      } else if (type === "text" || type === "chat") {
+        result = await this.generateText(prompt, genConfig, currentProvider);
+      } else {
+        throw new Error(
+          "The AI service encountered an internal error. This feature is temporarily unavailable.",
+        );
+      }
+
+      const responseTime = Date.now() - startTime;
+
+      // Record successful request
+      performanceMonitor.recordRequest({
+        provider: currentProvider,
+        responseTime,
+        success: true,
+      });
+
+      logger.info(
+        `AI generation completed using ${currentProviderConfig.name} in ${responseTime}ms (NO FALLBACKS)`,
+      );
+      return result;
+    } catch (error) {
+      const responseTime = Date.now() - startTime;
+
+      // Record failed request
+      performanceMonitor.recordRequest({
+        provider: currentProvider,
+        responseTime,
+        success: false,
+        error: error.message,
+      });
+
+      logger.error(
+        `AI generation failed with ${currentProviderConfig.name}: ${error.message} (NO FALLBACKS - FAILING)`,
+      );
+
+      // NO FALLBACKS - throw the error immediately
+      throw error;
+    }
   }
 
   /**
-   * Generate image using specified provider
+   * Generate image using specified provider - NO FALLBACKS
    * @param {string} prompt - Image generation prompt
    * @param {Object} config - Generation configuration
    * @param {string} provider - Provider to use
@@ -398,8 +334,20 @@ export class MultiProviderAIService {
    * @returns {Promise<Object>} Generated image data
    */
   async generateImage(prompt, config, provider, progressCallback = null) {
-    const providerConfig = this.config.providers[provider];
-    const model = providerConfig.models.image.primary;
+    // Get model from feature-based config - ONLY use the exact configured model
+    const isNSFW = config.isNSFW || false;
+    const featureName = isNSFW ? "imagineNSFW" : "imagineGeneral";
+    const feature = this.config.features?.[featureName];
+
+    // ONLY use the exact configured model for this feature - NO FALLBACKS
+    const model = feature?.model;
+
+    // If no model configured in feature, fail - NO FALLBACKS
+    if (!model) {
+      throw new Error(
+        `No model configured for feature ${featureName}. Please configure a model in the AI settings.`,
+      );
+    }
 
     if (progressCallback) {
       progressCallback(AI_STATUS_MESSAGES.MULTIPROVIDER_INITIALIZING);
@@ -412,24 +360,43 @@ export class MultiProviderAIService {
       );
     }
 
+    // Pass feature name to provider for model selection
+    const enhancedConfig = {
+      ...config,
+      featureName,
+    };
+
     return providerInstance.generateImage(
       prompt,
       model,
-      config,
+      enhancedConfig,
       progressCallback,
     );
   }
 
   /**
-   * Generate text/chat using specified provider
+   * Generate text/chat using specified provider - NO FALLBACKS
    * @param {string|Array} prompt - Text prompt or messages array
    * @param {Object} config - Generation configuration
    * @param {string} provider - Provider to use
    * @returns {Promise<Object>} Generated text data
    */
   async generateText(prompt, config, provider) {
-    const providerConfig = this.config.providers[provider];
-    const model = providerConfig.models?.text?.primary || config.model;
+    // Get model from feature-based config - ONLY use the exact configured model
+    let model = config.model; // Use provided model first
+
+    if (!model && this.providerManager) {
+      // Try to get model from aiChat feature
+      const feature = this.config.features?.aiChat;
+      model = feature?.model;
+    }
+
+    // If no model configured, fail - NO FALLBACKS
+    if (!model) {
+      throw new Error(
+        "No model configured for AI chat. Please configure a model in the AI settings.",
+      );
+    }
 
     const providerInstance = this.providers[provider];
     if (!providerInstance) {
