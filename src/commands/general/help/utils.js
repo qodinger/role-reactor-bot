@@ -106,7 +106,7 @@ export async function sortCommandsByCategory(commands, client = null) {
         name.includes("goodbye") ||
         name.includes("xp") ||
         name.includes("moderation") ||
-        name.includes("voice-control") ||
+        name.includes("voice-roles") ||
         name.includes("schedule-role")
       ) {
         category = "admin";

@@ -306,18 +306,18 @@ Automatically manage users in voice channels based on roles:
 **Configure voice control roles:**
 
 ```
-/voice-control disconnect add role:@Muted
-/voice-control mute add role:@Restricted
-/voice-control deafen add role:@Punished
-/voice-control move add role:@SupportTeam channel:#support-voice
+/voice-roles disconnect add role:@Muted
+/voice-roles mute add role:@Restricted
+/voice-roles deafen add role:@Punished
+/voice-roles move add role:@SupportTeam channel:#support-voice
 ```
 
 **Manage voice control:**
 
 ```
-/voice-control list
-/voice-control disconnect remove role:@Muted
-/voice-control mute remove role:@Restricted
+/voice-roles list
+/voice-roles disconnect remove role:@Muted
+/voice-roles mute remove role:@Restricted
 ```
 
 **How it works:**
@@ -408,11 +408,11 @@ Automatically manage users in voice channels based on roles:
 | `/moderation history`           | View moderation history                    | Administrator |
 | `/moderation remove-warn`       | Remove a warning by case ID                | Administrator |
 | `/moderation list-bans`         | List all banned users                      | Administrator |
-| `/voice-control disconnect add` | Add role that disconnects users from voice | Administrator |
-| `/voice-control mute add`       | Add role that mutes users in voice         | Administrator |
-| `/voice-control deafen add`     | Add role that deafens users in voice       | Administrator |
-| `/voice-control move add`       | Add role that moves users to channel       | Administrator |
-| `/voice-control list`           | List all voice control roles               | Administrator |
+| `/voice-roles disconnect add` | Add role that disconnects users from voice | Administrator |
+| `/voice-roles mute add`       | Add role that mutes users in voice         | Administrator |
+| `/voice-roles deafen add`     | Add role that deafens users in voice       | Administrator |
+| `/voice-roles move add`       | Add role that moves users to channel       | Administrator |
+| `/voice-roles list`           | List all voice control roles               | Administrator |
 
 #### Developer Commands
 

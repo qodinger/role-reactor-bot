@@ -183,9 +183,9 @@ function createMockGuild(overrides = {}) {
   };
 }
 
-// Test file for voice-control functionality
+// Test file for voice-roles functionality
 
-describe("Voice Control - Core Functionality", () => {
+describe("Voice Roles - Core Functionality", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });

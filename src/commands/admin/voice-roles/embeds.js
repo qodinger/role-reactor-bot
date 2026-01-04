@@ -27,7 +27,7 @@ export function createVoiceControlListEmbed(guild, settings) {
     moveRoles.length === 0
   ) {
     embed.setDescription(
-      "No roles are configured for voice control.\n\nUse `/voice-control disconnect add`, `/voice-control mute add`, `/voice-control deafen add`, or `/voice-control move add` to add roles.",
+      "No roles are configured for voice control.\n\nUse `/voice-roles disconnect add`, `/voice-roles mute add`, `/voice-roles deafen add`, or `/voice-roles move add` to add roles.",
     );
     return embed;
   }

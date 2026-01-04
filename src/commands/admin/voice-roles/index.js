@@ -25,11 +25,13 @@ import {
  * This is the single source of truth for command information
  */
 export const metadata = {
-  name: "voice-control",
+  name: "voice-roles",
   category: "admin",
   description:
     "Manage roles that automatically control users in voice channels (disconnect/mute/deafen/move)",
   keywords: [
+    "voice-roles",
+    "voice roles",
     "voice-control",
     "voice control",
     "voice",
@@ -44,15 +46,15 @@ export const metadata = {
     {
       name: `How to Use`,
       value: [
-        "```/voice-control disconnect add role:@MutedRole```",
-        "```/voice-control disconnect remove role:@MutedRole```",
-        "```/voice-control mute add role:@QuietRole```",
-        "```/voice-control mute remove role:@QuietRole```",
-        "```/voice-control deafen add role:@DeafenedRole```",
-        "```/voice-control deafen remove role:@DeafenedRole```",
-        "```/voice-control move add role:@MovedRole channel:#waiting-room```",
-        "```/voice-control move remove role:@MovedRole```",
-        "```/voice-control list```",
+        "```/voice-roles disconnect add role:@MutedRole```",
+        "```/voice-roles disconnect remove role:@MutedRole```",
+        "```/voice-roles mute add role:@QuietRole```",
+        "```/voice-roles mute remove role:@QuietRole```",
+        "```/voice-roles deafen add role:@DeafenedRole```",
+        "```/voice-roles deafen remove role:@DeafenedRole```",
+        "```/voice-roles move add role:@MovedRole channel:#waiting-room```",
+        "```/voice-roles move remove role:@MovedRole```",
+        "```/voice-roles list```",
       ].join("\n"),
       inline: false,
     },
@@ -358,10 +360,10 @@ export async function execute(interaction) {
       await interaction.reply({ embeds: [response], flags: 64 });
     }
   } catch (error) {
-    logger.error("Error in voice-control command:", error);
+    logger.error("Error in voice-roles command:", error);
     const response = errorEmbed({
       title: "Error",
-      description: "Failed to process voice-control command.",
+      description: "Failed to process voice-roles command.",
       solution: "Please try again or contact support if the issue persists.",
     });
 

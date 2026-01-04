@@ -9,10 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Voice Control Command: New `/voice-control` command to automatically manage users in voice channels based on roles
-- Voice Control Subcommands: `/voice-control disconnect`, `/voice-control mute`, `/voice-control deafen`, `/voice-control move`, and `/voice-control list` subcommands for complete voice management
-- Voice Control Auto-Apply: Voice control actions automatically apply to users already in voice channels when roles are first configured
-- Voice Control List: View all configured voice control roles with indicators for deleted roles or channels that need cleanup
+- Voice Roles Command: New `/voice-roles` command to automatically manage users in voice channels based on roles
+- Voice Roles Subcommands: `/voice-roles disconnect`, `/voice-roles mute`, `/voice-roles deafen`, `/voice-roles move`, and `/voice-roles list` subcommands for complete voice management
+- Voice Roles Auto-Apply: Voice control actions automatically apply to users already in voice channels when roles are first configured
+- Voice Roles List: View all configured voice control roles with indicators for deleted roles or channels that need cleanup
 - Would You Rather Command: New `/wyr` command with interactive voting system for engaging server discussions
 - WYR Interactive Voting: Users can vote on questions with real-time vote counts and percentages displayed
 - WYR Question Database: 100+ curated questions organized into 6 categories (Funny, Superhero, Life Choices, Philosophical, Challenging, Pop Culture)

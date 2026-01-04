@@ -96,15 +96,15 @@ alwaysApply: true
 **Good Format Examples:**
 
 ```markdown
-- Voice Control Command: New `/voice-control` command to automatically manage users in voice channels based on roles
-- Voice Control Subcommands: `/voice-control disconnect`, `/voice-control mute`, `/voice-control deafen`, `/voice-control move`, and `/voice-control list` subcommands for complete voice management
+- Voice Roles Command: New `/voice-roles` command to automatically manage users in voice channels based on roles
+- Voice Roles Subcommands: `/voice-roles disconnect`, `/voice-roles mute`, `/voice-roles deafen`, `/voice-roles move`, and `/voice-roles list` subcommands for complete voice management
 ```
 
 **Avoid Redundancy:**
 
 ```markdown
-❌ Bad: Voice Control Command: New voice control command for managing voice channels
-✅ Good: Voice Control Command: New `/voice-control` command to automatically manage users in voice channels based on roles
+❌ Bad: Voice Roles Command: New voice control command for managing voice channels
+✅ Good: Voice Roles Command: New `/voice-roles` command to automatically manage users in voice channels based on roles
 ```
 
 ## 4. Version Management
@@ -214,7 +214,7 @@ alwaysApply: true
 **Example:**
 
 ```markdown
-- Voice Control Command: New `/voice-control` command to automatically manage users in voice channels based on roles. See [documentation](link) for setup instructions
+- Voice Roles Command: New `/voice-roles` command to automatically manage users in voice channels based on roles. See [documentation](link) for setup instructions
 - Breaking Change: Removed `/old-command`. Use `/new-command` instead. See [migration guide](link) for details
 ```
 
@@ -281,8 +281,8 @@ alwaysApply: true
 ```markdown
 ### Performance
 
-- Voice Control Operations: Improved processing speed and reliability for voice control operations on large servers
-- Voice Control Background Processing: Large operations now process in the background without blocking command responses
+- Voice Roles Operations: Improved processing speed and reliability for voice control operations on large servers
+- Voice Roles Background Processing: Large operations now process in the background without blocking command responses
 - Bot Statistics API: Improved response times by caching statistics for 24 hours
 ```
 

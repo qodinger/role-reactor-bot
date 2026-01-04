@@ -29,7 +29,7 @@ const COMMAND_CATEGORIES = {
     "role-reactions",
     "schedule-role",
     "temp-roles",
-    "voice-control",
+    "voice-roles",
     "welcome",
     "xp",
   ],

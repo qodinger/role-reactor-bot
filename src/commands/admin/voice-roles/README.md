@@ -1,13 +1,13 @@
-# Voice Control Command
+# Voice Roles Command
 
 ## Overview
 
-The Voice Control command allows administrators to configure roles that automatically manage users in voice channels. When users are assigned specific roles, the bot will automatically disconnect, mute, deafen, or move them in voice channels based on the configured role settings.
+The Voice Roles command allows administrators to configure roles that automatically manage users in voice channels. When users are assigned specific roles, the bot will automatically disconnect, mute, deafen, or move them in voice channels based on the configured role settings.
 
 ## File Structure
 
 ```
-voice-control/
+voice-roles/
 ├── index.js          # Command definition, subcommands, entry point
 ├── handlers.js       # Core logic for add/remove/list operations
 ├── embeds.js         # Discord embed creation for list display
@@ -19,12 +19,12 @@ voice-control/
 Following the modular pattern established by other admin commands:
 
 - **`index.js`**: Command definition, permission validation, and main execution flow
-- **`handlers.js`**: Core business logic, database operations, and voice control action processing
+- **`handlers.js`**: Core business logic, database operations, and voice roles action processing
 - **`embeds.js`**: Discord embed creation and formatting for role list display
 
 ## Subcommands
 
-### `/voice-control disconnect`
+### `/voice-roles disconnect`
 
 Manage roles that automatically disconnect users from voice channels.
 
@@ -33,7 +33,7 @@ Manage roles that automatically disconnect users from voice channels.
 - **`remove`**: Remove a role from the disconnect list
   - Options: `role` (required)
 
-### `/voice-control mute`
+### `/voice-roles mute`
 
 Manage roles that automatically mute users in voice channels.
 
@@ -42,7 +42,7 @@ Manage roles that automatically mute users in voice channels.
 - **`remove`**: Remove a role from the mute list
   - Options: `role` (required)
 
-### `/voice-control deafen`
+### `/voice-roles deafen`
 
 Manage roles that automatically deafen users in voice channels.
 
@@ -51,7 +51,7 @@ Manage roles that automatically deafen users in voice channels.
 - **`remove`**: Remove a role from the deafen list
   - Options: `role` (required)
 
-### `/voice-control move`
+### `/voice-roles move`
 
 Manage roles that automatically move users to specific voice channels.
 
@@ -60,19 +60,19 @@ Manage roles that automatically move users to specific voice channels.
 - **`remove`**: Remove a role from the move list
   - Options: `role` (required)
 
-### `/voice-control list`
+### `/voice-roles list`
 
-List all roles configured for voice control with their current status.
+List all roles configured for voice roles with their current status.
 
 ## Usage Examples
 
 ```
-/voice-control disconnect add role:@Muted
-/voice-control mute add role:@Restricted
-/voice-control deafen add role:@Punished
-/voice-control move add role:@SupportTeam channel:#support-voice
-/voice-control disconnect remove role:@Muted
-/voice-control list
+/voice-roles disconnect add role:@Muted
+/voice-roles mute add role:@Restricted
+/voice-roles deafen add role:@Punished
+/voice-roles move add role:@SupportTeam channel:#support-voice
+/voice-roles disconnect remove role:@Muted
+/voice-roles list
 ```
 
 ## Permissions Required

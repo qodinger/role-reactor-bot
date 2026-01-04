@@ -9,7 +9,7 @@ import { createVoiceControlListEmbed } from "./embeds.js";
 import { delay } from "../../../utils/delay.js";
 
 /**
- * Apply voice control action to users already in voice channels with the role
+ * Apply voice roles action to users already in voice channels with the role
  * Optimized with rate limiting and batching to prevent API rate limits
  * @param {import('discord.js').Guild} guild - The guild
  * @param {string} roleId - The role ID
@@ -53,7 +53,7 @@ async function applyToExistingVoiceMembers(
 
     if (skippedCount > 0) {
       logger.warn(
-        `Processing ${membersToHandle.length} of ${totalMembers} members with voice control role (${skippedCount} skipped to prevent timeout)`,
+        `Processing ${membersToHandle.length} of ${totalMembers} members with voice roles role (${skippedCount} skipped to prevent timeout)`,
       );
     }
 
@@ -76,7 +76,7 @@ async function applyToExistingVoiceMembers(
                 ) {
                   if (member.voice.channel) {
                     await member.voice.disconnect(
-                      "Voice control role was configured",
+                      "Voice roles role was configured",
                     );
                     affectedCount++;
                     logger.debug(
@@ -93,7 +93,7 @@ async function applyToExistingVoiceMembers(
                   if (!member.voice.mute) {
                     await member.voice.setMute(
                       true,
-                      "Voice control role was configured",
+                      "Voice roles role was configured",
                     );
                     affectedCount++;
                     logger.debug(
@@ -110,7 +110,7 @@ async function applyToExistingVoiceMembers(
                   if (!member.voice.deaf) {
                     await member.voice.setDeaf(
                       true,
-                      "Voice control role was configured",
+                      "Voice roles role was configured",
                     );
                     affectedCount++;
                     logger.debug(
@@ -139,7 +139,7 @@ async function applyToExistingVoiceMembers(
                     ) {
                       await member.voice.setChannel(
                         targetChannel,
-                        "Voice control role was configured",
+                        "Voice roles role was configured",
                       );
                       affectedCount++;
                       logger.debug(
@@ -173,7 +173,7 @@ async function applyToExistingVoiceMembers(
 
     return { affectedCount, totalMembers, skippedCount };
   } catch (error) {
-    logger.error(`Error applying voice control to existing members:`, error);
+    logger.error(`Error applying voice roles to existing members:`, error);
     return { affectedCount: 0, totalMembers: 0, skippedCount: 0 };
   }
 }
@@ -213,7 +213,7 @@ export async function handleDisconnectAdd(interaction) {
         errorEmbed({
           title: "Role Already Added",
           description: `The role ${role.toString()} is already configured to disconnect users from voice channels.`,
-          solution: "Use `/voice-control list` to see all configured roles.",
+          solution: "Use `/voice-roles list` to see all configured roles.",
         }),
       );
     }
@@ -263,7 +263,7 @@ export async function handleDisconnectAdd(interaction) {
         }
       })
       .catch(error => {
-        logger.error("Background voice control processing error:", error);
+        logger.error("Background voice roles processing error:", error);
       });
 
     return interaction.editReply(
@@ -281,7 +281,7 @@ export async function handleDisconnectAdd(interaction) {
       }),
     );
   } catch (error) {
-    logger.error("Error in voice-control disconnect add handler:", error);
+    logger.error("Error in voice-roles disconnect add handler:", error);
     return interaction.editReply(
       errorEmbed({
         title: "Error",
@@ -315,7 +315,7 @@ export async function handleDisconnectRemove(interaction) {
         errorEmbed({
           title: "Role Not Found",
           description: `The role ${role.toString()} is not configured to disconnect users from voice channels.`,
-          solution: "Use `/voice-control list` to see all configured roles.",
+          solution: "Use `/voice-roles list` to see all configured roles.",
         }),
       );
     }
@@ -337,7 +337,7 @@ export async function handleDisconnectRemove(interaction) {
       }),
     );
   } catch (error) {
-    logger.error("Error in voice-control disconnect remove handler:", error);
+    logger.error("Error in voice-roles disconnect remove handler:", error);
     return interaction.editReply(
       errorEmbed({
         title: "Error",
@@ -383,7 +383,7 @@ export async function handleMuteAdd(interaction) {
         errorEmbed({
           title: "Role Already Added",
           description: `The role ${role.toString()} is already configured to mute users in voice channels.`,
-          solution: "Use `/voice-control list` to see all configured roles.",
+          solution: "Use `/voice-roles list` to see all configured roles.",
         }),
       );
     }
@@ -433,7 +433,7 @@ export async function handleMuteAdd(interaction) {
         }
       })
       .catch(error => {
-        logger.error("Background voice control processing error:", error);
+        logger.error("Background voice roles processing error:", error);
       });
 
     return interaction.editReply(
@@ -451,7 +451,7 @@ export async function handleMuteAdd(interaction) {
       }),
     );
   } catch (error) {
-    logger.error("Error in voice-control mute add handler:", error);
+    logger.error("Error in voice-roles mute add handler:", error);
     return interaction.editReply(
       errorEmbed({
         title: "Error",
@@ -485,7 +485,7 @@ export async function handleMuteRemove(interaction) {
         errorEmbed({
           title: "Role Not Found",
           description: `The role ${role.toString()} is not configured to mute users in voice channels.`,
-          solution: "Use `/voice-control list` to see all configured roles.",
+          solution: "Use `/voice-roles list` to see all configured roles.",
         }),
       );
     }
@@ -504,7 +504,7 @@ export async function handleMuteRemove(interaction) {
       }),
     );
   } catch (error) {
-    logger.error("Error in voice-control mute remove handler:", error);
+    logger.error("Error in voice-roles mute remove handler:", error);
     return interaction.editReply(
       errorEmbed({
         title: "Error",
@@ -550,7 +550,7 @@ export async function handleDeafenAdd(interaction) {
         errorEmbed({
           title: "Role Already Added",
           description: `The role ${role.toString()} is already configured to deafen users in voice channels.`,
-          solution: "Use `/voice-control list` to see all configured roles.",
+          solution: "Use `/voice-roles list` to see all configured roles.",
         }),
       );
     }
@@ -600,7 +600,7 @@ export async function handleDeafenAdd(interaction) {
         }
       })
       .catch(error => {
-        logger.error("Background voice control processing error:", error);
+        logger.error("Background voice roles processing error:", error);
       });
 
     return interaction.editReply(
@@ -618,7 +618,7 @@ export async function handleDeafenAdd(interaction) {
       }),
     );
   } catch (error) {
-    logger.error("Error in voice-control deafen add handler:", error);
+    logger.error("Error in voice-roles deafen add handler:", error);
     return interaction.editReply(
       errorEmbed({
         title: "Error",
@@ -652,7 +652,7 @@ export async function handleDeafenRemove(interaction) {
         errorEmbed({
           title: "Role Not Found",
           description: `The role ${role.toString()} is not configured to deafen users in voice channels.`,
-          solution: "Use `/voice-control list` to see all configured roles.",
+          solution: "Use `/voice-roles list` to see all configured roles.",
         }),
       );
     }
@@ -671,7 +671,7 @@ export async function handleDeafenRemove(interaction) {
       }),
     );
   } catch (error) {
-    logger.error("Error in voice-control deafen remove handler:", error);
+    logger.error("Error in voice-roles deafen remove handler:", error);
     return interaction.editReply(
       errorEmbed({
         title: "Error",
@@ -758,7 +758,7 @@ export async function handleMoveAdd(interaction) {
             title: "Role Already Added",
             description: `The role ${role.toString()} is already configured to move users to ${existingChannel.toString()}.`,
             solution:
-              "Use `/voice-control move remove` first, or use `/voice-control list` to see all configured roles.",
+              "Use `/voice-roles move remove` first, or use `/voice-roles list` to see all configured roles.",
           }),
         );
       }
@@ -814,7 +814,7 @@ export async function handleMoveAdd(interaction) {
         }
       })
       .catch(error => {
-        logger.error("Background voice control processing error:", error);
+        logger.error("Background voice roles processing error:", error);
       });
 
     return interaction.editReply(
@@ -832,7 +832,7 @@ export async function handleMoveAdd(interaction) {
       }),
     );
   } catch (error) {
-    logger.error("Error in voice-control move add handler:", error);
+    logger.error("Error in voice-roles move add handler:", error);
     return interaction.editReply(
       errorEmbed({
         title: "Error",
@@ -866,7 +866,7 @@ export async function handleMoveRemove(interaction) {
         errorEmbed({
           title: "Role Not Found",
           description: `The role ${role.toString()} is not configured to move users to a voice channel.`,
-          solution: "Use `/voice-control list` to see all configured roles.",
+          solution: "Use `/voice-roles list` to see all configured roles.",
         }),
       );
     }
@@ -885,7 +885,7 @@ export async function handleMoveRemove(interaction) {
       }),
     );
   } catch (error) {
-    logger.error("Error in voice-control move remove handler:", error);
+    logger.error("Error in voice-roles move remove handler:", error);
     return interaction.editReply(
       errorEmbed({
         title: "Error",
@@ -897,7 +897,7 @@ export async function handleMoveRemove(interaction) {
 }
 
 /**
- * Handle listing all voice control roles
+ * Handle listing all voice roles roles
  * @param {import('discord.js').CommandInteraction} interaction
  */
 export async function handleList(interaction) {
@@ -915,11 +915,11 @@ export async function handleList(interaction) {
 
     return interaction.editReply({ embeds: [embed] });
   } catch (error) {
-    logger.error("Error in voice-control list handler:", error);
+    logger.error("Error in voice-roles list handler:", error);
     return interaction.editReply(
       errorEmbed({
         title: "Error",
-        description: "Failed to list voice control roles.",
+        description: "Failed to list voice roles roles.",
         solution: "Please try again or contact support if the issue persists.",
       }),
     );

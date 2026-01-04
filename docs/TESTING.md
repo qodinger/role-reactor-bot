@@ -53,10 +53,10 @@ npm run test:ci
 
 ```bash
 # Run specific test file
-npm test -- tests/unit/commands/admin/voice-control.test.js
+npm test -- tests/unit/commands/admin/voice-roles.test.js
 
 # Run tests matching pattern
-npm test -- --grep "voice control"
+npm test -- --grep "voice roles"
 
 # Run tests in specific directory
 npm test -- tests/unit/commands/admin/
@@ -183,7 +183,7 @@ vi.mock("../../../src/utils/storage/storageManager.js", () => ({
 
 ### Completed Test Suites
 
-✅ **Voice Control Command** (33 tests)
+✅ **Voice Roles Command** (33 tests)
 - Role validation and permissions
 - Channel validation
 - Voice operations (disconnect, mute, deafen, move)
