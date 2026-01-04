@@ -46,9 +46,9 @@ const dataFetcher = {
   },
   smartMemberFetch: async (_guild, _userMessage) => {
     // Member fetching has been removed - guide users to Discord's built-in features
-    return { 
-      fetched: false, 
-      reason: "Member fetching disabled - guide users to Discord's member list" 
+    return {
+      fetched: false,
+      reason: "Member fetching disabled - guide users to Discord's member list",
     };
   },
 };
@@ -191,7 +191,6 @@ export class ActionExecutor {
 
       try {
         switch (action.type) {
-
           case "fetch_channels":
             if (!guild) {
               results.push("Cannot fetch channels: not in a server");

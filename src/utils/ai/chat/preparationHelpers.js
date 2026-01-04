@@ -227,8 +227,8 @@ export async function performSmartMemberFetch(
   logger.debug(
     `[generateResponse] Member fetching disabled - guiding user to Discord features`,
   );
-  return { 
-    fetched: false, 
-    reason: "Member fetching disabled - users guided to Discord's member list" 
+  return {
+    fetched: false,
+    reason: "Member fetching disabled - users guided to Discord's member list",
   };
 }
