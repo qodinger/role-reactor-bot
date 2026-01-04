@@ -83,11 +83,16 @@ export function createImagineResultEmbed({
   interaction = null,
   seed = null,
   aspectRatio = null,
+  style = null,
+  steps = null,
+  cfg = null,
+  nsfw = false,
 }) {
   const preview = getPromptPreview(prompt);
   const description = `**Prompt Preview**\n${preview}`;
   const fields = [];
 
+  // First row of parameters
   if (seed !== null) {
     fields.push({
       name: "Seed",
@@ -99,6 +104,36 @@ export function createImagineResultEmbed({
     fields.push({
       name: "Aspect Ratio",
       value: `\`${aspectRatio}\``,
+      inline: true,
+    });
+  }
+  if (style !== null) {
+    fields.push({
+      name: "Style",
+      value: `\`${style}\``,
+      inline: true,
+    });
+  }
+
+  // Second row of parameters
+  if (steps !== null) {
+    fields.push({
+      name: "Steps",
+      value: `\`${steps}\``,
+      inline: true,
+    });
+  }
+  if (cfg !== null) {
+    fields.push({
+      name: "CFG Scale",
+      value: `\`${cfg}\``,
+      inline: true,
+    });
+  }
+  if (nsfw) {
+    fields.push({
+      name: "Content Type",
+      value: "`NSFW`",
       inline: true,
     });
   }
@@ -146,6 +181,25 @@ export function createImagineValidationEmbed(reason) {
     .setColor(THEME.WARNING)
     .setTitle(`${EMOJIS.STATUS.WARNING} Check your prompt`)
     .setDescription(reason)
+    .setFooter({
+      text: "Image Generator • Role Reactor",
+    })
+    .setTimestamp();
+}
+
+export function createNSFWValidationEmbed(reason) {
+  return new EmbedBuilder()
+    .setColor(THEME.ERROR)
+    .setTitle(`${EMOJIS.STATUS.ERROR} NSFW Content Restriction`)
+    .setDescription(reason)
+    .addFields([
+      {
+        name: "💡 How to generate NSFW content",
+        value:
+          "NSFW image generation is only allowed in channels marked as NSFW (18+). Ask a server admin to mark this channel as NSFW, or use an existing NSFW channel.",
+        inline: false,
+      },
+    ])
     .setFooter({
       text: "Image Generator • Role Reactor",
     })

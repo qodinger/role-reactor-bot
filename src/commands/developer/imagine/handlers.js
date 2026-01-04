@@ -1,4 +1,5 @@
-import { AttachmentBuilder } from "discord.js";
+import { AttachmentBuilder, EmbedBuilder } from "discord.js";
+import { THEME, EMOJIS } from "../../../config/theme.js";
 import { getLogger } from "../../../utils/logger.js";
 import { isDeveloper } from "../../../utils/discord/permissions.js";
 import { concurrencyManager } from "../../../utils/ai/concurrencyManager.js";
@@ -13,11 +14,39 @@ import {
   createImagineResultEmbed,
   createImagineErrorEmbed,
   createImagineValidationEmbed,
+  createNSFWValidationEmbed,
   createRegenerateButton,
 } from "./embeds.js";
 import { validatePrompt, parseInlineParameters } from "./utils.js";
 import { ImagineGenerationHistory } from "./utils/generationHistory.js";
-import { enhanceImaginePrompt } from "../../../config/prompts/imagePrompts.js";
+import {
+  enhanceImaginePrompt,
+  getImagineNegativePrompt,
+} from "../../../config/prompts/imagePrompts.js";
+import {
+  validateNSFWProduction,
+  logNSFWGeneration,
+} from "../../../utils/discord/nsfwSafety.js";
+
+/**
+ * Get preferred provider for NSFW content generation
+ * Prefers ComfyUI/RunPod for detailed control and permissive content policies
+ * @returns {string|null} Preferred provider or null for auto-selection
+ */
+function getPreferredNSFWProvider() {
+  // For NSFW: prefer ComfyUI (self-hosted, most control) > RunPod (serverless ComfyUI)
+  return null; // Let the system auto-select from ComfyUI/RunPod based on availability
+}
+
+/**
+ * Get preferred provider for safe content generation
+ * Prefers Stability AI/OpenRouter for clean, fast, professional results
+ * @returns {string|null} Preferred provider or null for auto-selection
+ */
+function getPreferredSafeProvider() {
+  // For safe content: prefer Stability AI (fast, clean) > OpenRouter (versatile)
+  return null; // Let the system auto-select from Stability/OpenRouter based on availability
+}
 
 const logger = getLogger();
 
@@ -48,11 +77,15 @@ export async function handleImagineCommand(
 
   const promptOption = interaction.options.getString("prompt", true);
 
-  // Parse inline parameters (--ar, --seed, etc.)
+  // Parse inline parameters (--ar, --seed, --style, --steps, --cfg, --nsfw)
   const {
     prompt: rawPrompt,
     aspectRatio,
     seed,
+    style,
+    steps,
+    cfg,
+    nsfw: userRequestedNSFW,
   } = parseInlineParameters(promptOption);
 
   // Safety tolerance: 6 = most permissive (default for Stability AI)
@@ -73,10 +106,93 @@ export async function handleImagineCommand(
     return;
   }
 
+  // Validate NSFW content with production safety checks
+  // If user explicitly requested NSFW with --nsfw flag, treat as NSFW content
+  const nsfwValidation = await validateNSFWProduction(
+    validation.prompt,
+    interaction.channel,
+    interaction.guild,
+    userRequestedNSFW, // Pass user's explicit NSFW request
+  );
+  if (!nsfwValidation.isAllowed) {
+    let embed;
+    if (nsfwValidation.severity === "PROHIBITED") {
+      embed = new EmbedBuilder()
+        .setColor(THEME.ERROR)
+        .setTitle(`${EMOJIS.STATUS.ERROR} Content Policy Violation`)
+        .setDescription(nsfwValidation.reason)
+        .addFields([
+          {
+            name: "⚠️ Policy Reminder",
+            value:
+              "Content that violates platform policies or laws cannot be generated. Please modify your prompt to comply with our content guidelines.",
+            inline: false,
+          },
+        ])
+        .setFooter({ text: "Image Generator • Role Reactor" })
+        .setTimestamp();
+    } else if (nsfwValidation.severity === "SERVER_NOT_AGE_RESTRICTED") {
+      embed = new EmbedBuilder()
+        .setColor(THEME.WARNING)
+        .setTitle(`${EMOJIS.STATUS.WARNING} Age-Restricted Server Required`)
+        .setDescription(nsfwValidation.reason)
+        .addFields([
+          {
+            name: "💡 For Server Administrators",
+            value:
+              "Enable age-restriction in Discord's Server Settings > Safety Setup > Age-Restricted Server to allow NSFW image generation.",
+            inline: false,
+          },
+        ])
+        .setFooter({ text: "Image Generator • Role Reactor" })
+        .setTimestamp();
+    } else {
+      embed = createNSFWValidationEmbed(nsfwValidation.reason);
+    }
+
+    await interaction.editReply({ embeds: [embed] });
+    return;
+  }
+
   // Enhance prompt with quality improvements (preserves user intent)
-  const prompt = enhanceImaginePrompt(validation.prompt);
+  // Use NSFW-specific enhancements if content is NSFW
+  // Apply style-specific enhancements based on --style parameter
+  const prompt = enhanceImaginePrompt(
+    validation.prompt,
+    nsfwValidation.isNSFW,
+    style,
+  );
   // Use original prompt for display in embeds (not the enhanced one)
   const originalPrompt = validation.prompt;
+
+  // Smart provider routing based on content type
+  let preferredProvider = null;
+  let featureName = null;
+  if (nsfwValidation.isNSFW) {
+    // For NSFW content: check if NSFW feature is enabled
+    featureName = "imagineNSFW";
+    const nsfwFeature =
+      multiProviderAIService.providerManager?.getFeatureConfig(featureName);
+    if (!nsfwFeature || !nsfwFeature.enabled) {
+      const errorEmbed = createImagineErrorEmbed({
+        interaction,
+        prompt: originalPrompt,
+        error:
+          "NSFW image generation is currently disabled. Only safe content can be generated at this time.",
+      });
+      await interaction.editReply({ embeds: [errorEmbed] });
+      return;
+    }
+    preferredProvider = getPreferredNSFWProvider();
+  } else {
+    // For non-NSFW content: prefer Stability AI/OpenRouter (clean, fast, professional)
+    preferredProvider = getPreferredSafeProvider();
+    featureName = "imagineGeneral";
+  }
+
+  logger.info(
+    `[IMAGINE] Content type: ${nsfwValidation.isNSFW ? "NSFW" : "Safe"}, Feature: ${featureName}, Preferred provider: ${preferredProvider || "auto"}, User requested NSFW: ${userRequestedNSFW}`,
+  );
 
   const creditInfo = await checkAIImageCredits(interaction.user.id);
   const { userData, creditsNeeded, hasCredits } = creditInfo;
@@ -120,7 +236,7 @@ export async function handleImagineCommand(
   const requestId = `imagine-${interaction.id}`;
 
   logger.info(
-    `[IMAGINE] User: ${interaction.user.id} | Original: "${validation.prompt}" | Enhanced: "${prompt}" | Safety: ${safetyTolerance}`,
+    `[IMAGINE] User: ${interaction.user.id} | Original: "${validation.prompt}" | Enhanced: "${prompt}" | NSFW: ${nsfwValidation.isNSFW} | Safety: ${safetyTolerance}`,
   );
 
   try {
@@ -130,11 +246,19 @@ export async function handleImagineCommand(
         multiProviderAIService.generate({
           type: "image",
           prompt,
+          provider: preferredProvider, // Use smart provider routing
           config: {
             safetyTolerance,
             useAvatarPrompts: false, // Don't use avatar-specific prompts from imagePrompts.js
             aspectRatio: aspectRatio || "1:1", // Default to 1:1 (square) for versatility
             seed: seed !== null ? seed : undefined, // Only set if provided
+            negativePrompt: getImagineNegativePrompt(nsfwValidation.isNSFW), // Use appropriate negative prompt
+            isNSFW: nsfwValidation.isNSFW, // Pass NSFW flag for provider-specific handling
+            featureName, // Pass feature name for model selection
+            // ComfyUI-specific parameters
+            steps: steps || undefined, // Use ComfyUI default if not specified
+            cfgScale: cfg || undefined, // Use ComfyUI default if not specified
+            style: style || undefined,
           },
           progressCallback,
         }),
@@ -178,7 +302,26 @@ export async function handleImagineCommand(
       interaction,
       seed: generatedSeed,
       aspectRatio: currentAspectRatio,
+      style,
+      steps,
+      cfg,
+      nsfw: nsfwValidation.isNSFW,
     });
+
+    // Log NSFW generation for audit purposes
+    if (nsfwValidation.isNSFW) {
+      logNSFWGeneration({
+        userId: interaction.user.id,
+        guildId: interaction.guild?.id,
+        channelId: interaction.channel?.id,
+        prompt, // Enhanced prompt
+        originalPrompt, // Original user prompt
+        seed: generatedSeed,
+        aspectRatio: currentAspectRatio,
+        provider: result.provider,
+        timestamp: new Date().toISOString(),
+      });
+    }
 
     // Add regenerate button
     const { ActionRowBuilder } = await import("discord.js");
