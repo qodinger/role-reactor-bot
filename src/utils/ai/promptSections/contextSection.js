@@ -1,5 +1,11 @@
 import dedent from "dedent";
-import { responseValidator } from "../responseValidator.js";
+// Simple inline response validator (replaces deleted responseValidator)
+const responseValidator = {
+  sanitizeData: data => {
+    if (typeof data !== "string") return data;
+    return data.replace(/[<>@#&]/g, "").trim();
+  },
+};
 
 /**
  * Build context section of system prompt

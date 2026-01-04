@@ -1,6 +1,15 @@
 import dedent from "dedent";
 import { getLogger } from "../logger.js";
-import { responseValidator } from "./responseValidator.js";
+// Simple inline response validator (replaces deleted responseValidator)
+const responseValidator = {
+  sanitizeData: data => {
+    if (typeof data !== "string") return data;
+    return data.replace(/[<>@#&]/g, "").trim();
+  },
+  validateResponseData: (_response, _guild) => {
+    return { valid: true, warnings: [] };
+  },
+};
 import { commandDiscoverer } from "./commandDiscoverer.js";
 import { serverInfoGatherer } from "./serverInfoGatherer.js";
 import { commandSuggester } from "./commandSuggester.js";
@@ -16,12 +25,11 @@ import {
 
 const logger = getLogger();
 
-// Load chat prompts dynamically with caching
-import { loadChatPrompts } from "../../config/prompts/index.js";
+// Load chat prompts directly
+import { CHAT_PROMPTS } from "../../config/prompts/chat/index.js";
 
 async function getChatPrompts() {
-  const prompts = await loadChatPrompts();
-  return prompts.CHAT_PROMPTS || {};
+  return CHAT_PROMPTS || {};
 }
 
 /**

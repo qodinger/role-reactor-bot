@@ -4,7 +4,72 @@ import {
   actionRequiresGuild,
   validateActionOptions,
 } from "./actionRegistry.js";
-import { dataFetcher } from "./dataFetcher.js";
+// Simple inline data fetcher (replaces deleted dataFetcher)
+const dataFetcher = {
+  fetchMembers: async guild => {
+    try {
+      const before = guild.members.cache.size;
+      await guild.members.fetch();
+      const after = guild.members.cache.size;
+      return {
+        success: true,
+        fetched: after - before,
+        cached: after,
+        total: guild.memberCount,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+        cached: guild.members.cache.size,
+        total: guild.memberCount,
+      };
+    }
+  },
+  getMemberInfo: async (guild, options) => {
+    const member = options.user_id
+      ? guild.members.cache.get(options.user_id)
+      : guild.members.cache.find(m => m.user.username === options.username);
+    if (!member) return null;
+    return `${member.user.username} (${member.user.id}) - Joined: ${member.joinedAt?.toDateString() || "Unknown"}`;
+  },
+  getRoleInfo: async (guild, options) => {
+    const role = options.role_id
+      ? guild.roles.cache.get(options.role_id)
+      : guild.roles.cache.find(r => r.name === options.role_name);
+    if (!role) return null;
+    return `${role.name} (${role.id}) - Members: ${role.members.size}`;
+  },
+  getChannelInfo: async (guild, options) => {
+    const channel = options.channel_id
+      ? guild.channels.cache.get(options.channel_id)
+      : guild.channels.cache.find(c => c.name === options.channel_name);
+    if (!channel) return null;
+    return `${channel.name} (${channel.id}) - Type: ${channel.type}`;
+  },
+  searchMembersByRole: async (guild, options) => {
+    const role = options.role_id
+      ? guild.roles.cache.get(options.role_id)
+      : guild.roles.cache.find(r => r.name === options.role_name);
+    if (!role) return [];
+    return role.members.map(m => m.user.username);
+  },
+  handleDynamicDataFetching: async (actionType, guild, _client) => {
+    // Simple implementation for dynamic data fetching
+    if (actionType === "get_server_info" && guild) {
+      return `Server: ${guild.name} (${guild.id}) - Members: ${guild.memberCount}`;
+    }
+    return null;
+  },
+  smartMemberFetch: async (guild, userMessage) => {
+    const needsFetch = userMessage.toLowerCase().includes("member");
+    if (!needsFetch) {
+      return { fetched: false, reason: "Not needed" };
+    }
+    const result = await dataFetcher.fetchMembers(guild);
+    return { ...result, fetched: result.success };
+  },
+};
 
 const logger = getLogger();
 

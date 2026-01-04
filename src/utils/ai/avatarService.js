@@ -6,7 +6,8 @@ import { AI_STATUS_MESSAGES } from "./statusMessages.js";
 let promptConfigCache = null;
 async function loadPromptConfig() {
   if (!promptConfigCache) {
-    promptConfigCache = await import("../../config/prompts/index.js");
+    // Import imagePrompts directly since index.js was deleted
+    promptConfigCache = await import("../../config/prompts/imagePrompts.js");
   }
   return promptConfigCache;
 }
@@ -58,7 +59,7 @@ export class AvatarService {
         }
         styleHash = Math.abs(hash).toString(36);
       }
-      const cacheKey = `openrouter_image_${this.aiService.config.providers.openrouter.models.image.primary}_${styleHash}_${Buffer.from(enhancedPrompt).toString("base64").slice(0, 32)}`;
+      const cacheKey = `avatar_${this.aiService.getPrimaryProvider()}_${styleHash}_${Buffer.from(enhancedPrompt).toString("base64").slice(0, 32)}`;
 
       results.push({
         styleOptions,
@@ -121,8 +122,10 @@ export class AvatarService {
           if (progressCallback)
             progressCallback(AI_STATUS_MESSAGES.AVATAR_BUILDING_PROMPT);
 
-          // Determine provider for prompt optimization (use comfyui for avatars)
-          const targetProvider = "comfyui"; // Always use ComfyUI for avatar generation
+          // Determine provider for prompt optimization (use avatar feature provider)
+          const targetProvider =
+            this.aiService.providerManager?.getProviderForFeature("avatar") ||
+            "stability";
           const enhancedPrompt = await this.buildAnimePrompt(
             prompt,
             styleOptions,
@@ -140,9 +143,7 @@ export class AvatarService {
           logger.info(
             `[AVATAR PROMPT LOG] Style Options: ${JSON.stringify(styleOptions)}`,
           );
-          logger.info(
-            `[AVATAR PROMPT LOG] Provider: ${targetProvider || "comfyui"}`,
-          );
+          logger.info(`[AVATAR PROMPT LOG] Provider: ${targetProvider}`);
           logger.info(
             `[AVATAR PROMPT LOG] Enhanced Prompt (${enhancedPrompt.length} chars):`,
           );
@@ -164,18 +165,19 @@ export class AvatarService {
           if (progressCallback)
             progressCallback(AI_STATUS_MESSAGES.AVATAR_GENERATING);
 
-          // Avatar generation uses ComfyUI (AnythingXL) for best quality
-          const comfyUIProvider = this.aiService.config.providers.comfyui;
-          if (!comfyUIProvider || !comfyUIProvider.enabled) {
+          // Avatar generation uses feature-based provider selection
+          const avatarProvider =
+            this.aiService.providerManager?.getProviderForFeature("avatar");
+          if (!avatarProvider) {
             throw new Error(
-              "Avatar generation is currently unavailable. The image generation service is not properly configured.",
+              "Avatar generation is currently unavailable. No avatar generation service is configured.",
             );
           }
 
           const result = await this.aiService.generate({
             type: "image",
             prompt: enhancedPrompt,
-            provider: "comfyui", // Use ComfyUI (AnythingXL) for best quality
+            provider: avatarProvider, // Use feature-based provider selection
             progressCallback, // Pass progress callback for real-time updates
             config: {
               aspectRatio: "1:1", // Square avatars (1024x1024 optimal for AnythingXL)
@@ -183,6 +185,7 @@ export class AvatarService {
               useAvatarPrompts: true, // Use avatar-specific prompts
               userId, // Pass userId for rate limiting
               styleOptions, // Include style options for cache key differentiation
+              featureName: "avatar", // Pass feature name for model selection
             },
           });
 

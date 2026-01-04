@@ -5,7 +5,14 @@ import {
   calculateServerAge,
   formatFeatures,
 } from "../../commands/general/serverinfo/utils.js";
-import { responseValidator } from "./responseValidator.js";
+// Simple inline data sanitizer (replaces deleted responseValidator)
+const responseValidator = {
+  sanitizeData: data => {
+    if (typeof data !== "string") return data;
+    // Basic sanitization - remove potential sensitive patterns
+    return data.replace(/[<>@#&]/g, "").trim();
+  },
+};
 import {
   MEMBER_FETCH_TIMEOUT,
   MAX_MEMBER_FETCH_SERVER_SIZE,

@@ -37,7 +37,16 @@ export function getUserFacingErrorMessage(error, options = {}) {
       message,
     )
   ) {
-    return "The AI service is not properly configured. This feature is temporarily unavailable.";
+    return "The AI service is not properly configured. The bot's service provider needs to fix the API setup.";
+  }
+
+  // Credit/billing issues
+  if (
+    /run out of credits|lack sufficient credits|insufficient credits|credits.*expired|billing.*issue/i.test(
+      message,
+    )
+  ) {
+    return message; // Already user-friendly, return as-is
   }
 
   // Provider not configured or enabled (already user-friendly messages)
