@@ -170,9 +170,44 @@ export class OpenRouterProvider {
       logger.error(
         `[OpenRouter] Streaming API error: ${response.status} - ${errorData.error?.message || response.statusText}`,
       );
-      throw new Error(
-        "The AI chat service encountered an error. Please try again later.",
-      );
+
+      // Parse error response for better user messages
+      let errorMessage =
+        "The AI chat service encountered an error. Please try again later.";
+
+      if (
+        response.status === 402 ||
+        (errorData.error?.message &&
+          errorData.error.message.includes("credits"))
+      ) {
+        errorMessage =
+          "The AI chat service has run out of credits. This bot's service provider needs to add more credits to continue offering AI chat.";
+      } else if (response.status === 400 && errorData.error?.message) {
+        if (errorData.error.message.includes("model")) {
+          errorMessage =
+            "The requested AI model is not available. Please try again later.";
+        } else if (
+          errorData.error.message.includes("prompt") ||
+          errorData.error.message.includes("content")
+        ) {
+          errorMessage =
+            "Your message contains content that cannot be processed. Please try a different message.";
+        } else {
+          errorMessage =
+            "Your request could not be processed. Please check your message and try again.";
+        }
+      } else if (response.status === 429) {
+        errorMessage =
+          "The AI service is currently busy. Please wait a moment and try again.";
+      } else if (response.status === 401) {
+        errorMessage =
+          "The AI service authentication failed. The bot's service provider needs to fix the API configuration.";
+      } else if (response.status >= 500) {
+        errorMessage =
+          "The AI service is temporarily unavailable. Please try again in a few minutes.";
+      }
+
+      throw new Error(errorMessage);
     }
 
     // Process Server-Sent Events (SSE) stream

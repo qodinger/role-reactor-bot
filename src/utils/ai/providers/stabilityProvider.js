@@ -2,11 +2,12 @@ import { AI_STATUS_MESSAGES } from "../statusMessages.js";
 
 const fetch = globalThis.fetch;
 
-// Load prompt configuration with caching
+// Load prompt configuration with caching (simplified - no longer uses deleted index.js)
 let promptConfigCache = null;
 async function loadPromptConfig() {
   if (!promptConfigCache) {
-    promptConfigCache = await import("../../../config/prompts/index.js");
+    // Import imagePrompts directly since index.js was deleted
+    promptConfigCache = await import("../../../config/prompts/imagePrompts.js");
   }
   return promptConfigCache;
 }
@@ -75,7 +76,10 @@ export class StabilityProvider {
     // Use avatar prompts only if explicitly requested (for /avatar command)
     // For /imagine command, use imagine-specific negative prompt
     let negativePrompt;
-    if (config.useAvatarPrompts !== false) {
+    if (config.negativePrompt) {
+      // Use custom negative prompt if provided (for NSFW or specific requirements)
+      negativePrompt = config.negativePrompt;
+    } else if (config.useAvatarPrompts !== false) {
       // Default to true for backward compatibility (avatar command)
       negativePrompt =
         promptConfig.PROVIDER_PROMPTS?.stability?.negative ||
@@ -132,9 +136,49 @@ export class StabilityProvider {
       logger.error(
         `[Stability AI] API error: ${response.status} - ${errorData.substring(0, 200)}`,
       );
-      throw new Error(
-        "The image generation service encountered an error. Please try again later.",
-      );
+
+      // Parse error response for better user messages
+      let errorMessage =
+        "The image generation service encountered an error. Please try again later.";
+
+      try {
+        const errorJson = JSON.parse(errorData);
+        if (errorJson.errors && Array.isArray(errorJson.errors)) {
+          const firstError = errorJson.errors[0];
+
+          // Handle specific error types with user-friendly messages
+          if (
+            response.status === 402 ||
+            firstError.includes("lack sufficient credits")
+          ) {
+            errorMessage =
+              "The AI image generation service has run out of credits. This bot's service provider needs to add more credits to continue offering image generation.";
+          } else if (response.status === 400 && firstError.includes("prompt")) {
+            errorMessage =
+              "Your prompt contains content that cannot be processed. Please try a different prompt.";
+          } else if (response.status === 400 && firstError.includes("safety")) {
+            errorMessage =
+              "Your prompt was blocked by content safety filters. Please try a different prompt.";
+          } else if (response.status === 429) {
+            errorMessage =
+              "The AI service is currently busy. Please wait a moment and try again.";
+          } else if (response.status === 401) {
+            errorMessage =
+              "The AI service authentication failed. The bot's service provider needs to fix the API configuration.";
+          } else if (response.status >= 500) {
+            errorMessage =
+              "The AI service is temporarily unavailable. Please try again in a few minutes.";
+          }
+        }
+      } catch (parseError) {
+        // If we can't parse the error, use the default message
+        logger.debug(
+          "Could not parse Stability AI error response:",
+          parseError,
+        );
+      }
+
+      throw new Error(errorMessage);
     }
 
     if (progressCallback) {

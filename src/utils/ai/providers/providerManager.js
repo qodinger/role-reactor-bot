@@ -1,6 +1,6 @@
 /**
- * Provider Manager
- * Handles provider selection and management logic
+ * Provider Manager - Feature-Based Design
+ * Handles provider selection based on specific features and content types
  */
 export class ProviderManager {
   constructor(config) {
@@ -8,83 +8,142 @@ export class ProviderManager {
   }
 
   /**
-   * Check if AI features are enabled (at least one provider is enabled)
+   * Check if AI features are enabled (at least one feature is enabled)
    * @returns {boolean} True if AI is available
    */
   isEnabled() {
-    return this.getPrimaryProvider() !== null;
+    if (!this.config.features) return false;
+
+    return Object.values(this.config.features).some(
+      feature => feature.enabled && this.isProviderAvailable(feature.provider),
+    );
   }
 
   /**
-   * Get the first enabled provider in priority order
-   * @returns {string|null} Provider key or null if none enabled
+   * Check if a provider is available (enabled and has API key if required)
+   * @param {string} providerKey - Provider key
+   * @returns {boolean} True if provider is available
    */
-  getPrimaryProvider() {
-    for (const [key, provider] of Object.entries(this.config.providers)) {
-      if (provider.enabled === true) {
-        return key;
+  isProviderAvailable(providerKey) {
+    const provider = this.config.providers[providerKey];
+    if (!provider || !provider.enabled) return false;
+
+    // Self-hosted providers (ComfyUI) don't require API key
+    if (providerKey === "comfyui") return true;
+
+    // RunPod requires both API key and endpoint ID
+    if (providerKey === "runpod") {
+      return !!(provider.apiKey && provider.endpointId);
+    }
+
+    // Other providers require API key
+    return !!provider.apiKey;
+  }
+
+  /**
+   * Check if a provider is safe for the requested content type
+   * @param {string} providerKey - Provider key
+   * @param {boolean} isNSFW - Whether content is NSFW
+   * @returns {boolean} True if provider is safe for this content type
+   */
+  isProviderSafeForContent(providerKey, isNSFW = false) {
+    const provider = this.config.providers[providerKey];
+    if (!provider) return false;
+
+    const safetyLevel = provider.safetyLevel || "safe";
+
+    if (isNSFW) {
+      // For NSFW content, allow any provider (safe, mixed, or nsfw)
+      return true;
+    } else {
+      // For safe content, only allow "safe" providers
+      // Never allow "mixed" or "nsfw" providers for safe content
+      return safetyLevel === "safe";
+    }
+  }
+
+  /**
+   * Get the appropriate provider for a specific feature with NO FALLBACKS
+   * @param {string} featureName - Feature name (aiChat, avatar, imagineGeneral, imagineNSFW)
+   * @returns {string|null} Provider key or null if not available
+   */
+  getProviderForFeature(featureName) {
+    const feature = this.config.features[featureName];
+    if (!feature || !feature.enabled) return null;
+
+    // Determine if this is NSFW content based on feature name
+    const isNSFW = featureName === "imagineNSFW";
+
+    // For safe content features, enforce strict safety if configured
+    const enforceSafety = !isNSFW && feature.allowNSFWProviders === false;
+
+    // ONLY try the configured provider - NO FALLBACKS
+    if (this.isProviderAvailable(feature.provider)) {
+      if (
+        !enforceSafety ||
+        this.isProviderSafeForContent(feature.provider, isNSFW)
+      ) {
+        return feature.provider;
       }
     }
+
+    // If the configured provider is not available or not safe, return null
+    // NO FALLBACKS - fail if the exact configured provider can't be used
     return null;
   }
 
   /**
-   * Get the appropriate provider for image generation
-   * Prefers ComfyUI, then Stability AI, then OpenAI, then OpenRouter
+   * Get the appropriate provider for image generation based on content type
+   * @param {boolean} isNSFW - Whether content is NSFW
    * @returns {string|null} Provider key or null if none enabled
    */
-  getImageProvider() {
-    const imageProviders = [
-      "runpod",
-      "comfyui",
-      "stability",
-      "openai",
-      "openrouter",
-    ];
-
-    for (const key of imageProviders) {
-      const provider = this.config.providers[key];
-      if (provider && provider.enabled === true) {
-        // RunPod requires endpoint ID
-        if (key === "runpod") {
-          if (provider.endpointId && provider.apiKey) {
-            return key;
-          }
-        }
-        // ComfyUI doesn't require API key (optional)
-        else if (key === "comfyui") {
-          return key;
-        }
-        // Others require API key
-        else if (provider.apiKey) {
-          return key;
-        }
-      }
-    }
-
-    return null;
+  getImageProvider(isNSFW = false) {
+    const featureName = isNSFW ? "imagineNSFW" : "imagineGeneral";
+    return this.getProviderForFeature(featureName);
   }
 
   /**
    * Get the appropriate provider for text/chat generation
-   * Prefers OpenRouter, then OpenAI
    * @returns {string|null} Provider key or null if none enabled
    */
   getTextProvider() {
-    // For text/chat, prefer OpenRouter, then OpenAI
-    const textProviders = ["openrouter", "openai"];
+    return this.getProviderForFeature("aiChat");
+  }
 
-    for (const key of textProviders) {
-      const provider = this.config.providers[key];
-      if (provider && provider.enabled === true) {
-        // Require API key
-        if (provider.apiKey) {
-          return key;
-        }
-      }
+  /**
+   * Get the appropriate provider for avatar generation
+   * @returns {string|null} Provider key or null if none enabled
+   */
+  getAvatarProvider() {
+    return this.getProviderForFeature("avatar");
+  }
+
+  /**
+   * Get the first enabled provider in priority order (legacy compatibility)
+   * @returns {string|null} Provider key or null if none enabled
+   */
+  getPrimaryProvider() {
+    // Check all features to find any available provider
+    const features = ["imagineGeneral", "aiChat", "avatar", "imagineNSFW"];
+
+    for (const featureName of features) {
+      const provider = this.getProviderForFeature(featureName);
+      if (provider) return provider;
     }
 
     return null;
+  }
+
+  /**
+   * Get model/checkpoint for a specific feature
+   * @param {string} featureName - Feature name
+   * @returns {string|null} Model name or null if not found
+   */
+  getModelForFeature(featureName) {
+    const feature = this.config.features[featureName];
+    if (!feature || !feature.enabled) return null;
+
+    return feature.model;
   }
 
   /**
@@ -99,15 +158,75 @@ export class ProviderManager {
   /**
    * Check if a provider is enabled
    * @param {string} providerKey - Provider key
-   * @returns {boolean} True if provider is enabled
+   * @returns {boolean} True if enabled
    */
   isProviderEnabled(providerKey) {
     const provider = this.config.providers[providerKey];
-    return provider && provider.enabled === true;
+    return !!(provider && provider.enabled);
   }
 
   /**
-   * Get all enabled providers
+   * Get feature configuration
+   * @param {string} featureName - Feature name
+   * @returns {Object|null} Feature configuration or null if not found
+   */
+  getFeatureConfig(featureName) {
+    return this.config.features[featureName] || null;
+  }
+
+  /**
+   * Get all enabled features
+   * @returns {Array} Array of enabled feature names
+   */
+  getEnabledFeatures() {
+    if (!this.config.features) return [];
+
+    return Object.keys(this.config.features).filter(
+      featureName => this.config.features[featureName].enabled,
+    );
+  }
+
+  /**
+   * Get all available providers for a feature
+   * @param {string} featureName - Feature name
+   * @returns {Array} Array of available provider keys
+   */
+  getAvailableProvidersForFeature(featureName) {
+    const feature = this.config.features[featureName];
+    if (!feature || !feature.enabled) return [];
+
+    const providers = [];
+
+    // Add primary provider
+    if (this.isProviderAvailable(feature.provider)) {
+      providers.push(feature.provider);
+    }
+
+    // Add fallback provider
+    if (
+      feature.fallbackProvider &&
+      this.isProviderAvailable(feature.fallbackProvider)
+    ) {
+      providers.push(feature.fallbackProvider);
+    }
+
+    // Add alternative providers
+    if (feature.alternativeProviders) {
+      for (const altProvider of feature.alternativeProviders) {
+        if (
+          this.isProviderAvailable(altProvider) &&
+          !providers.includes(altProvider)
+        ) {
+          providers.push(altProvider);
+        }
+      }
+    }
+
+    return providers;
+  }
+
+  /**
+   * Get all enabled providers (legacy compatibility)
    * @returns {Array<string>} Array of enabled provider keys
    */
   getEnabledProviders() {

@@ -15,8 +15,65 @@ export async function makeApiRequest(url, options) {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    const errorMessage = errorData.error?.message || response.statusText;
-    throw new Error(`API error: ${response.status} - ${errorMessage}`);
+    const { getLogger } = await import("../../logger.js");
+    const logger = getLogger();
+
+    // Log the error for debugging
+    logger.error(
+      `API request failed: ${response.status} - ${response.statusText}`,
+      {
+        url,
+        status: response.status,
+        errorData,
+      },
+    );
+
+    // Parse error response for better user messages
+    let errorMessage =
+      "The AI service encountered an error. Please try again later.";
+
+    if (
+      response.status === 402 ||
+      (errorData.error?.message && errorData.error.message.includes("credits"))
+    ) {
+      errorMessage =
+        "The AI service has run out of credits. This bot's service provider needs to add more credits.";
+    } else if (response.status === 400 && errorData.error?.message) {
+      if (errorData.error.message.includes("model")) {
+        errorMessage =
+          "The requested AI model is not available. Please try again later.";
+      } else if (
+        errorData.error.message.includes("prompt") ||
+        errorData.error.message.includes("content")
+      ) {
+        errorMessage =
+          "Your request contains content that cannot be processed. Please try a different prompt.";
+      } else {
+        errorMessage =
+          "Your request could not be processed. Please check your input and try again.";
+      }
+    } else if (response.status === 429) {
+      errorMessage =
+        "The AI service is currently busy. Please wait a moment and try again.";
+    } else if (response.status === 401) {
+      errorMessage =
+        "The AI service authentication failed. The bot's service provider needs to fix the API configuration.";
+    } else if (response.status >= 500) {
+      errorMessage =
+        "The AI service is temporarily unavailable. Please try again in a few minutes.";
+    } else if (errorData.error?.message) {
+      // Use the API's error message if it looks user-friendly
+      const apiMessage = errorData.error.message;
+      if (
+        !/api|error|status|code|exception|stack|trace|debug|log|config|key|token|endpoint|url|http|https|json|buffer/i.test(
+          apiMessage.toLowerCase(),
+        )
+      ) {
+        errorMessage = apiMessage;
+      }
+    }
+
+    throw new Error(errorMessage);
   }
 
   const data = await response.json();
