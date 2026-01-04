@@ -19,32 +19,3 @@ export {
 
 // Chat system prompts (now organized in chat/ subdirectory)
 export { CHAT_PROMPTS } from "./chat/index.js";
-
-// Dynamic prompt loader (for runtime loading and template substitution)
-export {
-  loadImagePrompts,
-  loadChatPrompts,
-  loadAllPrompts,
-  getPrompt,
-  clearPromptCache,
-  getCacheStats,
-} from "./promptLoader.js";
-
-// Prompt versioning
-export {
-  PROMPT_VERSIONS,
-  getPromptVersion,
-  getAllPromptVersions,
-} from "./promptVersion.js";
-
-// Prompt analytics
-export {
-  trackPromptUsage,
-  trackPromptPerformance,
-  trackPromptError,
-  getUsageStats,
-  getPerformanceStats,
-  getErrorStats,
-  getAllAnalytics,
-  resetAnalytics,
-} from "./promptAnalytics.js";

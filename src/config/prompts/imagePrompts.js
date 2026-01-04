@@ -255,15 +255,134 @@ export const STYLE_MODIFIERS = {
  * Based on research: detailed quality tags significantly improve output quality
  * Enhanced with better anatomy and composition keywords
  */
-export const IMAGINE_QUALITY_ENHANCEMENT =
-  ", masterpiece, best quality, ultra detailed, highly detailed, 8k resolution, sharp focus, professional, detailed, perfect composition, beautiful composition, cinematic composition, high quality, perfect anatomy, correct anatomy, natural anatomy, anatomically correct, proper body proportions, realistic proportions, natural body structure, correct body structure, natural lighting, soft lighting, beautiful lighting, well lit, good lighting, proper proportions, realistic proportions, detailed skin texture, smooth skin, perfect hands, detailed hands, correct hands, natural hands, detailed facial features, beautiful face, expressive eyes, detailed eyes";
+export const IMAGINE_QUALITY_ENHANCEMENT = [
+  "masterpiece",
+  "best quality",
+  "ultra detailed",
+  "highly detailed",
+  "8k resolution",
+  "sharp focus",
+  "professional",
+  "detailed",
+  "perfect composition",
+  "beautiful composition",
+  "cinematic composition",
+  "high quality",
+  "perfect anatomy",
+  "correct anatomy",
+  "natural anatomy",
+  "anatomically correct",
+  "proper body proportions",
+  "realistic proportions",
+  "natural body structure",
+  "correct body structure",
+  "natural lighting",
+  "soft lighting",
+  "beautiful lighting",
+  "well lit",
+  "good lighting",
+  "detailed skin texture",
+  "smooth skin",
+  "perfect hands",
+  "detailed hands",
+  "correct hands",
+  "natural hands",
+  "detailed facial features",
+  "beautiful face",
+  "expressive eyes",
+  "detailed eyes",
+].join(", ");
+
+/**
+ * NSFW-specific quality enhancement for adult content
+ * Includes additional anatomy and detail keywords for mature content
+ * Only used when NSFW content is detected and channel allows it
+ */
+export const NSFW_QUALITY_ENHANCEMENT = [
+  "masterpiece",
+  "best quality",
+  "ultra detailed",
+  "highly detailed",
+  "8k uhd",
+  "sharp focus",
+  "professional",
+  "detailed",
+  "perfect composition",
+  "beautiful composition",
+  "cinematic composition",
+  "high quality",
+  "perfect anatomy",
+  "correct anatomy",
+  "natural anatomy",
+  "anatomically correct",
+  "flawless anatomy",
+  "perfect body",
+  "beautiful body",
+  "perfect proportions",
+  "realistic proportions",
+  "natural body structure",
+  "correct body structure",
+  "detailed skin texture",
+  "smooth skin",
+  "flawless skin",
+  "natural lighting",
+  "soft lighting",
+  "dramatic lighting",
+  "rim lighting",
+  "studio lighting",
+  "beautiful lighting",
+  "well lit",
+  "good lighting",
+  "perfect hands",
+  "detailed hands",
+  "correct hands",
+  "natural hands",
+  "detailed facial features",
+  "beautiful face",
+  "perfect face",
+  "expressive eyes",
+  "detailed eyes",
+  "beautiful eyes",
+  "detailed nipples",
+  "perfect breasts",
+  "natural breasts",
+  "detailed genitals",
+  "perfect genitals",
+  "intimate details",
+  "sensual",
+  "elegant pose",
+  "natural pose",
+  "beautiful pose",
+  "artistic nude",
+  "professional photography",
+  "photorealistic",
+  "lifelike",
+].join(", ");
+
+/**
+ * NSFW-specific negative prompt for adult content
+ * More comprehensive exclusions for better quality NSFW generation
+ */
+export const NSFW_NEGATIVE_PROMPT = dedent`
+  bad anatomy, bad hands, bad fingers, missing fingers, extra fingers, fused fingers, too many fingers, poorly drawn hands, poorly drawn face, deformed, ugly, blurry, bad proportions, extra limbs, missing limbs, bad feet, long neck, mutation, mutilated, out of frame, worst quality, low quality, jpeg artifacts, watermark, signature, username, text,
+  bad breasts, bad nipples, extra breasts, missing breasts, fused breasts, asymmetrical breasts, deformed breasts, malformed breasts, unnatural breasts, fake breasts, plastic breasts,
+  bad genitals, deformed genitals, malformed genitals, extra genitals, missing genitals, fused genitals, unnatural genitals, distorted genitals, incorrect genitals,
+  three legs, three arms, four arms, four legs, six fingers, seven fingers, eight fingers, multiple heads, multiple faces, extra heads, extra faces,
+  bad skin, plastic skin, shiny skin, oily skin, sweaty skin, dirty skin, scarred skin, blemished skin, unnatural skin,
+  bad lighting, harsh lighting, flat lighting, overexposed, underexposed, dark shadows, bad shadows,
+  censored, mosaic, bar censor, black bar, pixelated, blocked, covered, hidden,
+  amateur, snapshot, low resolution, pixelated, grainy, noisy, blurry, out of focus, motion blur,
+  cartoon, anime (when realistic requested), 3d render (when 2d requested), cgi, computer generated, artificial, fake,
+  distorted face, melted face, warped face, stretched face, compressed face, squished face, asymmetrical face,
+  bad pose, awkward pose, unnatural pose, impossible pose, twisted body, broken spine, dislocated joints
+`;
 
 /**
  * Comprehensive negative prompt for /imagine command
  * Focuses on technical quality issues, not content/style restrictions
- * Organized by category: Quality → Anatomy → Composition → Technical → Style
+ * Organized by category: Quality → Anatomy → Composition → Technical → Style → Content Safety
  * Based on research: comprehensive negative prompts significantly reduce artifacts
- * Enhanced with better anatomy and technical exclusions
+ * Enhanced with better anatomy and technical exclusions + NSFW prevention
  */
 export const IMAGINE_NEGATIVE_PROMPT = dedent`
   blurry, low quality, distorted, deformed, ugly, low resolution, pixelated, grainy, noisy, bad quality, worst quality,
@@ -283,7 +402,10 @@ export const IMAGINE_NEGATIVE_PROMPT = dedent`
   duplicate, mutation, mutated, cloned, clone, cloned face, floating limbs, disconnected limbs,
   three legs, three arms, four arms, four legs, six fingers, seven fingers, eight fingers,
   missing body parts, extra body parts, fused body parts, merged body parts, conjoined,
-  distorted face, melted face, warped face, stretched face, compressed face, squished face
+  distorted face, melted face, warped face, stretched face, compressed face, squished face,
+  nsfw, nude, naked, topless, bottomless, underwear, lingerie, bikini, swimsuit, revealing clothing,
+  sexual, erotic, adult content, inappropriate, explicit, suggestive, seductive, provocative,
+  breast, breasts, cleavage, nipple, nipples, genitals, private parts, intimate, sensual
 `;
 
 /**
@@ -299,51 +421,97 @@ export const IMAGINE_PROVIDER_NEGATIVE_PROMPTS = {
 };
 
 /**
+ * Get the appropriate negative prompt for the content type
+ * @param {boolean} isNSFW - Whether this is NSFW content
+ * @param {string} provider - Provider name (optional)
+ * @returns {string} Appropriate negative prompt
+ */
+export function getImagineNegativePrompt(isNSFW = false, provider = null) {
+  if (isNSFW) {
+    return NSFW_NEGATIVE_PROMPT;
+  }
+
+  // Use provider-specific negative prompt if available
+  if (provider && IMAGINE_PROVIDER_NEGATIVE_PROMPTS[provider]) {
+    return IMAGINE_PROVIDER_NEGATIVE_PROMPTS[provider];
+  }
+
+  return IMAGINE_NEGATIVE_PROMPT;
+}
+
+/**
  * Enhance a user prompt with quality improvements for /imagine command
  * Preserves user intent while adding universal quality tags
  * Style-agnostic: works for any image type (realistic, anime, fantasy, etc.)
+ * Supports NSFW content with appropriate enhancements
+ * Supports style-specific enhancements via --style parameter
  * @param {string} userPrompt - Original user prompt
+ * @param {boolean} isNSFW - Whether this is NSFW content (optional)
+ * @param {string} style - Style parameter from --style (optional)
  * @returns {string} Enhanced prompt
  */
-export function enhanceImaginePrompt(userPrompt) {
+export function enhanceImaginePrompt(
+  userPrompt,
+  _isNSFW = false,
+  style = null,
+) {
   if (!userPrompt || typeof userPrompt !== "string") {
     return userPrompt;
   }
 
   const trimmed = userPrompt.trim();
 
-  // Don't enhance if prompt already contains quality tags (avoid duplication)
-  const qualityKeywords = [
-    "masterpiece",
-    "best quality",
-    "ultra detailed",
-    "highly detailed",
-    "high quality",
-    "professional",
-    "8k",
-    "4k",
-    "sharp focus",
-    "detailed",
-    "perfect",
-  ];
-
-  const lowerPrompt = trimmed.toLowerCase();
-  const hasQualityTags = qualityKeywords.some(keyword =>
-    lowerPrompt.includes(keyword),
-  );
-
-  // Count how many quality keywords are present
-  const qualityKeywordCount = qualityKeywords.filter(keyword =>
-    lowerPrompt.includes(keyword),
-  ).length;
-
-  // Only skip enhancement if user has 3+ quality keywords (very detailed prompt)
-  // This allows enhancement for prompts with 1-2 quality keywords
-  if (hasQualityTags && qualityKeywordCount >= 3) {
-    return trimmed;
+  // Only add style-specific enhancements if --style parameter is used
+  if (style) {
+    const styleEnhancement = getStyleEnhancement(style);
+    if (styleEnhancement) {
+      return `${trimmed}, ${styleEnhancement}`;
+    }
   }
 
-  // Append universal quality enhancement (style-agnostic)
-  // Even if some quality keywords exist, adding more can help
-  return `${trimmed}${IMAGINE_QUALITY_ENHANCEMENT}`;
+  // Return original prompt without any automatic quality enhancements
+  return trimmed;
+}
+
+/**
+ * Get style-specific enhancement keywords
+ * @param {string} style - Style parameter (anime, realistic, fantasy, etc.)
+ * @returns {string|null} Style enhancement keywords or null if not found
+ */
+function getStyleEnhancement(style) {
+  const styleEnhancements = {
+    anime:
+      "anime style, manga style, japanese animation, cel shading, vibrant colors, expressive eyes",
+    realistic:
+      "photorealistic, lifelike, natural lighting, realistic proportions, detailed textures",
+    fantasy:
+      "fantasy art, magical, ethereal, mystical atmosphere, dramatic lighting, epic composition",
+    cyberpunk:
+      "cyberpunk style, neon lights, futuristic, sci-fi, dark atmosphere, glowing effects",
+    vintage:
+      "vintage style, retro aesthetic, classic composition, nostalgic mood, film grain",
+    minimalist:
+      "minimalist style, clean composition, simple design, negative space, elegant simplicity",
+    abstract:
+      "abstract art, artistic interpretation, creative composition, unique perspective",
+    portrait:
+      "portrait photography, professional headshot, studio lighting, shallow depth of field",
+    landscape:
+      "landscape photography, scenic view, natural beauty, wide angle, atmospheric perspective",
+    macro:
+      "macro photography, extreme close-up, fine details, shallow depth of field",
+    street:
+      "street photography, candid moment, urban environment, natural lighting",
+    cinematic:
+      "cinematic composition, movie still, dramatic lighting, film quality, professional cinematography",
+    oil: "oil painting style, traditional art, painterly texture, rich colors, artistic brushstrokes",
+    watercolor:
+      "watercolor painting, soft colors, flowing textures, artistic medium, traditional art",
+    sketch:
+      "pencil sketch, hand-drawn, artistic lines, traditional drawing, monochrome",
+    digital:
+      "digital art, computer graphics, modern technique, clean lines, vibrant colors",
+  };
+
+  return styleEnhancements[style.toLowerCase()] || null;
 }
