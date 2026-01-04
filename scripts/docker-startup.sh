@@ -18,13 +18,17 @@ fi
 # Ensure proper permissions for mounted volumes
 echo "🔐 Setting up permissions..."
 if [ -d "/usr/src/app/data" ]; then
-    chown -R 1001:1001 /usr/src/app/data 2>/dev/null || true
-    chmod -R 755 /usr/src/app/data 2>/dev/null || true
+    # Only try to change permissions if we have write access
+    if [ -w "/usr/src/app/data" ]; then
+        chmod -R 755 /usr/src/app/data 2>/dev/null || echo "⚠️ Could not set data directory permissions (this is normal for non-root containers)"
+    fi
 fi
 
 if [ -d "/usr/src/app/logs" ]; then
-    chown -R 1001:1001 /usr/src/app/logs 2>/dev/null || true
-    chmod -R 755 /usr/src/app/logs 2>/dev/null || true
+    # Only try to change permissions if we have write access
+    if [ -w "/usr/src/app/logs" ]; then
+        chmod -R 755 /usr/src/app/logs 2>/dev/null || echo "⚠️ Could not set logs directory permissions (this is normal for non-root containers)"
+    fi
 fi
 
 # Wait for system to stabilize

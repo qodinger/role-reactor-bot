@@ -166,7 +166,7 @@ docker inspect role-reactor-bot
 The bot exposes a health check endpoint:
 
 ```bash
-curl http://localhost:3000/health
+curl http://localhost:3030/health
 ```
 
 ## Best Practices
@@ -208,7 +208,7 @@ docker build -t role-reactor-bot:v1.0.1 .
 # Run with custom configuration
 docker run -d --name role-reactor-bot \
   --env-file .env.production \
-  -p 3000:3000 \
+  -p 3030:3030 \
   role-reactor-bot:v1.0.1
 ```
 

@@ -15,12 +15,14 @@ logs
 
 # Environment files
 .env
-# .env.* - Allow production environment files
+.env.development
+# Keep .env.production for production builds
 
 # Documentation
 docs
 README.md
 LICENSE
+ARCHITECTURE-REVIEW.md
 
 # Docker files
 Dockerfile*
@@ -40,8 +42,13 @@ Thumbs.db
 coverage
 .nyc_output
 .jest
+tests
 
 # Build artifacts
 dist
 build
-out 
+out
+
+# Data directories (should be mounted as volumes)
+data
+# Don't exclude logs directory as it needs to exist in container 

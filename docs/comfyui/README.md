@@ -25,7 +25,7 @@ This directory contains all documentation related to ComfyUI integration with th
 
 - **Configuration**: `src/config/ai.js` - ComfyUI provider configuration
 - **Implementation**: `src/utils/ai/providers/ComfyUIProvider.js` - Main provider implementation
-- **Environment**: `.env.comfyui.example` - Environment variable examples
+- **Environment**: `env.example` - Environment variable examples (see ComfyUI section)
 
 ## 📋 Current Status
 

@@ -59,13 +59,13 @@ docker-compose -f docker-compose.prod.yml logs -f role-reactor-bot
 
 ```bash
 # Check basic health
-curl http://localhost:3000/health
+curl http://localhost:3030/health
 
 # Check Docker-specific health
-curl http://localhost:3000/health/docker
+curl http://localhost:3030/health/docker
 
 # Check command health
-curl http://localhost:3000/health/commands
+curl http://localhost:3030/health/commands
 ```
 
 ### 🔧 **Troubleshooting Commands**
