@@ -1,5 +1,26 @@
 import { systemPromptBuilder } from "../systemPromptBuilder.js";
-import { dataFetcher } from "../dataFetcher.js";
+// Simple inline data fetcher (replaces deleted dataFetcher)
+const dataFetcher = {
+  smartMemberFetch: async (guild, userMessage) => {
+    const needsFetch = userMessage.toLowerCase().includes("member");
+    if (!needsFetch) {
+      return { fetched: false, reason: "Not needed" };
+    }
+    try {
+      const before = guild.members.cache.size;
+      await guild.members.fetch();
+      const after = guild.members.cache.size;
+      return {
+        fetched: true,
+        fetchedCount: after - before,
+        cached: after,
+        total: guild.memberCount,
+      };
+    } catch (error) {
+      return { fetched: false, reason: error.message };
+    }
+  },
+};
 import { AI_STATUS_MESSAGES } from "../statusMessages.js";
 import { getLogger } from "../../logger.js";
 

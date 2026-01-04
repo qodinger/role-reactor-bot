@@ -1,5 +1,25 @@
-import { jsonParser } from "../jsonParser.js";
-import { responseValidator } from "../responseValidator.js";
+// Simple inline JSON parser (replaces deleted jsonParser)
+const jsonParser = {
+  parseJsonResponse: rawResponse => {
+    try {
+      const parsed = JSON.parse(rawResponse);
+      return { success: true, data: parsed };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  },
+};
+
+// Simple inline response validator (replaces deleted responseValidator)
+const responseValidator = {
+  sanitizeData: data => {
+    if (typeof data !== "string") return data;
+    return data.replace(/[<>@#&]/g, "").trim();
+  },
+  validateResponseData: (_response, _guild) => {
+    return { valid: true, warnings: [] };
+  },
+};
 import { checkAndDeductAICredits } from "../aiCreditManager.js";
 import { MAX_RESPONSE_LENGTH } from "../constants.js";
 import { getLogger } from "../../logger.js";

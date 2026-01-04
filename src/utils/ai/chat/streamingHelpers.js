@@ -1,6 +1,80 @@
-import { getModelOptimizations } from "../modelOptimizer.js";
 import { STREAMING_UPDATE_INTERVAL } from "../constants.js";
 import { AI_STATUS_MESSAGES } from "../statusMessages.js";
+
+/**
+ * Get optimized parameters for a specific model
+ * @param {string|null} modelName - Model name/identifier
+ * @returns {Object} Optimized parameters { maxTokens, temperature }
+ */
+function getModelOptimizations(modelName) {
+  if (!modelName) {
+    return { maxTokens: 2000, temperature: 0.7 };
+  }
+
+  const modelLower = modelName.toLowerCase();
+
+  // DeepSeek models
+  if (modelLower.includes("deepseek-r2")) {
+    return { maxTokens: 1800, temperature: 0.5 };
+  }
+  if (modelLower.includes("deepseek-r1-0528")) {
+    return { maxTokens: 2000, temperature: 0.5 };
+  }
+  if (modelLower.includes("deepseek-r1")) {
+    return { maxTokens: 1500, temperature: 0.5 };
+  }
+  if (
+    modelLower.includes("deepseek-chat") ||
+    modelLower.includes("deepseek-v3")
+  ) {
+    return { maxTokens: 2000, temperature: 0.7 };
+  }
+  if (modelLower.includes("deepseek")) {
+    return { maxTokens: 2000, temperature: 0.6 };
+  }
+
+  // Claude models
+  if (
+    modelLower.includes("claude-3.5-haiku") ||
+    modelLower.includes("claude-3-haiku")
+  ) {
+    return { maxTokens: 2000, temperature: 0.6 };
+  }
+  if (
+    modelLower.includes("claude-3.5-sonnet") ||
+    modelLower.includes("claude-3-sonnet")
+  ) {
+    return { maxTokens: 2000, temperature: 0.7 };
+  }
+  if (modelLower.includes("claude")) {
+    return { maxTokens: 2000, temperature: 0.7 };
+  }
+
+  // GPT models
+  if (modelLower.includes("gpt-4o-mini") || modelLower.includes("gpt-4-mini")) {
+    return { maxTokens: 2000, temperature: 0.7 };
+  }
+  if (modelLower.includes("gpt-4o") || modelLower.includes("gpt-4-turbo")) {
+    return { maxTokens: 2000, temperature: 0.7 };
+  }
+  if (modelLower.includes("gpt-4")) {
+    return { maxTokens: 2000, temperature: 0.7 };
+  }
+  if (modelLower.includes("gpt-3.5-turbo")) {
+    return { maxTokens: 2000, temperature: 0.7 };
+  }
+  if (modelLower.includes("gpt")) {
+    return { maxTokens: 2000, temperature: 0.7 };
+  }
+
+  // Self-hosted models
+  if (modelLower.includes("llama") || modelLower.includes("ollama")) {
+    return { maxTokens: 1500, temperature: 0.6 };
+  }
+
+  // Default fallback
+  return { maxTokens: 2000, temperature: 0.7 };
+}
 import { getLogger } from "../../logger.js";
 import { performanceMonitor } from "../performanceMonitor.js";
 
@@ -92,11 +166,20 @@ export async function performStreamingGeneration(
   textProvider,
   chunkCallback,
 ) {
-  // Get the current model for optimization
-  const currentModel =
-    aiService.config.providers.openrouter?.models?.text?.primary ||
-    aiService.config.providers.openai?.models?.text?.primary ||
-    aiService.config.providers.selfhosted?.models?.text?.primary;
+  // Get the current model for optimization using feature-based config
+  let currentModel = null;
+
+  if (textProvider && aiService.providerManager) {
+    currentModel = aiService.providerManager.getModelForFeature("aiChat");
+  }
+
+  // Fallback to old structure if new structure not available
+  if (!currentModel) {
+    currentModel =
+      aiService.config.providers?.openrouter?.models?.text?.primary ||
+      aiService.config.providers?.openai?.models?.text?.primary ||
+      aiService.config.providers?.selfhosted?.models?.text?.primary;
+  }
 
   // Optimize parameters based on model characteristics
   const { maxTokens, temperature } = getModelOptimizations(currentModel);

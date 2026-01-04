@@ -4,7 +4,20 @@ import { systemPromptBuilder } from "../systemPromptBuilder.js";
 import { conversationManager } from "../conversationManager.js";
 import { FOLLOW_UP_QUERY_TIMEOUT } from "../constants.js";
 import { getLogger } from "../../logger.js";
-import { getPrompt } from "../../../config/prompts/index.js";
+// Simple inline getPrompt function (replaces deleted prompts/index.js)
+const getPrompt = async (category, promptName, variables = {}) => {
+  if (category === "chat" && promptName === "followUpTemplate") {
+    // Simple follow-up template
+    let template =
+      "I understand you'd like to continue our conversation. How can I help you further?";
+    // Simple variable substitution
+    for (const [key, value] of Object.entries(variables)) {
+      template = template.replace(new RegExp(`{${key}}`, "g"), value);
+    }
+    return template;
+  }
+  return "How can I help you?";
+};
 
 const logger = getLogger();
 
