@@ -83,9 +83,7 @@ export function createImagineResultEmbed({
   interaction = null,
   seed = null,
   aspectRatio = null,
-  style = null,
-  steps = null,
-  cfg = null,
+  model = null,
   nsfw = false,
 }) {
   const preview = getPromptPreview(prompt);
@@ -107,29 +105,15 @@ export function createImagineResultEmbed({
       inline: true,
     });
   }
-  if (style !== null) {
+  if (model !== null) {
     fields.push({
-      name: "Style",
-      value: `\`${style}\``,
+      name: "Model",
+      value: `\`${model}\``,
       inline: true,
     });
   }
 
   // Second row of parameters
-  if (steps !== null) {
-    fields.push({
-      name: "Steps",
-      value: `\`${steps}\``,
-      inline: true,
-    });
-  }
-  if (cfg !== null) {
-    fields.push({
-      name: "CFG Scale",
-      value: `\`${cfg}\``,
-      inline: true,
-    });
-  }
   if (nsfw) {
     fields.push({
       name: "Content Type",

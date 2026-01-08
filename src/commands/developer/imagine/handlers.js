@@ -77,14 +77,11 @@ export async function handleImagineCommand(
 
   const promptOption = interaction.options.getString("prompt", true);
 
-  // Parse inline parameters (--ar, --seed, --style, --steps, --cfg, --nsfw)
+  // Parse inline parameters (--ar, --model, --nsfw)
   const {
     prompt: rawPrompt,
     aspectRatio,
-    seed,
-    style,
-    steps,
-    cfg,
+    model,
     nsfw: userRequestedNSFW,
   } = parseInlineParameters(promptOption);
 
@@ -156,11 +153,9 @@ export async function handleImagineCommand(
 
   // Enhance prompt with quality improvements (preserves user intent)
   // Use NSFW-specific enhancements if content is NSFW
-  // Apply style-specific enhancements based on --style parameter
   const prompt = enhanceImaginePrompt(
     validation.prompt,
     nsfwValidation.isNSFW,
-    style,
   );
   // Use original prompt for display in embeds (not the enhanced one)
   const originalPrompt = validation.prompt;
@@ -256,9 +251,7 @@ export async function handleImagineCommand(
             isNSFW: nsfwValidation.isNSFW, // Pass NSFW flag for provider-specific handling
             featureName, // Pass feature name for model selection
             // ComfyUI-specific parameters
-            steps: steps || undefined, // Use ComfyUI default if not specified
-            cfgScale: cfg || undefined, // Use ComfyUI default if not specified
-            style: style || undefined,
+            model: model || undefined, // animagine or anything
           },
           progressCallback,
         }),
@@ -292,9 +285,8 @@ export async function handleImagineCommand(
 
     const durationMs = Date.now() - startTime;
 
-    // Get seed from result if available, otherwise use the provided seed or generate one
-    const generatedSeed =
-      result.seed !== undefined ? result.seed : seed !== null ? seed : null;
+    // Get seed from result if available, otherwise null
+    const generatedSeed = result.seed !== undefined ? result.seed : null;
     const currentAspectRatio = aspectRatio || "1:1";
 
     const successEmbed = createImagineResultEmbed({
@@ -302,9 +294,7 @@ export async function handleImagineCommand(
       interaction,
       seed: generatedSeed,
       aspectRatio: currentAspectRatio,
-      style,
-      steps,
-      cfg,
+      model,
       nsfw: nsfwValidation.isNSFW,
     });
 

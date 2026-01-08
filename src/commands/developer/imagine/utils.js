@@ -2,7 +2,7 @@ const MIN_PROMPT_LENGTH = 5;
 const MAX_PROMPT_LENGTH = 2000;
 
 /**
- * Parse inline parameters from prompt (--ar 2:3, --seed 12345, --style anime, --nsfw, etc.)
+ * Parse inline parameters from prompt (--ar 2:3, --model animagine, --nsfw, etc.)
  * @param {string} input - Raw prompt input
  * @returns {Object} Parsed result with cleaned prompt and extracted parameters
  */
@@ -11,20 +11,14 @@ export function parseInlineParameters(input) {
     return {
       prompt: "",
       aspectRatio: null,
-      seed: null,
-      style: null,
-      steps: null,
-      cfg: null,
+      model: null,
       nsfw: false,
     };
   }
 
   let prompt = input.trim();
   let aspectRatio = null;
-  let seed = null;
-  let style = null;
-  let steps = null;
-  let cfg = null;
+  let model = null;
   let nsfw = false;
 
   // Parse --ar or --aspect (aspect ratio)
@@ -35,42 +29,12 @@ export function parseInlineParameters(input) {
     prompt = prompt.replace(arPattern, "").trim();
   }
 
-  // Parse --seed
-  const seedPattern = /--seed\s+(-?\d+)/gi;
-  const seedMatch = seedPattern.exec(prompt);
-  if (seedMatch) {
-    seed = parseInt(seedMatch[1], 10);
-    prompt = prompt.replace(seedPattern, "").trim();
-  }
-
-  // Parse --style (anime, realistic, fantasy, etc.)
-  const stylePattern = /--style\s+(\w+)/gi;
-  const styleMatch = stylePattern.exec(prompt);
-  if (styleMatch) {
-    style = styleMatch[1].toLowerCase();
-    prompt = prompt.replace(stylePattern, "").trim();
-  }
-
-  // Parse --steps (10-50, optimal: 20-30)
-  const stepsPattern = /--steps\s+(\d+)/gi;
-  const stepsMatch = stepsPattern.exec(prompt);
-  if (stepsMatch) {
-    const stepsValue = parseInt(stepsMatch[1], 10);
-    if (stepsValue >= 10 && stepsValue <= 50) {
-      steps = stepsValue;
-    }
-    prompt = prompt.replace(stepsPattern, "").trim();
-  }
-
-  // Parse --cfg (1-20, optimal: 6-12)
-  const cfgPattern = /--cfg\s+(\d+(?:\.\d+)?)/gi;
-  const cfgMatch = cfgPattern.exec(prompt);
-  if (cfgMatch) {
-    const cfgValue = parseFloat(cfgMatch[1]);
-    if (cfgValue >= 1 && cfgValue <= 20) {
-      cfg = cfgValue;
-    }
-    prompt = prompt.replace(cfgPattern, "").trim();
+  // Parse --model or --m (animagine, anything)
+  const modelPattern = /--(?:model|m)\s+(animagine|anything)/gi;
+  const modelMatch = modelPattern.exec(prompt);
+  if (modelMatch) {
+    model = modelMatch[1].toLowerCase();
+    prompt = prompt.replace(modelPattern, "").trim();
   }
 
   // Parse --nsfw flag (enables NSFW content generation)
@@ -87,10 +51,7 @@ export function parseInlineParameters(input) {
   return {
     prompt,
     aspectRatio,
-    seed,
-    style,
-    steps,
-    cfg,
+    model,
     nsfw,
   };
 }
