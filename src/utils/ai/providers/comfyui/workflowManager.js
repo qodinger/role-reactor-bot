@@ -22,7 +22,7 @@ export class WorkflowManager {
     if (this.initialized) return;
 
     try {
-      const workflowsPath = path.join(process.cwd(), "docs/comfyui/workflows");
+      const workflowsPath = path.join(process.cwd(), "src/utils/ai/providers/comfyui/workflows");
       const files = await fs.readdir(workflowsPath);
 
       for (const file of files) {

@@ -17,16 +17,18 @@ export class ConcurrencyManager {
     // - Local ComfyUI (CPU/MacBook): 1-2 concurrent requests
     // - Local ComfyUI (GPU): 2-4 concurrent requests
     // - Cloud ComfyUI (RunPod/server): 2-4 per GPU
-    // - Self-hosted Ollama: Can be increased based on server CPU/RAM
-    // - Cloud APIs (OpenRouter, Stability): 10-50 (depends on API limits)
-    // Default: 100 (too high for local ComfyUI - adjust via AI_MAX_CONCURRENT env var)
-    this.maxConcurrent = parseInt(process.env.AI_MAX_CONCURRENT) || 100;
+    // Concurrency limits optimized for cloud providers:
+    // - RunPod Serverless: 10-15 concurrent (cost management)
+    // - Stability AI: 20-30 concurrent (API limits)
+    // - OpenRouter/ChatGPT: 30-50 concurrent (fast responses)
+    // Default: 25 (balanced for production cloud deployment)
+    this.maxConcurrent = parseInt(process.env.AI_MAX_CONCURRENT) || 25;
     this.requestTimeout = parseInt(process.env.AI_REQUEST_TIMEOUT) || 300000;
     this.retryAttempts = parseInt(process.env.AI_RETRY_ATTEMPTS) || 2;
     this.retryDelay = parseInt(process.env.AI_RETRY_DELAY) || 1000;
 
     this.userRequests = new Map();
-    this.userRateLimit = parseInt(process.env.AI_USER_RATE_LIMIT) || 50;
+    this.userRateLimit = parseInt(process.env.AI_USER_RATE_LIMIT) || 10;
     this.userRateWindow = parseInt(process.env.AI_USER_RATE_WINDOW) || 300000;
 
     this.coreTierLimits = {
