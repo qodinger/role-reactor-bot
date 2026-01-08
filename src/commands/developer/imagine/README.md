@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `/imagine` command lets anyone turn a detailed text prompt into AI-generated artwork directly inside Discord. It relies on the shared multi-provider AI service so you can switch between OpenRouter, OpenAI, Stability AI, or self-hosted providers without changing the command.
+The `/imagine` command lets developers turn detailed text prompts into AI-generated artwork directly inside Discord. It uses ComfyUI with animagine and anything models for high-quality image generation.
 
 ## File Structure
 
@@ -32,68 +32,76 @@ Following the modular pattern established by other developer commands:
 /imagine prompt:"a cozy reading nook filled with plants"
 ```
 
-**With options:**
+**With inline parameters:**
 
 ```
-/imagine prompt:"solar punk city skyline at sunset" style:cinematic quality:high
-/imagine prompt:"retro arcade cabinet in neon alley" aspect_ratio:landscape
-```
-
-**Inline parameters:**
-
-```
-/imagine prompt:"cyberpunk city --ar 16:9 --quality 2 --stylize 750"
-/imagine prompt:"fantasy castle --ar 21:9 --chaos 50 --seed 12345"
-/imagine prompt:"portrait of a warrior --no helmet, armor --ar 2:3"
+/imagine prompt:"cyberpunk city --ar 16:9 --model animagine"
+/imagine prompt:"fantasy castle --ar 3:2 --model anything"
+/imagine prompt:"anime character --nsfw --model animagine --ar 2:3"
 ```
 
 ## Permissions Required
 
+- **Developer** access required
 - `Send Messages` permission
 - `Embed Links` permission
 - `Attach Files` permission
 
 ## Key Features
 
-- **Inline Parameters**: Supports inline parameters like `--ar 16:9`, `--quality 2`, `--stylize 750`, `--chaos 50`, `--seed 12345`, and `--no something`
-- **Multi-Provider Support**: Automatically uses the same provider as `/avatar` command (self-hosted, Stability AI, OpenRouter, or OpenAI)
-- **Prompt Enhancements**: Optional style, quality, and aspect ratio hints are appended to give models more context
+- **Model Selection**: Choose between animagine (best quality) and anything (alternative) models
+- **Aspect Ratio Control**: Generate images in various aspect ratios
+- **NSFW Support**: Generate mature content in age-restricted channels
 - **Queue-Aware Execution**: Leverages the shared `concurrencyManager` to prevent timeouts and rate-limit abuse
 - **Consistent UX**: Embeds use the global theme system and clearly outline provider, model, and render time
 - **Graceful Failures**: Friendly error messaging for validation issues, rate limits, or provider outages
-- **Multiple Aspect Ratios**: Supports 1:1, 2:3, 3:4, 4:5, 9:16, 3:2, 4:3, 16:9, 21:9
 
 ## Inline Parameter Parsing
 
 The command automatically parses inline parameters from the prompt:
 
 - `--ar` or `--aspect`: Sets aspect ratio (e.g., `--ar 16:9`)
-- `--quality` or `--q`: Sets quality level (0.25, 0.5, 1, 2)
-- `--stylize` or `--s`: Sets stylization level (0-1000)
-- `--chaos` or `--c`: Sets chaos/variation level (0-100)
-- `--seed`: Sets seed for reproducibility
-- `--no`: Negative prompts (e.g., `--no helmet, armor`)
-- `--v`: Version parameter (maps to quality)
+- `--model` or `--m`: Choose model (animagine or anything)
+- `--nsfw`: Enable NSFW content generation (requires age-restricted channel)
 
 Parameters are extracted from the prompt before validation, so the cleaned prompt is what gets validated.
 
+## Supported Aspect Ratios
+
+- `1:1` - Square (default)
+- `2:3` - Portrait
+- `3:4` - Standard portrait
+- `4:5` - Tall portrait
+- `9:16` - Mobile portrait
+- `3:2` - Standard landscape
+- `4:3` - Classic photo
+- `16:9` - Widescreen
+
+## Model Information
+
+- **animagine** - Animagine XL 4.0 with superior character knowledge (default)
+- **anything** - Anything XL model for versatile anime generation
+
+Both models use optimal settings automatically (animagine: 28 steps, CFG 5.0; anything: 20 steps, CFG 7.0).
+
 ## Configuration Defaults
 
-- `quality`: `standard`
-- Provider: auto-select (same as `/avatar` command)
-- Aspect ratio: provider default (usually square)
+- Model: `animagine` (best quality)
+- Aspect ratio: `1:1` (square)
+- Provider: ComfyUI with automatic model selection
 
 ## Implementation Notes
 
 - Always calls `interaction.deferReply()` before kicking off generation to avoid Discord timeouts
 - Validation happens up front; users get immediate feedback if the prompt is empty/too short/too long
 - Result images are sent as attachments so users can download or share them immediately
-- Embeds include a footer reminding users that provider safety filters still apply, matching project policy
+- NSFW content requires age-restricted Discord channels
+- Uses optimal model settings automatically for best quality
 
 ## Dependencies
 
 - Discord.js
-- Multi-provider AI service integration
+- ComfyUI provider integration
 - Theme configuration for colors and styling
 - Concurrency manager for request queueing
 - Storage manager for generation history
