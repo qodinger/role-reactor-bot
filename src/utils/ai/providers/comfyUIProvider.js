@@ -99,31 +99,34 @@ export class ComfyUIProvider {
     try {
       // Parse options from config
       const {
-        flags = [],
         steps = null,
         cfg = null,
         width = 1024,
         height = 1024,
         seed = null,
         negativePrompt = "",
-        workflow = "nsfw-image-generation-api",
+        model: modelKey = null,
         preferRunPod = false,
       } = config;
 
-      // Select model based on flags or explicit model name
+      // Select model based on model key or default to animagine
       let selectedModel;
-      if (model) {
-        try {
-          selectedModel = modelManager.getModelByFilename(model);
-        } catch {
-          selectedModel = modelManager.getModelByFlags(flags);
-        }
+      if (modelKey) {
+        selectedModel = modelManager.getModelByKey(modelKey);
       } else {
-        selectedModel = modelManager.getModelByFlags(flags);
+        // Default to animagine (best quality)
+        selectedModel = modelManager.getModelByKey("animagine");
       }
 
       logger.info(
-        `[ComfyUI] Using model: ${selectedModel.filename} for flags: ${flags.join(", ")}`,
+        `[ComfyUI] Using model: ${selectedModel.filename} (${selectedModel.key})`,
+      );
+
+      // Get optimal settings for the selected model
+      const optimalSettings = modelManager.getOptimalSettings(
+        selectedModel.key,
+        steps,
+        cfg,
       );
 
       // Get best deployment
@@ -134,14 +137,17 @@ export class ComfyUIProvider {
 
       logger.info(`[ComfyUI] Using deployment: ${deployment.name}`);
 
+      // Use the model's workflow
+      const workflowName = selectedModel.workflow.replace('.json', '');
+      
       // Get workflow with parameters
       const workflowWithParams =
-        await workflowManager.getWorkflowWithParameters(workflow, {
+        await workflowManager.getWorkflowWithParameters(workflowName, {
           model: selectedModel.filename,
           prompt,
           negativePrompt,
-          steps: steps || selectedModel.defaultSettings?.steps,
-          cfg: cfg || selectedModel.defaultSettings?.cfg,
+          steps: optimalSettings.steps,
+          cfg: optimalSettings.cfg,
           width,
           height,
           seed,
@@ -484,22 +490,6 @@ export class ComfyUIProvider {
       generationOptions.workflow = "anime-avatar-generation";
     }
 
-    // Extract technical parameters
-    const stepsMatch = commandText.match(/--steps[=\s](\d+)/i);
-    if (stepsMatch) {
-      generationOptions.steps = parseInt(stepsMatch[1]);
-    }
-
-    const cfgMatch = commandText.match(/--cfg[=\s]([\d.]+)/i);
-    if (cfgMatch) {
-      generationOptions.cfg = parseFloat(cfgMatch[1]);
-    }
-
-    const seedMatch = commandText.match(/--seed[=\s](\d+)/i);
-    if (seedMatch) {
-      generationOptions.seed = parseInt(seedMatch[1]);
-    }
-
     const sizeMatch = commandText.match(/--size[=\s](\d+)x(\d+)/i);
     if (sizeMatch) {
       generationOptions.width = parseInt(sizeMatch[1]);
@@ -530,29 +520,21 @@ export class ComfyUIProvider {
    */
   getHelpText() {
     return `
-**ComfyUI Model Flags:**
-\`--anime\` - Anime/manga style (Anything XL)
-\`--realistic\` - Photorealistic style (Realism Engine)
-\`--furry\` - Anthropomorphic/furry style (Pony Diffusion)
-\`--artistic\` - Artistic/creative style (Deliberate)
+**ComfyUI Model Selection:**
+\`--model animagine\` - Animagine XL 4.0 (default, best quality)
+\`--model anything\` - Anything XL (alternative anime style)
 
-**Quality Flags:**
-\`--fast\` - Fast generation (15 steps, CFG 6)
-\`--quality\` - High quality (30 steps, CFG 8)
+**Required Flags:**
+\`--nsfw\` - Required for all anime models (safety measure)
 
-**Workflow Flags:**
-\`--avatar\` - Use avatar generation workflow
-
-**Technical Flags:**
-\`--steps=20\` - Set sampling steps
-\`--cfg=7.5\` - Set CFG scale
-\`--seed=12345\` - Set random seed
-\`--size=1024x1024\` - Set image size
+**Aspect Ratio:**
+\`--ar 1:1\` - Square (default)
+\`--ar 16:9\` - Widescreen
+\`--ar 9:16\` - Portrait
 
 **Examples:**
-\`/imagine a cat girl --anime --quality\`
-\`/imagine realistic portrait --realistic --steps=25\`
-\`/imagine furry character --furry --avatar\`
+\`/imagine anime girl --nsfw --model animagine --ar 1:1\`
+\`/imagine fantasy warrior --nsfw --model anything --ar 16:9\`
     `.trim();
   }
 
