@@ -442,32 +442,18 @@ export function getImagineNegativePrompt(isNSFW = false, provider = null) {
 /**
  * Enhance a user prompt with quality improvements for /imagine command
  * Preserves user intent while adding universal quality tags
- * Style-agnostic: works for any image type (realistic, anime, fantasy, etc.)
+ * Works for anime image generation with optimal quality enhancements
  * Supports NSFW content with appropriate enhancements
- * Supports style-specific enhancements via --style parameter
  * @param {string} userPrompt - Original user prompt
  * @param {boolean} isNSFW - Whether this is NSFW content (optional)
- * @param {string} style - Style parameter from --style (optional)
  * @returns {string} Enhanced prompt
  */
-export function enhanceImaginePrompt(
-  userPrompt,
-  _isNSFW = false,
-  style = null,
-) {
+export function enhanceImaginePrompt(userPrompt, _isNSFW = false) {
   if (!userPrompt || typeof userPrompt !== "string") {
     return userPrompt;
   }
 
   const trimmed = userPrompt.trim();
-
-  // Only add style-specific enhancements if --style parameter is used
-  if (style) {
-    const styleEnhancement = getStyleEnhancement(style);
-    if (styleEnhancement) {
-      return `${trimmed}, ${styleEnhancement}`;
-    }
-  }
 
   // Return original prompt without any automatic quality enhancements
   return trimmed;
