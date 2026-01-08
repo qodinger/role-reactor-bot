@@ -1,0 +1,5 @@
+# pnpm-specific configuration
+package-manager=pnpm
+strict-peer-dependencies=true
+auto-install-peers=true
+store-dir=.pnpm-store
