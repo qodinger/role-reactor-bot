@@ -1,17 +1,98 @@
+# =============================================================================
+# DEVELOPMENT DOCKER COMPOSE CONFIGURATION
+# =============================================================================
+# For local development with hot reload and debugging
+
+version: '3.8'
+
 services:
-  role-reactor-bot:
-    build: .
-    container_name: role-reactor-bot
+  # Role Reactor Bot - Development
+  role-reactor-bot-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: role-reactor-bot-dev
     restart: unless-stopped
+    
+    # Development environment
     environment:
       - NODE_ENV=development
-    env_file:
-      - .env.development
+      - LOG_LEVEL=DEBUG
+      - LOG_CONSOLE=true
+      
+    # Mount source code for hot reload
     volumes:
-      # Mount source code for live development
-      - ./src:/usr/src/app/src
-      - ./scripts:/usr/src/app/scripts
-      - ./package.json:/usr/src/app/package.json
-      - ./pnpm-lock.yaml:/usr/src/app/pnpm-lock.yaml
-    # Use node directly for development
-    command: ["node", "src/index.js"] 
+      - .:/app
+      - /app/node_modules
+      - ./logs:/app/logs
+      - ./data:/app/data
+      
+    # Development ports
+    ports:
+      - "3000:3000"  # Web server
+      - "9229:9229"  # Node.js debugger
+      
+    # Development command with nodemon
+    command: npm run dev
+    
+    # Connect to development network
+    networks:
+      - role-reactor-dev
+      
+    # Depends on MongoDB for development
+    depends_on:
+      - mongodb-dev
+      
+  # MongoDB - Development
+  mongodb-dev:
+    image: mongo:7
+    container_name: mongodb-dev
+    restart: unless-stopped
+    
+    # Development MongoDB settings
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=devpassword
+      - MONGO_INITDB_DATABASE=role-reactor-bot-dev
+      
+    # Development data persistence
+    volumes:
+      - mongodb_dev_data:/data/db
+      - ./scripts/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+      
+    # Development MongoDB port
+    ports:
+      - "27017:27017"
+      
+    networks:
+      - role-reactor-dev
+
+  # Redis - Development (for caching and sessions)
+  redis-dev:
+    image: redis:7-alpine
+    container_name: redis-dev
+    restart: unless-stopped
+    
+    # Development Redis port
+    ports:
+      - "6379:6379"
+      
+    # Development Redis data
+    volumes:
+      - redis_dev_data:/data
+      
+    networks:
+      - role-reactor-dev
+
+# Development volumes
+volumes:
+  mongodb_dev_data:
+    driver: local
+  redis_dev_data:
+    driver: local
+
+# Development network
+networks:
+  role-reactor-dev:
+    driver: bridge
