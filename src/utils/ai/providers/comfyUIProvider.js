@@ -199,14 +199,29 @@ export class ComfyUIProvider {
     }
 
     try {
+      // ============================================================================
+      // LOG COMPLETE COMFYUI API PAYLOAD
+      // ============================================================================
+      const requestPayload = {
+        prompt: workflowData,
+        client_id: clientId,
+      };
+      
+      logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+      logger.info(`[COMFYUI API REQUEST] Provider: comfyui`);
+      logger.info(`[COMFYUI API REQUEST] Endpoint: ${this.baseUrl}/prompt`);
+      logger.info(`[COMFYUI API REQUEST] Client ID: ${clientId}`);
+      logger.info(`[COMFYUI API REQUEST] Complete Workflow Payload:`);
+      logger.info(`[COMFYUI API REQUEST] ${JSON.stringify(requestPayload, null, 2)}`);
+      logger.info(`[COMFYUI API REQUEST] Headers:`);
+      logger.info(`[COMFYUI API REQUEST] - Content-Type: application/json`);
+      logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+
       // Submit workflow
       const response = await fetch(`${this.baseUrl}/prompt`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: workflowData,
-          client_id: clientId,
-        }),
+        body: JSON.stringify(requestPayload),
       });
 
       if (!response.ok) {
