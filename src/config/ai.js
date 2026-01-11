@@ -152,9 +152,6 @@ export function getAIModels() {
         name: "ComfyUI (Self-Hosted)",
         baseUrl: process.env.COMFYUI_API_URL || "http://127.0.0.1:8188",
         apiKey: process.env.COMFYUI_API_KEY || null, // Optional for self-hosted
-        workflowId: process.env.COMFYUI_WORKFLOW_ID || null,
-        nsfwWorkflow:
-          process.env.COMFYUI_NSFW_WORKFLOW || "animagine", // Default to animagine workflow
         capabilities: ["image"], // Image generation only
         safetyLevel: "nsfw", // NSFW ONLY - no safe content generation
 
@@ -221,40 +218,6 @@ export function getAIModels() {
             },
           },
         },
-
-        // Available workflows (metadata only - actual workflows loaded from JSON files)
-        workflows: {
-          "animagine-fast": {
-            name: "Animagine Fast Workflow",
-            description: "Fast anime generation optimized for speed (20 steps)",
-            settings: { steps: 20, cfg: 5.0, sampler: "dpmpp_2m" },
-          },
-          "anything-fast": {
-            name: "Anything Fast Workflow",
-            description: "Fast versatile anime generation (15 steps)",
-            settings: { steps: 15, cfg: 6.0, sampler: "dpmpp_2m" },
-          },
-          "animagine-quality": {
-            name: "Animagine HQ Workflow",
-            description: "High-quality anime generation with enhanced details and refinement pass",
-            settings: { steps: 35, cfg: 6.0, sampler: "dpmpp_2m_sde" },
-          },
-          "anything-quality": {
-            name: "Anything HQ Workflow", 
-            description: "High-quality versatile anime generation with detail enhancement",
-            settings: { steps: 30, cfg: 7.5, sampler: "dpmpp_2m_sde" },
-          },
-          "animagine": {
-            name: "Animagine Standard Workflow",
-            description: "Standard quality Animagine XL 4.0 generation",
-            settings: { steps: 28, cfg: 5.0, sampler: "dpmpp_2m" },
-          },
-          "anything": {
-            name: "Anything Standard Workflow", 
-            description: "Standard quality Anything XL generation",
-            settings: { steps: 20, cfg: 7.0, sampler: "dpmpp_2m" },
-          },
-        },
       },
 
       runpod: {
@@ -299,20 +262,6 @@ export function getAIModels() {
               flags: ["realistic", "photorealistic", "3d", "nsfw"],
               description: "Photorealistic image generation",
             },
-          },
-        },
-
-        // Available workflows (same as ComfyUI)
-        workflows: {
-          "animagine-quality": {
-            name: "Animagine HQ Workflow",
-            description: "High-quality anime generation with enhanced details and refinement pass",
-            settings: { steps: 35, cfg: 6.0, sampler: "dpmpp_2m_sde" },
-          },
-          "anything-quality": {
-            name: "Anything HQ Workflow",
-            description: "High-quality versatile anime generation with detail enhancement", 
-            settings: { steps: 30, cfg: 7.5, sampler: "dpmpp_2m_sde" },
           },
         },
       },
