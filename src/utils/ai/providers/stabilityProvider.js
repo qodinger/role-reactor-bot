@@ -55,7 +55,35 @@ export class StabilityProvider {
     }
 
     // Use aspect ratio from config if provided, otherwise default to 1:1
-    const aspectRatio = config.aspectRatio || "1:1";
+    let aspectRatio = config.aspectRatio || "1:1";
+    
+    // Map invalid aspect ratios to valid Stability AI ratios
+    const validRatios = ['16:9', '3:2', '5:4', '1:1', '4:5', '2:3', '9:16'];
+    const originalRatio = aspectRatio;
+    
+    if (!validRatios.includes(aspectRatio)) {
+      // Map common invalid ratios to closest valid ones
+      const ratioMap = {
+        '3:4': '4:5',    // Close to 3:4 (portrait)
+        '4:3': '5:4',    // Close to 4:3 (landscape)
+        '2:1': '16:9',   // Map to widescreen instead of ultrawide
+        '1:2': '9:16',   // Map to phone portrait instead of ultra-tall
+        '16:10': '16:9', // Close to 16:10
+        '9:18': '9:16',  // Close to 9:18
+        '8:10': '4:5',   // Close to 8:10
+        '10:8': '5:4',   // Close to 10:8
+        '21:9': '16:9',  // Map ultrawide to widescreen
+        '9:21': '9:16',  // Map ultra-tall to phone portrait
+      };
+      
+      aspectRatio = ratioMap[aspectRatio] || '1:1'; // Default to 1:1 if no mapping found
+      
+      // Log the mapping for debugging
+      const { getLogger } = await import("../../logger.js");
+      const logger = getLogger();
+      logger.info(`[STABILITY] Mapped aspect ratio: ${originalRatio} → ${aspectRatio}`);
+    }
+    
     formData.append("aspect_ratio", aspectRatio);
 
     // Only use anime style preset for avatar generation, not for general imagine
@@ -89,10 +117,7 @@ export class StabilityProvider {
       const imagePrompts = await import(
         "../../../config/prompts/imagePrompts.js"
       );
-      negativePrompt =
-        imagePrompts.IMAGINE_PROVIDER_NEGATIVE_PROMPTS?.stability ||
-        imagePrompts.IMAGINE_NEGATIVE_PROMPT ||
-        "text, watermark, low quality, blurry";
+      negativePrompt = imagePrompts.getImagineNegativePrompt(false, "stability");
     }
     formData.append("negative_prompt", negativePrompt);
 
