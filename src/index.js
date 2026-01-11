@@ -271,6 +271,11 @@ async function gracefulShutdown(client) {
       clearInterval(global.pollCleanupInterval);
     }
 
+    // Stop ComfyUI recovery system
+    if (global.stopComfyUIRecovery) {
+      global.stopComfyUIRecovery();
+    }
+
     // Stop command-specific cleanup intervals
     try {
       const { stopPeriodicCleanup: stopRPSCleanup } = await import(
@@ -698,6 +703,24 @@ async function main() {
       global.pollCleanupInterval = pollCleanupInterval; // Store globally for shutdown
 
       healthCheckRunner.run(client);
+
+      // Start automatic ComfyUI job recovery system
+      try {
+        const { multiProviderAIService } = await import("./utils/ai/multiProviderAIService.js");
+        const { startAutomaticRecovery, stopAutomaticRecovery } = await import("./utils/ai/providers/comfyui/startupRecovery.js");
+        
+        const comfyuiProvider = await multiProviderAIService.getProvider("comfyui");
+        if (comfyuiProvider) {
+          logger.info("🔄 Starting automatic ComfyUI job recovery system...");
+          await startAutomaticRecovery(comfyuiProvider, client);
+          
+          // Store the stop function globally for shutdown
+          global.stopComfyUIRecovery = stopAutomaticRecovery;
+        }
+      } catch (error) {
+        logger.error("❌ ComfyUI automatic recovery failed to start:", error);
+        // Continue bot operation even if recovery fails
+      }
       performanceMonitor.startMonitoring();
     });
   } catch (error) {
