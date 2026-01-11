@@ -216,8 +216,31 @@ export async function handleImagineCommand(
     `[IMAGINE] Content type: ${nsfwValidation.isNSFW ? "NSFW" : "Safe"}, Feature: ${featureName}, Preferred provider: ${preferredProvider || "auto"}, User requested NSFW: ${userRequestedNSFW}`,
   );
 
-  const creditInfo = await checkAIImageCredits(interaction.user.id);
+  // Get provider and model for credit calculation
+  let provider = preferredProvider || "stability"; // Default
+  let model = "sd3.5-large-turbo"; // Default
+  
+  try {
+    const { getAIConfig } = await import("../../../config/ai.js");
+    const aiConfig = getAIConfig();
+    const feature = nsfwValidation.isNSFW ? 
+      aiConfig.models?.features?.imagineNSFW : 
+      aiConfig.models?.features?.imagineGeneral;
+    if (feature) {
+      provider = feature.provider || provider;
+      model = feature.model || model;
+    }
+  } catch (_error) {
+    // Use defaults if config loading fails
+  }
+
+  const creditInfo = await checkAIImageCredits(interaction.user.id, provider, model);
   const { userData, creditsNeeded, hasCredits } = creditInfo;
+
+  // Log the credit calculation for transparency
+  logger.info(
+    `💰 Credit calculation for user ${interaction.user.id}: ${provider}/${model} = ${creditsNeeded} Core credits`,
+  );
 
   if (!hasCredits) {
     const errorEmbed = createImagineErrorEmbed({
@@ -300,16 +323,20 @@ export async function handleImagineCommand(
       );
     }
 
+    // ONLY deduct credits after successful image generation and validation
     const deductionResult = await checkAndDeductAIImageCredits(
       interaction.user.id,
+      provider,
+      model,
     );
     if (!deductionResult.success) {
       logger.error(
         `Failed to deduct credits after successful generation for user ${interaction.user.id}: ${deductionResult.error}`,
       );
+      // Continue anyway since image was generated successfully
     } else {
-      logger.debug(
-        `Deducted ${deductionResult.creditsDeducted} Core from user ${interaction.user.id} for image generation (${deductionResult.creditsRemaining} remaining)`,
+      logger.info(
+        `✅ Deducted ${deductionResult.creditsDeducted} Core from user ${interaction.user.id} for ${provider}/${model} generation (${deductionResult.creditsRemaining} remaining)`,
       );
     }
 

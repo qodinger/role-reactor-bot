@@ -73,21 +73,21 @@ export async function getCorePricing() {
     configModule?.config || configModule?.default || configModule || {};
   const corePricing = config.corePricing || {};
 
-  // Load AI feature costs for benefits calculation
+  // Load AI feature credits for benefits calculation
   const aiConfigModule = await import("../../../config/ai.js").catch(
     () => null,
   );
   const getAIFeatureCosts =
     aiConfigModule?.getAIFeatureCosts ||
     aiConfigModule?.default?.getAIFeatureCosts;
-  // Get feature costs from config
+  // Get feature credits from config
   let featureCosts = getAIFeatureCosts
     ? typeof getAIFeatureCosts === "function"
       ? getAIFeatureCosts()
       : getAIFeatureCosts
     : null;
 
-  // Ensure feature costs come from config
+  // Ensure feature credits come from config
   if (!featureCosts) {
     const { getAIFeatureCosts: getCosts } = await import("../../config/ai.js");
     featureCosts = getCosts();

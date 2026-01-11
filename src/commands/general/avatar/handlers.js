@@ -164,8 +164,29 @@ export async function handleAvatarGeneration(
     }
   }
 
-  const creditInfo = await checkAIImageCredits(interaction.user.id);
+  // Get provider and model for credit calculation
+  let provider = "stability"; // Default
+  let model = "sd3.5-large-turbo"; // Default
+  
+  try {
+    const { getAIConfig } = await import("../../../config/ai.js");
+    const aiConfig = getAIConfig();
+    const avatarFeature = aiConfig.models?.features?.avatar;
+    if (avatarFeature) {
+      provider = avatarFeature.provider || provider;
+      model = avatarFeature.model || model;
+    }
+  } catch (_error) {
+    // Use defaults if config loading fails
+  }
+
+  const creditInfo = await checkAIImageCredits(interaction.user.id, provider, model);
   const { userData, creditsNeeded, hasCredits } = creditInfo;
+
+  // Log the credit calculation for transparency
+  logger.info(
+    `💰 Credit calculation for user ${interaction.user.id}: ${provider}/${model} = ${creditsNeeded} Core credits`,
+  );
 
   if (!hasCredits) {
     const coreEmbed = createCoreEmbed(
@@ -240,16 +261,20 @@ export async function handleAvatarGeneration(
       );
     }
 
+    // ONLY deduct credits after successful image generation and validation
     const deductionResult = await checkAndDeductAIImageCredits(
       interaction.user.id,
+      provider,
+      model,
     );
     if (!deductionResult.success) {
       logger.error(
         `Failed to deduct credits after successful generation for user ${interaction.user.id}: ${deductionResult.error}`,
       );
+      // Continue anyway since image was generated successfully
     } else {
-      logger.debug(
-        `Deducted ${deductionResult.creditsDeducted} Core from user ${interaction.user.id} for image generation (${deductionResult.creditsRemaining} remaining)`,
+      logger.info(
+        `✅ Deducted ${deductionResult.creditsDeducted} Core from user ${interaction.user.id} for ${provider}/${model} generation (${deductionResult.creditsRemaining} remaining)`,
       );
     }
     const deductionBreakdown = deductionResult.deductionBreakdown;
@@ -277,14 +302,58 @@ export async function handleAvatarGeneration(
 
     const shouldUseFollowUp = containsNSFWKeywords && channelNSFW;
 
-    if (shouldUseFollowUp && _deferred) {
-      await interaction.editReply({ embeds: [successEmbed] });
-      await interaction.followUp({ files: [attachment] });
-    } else {
-      await replyToInteraction(interaction, _deferred, {
-        embeds: [successEmbed],
-        files: [attachment],
-      });
+    try {
+      // Attempt to deliver the image to the user
+      if (shouldUseFollowUp && _deferred) {
+        await interaction.editReply({ embeds: [successEmbed] });
+        await interaction.followUp({ files: [attachment] });
+      } else {
+        await replyToInteraction(interaction, _deferred, {
+          embeds: [successEmbed],
+          files: [attachment],
+        });
+      }
+    } catch (deliveryError) {
+      logger.error(
+        `Failed to deliver image to user ${interaction.user.id} after successful generation and credit deduction:`,
+        deliveryError,
+      );
+      
+      // Refund credits since user didn't receive the image
+      if (deductionResult.success) {
+        const { refundAIImageCredits } = await import("../../../utils/ai/aiCreditManager.js");
+        const refundResult = await refundAIImageCredits(
+          interaction.user.id,
+          deductionResult.creditsDeducted,
+          "Failed to deliver image to user"
+        );
+        
+        if (refundResult.success) {
+          logger.info(
+            `💰 Refunded ${deductionResult.creditsDeducted} Core to user ${interaction.user.id} due to delivery failure`,
+          );
+        } else {
+          logger.error(
+            `Failed to refund credits to user ${interaction.user.id}:`,
+            refundResult.error,
+          );
+        }
+      }
+      
+      // Still try to send an error message
+      const errorEmbed = createErrorEmbed(
+        interaction,
+        "Image delivery failed",
+        "Your avatar was generated successfully but couldn't be delivered. Your credits have been refunded.",
+      );
+      
+      try {
+        await replyToInteraction(interaction, _deferred, { embeds: [errorEmbed] });
+      } catch (finalError) {
+        logger.error("Failed to send delivery error message:", finalError);
+      }
+      
+      return; // Exit early due to delivery failure
     }
 
     logger.info(

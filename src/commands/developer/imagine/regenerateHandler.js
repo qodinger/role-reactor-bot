@@ -68,8 +68,29 @@ export async function handleImagineRegenerate(interaction) {
     return;
   }
 
-  const creditInfo = await checkAIImageCredits(interaction.user.id);
+  // Get provider and model for credit calculation
+  let provider = "stability"; // Default
+  let model = "sd3.5-large-turbo"; // Default
+  
+  try {
+    const { getAIConfig } = await import("../../../config/ai.js");
+    const aiConfig = getAIConfig();
+    const feature = aiConfig.models?.features?.imagineGeneral; // Default to general for regenerate
+    if (feature) {
+      provider = feature.provider || provider;
+      model = feature.model || model;
+    }
+  } catch (_error) {
+    // Use defaults if config loading fails
+  }
+
+  const creditInfo = await checkAIImageCredits(interaction.user.id, provider, model);
   const { userData, creditsNeeded, hasCredits } = creditInfo;
+
+  // Log the credit calculation for transparency
+  logger.info(
+    `💰 Cost calculation for user ${interaction.user.id}: ${provider}/${model} = ${creditsNeeded} Core credits`,
+  );
 
   if (!hasCredits) {
     const errorEmbed = createImagineErrorEmbed({
@@ -140,16 +161,20 @@ export async function handleImagineRegenerate(interaction) {
       );
     }
 
+    // ONLY deduct credits after successful image generation and validation
     const deductionResult = await checkAndDeductAIImageCredits(
       interaction.user.id,
+      provider,
+      model,
     );
     if (!deductionResult.success) {
       logger.error(
         `Failed to deduct credits after successful regenerate for user ${interaction.user.id}: ${deductionResult.error}`,
       );
+      // Continue anyway since image was generated successfully
     } else {
-      logger.debug(
-        `Deducted ${deductionResult.creditsDeducted} Core from user ${interaction.user.id} for image regenerate (${deductionResult.creditsRemaining} remaining)`,
+      logger.info(
+        `✅ Deducted ${deductionResult.creditsDeducted} Core from user ${interaction.user.id} for ${provider}/${model} regeneration (${deductionResult.creditsRemaining} remaining)`,
       );
     }
 
