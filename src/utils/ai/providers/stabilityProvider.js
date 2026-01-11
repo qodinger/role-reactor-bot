@@ -92,8 +92,19 @@ export class StabilityProvider {
     }
 
     formData.append("cfg_scale", config.cfgScale || 7); // Higher CFG for better prompt adherence
-    formData.append("steps", config.steps || 20); // More steps for better quality
-    formData.append("seed", config.seed || Math.floor(Math.random() * 1000000)); // Random seed for variety
+    
+    // Adjust steps based on model - SD 3.5 Large Turbo is optimized for fewer steps
+    let steps = config.steps || 20;
+    if (model === "sd3.5-large-turbo") {
+      steps = config.steps || 4; // Large Turbo is optimized for 4 steps
+    } else if (model === "sd3.5-medium") {
+      steps = config.steps || 15; // Medium model works well with fewer steps
+    }
+    formData.append("steps", steps);
+    
+    // Generate proper numeric seed instead of "random"
+    const numericSeed = config.seed || Math.floor(Math.random() * 4294967295); // Max 32-bit unsigned int
+    formData.append("seed", numericSeed.toString());
 
     // Safety tolerance: 6 = most permissive, lower values (1-5) are more restrictive
     formData.append(
@@ -122,23 +133,33 @@ export class StabilityProvider {
     formData.append("negative_prompt", negativePrompt);
 
     // ============================================================================
-    // LOG FULL REQUEST BEING SENT TO API
+    // LOG COMPLETE FORMDATA PAYLOAD BEING SENT TO STABILITY API
     // ============================================================================
     const { getLogger } = await import("../../logger.js");
     const logger = getLogger();
     logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-    logger.info(
-      `[STABILITY API REQUEST] Model: ${model} | Provider: stability`,
-    );
-    logger.info(
-      `[STABILITY API REQUEST] Prompt (${prompt.length} chars): "${prompt}"`,
-    );
-    logger.info(
-      `[STABILITY API REQUEST] Negative Prompt (${negativePrompt.length} chars): "${negativePrompt}"`,
-    );
-    logger.info(
-      `[STABILITY API REQUEST] Config: CFG Scale: ${config.cfgScale || 7}, Steps: ${config.steps || 20}, Safety Tolerance: ${config.safetyTolerance || 6}`,
-    );
+    logger.info(`[STABILITY API REQUEST] Model: ${model} | Provider: stability`);
+    logger.info(`[STABILITY API REQUEST] Endpoint: ${this.config.baseUrl}`);
+    logger.info(`[STABILITY API REQUEST] Prompt (${prompt.length} chars): "${prompt}"`);
+    logger.info(`[STABILITY API REQUEST] Negative Prompt (${negativePrompt.length} chars): "${negativePrompt}"`);
+    logger.info(`[STABILITY API REQUEST] FormData Parameters:`);
+    logger.info(`[STABILITY API REQUEST] - model: ${model}`);
+    logger.info(`[STABILITY API REQUEST] - output_format: png`);
+    logger.info(`[STABILITY API REQUEST] - aspect_ratio: ${aspectRatio} (original: ${originalRatio})`);
+    logger.info(`[STABILITY API REQUEST] - cfg_scale: ${config.cfgScale || 7}`);
+    logger.info(`[STABILITY API REQUEST] - steps: ${steps} (optimized for ${model})`);
+    logger.info(`[STABILITY API REQUEST] - safety_tolerance: ${config.safetyTolerance || 6}`);
+    logger.info(`[STABILITY API REQUEST] - seed: ${numericSeed}`);
+    if (config.style_preset) {
+      logger.info(`[STABILITY API REQUEST] - style_preset: ${config.style_preset}`);
+    }
+    if (config.imageBuffer) {
+      logger.info(`[STABILITY API REQUEST] - image: [Buffer ${config.imageBuffer.length} bytes]`);
+      logger.info(`[STABILITY API REQUEST] - strength: ${config.strength !== undefined ? config.strength : 0.5}`);
+    }
+    logger.info(`[STABILITY API REQUEST] Headers:`);
+    logger.info(`[STABILITY API REQUEST] - Authorization: Bearer ${this.config.apiKey ? '[REDACTED]' : '[MISSING]'}`);
+    logger.info(`[STABILITY API REQUEST] - Accept: image/*`);
     logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
     if (progressCallback) {
