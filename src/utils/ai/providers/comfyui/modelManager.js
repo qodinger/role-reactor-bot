@@ -25,12 +25,12 @@ export class ModelManager {
       "animagine-xl-4.0-opt.safetensors": {
         name: "Animagine XL 4.0",
         key: "animagine",
-        workflow: "animagine.json",
+        workflow: "animagine-fast.json", // Use fast workflow by default
         description: "High-quality anime model with superior character knowledge",
         defaultSettings: {
-          steps: 28,        // Optimal for Animagine
-          cfg: 5.0,         // Optimal for Animagine
-          sampler: "dpmpp_2m",
+          steps: 20,        // Reduced for speed
+          cfg: 5.0,         // Optimized for speed
+          sampler: "dpmpp_2m", // Faster sampler
           scheduler: "karras",
         },
       },
@@ -39,12 +39,12 @@ export class ModelManager {
       "AnythingXL_xl.safetensors": {
         name: "Anything XL",
         key: "anything",
-        workflow: "anything.json",
+        workflow: "anything-fast.json", // Use fast workflow by default
         description: "Uncensored anime model with versatile style",
         defaultSettings: {
-          steps: 20,        // Optimal for Anything XL
-          cfg: 7.0,         // Optimal for Anything XL
-          sampler: "dpmpp_2m",
+          steps: 15,        // Reduced for speed
+          cfg: 6.0,         // Optimized for speed
+          sampler: "dpmpp_2m", // Faster sampler
           scheduler: "karras",
         },
       },
@@ -67,9 +67,9 @@ export class ModelManager {
   getModelByKey(modelKey) {
     this.initialize();
 
-    // Default to animagine if no key specified
+    // Default to anything if no key specified
     if (!modelKey) {
-      modelKey = "animagine";
+      modelKey = "anything";
     }
 
     // Find model by key
@@ -82,11 +82,11 @@ export class ModelManager {
       }
     }
 
-    // Fallback to animagine
-    const animagineFilename = "animagine-xl-4.0-opt.safetensors";
+    // Fallback to anything
+    const anythingFilename = "AnythingXL_xl.safetensors";
     return {
-      filename: animagineFilename,
-      ...this.models.get(animagineFilename),
+      filename: anythingFilename,
+      ...this.models.get(anythingFilename),
     };
   }
 
@@ -113,22 +113,81 @@ export class ModelManager {
   parseModelFlags(commandText) {
     this.initialize();
 
+    // Check for quality flags first
+    const qualityPatterns = {
+      hq: /--(?:hq|quality|high-quality)/i,
+      fast: /--(?:fast|quick|standard)/i,
+    };
+
     // Check for model flags
     const modelPatterns = {
       animagine: /--(?:model|m)\s+animagine|--animagine/i,
       anything: /--(?:model|m)\s+anything|--anything/i,
     };
 
+    let selectedModel = "anything"; // Default model
+    let useHQ = false; // Default to fast mode for speed
+
     // Check for specific model flags
     if (modelPatterns.animagine.test(commandText)) {
-      return this.getModelByKey("animagine");
-    }
-    if (modelPatterns.anything.test(commandText)) {
-      return this.getModelByKey("anything");
+      selectedModel = "animagine";
+    } else if (modelPatterns.anything.test(commandText)) {
+      selectedModel = "anything";
     }
 
-    // Default to animagine (best quality)
-    return this.getModelByKey("animagine");
+    // Check for quality flags
+    if (qualityPatterns.fast.test(commandText)) {
+      useHQ = false;
+    } else if (qualityPatterns.hq.test(commandText)) {
+      useHQ = true;
+    }
+
+    // Get the appropriate model configuration
+    const modelKey = useHQ ? selectedModel : selectedModel;
+    const model = this.getModelByKey(modelKey);
+
+    // Override workflow based on quality setting
+    if (!useHQ) {
+      // Use fast workflows for standard generation
+      if (selectedModel === "animagine") {
+        model.workflow = "animagine-fast.json";
+        model.defaultSettings = {
+          steps: 20,
+          cfg: 5.0,
+          sampler: "dpmpp_2m",
+          scheduler: "karras",
+        };
+      } else {
+        model.workflow = "anything-fast.json";
+        model.defaultSettings = {
+          steps: 15,
+          cfg: 6.0,
+          sampler: "dpmpp_2m",
+          scheduler: "karras",
+        };
+      }
+    } else {
+      // Use high-quality workflows for --hq flag
+      if (selectedModel === "animagine") {
+        model.workflow = "animagine-quality.json";
+        model.defaultSettings = {
+          steps: 35,
+          cfg: 6.0,
+          sampler: "dpmpp_2m_sde",
+          scheduler: "karras",
+        };
+      } else {
+        model.workflow = "anything-quality.json";
+        model.defaultSettings = {
+          steps: 30,
+          cfg: 7.5,
+          sampler: "dpmpp_2m_sde",
+          scheduler: "karras",
+        };
+      }
+    }
+
+    return model;
   }
 
   /**

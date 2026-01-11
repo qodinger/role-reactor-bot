@@ -180,7 +180,8 @@ export class DeploymentManager {
   async checkLocalHealth(config) {
     try {
       const baseUrl = config.baseUrl || "http://127.0.0.1:8188";
-      const response = await fetch(`${baseUrl}/system_stats`, {
+      // Try the queue endpoint which is more reliable than system_stats
+      const response = await fetch(`${baseUrl}/queue`, {
         timeout: 5000,
       });
       return response.ok;

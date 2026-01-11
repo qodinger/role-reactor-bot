@@ -11,6 +11,8 @@ import { modelManager } from "./comfyui/modelManager.js";
 import { workflowManager } from "./comfyui/workflowManager.js";
 import { deploymentManager } from "./comfyui/deploymentManager.js";
 import { configManager } from "./comfyui/configManager.js";
+import { jobRecovery } from "./comfyui/jobRecovery.js";
+import { AI_STATUS_MESSAGES } from "../statusMessages.js";
 import WebSocket from "ws";
 
 const fetch = globalThis.fetch;
@@ -37,27 +39,21 @@ export class ComfyUIProvider {
 
     try {
       // Initialize configuration manager
-      const aiConfig = {
-        providers: {
-          comfyui: this.config,
-        },
-      };
-
-      // Only add runpod if it's actually a runpod deployment
-      if (this.isRunPod && this.runPodConfig) {
-        aiConfig.providers.runpod = this.config;
-      }
-
-      await configManager.loadConfig(aiConfig);
-
-      // Initialize deployment manager
-      deploymentManager.initialize(aiConfig);
+      // Create full AI config for deployment manager
+      const { getAIConfig } = await import("../../../config/ai.js");
+      const fullAIConfig = getAIConfig();
+      
+      // Initialize deployment manager with providers config
+      deploymentManager.initialize({ providers: fullAIConfig.models.providers });
 
       // Initialize model manager
       modelManager.initialize();
 
       // Initialize workflow manager
       await workflowManager.initialize();
+
+      // Initialize job recovery system
+      await jobRecovery.initialize();
 
       this.initialized = true;
       logger.info(`[ComfyUI] Managers initialized successfully`);
@@ -101,21 +97,24 @@ export class ComfyUIProvider {
       const {
         steps = null,
         cfg = null,
-        width = 1024,
-        height = 1024,
+        aspectRatio = "1:1",
         seed = null,
         negativePrompt = "",
         model: modelKey = null,
         preferRunPod = false,
       } = config;
 
-      // Select model based on model key or default to animagine
+      // Convert aspect ratio to width/height
+      const { parseAspectRatio } = await import("./providerUtils.js");
+      const [width, height] = parseAspectRatio(aspectRatio);
+
+      // Select model based on model key or default to anything (faster)
       let selectedModel;
       if (modelKey) {
         selectedModel = modelManager.getModelByKey(modelKey);
       } else {
-        // Default to animagine (best quality)
-        selectedModel = modelManager.getModelByKey("animagine");
+        // Default to anything (faster generation)
+        selectedModel = modelManager.getModelByKey("anything");
       }
 
       logger.info(
@@ -184,6 +183,7 @@ export class ComfyUIProvider {
    */
   async generateWithLocalComfyUI(workflowData, config, progressCallback) {
     const clientId = this.generateClientId();
+    let promptId = null; // Declare at function level for catch block access
 
     // Connect to WebSocket for progress updates
     let ws = null;
@@ -219,14 +219,34 @@ export class ComfyUIProvider {
         throw new Error(`ComfyUI workflow error: ${result.error}`);
       }
 
-      const promptId = result.prompt_id;
+      promptId = result.prompt_id; // Assign to function-level variable
       logger.info(`[ComfyUI] Workflow submitted with prompt_id: ${promptId}`);
+
+      // Update status to show workflow is queued
+      if (progressCallback) {
+        progressCallback(AI_STATUS_MESSAGES.COMFYUI_QUEUED);
+      }
+
+      // Track job for recovery (if config contains job info)
+      if (config.jobInfo) {
+        await jobRecovery.trackJob(promptId, {
+          ...config.jobInfo,
+          prompt: workflowData["6"]?.inputs?.text || config.jobInfo.prompt,
+          model: this.extractModelFromWorkflow(workflowData),
+          workflow: workflowData,
+        });
+      }
 
       // Wait for completion
       await this.waitForCompletion(promptId);
 
       // Get results
       const images = await this.getGenerationResults(promptId);
+
+      // Mark job as completed
+      if (config.jobInfo) {
+        await jobRecovery.completeJob(promptId);
+      }
 
       // Close WebSocket
       if (ws) {
@@ -241,11 +261,20 @@ export class ComfyUIProvider {
           model: this.extractModelFromWorkflow(workflowData),
           provider: "comfyui",
           prompt: workflowData["6"]?.inputs?.text || "Generated image",
+          promptId, // Include promptId for reference
         };
       } else {
         throw new Error("No images generated");
       }
     } catch (error) {
+      // Mark job as failed if we were tracking it
+      if (config.jobInfo && promptId) {
+        await jobRecovery.updateJob(promptId, { 
+          status: "failed", 
+          error: error.message 
+        });
+      }
+      
       if (ws) ws.close();
       throw error;
     }
@@ -323,13 +352,39 @@ export class ComfyUIProvider {
             if (progressCallback) {
               const { value, max } = message.data;
               const percentage = Math.round((value / max) * 100);
-              progressCallback(`Generating... ${percentage}%`);
+              progressCallback(`Generating image... ${percentage}%`);
             }
             break;
 
           case "executing":
             if (progressCallback) {
-              progressCallback(`Executing: ${message.data.node}`);
+              // Convert node number to user-friendly status
+              const nodeId = message.data.node;
+              let status = "Processing workflow...";
+              
+              // Map common node IDs to user-friendly messages
+              if (nodeId === "2" || nodeId === 2) {
+                status = AI_STATUS_MESSAGES.COMFYUI_LOADING_MODEL;
+              } else if (nodeId === "3" || nodeId === 3) {
+                status = AI_STATUS_MESSAGES.COMFYUI_PROCESSING_PROMPT;
+              } else if (nodeId === "4" || nodeId === 4) {
+                status = "Processing negative prompt...";
+              } else if (nodeId === "5" || nodeId === 5) {
+                status = AI_STATUS_MESSAGES.COMFYUI_PREPARING_CANVAS;
+              } else if (nodeId === "6" || nodeId === 6) {
+                status = AI_STATUS_MESSAGES.COMFYUI_GENERATING;
+              } else if (nodeId === "7" || nodeId === 7) {
+                status = AI_STATUS_MESSAGES.COMFYUI_DECODING;
+              } else if (nodeId === "8" || nodeId === 8) {
+                status = AI_STATUS_MESSAGES.COMFYUI_FINALIZING;
+              } else if (nodeId === "9" || nodeId === 9) {
+                status = "Applying model settings...";
+              } else {
+                // For unknown nodes, show a generic message
+                status = "Processing workflow step...";
+              }
+              
+              progressCallback(status);
             }
             break;
 
@@ -536,6 +591,64 @@ export class ComfyUIProvider {
 \`/imagine anime girl --nsfw --model animagine --ar 1:1\`
 \`/imagine fantasy warrior --nsfw --model anything --ar 16:9\`
     `.trim();
+  }
+
+  /**
+   * Recover orphaned jobs
+   */
+  async recoverOrphanedJobs() {
+    await this.initializeManagers();
+    return await jobRecovery.recoverOrphanedJobs(this);
+  }
+
+  /**
+   * Get job recovery statistics
+   */
+  getJobRecoveryStats() {
+    return jobRecovery.getStats();
+  }
+
+  /**
+   * Check specific job status
+   */
+  async checkJobStatus(promptId) {
+    return await jobRecovery.checkJobStatus(promptId, this.baseUrl);
+  }
+
+  /**
+   * Get user's jobs
+   */
+  getUserJobs(userId) {
+    return jobRecovery.getUserJobs(userId);
+  }
+
+  /**
+   * Manually recover a specific job
+   */
+  async recoverJob(promptId) {
+    const job = jobRecovery.getJob(promptId);
+    if (!job) {
+      throw new Error(`Job ${promptId} not found in recovery system`);
+    }
+
+    const status = await this.checkJobStatus(promptId);
+    
+    if (status.status === "completed" && status.result) {
+      const images = await this.getGenerationResults(promptId);
+      await jobRecovery.completeJob(promptId);
+      
+      return {
+        job,
+        images,
+        status: "recovered"
+      };
+    }
+
+    return {
+      job,
+      status: status.status,
+      message: `Job is ${status.status}`
+    };
   }
 
   /**

@@ -150,8 +150,25 @@ export class WorkflowManager {
     const { model, prompt, negativePrompt, steps, cfg, width, height, seed } =
       params;
 
+    // Find positive and negative prompt node IDs from KSampler
+    let positiveNodeId = null;
+    let negativeNodeId = null;
+    
+    // First, find the KSampler to identify which nodes are positive/negative
+    for (const [nodeId, node] of Object.entries(workflowData)) {
+      if (node.class_type === "KSampler") {
+        if (node.inputs.positive && Array.isArray(node.inputs.positive)) {
+          positiveNodeId = node.inputs.positive[0].toString();
+        }
+        if (node.inputs.negative && Array.isArray(node.inputs.negative)) {
+          negativeNodeId = node.inputs.negative[0].toString();
+        }
+        break;
+      }
+    }
+
     // Find and update nodes
-    for (const [, node] of Object.entries(workflowData)) {
+    for (const [nodeId, node] of Object.entries(workflowData)) {
       const classType = node.class_type;
 
       // Update checkpoint loader
@@ -159,13 +176,12 @@ export class WorkflowManager {
         node.inputs.ckpt_name = model;
       }
 
-      // Update text encoders
+      // Update text encoders using node IDs from KSampler
       if (classType === "CLIPTextEncode") {
-        const title = node._meta?.title?.toLowerCase() || "";
-        if (title.includes("positive") || !title.includes("negative")) {
-          if (prompt) node.inputs.text = prompt;
-        } else if (title.includes("negative")) {
-          if (negativePrompt !== undefined) node.inputs.text = negativePrompt;
+        if (nodeId === positiveNodeId && prompt) {
+          node.inputs.text = prompt;
+        } else if (nodeId === negativeNodeId && negativePrompt !== undefined) {
+          node.inputs.text = negativePrompt;
         }
       }
 
