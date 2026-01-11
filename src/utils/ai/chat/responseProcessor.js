@@ -20,7 +20,7 @@ const responseValidator = {
     return { valid: true, warnings: [] };
   },
 };
-import { checkAndDeductAICredits } from "../aiCreditManager.js";
+import { checkAndDeductAICredits, deductCreditsFromUsage } from "../aiCreditManager.js";
 import { MAX_RESPONSE_LENGTH } from "../constants.js";
 import { getLogger } from "../../logger.js";
 
@@ -189,8 +189,9 @@ export function validateAndSanitizeResponse(response, guild, isJsonResponse) {
 }
 
 /**
- * Deduct credits for an API call if it actually costs money
- * Only deducts when API call succeeded and consumed tokens
+ * Deduct credits for an API call based on actual usage when available
+ * Uses usage-based deduction for providers that return cost info (OpenRouter)
+ * Falls back to fixed deduction for other providers
  * @param {string} userId - User ID
  * @param {Object} result - API result object
  * @param {string} callType - Type of call: 'initial', 're-query', 'streaming'
@@ -209,7 +210,7 @@ export async function deductCreditsIfNeeded(
   const hasValidContent =
     responseText.trim().length > 0 && responseText !== "No response generated.";
 
-  // Check usage data - definitive indicator that tokens were consumed = costs money
+  // Check usage data - definitive indicator that tokens were consumed = resources used
   const hasUsageData =
     result?.usage &&
     (result.usage.prompt_tokens > 0 ||
@@ -218,7 +219,9 @@ export async function deductCreditsIfNeeded(
 
   // For streaming, also check if we have content (stream completed = tokens consumed)
   const hasContent = callType === "streaming" && fallbackText.trim().length > 0;
-  const shouldDeduct = hasValidContent && (hasUsageData || hasContent);
+  
+  // Should deduct if we have valid content (API call succeeded and generated content)
+  const shouldDeduct = hasValidContent;
 
   if (!shouldDeduct) {
     if (!hasValidContent) {
@@ -229,12 +232,54 @@ export async function deductCreditsIfNeeded(
     return;
   }
 
-  // Warn if we're deducting without usage data (might be self-hosted)
-  if (!hasUsageData && hasValidContent) {
-    logger.warn(
-      `Deducting credits for ${callType} without usage data for user ${userId} (provider: ${result?.provider || "unknown"}) - assuming tokens were consumed`,
+  // Use usage-based deduction if we have actual usage data from the provider
+  if (result?.usage && typeof result.usage.cost === 'number' && result.usage.cost > 0) {
+    logger.info(
+      `💰 Using usage-based deduction for ${callType} (${result.provider || 'unknown'}) - API usage: ${result.usage.cost} credits`,
     );
+    
+    // Get provider-specific conversion rate and minimum charge
+    const provider = result.provider || 'unknown';
+    let conversionRate = 2.0; // Default conversion rate
+    let minimumCharge = 0.01; // Default minimum
+    
+    try {
+      const { getAIFeatureCosts } = await import("../../config/ai.js");
+      const featureCosts = getAIFeatureCosts();
+      
+      if (featureCosts.tokenPricing && featureCosts.tokenPricing[provider]) {
+        const providerPricing = featureCosts.tokenPricing[provider];
+        conversionRate = providerPricing.conversionRate || 2.0;
+        minimumCharge = providerPricing.minimumCharge || 0.01;
+      }
+    } catch (error) {
+      logger.debug("Failed to load token pricing config, using defaults:", error);
+    }
+    
+    const deductionResult = await deductCreditsFromUsage(
+      userId, 
+      result.usage, 
+      provider, 
+      result.model || 'unknown',
+      conversionRate
+    );
+    
+    if (!deductionResult.success) {
+      logger.error(
+        `Failed to deduct usage-based credits for ${callType} API call for user ${userId}: ${deductionResult.error}`,
+      );
+    } else {
+      logger.info(
+        `✅ Deducted ${deductionResult.creditsDeducted} Core based on actual usage (${deductionResult.creditsRemaining} remaining)`,
+      );
+    }
+    return;
   }
+
+  // Fallback to fixed deduction for providers without usage data
+  logger.debug(
+    `Using fixed deduction for ${callType} (${result?.provider || "unknown"}) - provider uses fixed costs per request`,
+  );
 
   const deductionResult = await checkAndDeductAICredits(userId);
   if (!deductionResult.success) {

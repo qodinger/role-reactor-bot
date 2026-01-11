@@ -177,7 +177,7 @@ export async function processAIResponse(
   guildId,
   services,
 ) {
-  // Deduct credits for initial API call only if it actually costs money
+  // Deduct credits for initial API call only if it actually uses resources
   await services.deductCreditsIfNeeded(userId, result, "initial");
 
   const rawResponse =

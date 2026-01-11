@@ -226,7 +226,7 @@ export async function processStreamingResponse(
   deductCreditsFunc,
   addToHistory,
 ) {
-  // Deduct credits for streaming API call only if it actually costs money
+  // Deduct credits for streaming API call only if it actually uses resources
   await deductCreditsFunc(userId, result, "streaming", state.fullText);
 
   // Parse JSON response if needed (same as non-streaming)
