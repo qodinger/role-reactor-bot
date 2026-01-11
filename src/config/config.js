@@ -75,11 +75,11 @@ class Config {
       uri: process.env.MONGODB_URI || "mongodb://localhost:27017",
       name: process.env.MONGODB_DB || "role-reactor-bot",
       options: {
-        // Connection pool settings - optimized for cost savings on MongoDB Atlas Flex
-        // Lower minPoolSize = lower compute usage = lower costs
+        // Connection pool settings - optimized for resource efficiency on MongoDB Atlas Flex
+        // Lower minPoolSize = lower resource usage = better efficiency
         // Can be overridden via MONGODB_MIN_POOL_SIZE and MONGODB_MAX_POOL_SIZE env vars
         maxPoolSize: parseInt(process.env.MONGODB_MAX_POOL_SIZE || "20", 10),
-        minPoolSize: parseInt(process.env.MONGODB_MIN_POOL_SIZE || "2", 10), // Reduced from 5 to 2 for cost savings
+        minPoolSize: parseInt(process.env.MONGODB_MIN_POOL_SIZE || "2", 10), // Reduced from 5 to 2 for efficiency
         maxIdleTimeMS: 60000,
         serverSelectionTimeoutMS: 30000, // Increased for DNS resolution
         connectTimeoutMS: 30000, // Increased for DNS resolution
@@ -235,32 +235,49 @@ class Config {
   get corePricing() {
     return {
       // Package plans for display in /core pricing command
-      // Base value is consistent across all packages
-      // Larger packages get bonus Cores as incentive
+      // Simplified package structure with 4 strategic options
+      // Only 4 strategic packages to avoid choice overload
       packages: {
         $5: {
-          name: "Core",
-          baseCores: 80,
-          bonusCores: 0,
-          value: "16 Cores/$1",
+          name: "Starter",
+          baseCores: 75,
+          bonusCores: 5, // 7% bonus
+          totalCores: 80,
+          value: "16.0 Cores/$1",
+          description: "Perfect for trying AI features",
+          estimatedUsage: "~1,000 chat messages or 38 images",
+          popular: false,
         },
         $10: {
-          name: "Edge",
-          baseCores: 160,
-          bonusCores: 20,
-          value: "18 Cores/$1",
+          name: "Basic", 
+          baseCores: 150,
+          bonusCores: 15, // 10% bonus
+          totalCores: 165,
+          value: "16.5 Cores/$1",
+          description: "Most popular choice for regular users",
+          estimatedUsage: "~2,060 chat messages or 78 images",
+          popular: true, // Mark as most popular
         },
         $25: {
-          name: "Prime",
-          baseCores: 400,
-          bonusCores: 100,
-          value: "20 Cores/$1",
+          name: "Pro",
+          baseCores: 375,
+          bonusCores: 50, // 13% bonus
+          totalCores: 425,
+          value: "17.0 Cores/$1", 
+          description: "Best value for power users",
+          estimatedUsage: "~5,310 chat messages or 202 images",
+          popular: false,
         },
         $50: {
-          name: "Ultra",
-          baseCores: 800,
-          bonusCores: 300,
-          value: "22 Cores/$1",
+          name: "Ultimate",
+          baseCores: 750,
+          bonusCores: 125, // 17% bonus
+          totalCores: 875,
+          value: "17.5 Cores/$1",
+          description: "Maximum value for heavy usage",
+          estimatedUsage: "~10,940 chat messages or 416 images",
+          features: ["Priority processing", "Dedicated support"],
+          popular: false,
         },
       },
 
@@ -274,13 +291,66 @@ class Config {
         timeoutDuration: process.env.MODERATION_AUTO_TIMEOUT_DURATION || "1h", // Duration for auto-timeout
       },
 
-      // Core system settings
+      // Core system settings with advanced features
       coreSystem: {
-        minimumPayment: 5, // Minimum $5 for one-time payments
+        minimumPayment: 3, // Reduced minimum to $3 for accessibility
         priorityProcessing: true, // Core members get priority (planned feature)
+        
+        // Advanced pricing features
+        dynamicPricing: {
+          enabled: true,
+          peakHours: [18, 19, 20, 21, 22], // 6-10 PM peak hours
+          peakMultiplier: 1.2, // 20% higher during peak
+          offPeakDiscount: 0.9, // 10% discount during off-peak
+        },
+        
+        // All usage requires Cores (no free tier)
+        freeTier: {
+          enabled: false, // Disabled - all usage requires credits
+          message: "Purchase Cores to start using AI features! Packages start at just $3.",
+        },
+        
+        // Trial system - limited to encourage purchases
+        trialSystem: {
+          enabled: true,
+          newUserBonus: 3, // Only 3 Cores ($0.20 value) for verified new users
+          oneTimeOnly: true, // Only once per user
+          requiresVerification: true, // Require phone/email verification
+          maxUsage: {
+            chat: 1, // Only 1 trial chat
+            images: 0, // NO trial images (too expensive)
+          },
+        },
+        
+        // Referral system
+        referralSystem: {
+          enabled: true,
+          referrerBonus: 0.15, // 15% bonus Cores for referrer
+          refereeBonus: 0.10, // 10% bonus Cores for new user
+          minimumPurchase: 10, // Minimum $10 purchase to trigger referral
+        },
+        
+        // Seasonal promotions
+        promotions: {
+          enabled: true,
+          types: [
+            {
+              name: "First Purchase Bonus",
+              type: "first_purchase",
+              bonus: 0.25, // 25% bonus on first purchase
+              maxBonus: 50, // Maximum 50 bonus Cores
+            },
+            {
+              name: "Weekend Special",
+              type: "weekend",
+              bonus: 0.15, // 15% bonus on weekends
+              days: [6, 0], // Saturday and Sunday
+            },
+          ],
+        },
       },
 
-      // Feature costs and avatar filter moved to config/ai.js
+      // Feature credits and avatar filter moved to config/ai.js
       // Reference functions from ai.js to avoid duplication
       // Kept here for backward compatibility
       featureCosts: getAIFeatureCosts(),

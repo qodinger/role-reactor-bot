@@ -44,7 +44,7 @@ export function getAIModels() {
       avatar: {
         enabled: true,
         provider: "stability", // ONLY use Stability AI
-        model: "sd3.5-flash", // ONLY use this model
+        model: "sd3.5-large-turbo", // Use fast, high-quality model
         // NO FALLBACKS - use only what is configured
         allowNSFWProviders: false, // Strict safety - no NSFW providers allowed
       },
@@ -81,25 +81,23 @@ export function getAIModels() {
         safetyLevel: "safe", // SAFE ONLY - no NSFW content allowed
         models: {
           image: {
-            "sd3.5-flash": {
-              name: "SD 3.5 Flash",
-              speed: "fastest",
-              quality: "good",
-            },
-            "sd3.5-medium": {
-              name: "SD 3.5 Medium",
-              speed: "medium",
-              quality: "better",
-            },
             "sd3.5-large": {
               name: "SD 3.5 Large",
               speed: "slow",
               quality: "best",
+              parameters: 8000000000, // 8 billion parameters
             },
             "sd3.5-large-turbo": {
-              name: "SD 3.5 Large Turbo",
+              name: "SD 3.5 Large Turbo", 
               speed: "fast",
-              quality: "best",
+              quality: "excellent",
+              parameters: 8000000000, // 8 billion parameters, optimized for speed
+            },
+            "sd3.5-medium": {
+              name: "SD 3.5 Medium",
+              speed: "medium",
+              quality: "good",
+              parameters: 2500000000, // 2.5 billion parameters
             },
           },
         },
@@ -275,8 +273,81 @@ export function getAIModels() {
  */
 export function getAIFeatureCosts() {
   return {
-    aiChat: 0.02,
-    aiImage: 1,
+    // Text generation credits are calculated dynamically based on actual token usage (OpenRouter)
+    // or use fixed credits per request (other providers). These values are fallback minimums only.
+    aiChat: 0.08, // Minimum deduction per chat request
+    
+    // Image generation credits per image - provider and model specific
+    aiImage: 1.2, // Default image generation cost
+    
+    // Provider-specific costs in Core credits
+    // These are based on actual API costs from providers
+    providerCosts: {
+      stability: {
+        // Stability AI model costs
+        "sd3.5-large": 3.41,
+        "sd3.5-large-turbo": 2.1,
+        "sd3.5-medium": 1.84,
+        "sd3.5-flash": 1.05,
+      },
+      comfyui: {
+        // ComfyUI/self-hosted compute costs
+        default: 0.08,
+      },
+      runpod: {
+        // RunPod serverless compute costs
+        default: 0.79,
+      },
+      openrouter: {
+        // OpenRouter uses dynamic pricing based on actual token usage
+        // These are fallback costs if usage data is unavailable
+        "openai/gpt-4o-mini": 0.08,
+        "anthropic/claude-3.5-sonnet": 0.35,
+        "deepseek/deepseek-chat": 0.08,
+        "black-forest-labs/flux.2-flex": 1.05,
+        "black-forest-labs/flux.2-pro": 2.1,
+      },
+    },
+
+    // Token-based pricing for text generation (when usage data is available)
+    // Conversion rates from provider credits to Core credits
+    tokenPricing: {
+      openrouter: {
+        // OpenRouter returns actual costs in their credits, convert to Core
+        conversionRate: 52.5, // OpenRouter $1 = 52.5 Core credits
+        minimumCharge: 0.08, // Minimum 0.08 Core per request
+      },
+      // Add other providers as needed
+      anthropic: {
+        conversionRate: 52.5,
+        minimumCharge: 0.08,
+      },
+      openai: {
+        conversionRate: 52.5,
+        minimumCharge: 0.08,
+      },
+    },
+
+    // Bulk discount system for large purchases
+    bulkDiscounts: {
+      enabled: true,
+      tiers: [
+        { threshold: 1000, discount: 0.03 }, // 3% off for 1000+ Cores
+        { threshold: 2500, discount: 0.05 }, // 5% off for 2500+ Cores  
+        { threshold: 5000, discount: 0.08 }, // 8% off for 5000+ Cores
+      ],
+    },
+
+    // Loyalty rewards system
+    loyaltyRewards: {
+      enabled: true,
+      pointsPerDollar: 1, // 1 loyalty point per $1 spent
+      rewardTiers: [
+        { points: 100, reward: "3% bonus on next purchase" },
+        { points: 250, reward: "5% bonus on next purchase" },
+        { points: 500, reward: "8% bonus + priority support" },
+      ],
+    },
   };
 }
 

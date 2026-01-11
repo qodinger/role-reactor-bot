@@ -10,7 +10,7 @@
 export { config } from "./config.js";
 export { default as configDefault } from "./config.js";
 
-// AI configuration (models, feature costs, content filters)
+// AI configuration (models, feature credits, content filters)
 export {
   getAIModels,
   getAIFeatureCosts,
