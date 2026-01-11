@@ -215,7 +215,7 @@ export function createHelpEmbed() {
     .addFields([
       {
         name: "Pro Tips",
-        value: `Describe your avatar however you want! Include character details, backgrounds, environments, or any creative elements.\n**Examples**: "cool boy with spiky hair", "cute girl in red dress", "anime girl in a forest", "cyberpunk hacker in neon city", "mysterious character with glasses", "beautiful sunset portrait"\n**Note**: Single character focus works best for profile pictures`,
+        value: `Describe your avatar however you want! Include character details, colors, moods, backgrounds, or any creative elements.\n**Examples**: "cool boy with spiky hair", "cute girl in red dress with pastel colors", "anime girl in a forest", "cyberpunk hacker in neon city", "mysterious serious character with glasses", "beautiful sunset portrait with vibrant colors"\n**Note**: The AI automatically detects color styles and moods from your description. Single character focus works best for profile pictures.`,
         inline: false,
       },
       {

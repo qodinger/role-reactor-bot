@@ -88,6 +88,23 @@ export const STYLE_MODIFIERS = {
     chibi: "chibi style, super deformed character design, cute chibi proportions, large head small body, adorable kawaii design",
     lofi: "lo-fi anime style, chill aesthetic, soft muted colors, dreamy atmosphere, nostalgic vibes, relaxed character design",
   },
+  // Color and mood styles are automatically detected from prompt text
+  colors: {
+    vibrant: "vibrant colors, bold color palette, saturated colors, bright colors",
+    pastel: "pastel colors, soft color palette, muted colors, gentle colors",
+    monochrome: "monochrome, black and white, grayscale, single color",
+    neon: "neon colors, glowing colors, electric colors, fluorescent colors",
+    warm: "warm colors, warm color palette, orange red yellow tones",
+    cool: "cool colors, cool color palette, blue green purple tones",
+  },
+  moods: {
+    happy: "happy expression, cheerful, smiling, joyful, positive mood",
+    serious: "serious expression, stern, focused, determined, intense mood",
+    mysterious: "mysterious expression, enigmatic, secretive, intriguing mood",
+    cute: "cute expression, adorable, sweet, kawaii, charming mood",
+    cool: "cool expression, confident, stylish, composed, relaxed mood",
+    elegant: "elegant expression, graceful, refined, sophisticated, classy mood",
+  },
 };
 
 // ============================================================================
