@@ -63,7 +63,7 @@ export class ProviderManager {
   }
 
   /**
-   * Get the appropriate provider for a specific feature with NO FALLBACKS
+   * Get the appropriate provider for a specific feature with optional fallbacks
    * @param {string} featureName - Feature name (aiChat, avatar, imagineGeneral, imagineNSFW)
    * @returns {string|null} Provider key or null if not available
    */
@@ -77,7 +77,31 @@ export class ProviderManager {
     // For safe content features, enforce strict safety if configured
     const enforceSafety = !isNSFW && feature.allowNSFWProviders === false;
 
-    // ONLY try the configured provider - NO FALLBACKS
+    // Handle "auto" provider selection with fallbacks
+    if (feature.provider === "auto") {
+      // For NSFW content, try RunPod first, then ComfyUI (never Stability)
+      if (isNSFW) {
+        const fallbackOrder = ["runpod", "comfyui"];
+        for (const providerKey of fallbackOrder) {
+          if (this.isProviderAvailable(providerKey) && 
+              this.isProviderSafeForContent(providerKey, isNSFW)) {
+            return providerKey;
+          }
+        }
+      } else {
+        // For safe content, only use Stability AI (never NSFW providers)
+        const fallbackOrder = ["stability"];
+        for (const providerKey of fallbackOrder) {
+          if (this.isProviderAvailable(providerKey) && 
+              this.isProviderSafeForContent(providerKey, isNSFW)) {
+            return providerKey;
+          }
+        }
+      }
+      return null;
+    }
+
+    // ONLY try the configured provider - NO FALLBACKS for specific providers
     if (this.isProviderAvailable(feature.provider)) {
       if (
         !enforceSafety ||
@@ -88,7 +112,6 @@ export class ProviderManager {
     }
 
     // If the configured provider is not available or not safe, return null
-    // NO FALLBACKS - fail if the exact configured provider can't be used
     return null;
   }
 

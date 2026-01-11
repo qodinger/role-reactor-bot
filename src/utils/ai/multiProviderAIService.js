@@ -151,6 +151,35 @@ export class MultiProviderAIService {
   }
 
   /**
+   * Get a specific provider instance
+   * @param {string} providerName - Name of the provider (comfyui, stability, etc.)
+   * @returns {Object|null} Provider instance or null if not found
+   */
+  async getProvider(providerName) {
+    // Ensure config is loaded
+    await loadConfig();
+    if (configCache && configCache !== this.config) {
+      this.config = configCache;
+      this.providerManager = new ProviderManager(this.config);
+      this.providers = {
+        openrouter: new OpenRouterProvider(
+          this.config.providers?.openrouter || {},
+        ),
+        openai: new OpenAIProvider(this.config.providers?.openai || {}),
+        stability: new StabilityProvider(
+          this.config.providers?.stability || {},
+        ),
+        runpod: new RunPodServerlessProvider(
+          this.config.providers?.runpod || {},
+        ),
+        comfyui: new ComfyUIProvider(this.config.providers?.comfyui || {}),
+      };
+    }
+
+    return this.providers[providerName] || null;
+  }
+
+  /**
    * Generate AI content using the configured provider
    * @param {Object} options - Configuration options
    * @param {string} options.type - Type of generation (image, text)

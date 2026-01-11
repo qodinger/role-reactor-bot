@@ -574,14 +574,23 @@ export class ConcurrencyManager {
   shouldRetry(error) {
     const retryableErrors = [
       "Rate limit exceeded",
-      "timeout",
       "network",
-      "temporary",
+      "temporary", 
       "service unavailable",
       "502",
       "503",
       "504",
     ];
+
+    // Don't retry on workflow timeouts - they're usually due to complex prompts
+    if (error.message.toLowerCase().includes("workflow timeout")) {
+      return false;
+    }
+
+    // Don't retry on generation timeouts - they're usually due to resource constraints
+    if (error.message.toLowerCase().includes("generation request timed out")) {
+      return false;
+    }
 
     return retryableErrors.some(keyword =>
       error.message.toLowerCase().includes(keyword.toLowerCase()),
