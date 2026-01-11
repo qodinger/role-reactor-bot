@@ -1,0 +1,70 @@
+{
+  "2": {
+    "inputs": {
+      "ckpt_name": "animagine-xl-4.0-opt.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple"
+  },
+  "3": {
+    "inputs": {
+      "text": "masterpiece, best quality, ultra detailed, perfect anatomy, detailed eyes, detailed face, beautiful composition, sharp focus, professional anime art",
+      "clip": ["9", 1]
+    },
+    "class_type": "CLIPTextEncode"
+  },
+  "4": {
+    "inputs": {
+      "text": "lowres, bad anatomy, bad hands, text, error, missing finger, extra digits, fewer digits, cropped, worst quality, low quality, signature, watermark, username, blurry, (bad proportions, extra limbs, missing limbs:1.2), (deformed, ugly:1.1), (long neck, mutation, mutilated:1.1), (out of frame, cropped:1.1), (jpeg artifacts, compression artifacts:1.2), (asymmetrical eyes, cross-eyed:1.1)",
+      "clip": ["9", 1]
+    },
+    "class_type": "CLIPTextEncode"
+  },
+  "5": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage"
+  },
+  "6": {
+    "inputs": {
+      "seed": 0,
+      "control_after_generate": "randomize",
+      "steps": 20,
+      "cfg": 5.0,
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "karras",
+      "denoise": 1.0,
+      "model": ["9", 0],
+      "positive": ["3", 0],
+      "negative": ["4", 0],
+      "latent_image": ["5", 0]
+    },
+    "class_type": "KSampler"
+  },
+  "7": {
+    "inputs": {
+      "vae": ["2", 2],
+      "samples": ["6", 0]
+    },
+    "class_type": "VAEDecode"
+  },
+  "8": {
+    "inputs": {
+      "filename_prefix": "animagine",
+      "images": ["7", 0]
+    },
+    "class_type": "SaveImage"
+  },
+  "9": {
+    "inputs": {
+      "lora_name": "NSFWFilterXL_animagine.safetensors",
+      "strength_model": 1.5,
+      "strength_clip": 1.5,
+      "model": ["2", 0],
+      "clip": ["2", 1]
+    },
+    "class_type": "LoraLoader"
+  }
+}
