@@ -27,6 +27,11 @@ import {
   validateNSFWProduction,
   logNSFWGeneration,
 } from "../../../utils/discord/nsfwSafety.js";
+import {
+  enhancePromptIntelligently,
+  analyzeNSFWContent,
+  getPromptSuggestions,
+} from "../../../utils/ai/promptIntelligence.js";
 
 /**
  * Get preferred provider for NSFW content generation
@@ -151,10 +156,32 @@ export async function handleImagineCommand(
     return;
   }
 
+  // Intelligently enhance the user's prompt for better results
+  // This helps users who don't know proper prompt formatting or model-specific keywords
+  const modelName = model || "anything"; // Default to anything
+  const intelligentlyEnhanced = enhancePromptIntelligently(
+    validation.prompt,
+    modelName,
+    {
+      isNSFW: nsfwValidation.isNSFW,
+      aspectRatio: aspectRatio,
+    }
+  );
+
+  // Analyze if user might need NSFW flag (educational purposes)
+  const nsfwAnalysis = analyzeNSFWContent(validation.prompt);
+  if (nsfwAnalysis.needsNSFW && !userRequestedNSFW) {
+    logger.info(`[IMAGINE] User prompt may need NSFW flag:`, {
+      prompt: validation.prompt,
+      confidence: nsfwAnalysis.confidence,
+      reasons: nsfwAnalysis.reasons,
+    });
+  }
+
   // Enhance prompt with quality improvements (preserves user intent)
   // Use NSFW-specific enhancements if content is NSFW
   const prompt = enhanceImaginePrompt(
-    validation.prompt,
+    intelligentlyEnhanced, // Use the intelligently enhanced prompt
     nsfwValidation.isNSFW,
   );
   // Use original prompt for display in embeds (not the enhanced one)
@@ -246,12 +273,19 @@ export async function handleImagineCommand(
             safetyTolerance,
             useAvatarPrompts: false, // Don't use avatar-specific prompts from imagePrompts.js
             aspectRatio: aspectRatio || "1:1", // Default to 1:1 (square) for versatility
-            seed: seed !== null ? seed : undefined, // Only set if provided
             negativePrompt: getImagineNegativePrompt(nsfwValidation.isNSFW), // Use appropriate negative prompt
             isNSFW: nsfwValidation.isNSFW, // Pass NSFW flag for provider-specific handling
             featureName, // Pass feature name for model selection
             // ComfyUI-specific parameters
             model: model || undefined, // animagine or anything
+            // Job recovery information
+            jobInfo: {
+              userId: interaction.user.id,
+              guildId: interaction.guild?.id,
+              channelId: interaction.channel?.id,
+              interactionId: interaction.id,
+              prompt: originalPrompt,
+            },
           },
           progressCallback,
         }),
@@ -289,6 +323,10 @@ export async function handleImagineCommand(
     const generatedSeed = result.seed !== undefined ? result.seed : null;
     const currentAspectRatio = aspectRatio || "1:1";
 
+    // Get suggestions for improving future prompts (only for simple prompts)
+    const suggestions = getPromptSuggestions(originalPrompt, modelName);
+    const limitedSuggestions = suggestions.slice(0, 2); // Limit to 2 suggestions to avoid clutter
+
     const successEmbed = createImagineResultEmbed({
       prompt: originalPrompt,
       interaction,
@@ -296,6 +334,7 @@ export async function handleImagineCommand(
       aspectRatio: currentAspectRatio,
       model,
       nsfw: nsfwValidation.isNSFW,
+      suggestions: limitedSuggestions,
     });
 
     // Log NSFW generation for audit purposes

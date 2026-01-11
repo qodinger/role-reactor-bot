@@ -52,9 +52,42 @@ Following the modular pattern established by other developer commands:
 - **Model Selection**: Choose between animagine (best quality) and anything (alternative) models
 - **Aspect Ratio Control**: Generate images in various aspect ratios
 - **NSFW Support**: Generate mature content in age-restricted channels
+- **Intelligent Prompt Enhancement**: Automatically improves user prompts for better results
+- **Context-Aware Suggestions**: Provides tips based on prompt analysis and model capabilities
 - **Queue-Aware Execution**: Leverages the shared `concurrencyManager` to prevent timeouts and rate-limit abuse
 - **Consistent UX**: Embeds use the global theme system and clearly outline provider, model, and render time
 - **Graceful Failures**: Friendly error messaging for validation issues, rate limits, or provider outages
+
+## Intelligent Prompt Enhancement
+
+The system automatically enhances user prompts to get better results, but **intelligently respects detailed prompts**:
+
+### Quality-Based Enhancement Levels:
+
+- **🔴 Poor Quality** (1-3 words, no details): Full enhancement with quality keywords, style, and character details
+- **🟡 Fair Quality** (some details, missing basics): Minimal enhancement - only adds missing essentials
+- **🟢 Good Quality** (detailed, has quality keywords): Only fixes spelling/grammar mistakes
+- **✅ Excellent Quality** (professional prompts): No enhancement - left completely unchanged
+
+### Smart Conflict Prevention:
+
+The system analyzes prompts before enhancing to avoid conflicts:
+- **Word count**: Longer prompts indicate experienced users
+- **Quality keywords**: Presence of "masterpiece", "detailed", etc.
+- **Style specification**: Already has "anime style", "realistic", etc.
+- **Technical terms**: Uses "composition", "lighting", "depth of field"
+- **Descriptive details**: Rich descriptions indicate expertise
+
+### Example Behaviors:
+
+**Poor Quality Input**: `"anime girl"`
+**Enhanced Output**: `"anime girl, beautiful anime girl, detailed character design, expressive eyes, elegant features, anime style, masterpiece, best quality, ultra detailed"`
+
+**Good Quality Input**: `"masterpiece, beautiful anime girl with flowing silver hair, soft lighting, detailed character design, anime style"`
+**Enhanced Output**: `"masterpiece, beautiful anime girl with flowing silver hair, soft lighting, detailed character design, anime style"` *(unchanged)*
+
+**Fair Quality Input**: `"beautiful anime girl with blue hair and school uniform"`
+**Enhanced Output**: `"beautiful anime girl with blue hair and school uniform, masterpiece, best quality"` *(minimal addition)*
 
 ## Inline Parameter Parsing
 

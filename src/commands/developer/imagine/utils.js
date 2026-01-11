@@ -37,6 +37,18 @@ export function parseInlineParameters(input) {
     prompt = prompt.replace(modelPattern, "").trim();
   }
 
+  // Parse shorthand model flags (--animagine, --anything)
+  const animaginePattern = /--animagine\b/gi;
+  const anythingPattern = /--anything\b/gi;
+  
+  if (animaginePattern.test(prompt)) {
+    model = "animagine";
+    prompt = prompt.replace(animaginePattern, "").trim();
+  } else if (anythingPattern.test(prompt)) {
+    model = "anything";
+    prompt = prompt.replace(anythingPattern, "").trim();
+  }
+
   // Parse --nsfw flag (enables NSFW content generation)
   const nsfwPattern = /--nsfw\b/gi;
   const nsfwMatch = nsfwPattern.exec(prompt);

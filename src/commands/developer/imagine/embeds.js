@@ -64,10 +64,38 @@ export function createImagineProcessingEmbed({
     .setDescription(description);
 
   if (status) {
+    // Format status with emoji for better visual appeal
+    let formattedStatus = status;
+    
+    // Only add emoji if status doesn't already have one
+    if (!/^[\u{1F000}-\u{1F9FF}]|^[\u{2600}-\u{26FF}]|^[\u{2700}-\u{27BF}]/u.test(status)) {
+      // Add appropriate emojis based on status content
+      if (status.includes("Loading") || status.includes("loading")) {
+        formattedStatus = `🔄 ${status}`;
+      } else if (status.includes("Processing") || status.includes("processing")) {
+        formattedStatus = `⚙️ ${status}`;
+      } else if (status.includes("Generating") || status.includes("generating")) {
+        formattedStatus = `🎨 ${status}`;
+      } else if (status.includes("Preparing") || status.includes("preparing")) {
+        formattedStatus = `📋 ${status}`;
+      } else if (status.includes("Decoding") || status.includes("decoding")) {
+        formattedStatus = `🔍 ${status}`;
+      } else if (status.includes("Finalizing") || status.includes("finalizing")) {
+        formattedStatus = `✨ ${status}`;
+      } else if (status.includes("queued") || status.includes("Queued")) {
+        formattedStatus = `⏳ ${status}`;
+      } else if (status.includes("%")) {
+        formattedStatus = `📊 ${status}`;
+      } else {
+        // Add a generic processing emoji for other statuses
+        formattedStatus = `⚙️ ${status}`;
+      }
+    }
+    
     embed.addFields([
       {
         name: "Status",
-        value: status,
+        value: formattedStatus,
         inline: false,
       },
     ]);
@@ -85,9 +113,19 @@ export function createImagineResultEmbed({
   aspectRatio = null,
   model = null,
   nsfw = false,
+  suggestions = null,
 }) {
   const preview = getPromptPreview(prompt);
-  const description = `**Prompt Preview**\n${preview}`;
+  let description = `**Prompt Preview**\n${preview}`;
+  
+  // Add suggestions if provided and not too many
+  if (suggestions && suggestions.length > 0 && suggestions.length <= 2) {
+    const suggestionText = suggestions
+      .map(s => `• ${s.message}`)
+      .join('\n');
+    description += `\n\n**💡 Tips for next time**\n${suggestionText}`;
+  }
+  
   const fields = [];
 
   // First row of parameters
@@ -188,4 +226,46 @@ export function createNSFWValidationEmbed(reason) {
       text: "Image Generator • Role Reactor",
     })
     .setTimestamp();
+}
+
+export function createPromptSuggestionsEmbed({
+  prompt,
+  suggestions,
+  model,
+  interaction = null,
+}) {
+  const preview = getPromptPreview(prompt);
+  let description = `**Your Prompt**\n${preview}`;
+  
+  if (suggestions && suggestions.length > 0) {
+    description += `\n\n**💡 Suggestions to improve your results:**`;
+    suggestions.forEach((suggestion, index) => {
+      description += `\n\n**${index + 1}. ${suggestion.message}**`;
+      if (suggestion.example) {
+        description += `\n*Example: ${suggestion.example}*`;
+      }
+    });
+  }
+  
+  if (model) {
+    description += `\n\n**🎨 ${model === 'animagine' ? 'Animagine XL 4.0' : 'Anything XL'} Tips:**`;
+    if (model === 'animagine') {
+      description += `\n• Excels at character design and facial expressions`;
+      description += `\n• Use detailed character descriptions for best results`;
+      description += `\n• Add emotion keywords like "happy expression"`;
+    } else {
+      description += `\n• Versatile model that works well with various styles`;
+      description += `\n• Use quality keywords like "masterpiece"`;
+      description += `\n• Specify lighting conditions for better results`;
+    }
+  }
+
+  const embed = new EmbedBuilder()
+    .setColor(THEME.INFO)
+    .setTitle(`${EMOJIS.UI.LIGHTBULB} Prompt Enhancement Tips`)
+    .setDescription(description);
+
+  setEmbedFooter(embed, interaction);
+
+  return embed;
 }
