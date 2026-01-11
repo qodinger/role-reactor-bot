@@ -172,7 +172,7 @@ class ConnectionManager {
       this.logger.info("🔌 Attempting to connect to MongoDB...");
       this.client = new MongoClient(this.config.uri, {
         ...this.config.options,
-        // Enhanced connection pooling - optimized for cost savings
+        // Enhanced connection pooling - optimized for resource efficiency
         // Lower minPoolSize reduces compute usage on MongoDB Atlas Flex tier
         maxPoolSize: Math.max(2, this.config.options.maxPoolSize || 20),
         minPoolSize: Math.max(2, this.config.options.minPoolSize || 2),

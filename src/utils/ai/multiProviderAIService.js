@@ -56,6 +56,12 @@ async function loadConfig() {
         stability: { enabled: false },
         comfyui: { enabled: false },
       },
+      features: {
+        aiChat: { enabled: false },
+        avatar: { enabled: false },
+        imagineGeneral: { enabled: false },
+        imagineNSFW: { enabled: false },
+      },
     };
     return configCache;
   })();
@@ -75,6 +81,12 @@ export class MultiProviderAIService {
         stability: { enabled: false },
         comfyui: { enabled: false },
         runpod: { enabled: false },
+      },
+      features: {
+        aiChat: { enabled: false },
+        avatar: { enabled: false },
+        imagineGeneral: { enabled: false },
+        imagineNSFW: { enabled: false },
       },
     };
     this.providerManager = new ProviderManager(this.config);
@@ -358,7 +370,13 @@ export class MultiProviderAIService {
   async generateImage(prompt, config, provider, progressCallback = null) {
     // Get model from feature-based config - ONLY use the exact configured model
     const isNSFW = config.isNSFW || false;
-    const featureName = isNSFW ? "imagineNSFW" : "imagineGeneral";
+    
+    // Use the feature name from config if provided, otherwise determine based on NSFW flag
+    let featureName = config.featureName;
+    if (!featureName) {
+      featureName = isNSFW ? "imagineNSFW" : "imagineGeneral";
+    }
+    
     const feature = this.config.features?.[featureName];
 
     // ONLY use the exact configured model for this feature - NO FALLBACKS
@@ -374,6 +392,11 @@ export class MultiProviderAIService {
     if (progressCallback) {
       progressCallback(AI_STATUS_MESSAGES.MULTIPROVIDER_INITIALIZING);
     }
+
+    // Log feature and model selection
+    const { getLogger } = await import("../logger.js");
+    const logger = getLogger();
+    logger.info(`[MULTIPROVIDER] Feature: ${featureName} | Model: ${model} | Provider: ${provider}`);
 
     const providerInstance = this.providers[provider];
     if (!providerInstance) {

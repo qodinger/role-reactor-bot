@@ -18,7 +18,7 @@ export class ConcurrencyManager {
     // - Local ComfyUI (GPU): 2-4 concurrent requests
     // - Cloud ComfyUI (RunPod/server): 2-4 per GPU
     // Concurrency limits optimized for cloud providers:
-    // - RunPod Serverless: 10-15 concurrent (cost management)
+    // - RunPod Serverless: 10-15 concurrent (resource management)
     // - Stability AI: 20-30 concurrent (API limits)
     // - OpenRouter/ChatGPT: 30-50 concurrent (fast responses)
     // Default: 25 (balanced for production cloud deployment)
