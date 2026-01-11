@@ -52,18 +52,16 @@ export function getAIModels() {
       // Safe Image Generation (/imagine command - non-NSFW)
       imagineGeneral: {
         enabled: true,
-        provider: "stability", // ONLY use Stability AI
-        model: "sd3.5-flash", // ONLY use this model
-        // NO FALLBACKS - use only what is configured
+        provider: "stability", // ONLY use Stability AI for safe content
+        model: "sd3.5-large-turbo", // Default model
         allowNSFWProviders: false, // Strict safety - no NSFW providers allowed
       },
 
       // NSFW Image Generation (/imagine command with --nsfw flag)
       imagineNSFW: {
-        enabled: true, // Enable NSFW image generation with ComfyUI
-        provider: "comfyui", // Use ComfyUI for NSFW content
-        model: "AnythingXL_xl.safetensors", // NSFW-capable model
-        // NO FALLBACKS - use only what is configured
+        enabled: true,
+        provider: "auto", // Auto-select: RunPod if available, otherwise ComfyUI
+        model: "animagine-xl-4.0-opt.safetensors", // Default model for ComfyUI
         allowNSFWProviders: true, // Allow NSFW providers for NSFW content
       },
     },
@@ -179,13 +177,13 @@ export function getAIModels() {
       },
 
       comfyui: {
-        enabled: true, // Enable ComfyUI for NSFW content generation ONLY
+        enabled: true, // Enable ComfyUI for NSFW content generation
         name: "ComfyUI (Self-Hosted)",
         baseUrl: process.env.COMFYUI_API_URL || "http://127.0.0.1:8188",
         apiKey: process.env.COMFYUI_API_KEY || null, // Optional for self-hosted
         workflowId: process.env.COMFYUI_WORKFLOW_ID || null,
         nsfwWorkflow:
-          process.env.COMFYUI_NSFW_WORKFLOW || "nsfw-image-generation", // Default NSFW workflow
+          process.env.COMFYUI_NSFW_WORKFLOW || "animagine", // Default to animagine workflow
         capabilities: ["image"], // Image generation only
         safetyLevel: "nsfw", // NSFW ONLY - no safe content generation
 
@@ -193,6 +191,17 @@ export function getAIModels() {
         models: {
           image: {
             // Anime/Manga Style Models
+            "animagine-xl-4.0-opt.safetensors": {
+              name: "Animagine XL 4.0",
+              type: "anime",
+              style: "anime",
+              nsfw: true,
+              quality: "excellent",
+              speed: "medium",
+              flags: ["anime", "manga", "2d", "stylized", "nsfw", "character"],
+              description: "High-quality anime model with superior character knowledge",
+            },
+
             "AnythingXL_xl.safetensors": {
               name: "Anything XL",
               type: "anime",
@@ -242,17 +251,37 @@ export function getAIModels() {
           },
         },
 
-        // Available workflows
+        // Available workflows (metadata only - actual workflows loaded from JSON files)
         workflows: {
-          "nsfw-image-generation": {
-            name: "NSFW Image Generation",
-            description: "Standard NSFW image generation workflow",
-            settings: { steps: 20, cfg: 7, sampler: "dpmpp_2m" },
+          "animagine-fast": {
+            name: "Animagine Fast Workflow",
+            description: "Fast anime generation optimized for speed (20 steps)",
+            settings: { steps: 20, cfg: 5.0, sampler: "dpmpp_2m" },
           },
-          "anime-avatar-generation": {
-            name: "Anime Avatar Generation",
-            description: "Optimized for anime-style avatar generation",
-            settings: { steps: 25, cfg: 8, sampler: "dpmpp_2m_karras" },
+          "anything-fast": {
+            name: "Anything Fast Workflow",
+            description: "Fast versatile anime generation (15 steps)",
+            settings: { steps: 15, cfg: 6.0, sampler: "dpmpp_2m" },
+          },
+          "animagine-quality": {
+            name: "Animagine HQ Workflow",
+            description: "High-quality anime generation with enhanced details and refinement pass",
+            settings: { steps: 35, cfg: 6.0, sampler: "dpmpp_2m_sde" },
+          },
+          "anything-quality": {
+            name: "Anything HQ Workflow", 
+            description: "High-quality versatile anime generation with detail enhancement",
+            settings: { steps: 30, cfg: 7.5, sampler: "dpmpp_2m_sde" },
+          },
+          "animagine": {
+            name: "Animagine Standard Workflow",
+            description: "Standard quality Animagine XL 4.0 generation",
+            settings: { steps: 28, cfg: 5.0, sampler: "dpmpp_2m" },
+          },
+          "anything": {
+            name: "Anything Standard Workflow", 
+            description: "Standard quality Anything XL generation",
+            settings: { steps: 20, cfg: 7.0, sampler: "dpmpp_2m" },
           },
         },
       },
@@ -304,10 +333,15 @@ export function getAIModels() {
 
         // Available workflows (same as ComfyUI)
         workflows: {
-          "nsfw-image-generation": {
-            name: "NSFW Image Generation",
-            description: "Standard NSFW image generation workflow",
-            settings: { steps: 20, cfg: 7, sampler: "dpmpp_2m" },
+          "animagine-quality": {
+            name: "Animagine HQ Workflow",
+            description: "High-quality anime generation with enhanced details and refinement pass",
+            settings: { steps: 35, cfg: 6.0, sampler: "dpmpp_2m_sde" },
+          },
+          "anything-quality": {
+            name: "Anything HQ Workflow",
+            description: "High-quality versatile anime generation with detail enhancement", 
+            settings: { steps: 30, cfg: 7.5, sampler: "dpmpp_2m_sde" },
           },
         },
       },

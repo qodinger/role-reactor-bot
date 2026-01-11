@@ -1,24 +1,26 @@
 /**
  * Image Generation Prompts
- * Provider-specific prompt templates and style modifiers for AI image generation
- *
- * IMPORTANT: PROVIDER_PROMPTS are ONLY used by the /avatar command.
- * The /imagine command uses IMAGINE_PROMPTS (see below) for quality enhancements.
- * See useAvatarPrompts flag in provider configs to control this behavior.
+ * Simplified prompt configuration for current AI image generation system
+ * 
+ * PROVIDER_PROMPTS: Used by /avatar command only
+ * IMAGINE_PROMPTS: Used by /imagine command for quality enhancements
  */
 
 import dedent from "dedent";
 
-// Provider-specific base prompt templates
+// ============================================================================
+// AVATAR COMMAND PROMPTS (Provider-specific)
+// ============================================================================
+
+// Provider-specific base prompt templates for /avatar command
 export const PROVIDER_PROMPTS = {
-  // Stability AI (SD3.5-flash) - Optimized for detailed, technical prompts
+  // Stability AI - Primary provider for avatar generation
   stability: {
     base: dedent`
       anime avatar portrait, {characterDescription}, masterpiece, best quality, ultra detailed,
       detailed character design, looking directly at viewer, professional anime art style,
       clean line art, vibrant colors, expressive eyes, detailed facial features, perfect anatomy,
-      studio quality, trending on pixiv, popular on artstation, sharp focus,
-      professional digital art, anime character design, kawaii aesthetic, modern anime style,
+      studio quality, sharp focus, professional digital art, anime character design, 
       detailed shading, soft lighting, beautiful composition, centered framing, upper body portrait,
       detailed clothing, character sheet quality, official art style, clean background
     `,
@@ -35,51 +37,7 @@ export const PROVIDER_PROMPTS = {
     `,
   },
 
-  // OpenRouter (Gemini 2.5 Flash Image Preview) - Optimized for conversational, natural language
-  openrouter: {
-    base: dedent`
-      Create an anime avatar portrait of {characterDescription}, masterpiece quality, best quality, ultra detailed.
-      The image should feature a detailed character design with the character looking directly at the viewer.
-      Use a professional anime art style with clean line art and vibrant colors. Include expressive eyes,
-      detailed facial features, and perfect anatomy. The artwork should be studio quality with detailed shading,
-      soft lighting, and beautiful composition. Frame it as an upper body portrait with detailed clothing
-      and a clean background in official art style.
-    `,
-    suffix: "Make it anime style, manga style, detailed, professional art.",
-    negative: dedent`
-      Avoid blurry, low quality, distorted, deformed, ugly, low resolution, pixelated, grainy, noisy,
-      bad anatomy, bad proportions, extra limbs, missing limbs, malformed hands, malformed feet,
-      extra fingers, missing fingers, fused fingers, long neck, bad hands, bad feet,
-      multiple heads, multiple faces, double exposure, out of focus, motion blur,
-      watermark, text, signature, jpeg artifacts, compression artifacts,
-      realistic, photorealistic, 3d render, cgi, computer generated, artificial, fake,
-      cartoon, western animation, disney style, pixar style,
-      oversaturated, undersaturated, low contrast, high contrast, dark, too bright, overexposed, underexposed
-    `,
-  },
-
-  // OpenAI (DALL-E 3) - Optimized for descriptive, artistic prompts
-  openai: {
-    base: dedent`
-      A beautiful anime avatar portrait of {characterDescription}, masterpiece quality, best quality, ultra detailed.
-      The artwork should be a detailed character design with the character looking directly at the viewer.
-      Use a professional anime art style with clean line art and vibrant colors. Include expressive eyes,
-      detailed facial features, and perfect anatomy. The artwork should be studio quality with detailed shading,
-      soft lighting, and beautiful composition. Frame it as an upper body portrait with detailed clothing
-      and a clean background in official art style.
-    `,
-    suffix: "Anime style, manga style, detailed, professional art.",
-    negative: dedent`
-      blurry, low quality, distorted, deformed, ugly, bad anatomy, bad proportions, extra limbs, missing limbs,
-      watermark, text, signature, realistic, photorealistic, 3d render, cgi, computer generated, artificial, fake,
-      cartoon, western animation, disney style, pixar style, low resolution, pixelated, grainy, noisy,
-      oversaturated, undersaturated, low contrast, high contrast, dark, too bright, overexposed, underexposed,
-      out of focus, motion blur, double exposure, multiple heads, multiple faces, malformed hands, malformed feet,
-      extra fingers, missing fingers, fused fingers, long neck, bad hands, bad feet
-    `,
-  },
-
-  // ComfyUI/ComfyICU - Optimized for unrestricted generation (no content blocking)
+  // ComfyUI - Fallback for avatar generation
   comfyui: {
     base: dedent`
       {characterDescription}, masterpiece, best quality, ultra detailed,
@@ -99,290 +57,68 @@ export const PROVIDER_PROMPTS = {
       oversaturated, undersaturated, low contrast, high contrast, dark, too bright, overexposed, underexposed
     `,
   },
-
-  // Self-Hosted - Optimized for self-hosted Stable Diffusion
-  selfhosted: {
-    base: dedent`
-      anime avatar portrait, {characterDescription}, masterpiece, best quality, ultra detailed,
-      detailed character design, looking directly at viewer, professional anime art style,
-      clean line art, vibrant colors, expressive eyes, detailed facial features, perfect anatomy,
-      studio quality, trending on pixiv, popular on artstation, sharp focus,
-      professional digital art, anime character design, kawaii aesthetic, modern anime style,
-      detailed shading, soft lighting, beautiful composition, centered framing, upper body portrait,
-      detailed clothing, character sheet quality, official art style, clean background
-    `,
-    suffix: ", anime style, manga style, detailed, professional art",
-    negative: dedent`
-      blurry, low quality, distorted, deformed, ugly, low resolution, pixelated, grainy, noisy,
-      bad anatomy, bad proportions, extra limbs, missing limbs, malformed hands, malformed feet,
-      extra fingers, missing fingers, fused fingers, long neck, bad hands, bad feet,
-      multiple heads, multiple faces, double exposure, out of focus, motion blur,
-      watermark, text, signature, jpeg artifacts, compression artifacts,
-      realistic, photorealistic, 3d render, cgi, computer generated, artificial, fake,
-      cartoon, western animation, disney style, pixar style,
-      oversaturated, undersaturated, low contrast, high contrast, dark, too bright, overexposed, underexposed
-    `,
-  },
 };
 
-// Legacy support - use stability as default for backward compatibility
+// Legacy support for backward compatibility
 export const BASE_PROMPT_TEMPLATE = PROVIDER_PROMPTS.stability.base;
-
-// Legacy support - use stability as default for backward compatibility
 export const PROMPT_SUFFIX = PROVIDER_PROMPTS.stability.suffix;
 export const NEGATIVE_PROMPT = PROVIDER_PROMPTS.stability.negative;
 
 // Default character description
-export const DEFAULT_CHARACTER =
-  process.env.AI_DEFAULT_CHARACTER || "a beautiful anime character";
+export const DEFAULT_CHARACTER = process.env.AI_DEFAULT_CHARACTER || "a beautiful anime character";
 
-// Character type enhancements
+// Character type enhancements for /avatar command
 export const CHARACTER_TYPE_ENHANCEMENTS = {
   male: "handsome male character, masculine features, strong jawline, confident expression",
-  female:
-    "beautiful female character, elegant features, graceful expression, feminine charm",
+  female: "beautiful female character, elegant features, graceful expression, feminine charm",
   boy: "cute young male character, youthful appearance, energetic expression, boyish charm",
   girl: "cute young female character, adorable features, sweet expression, youthful innocence",
-  character:
-    "unique character design, distinctive features, memorable appearance, original design",
-  person:
-    "realistic anime person, human character, natural features, relatable appearance",
-  avatar:
-    "perfect avatar design, profile picture ready, social media friendly, clean composition",
+  character: "unique character design, distinctive features, memorable appearance, original design",
+  person: "realistic anime person, human character, natural features, relatable appearance",
+  avatar: "perfect avatar design, profile picture ready, social media friendly, clean composition",
 };
 
-// Style modifiers
+// Style modifiers for /avatar command
 export const STYLE_MODIFIERS = {
-  colors: {
-    vibrant: dedent`
-      VIBRANT COLOR PALETTE, bright saturated colors, high contrast, colorful design, vivid tones,
-      bright palette, saturated colors, eye-catching colors, bold color scheme
-    `,
-    pastel: dedent`
-      PASTEL COLOR PALETTE, soft gentle colors, dreamy pastel tones, light muted colors,
-      soft color scheme, gentle palette, dreamy colors, soft pastel aesthetic
-    `,
-    monochrome: dedent`
-      MONOCHROME STYLE, grayscale color scheme, black and white, classic monochrome,
-      grayscale palette, black and white design, classic look, monochrome aesthetic
-    `,
-    neon: dedent`
-      NEON COLOR PALETTE, cyberpunk colors, glowing neon effects, futuristic colors,
-      bright neon tones, cyberpunk aesthetic, glowing effects, electric colors
-    `,
-    warm: dedent`
-      WARM COLOR PALETTE, golden warm tones, cozy warm colors, inviting warm atmosphere,
-      warm color scheme, golden palette, warm cozy colors, inviting tones
-    `,
-    cool: dedent`
-      COOL COLOR PALETTE, blue cool tones, refreshing cool colors, calm cool atmosphere,
-      cool color scheme, blue palette, refreshing cool tones, calm colors
-    `,
-  },
-  moods: {
-    happy: dedent`
-      HAPPY EXPRESSION, cheerful bright smile, joyful mood, positive energy,
-      happy facial expression, bright cheerful look, joyful character, positive vibes
-    `,
-    serious: dedent`
-      SERIOUS EXPRESSION, focused determined look, professional mood,
-      serious facial expression, focused determined character, professional appearance, serious demeanor
-    `,
-    mysterious: dedent`
-      MYSTERIOUS EXPRESSION, enigmatic intriguing look, secretive mood,
-      mysterious facial expression, enigmatic character, intriguing mysterious vibe, secretive demeanor
-    `,
-    cute: dedent`
-      CUTE EXPRESSION, adorable kawaii look, sweet lovable mood,
-      cute facial expression, adorable character, kawaii cute vibe, sweet lovable appearance
-    `,
-    cool: dedent`
-      COOL EXPRESSION, confident stylish look, trendy mood,
-      cool facial expression, confident character, stylish cool vibe, trendy appearance
-    `,
-    elegant: dedent`
-      ELEGANT EXPRESSION, refined sophisticated look, graceful mood,
-      elegant facial expression, refined character, sophisticated elegant vibe, graceful appearance
-    `,
-  },
   art_styles: {
-    studio: dedent`
-      STUDIO GHIBLI STYLE, Hayao Miyazaki inspired art, detailed hand-drawn animation quality,
-      soft watercolor-like colors, whimsical character design, nature-inspired elements,
-      detailed backgrounds, traditional animation techniques
-    `,
-    manga: dedent`
-      MANGA STYLE, black and white line art, traditional Japanese comics style,
-      bold linework, dramatic shading, expressive character design, classic manga proportions, ink wash techniques
-    `,
-    modern: dedent`
-      MODERN ANIME STYLE, contemporary anime design, current 2020s trends,
-      clean digital art, vibrant colors, detailed character design, popular anime aesthetic, high-quality illustration
-    `,
-    retro: dedent`
-      RETRO ANIME STYLE, 80s 90s vintage anime aesthetic, classic anime proportions,
-      nostalgic color palette, traditional cel animation look, old-school anime character design, vintage anime art style
-    `,
-    realistic: dedent`
-      SEMI-REALISTIC ANIME, detailed realistic features, lifelike proportions,
-      photorealistic anime style, detailed facial features, realistic anatomy, high-detail character design, realistic anime art
-    `,
-    chibi: dedent`
-      CHIBI STYLE, super deformed character design, cute chibi proportions,
-      large head small body, adorable kawaii design, chibi anime style, super cute character,
-      deformed cute proportions, chibi art style
-    `,
-    lofi: dedent`
-      LO-FI ANIME STYLE, chill aesthetic, soft muted colors, dreamy atmosphere,
-      nostalgic vibes, relaxed character design, cozy warm tones, study music aesthetic,
-      vintage filter effects, soft gradients, minimalist backgrounds, peaceful mood,
-      low contrast, gentle lighting, zen-like composition, calming anime art style
-    `,
+    manga: "manga style, black and white line art, traditional Japanese comics style, bold linework, dramatic shading",
+    modern: "modern anime style, contemporary anime design, clean digital art, vibrant colors, detailed character design",
+    retro: "retro anime style, 80s 90s vintage anime aesthetic, classic anime proportions, nostalgic color palette",
+    realistic: "semi-realistic anime, detailed realistic features, lifelike proportions, photorealistic anime style",
+    chibi: "chibi style, super deformed character design, cute chibi proportions, large head small body, adorable kawaii design",
+    lofi: "lo-fi anime style, chill aesthetic, soft muted colors, dreamy atmosphere, nostalgic vibes, relaxed character design",
   },
 };
 
 // ============================================================================
 // IMAGINE COMMAND PROMPTS
 // ============================================================================
-// Quality enhancements and negative prompts for /imagine command
-// These are general-purpose and don't force specific styles (unlike avatar prompts)
-
-/**
- * Quality enhancement suffix to append to user prompts
- * Adds universal quality tags without forcing any specific style
- * Works for any image type: realistic, anime, fantasy, sci-fi, etc.
- * Style-agnostic: preserves user's artistic intent
- * Based on research: detailed quality tags significantly improve output quality
- * Enhanced with better anatomy and composition keywords
- */
-export const IMAGINE_QUALITY_ENHANCEMENT = [
-  "masterpiece",
-  "best quality",
-  "ultra detailed",
-  "highly detailed",
-  "8k resolution",
-  "sharp focus",
-  "professional",
-  "detailed",
-  "perfect composition",
-  "beautiful composition",
-  "cinematic composition",
-  "high quality",
-  "perfect anatomy",
-  "correct anatomy",
-  "natural anatomy",
-  "anatomically correct",
-  "proper body proportions",
-  "realistic proportions",
-  "natural body structure",
-  "correct body structure",
-  "natural lighting",
-  "soft lighting",
-  "beautiful lighting",
-  "well lit",
-  "good lighting",
-  "detailed skin texture",
-  "smooth skin",
-  "perfect hands",
-  "detailed hands",
-  "correct hands",
-  "natural hands",
-  "detailed facial features",
-  "beautiful face",
-  "expressive eyes",
-  "detailed eyes",
-].join(", ");
-
-/**
- * NSFW-specific quality enhancement for adult content
- * Includes additional anatomy and detail keywords for mature content
- * Only used when NSFW content is detected and channel allows it
- */
-export const NSFW_QUALITY_ENHANCEMENT = [
-  "masterpiece",
-  "best quality",
-  "ultra detailed",
-  "highly detailed",
-  "8k uhd",
-  "sharp focus",
-  "professional",
-  "detailed",
-  "perfect composition",
-  "beautiful composition",
-  "cinematic composition",
-  "high quality",
-  "perfect anatomy",
-  "correct anatomy",
-  "natural anatomy",
-  "anatomically correct",
-  "flawless anatomy",
-  "perfect body",
-  "beautiful body",
-  "perfect proportions",
-  "realistic proportions",
-  "natural body structure",
-  "correct body structure",
-  "detailed skin texture",
-  "smooth skin",
-  "flawless skin",
-  "natural lighting",
-  "soft lighting",
-  "dramatic lighting",
-  "rim lighting",
-  "studio lighting",
-  "beautiful lighting",
-  "well lit",
-  "good lighting",
-  "perfect hands",
-  "detailed hands",
-  "correct hands",
-  "natural hands",
-  "detailed facial features",
-  "beautiful face",
-  "perfect face",
-  "expressive eyes",
-  "detailed eyes",
-  "beautiful eyes",
-  "detailed nipples",
-  "perfect breasts",
-  "natural breasts",
-  "detailed genitals",
-  "perfect genitals",
-  "intimate details",
-  "sensual",
-  "elegant pose",
-  "natural pose",
-  "beautiful pose",
-  "artistic nude",
-  "professional photography",
-  "photorealistic",
-  "lifelike",
-].join(", ");
 
 /**
  * NSFW-specific negative prompt for adult content
- * More comprehensive exclusions for better quality NSFW generation
+ * Comprehensive exclusions for better quality NSFW generation
  */
 export const NSFW_NEGATIVE_PROMPT = dedent`
-  bad anatomy, bad hands, bad fingers, missing fingers, extra fingers, fused fingers, too many fingers, poorly drawn hands, poorly drawn face, deformed, ugly, blurry, bad proportions, extra limbs, missing limbs, bad feet, long neck, mutation, mutilated, out of frame, worst quality, low quality, jpeg artifacts, watermark, signature, username, text,
-  bad breasts, bad nipples, extra breasts, missing breasts, fused breasts, asymmetrical breasts, deformed breasts, malformed breasts, unnatural breasts, fake breasts, plastic breasts,
-  bad genitals, deformed genitals, malformed genitals, extra genitals, missing genitals, fused genitals, unnatural genitals, distorted genitals, incorrect genitals,
-  three legs, three arms, four arms, four legs, six fingers, seven fingers, eight fingers, multiple heads, multiple faces, extra heads, extra faces,
-  bad skin, plastic skin, shiny skin, oily skin, sweaty skin, dirty skin, scarred skin, blemished skin, unnatural skin,
-  bad lighting, harsh lighting, flat lighting, overexposed, underexposed, dark shadows, bad shadows,
-  censored, mosaic, bar censor, black bar, pixelated, blocked, covered, hidden,
-  amateur, snapshot, low resolution, pixelated, grainy, noisy, blurry, out of focus, motion blur,
-  cartoon, anime (when realistic requested), 3d render (when 2d requested), cgi, computer generated, artificial, fake,
-  distorted face, melted face, warped face, stretched face, compressed face, squished face, asymmetrical face,
-  bad pose, awkward pose, unnatural pose, impossible pose, twisted body, broken spine, dislocated joints
+  bad anatomy, bad hands, bad fingers, missing fingers, extra fingers, fused fingers, too many fingers, 
+  poorly drawn hands, poorly drawn face, deformed, ugly, blurry, bad proportions, extra limbs, missing limbs, 
+  bad feet, long neck, mutation, mutilated, out of frame, worst quality, low quality, jpeg artifacts, 
+  watermark, signature, username, text, bad breasts, bad nipples, extra breasts, missing breasts, 
+  fused breasts, asymmetrical breasts, deformed breasts, malformed breasts, unnatural breasts, 
+  bad genitals, deformed genitals, malformed genitals, extra genitals, missing genitals, fused genitals, 
+  unnatural genitals, distorted genitals, three legs, three arms, four arms, four legs, six fingers, 
+  seven fingers, eight fingers, multiple heads, multiple faces, extra heads, extra faces, bad skin, 
+  plastic skin, shiny skin, oily skin, sweaty skin, dirty skin, bad lighting, harsh lighting, 
+  flat lighting, overexposed, underexposed, dark shadows, bad shadows, censored, mosaic, bar censor, 
+  black bar, pixelated, blocked, covered, hidden, amateur, snapshot, low resolution, grainy, noisy, 
+  out of focus, motion blur, cartoon, anime (when realistic requested), 3d render (when 2d requested), 
+  cgi, computer generated, artificial, fake, distorted face, melted face, warped face, stretched face, 
+  compressed face, squished face, asymmetrical face, bad pose, awkward pose, unnatural pose, 
+  impossible pose, twisted body, broken spine, dislocated joints
 `;
 
 /**
- * Comprehensive negative prompt for /imagine command
- * Focuses on technical quality issues, not content/style restrictions
- * Organized by category: Quality → Anatomy → Composition → Technical → Style → Content Safety
- * Based on research: comprehensive negative prompts significantly reduce artifacts
- * Enhanced with better anatomy and technical exclusions + NSFW prevention
+ * Comprehensive negative prompt for /imagine command (safe content)
+ * Focuses on technical quality issues and prevents NSFW content
  */
 export const IMAGINE_NEGATIVE_PROMPT = dedent`
   blurry, low quality, distorted, deformed, ugly, low resolution, pixelated, grainy, noisy, bad quality, worst quality,
@@ -409,95 +145,28 @@ export const IMAGINE_NEGATIVE_PROMPT = dedent`
 `;
 
 /**
- * Provider-specific negative prompts for /imagine command (if needed)
- * Can override the default for specific providers
- */
-export const IMAGINE_PROVIDER_NEGATIVE_PROMPTS = {
-  comfyui: IMAGINE_NEGATIVE_PROMPT,
-  stability: IMAGINE_NEGATIVE_PROMPT,
-  selfhosted: IMAGINE_NEGATIVE_PROMPT,
-  openrouter: IMAGINE_NEGATIVE_PROMPT, // OpenRouter doesn't use negative prompts, but kept for consistency
-  openai: IMAGINE_NEGATIVE_PROMPT, // OpenAI doesn't use negative prompts, but kept for consistency
-};
-
-/**
  * Get the appropriate negative prompt for the content type
  * @param {boolean} isNSFW - Whether this is NSFW content
- * @param {string} provider - Provider name (optional)
+ * @param {string} _provider - Provider name (unused, kept for compatibility)
  * @returns {string} Appropriate negative prompt
  */
-export function getImagineNegativePrompt(isNSFW = false, provider = null) {
-  if (isNSFW) {
-    return NSFW_NEGATIVE_PROMPT;
-  }
-
-  // Use provider-specific negative prompt if available
-  if (provider && IMAGINE_PROVIDER_NEGATIVE_PROMPTS[provider]) {
-    return IMAGINE_PROVIDER_NEGATIVE_PROMPTS[provider];
-  }
-
-  return IMAGINE_NEGATIVE_PROMPT;
+export function getImagineNegativePrompt(isNSFW = false, _provider = null) {
+  return isNSFW ? NSFW_NEGATIVE_PROMPT : IMAGINE_NEGATIVE_PROMPT;
 }
 
 /**
- * Enhance a user prompt with quality improvements for /imagine command
- * Preserves user intent while adding universal quality tags
- * Works for anime image generation with optimal quality enhancements
- * Supports NSFW content with appropriate enhancements
+ * Enhanced prompt function for /imagine command
+ * Now handled by the intelligent prompt enhancement system
+ * This function is kept for compatibility but returns the prompt unchanged
  * @param {string} userPrompt - Original user prompt
- * @param {boolean} isNSFW - Whether this is NSFW content (optional)
- * @returns {string} Enhanced prompt
+ * @param {boolean} _isNSFW - Whether this is NSFW content (unused)
+ * @returns {string} Unmodified prompt (enhancement handled by promptIntelligence.js)
  */
 export function enhanceImaginePrompt(userPrompt, _isNSFW = false) {
   if (!userPrompt || typeof userPrompt !== "string") {
     return userPrompt;
   }
 
-  const trimmed = userPrompt.trim();
-
-  // Return original prompt without any automatic quality enhancements
-  return trimmed;
-}
-
-/**
- * Get style-specific enhancement keywords
- * @param {string} style - Style parameter (anime, realistic, fantasy, etc.)
- * @returns {string|null} Style enhancement keywords or null if not found
- */
-function getStyleEnhancement(style) {
-  const styleEnhancements = {
-    anime:
-      "anime style, manga style, japanese animation, cel shading, vibrant colors, expressive eyes",
-    realistic:
-      "photorealistic, lifelike, natural lighting, realistic proportions, detailed textures",
-    fantasy:
-      "fantasy art, magical, ethereal, mystical atmosphere, dramatic lighting, epic composition",
-    cyberpunk:
-      "cyberpunk style, neon lights, futuristic, sci-fi, dark atmosphere, glowing effects",
-    vintage:
-      "vintage style, retro aesthetic, classic composition, nostalgic mood, film grain",
-    minimalist:
-      "minimalist style, clean composition, simple design, negative space, elegant simplicity",
-    abstract:
-      "abstract art, artistic interpretation, creative composition, unique perspective",
-    portrait:
-      "portrait photography, professional headshot, studio lighting, shallow depth of field",
-    landscape:
-      "landscape photography, scenic view, natural beauty, wide angle, atmospheric perspective",
-    macro:
-      "macro photography, extreme close-up, fine details, shallow depth of field",
-    street:
-      "street photography, candid moment, urban environment, natural lighting",
-    cinematic:
-      "cinematic composition, movie still, dramatic lighting, film quality, professional cinematography",
-    oil: "oil painting style, traditional art, painterly texture, rich colors, artistic brushstrokes",
-    watercolor:
-      "watercolor painting, soft colors, flowing textures, artistic medium, traditional art",
-    sketch:
-      "pencil sketch, hand-drawn, artistic lines, traditional drawing, monochrome",
-    digital:
-      "digital art, computer graphics, modern technique, clean lines, vibrant colors",
-  };
-
-  return styleEnhancements[style.toLowerCase()] || null;
+  // Return original prompt - enhancement is now handled by promptIntelligence.js
+  return userPrompt.trim();
 }
