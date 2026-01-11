@@ -79,8 +79,8 @@ export default [
       "arrow-spacing": ["error", { before: true, after: true }],
 
       // Object and array rules
-      "object-shorthand": "error",
-      "prefer-template": "error",
+      "object-shorthand": "off",
+      "prefer-template": "off",
       "template-curly-spacing": ["error", "never"],
 
       // Import/export rules (if using modules)
