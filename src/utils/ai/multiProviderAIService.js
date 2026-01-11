@@ -2,7 +2,6 @@ import { getLogger } from "../logger.js";
 import { performanceMonitor } from "./performanceMonitor.js";
 import { ProviderManager } from "./providers/providerManager.js";
 import { OpenRouterProvider } from "./providers/openRouterProvider.js";
-import { OpenAIProvider } from "./providers/openAIProvider.js";
 import { StabilityProvider } from "./providers/stabilityProvider.js";
 import { ComfyUIProvider } from "./providers/ComfyUIProvider.js";
 import { RunPodServerlessProvider } from "./providers/runpodServerlessProvider.js";
@@ -54,7 +53,6 @@ async function loadConfig() {
     configCache = {
       providers: {
         openrouter: { enabled: false },
-        openai: { enabled: false },
         stability: { enabled: false },
         comfyui: { enabled: false },
       },
@@ -66,7 +64,7 @@ async function loadConfig() {
 }
 
 /**
- * Multi-provider AI service supporting both OpenRouter and OpenAI
+ * Multi-provider AI service supporting OpenRouter, Stability AI, and ComfyUI
  */
 export class MultiProviderAIService {
   constructor() {
@@ -74,7 +72,6 @@ export class MultiProviderAIService {
     this.config = {
       providers: {
         openrouter: { enabled: false },
-        openai: { enabled: false },
         stability: { enabled: false },
         comfyui: { enabled: false },
         runpod: { enabled: false },
@@ -85,7 +82,6 @@ export class MultiProviderAIService {
     // Initialize provider instances with empty configs
     this.providers = {
       openrouter: new OpenRouterProvider(this.config.providers.openrouter),
-      openai: new OpenAIProvider(this.config.providers.openai),
       stability: new StabilityProvider(this.config.providers.stability),
       comfyui: new ComfyUIProvider(this.config.providers.comfyui || {}),
       runpod: new RunPodServerlessProvider(this.config.providers.runpod || {}),
@@ -100,7 +96,6 @@ export class MultiProviderAIService {
           openrouter: new OpenRouterProvider(
             this.config.providers?.openrouter || {},
           ),
-          openai: new OpenAIProvider(this.config.providers?.openai || {}),
           stability: new StabilityProvider(
             this.config.providers?.stability || {},
           ),
@@ -165,7 +160,6 @@ export class MultiProviderAIService {
         openrouter: new OpenRouterProvider(
           this.config.providers?.openrouter || {},
         ),
-        openai: new OpenAIProvider(this.config.providers?.openai || {}),
         stability: new StabilityProvider(
           this.config.providers?.stability || {},
         ),
@@ -198,7 +192,6 @@ export class MultiProviderAIService {
         openrouter: new OpenRouterProvider(
           this.config.providers?.openrouter || {},
         ),
-        openai: new OpenAIProvider(this.config.providers?.openai || {}),
         stability: new StabilityProvider(
           this.config.providers?.stability || {},
         ),

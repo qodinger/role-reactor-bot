@@ -8,7 +8,7 @@ The AI utilities are designed with a modular, reusable architecture:
 
 ### Core Services
 
-- **`multiProviderAIService.js`** - Multi-provider AI service supporting OpenRouter, OpenAI, Stability AI, and self-hosted providers with enabled/disabled provider configuration
+- **`multiProviderAIService.js`** - Multi-provider AI service supporting OpenRouter, Stability AI, and self-hosted providers with enabled/disabled provider configuration
 - **`chatService.js`** - AI-powered chat service for conversational interactions with bot and server context awareness
 - **`avatarService.js`** - Specialized service for AI avatar generation
 - **`concurrencyManager.js`** - Request concurrency management and rate limiting
@@ -51,7 +51,7 @@ Hierarchical memory system for long-term conversation context:
 - **`modelOptimizer.js`** - Provides optimized parameters (maxTokens, temperature) for different AI models
 - **`commandExecutor/`** - Command discovery, validation, and mock interaction creation
 - **`promptSections/`** - Modular prompt sections (identity, context, response format)
-- **`providers/`** - Provider-specific implementations (OpenRouter, OpenAI, Stability, Self-hosted)
+- **`providers/`** - Provider-specific implementations (OpenRouter, Stability, Self-hosted)
 
 ### Exports
 
@@ -88,7 +88,7 @@ const result = await multiProviderAIService.generate({
   config: {
     // Model-specific configuration
   },
-  provider: null, // null = auto-select first enabled provider, or specify "openrouter", "openai", "stability", "selfhosted"
+  provider: null, // null = auto-select first enabled provider, or specify "openrouter", "stability", "selfhosted"
 });
 ```
 
@@ -187,24 +187,6 @@ The AI service supports both text generation and image generation through multip
 
 - `llama3.2` (Default for self-hosted)
 - Any model supported by your self-hosted API (Ollama, etc.)
-
-#### OpenAI Models
-
-- `gpt-3.5-turbo` (Standard)
-- `gpt-4` (Higher quality, higher cost)
-
-### Image Generation Models
-
-#### OpenRouter Models
-
-- `google/gemini-3-pro-image-preview` (Default - High quality)
-- `google/gemini-2.5-flash-image-preview` (Faster, lower cost)
-- `stability-ai/stable-diffusion-xl-base-1.0`
-- `google/imagen-3`
-
-#### OpenAI Models
-
-- `dall-e-3` (High quality image generation)
 
 #### Stability AI Models (Stable Diffusion 3.5)
 
@@ -435,22 +417,6 @@ providers: {
       },
     },
   },
-  openai: {
-    enabled: false, // Set to true to enable this provider
-    name: "OpenAI",
-    baseUrl: "https://api.openai.com/v1",
-    apiKey: process.env.OPENAI_API_KEY,
-    models: {
-      image: {
-        primary: "dall-e-3",
-        // Add new models here
-      },
-      text: {
-        primary: "gpt-3.5-turbo",
-        // Add new text models here
-      },
-    },
-  },
 }
 ```
 
@@ -463,9 +429,6 @@ Required environment variables:
 ```env
 # OpenRouter Configuration
 OPENROUTER_API_KEY=your_openrouter_api_key
-
-# OpenAI Configuration
-OPENAI_API_KEY=your_openai_api_key
 
 # Stability AI Configuration (Stable Diffusion 3.5)
 STABILITY_API_KEY=your_stability_api_key
@@ -505,10 +468,6 @@ providers: {
     enabled: true,  // This will be used first
     // ... config
   },
-  openai: {
-    enabled: false, // Skipped if openrouter is enabled
-    // ... config
-  },
   stability: {
     enabled: true,  // Used as fallback if openrouter fails
     // ... config
@@ -528,10 +487,6 @@ To completely disable AI features, set all providers to `enabled: false`:
 providers: {
   openrouter: {
     enabled: false,  // AI features disabled
-    // ... config
-  },
-  openai: {
-    enabled: false,
     // ... config
   },
   stability: {

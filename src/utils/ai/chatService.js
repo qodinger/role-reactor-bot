@@ -566,7 +566,7 @@ export class ChatService {
     const textProvider = this.aiService.getTextProvider();
     if (
       !textProvider ||
-      !["openrouter", "openai", "selfhosted"].includes(textProvider)
+      !["openrouter", "selfhosted"].includes(textProvider)
     ) {
       // Fallback to non-streaming
       logger.warn(

@@ -71,10 +71,6 @@ export const AI_STATUS_MESSAGES = {
   OPENROUTER_PROCESSING: "Processing image response...",
   OPENROUTER_DOWNLOADING: "Downloading generated image...",
 
-  // OpenAI provider steps
-  OPENAI_SENDING: "Sending generation request...",
-  OPENAI_DOWNLOADING: "Downloading generated image...",
-
   // Self-hosted provider steps
   SELFHOSTED_SENDING: "Sending generation request...",
   SELFHOSTED_GENERATING: "Generating image...",

@@ -13,7 +13,7 @@
  * - NSFW content is only generated when explicitly requested with --nsfw flag
  *
  * PROVIDER SAFETY LEVELS:
- * - "safe": Only generates safe content (Stability AI, OpenAI, OpenRouter)
+ * - "safe": Only generates safe content (Stability AI, OpenRouter)
  * - "mixed": Can generate both safe and NSFW content (ComfyUI, RunPod)
  * - Providers with "mixed" safety are NEVER used for safe content requests
  *
@@ -145,36 +145,7 @@ export function getAIModels() {
         },
       },
 
-      openai: {
-        enabled: false, // Disabled by default (enable if you have API key)
-        name: "OpenAI",
-        baseUrl: "https://api.openai.com/v1",
-        apiKey: process.env.OPENAI_API_KEY,
-        capabilities: ["text", "image"],
-        safetyLevel: "safe", // SAFE ONLY - strict content filtering
-        models: {
-          text: {
-            "gpt-4o": { name: "GPT-4o", speed: "medium", cost: "high" },
-            "gpt-4o-mini": {
-              name: "GPT-4o Mini",
-              speed: "fast",
-              cost: "medium",
-            },
-            "gpt-3.5-turbo": {
-              name: "GPT-3.5 Turbo",
-              speed: "fastest",
-              cost: "low",
-            },
-          },
-          image: {
-            "dall-e-3": {
-              name: "DALL-E 3",
-              speed: "medium",
-              quality: "excellent",
-            },
-          },
-        },
-      },
+
 
       comfyui: {
         enabled: true, // Enable ComfyUI for NSFW content generation

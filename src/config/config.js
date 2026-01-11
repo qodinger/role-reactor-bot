@@ -222,7 +222,6 @@ class Config {
     return {
       providers: {
         openrouter: { enabled: false },
-        openai: { enabled: false },
         stability: { enabled: false },
         selfhosted: { enabled: false },
       },

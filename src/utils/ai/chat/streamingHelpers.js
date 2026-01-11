@@ -177,7 +177,6 @@ export async function performStreamingGeneration(
   if (!currentModel) {
     currentModel =
       aiService.config.providers?.openrouter?.models?.text?.primary ||
-      aiService.config.providers?.openai?.models?.text?.primary ||
       aiService.config.providers?.selfhosted?.models?.text?.primary;
   }
 

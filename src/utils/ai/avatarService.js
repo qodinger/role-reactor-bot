@@ -336,63 +336,6 @@ export class AvatarService {
       }
 
       prompt += ` ${finalConfig.suffix}`;
-    } else if (provider === "openai") {
-      // OpenAI uses descriptive format
-      prompt = finalConfig.base.replace(
-        "{characterDescription}",
-        baseDescription,
-      );
-
-      // Add art style first for maximum impact
-      if (enhancements.artStyle) {
-        // Special emphasis for chibi style
-        if (enhancements.artStyle.toLowerCase().includes("chibi")) {
-          prompt = `${enhancements.artStyle}, CHIBI CHARACTER, ${prompt}`;
-        } else {
-          prompt = `${enhancements.artStyle}, ${prompt}`;
-        }
-      }
-
-      // Add other enhancements as additional descriptions
-      const enhancementParts = [
-        enhancements.characterType,
-        enhancements.colorStyle,
-        enhancements.moodStyle,
-      ]
-        .filter(Boolean)
-        .filter(part => part.trim() !== "")
-        .map(part => part.trim());
-
-      if (enhancementParts.length > 0) {
-        // Add color and mood styles with emphasis
-        const enhancedParts = enhancementParts.map(part => {
-          if (
-            part.toLowerCase().includes("vibrant") ||
-            part.toLowerCase().includes("neon")
-          ) {
-            return `${part}, BOLD COLORS`;
-          } else if (part.toLowerCase().includes("pastel")) {
-            return `${part}, SOFT COLORS`;
-          } else if (part.toLowerCase().includes("monochrome")) {
-            return `${part}, GRAYSCALE`;
-          } else if (
-            part.toLowerCase().includes("happy") ||
-            part.toLowerCase().includes("cute")
-          ) {
-            return `${part}, POSITIVE VIBES`;
-          } else if (
-            part.toLowerCase().includes("serious") ||
-            part.toLowerCase().includes("mysterious")
-          ) {
-            return `${part}, INTENSE MOOD`;
-          }
-          return part;
-        });
-
-        prompt += ` ${enhancedParts.join(" ")}`;
-      }
-
-      prompt += ` ${finalConfig.suffix}`;
     } else {
       // ComfyUI/Stability AI uses comma-separated format - art style goes first
       const artStylePart = enhancements.artStyle

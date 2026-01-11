@@ -94,7 +94,7 @@ export async function execute(interaction, client) {
     const useStreaming =
       STREAMING_ENABLED &&
       chatService.aiService.getTextProvider() &&
-      ["openrouter", "openai", "selfhosted"].includes(
+      ["openrouter", "selfhosted"].includes(
         chatService.aiService.getTextProvider(),
       );
 
