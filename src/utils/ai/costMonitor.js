@@ -4,14 +4,14 @@ import { getStorageManager } from "../storage/storageManager.js";
 const logger = getLogger();
 
 /**
- * AI Cost Monitor
- * Tracks OpenRouter API costs and alerts on significant changes
+ * AI Usage Monitor
+ * Tracks OpenRouter API usage and alerts on significant changes
  */
-export class AICostMonitor {
+export class AIUsageMonitor {
   constructor() {
     this.storageKey = "ai_cost_history";
-    this.alertThreshold = 0.2; // Alert on 20% cost change
-    this.minMarkup = 10; // Minimum 10x markup for safety
+    this.alertThreshold = 0.2; // Alert on 20% usage change
+    this.minConversionRate = 10; // Minimum 10x conversion rate for safety
   }
 
   /**
@@ -21,11 +21,11 @@ export class AICostMonitor {
    * @returns {Promise<void>}
    */
   async recordCost(result, provider = "openrouter") {
-    // Check if we have cost data
+    // Check if we have usage data
     if (!result?.openRouterCost || !result?.openRouterTokens) {
-      // Log when cost data is missing (should be rare with OpenRouter)
+      // Log when usage data is missing (should be rare with OpenRouter)
       logger.debug(
-        `No cost data available for ${provider} request - skipping cost recording`,
+        `No usage data available for ${provider} request - skipping usage recording`,
       );
       return;
     }
@@ -38,7 +38,7 @@ export class AICostMonitor {
       const costPerRequest = result.openRouterCost;
       const tokensUsed = result.openRouterTokens.total;
 
-      // Validate cost data
+      // Validate usage data
       if (costPerRequest <= 0 || tokensUsed <= 0) {
         logger.warn(
           `Invalid cost data for ${provider}: cost=${costPerRequest}, tokens=${tokensUsed}`,
@@ -77,7 +77,7 @@ export class AICostMonitor {
       dailyData.averageCostPerToken =
         dailyData.totalCost / dailyData.totalTokens;
 
-      // Check for significant cost changes
+      // Check for significant usage changes
       await this.checkForCostChanges(
         provider,
         dailyData.averageCostPerRequest,
@@ -136,7 +136,7 @@ export class AICostMonitor {
         `Previous: $${yesterdayCost.toFixed(8)}, Current: $${currentCost.toFixed(8)}`,
       );
 
-      // Check if our markup is still safe
+      // Check if our conversion rate is still safe
       await this.checkMarkupSafety(provider, currentCost);
 
       // Record alert
@@ -195,14 +195,14 @@ export class AICostMonitor {
       const stats = await this.getCostStats(provider);
 
       if (stats && stats.currentCostPerToken > 0) {
-        // Use current average cost per token
+        // Use current average usage per token
         return stats.currentCostPerToken * tokens;
       }
 
       // Fallback to known averages (based on our testing)
       const fallbackCosts = {
         openrouter: 0.00003045, // From our test data
-        stability: 0.001, // Estimated Stability AI cost
+        stability: 0.001, // Estimated Stability AI usage
       };
 
       return fallbackCosts[provider] || fallbackCosts.openrouter;
@@ -315,4 +315,4 @@ export class AICostMonitor {
 }
 
 // Export singleton instance
-export const aiCostMonitor = new AICostMonitor();
+export const aiUsageMonitor = new AIUsageMonitor();

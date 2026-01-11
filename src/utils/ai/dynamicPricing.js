@@ -5,7 +5,7 @@
  */
 
 import { getLogger } from "../logger.js";
-import { aiCostMonitor } from "./costMonitor.js";
+import { aiUsageMonitor } from "./costMonitor.js";
 
 const logger = getLogger();
 
@@ -179,8 +179,8 @@ export async function estimatePrice(
   estimatedTokens = 50,
 ) {
   try {
-    // Get historical cost data
-    const costStats = await aiCostMonitor.getCostStats(provider);
+    // Get historical usage data
+    const costStats = await aiUsageMonitor.getCostStats(provider);
 
     let estimatedCost;
     if (costStats && costStats.currentCostPerToken > 0) {
@@ -188,7 +188,7 @@ export async function estimatePrice(
       estimatedCost = costStats.currentCostPerToken * estimatedTokens;
     } else {
       // Use fallback estimation
-      estimatedCost = await aiCostMonitor.getEstimatedCost(
+      estimatedCost = await aiUsageMonitor.getEstimatedCost(
         provider,
         estimatedTokens,
       );
@@ -214,8 +214,8 @@ export async function calculatePriceFromTokens(usage, provider = "openrouter") {
       usage?.prompt_tokens + usage?.completion_tokens ||
       50;
 
-    // Get average cost per token from historical data
-    const costStats = await aiCostMonitor.getCostStats(provider);
+    // Get average usage per token from historical data
+    const costStats = await aiUsageMonitor.getCostStats(provider);
     let costPerToken;
 
     if (costStats && costStats.currentCostPerToken > 0) {
@@ -223,7 +223,7 @@ export async function calculatePriceFromTokens(usage, provider = "openrouter") {
     } else {
       // Fallback to known averages
       const fallbackRates = {
-        openrouter: 0.0000006, // Average cost per token
+        openrouter: 0.0000006, // Average usage per token
         stability: 0.00002, // Stability AI average
       };
       costPerToken = fallbackRates[provider] || fallbackRates.openrouter;
