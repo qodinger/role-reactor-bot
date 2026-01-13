@@ -152,11 +152,11 @@ function getCategoryInfo(question) {
  * @param {number} maxBars - Maximum number of bars to show
  * @returns {string} Progress bar string
  */
-function createProgressBar(percentage, maxBars = 10) {
+function createProgressBar(percentage, maxBars = 15) {
   const filledBars = Math.round((percentage / 100) * maxBars);
   const emptyBars = maxBars - filledBars;
 
-  const filled = "█".repeat(filledBars);
+  const filled = "▓".repeat(filledBars);
   const empty = "░".repeat(emptyBars);
 
   return `${filled}${empty}`;
@@ -227,12 +227,12 @@ export function createWYREmbed(
   const embed = new EmbedBuilder()
     .setColor(categoryInfo.color)
     .setTitle(`${categoryInfo.emoji} Would You Rather? • ${categoryInfo.name}`)
-    .setDescription(description);
-
-  // Add user title as footer if provided
-  if (userTitle) {
-    embed.setFooter({ text: `${user.displayName} • ${userTitle}` });
-  }
+    .setDescription(description)
+    .setFooter({
+      text: `${userTitle ? `${user.displayName} • ${userTitle} • ` : ''}Role Reactor`,
+      iconURL: user.displayAvatarURL(),
+    })
+    .setTimestamp();
 
   return embed;
 }

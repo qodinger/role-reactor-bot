@@ -137,52 +137,44 @@ function createVoteButtons(
   _requesterId = null,
 ) {
   // Always keep the refresh button enabled
-  // The permission check in handleWYRButton (line 177) prevents unauthorized use.
+  // The permission check in handleWYRButton prevents unauthorized use.
   // This allows the requester to refresh multiple times while still blocking others.
   const canRefresh = true;
 
-  // Get vote counts to make buttons more dynamic
+  // Get vote counts for dynamic button styling
   const voteCounts = messageId
     ? getVoteCounts(messageId)
     : { option1: 0, option2: 0, total: 0 };
 
-  // Dynamic button labels based on vote counts
-  let option1Label = "Option 1";
-  let option2Label = "Option 2";
+  // Determine button styles based on vote counts (visual feedback)
+  let option1Style = ButtonStyle.Primary;
+  let option2Style = ButtonStyle.Primary;
 
   if (voteCounts.total > 0) {
     if (voteCounts.option1 > voteCounts.option2) {
-      option1Label = "Option 1 🔥"; // Leading option gets fire emoji
+      option1Style = ButtonStyle.Success; // Leading option gets green
     } else if (voteCounts.option2 > voteCounts.option1) {
-      option2Label = "Option 2 🔥"; // Leading option gets fire emoji
-    } else if (
-      voteCounts.option1 === voteCounts.option2 &&
-      voteCounts.total > 0
-    ) {
-      option1Label = "Option 1 ⚖️"; // Tied options get balance emoji
-      option2Label = "Option 2 ⚖️";
+      option2Style = ButtonStyle.Success; // Leading option gets green
     }
   }
 
-  // Buttons are always blue - vote information is shown in the embed
-  // We can't show different button states to different users (Discord limitation)
   return new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId("wyr_vote_1")
-      .setLabel(option1Label)
-      .setStyle(ButtonStyle.Primary)
+      .setLabel("Option 1")
+      .setStyle(option1Style)
       .setEmoji(EMOJIS.NUMBERS.ONE),
     new ButtonBuilder()
       .setCustomId("wyr_vote_2")
-      .setLabel(option2Label)
-      .setStyle(ButtonStyle.Primary)
+      .setLabel("Option 2")
+      .setStyle(option2Style)
       .setEmoji(EMOJIS.NUMBERS.TWO),
     new ButtonBuilder()
       .setCustomId("wyr_new_question")
       .setLabel("New Question")
       .setStyle(ButtonStyle.Secondary)
       .setEmoji(EMOJIS.ACTIONS.REFRESH)
-      .setDisabled(!canRefresh), // Disable for non-requesters, but always show it
+      .setDisabled(!canRefresh),
   );
 }
 
