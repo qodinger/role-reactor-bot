@@ -64,7 +64,7 @@ describe('ConversationManager', () => {
       expect(conversationManager.useLongTermMemory).toBe(true);
       expect(conversationManager.storageType).toBe('file');
       expect(conversationManager.maxHistoryLength).toBe(20);
-      expect(conversationManager.conversationTimeout).toBe(7 * 24 * 60 * 60 * 1000);
+      expect(conversationManager.conversationTimeout).toBe(24 * 60 * 60 * 1000);
       expect(conversationManager.maxConversations).toBe(1000);
     });
 

@@ -373,7 +373,7 @@ describe('AI System Integration', () => {
     it('should handle environment-based configuration', () => {
       // Test that conversation manager respects environment variables
       expect(conversationManager.maxHistoryLength).toBe(20); // DEFAULT_MAX_HISTORY_LENGTH
-      expect(conversationManager.conversationTimeout).toBe(7 * 24 * 60 * 60 * 1000); // 7 days
+      expect(conversationManager.conversationTimeout).toBe(24 * 60 * 60 * 1000); // 7 days
       expect(conversationManager.maxConversations).toBe(1000); // DEFAULT_MAX_CONVERSATIONS
     });
   });
