@@ -15,15 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Voice Roles List: View all configured voice control roles with indicators for deleted roles or channels that need cleanup
 - Would You Rather Command: New `/wyr` command with interactive voting system for engaging server discussions
 - WYR Interactive Voting: Users can vote on questions with real-time vote counts and percentages displayed
-- WYR Question Database: 100+ curated questions organized into 6 categories (Funny, Superhero, Life Choices, Philosophical, Challenging, Pop Culture)
+- WYR Question Database: 100+ curated questions organized into categories including Pop Culture and Technology
 - WYR New Question Button: Get fresh questions without re-running the command
 - Rock Paper Scissors Command: New `/rps` command to play Rock Paper Scissors against the bot or challenge other users
 - RPS Multiplayer Challenges: Challenge other users to Rock Paper Scissors with interactive button responses
-- AI Assistant Command: New `/ask` command to ask questions to an AI assistant about the bot or server
-- AI Chat Mentions: Users can mention the bot in chat messages to interact with the AI assistant directly without using commands
-- AI Server Context: AI assistant has access to server information, member lists, and bot commands
-- AI Command Execution: AI can execute general bot commands on behalf of users
-- AI Conversation Memory: AI remembers conversation history for better context-aware responses
 
 ### Changed
 
@@ -32,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 - Voice Restrictions: Removed automatic voice restriction enforcement feature. The bot no longer automatically disconnects or mutes users based on role permissions
+- Sponsor Command: Removed standalone `/sponsor` command. Sponsorships and credit purchases have been consolidated into the `/core` command
 
 ## [1.5.0] - 2025-12-15
 
