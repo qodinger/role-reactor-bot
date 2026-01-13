@@ -40,7 +40,7 @@ export function parseInlineParameters(input) {
   // Parse shorthand model flags (--animagine, --anything)
   const animaginePattern = /--animagine\b/gi;
   const anythingPattern = /--anything\b/gi;
-  
+
   if (animaginePattern.test(prompt)) {
     model = "animagine";
     prompt = prompt.replace(animaginePattern, "").trim();

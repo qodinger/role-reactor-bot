@@ -29,9 +29,11 @@ export class JobRecovery {
 
       // Load existing jobs
       await this.loadJobs();
-      
+
       this.initialized = true;
-      logger.info(`[JobRecovery] Initialized with ${this.jobs.size} tracked jobs`);
+      logger.info(
+        `[JobRecovery] Initialized with ${this.jobs.size} tracked jobs`,
+      );
     } catch (error) {
       logger.error(`[JobRecovery] Failed to initialize:`, error);
       throw error;
@@ -45,7 +47,7 @@ export class JobRecovery {
     try {
       const data = await fs.readFile(this.jobsFile, "utf8");
       const jobsArray = JSON.parse(data);
-      
+
       this.jobs.clear();
       for (const job of jobsArray) {
         this.jobs.set(job.promptId, {
@@ -54,7 +56,7 @@ export class JobRecovery {
           lastCheck: job.lastCheck ? new Date(job.lastCheck) : null,
         });
       }
-      
+
       logger.info(`[JobRecovery] Loaded ${this.jobs.size} jobs from disk`);
     } catch (error) {
       if (error.code !== "ENOENT") {
@@ -75,7 +77,7 @@ export class JobRecovery {
         startTime: job.startTime.toISOString(),
         lastCheck: job.lastCheck ? job.lastCheck.toISOString() : null,
       }));
-      
+
       await fs.writeFile(this.jobsFile, JSON.stringify(jobsArray, null, 2));
     } catch (error) {
       logger.error(`[JobRecovery] Failed to save jobs:`, error);
@@ -106,7 +108,9 @@ export class JobRecovery {
     this.jobs.set(promptId, job);
     await this.saveJobs();
 
-    logger.info(`[JobRecovery] Tracking job ${promptId} for user ${jobInfo.userId}`);
+    logger.info(
+      `[JobRecovery] Tracking job ${promptId} for user ${jobInfo.userId}`,
+    );
   }
 
   /**
@@ -154,26 +158,30 @@ export class JobRecovery {
    * Get all running jobs
    */
   getRunningJobs() {
-    return Array.from(this.jobs.values()).filter(job => job.status === "running");
+    return Array.from(this.jobs.values()).filter(
+      job => job.status === "running",
+    );
   }
 
   /**
    * Get orphaned jobs (running for too long without updates)
    */
-  getOrphanedJobs(maxAge = 5 * 60 * 1000) { // 5 minutes default (reduced from 30 minutes)
+  getOrphanedJobs(maxAge = 5 * 60 * 1000) {
+    // 5 minutes default (reduced from 30 minutes)
     const now = new Date();
     return Array.from(this.jobs.values()).filter(job => {
       if (job.status !== "running") return false;
-      
+
       const checkTime = job.lastCheck || job.startTime;
-      return (now - checkTime) > maxAge;
+      return now - checkTime > maxAge;
     });
   }
 
   /**
    * Clean up old completed jobs
    */
-  async cleanupOldJobs(maxAge = 24 * 60 * 60 * 1000) { // 24 hours default
+  async cleanupOldJobs(maxAge = 24 * 60 * 60 * 1000) {
+    // 24 hours default
     const now = new Date();
     let cleaned = 0;
 
@@ -203,42 +211,46 @@ export class JobRecovery {
       // Check if job is in queue
       const queueResponse = await fetch(`${comfyuiBaseUrl}/queue`);
       const queueData = await queueResponse.json();
-      
+
       // Check running queue
-      const isRunning = queueData.queue_running.some(item => 
-        item[1] === promptId || item[0] === promptId
+      const isRunning = queueData.queue_running.some(
+        item => item[1] === promptId || item[0] === promptId,
       );
-      
+
       if (isRunning) {
         return { status: "running", inQueue: true };
       }
 
       // Check pending queue
-      const isPending = queueData.queue_pending.some(item => 
-        item[1] === promptId || item[0] === promptId
+      const isPending = queueData.queue_pending.some(
+        item => item[1] === promptId || item[0] === promptId,
       );
-      
+
       if (isPending) {
         return { status: "pending", inQueue: true };
       }
 
       // Check history for completion
-      const historyResponse = await fetch(`${comfyuiBaseUrl}/history/${promptId}`);
+      const historyResponse = await fetch(
+        `${comfyuiBaseUrl}/history/${promptId}`,
+      );
       const historyData = await historyResponse.json();
-      
+
       if (historyData[promptId]) {
-        return { 
-          status: "completed", 
-          inQueue: false, 
-          result: historyData[promptId] 
+        return {
+          status: "completed",
+          inQueue: false,
+          result: historyData[promptId],
         };
       }
 
       // Job not found anywhere - likely failed or cancelled
       return { status: "not_found", inQueue: false };
-
     } catch (error) {
-      logger.error(`[JobRecovery] Failed to check job status for ${promptId}:`, error);
+      logger.error(
+        `[JobRecovery] Failed to check job status for ${promptId}:`,
+        error,
+      );
       return { status: "error", error: error.message };
     }
   }
@@ -255,44 +267,55 @@ export class JobRecovery {
       return [];
     }
 
-    logger.info(`[JobRecovery] Found ${orphanedJobs.length} orphaned jobs, checking status...`);
+    logger.info(
+      `[JobRecovery] Found ${orphanedJobs.length} orphaned jobs, checking status...`,
+    );
 
     const recoveredJobs = [];
 
     for (const job of orphanedJobs) {
       try {
-        const status = await this.checkJobStatus(job.promptId, comfyuiProvider.baseUrl);
-        
-        await this.updateJob(job.promptId, { 
+        const status = await this.checkJobStatus(
+          job.promptId,
+          comfyuiProvider.baseUrl,
+        );
+
+        await this.updateJob(job.promptId, {
           status: status.status,
-          lastCheck: new Date() 
+          lastCheck: new Date(),
         });
 
         if (status.status === "completed" && status.result) {
           // Job completed! Try to extract and send the image
-          const images = await comfyuiProvider.getGenerationResults(job.promptId);
+          const images = await comfyuiProvider.getGenerationResults(
+            job.promptId,
+          );
           if (images && images.length > 0) {
             recoveredJobs.push({
               job,
               images,
-              status: "recovered"
+              status: "recovered",
             });
           }
         } else if (status.status === "not_found") {
           // Job disappeared, mark as failed
           await this.updateJob(job.promptId, { status: "failed" });
         }
-
       } catch (error) {
-        logger.error(`[JobRecovery] Failed to recover job ${job.promptId}:`, error);
-        await this.updateJob(job.promptId, { 
+        logger.error(
+          `[JobRecovery] Failed to recover job ${job.promptId}:`,
+          error,
+        );
+        await this.updateJob(job.promptId, {
           status: "error",
-          error: error.message 
+          error: error.message,
         });
       }
     }
 
-    logger.info(`[JobRecovery] Recovered ${recoveredJobs.length} completed jobs`);
+    logger.info(
+      `[JobRecovery] Recovered ${recoveredJobs.length} completed jobs`,
+    );
     return recoveredJobs;
   }
 
@@ -301,7 +324,7 @@ export class JobRecovery {
    */
   getStats() {
     const jobs = Array.from(this.jobs.values());
-    
+
     return {
       total: jobs.length,
       running: jobs.filter(j => j.status === "running").length,

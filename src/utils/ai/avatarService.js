@@ -194,23 +194,49 @@ export class AvatarService {
           // LOG COMPLETE AI API PAYLOAD
           // ============================================================================
           logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-          logger.info(`[AVATAR API PAYLOAD] User: ${userId} | Request ID: ${requestId}`);
-          logger.info(`[AVATAR API PAYLOAD] Target Provider: ${avatarProvider}`);
-          logger.info(`[AVATAR API PAYLOAD] Generation Type: ${generationPayload.type}`);
-          logger.info(`[AVATAR API PAYLOAD] Enhanced Prompt (${enhancedPrompt.length} chars):`);
+          logger.info(
+            `[AVATAR API PAYLOAD] User: ${userId} | Request ID: ${requestId}`,
+          );
+          logger.info(
+            `[AVATAR API PAYLOAD] Target Provider: ${avatarProvider}`,
+          );
+          logger.info(
+            `[AVATAR API PAYLOAD] Generation Type: ${generationPayload.type}`,
+          );
+          logger.info(
+            `[AVATAR API PAYLOAD] Enhanced Prompt (${enhancedPrompt.length} chars):`,
+          );
           logger.info(`[AVATAR API PAYLOAD] "${enhancedPrompt}"`);
           logger.info(`[AVATAR API PAYLOAD] Configuration:`);
-          logger.info(`[AVATAR API PAYLOAD] - Aspect Ratio: ${generationPayload.config.aspectRatio}`);
-          logger.info(`[AVATAR API PAYLOAD] - Safety Tolerance: ${generationPayload.config.safetyTolerance}`);
-          logger.info(`[AVATAR API PAYLOAD] - Use Avatar Prompts: ${generationPayload.config.useAvatarPrompts}`);
-          logger.info(`[AVATAR API PAYLOAD] - Feature Name: ${generationPayload.config.featureName}`);
-          logger.info(`[AVATAR API PAYLOAD] - User ID: ${generationPayload.config.userId}`);
-          logger.info(`[AVATAR API PAYLOAD] - Style Options: ${JSON.stringify(generationPayload.config.styleOptions, null, 2)}`);
+          logger.info(
+            `[AVATAR API PAYLOAD] - Aspect Ratio: ${generationPayload.config.aspectRatio}`,
+          );
+          logger.info(
+            `[AVATAR API PAYLOAD] - Safety Tolerance: ${generationPayload.config.safetyTolerance}`,
+          );
+          logger.info(
+            `[AVATAR API PAYLOAD] - Use Avatar Prompts: ${generationPayload.config.useAvatarPrompts}`,
+          );
+          logger.info(
+            `[AVATAR API PAYLOAD] - Feature Name: ${generationPayload.config.featureName}`,
+          );
+          logger.info(
+            `[AVATAR API PAYLOAD] - User ID: ${generationPayload.config.userId}`,
+          );
+          logger.info(
+            `[AVATAR API PAYLOAD] - Style Options: ${JSON.stringify(generationPayload.config.styleOptions, null, 2)}`,
+          );
           logger.info(`[AVATAR API PAYLOAD] Complete Payload Object:`);
-          logger.info(`[AVATAR API PAYLOAD] ${JSON.stringify({
-            ...generationPayload,
-            progressCallback: progressCallback ? '[Function]' : null
-          }, null, 2)}`);
+          logger.info(
+            `[AVATAR API PAYLOAD] ${JSON.stringify(
+              {
+                ...generationPayload,
+                progressCallback: progressCallback ? "[Function]" : null,
+              },
+              null,
+              2,
+            )}`,
+          );
           logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
           const result = await this.aiService.generate(generationPayload);

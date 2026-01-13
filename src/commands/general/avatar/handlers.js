@@ -167,7 +167,7 @@ export async function handleAvatarGeneration(
   // Get provider and model for credit calculation
   let provider = "stability"; // Default
   let model = "sd3.5-large-turbo"; // Default
-  
+
   try {
     const { getAIConfig } = await import("../../../config/ai.js");
     const aiConfig = getAIConfig();
@@ -180,7 +180,11 @@ export async function handleAvatarGeneration(
     // Use defaults if config loading fails
   }
 
-  const creditInfo = await checkAIImageCredits(interaction.user.id, provider, model);
+  const creditInfo = await checkAIImageCredits(
+    interaction.user.id,
+    provider,
+    model,
+  );
   const { userData, creditsNeeded, hasCredits } = creditInfo;
 
   // Log the credit calculation for transparency
@@ -318,16 +322,18 @@ export async function handleAvatarGeneration(
         `Failed to deliver image to user ${interaction.user.id} after successful generation and credit deduction:`,
         deliveryError,
       );
-      
+
       // Refund credits since user didn't receive the image
       if (deductionResult.success) {
-        const { refundAIImageCredits } = await import("../../../utils/ai/aiCreditManager.js");
+        const { refundAIImageCredits } = await import(
+          "../../../utils/ai/aiCreditManager.js"
+        );
         const refundResult = await refundAIImageCredits(
           interaction.user.id,
           deductionResult.creditsDeducted,
-          "Failed to deliver image to user"
+          "Failed to deliver image to user",
         );
-        
+
         if (refundResult.success) {
           logger.info(
             `💰 Refunded ${deductionResult.creditsDeducted} Core to user ${interaction.user.id} due to delivery failure`,
@@ -339,20 +345,22 @@ export async function handleAvatarGeneration(
           );
         }
       }
-      
+
       // Still try to send an error message
       const errorEmbed = createErrorEmbed(
         interaction,
         "Image delivery failed",
         "Your avatar was generated successfully but couldn't be delivered. Your credits have been refunded.",
       );
-      
+
       try {
-        await replyToInteraction(interaction, _deferred, { embeds: [errorEmbed] });
+        await replyToInteraction(interaction, _deferred, {
+          embeds: [errorEmbed],
+        });
       } catch (finalError) {
         logger.error("Failed to send delivery error message:", finalError);
       }
-      
+
       return; // Exit early due to delivery failure
     }
 

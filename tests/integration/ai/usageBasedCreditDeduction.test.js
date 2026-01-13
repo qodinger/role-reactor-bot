@@ -65,13 +65,13 @@ describe('Usage-Based Credit Deduction System', () => {
   });
 
   describe('Configuration and Pricing', () => {
-    it('should load correct feature costs with 250% markup', () => {
+    it('should load correct feature costs with standardized conversion rate', () => {
       const costs = getAIFeatureCosts();
       
-      expect(costs.aiChat).toBe(0.08); // Higher minimum for 15:1 ratio
-      expect(costs.aiImage).toBe(1.2); // Higher default image cost
+      expect(costs.aiChat).toBe(0.01); // Standardized minimum charge
+      expect(costs.aiImage).toBe(1.2); // Default image cost
       
-      // Provider-specific costs with 250% markup (3.5x) for 60-70% profit
+      // Provider-specific costs
       expect(costs.providerCosts.stability['sd3.5-large-turbo']).toBe(2.1);
       expect(costs.providerCosts.stability['sd3.5-large']).toBe(3.41);
       expect(costs.providerCosts.openrouter['openai/gpt-4o-mini']).toBe(0.08);
@@ -80,26 +80,26 @@ describe('Usage-Based Credit Deduction System', () => {
       // Token-based pricing configuration
       expect(costs.tokenPricing).toBeDefined();
       expect(costs.tokenPricing.openrouter).toBeDefined();
-      expect(costs.tokenPricing.openrouter.conversionRate).toBe(52.5); // 250% markup × 15 ratio
-      expect(costs.tokenPricing.openrouter.minimumCharge).toBe(0.08);
+      expect(costs.tokenPricing.openrouter.conversionRate).toBe(50); // Standardized conversion rate
+      expect(costs.tokenPricing.openrouter.minimumCharge).toBe(0.01); // Standardized minimum
     });
 
-    it('should enforce minimum deduction of 0.08 Core', () => {
+    it('should enforce minimum deduction of 0.01 Core', () => {
       const costs = getAIFeatureCosts();
       
-      // All costs should be at least 0.08 (new minimum)
-      expect(costs.aiChat).toBeGreaterThanOrEqual(0.08);
-      expect(costs.aiImage).toBeGreaterThanOrEqual(0.08);
+      // All costs should be at least 0.01 (new minimum)
+      expect(costs.aiChat).toBeGreaterThanOrEqual(0.01);
+      expect(costs.aiImage).toBeGreaterThanOrEqual(0.01);
       
       Object.values(costs.providerCosts).forEach(providerCosts => {
         Object.values(providerCosts).forEach(cost => {
-          expect(cost).toBeGreaterThanOrEqual(0.08);
+          expect(cost).toBeGreaterThanOrEqual(0.01);
         });
       });
       
       // Token pricing minimums
       Object.values(costs.tokenPricing).forEach(providerPricing => {
-        expect(providerPricing.minimumCharge).toBeGreaterThanOrEqual(0.08);
+        expect(providerPricing.minimumCharge).toBeGreaterThanOrEqual(0.01);
       });
     });
   });
@@ -109,8 +109,8 @@ describe('Usage-Based Credit Deduction System', () => {
       const result = await checkAndDeductAICredits(testUserId);
       
       expect(result.success).toBe(true);
-      expect(result.creditsDeducted).toBe(0.08); // Fixed chat cost (updated)
-      expect(result.creditsRemaining).toBe(9.92); // 10.0 - 0.08
+      expect(result.creditsDeducted).toBe(0.01); // Fixed chat cost (updated)
+      expect(result.creditsRemaining).toBe(9.99); // 10.0 - 0.01
     });
 
     it('should handle insufficient credits for chat', async () => {
@@ -129,13 +129,11 @@ describe('Usage-Based Credit Deduction System', () => {
       expect(result.creditsRemaining).toBe(7.9); // 10.0 - 2.1
     });
 
-    it('should use FIFO deduction order (subscription → bonus → regular)', async () => {
+    it('should use simplified credit deduction system', async () => {
       const result = await checkAndDeductAIImageCredits(testUserId, 'stability', 'sd3.5-large');
       
       expect(result.success).toBe(true);
       expect(result.creditsDeducted).toBe(3.41); // SD 3.5 Large cost from updated config
-      expect(result.deductionBreakdown.subscriptionDeducted).toBe(3.41); // Deducted from subscription first
-      expect(result.deductionBreakdown.bonusDeducted).toBe(0); // No bonus deduction needed
       expect(result.creditsRemaining).toBe(6.59); // 10.0 - 3.41
     });
   });
@@ -154,17 +152,17 @@ describe('Usage-Based Credit Deduction System', () => {
         mockUsage,
         'openrouter',
         'openai/gpt-4o-mini',
-        52.5 // Updated conversion rate (250% markup × 15 Core ratio)
+        50 // Updated conversion rate (standardized)
       );
 
       expect(result.success).toBe(true);
-      expect(result.creditsDeducted).toBe(1.3125); // 0.025 × 52.5 = 1.3125 (no rounding in this case)
-      expect(result.creditsRemaining).toBe(8.69); // 10.0 - 1.3125 = 8.6875, rounded to 8.69
+      expect(result.creditsDeducted).toBe(1.25); // 0.025 × 50 = 1.25
+      expect(result.creditsRemaining).toBe(8.75); // 10.0 - 1.25
       expect(result.deductionBreakdown.actualApiCost).toBe(0.025);
-      expect(result.deductionBreakdown.conversionRate).toBe(52.5);
+      expect(result.deductionBreakdown.conversionRate).toBe(50);
     });
 
-    it('should enforce minimum deduction of 0.08 Core even for tiny usage', async () => {
+    it('should enforce minimum deduction of 0.01 Core even for tiny usage', async () => {
       const mockUsage = {
         total_tokens: 10,
         prompt_tokens: 8,
@@ -181,8 +179,8 @@ describe('Usage-Based Credit Deduction System', () => {
       );
 
       expect(result.success).toBe(true);
-      expect(result.creditsDeducted).toBe(0.08); // Minimum deduction enforced (updated)
-      expect(result.creditsRemaining).toBe(9.92);
+      expect(result.creditsDeducted).toBe(0.01); // Minimum deduction enforced (updated)
+      expect(result.creditsRemaining).toBe(9.99);
       expect(result.deductionBreakdown.actualApiCost).toBe(0.001);
     });
 
@@ -194,20 +192,20 @@ describe('Usage-Based Credit Deduction System', () => {
         cost: 0.05, // OpenRouter credits
       };
 
-      // Test with OpenRouter's 52.5x conversion rate (250% markup × 15 ratio)
+      // Test with OpenRouter's 50x conversion rate (standardized)
       const result = await deductCreditsFromUsage(
         testUserId,
         mockUsage,
         'openrouter',
         'openai/gpt-4o-mini',
-        52.5 // Updated conversion rate
+        50 // Updated conversion rate
       );
 
       expect(result.success).toBe(true);
-      expect(result.creditsDeducted).toBe(2.625); // 0.05 * 52.5 = 2.625
-      expect(result.creditsRemaining).toBe(7.38); // 10.0 - 2.625 = 7.375, rounded to 7.38
+      expect(result.creditsDeducted).toBe(2.5); // 0.05 * 50 = 2.5
+      expect(result.creditsRemaining).toBe(7.5); // 10.0 - 2.5
       expect(result.deductionBreakdown.actualApiCost).toBe(0.05);
-      expect(result.deductionBreakdown.conversionRate).toBe(52.5);
+      expect(result.deductionBreakdown.conversionRate).toBe(50);
     });
 
     it('should handle insufficient credits for usage-based deduction', async () => {
@@ -267,12 +265,12 @@ describe('Usage-Based Credit Deduction System', () => {
         mockUsage,
         'openrouter',
         'openai/gpt-4o-mini',
-        52.5 // Updated conversion rate (250% markup × 15 ratio)
+        50 // Updated conversion rate (standardized)
       );
 
       expect(result.success).toBe(true);
-      expect(result.creditsDeducted).toBe(0.08); // Minimum charge applied (0.0012 * 52.5 = 0.063 < 0.08)
-      expect(result.creditsRemaining).toBe(9.92);
+      expect(result.creditsDeducted).toBe(0.06); // 0.0012 * 50 = 0.06 (above minimum)
+      expect(result.creditsRemaining).toBe(9.94);
       expect(result.deductionBreakdown.actualApiCost).toBe(0.0012);
     });
 
@@ -290,12 +288,12 @@ describe('Usage-Based Credit Deduction System', () => {
         mockUsage,
         'openrouter',
         'openai/gpt-4o-mini',
-        52.5 // Updated conversion rate
+        50 // Updated conversion rate
       );
 
       expect(result.success).toBe(true);
-      expect(result.creditsDeducted).toBe(0.63); // 0.012 * 52.5 = 0.63 (above minimum)
-      expect(result.creditsRemaining).toBe(9.37); // 10.0 - 0.63
+      expect(result.creditsDeducted).toBe(0.6); // 0.012 * 50 = 0.6 (above minimum)
+      expect(result.creditsRemaining).toBe(9.4); // 10.0 - 0.6
       expect(result.deductionBreakdown.actualApiCost).toBe(0.012);
     });
 
@@ -313,12 +311,12 @@ describe('Usage-Based Credit Deduction System', () => {
         mockUsage,
         'openrouter',
         'anthropic/claude-3.5-sonnet',
-        52.5 // Updated conversion rate
+        50 // Updated conversion rate
       );
 
       expect(result.success).toBe(true);
-      expect(result.creditsDeducted).toBe(0.42); // 0.008 * 52.5 = 0.42
-      expect(result.creditsRemaining).toBe(9.58); // 10.0 - 0.42
+      expect(result.creditsDeducted).toBe(0.4); // 0.008 * 50 = 0.4
+      expect(result.creditsRemaining).toBe(9.6); // 10.0 - 0.4
     });
 
     it('should apply minimum charge for very small requests', async () => {
@@ -335,12 +333,12 @@ describe('Usage-Based Credit Deduction System', () => {
         mockUsage,
         'openrouter',
         'openai/gpt-4o-mini',
-        52.5 // Updated conversion rate
+        50 // Updated conversion rate
       );
 
       expect(result.success).toBe(true);
-      expect(result.creditsDeducted).toBe(0.08); // Minimum charge enforced (updated)
-      expect(result.creditsRemaining).toBe(9.92);
+      expect(result.creditsDeducted).toBe(0.01); // Minimum charge enforced (updated)
+      expect(result.creditsRemaining).toBe(9.99);
       expect(result.deductionBreakdown.actualApiCost).toBe(0.00012);
     });
   });
@@ -361,11 +359,10 @@ describe('Usage-Based Credit Deduction System', () => {
 
       await deductCreditsIfNeeded(testUserId, mockResult, 'initial');
 
-      // NOTE: deductCreditsIfNeeded falls back to fixed deduction (0.08) 
-      // because the test environment doesn't have the full provider integration
-      // In production, OpenRouter would use actual usage-based deduction
+      // deductCreditsIfNeeded uses actual usage-based deduction when usage data is available
+      // 0.03 USD * 50 conversion rate = 1.5 Core credits
       const creditData = mockStorage.get('core_credit')[testUserId];
-      expect(creditData.credits).toBe(9.92); // 10.0 - 0.08 (fixed deduction fallback)
+      expect(creditData.credits).toBe(8.5); // 10.0 - 1.5 (usage-based deduction)
     });
 
     it('should use provider-specific conversion rates from config', async () => {
@@ -383,9 +380,9 @@ describe('Usage-Based Credit Deduction System', () => {
 
       await deductCreditsIfNeeded(testUserId, mockResult, 'initial');
 
-      // Should use fixed deduction since deductCreditsIfNeeded falls back
+      // Uses actual usage-based deduction: 0.025 USD * 50 conversion rate = 1.25 Core credits
       const creditData = mockStorage.get('core_credit')[testUserId];
-      expect(creditData.credits).toBe(9.92); // 10.0 - 0.08 (fixed deduction)
+      expect(creditData.credits).toBe(8.75); // 10.0 - 1.25 (usage-based deduction)
     });
 
     it('should fall back to fixed deduction when no usage data', async () => {
@@ -398,9 +395,9 @@ describe('Usage-Based Credit Deduction System', () => {
 
       await deductCreditsIfNeeded(testUserId, mockResult, 'initial');
 
-      // Should use fixed deduction (0.08 for chat)
+      // Should use fixed deduction (0.01 for chat)
       const creditData = mockStorage.get('core_credit')[testUserId];
-      expect(creditData.credits).toBe(9.92); // 10.0 - 0.08
+      expect(creditData.credits).toBe(9.99); // 10.0 - 0.01
     });
 
     it('should skip deduction for empty responses', async () => {
@@ -444,10 +441,10 @@ describe('Usage-Based Credit Deduction System', () => {
     it('should refund credits for failed operations', async () => {
       // First deduct some credits
       await checkAndDeductAICredits(testUserId);
-      expect(mockStorage.get('core_credit')[testUserId].credits).toBe(9.92);
+      expect(mockStorage.get('core_credit')[testUserId].credits).toBe(9.99);
 
       // Then refund
-      const result = await refundAICredits(testUserId, 0.08, 'API call failed');
+      const result = await refundAICredits(testUserId, 0.01, 'API call failed');
       
       expect(result.success).toBe(true);
       expect(result.creditsRemaining).toBe(10.0); // Back to original
@@ -487,12 +484,12 @@ describe('Usage-Based Credit Deduction System', () => {
       // All should succeed (user has enough credits)
       results.forEach(result => {
         expect(result.success).toBe(true);
-        expect(result.creditsDeducted).toBe(0.08);
+        expect(result.creditsDeducted).toBe(0.01);
       });
 
       // Final balance should be correct
       const creditData = mockStorage.get('core_credit')[testUserId];
-      expect(creditData.credits).toBe(9.76); // 10.0 - (3 * 0.08)
+      expect(creditData.credits).toBe(9.97); // 10.0 - (3 * 0.01)
     });
 
     it('should handle concurrent usage-based deductions', async () => {
@@ -515,7 +512,7 @@ describe('Usage-Based Credit Deduction System', () => {
 
       // Final balance should be correct
       const creditData = mockStorage.get('core_credit')[testUserId];
-      expect(creditData.credits).toBe(9.76); // 10.0 - (0.08 + 0.08 + 0.08) - minimum charges applied
+      expect(creditData.credits).toBe(9.94); // 10.0 - (0.02 + 0.03 + 0.01) with 1.0 conversion rate
     });
   });
 

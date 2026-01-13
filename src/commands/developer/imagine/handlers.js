@@ -165,7 +165,7 @@ export async function handleImagineCommand(
     {
       isNSFW: nsfwValidation.isNSFW,
       aspectRatio: aspectRatio,
-    }
+    },
   );
 
   // Analyze if user might need NSFW flag (educational purposes)
@@ -219,13 +219,13 @@ export async function handleImagineCommand(
   // Get provider and model for credit calculation
   let provider = preferredProvider || "stability"; // Default
   let modelForCredits = model || "sd3.5-large-turbo"; // Default, use parsed model or fallback
-  
+
   try {
     const { getAIConfig } = await import("../../../config/ai.js");
     const aiConfig = getAIConfig();
-    const feature = nsfwValidation.isNSFW ? 
-      aiConfig.models?.features?.imagineNSFW : 
-      aiConfig.models?.features?.imagineGeneral;
+    const feature = nsfwValidation.isNSFW
+      ? aiConfig.models?.features?.imagineNSFW
+      : aiConfig.models?.features?.imagineGeneral;
     if (feature) {
       provider = feature.provider || provider;
       modelForCredits = feature.model || modelForCredits;
@@ -234,7 +234,11 @@ export async function handleImagineCommand(
     // Use defaults if config loading fails
   }
 
-  const creditInfo = await checkAIImageCredits(interaction.user.id, provider, modelForCredits);
+  const creditInfo = await checkAIImageCredits(
+    interaction.user.id,
+    provider,
+    modelForCredits,
+  );
   const { userData, creditsNeeded, hasCredits } = creditInfo;
 
   // Log the credit calculation for transparency

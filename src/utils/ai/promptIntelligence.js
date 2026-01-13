@@ -20,9 +20,12 @@ const PROMPT_PATTERNS = {
       /\b(person|character|someone)\b/gi,
     ],
     enhancements: {
-      "girl|woman|female|lady": "beautiful anime girl, detailed character design, expressive eyes, elegant features",
-      "boy|man|male|guy|dude": "handsome anime boy, detailed character design, expressive eyes, strong features",
-      "person|character|someone": "anime character, detailed character design, expressive eyes, unique features",
+      "girl|woman|female|lady":
+        "beautiful anime girl, detailed character design, expressive eyes, elegant features",
+      "boy|man|male|guy|dude":
+        "handsome anime boy, detailed character design, expressive eyes, strong features",
+      "person|character|someone":
+        "anime character, detailed character design, expressive eyes, unique features",
     },
   },
 
@@ -34,24 +37,27 @@ const PROMPT_PATTERNS = {
       /\b(ponytail|pigtails|braids|bun|messy hair)\b/gi,
     ],
     enhancements: {
-      "long hair": "long flowing hair, detailed hair strands, beautiful hair texture",
+      "long hair":
+        "long flowing hair, detailed hair strands, beautiful hair texture",
       "short hair": "short stylish hair, neat hair cut, detailed hair texture",
       "curly hair": "curly wavy hair, voluminous hair, natural hair texture",
-      "straight hair": "straight silky hair, smooth hair texture, well-groomed hair",
-      "blonde": "beautiful blonde hair, golden hair color, shiny hair",
-      "brunette": "beautiful brown hair, rich hair color, lustrous hair",
-      "redhead": "beautiful red hair, vibrant hair color, fiery hair",
+      "straight hair":
+        "straight silky hair, smooth hair texture, well-groomed hair",
+      blonde: "beautiful blonde hair, golden hair color, shiny hair",
+      brunette: "beautiful brown hair, rich hair color, lustrous hair",
+      redhead: "beautiful red hair, vibrant hair color, fiery hair",
       "black hair": "beautiful black hair, dark hair color, glossy hair",
       "white hair": "beautiful white hair, silver hair color, ethereal hair",
-      "silver hair": "beautiful silver hair, metallic hair color, shimmering hair",
+      "silver hair":
+        "beautiful silver hair, metallic hair color, shimmering hair",
       "pink hair": "beautiful pink hair, pastel hair color, colorful hair",
       "blue hair": "beautiful blue hair, vibrant hair color, colorful hair",
       "green hair": "beautiful green hair, vibrant hair color, colorful hair",
       "purple hair": "beautiful purple hair, vibrant hair color, colorful hair",
-      "ponytail": "hair in ponytail, neat hairstyle, elegant hair arrangement",
-      "pigtails": "hair in pigtails, cute hairstyle, twin tails",
-      "braids": "braided hair, intricate hairstyle, detailed hair braiding",
-      "bun": "hair in bun, elegant hairstyle, neat hair arrangement",
+      ponytail: "hair in ponytail, neat hairstyle, elegant hair arrangement",
+      pigtails: "hair in pigtails, cute hairstyle, twin tails",
+      braids: "braided hair, intricate hairstyle, detailed hair braiding",
+      bun: "hair in bun, elegant hairstyle, neat hair arrangement",
       "messy hair": "messy tousled hair, natural hair style, windswept hair",
     },
   },
@@ -64,29 +70,34 @@ const PROMPT_PATTERNS = {
       /\b(school uniform|maid outfit|business suit|wedding dress)\b/gi,
     ],
     enhancements: {
-      "dress": "beautiful dress, detailed clothing design, elegant outfit",
-      "skirt": "stylish skirt, detailed clothing, fashionable outfit",
-      "shirt": "well-fitted shirt, detailed clothing, neat appearance",
-      "blouse": "elegant blouse, detailed clothing design, refined outfit",
-      "jacket": "stylish jacket, detailed outerwear, fashionable clothing",
-      "coat": "elegant coat, detailed outerwear, sophisticated clothing",
-      "uniform": "detailed uniform, professional clothing, neat appearance",
-      "kimono": "traditional kimono, detailed Japanese clothing, elegant traditional wear",
-      "hoodie": "comfortable hoodie, casual clothing, relaxed outfit",
-      "sweater": "cozy sweater, warm clothing, comfortable outfit",
-      "casual": "casual style, relaxed clothing, comfortable outfit",
-      "formal": "formal attire, elegant clothing, sophisticated outfit",
-      "elegant": "elegant style, refined clothing, graceful appearance",
-      "cute": "cute outfit, adorable clothing, kawaii style",
-      "cool": "cool style, trendy clothing, stylish appearance",
-      "gothic": "gothic style, dark clothing, alternative fashion",
-      "punk": "punk style, edgy clothing, rebellious fashion",
-      "vintage": "vintage style, retro clothing, classic fashion",
-      "modern": "modern style, contemporary clothing, current fashion",
-      "school uniform": "detailed school uniform, student clothing, academic attire",
-      "maid outfit": "detailed maid outfit, service uniform, elegant work attire",
-      "business suit": "professional business suit, formal work attire, corporate clothing",
-      "wedding dress": "beautiful wedding dress, bridal gown, elegant formal wear",
+      dress: "beautiful dress, detailed clothing design, elegant outfit",
+      skirt: "stylish skirt, detailed clothing, fashionable outfit",
+      shirt: "well-fitted shirt, detailed clothing, neat appearance",
+      blouse: "elegant blouse, detailed clothing design, refined outfit",
+      jacket: "stylish jacket, detailed outerwear, fashionable clothing",
+      coat: "elegant coat, detailed outerwear, sophisticated clothing",
+      uniform: "detailed uniform, professional clothing, neat appearance",
+      kimono:
+        "traditional kimono, detailed Japanese clothing, elegant traditional wear",
+      hoodie: "comfortable hoodie, casual clothing, relaxed outfit",
+      sweater: "cozy sweater, warm clothing, comfortable outfit",
+      casual: "casual style, relaxed clothing, comfortable outfit",
+      formal: "formal attire, elegant clothing, sophisticated outfit",
+      elegant: "elegant style, refined clothing, graceful appearance",
+      cute: "cute outfit, adorable clothing, kawaii style",
+      cool: "cool style, trendy clothing, stylish appearance",
+      gothic: "gothic style, dark clothing, alternative fashion",
+      punk: "punk style, edgy clothing, rebellious fashion",
+      vintage: "vintage style, retro clothing, classic fashion",
+      modern: "modern style, contemporary clothing, current fashion",
+      "school uniform":
+        "detailed school uniform, student clothing, academic attire",
+      "maid outfit":
+        "detailed maid outfit, service uniform, elegant work attire",
+      "business suit":
+        "professional business suit, formal work attire, corporate clothing",
+      "wedding dress":
+        "beautiful wedding dress, bridal gown, elegant formal wear",
     },
   },
 
@@ -97,22 +108,33 @@ const PROMPT_PATTERNS = {
       /\b(smiling|crying|laughing|frowning|blushing|winking)\b/gi,
     ],
     enhancements: {
-      "happy": "happy expression, bright smile, joyful mood, positive energy",
-      "sad": "sad expression, melancholic mood, emotional depth, touching expression",
-      "angry": "angry expression, intense mood, fierce look, determined expression",
-      "surprised": "surprised expression, wide eyes, shocked look, amazed expression",
-      "excited": "excited expression, energetic mood, enthusiastic look, lively expression",
-      "calm": "calm expression, peaceful mood, serene look, tranquil expression",
-      "serious": "serious expression, focused look, determined mood, professional expression",
-      "shy": "shy expression, bashful look, timid mood, cute embarrassed expression",
-      "confident": "confident expression, strong look, self-assured mood, powerful expression",
-      "mysterious": "mysterious expression, enigmatic look, secretive mood, intriguing expression",
-      "smiling": "beautiful smile, warm expression, friendly look, cheerful face",
-      "crying": "emotional tears, touching expression, dramatic mood, heartfelt emotion",
-      "laughing": "joyful laughter, happy expression, cheerful mood, infectious joy",
-      "frowning": "concerned frown, worried expression, thoughtful mood, serious look",
-      "blushing": "cute blush, embarrassed expression, shy mood, adorable reaction",
-      "winking": "playful wink, flirty expression, mischievous mood, charming gesture",
+      happy: "happy expression, bright smile, joyful mood, positive energy",
+      sad: "sad expression, melancholic mood, emotional depth, touching expression",
+      angry:
+        "angry expression, intense mood, fierce look, determined expression",
+      surprised:
+        "surprised expression, wide eyes, shocked look, amazed expression",
+      excited:
+        "excited expression, energetic mood, enthusiastic look, lively expression",
+      calm: "calm expression, peaceful mood, serene look, tranquil expression",
+      serious:
+        "serious expression, focused look, determined mood, professional expression",
+      shy: "shy expression, bashful look, timid mood, cute embarrassed expression",
+      confident:
+        "confident expression, strong look, self-assured mood, powerful expression",
+      mysterious:
+        "mysterious expression, enigmatic look, secretive mood, intriguing expression",
+      smiling: "beautiful smile, warm expression, friendly look, cheerful face",
+      crying:
+        "emotional tears, touching expression, dramatic mood, heartfelt emotion",
+      laughing:
+        "joyful laughter, happy expression, cheerful mood, infectious joy",
+      frowning:
+        "concerned frown, worried expression, thoughtful mood, serious look",
+      blushing:
+        "cute blush, embarrassed expression, shy mood, adorable reaction",
+      winking:
+        "playful wink, flirty expression, mischievous mood, charming gesture",
     },
   },
 
@@ -123,29 +145,29 @@ const PROMPT_PATTERNS = {
       /\b(indoor|outdoor|sunset|sunrise|night|day|rain|snow|spring|summer|autumn|winter)\b/gi,
     ],
     enhancements: {
-      "school": "school setting, educational environment, academic atmosphere",
-      "classroom": "classroom setting, learning environment, school interior",
-      "library": "library setting, quiet atmosphere, scholarly environment",
-      "cafe": "cafe setting, cozy atmosphere, social environment",
-      "park": "park setting, natural environment, outdoor scenery",
-      "beach": "beach setting, coastal scenery, ocean atmosphere",
-      "forest": "forest setting, natural environment, woodland scenery",
-      "city": "city setting, urban environment, metropolitan atmosphere",
-      "room": "indoor room setting, interior environment, personal space",
-      "bedroom": "bedroom setting, private space, intimate environment",
-      "kitchen": "kitchen setting, domestic environment, home interior",
-      "indoor": "indoor setting, interior environment, sheltered space",
-      "outdoor": "outdoor setting, natural environment, open air",
-      "sunset": "sunset lighting, golden hour, warm atmospheric lighting",
-      "sunrise": "sunrise lighting, dawn atmosphere, soft morning light",
-      "night": "night setting, dark atmosphere, evening mood",
-      "day": "daytime setting, bright lighting, clear atmosphere",
-      "rain": "rainy weather, wet atmosphere, dramatic weather effects",
-      "snow": "snowy weather, winter atmosphere, cold weather effects",
-      "spring": "spring season, fresh atmosphere, blooming environment",
-      "summer": "summer season, warm atmosphere, bright sunny environment",
-      "autumn": "autumn season, fall colors, seasonal atmosphere",
-      "winter": "winter season, cold atmosphere, snowy environment",
+      school: "school setting, educational environment, academic atmosphere",
+      classroom: "classroom setting, learning environment, school interior",
+      library: "library setting, quiet atmosphere, scholarly environment",
+      cafe: "cafe setting, cozy atmosphere, social environment",
+      park: "park setting, natural environment, outdoor scenery",
+      beach: "beach setting, coastal scenery, ocean atmosphere",
+      forest: "forest setting, natural environment, woodland scenery",
+      city: "city setting, urban environment, metropolitan atmosphere",
+      room: "indoor room setting, interior environment, personal space",
+      bedroom: "bedroom setting, private space, intimate environment",
+      kitchen: "kitchen setting, domestic environment, home interior",
+      indoor: "indoor setting, interior environment, sheltered space",
+      outdoor: "outdoor setting, natural environment, open air",
+      sunset: "sunset lighting, golden hour, warm atmospheric lighting",
+      sunrise: "sunrise lighting, dawn atmosphere, soft morning light",
+      night: "night setting, dark atmosphere, evening mood",
+      day: "daytime setting, bright lighting, clear atmosphere",
+      rain: "rainy weather, wet atmosphere, dramatic weather effects",
+      snow: "snowy weather, winter atmosphere, cold weather effects",
+      spring: "spring season, fresh atmosphere, blooming environment",
+      summer: "summer season, warm atmosphere, bright sunny environment",
+      autumn: "autumn season, fall colors, seasonal atmosphere",
+      winter: "winter season, cold atmosphere, snowy environment",
     },
   },
 
@@ -156,19 +178,22 @@ const PROMPT_PATTERNS = {
       /\b(detailed|high quality|masterpiece|beautiful|cute|cool|elegant)\b/gi,
     ],
     enhancements: {
-      "anime": "anime style, Japanese animation, cel shading, vibrant colors",
-      "manga": "manga style, Japanese comics, black and white line art, dramatic shading",
-      "realistic": "realistic style, lifelike appearance, natural proportions",
-      "cartoon": "cartoon style, stylized appearance, exaggerated features",
-      "chibi": "chibi style, super deformed, cute proportions, adorable design",
-      "kawaii": "kawaii style, cute aesthetic, adorable design, Japanese cuteness",
-      "detailed": "highly detailed, intricate design, fine details, meticulous artwork",
+      anime: "anime style, Japanese animation, cel shading, vibrant colors",
+      manga:
+        "manga style, Japanese comics, black and white line art, dramatic shading",
+      realistic: "realistic style, lifelike appearance, natural proportions",
+      cartoon: "cartoon style, stylized appearance, exaggerated features",
+      chibi: "chibi style, super deformed, cute proportions, adorable design",
+      kawaii:
+        "kawaii style, cute aesthetic, adorable design, Japanese cuteness",
+      detailed:
+        "highly detailed, intricate design, fine details, meticulous artwork",
       "high quality": "high quality, professional artwork, premium design",
-      "masterpiece": "masterpiece quality, exceptional artwork, top-tier design",
-      "beautiful": "beautiful design, aesthetic appeal, visually pleasing",
-      "cute": "cute design, adorable appearance, charming aesthetic",
-      "cool": "cool design, stylish appearance, trendy aesthetic",
-      "elegant": "elegant design, refined appearance, graceful aesthetic",
+      masterpiece: "masterpiece quality, exceptional artwork, top-tier design",
+      beautiful: "beautiful design, aesthetic appeal, visually pleasing",
+      cute: "cute design, adorable appearance, charming aesthetic",
+      cool: "cool design, stylish appearance, trendy aesthetic",
+      elegant: "elegant design, refined appearance, graceful aesthetic",
     },
   },
 };
@@ -180,35 +205,74 @@ const MODEL_KEYWORDS = {
   animagine: {
     // Animagine XL 4.0 responds well to these keywords
     quality: [
-      "masterpiece", "best quality", "ultra detailed", "highly detailed",
-      "perfect anatomy", "beautiful composition", "professional artwork",
-      "detailed character design", "expressive eyes", "perfect proportions"
+      "masterpiece",
+      "best quality",
+      "ultra detailed",
+      "highly detailed",
+      "perfect anatomy",
+      "beautiful composition",
+      "professional artwork",
+      "detailed character design",
+      "expressive eyes",
+      "perfect proportions",
     ],
     style: [
-      "anime style", "manga style", "japanese animation", "cel shading",
-      "vibrant colors", "clean line art", "modern anime", "detailed shading"
+      "anime style",
+      "manga style",
+      "japanese animation",
+      "cel shading",
+      "vibrant colors",
+      "clean line art",
+      "modern anime",
+      "detailed shading",
     ],
     character: [
-      "detailed facial features", "expressive eyes", "perfect anatomy",
-      "beautiful character design", "anime character", "detailed hair",
-      "smooth skin", "perfect hands", "natural pose"
+      "detailed facial features",
+      "expressive eyes",
+      "perfect anatomy",
+      "beautiful character design",
+      "anime character",
+      "detailed hair",
+      "smooth skin",
+      "perfect hands",
+      "natural pose",
     ],
   },
   anything: {
     // Anything XL responds well to these keywords
     quality: [
-      "masterpiece", "best quality", "ultra detailed", "8k resolution",
-      "sharp focus", "professional", "high quality", "perfect composition",
-      "detailed", "beautiful lighting", "cinematic"
+      "masterpiece",
+      "best quality",
+      "ultra detailed",
+      "8k resolution",
+      "sharp focus",
+      "professional",
+      "high quality",
+      "perfect composition",
+      "detailed",
+      "beautiful lighting",
+      "cinematic",
     ],
     style: [
-      "anime style", "illustration", "digital art", "artwork",
-      "detailed art", "beautiful art", "professional illustration"
+      "anime style",
+      "illustration",
+      "digital art",
+      "artwork",
+      "detailed art",
+      "beautiful art",
+      "professional illustration",
     ],
     character: [
-      "beautiful character", "detailed character", "anime girl", "anime boy",
-      "perfect face", "detailed eyes", "beautiful eyes", "detailed hair",
-      "perfect anatomy", "natural lighting"
+      "beautiful character",
+      "detailed character",
+      "anime girl",
+      "anime boy",
+      "perfect face",
+      "detailed eyes",
+      "beautiful eyes",
+      "detailed hair",
+      "perfect anatomy",
+      "natural lighting",
     ],
   },
 };
@@ -220,7 +284,11 @@ const MODEL_KEYWORDS = {
  */
 function analyzePromptQuality(prompt) {
   if (!prompt || typeof prompt !== "string") {
-    return { needsEnhancement: true, quality: "poor", reasons: ["Empty or invalid prompt"] };
+    return {
+      needsEnhancement: true,
+      quality: "poor",
+      reasons: ["Empty or invalid prompt"],
+    };
   }
 
   const lowerPrompt = prompt.toLowerCase();
@@ -241,11 +309,19 @@ function analyzePromptQuality(prompt) {
 
   // Check for quality keywords already present
   const qualityKeywords = [
-    "masterpiece", "best quality", "detailed", "high quality", "ultra detailed",
-    "professional", "beautiful", "perfect", "cinematic", "sharp focus"
+    "masterpiece",
+    "best quality",
+    "detailed",
+    "high quality",
+    "ultra detailed",
+    "professional",
+    "beautiful",
+    "perfect",
+    "cinematic",
+    "sharp focus",
   ];
-  const presentQualityKeywords = qualityKeywords.filter(keyword => 
-    lowerPrompt.includes(keyword)
+  const presentQualityKeywords = qualityKeywords.filter(keyword =>
+    lowerPrompt.includes(keyword),
   );
   if (presentQualityKeywords.length >= 3) {
     qualityScore += 3;
@@ -257,8 +333,18 @@ function analyzePromptQuality(prompt) {
 
   // Check for style specification
   const styleKeywords = [
-    "anime", "manga", "realistic", "photorealistic", "digital art", "oil painting",
-    "watercolor", "sketch", "illustration", "artwork", "painting", "drawing"
+    "anime",
+    "manga",
+    "realistic",
+    "photorealistic",
+    "digital art",
+    "oil painting",
+    "watercolor",
+    "sketch",
+    "illustration",
+    "artwork",
+    "painting",
+    "drawing",
   ];
   const hasStyle = styleKeywords.some(keyword => lowerPrompt.includes(keyword));
   if (hasStyle) {
@@ -269,10 +355,24 @@ function analyzePromptQuality(prompt) {
 
   // Check for detailed descriptions
   const descriptiveWords = [
-    "beautiful", "detailed", "elegant", "expressive", "vibrant", "soft", "dramatic",
-    "natural", "perfect", "smooth", "flowing", "intricate", "delicate", "graceful"
+    "beautiful",
+    "detailed",
+    "elegant",
+    "expressive",
+    "vibrant",
+    "soft",
+    "dramatic",
+    "natural",
+    "perfect",
+    "smooth",
+    "flowing",
+    "intricate",
+    "delicate",
+    "graceful",
   ];
-  const presentDescriptive = descriptiveWords.filter(word => lowerPrompt.includes(word));
+  const presentDescriptive = descriptiveWords.filter(word =>
+    lowerPrompt.includes(word),
+  );
   if (presentDescriptive.length >= 5) {
     qualityScore += 2;
   } else if (presentDescriptive.length >= 2) {
@@ -283,10 +383,23 @@ function analyzePromptQuality(prompt) {
 
   // Check for technical terms (indicates advanced user)
   const technicalTerms = [
-    "composition", "lighting", "perspective", "depth of field", "bokeh", "exposure",
-    "contrast", "saturation", "hue", "gradient", "texture", "rendering", "shading"
+    "composition",
+    "lighting",
+    "perspective",
+    "depth of field",
+    "bokeh",
+    "exposure",
+    "contrast",
+    "saturation",
+    "hue",
+    "gradient",
+    "texture",
+    "rendering",
+    "shading",
   ];
-  const hasTechnicalTerms = technicalTerms.some(term => lowerPrompt.includes(term));
+  const hasTechnicalTerms = technicalTerms.some(term =>
+    lowerPrompt.includes(term),
+  );
   if (hasTechnicalTerms) {
     qualityScore += 2;
   }
@@ -299,7 +412,9 @@ function analyzePromptQuality(prompt) {
     /\b\w+\s+background\b/i, // "forest background"
     /\b\w+\s+lighting\b/i, // "soft lighting"
   ];
-  const specificMatches = specificDetails.filter(pattern => pattern.test(prompt));
+  const specificMatches = specificDetails.filter(pattern =>
+    pattern.test(prompt),
+  );
   if (specificMatches.length >= 3) {
     qualityScore += 2;
   } else if (specificMatches.length >= 1) {
@@ -336,15 +451,15 @@ function analyzePromptQuality(prompt) {
 const COMMON_MISTAKES = {
   // Fix common spelling mistakes
   spelling: {
-    "beatiful": "beautiful",
-    "detaild": "detailed",
-    "charachter": "character",
-    "expresion": "expression",
-    "proffesional": "professional",
-    "awsome": "awesome",
-    "amzing": "amazing",
+    beatiful: "beautiful",
+    detaild: "detailed",
+    charachter: "character",
+    expresion: "expression",
+    proffesional: "professional",
+    awsome: "awesome",
+    amzing: "amazing",
   },
-  
+
   // Fix common grammar issues
   grammar: {
     "a anime": "an anime",
@@ -352,7 +467,7 @@ const COMMON_MISTAKES = {
     "a amazing": "an amazing",
     "a awesome": "an awesome",
   },
-  
+
   // Remove redundant words
   redundancy: [
     /\b(very very|really really|super super)\b/gi,
@@ -395,7 +510,9 @@ export function analyzePrompt(userPrompt, _model = "anything") {
     for (const pattern of config.patterns) {
       const matches = userPrompt.match(pattern);
       if (matches) {
-        analysis.detectedElements[category].push(...matches.map(m => m.toLowerCase()));
+        analysis.detectedElements[category].push(
+          ...matches.map(m => m.toLowerCase()),
+        );
       }
     }
   }
@@ -410,7 +527,11 @@ export function analyzePrompt(userPrompt, _model = "anything") {
  * @param {Object} options - Enhancement options
  * @returns {string} Enhanced prompt
  */
-export function enhancePromptIntelligently(userPrompt, model = "anything", options = {}) {
+export function enhancePromptIntelligently(
+  userPrompt,
+  model = "anything",
+  options = {},
+) {
   if (!userPrompt || typeof userPrompt !== "string") {
     return userPrompt;
   }
@@ -421,26 +542,32 @@ export function enhancePromptIntelligently(userPrompt, model = "anything", optio
   try {
     // First, analyze the prompt quality
     const qualityAnalysis = analyzePromptQuality(enhanced);
-    
+
     // If the prompt is already excellent or good, do minimal enhancement
     if (!qualityAnalysis.needsEnhancement) {
-      logger.info(`[PromptIntelligence] High-quality prompt detected (${qualityAnalysis.quality}), skipping enhancement:`, {
-        original: userPrompt,
-        score: qualityAnalysis.score,
-        reasons: qualityAnalysis.reasons,
-      });
-      
+      logger.info(
+        `[PromptIntelligence] High-quality prompt detected (${qualityAnalysis.quality}), skipping enhancement:`,
+        {
+          original: userPrompt,
+          score: qualityAnalysis.score,
+          reasons: qualityAnalysis.reasons,
+        },
+      );
+
       // Only fix obvious mistakes for high-quality prompts
       enhanced = fixBasicMistakes(enhanced, improvements);
       return enhanced;
     }
 
     // For lower quality prompts, apply full enhancement
-    logger.info(`[PromptIntelligence] Enhancing ${qualityAnalysis.quality} quality prompt:`, {
-      original: userPrompt,
-      score: qualityAnalysis.score,
-      reasons: qualityAnalysis.reasons,
-    });
+    logger.info(
+      `[PromptIntelligence] Enhancing ${qualityAnalysis.quality} quality prompt:`,
+      {
+        original: userPrompt,
+        score: qualityAnalysis.score,
+        reasons: qualityAnalysis.reasons,
+      },
+    );
 
     // 1. Fix common spelling mistakes
     enhanced = fixBasicMistakes(enhanced, improvements);
@@ -448,20 +575,22 @@ export function enhancePromptIntelligently(userPrompt, model = "anything", optio
     // 2. Enhance based on detected patterns (only for fair/poor quality)
     if (qualityAnalysis.quality === "poor") {
       const enhancements = [];
-      
+
       for (const [category, config] of Object.entries(PROMPT_PATTERNS)) {
         for (const pattern of config.patterns) {
           const matches = enhanced.match(pattern);
           if (matches) {
             for (const match of matches) {
-              const key = Object.keys(config.enhancements).find(k => 
-                new RegExp(k, "i").test(match)
+              const key = Object.keys(config.enhancements).find(k =>
+                new RegExp(k, "i").test(match),
               );
               if (key && config.enhancements[key]) {
                 // Don't replace the original word, just add enhancement
                 if (!enhanced.includes(config.enhancements[key])) {
                   enhancements.push(config.enhancements[key]);
-                  improvements.push(`Enhanced ${category}: "${match}" with detailed keywords`);
+                  improvements.push(
+                    `Enhanced ${category}: "${match}" with detailed keywords`,
+                  );
                 }
               }
             }
@@ -471,20 +600,29 @@ export function enhancePromptIntelligently(userPrompt, model = "anything", optio
 
       // Add model-specific quality keywords for very simple prompts
       const wordCount = enhanced.split(/\s+/).length;
-      if (wordCount < 10 && MODEL_KEYWORDS[model] && !qualityAnalysis.hasQualityKeywords) {
+      if (
+        wordCount < 10 &&
+        MODEL_KEYWORDS[model] &&
+        !qualityAnalysis.hasQualityKeywords
+      ) {
         const qualityKeywords = MODEL_KEYWORDS[model].quality.slice(0, 3);
         enhancements.push(...qualityKeywords);
         improvements.push(`Added quality keywords for ${model} model`);
       }
 
       // Ensure anime style is specified for anime models (only if no style present)
-      if ((model === "animagine" || model === "anything") && !qualityAnalysis.hasStyle) {
+      if (
+        (model === "animagine" || model === "anything") &&
+        !qualityAnalysis.hasStyle
+      ) {
         enhancements.push("anime style");
         improvements.push("Added anime style specification");
       }
 
       // Add character design keywords if character is mentioned
-      const hasCharacter = /\b(girl|boy|woman|man|character|person)\b/i.test(enhanced);
+      const hasCharacter = /\b(girl|boy|woman|man|character|person)\b/i.test(
+        enhanced,
+      );
       if (hasCharacter && MODEL_KEYWORDS[model] && wordCount < 15) {
         const characterKeywords = MODEL_KEYWORDS[model].character.slice(0, 2);
         enhancements.push(...characterKeywords);
@@ -492,7 +630,11 @@ export function enhancePromptIntelligently(userPrompt, model = "anything", optio
       }
 
       // Smart context enhancement based on prompt analysis
-      const contextEnhancements = getContextualEnhancements(enhanced, model, options);
+      const contextEnhancements = getContextualEnhancements(
+        enhanced,
+        model,
+        options,
+      );
       if (contextEnhancements.length > 0) {
         enhancements.push(...contextEnhancements);
         improvements.push("Added contextual enhancements");
@@ -505,13 +647,16 @@ export function enhancePromptIntelligently(userPrompt, model = "anything", optio
     } else if (qualityAnalysis.quality === "fair") {
       // For fair quality, only add minimal enhancements
       const minimalEnhancements = [];
-      
+
       // Only add style if completely missing
-      if ((model === "animagine" || model === "anything") && !qualityAnalysis.hasStyle) {
+      if (
+        (model === "animagine" || model === "anything") &&
+        !qualityAnalysis.hasStyle
+      ) {
         minimalEnhancements.push("anime style");
         improvements.push("Added missing anime style specification");
       }
-      
+
       // Only add basic quality if no quality keywords present
       if (!qualityAnalysis.hasQualityKeywords) {
         minimalEnhancements.push("masterpiece", "best quality");
@@ -541,7 +686,6 @@ export function enhancePromptIntelligently(userPrompt, model = "anything", optio
     }
 
     return enhanced;
-
   } catch (error) {
     logger.error("[PromptIntelligence] Error enhancing prompt:", error);
     return userPrompt; // Return original on error
@@ -558,7 +702,9 @@ function fixBasicMistakes(prompt, improvements) {
   let fixed = prompt;
 
   // Fix spelling mistakes
-  for (const [mistake, correction] of Object.entries(COMMON_MISTAKES.spelling)) {
+  for (const [mistake, correction] of Object.entries(
+    COMMON_MISTAKES.spelling,
+  )) {
     const regex = new RegExp(`\\b${mistake}\\b`, "gi");
     if (regex.test(fixed)) {
       fixed = fixed.replace(regex, correction);
@@ -577,7 +723,7 @@ function fixBasicMistakes(prompt, improvements) {
 
   // Remove redundant words
   for (const pattern of COMMON_MISTAKES.redundancy) {
-    fixed = fixed.replace(pattern, (match) => {
+    fixed = fixed.replace(pattern, match => {
       const words = match.split(" ");
       const unique = words[0];
       improvements.push(`Removed redundancy: "${match}" → "${unique}"`);
@@ -600,35 +746,55 @@ function getContextualEnhancements(prompt, _model, options = {}) {
   const lowerPrompt = prompt.toLowerCase();
 
   // Lighting enhancements based on scene type
-  if (lowerPrompt.includes("portrait") || lowerPrompt.includes("face") || lowerPrompt.includes("character")) {
+  if (
+    lowerPrompt.includes("portrait") ||
+    lowerPrompt.includes("face") ||
+    lowerPrompt.includes("character")
+  ) {
     if (!lowerPrompt.includes("lighting")) {
       enhancements.push("soft lighting", "beautiful lighting");
     }
   }
 
   // Environment-specific enhancements
-  if (lowerPrompt.includes("outdoor") || lowerPrompt.includes("landscape") || lowerPrompt.includes("nature")) {
+  if (
+    lowerPrompt.includes("outdoor") ||
+    lowerPrompt.includes("landscape") ||
+    lowerPrompt.includes("nature")
+  ) {
     if (!lowerPrompt.includes("natural")) {
       enhancements.push("natural lighting", "atmospheric perspective");
     }
   }
 
   // Indoor scene enhancements
-  if (lowerPrompt.includes("indoor") || lowerPrompt.includes("room") || lowerPrompt.includes("interior")) {
+  if (
+    lowerPrompt.includes("indoor") ||
+    lowerPrompt.includes("room") ||
+    lowerPrompt.includes("interior")
+  ) {
     if (!lowerPrompt.includes("ambient")) {
       enhancements.push("ambient lighting", "cozy atmosphere");
     }
   }
 
   // Fantasy/magical enhancements
-  if (lowerPrompt.includes("fantasy") || lowerPrompt.includes("magic") || lowerPrompt.includes("dragon")) {
+  if (
+    lowerPrompt.includes("fantasy") ||
+    lowerPrompt.includes("magic") ||
+    lowerPrompt.includes("dragon")
+  ) {
     if (!lowerPrompt.includes("mystical")) {
       enhancements.push("mystical atmosphere", "magical effects");
     }
   }
 
   // Sci-fi/cyberpunk enhancements
-  if (lowerPrompt.includes("cyberpunk") || lowerPrompt.includes("futuristic") || lowerPrompt.includes("sci-fi")) {
+  if (
+    lowerPrompt.includes("cyberpunk") ||
+    lowerPrompt.includes("futuristic") ||
+    lowerPrompt.includes("sci-fi")
+  ) {
     if (!lowerPrompt.includes("neon")) {
       enhancements.push("neon lighting", "futuristic atmosphere");
     }
@@ -637,7 +803,11 @@ function getContextualEnhancements(prompt, _model, options = {}) {
   // Model-specific contextual enhancements
   if (_model === "animagine") {
     // Animagine excels at character expressions
-    if (lowerPrompt.includes("girl") || lowerPrompt.includes("boy") || lowerPrompt.includes("character")) {
+    if (
+      lowerPrompt.includes("girl") ||
+      lowerPrompt.includes("boy") ||
+      lowerPrompt.includes("character")
+    ) {
       if (!lowerPrompt.includes("expression")) {
         enhancements.push("expressive eyes", "detailed facial features");
       }
@@ -653,7 +823,10 @@ function getContextualEnhancements(prompt, _model, options = {}) {
   if (options.aspectRatio) {
     if (options.aspectRatio === "16:9" || options.aspectRatio === "21:9") {
       enhancements.push("cinematic composition", "wide angle");
-    } else if (options.aspectRatio === "9:16" || options.aspectRatio === "2:3") {
+    } else if (
+      options.aspectRatio === "9:16" ||
+      options.aspectRatio === "2:3"
+    ) {
       enhancements.push("portrait composition", "vertical framing");
     }
   }
@@ -676,7 +849,7 @@ export function getPromptSuggestions(userPrompt, model = "anything") {
 
   // Analyze prompt quality first
   const qualityAnalysis = analyzePromptQuality(userPrompt);
-  
+
   // Don't show suggestions for excellent prompts
   if (qualityAnalysis.quality === "excellent") {
     return [];
@@ -688,14 +861,18 @@ export function getPromptSuggestions(userPrompt, model = "anything") {
     if (model === "animagine") {
       suggestions.push({
         type: "advanced",
-        message: "Try adding specific emotions or expressions for even better character portrayal",
-        example: "Add 'gentle smile', 'mysterious expression', or 'confident pose'",
+        message:
+          "Try adding specific emotions or expressions for even better character portrayal",
+        example:
+          "Add 'gentle smile', 'mysterious expression', or 'confident pose'",
       });
     } else {
       suggestions.push({
-        type: "advanced", 
-        message: "Consider adding lighting or composition details for professional results",
-        example: "Add 'cinematic lighting', 'dramatic composition', or 'depth of field'",
+        type: "advanced",
+        message:
+          "Consider adding lighting or composition details for professional results",
+        example:
+          "Add 'cinematic lighting', 'dramatic composition', or 'depth of field'",
       });
     }
     return suggestions;
@@ -709,37 +886,49 @@ export function getPromptSuggestions(userPrompt, model = "anything") {
     suggestions.push({
       type: "length",
       message: "Consider adding more descriptive details to your prompt",
-      example: "Instead of 'anime girl', try 'beautiful anime girl with long blue hair and expressive eyes'",
+      example:
+        "Instead of 'anime girl', try 'beautiful anime girl with long blue hair and expressive eyes'",
     });
   }
 
   // Suggest adding character details
-  if (/\b(girl|boy|woman|man|character|person)\b/i.test(prompt) && 
-      !/(hair|eyes|clothing|expression)/i.test(prompt)) {
+  if (
+    /\b(girl|boy|woman|man|character|person)\b/i.test(prompt) &&
+    !/(hair|eyes|clothing|expression)/i.test(prompt)
+  ) {
     suggestions.push({
       type: "character",
       message: "Add character details like hair color, eye color, or clothing",
-      example: "Add details like 'long blonde hair', 'blue eyes', or 'school uniform'",
+      example:
+        "Add details like 'long blonde hair', 'blue eyes', or 'school uniform'",
     });
   }
 
   // Suggest adding environment (only for fair/poor quality)
-  if (qualityAnalysis.quality === "poor" && 
-      !/(background|setting|environment|room|outdoor|indoor|school|cafe|park)/i.test(prompt)) {
+  if (
+    qualityAnalysis.quality === "poor" &&
+    !/(background|setting|environment|room|outdoor|indoor|school|cafe|park)/i.test(
+      prompt,
+    )
+  ) {
     suggestions.push({
       type: "environment",
       message: "Consider adding a background or setting",
-      example: "Add location like 'in a classroom', 'at the beach', or 'simple background'",
+      example:
+        "Add location like 'in a classroom', 'at the beach', or 'simple background'",
     });
   }
 
   // Suggest adding emotion/expression
-  if (/\b(girl|boy|woman|man|character|person)\b/i.test(prompt) && 
-      !/(happy|sad|smile|expression|mood|emotion)/i.test(prompt)) {
+  if (
+    /\b(girl|boy|woman|man|character|person)\b/i.test(prompt) &&
+    !/(happy|sad|smile|expression|mood|emotion)/i.test(prompt)
+  ) {
     suggestions.push({
       type: "emotion",
       message: "Add an expression or emotion to bring the character to life",
-      example: "Add expressions like 'smiling', 'happy expression', or 'mysterious look'",
+      example:
+        "Add expressions like 'smiling', 'happy expression', or 'mysterious look'",
     });
   }
 
@@ -772,12 +961,33 @@ export function analyzeNSFWContent(userPrompt) {
 
   const prompt = userPrompt.toLowerCase();
   const nsfwKeywords = [
-    "nude", "naked", "topless", "bottomless", "underwear", "lingerie", "bikini",
-    "sexual", "erotic", "adult", "explicit", "suggestive", "seductive", "provocative",
-    "breast", "breasts", "cleavage", "nipple", "nipples", "genitals", "intimate", "sensual"
+    "nude",
+    "naked",
+    "topless",
+    "bottomless",
+    "underwear",
+    "lingerie",
+    "bikini",
+    "sexual",
+    "erotic",
+    "adult",
+    "explicit",
+    "suggestive",
+    "seductive",
+    "provocative",
+    "breast",
+    "breasts",
+    "cleavage",
+    "nipple",
+    "nipples",
+    "genitals",
+    "intimate",
+    "sensual",
   ];
 
-  const foundKeywords = nsfwKeywords.filter(keyword => prompt.includes(keyword));
+  const foundKeywords = nsfwKeywords.filter(keyword =>
+    prompt.includes(keyword),
+  );
   const needsNSFW = foundKeywords.length > 0;
   const confidence = Math.min(foundKeywords.length * 0.3, 1.0);
 

@@ -1,9 +1,7 @@
 import { getStorageManager } from "../../../utils/storage/storageManager.js";
 import { getLogger } from "../../../utils/logger.js";
-import { emojiConfig } from "../../../config/emojis.js";
 
 const logger = getLogger();
-const { customEmojis } = emojiConfig;
 
 // ============================================================================
 // CORE CREDIT UTILITIES
@@ -41,10 +39,10 @@ export async function getUserData(userId) {
 
 /**
  * Formats user tier display with proper badge emoji
- * @param {Object} userData - User data object
+ * @param {Object} _userData - User data object (unused in simplified system)
  * @returns {string} Formatted tier display
  */
-export function formatTierDisplay(userData) {
+export function formatTierDisplay(_userData) {
   // Since we simplified the system, just show "Regular" for now
   // This can be enhanced later when subscription tiers are added
   return "Regular";
@@ -186,7 +184,7 @@ export async function getUserCorePriority(userId, logger = null) {
     // Since we simplified to Core packages only, all users are "Regular"
     // Priority is now based on credit balance instead of tiers
     const hasCredits = userData.credits > 0;
-    
+
     return {
       hasCore: hasCredits,
       tier: hasCredits ? "Core Package User" : null,

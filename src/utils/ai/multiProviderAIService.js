@@ -370,13 +370,13 @@ export class MultiProviderAIService {
   async generateImage(prompt, config, provider, progressCallback = null) {
     // Get model from feature-based config - ONLY use the exact configured model
     const isNSFW = config.isNSFW || false;
-    
+
     // Use the feature name from config if provided, otherwise determine based on NSFW flag
     let featureName = config.featureName;
     if (!featureName) {
       featureName = isNSFW ? "imagineNSFW" : "imagineGeneral";
     }
-    
+
     const feature = this.config.features?.[featureName];
 
     // ONLY use the exact configured model for this feature - NO FALLBACKS
@@ -396,7 +396,9 @@ export class MultiProviderAIService {
     // Log feature and model selection
     const { getLogger } = await import("../logger.js");
     const logger = getLogger();
-    logger.info(`[MULTIPROVIDER] Feature: ${featureName} | Model: ${model} | Provider: ${provider}`);
+    logger.info(
+      `[MULTIPROVIDER] Feature: ${featureName} | Model: ${model} | Provider: ${provider}`,
+    );
 
     const providerInstance = this.providers[provider];
     if (!providerInstance) {

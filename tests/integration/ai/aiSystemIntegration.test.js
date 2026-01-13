@@ -89,7 +89,7 @@ describe('AI System Integration', () => {
     it('should have correct feature costs', () => {
       const config = getAIConfig();
       
-      expect(config.featureCosts.aiChat).toBe(0.08); // Updated to match new pricing
+      expect(config.featureCosts.aiChat).toBe(0.01); // Updated to match new pricing
       expect(config.featureCosts.aiImage).toBe(1.2); // Updated to match new pricing
     });
   });

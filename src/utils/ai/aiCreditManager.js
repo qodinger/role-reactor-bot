@@ -9,8 +9,8 @@ const logger = getLogger();
  * @returns {number} Formatted credit amount with exactly 2 decimal places
  */
 export function formatCoreCredits(credits) {
-  if (typeof credits !== 'number' || isNaN(credits)) {
-    return 0.00;
+  if (typeof credits !== "number" || isNaN(credits)) {
+    return 0.0;
   }
   return Math.round(credits * 100) / 100;
 }
@@ -67,7 +67,7 @@ async function withCreditLock(userId, operation) {
 async function getConfig() {
   // Always load fresh feature costs to ensure provider-specific costs are available
   let featureCosts = null;
-  
+
   try {
     // Try new AI config first
     const aiConfigModule = await import("../../config/ai.js").catch(() => null);
@@ -87,17 +87,19 @@ async function getConfig() {
   }
 
   if (chatConfigCache !== null && imageConfigCache !== null) {
-    return { 
-      aiChat: chatConfigCache, 
+    return {
+      aiChat: chatConfigCache,
       aiImage: imageConfigCache,
-      featureCosts // Return fresh feature costs
+      featureCosts, // Return fresh feature costs
     };
   }
 
   try {
     // Try new AI config first (if not already loaded above)
     if (!featureCosts) {
-      const aiConfigModule = await import("../../config/ai.js").catch(() => null);
+      const aiConfigModule = await import("../../config/ai.js").catch(
+        () => null,
+      );
       if (aiConfigModule) {
         const getFeatureCosts =
           aiConfigModule.getAIFeatureCosts ||
@@ -127,10 +129,10 @@ async function getConfig() {
         imageConfigCache = DEFAULT_CREDITS_PER_IMAGE;
       }
 
-      return { 
-        aiChat: chatConfigCache, 
+      return {
+        aiChat: chatConfigCache,
         aiImage: imageConfigCache,
-        featureCosts 
+        featureCosts,
       };
     }
 
@@ -156,10 +158,10 @@ async function getConfig() {
         imageConfigCache = DEFAULT_CREDITS_PER_IMAGE;
       }
 
-      return { 
-        aiChat: chatConfigCache, 
+      return {
+        aiChat: chatConfigCache,
         aiImage: imageConfigCache,
-        featureCosts: config?.corePricing?.featureCosts
+        featureCosts: config?.corePricing?.featureCosts,
       };
     }
   } catch (error) {
@@ -168,10 +170,10 @@ async function getConfig() {
 
   chatConfigCache = DEFAULT_CREDITS_PER_CHAT;
   imageConfigCache = DEFAULT_CREDITS_PER_IMAGE;
-  return { 
-    aiChat: chatConfigCache, 
+  return {
+    aiChat: chatConfigCache,
     aiImage: imageConfigCache,
-    featureCosts: null
+    featureCosts: null,
   };
 }
 
@@ -287,7 +289,9 @@ export async function checkAndDeductAICredits(userId) {
       }
 
       // Deduct credits per request (atomic operation)
-      creditData.credits = formatCoreCredits((creditData.credits || 0) - creditsPerRequest);
+      creditData.credits = formatCoreCredits(
+        (creditData.credits || 0) - creditsPerRequest,
+      );
       creditData.lastUpdated = new Date().toISOString();
 
       coreCredits[userId] = creditData;
@@ -375,22 +379,22 @@ async function getProviderModelCost(provider, model) {
   try {
     const config = await getConfig();
     const featureCosts = config.featureCosts || {};
-    
+
     // Check for provider-specific credits first
     if (featureCosts.providerCosts && featureCosts.providerCosts[provider]) {
       const providerCosts = featureCosts.providerCosts[provider];
-      
+
       // Check for model-specific credits
       if (providerCosts[model]) {
         return providerCosts[model];
       }
-      
+
       // Check for default provider credits
       if (providerCosts.default) {
         return providerCosts.default;
       }
     }
-    
+
     // Fallback to generic image credits
     return featureCosts.aiImage || DEFAULT_CREDITS_PER_IMAGE;
   } catch (error) {
@@ -406,7 +410,11 @@ async function getProviderModelCost(provider, model) {
  * @param {string} model - Model name (optional)
  * @returns {Promise<{hasCredits: boolean, credits: number, creditsNeeded: number, userData: Object}>}
  */
-export async function checkAIImageCredits(userId, provider = null, model = null) {
+export async function checkAIImageCredits(
+  userId,
+  provider = null,
+  model = null,
+) {
   try {
     // Validate input
     if (!validateUserId(userId)) {
@@ -470,7 +478,11 @@ export async function checkAIImageCredits(userId, provider = null, model = null)
  * @param {string} model - Model name (optional)
  * @returns {Promise<{success: boolean, creditsRemaining: number, creditsDeducted: number, deductionBreakdown: Object, error?: string}>}
  */
-export async function checkAndDeductAIImageCredits(userId, provider = null, model = null) {
+export async function checkAndDeductAIImageCredits(
+  userId,
+  provider = null,
+  model = null,
+) {
   // Validate input
   if (!validateUserId(userId)) {
     logger.warn(
@@ -524,7 +536,7 @@ export async function checkAndDeductAIImageCredits(userId, provider = null, mode
 
       // ===== SIMPLIFIED CORE DEDUCTION LOGIC =====
       // Simple deduction from total credits
-      
+
       // Step 1: Update total Cores (atomic operation)
       userData.credits = formatCoreCredits(userData.credits - creditsPerImage);
       userData.totalGenerated = (userData.totalGenerated || 0) + 1;
@@ -590,7 +602,13 @@ export async function deductAIImageCredits(userId) {
  * @param {number} conversionRate - Rate to convert API credits to Core credits (default: 1:1)
  * @returns {Promise<{success: boolean, creditsRemaining: number, creditsDeducted: number, deductionBreakdown: Object, error?: string}>}
  */
-export async function deductCreditsFromUsage(userId, usage, provider, model, conversionRate = 1.0) {
+export async function deductCreditsFromUsage(
+  userId,
+  usage,
+  provider,
+  model,
+  conversionRate = 1.0,
+) {
   // Validate input
   if (!validateUserId(userId)) {
     logger.warn(`Invalid userId format in deductCreditsFromUsage: ${userId}`);
@@ -607,8 +625,10 @@ export async function deductCreditsFromUsage(userId, usage, provider, model, con
     };
   }
 
-  if (!usage || typeof usage.cost !== 'number') {
-    logger.warn(`Invalid usage data for user ${userId}: ${JSON.stringify(usage)}`);
+  if (!usage || typeof usage.cost !== "number") {
+    logger.warn(
+      `Invalid usage data for user ${userId}: ${JSON.stringify(usage)}`,
+    );
     return {
       success: false,
       creditsRemaining: formatCoreCredits(0),
@@ -643,13 +663,16 @@ export async function deductCreditsFromUsage(userId, usage, provider, model, con
         const { getAIFeatureCosts } = await import("../../config/ai.js");
         const featureCosts = getAIFeatureCosts();
         if (featureCosts.tokenPricing && featureCosts.tokenPricing[provider]) {
-          minimumCharge = featureCosts.tokenPricing[provider].minimumCharge || 0.01;
+          minimumCharge =
+            featureCosts.tokenPricing[provider].minimumCharge || 0.01;
         }
       } catch (_error) {
         // Use default minimum if config loading fails
       }
-      
-      const finalCreditsToDeduct = formatCoreCredits(Math.max(creditsToDeduct, minimumCharge));
+
+      const finalCreditsToDeduct = formatCoreCredits(
+        Math.max(creditsToDeduct, minimumCharge),
+      );
 
       // Check if user has enough credits
       if (userData.credits < finalCreditsToDeduct) {
@@ -672,7 +695,9 @@ export async function deductCreditsFromUsage(userId, usage, provider, model, con
       // Simple deduction from total credits
 
       // Step 1: Update total Cores (atomic operation)
-      userData.credits = formatCoreCredits(userData.credits - finalCreditsToDeduct);
+      userData.credits = formatCoreCredits(
+        userData.credits - finalCreditsToDeduct,
+      );
       userData.totalGenerated = (userData.totalGenerated || 0) + 1;
       userData.lastUpdated = new Date().toISOString();
 
@@ -745,7 +770,9 @@ export async function refundAICredits(userId, amount, reason = "Unknown") {
       };
 
       // Refund credits
-      creditData.credits = formatCoreCredits((creditData.credits || 0) + amount);
+      creditData.credits = formatCoreCredits(
+        (creditData.credits || 0) + amount,
+      );
       creditData.lastUpdated = new Date().toISOString();
 
       coreCredits[userId] = creditData;

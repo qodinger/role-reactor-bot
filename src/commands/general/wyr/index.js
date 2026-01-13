@@ -22,7 +22,7 @@ export const metadata = {
     {
       name: `What You Need`,
       value:
-        "**category** *(optional)* - Choose a specific category: Funny, Superhero, Life Choices, Philosophical, Challenging, or Pop Culture",
+        "**category** *(optional)* - Choose a specific category: Funny, Superhero, Technology, Relationships, Life Choices, Philosophical, Challenging, Pop Culture, Food, Adventure, or Modern Life",
       inline: false,
     },
     {
@@ -41,10 +41,15 @@ export const metadata = {
       value: [
         "**Funny** - Light-hearted and humorous questions",
         "**Superhero** - Questions about superpowers and heroes",
+        "**Technology** - Modern tech, AI, and digital life questions",
+        "**Relationships** - Questions about love, friendship, and connections",
         "**Life Choices** - Thought-provoking life decisions",
         "**Philosophical** - Deep and meaningful questions",
-        "**Challenging** - Difficult choices to make",
-        "**Pop Culture** - Questions about movies, music, and trends",
+        "**Challenging** - Difficult moral and ethical choices",
+        "**Pop Culture** - Questions about movies, music, and current trends",
+        "**Food** - Culinary choices and eating preferences",
+        "**Adventure** - Travel, exploration, and exciting experiences",
+        "**Modern Life** - Contemporary lifestyle, work, and social issues",
       ].join("\n"),
       inline: false,
     },
@@ -62,10 +67,15 @@ export const data = new SlashCommandBuilder()
       .addChoices(
         { name: "Funny", value: "FUNNY" },
         { name: "Superhero", value: "SUPERHERO" },
+        { name: "Technology", value: "TECHNOLOGY" },
+        { name: "Relationships", value: "RELATIONSHIPS" },
         { name: "Life Choices", value: "LIFE_CHOICES" },
         { name: "Philosophical", value: "PHILOSOPHICAL" },
         { name: "Challenging", value: "CHALLENGING" },
         { name: "Pop Culture", value: "POP_CULTURE" },
+        { name: "Food", value: "FOOD" },
+        { name: "Adventure", value: "ADVENTURE" },
+        { name: "Modern Life", value: "MODERN_LIFE" },
       ),
   );
 

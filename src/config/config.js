@@ -222,7 +222,7 @@ class Config {
       // Package plans for display in /core pricing command
       // Simplified package structure with 4 strategic options
       // Only 4 strategic packages to avoid choice overload
-      // 
+      //
       // PRICING STRATEGY:
       // - AI values Core at 2.0¢ each (50x conversion rate)
       // - Packages sell Cores at 5.71¢-6.25¢ each (185-213% markup)
@@ -240,7 +240,7 @@ class Config {
           popular: false,
         },
         $10: {
-          name: "Basic", 
+          name: "Basic",
           baseCores: 150,
           bonusCores: 15, // 10% bonus
           totalCores: 165,
@@ -254,7 +254,7 @@ class Config {
           baseCores: 375,
           bonusCores: 50, // 13% bonus
           totalCores: 425,
-          value: "17.0 Cores/$1", 
+          value: "17.0 Cores/$1",
           description: "Best value for power users",
           estimatedUsage: "~42,500 chat messages or 202 images",
           popular: false,
@@ -286,7 +286,7 @@ class Config {
       coreSystem: {
         minimumPayment: 3, // Reduced minimum to $3 for accessibility
         priorityProcessing: true, // Core members get priority (planned feature)
-        
+
         // Advanced pricing features
         dynamicPricing: {
           enabled: true,
@@ -294,13 +294,14 @@ class Config {
           peakMultiplier: 1.2, // 20% higher during peak
           offPeakDiscount: 0.9, // 10% discount during off-peak
         },
-        
+
         // All usage requires Cores (no free tier)
         freeTier: {
           enabled: false, // Disabled - all usage requires credits
-          message: "Purchase Cores to start using AI features! Packages start at just $3.",
+          message:
+            "Purchase Cores to start using AI features! Packages start at just $3.",
         },
-        
+
         // Trial system - limited to encourage purchases
         trialSystem: {
           enabled: true,
@@ -312,15 +313,15 @@ class Config {
             images: 0, // NO trial images (too expensive)
           },
         },
-        
+
         // Referral system
         referralSystem: {
           enabled: true,
           referrerBonus: 0.15, // 15% bonus Cores for referrer
-          refereeBonus: 0.10, // 10% bonus Cores for new user
+          refereeBonus: 0.1, // 10% bonus Cores for new user
           minimumPurchase: 10, // Minimum $10 purchase to trigger referral
         },
-        
+
         // Seasonal promotions
         promotions: {
           enabled: true,

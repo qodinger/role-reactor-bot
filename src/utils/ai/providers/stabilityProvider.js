@@ -56,34 +56,36 @@ export class StabilityProvider {
 
     // Use aspect ratio from config if provided, otherwise default to 1:1
     let aspectRatio = config.aspectRatio || "1:1";
-    
+
     // Map invalid aspect ratios to valid Stability AI ratios
-    const validRatios = ['16:9', '3:2', '5:4', '1:1', '4:5', '2:3', '9:16'];
+    const validRatios = ["16:9", "3:2", "5:4", "1:1", "4:5", "2:3", "9:16"];
     const originalRatio = aspectRatio;
-    
+
     if (!validRatios.includes(aspectRatio)) {
       // Map common invalid ratios to closest valid ones
       const ratioMap = {
-        '3:4': '4:5',    // Close to 3:4 (portrait)
-        '4:3': '5:4',    // Close to 4:3 (landscape)
-        '2:1': '16:9',   // Map to widescreen instead of ultrawide
-        '1:2': '9:16',   // Map to phone portrait instead of ultra-tall
-        '16:10': '16:9', // Close to 16:10
-        '9:18': '9:16',  // Close to 9:18
-        '8:10': '4:5',   // Close to 8:10
-        '10:8': '5:4',   // Close to 10:8
-        '21:9': '16:9',  // Map ultrawide to widescreen
-        '9:21': '9:16',  // Map ultra-tall to phone portrait
+        "3:4": "4:5", // Close to 3:4 (portrait)
+        "4:3": "5:4", // Close to 4:3 (landscape)
+        "2:1": "16:9", // Map to widescreen instead of ultrawide
+        "1:2": "9:16", // Map to phone portrait instead of ultra-tall
+        "16:10": "16:9", // Close to 16:10
+        "9:18": "9:16", // Close to 9:18
+        "8:10": "4:5", // Close to 8:10
+        "10:8": "5:4", // Close to 10:8
+        "21:9": "16:9", // Map ultrawide to widescreen
+        "9:21": "9:16", // Map ultra-tall to phone portrait
       };
-      
-      aspectRatio = ratioMap[aspectRatio] || '1:1'; // Default to 1:1 if no mapping found
-      
+
+      aspectRatio = ratioMap[aspectRatio] || "1:1"; // Default to 1:1 if no mapping found
+
       // Log the mapping for debugging
       const { getLogger } = await import("../../logger.js");
       const logger = getLogger();
-      logger.info(`[STABILITY] Mapped aspect ratio: ${originalRatio} → ${aspectRatio}`);
+      logger.info(
+        `[STABILITY] Mapped aspect ratio: ${originalRatio} → ${aspectRatio}`,
+      );
     }
-    
+
     formData.append("aspect_ratio", aspectRatio);
 
     // Only use anime style preset for avatar generation, not for general imagine
@@ -92,7 +94,7 @@ export class StabilityProvider {
     }
 
     formData.append("cfg_scale", config.cfgScale || 7); // Higher CFG for better prompt adherence
-    
+
     // Adjust steps based on model - SD 3.5 Large Turbo is optimized for fewer steps
     let steps = config.steps || 20;
     if (model === "sd3.5-large-turbo") {
@@ -101,7 +103,7 @@ export class StabilityProvider {
       steps = config.steps || 15; // Medium model works well with fewer steps
     }
     formData.append("steps", steps);
-    
+
     // Generate proper numeric seed instead of "random"
     const numericSeed = config.seed || Math.floor(Math.random() * 4294967295); // Max 32-bit unsigned int
     formData.append("seed", numericSeed.toString());
@@ -128,7 +130,10 @@ export class StabilityProvider {
       const imagePrompts = await import(
         "../../../config/prompts/imagePrompts.js"
       );
-      negativePrompt = imagePrompts.getImagineNegativePrompt(false, "stability");
+      negativePrompt = imagePrompts.getImagineNegativePrompt(
+        false,
+        "stability",
+      );
     }
     formData.append("negative_prompt", negativePrompt);
 
@@ -138,27 +143,47 @@ export class StabilityProvider {
     const { getLogger } = await import("../../logger.js");
     const logger = getLogger();
     logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-    logger.info(`[STABILITY API REQUEST] Model: ${model} | Provider: stability`);
+    logger.info(
+      `[STABILITY API REQUEST] Model: ${model} | Provider: stability`,
+    );
     logger.info(`[STABILITY API REQUEST] Endpoint: ${this.config.baseUrl}`);
-    logger.info(`[STABILITY API REQUEST] Prompt (${prompt.length} chars): "${prompt}"`);
-    logger.info(`[STABILITY API REQUEST] Negative Prompt (${negativePrompt.length} chars): "${negativePrompt}"`);
+    logger.info(
+      `[STABILITY API REQUEST] Prompt (${prompt.length} chars): "${prompt}"`,
+    );
+    logger.info(
+      `[STABILITY API REQUEST] Negative Prompt (${negativePrompt.length} chars): "${negativePrompt}"`,
+    );
     logger.info(`[STABILITY API REQUEST] FormData Parameters:`);
     logger.info(`[STABILITY API REQUEST] - model: ${model}`);
     logger.info(`[STABILITY API REQUEST] - output_format: png`);
-    logger.info(`[STABILITY API REQUEST] - aspect_ratio: ${aspectRatio} (original: ${originalRatio})`);
+    logger.info(
+      `[STABILITY API REQUEST] - aspect_ratio: ${aspectRatio} (original: ${originalRatio})`,
+    );
     logger.info(`[STABILITY API REQUEST] - cfg_scale: ${config.cfgScale || 7}`);
-    logger.info(`[STABILITY API REQUEST] - steps: ${steps} (optimized for ${model})`);
-    logger.info(`[STABILITY API REQUEST] - safety_tolerance: ${config.safetyTolerance || 6}`);
+    logger.info(
+      `[STABILITY API REQUEST] - steps: ${steps} (optimized for ${model})`,
+    );
+    logger.info(
+      `[STABILITY API REQUEST] - safety_tolerance: ${config.safetyTolerance || 6}`,
+    );
     logger.info(`[STABILITY API REQUEST] - seed: ${numericSeed}`);
     if (config.style_preset) {
-      logger.info(`[STABILITY API REQUEST] - style_preset: ${config.style_preset}`);
+      logger.info(
+        `[STABILITY API REQUEST] - style_preset: ${config.style_preset}`,
+      );
     }
     if (config.imageBuffer) {
-      logger.info(`[STABILITY API REQUEST] - image: [Buffer ${config.imageBuffer.length} bytes]`);
-      logger.info(`[STABILITY API REQUEST] - strength: ${config.strength !== undefined ? config.strength : 0.5}`);
+      logger.info(
+        `[STABILITY API REQUEST] - image: [Buffer ${config.imageBuffer.length} bytes]`,
+      );
+      logger.info(
+        `[STABILITY API REQUEST] - strength: ${config.strength !== undefined ? config.strength : 0.5}`,
+      );
     }
     logger.info(`[STABILITY API REQUEST] Headers:`);
-    logger.info(`[STABILITY API REQUEST] - Authorization: Bearer ${this.config.apiKey ? '[REDACTED]' : '[MISSING]'}`);
+    logger.info(
+      `[STABILITY API REQUEST] - Authorization: Bearer ${this.config.apiKey ? "[REDACTED]" : "[MISSING]"}`,
+    );
     logger.info(`[STABILITY API REQUEST] - Accept: image/*`);
     logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 

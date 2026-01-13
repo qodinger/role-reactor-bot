@@ -72,6 +72,7 @@ The system automatically enhances user prompts to get better results, but **inte
 ### Smart Conflict Prevention:
 
 The system analyzes prompts before enhancing to avoid conflicts:
+
 - **Word count**: Longer prompts indicate experienced users
 - **Quality keywords**: Presence of "masterpiece", "detailed", etc.
 - **Style specification**: Already has "anime style", "realistic", etc.
@@ -84,10 +85,10 @@ The system analyzes prompts before enhancing to avoid conflicts:
 **Enhanced Output**: `"anime girl, beautiful anime girl, detailed character design, expressive eyes, elegant features, anime style, masterpiece, best quality, ultra detailed"`
 
 **Good Quality Input**: `"masterpiece, beautiful anime girl with flowing silver hair, soft lighting, detailed character design, anime style"`
-**Enhanced Output**: `"masterpiece, beautiful anime girl with flowing silver hair, soft lighting, detailed character design, anime style"` *(unchanged)*
+**Enhanced Output**: `"masterpiece, beautiful anime girl with flowing silver hair, soft lighting, detailed character design, anime style"` _(unchanged)_
 
 **Fair Quality Input**: `"beautiful anime girl with blue hair and school uniform"`
-**Enhanced Output**: `"beautiful anime girl with blue hair and school uniform, masterpiece, best quality"` *(minimal addition)*
+**Enhanced Output**: `"beautiful anime girl with blue hair and school uniform, masterpiece, best quality"` _(minimal addition)_
 
 ## Inline Parameter Parsing
 

@@ -706,14 +706,19 @@ async function main() {
 
       // Start automatic ComfyUI job recovery system
       try {
-        const { multiProviderAIService } = await import("./utils/ai/multiProviderAIService.js");
-        const { startAutomaticRecovery, stopAutomaticRecovery } = await import("./utils/ai/providers/comfyui/startupRecovery.js");
-        
-        const comfyuiProvider = await multiProviderAIService.getProvider("comfyui");
+        const { multiProviderAIService } = await import(
+          "./utils/ai/multiProviderAIService.js"
+        );
+        const { startAutomaticRecovery, stopAutomaticRecovery } = await import(
+          "./utils/ai/providers/comfyui/startupRecovery.js"
+        );
+
+        const comfyuiProvider =
+          await multiProviderAIService.getProvider("comfyui");
         if (comfyuiProvider) {
           logger.info("🔄 Starting automatic ComfyUI job recovery system...");
           await startAutomaticRecovery(comfyuiProvider, client);
-          
+
           // Store the stop function globally for shutdown
           global.stopComfyUIRecovery = stopAutomaticRecovery;
         }

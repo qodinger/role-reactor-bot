@@ -216,11 +216,9 @@ async function handleRemoveCores(interaction, targetUser, deferred) {
       await interaction.reply({ embeds: [embed], flags: 64 });
     }
 
-    logger.info("Bonus Cores removed successfully", {
+    logger.info("Cores removed successfully", {
       targetUserId: targetUser.id,
       amount,
-      oldBonusCores,
-      newBonusCores,
       oldTotalCores,
       newTotalCores,
       operatorId: interaction.user.id,

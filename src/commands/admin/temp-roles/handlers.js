@@ -6,7 +6,8 @@ import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 export async function handleAssign(interaction, client, deferred = false) {
   const response = errorEmbed({
     title: "Command Temporarily Disabled",
-    description: "The temp-roles command is temporarily disabled while we update the credit system. Please try again later.",
+    description:
+      "The temp-roles command is temporarily disabled while we update the credit system. Please try again later.",
   });
 
   if (deferred) {
@@ -18,8 +19,9 @@ export async function handleAssign(interaction, client, deferred = false) {
 
 export async function handleRemove(interaction, client, deferred = false) {
   const response = errorEmbed({
-    title: "Command Temporarily Disabled", 
-    description: "The temp-roles command is temporarily disabled while we update the credit system. Please try again later.",
+    title: "Command Temporarily Disabled",
+    description:
+      "The temp-roles command is temporarily disabled while we update the credit system. Please try again later.",
   });
 
   if (deferred) {
@@ -32,7 +34,8 @@ export async function handleRemove(interaction, client, deferred = false) {
 export async function handleList(interaction, client, deferred = false) {
   const response = errorEmbed({
     title: "Command Temporarily Disabled",
-    description: "The temp-roles command is temporarily disabled while we update the credit system. Please try again later.",
+    description:
+      "The temp-roles command is temporarily disabled while we update the credit system. Please try again later.",
   });
 
   if (deferred) {

@@ -47,7 +47,7 @@ export class OpenRouterProvider {
       max_tokens: config.maxTokens || 1000,
       // Enable usage accounting to get actual usage information
       usage: {
-        include: true
+        include: true,
       },
     };
 
@@ -102,15 +102,27 @@ export class OpenRouterProvider {
     if (data.usage) {
       logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
       logger.info(`[OPENROUTER USAGE] Model: ${data.model || model}`);
-      logger.info(`[OPENROUTER USAGE] Total Tokens: ${data.usage.total_tokens || 0}`);
-      logger.info(`[OPENROUTER USAGE] Prompt Tokens: ${data.usage.prompt_tokens || 0}`);
-      logger.info(`[OPENROUTER USAGE] Completion Tokens: ${data.usage.completion_tokens || 0}`);
-      logger.info(`[OPENROUTER USAGE] Cost: ${data.usage.cost || 0} OpenRouter credits`);
+      logger.info(
+        `[OPENROUTER USAGE] Total Tokens: ${data.usage.total_tokens || 0}`,
+      );
+      logger.info(
+        `[OPENROUTER USAGE] Prompt Tokens: ${data.usage.prompt_tokens || 0}`,
+      );
+      logger.info(
+        `[OPENROUTER USAGE] Completion Tokens: ${data.usage.completion_tokens || 0}`,
+      );
+      logger.info(
+        `[OPENROUTER USAGE] Cost: ${data.usage.cost || 0} OpenRouter credits`,
+      );
       if (data.usage.cost_details) {
-        logger.info(`[OPENROUTER USAGE] Upstream Cost: ${data.usage.cost_details.upstream_inference_cost || 0}`);
+        logger.info(
+          `[OPENROUTER USAGE] Upstream Cost: ${data.usage.cost_details.upstream_inference_cost || 0}`,
+        );
       }
       if (data.usage.prompt_tokens_details?.cached_tokens) {
-        logger.info(`[OPENROUTER USAGE] Cached Tokens: ${data.usage.prompt_tokens_details.cached_tokens}`);
+        logger.info(
+          `[OPENROUTER USAGE] Cached Tokens: ${data.usage.prompt_tokens_details.cached_tokens}`,
+        );
       }
       logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     }
@@ -160,7 +172,7 @@ export class OpenRouterProvider {
       stream: true, // Enable streaming
       // Enable usage accounting to get actual usage information
       usage: {
-        include: true
+        include: true,
       },
     };
 
@@ -282,7 +294,7 @@ export class OpenRouterProvider {
                 fullText += delta;
                 onChunk(delta); // Call callback with chunk
               }
-              
+
               // Capture usage information from the final chunk
               if (json.usage) {
                 finalUsage = json.usage;
@@ -301,15 +313,27 @@ export class OpenRouterProvider {
     if (finalUsage) {
       logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
       logger.info(`[OPENROUTER STREAMING USAGE] Model: ${model}`);
-      logger.info(`[OPENROUTER STREAMING USAGE] Total Tokens: ${finalUsage.total_tokens || 0}`);
-      logger.info(`[OPENROUTER STREAMING USAGE] Prompt Tokens: ${finalUsage.prompt_tokens || 0}`);
-      logger.info(`[OPENROUTER STREAMING USAGE] Completion Tokens: ${finalUsage.completion_tokens || 0}`);
-      logger.info(`[OPENROUTER STREAMING USAGE] Cost: ${finalUsage.cost || 0} OpenRouter credits`);
+      logger.info(
+        `[OPENROUTER STREAMING USAGE] Total Tokens: ${finalUsage.total_tokens || 0}`,
+      );
+      logger.info(
+        `[OPENROUTER STREAMING USAGE] Prompt Tokens: ${finalUsage.prompt_tokens || 0}`,
+      );
+      logger.info(
+        `[OPENROUTER STREAMING USAGE] Completion Tokens: ${finalUsage.completion_tokens || 0}`,
+      );
+      logger.info(
+        `[OPENROUTER STREAMING USAGE] Cost: ${finalUsage.cost || 0} OpenRouter credits`,
+      );
       if (finalUsage.cost_details) {
-        logger.info(`[OPENROUTER STREAMING USAGE] Upstream Cost: ${finalUsage.cost_details.upstream_inference_cost || 0}`);
+        logger.info(
+          `[OPENROUTER STREAMING USAGE] Upstream Cost: ${finalUsage.cost_details.upstream_inference_cost || 0}`,
+        );
       }
       if (finalUsage.prompt_tokens_details?.cached_tokens) {
-        logger.info(`[OPENROUTER STREAMING USAGE] Cached Tokens: ${finalUsage.prompt_tokens_details.cached_tokens}`);
+        logger.info(
+          `[OPENROUTER STREAMING USAGE] Cached Tokens: ${finalUsage.prompt_tokens_details.cached_tokens}`,
+        );
       }
       logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     }
@@ -340,7 +364,7 @@ export class OpenRouterProvider {
       modalities: ["image", "text"],
       // Enable usage accounting to get actual usage information
       usage: {
-        include: true
+        include: true,
       },
     };
 

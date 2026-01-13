@@ -71,7 +71,7 @@ export async function handleImagineRegenerate(interaction) {
   // Get provider and model for credit calculation
   let provider = "stability"; // Default
   let model = "sd3.5-large-turbo"; // Default
-  
+
   try {
     const { getAIConfig } = await import("../../../config/ai.js");
     const aiConfig = getAIConfig();
@@ -84,7 +84,11 @@ export async function handleImagineRegenerate(interaction) {
     // Use defaults if config loading fails
   }
 
-  const creditInfo = await checkAIImageCredits(interaction.user.id, provider, model);
+  const creditInfo = await checkAIImageCredits(
+    interaction.user.id,
+    provider,
+    model,
+  );
   const { userData, creditsNeeded, hasCredits } = creditInfo;
 
   // Log the credit calculation for transparency

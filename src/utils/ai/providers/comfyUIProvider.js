@@ -42,9 +42,11 @@ export class ComfyUIProvider {
       // Create full AI config for deployment manager
       const { getAIConfig } = await import("../../../config/ai.js");
       const fullAIConfig = getAIConfig();
-      
+
       // Initialize deployment manager with providers config
-      deploymentManager.initialize({ providers: fullAIConfig.models.providers });
+      deploymentManager.initialize({
+        providers: fullAIConfig.models.providers,
+      });
 
       // Initialize model manager
       modelManager.initialize();
@@ -137,8 +139,8 @@ export class ComfyUIProvider {
       logger.info(`[ComfyUI] Using deployment: ${deployment.name}`);
 
       // Use the model's workflow
-      const workflowName = selectedModel.workflow.replace('.json', '');
-      
+      const workflowName = selectedModel.workflow.replace(".json", "");
+
       // Get workflow with parameters
       const workflowWithParams =
         await workflowManager.getWorkflowWithParameters(workflowName, {
@@ -206,13 +208,15 @@ export class ComfyUIProvider {
         prompt: workflowData,
         client_id: clientId,
       };
-      
+
       logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
       logger.info(`[COMFYUI API REQUEST] Provider: comfyui`);
       logger.info(`[COMFYUI API REQUEST] Endpoint: ${this.baseUrl}/prompt`);
       logger.info(`[COMFYUI API REQUEST] Client ID: ${clientId}`);
       logger.info(`[COMFYUI API REQUEST] Complete Workflow Payload:`);
-      logger.info(`[COMFYUI API REQUEST] ${JSON.stringify(requestPayload, null, 2)}`);
+      logger.info(
+        `[COMFYUI API REQUEST] ${JSON.stringify(requestPayload, null, 2)}`,
+      );
       logger.info(`[COMFYUI API REQUEST] Headers:`);
       logger.info(`[COMFYUI API REQUEST] - Content-Type: application/json`);
       logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
@@ -284,12 +288,12 @@ export class ComfyUIProvider {
     } catch (error) {
       // Mark job as failed if we were tracking it
       if (config.jobInfo && promptId) {
-        await jobRecovery.updateJob(promptId, { 
-          status: "failed", 
-          error: error.message 
+        await jobRecovery.updateJob(promptId, {
+          status: "failed",
+          error: error.message,
         });
       }
-      
+
       if (ws) ws.close();
       throw error;
     }
@@ -376,7 +380,7 @@ export class ComfyUIProvider {
               // Convert node number to user-friendly status
               const nodeId = message.data.node;
               let status = "Processing workflow...";
-              
+
               // Map common node IDs to user-friendly messages
               if (nodeId === "2" || nodeId === 2) {
                 status = AI_STATUS_MESSAGES.COMFYUI_LOADING_MODEL;
@@ -398,7 +402,7 @@ export class ComfyUIProvider {
                 // For unknown nodes, show a generic message
                 status = "Processing workflow step...";
               }
-              
+
               progressCallback(status);
             }
             break;
@@ -647,22 +651,22 @@ export class ComfyUIProvider {
     }
 
     const status = await this.checkJobStatus(promptId);
-    
+
     if (status.status === "completed" && status.result) {
       const images = await this.getGenerationResults(promptId);
       await jobRecovery.completeJob(promptId);
-      
+
       return {
         job,
         images,
-        status: "recovered"
+        status: "recovered",
       };
     }
 
     return {
       job,
       status: status.status,
-      message: `Job is ${status.status}`
+      message: `Job is ${status.status}`,
     };
   }
 

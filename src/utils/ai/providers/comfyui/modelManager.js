@@ -26,10 +26,11 @@ export class ModelManager {
         name: "Animagine XL 4.0",
         key: "animagine",
         workflow: "animagine-fast.json", // Use fast workflow by default
-        description: "High-quality anime model with superior character knowledge",
+        description:
+          "High-quality anime model with superior character knowledge",
         defaultSettings: {
-          steps: 20,        // Reduced for speed
-          cfg: 5.0,         // Optimized for speed
+          steps: 20, // Reduced for speed
+          cfg: 5.0, // Optimized for speed
           sampler: "dpmpp_2m", // Faster sampler
           scheduler: "karras",
         },
@@ -42,8 +43,8 @@ export class ModelManager {
         workflow: "anything-fast.json", // Use fast workflow by default
         description: "Uncensored anime model with versatile style",
         defaultSettings: {
-          steps: 15,        // Reduced for speed
-          cfg: 6.0,         // Optimized for speed
+          steps: 15, // Reduced for speed
+          cfg: 6.0, // Optimized for speed
           sampler: "dpmpp_2m", // Faster sampler
           scheduler: "karras",
         },
@@ -207,7 +208,7 @@ export class ModelManager {
    */
   getOptimalSettings(modelKey, userSteps = null, userCfg = null) {
     const model = this.getModelByKey(modelKey);
-    
+
     return {
       steps: userSteps || model.defaultSettings.steps,
       cfg: userCfg || model.defaultSettings.cfg,

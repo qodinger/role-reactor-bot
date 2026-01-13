@@ -564,10 +564,7 @@ export class ChatService {
 
     // Check if provider supports streaming
     const textProvider = this.aiService.getTextProvider();
-    if (
-      !textProvider ||
-      !["openrouter", "selfhosted"].includes(textProvider)
-    ) {
+    if (!textProvider || !["openrouter", "selfhosted"].includes(textProvider)) {
       // Fallback to non-streaming
       logger.warn(
         `[generateResponseStreaming] Provider ${textProvider} doesn't support streaming, falling back to non-streaming`,

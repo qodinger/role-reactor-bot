@@ -88,7 +88,7 @@ export function getAIModels() {
               parameters: 8000000000, // 8 billion parameters
             },
             "sd3.5-large-turbo": {
-              name: "SD 3.5 Large Turbo", 
+              name: "SD 3.5 Large Turbo",
               speed: "fast",
               quality: "excellent",
               parameters: 8000000000, // 8 billion parameters, optimized for speed
@@ -143,8 +143,6 @@ export function getAIModels() {
         },
       },
 
-
-
       comfyui: {
         enabled: true, // Enable ComfyUI for NSFW content generation
         name: "ComfyUI (Self-Hosted)",
@@ -165,7 +163,8 @@ export function getAIModels() {
               quality: "excellent",
               speed: "medium",
               flags: ["anime", "manga", "2d", "stylized", "nsfw", "character"],
-              description: "High-quality anime model with superior character knowledge",
+              description:
+                "High-quality anime model with superior character knowledge",
             },
 
             "AnythingXL_xl.safetensors": {
@@ -275,28 +274,28 @@ export function getAIFeatureCosts() {
   // =============================================================================
   // CENTRALIZED CONVERSION RATE CONFIGURATION
   // =============================================================================
-  // 
+  //
   // IMPORTANT: These are the ONLY values you need to change to adjust pricing
-  // 
+  //
   // Base conversion rate: 1 USD = X Core Credits
   // Higher rate = cheaper Cores for users, lower revenue per API call
   // Lower rate = more expensive Cores for users, higher revenue per API call
   const BASE_CONVERSION_RATE = 50; // 1 USD = 50 Core Credits (1 Core = 2.0 cents)
-  
+
   // Minimum charge per request (in Core credits)
   // Prevents micro-transactions for very small API calls
   const BASE_MINIMUM_CHARGE = 0.01; // 0.01 Core minimum
-  
+
   // Formula: Core_Credits = max(API_Cost_USD × BASE_CONVERSION_RATE, BASE_MINIMUM_CHARGE)
-  
+
   return {
     // Text generation credits are calculated dynamically based on actual token usage (OpenRouter)
     // or use fixed credits per request (other providers). These values are fallback minimums only.
     aiChat: BASE_MINIMUM_CHARGE, // Use standardized minimum charge
-    
+
     // Image generation credits per image - provider and model specific
     aiImage: 1.2, // Default image generation cost
-    
+
     // Provider-specific costs in Core credits
     // These are based on actual API costs from providers
     providerCosts: {
@@ -351,7 +350,7 @@ export function getAIFeatureCosts() {
       enabled: true,
       tiers: [
         { threshold: 1000, discount: 0.03 }, // 3% off for 1000+ Cores
-        { threshold: 2500, discount: 0.05 }, // 5% off for 2500+ Cores  
+        { threshold: 2500, discount: 0.05 }, // 5% off for 2500+ Cores
         { threshold: 5000, discount: 0.08 }, // 8% off for 5000+ Cores
       ],
     },
@@ -401,7 +400,7 @@ export function calculateCoreCredits(usdCost) {
   const featureCosts = getAIFeatureCosts();
   const conversionRate = featureCosts.tokenPricing.openrouter.conversionRate;
   const minimumCharge = featureCosts.tokenPricing.openrouter.minimumCharge;
-  
+
   const calculatedCredits = usdCost * conversionRate;
   return Math.max(calculatedCredits, minimumCharge);
 }
@@ -414,13 +413,13 @@ export function getConversionRateInfo() {
   const featureCosts = getAIFeatureCosts();
   const rate = featureCosts.tokenPricing.openrouter.conversionRate;
   const minimum = featureCosts.tokenPricing.openrouter.minimumCharge;
-  
+
   return {
     conversionRate: rate,
     minimumCharge: minimum,
     coreValueUSD: 1 / rate,
     coreValueCents: (1 / rate) * 100,
-    formula: `Core_Credits = max(API_Cost_USD × ${rate}, ${minimum})`
+    formula: `Core_Credits = max(API_Cost_USD × ${rate}, ${minimum})`,
   };
 }
 

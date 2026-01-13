@@ -83,8 +83,10 @@ export class ProviderManager {
       if (isNSFW) {
         const fallbackOrder = ["runpod", "comfyui"];
         for (const providerKey of fallbackOrder) {
-          if (this.isProviderAvailable(providerKey) && 
-              this.isProviderSafeForContent(providerKey, isNSFW)) {
+          if (
+            this.isProviderAvailable(providerKey) &&
+            this.isProviderSafeForContent(providerKey, isNSFW)
+          ) {
             return providerKey;
           }
         }
@@ -92,8 +94,10 @@ export class ProviderManager {
         // For safe content, only use Stability AI (never NSFW providers)
         const fallbackOrder = ["stability"];
         for (const providerKey of fallbackOrder) {
-          if (this.isProviderAvailable(providerKey) && 
-              this.isProviderSafeForContent(providerKey, isNSFW)) {
+          if (
+            this.isProviderAvailable(providerKey) &&
+            this.isProviderSafeForContent(providerKey, isNSFW)
+          ) {
             return providerKey;
           }
         }

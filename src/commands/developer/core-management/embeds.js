@@ -40,7 +40,7 @@ export async function createDetailedCoreManagementEmbed({
   operator,
   userData = null,
   creditType = "total",
-  showCreditBreakdown = false,
+  _showCreditBreakdown = false,
 }) {
   // Ensure description is always set
   const description = getEmbedDescription(
@@ -158,7 +158,7 @@ function getEmbedDescription(
   amount,
   _oldAmount,
   _newAmount,
-  creditType = "total",
+  _creditType = "total",
 ) {
   const username = targetUser?.username || targetUser?.tag || "Unknown User";
   const creditTypeText = "Cores";

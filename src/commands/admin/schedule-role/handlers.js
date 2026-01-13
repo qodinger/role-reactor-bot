@@ -23,9 +23,7 @@ import {
   generateScheduleId,
 } from "./utils.js";
 import { getDatabaseManager } from "../../../utils/storage/databaseManager.js";
-import {
-  getUserData,
-} from "../../../commands/general/core/utils.js";
+import { getUserData } from "../../../commands/general/core/utils.js";
 
 /**
  * Handle the create schedule logic

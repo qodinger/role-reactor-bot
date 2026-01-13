@@ -20,7 +20,10 @@ const responseValidator = {
     return { valid: true, warnings: [] };
   },
 };
-import { checkAndDeductAICredits, deductCreditsFromUsage } from "../aiCreditManager.js";
+import {
+  checkAndDeductAICredits,
+  deductCreditsFromUsage,
+} from "../aiCreditManager.js";
 import { MAX_RESPONSE_LENGTH } from "../constants.js";
 import { getLogger } from "../../logger.js";
 
@@ -210,16 +213,6 @@ export async function deductCreditsIfNeeded(
   const hasValidContent =
     responseText.trim().length > 0 && responseText !== "No response generated.";
 
-  // Check usage data - definitive indicator that tokens were consumed = resources used
-  const hasUsageData =
-    result?.usage &&
-    (result.usage.prompt_tokens > 0 ||
-      result.usage.completion_tokens > 0 ||
-      result.usage.total_tokens > 0);
-
-  // For streaming, also check if we have content (stream completed = tokens consumed)
-  const hasContent = callType === "streaming" && fallbackText.trim().length > 0;
-  
   // Should deduct if we have valid content (API call succeeded and generated content)
   const shouldDeduct = hasValidContent;
 
@@ -233,37 +226,43 @@ export async function deductCreditsIfNeeded(
   }
 
   // Use usage-based deduction if we have actual usage data from the provider
-  if (result?.usage && typeof result.usage.cost === 'number' && result.usage.cost > 0) {
+  if (
+    result?.usage &&
+    typeof result.usage.cost === "number" &&
+    result.usage.cost > 0
+  ) {
     logger.info(
-      `💰 Using usage-based deduction for ${callType} (${result.provider || 'unknown'}) - API usage: ${result.usage.cost} credits`,
+      `💰 Using usage-based deduction for ${callType} (${result.provider || "unknown"}) - API usage: ${result.usage.cost} credits`,
     );
-    
-    // Get provider-specific conversion rate and minimum charge
-    const provider = result.provider || 'unknown';
+
+    // Get provider-specific conversion rate
+    const provider = result.provider || "unknown";
     let conversionRate = 2.0; // Default conversion rate
-    let minimumCharge = 0.01; // Default minimum
-    
+
     try {
       const { getAIFeatureCosts } = await import("../../../config/ai.js");
       const featureCosts = getAIFeatureCosts();
-      
+
       if (featureCosts.tokenPricing && featureCosts.tokenPricing[provider]) {
         const providerPricing = featureCosts.tokenPricing[provider];
         conversionRate = providerPricing.conversionRate || 2.0;
-        minimumCharge = providerPricing.minimumCharge || 0.01;
+        // Note: minimumCharge is available in config but not used in current implementation
       }
     } catch (error) {
-      logger.debug("Failed to load token pricing config, using defaults:", error);
+      logger.debug(
+        "Failed to load token pricing config, using defaults:",
+        error,
+      );
     }
-    
+
     const deductionResult = await deductCreditsFromUsage(
-      userId, 
-      result.usage, 
-      provider, 
-      result.model || 'unknown',
-      conversionRate
+      userId,
+      result.usage,
+      provider,
+      result.model || "unknown",
+      conversionRate,
     );
-    
+
     if (!deductionResult.success) {
       logger.error(
         `Failed to deduct usage-based credits for ${callType} API call for user ${userId}: ${deductionResult.error}`,

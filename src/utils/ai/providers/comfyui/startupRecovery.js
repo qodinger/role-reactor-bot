@@ -25,15 +25,16 @@ export async function startAutomaticRecovery(comfyuiProvider, discordClient) {
     // Start with more frequent checks initially (every 30 seconds for first 5 minutes)
     let checkCount = 0;
     const maxFastChecks = 10; // 10 checks * 30 seconds = 5 minutes
-    
+
     const startRecoveryChecks = () => {
-      const checkInterval = checkCount < maxFastChecks ? 30 * 1000 : 2 * 60 * 1000; // 30s then 2min
-      
+      const checkInterval =
+        checkCount < maxFastChecks ? 30 * 1000 : 2 * 60 * 1000; // 30s then 2min
+
       recoveryInterval = setTimeout(async () => {
         try {
           await performRecovery(comfyuiProvider, discordClient, "periodic");
           checkCount++;
-          
+
           // Continue scheduling
           if (recoveryInterval) {
             startRecoveryChecks();
@@ -51,8 +52,9 @@ export async function startAutomaticRecovery(comfyuiProvider, discordClient) {
     // Start the recovery check cycle
     startRecoveryChecks();
 
-    logger.info("[AutoRecovery] Automatic recovery system started (30s intervals for 5min, then 2min intervals)");
-
+    logger.info(
+      "[AutoRecovery] Automatic recovery system started (30s intervals for 5min, then 2min intervals)",
+    );
   } catch (error) {
     logger.error("[AutoRecovery] Failed to start automatic recovery:", error);
   }
@@ -72,7 +74,11 @@ export function stopAutomaticRecovery() {
 /**
  * Perform recovery check
  */
-async function performRecovery(comfyuiProvider, discordClient, type = "periodic") {
+async function performRecovery(
+  comfyuiProvider,
+  discordClient,
+  type = "periodic",
+) {
   try {
     // Clean up old jobs first (only on startup)
     if (type === "startup") {
@@ -84,7 +90,7 @@ async function performRecovery(comfyuiProvider, discordClient, type = "periodic"
 
     // Recover orphaned jobs
     const recoveredJobs = await comfyuiProvider.recoverOrphanedJobs();
-    
+
     if (recoveredJobs.length === 0) {
       if (type === "startup") {
         logger.info("[AutoRecovery] No orphaned jobs to recover on startup");
@@ -92,19 +98,25 @@ async function performRecovery(comfyuiProvider, discordClient, type = "periodic"
       return;
     }
 
-    logger.info(`[AutoRecovery] Found ${recoveredJobs.length} completed jobs to recover (${type})`);
+    logger.info(
+      `[AutoRecovery] Found ${recoveredJobs.length} completed jobs to recover (${type})`,
+    );
 
     // Send recovered images to users
     for (const recovery of recoveredJobs) {
       try {
         await sendRecoveredJobSeamlessly(recovery, discordClient);
       } catch (error) {
-        logger.error(`[AutoRecovery] Failed to send recovered job ${recovery.job.promptId}:`, error);
+        logger.error(
+          `[AutoRecovery] Failed to send recovered job ${recovery.job.promptId}:`,
+          error,
+        );
       }
     }
 
-    logger.info(`[AutoRecovery] Recovery complete - processed ${recoveredJobs.length} jobs`);
-
+    logger.info(
+      `[AutoRecovery] Recovery complete - processed ${recoveredJobs.length} jobs`,
+    );
   } catch (error) {
     logger.error(`[AutoRecovery] ${type} recovery failed:`, error);
   }
@@ -115,7 +127,7 @@ async function performRecovery(comfyuiProvider, discordClient, type = "periodic"
  */
 async function sendRecoveredJobSeamlessly(recovery, discordClient) {
   const { job, images } = recovery;
-  
+
   if (!images || images.length === 0) {
     logger.warn(`[AutoRecovery] No images found for job ${job.promptId}`);
     return;
@@ -128,26 +140,31 @@ async function sendRecoveredJobSeamlessly(recovery, discordClient) {
       try {
         channel = await discordClient.channels.fetch(job.channelId);
       } catch (error) {
-        logger.debug(`[AutoRecovery] Could not access original channel ${job.channelId}:`, error);
+        logger.debug(
+          `[AutoRecovery] Could not access original channel ${job.channelId}:`,
+          error,
+        );
       }
     }
 
     if (!channel) {
-      logger.warn(`[AutoRecovery] Original channel ${job.channelId} not accessible for job ${job.promptId}`);
+      logger.warn(
+        `[AutoRecovery] Original channel ${job.channelId} not accessible for job ${job.promptId}`,
+      );
       return;
     }
 
     // Create the image attachment
     const image = images[0];
-    const attachment = new AttachmentBuilder(image.data, { 
-      name: `imagine_${Date.now()}.png` 
+    const attachment = new AttachmentBuilder(image.data, {
+      name: `imagine_${Date.now()}.png`,
     });
 
     // Create embed that looks like a normal imagine result
     const embed = new EmbedBuilder()
       .setTitle("🎨 AI Generated Image")
       .setDescription(`**Prompt:** ${job.prompt}`)
-      .setColor(0x00AE86)
+      .setColor(0x00ae86)
       .setImage(`attachment://imagine_${Date.now()}.png`)
       .addFields([
         { name: "Model", value: job.model || "Unknown", inline: true },
@@ -164,29 +181,35 @@ async function sendRecoveredJobSeamlessly(recovery, discordClient) {
       files: [attachment],
     });
 
-    logger.info(`[AutoRecovery] Successfully delivered recovered job ${job.promptId} to channel ${job.channelId}`);
-
+    logger.info(
+      `[AutoRecovery] Successfully delivered recovered job ${job.promptId} to channel ${job.channelId}`,
+    );
   } catch (error) {
-    logger.error(`[AutoRecovery] Failed to send recovered job ${job.promptId}:`, error);
-    
+    logger.error(
+      `[AutoRecovery] Failed to send recovered job ${job.promptId}:`,
+      error,
+    );
+
     // Fallback: try to DM the user
     try {
       const user = await discordClient.users.fetch(job.userId);
       if (user) {
         const image = images[0];
-        const attachment = new AttachmentBuilder(image.data, { 
-          name: `recovered_${Date.now()}.png` 
+        const attachment = new AttachmentBuilder(image.data, {
+          name: `recovered_${Date.now()}.png`,
         });
 
         const embed = new EmbedBuilder()
           .setTitle("🔄 Recovered Image Generation")
           .setDescription(
             `Your image generation completed while the bot was processing. Here's your image!\n\n` +
-            `**Prompt:** ${job.prompt}`
+              `**Prompt:** ${job.prompt}`,
           )
-          .setColor(0x00FF00)
+          .setColor(0x00ff00)
           .setImage(`attachment://recovered_${Date.now()}.png`)
-          .setFooter({ text: "Delivered via DM - original channel was inaccessible" })
+          .setFooter({
+            text: "Delivered via DM - original channel was inaccessible",
+          })
           .setTimestamp();
 
         await user.send({
@@ -194,10 +217,15 @@ async function sendRecoveredJobSeamlessly(recovery, discordClient) {
           files: [attachment],
         });
 
-        logger.info(`[AutoRecovery] Sent recovered job ${job.promptId} via DM as fallback`);
+        logger.info(
+          `[AutoRecovery] Sent recovered job ${job.promptId} via DM as fallback`,
+        );
       }
     } catch (dmError) {
-      logger.error(`[AutoRecovery] Failed to send DM fallback for job ${job.promptId}:`, dmError);
+      logger.error(
+        `[AutoRecovery] Failed to send DM fallback for job ${job.promptId}:`,
+        dmError,
+      );
     }
   }
 }

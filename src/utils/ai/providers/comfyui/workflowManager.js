@@ -22,7 +22,10 @@ export class WorkflowManager {
     if (this.initialized) return;
 
     try {
-      const workflowsPath = path.join(process.cwd(), "src/utils/ai/providers/comfyui/workflows");
+      const workflowsPath = path.join(
+        process.cwd(),
+        "src/utils/ai/providers/comfyui/workflows",
+      );
       const files = await fs.readdir(workflowsPath);
 
       for (const file of files) {
@@ -153,9 +156,9 @@ export class WorkflowManager {
     // Find positive and negative prompt node IDs from KSampler
     let positiveNodeId = null;
     let negativeNodeId = null;
-    
+
     // First, find the KSampler to identify which nodes are positive/negative
-    for (const [nodeId, node] of Object.entries(workflowData)) {
+    for (const [, node] of Object.entries(workflowData)) {
       if (node.class_type === "KSampler") {
         if (node.inputs.positive && Array.isArray(node.inputs.positive)) {
           positiveNodeId = node.inputs.positive[0].toString();

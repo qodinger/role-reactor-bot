@@ -1,7 +1,7 @@
 /**
  * Image Generation Prompts
  * Simplified prompt configuration for current AI image generation system
- * 
+ *
  * PROVIDER_PROMPTS: Used by /avatar command only
  * IMAGINE_PROMPTS: Used by /imagine command for quality enhancements
  */
@@ -65,32 +65,43 @@ export const PROMPT_SUFFIX = PROVIDER_PROMPTS.stability.suffix;
 export const NEGATIVE_PROMPT = PROVIDER_PROMPTS.stability.negative;
 
 // Default character description
-export const DEFAULT_CHARACTER = process.env.AI_DEFAULT_CHARACTER || "a beautiful anime character";
+export const DEFAULT_CHARACTER =
+  process.env.AI_DEFAULT_CHARACTER || "a beautiful anime character";
 
 // Character type enhancements for /avatar command
 export const CHARACTER_TYPE_ENHANCEMENTS = {
   male: "handsome male character, masculine features, strong jawline, confident expression",
-  female: "beautiful female character, elegant features, graceful expression, feminine charm",
+  female:
+    "beautiful female character, elegant features, graceful expression, feminine charm",
   boy: "cute young male character, youthful appearance, energetic expression, boyish charm",
   girl: "cute young female character, adorable features, sweet expression, youthful innocence",
-  character: "unique character design, distinctive features, memorable appearance, original design",
-  person: "realistic anime person, human character, natural features, relatable appearance",
-  avatar: "perfect avatar design, profile picture ready, social media friendly, clean composition",
+  character:
+    "unique character design, distinctive features, memorable appearance, original design",
+  person:
+    "realistic anime person, human character, natural features, relatable appearance",
+  avatar:
+    "perfect avatar design, profile picture ready, social media friendly, clean composition",
 };
 
 // Style modifiers for /avatar command
 export const STYLE_MODIFIERS = {
   art_styles: {
-    manga: "manga style, black and white line art, traditional Japanese comics style, bold linework, dramatic shading",
-    modern: "modern anime style, contemporary anime design, clean digital art, vibrant colors, detailed character design",
-    retro: "retro anime style, 80s 90s vintage anime aesthetic, classic anime proportions, nostalgic color palette",
-    realistic: "semi-realistic anime, detailed realistic features, lifelike proportions, photorealistic anime style",
-    chibi: "chibi style, super deformed character design, cute chibi proportions, large head small body, adorable kawaii design",
+    manga:
+      "manga style, black and white line art, traditional Japanese comics style, bold linework, dramatic shading",
+    modern:
+      "modern anime style, contemporary anime design, clean digital art, vibrant colors, detailed character design",
+    retro:
+      "retro anime style, 80s 90s vintage anime aesthetic, classic anime proportions, nostalgic color palette",
+    realistic:
+      "semi-realistic anime, detailed realistic features, lifelike proportions, photorealistic anime style",
+    chibi:
+      "chibi style, super deformed character design, cute chibi proportions, large head small body, adorable kawaii design",
     lofi: "lo-fi anime style, chill aesthetic, soft muted colors, dreamy atmosphere, nostalgic vibes, relaxed character design",
   },
   // Color and mood styles are automatically detected from prompt text
   colors: {
-    vibrant: "vibrant colors, bold color palette, saturated colors, bright colors",
+    vibrant:
+      "vibrant colors, bold color palette, saturated colors, bright colors",
     pastel: "pastel colors, soft color palette, muted colors, gentle colors",
     monochrome: "monochrome, black and white, grayscale, single color",
     neon: "neon colors, glowing colors, electric colors, fluorescent colors",
@@ -103,7 +114,8 @@ export const STYLE_MODIFIERS = {
     mysterious: "mysterious expression, enigmatic, secretive, intriguing mood",
     cute: "cute expression, adorable, sweet, kawaii, charming mood",
     cool: "cool expression, confident, stylish, composed, relaxed mood",
-    elegant: "elegant expression, graceful, refined, sophisticated, classy mood",
+    elegant:
+      "elegant expression, graceful, refined, sophisticated, classy mood",
   },
 };
 

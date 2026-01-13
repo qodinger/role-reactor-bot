@@ -24,29 +24,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - AI Server Context: AI assistant has access to server information, member lists, and bot commands
 - AI Command Execution: AI can execute general bot commands on behalf of users
 - AI Conversation Memory: AI remembers conversation history for better context-aware responses
-- AI Response Optimization: Faster AI responses with improved efficiency
 
 ### Changed
 
 - Help System: Improved help documentation with more detailed information for all commands. Help content is now automatically kept up to date with command features
-- Userinfo Activity Display: Enhanced activity information display with better support for streaming activities and status types
 
 ### Removed
 
 - Voice Restrictions: Removed automatic voice restriction enforcement feature. The bot no longer automatically disconnects or mutes users based on role permissions
-
-### Fixed
-
-- Avatar Generation Progress: Fixed progress updates not displaying during avatar generation, now showing real-time status messages
-- Serverinfo Member Counts: Fixed incorrect online member counts by properly separating human members from bots in status displays
-- Temp Roles Notifications: Improved error handling for DM notification failures to prevent breaking role assignment process
-- Authentication: Fixed authentication failures for improved reliability
-
-### Performance
-
-- Voice Control Operations: Improved processing speed and reliability for voice control operations on large servers
-- Voice Control Background Processing: Large operations now process in the background without blocking command responses
-- Temp Roles Operations: Significantly faster temporary role assignments, especially when assigning roles to multiple users at once
 
 ## [1.5.0] - 2025-12-15
 
@@ -55,10 +40,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Moderation Commands: Complete moderation system with `/moderation` command supporting timeout, warn, ban, kick, unban, purge, history, remove-warn, and list-bans subcommands
 - Moderation Bulk Operations: Support for moderating multiple users at once (up to 15 users) for timeout, warn, ban, kick, and unban actions with faster processing
 - Moderation History: View moderation history for individual users or entire server with pagination support
-- Moderation Logging: Comprehensive logging system with unique case IDs for all moderation actions
 - Moderation Auto-Escalation: Automatic timeout or kick based on warning thresholds (configurable)
-- Moderation DM Notifications: Users received direct messages when warned, timed out, banned, kicked, or unbanned
-- Moderation Bot Protection: Moderation commands prevented moderating bots to avoid breaking bot functionality
+- Moderation DM Notifications: Users receive direct messages when warned, timed out, banned, kicked, or unbanned
+- Moderation Bot Protection: Moderation commands prevent moderating bots to avoid breaking bot functionality
 - Warning System: Track and manage user warnings with automatic escalation to timeout or kick
 - Userinfo Warning Display: Warning count now appears in `/userinfo` command for users with moderation history
 - Userinfo Command: New `/userinfo` command to view detailed information about Discord users including account details, badges, roles, join date, timeout status, and current voice channel

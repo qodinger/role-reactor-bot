@@ -6,7 +6,7 @@ import {
 } from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
 import { createWYREmbed, createErrorEmbed } from "./embeds.js";
-import { getRandomWYRQuestion } from "./utils.js";
+import { getRandomWYRQuestion, getUserTitle } from "./utils.js";
 import { EMOJIS } from "../../../config/theme.js";
 
 const logger = getLogger();
@@ -132,7 +132,7 @@ function getVoteCounts(messageId) {
  * @returns {ActionRowBuilder}
  */
 function createVoteButtons(
-  _messageId = null,
+  messageId = null,
   _userId = null,
   _requesterId = null,
 ) {
@@ -141,17 +141,40 @@ function createVoteButtons(
   // This allows the requester to refresh multiple times while still blocking others.
   const canRefresh = true;
 
+  // Get vote counts to make buttons more dynamic
+  const voteCounts = messageId
+    ? getVoteCounts(messageId)
+    : { option1: 0, option2: 0, total: 0 };
+
+  // Dynamic button labels based on vote counts
+  let option1Label = "Option 1";
+  let option2Label = "Option 2";
+
+  if (voteCounts.total > 0) {
+    if (voteCounts.option1 > voteCounts.option2) {
+      option1Label = "Option 1 🔥"; // Leading option gets fire emoji
+    } else if (voteCounts.option2 > voteCounts.option1) {
+      option2Label = "Option 2 🔥"; // Leading option gets fire emoji
+    } else if (
+      voteCounts.option1 === voteCounts.option2 &&
+      voteCounts.total > 0
+    ) {
+      option1Label = "Option 1 ⚖️"; // Tied options get balance emoji
+      option2Label = "Option 2 ⚖️";
+    }
+  }
+
   // Buttons are always blue - vote information is shown in the embed
   // We can't show different button states to different users (Discord limitation)
   return new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId("wyr_vote_1")
-      .setLabel("Option 1")
+      .setLabel(option1Label)
       .setStyle(ButtonStyle.Primary)
       .setEmoji(EMOJIS.NUMBERS.ONE),
     new ButtonBuilder()
       .setCustomId("wyr_vote_2")
-      .setLabel("Option 2")
+      .setLabel(option2Label)
       .setStyle(ButtonStyle.Primary)
       .setEmoji(EMOJIS.NUMBERS.TWO),
     new ButtonBuilder()
@@ -286,6 +309,7 @@ export async function handleWYRButton(interaction, _client) {
 
       const userId = interaction.user.id;
       const currentVote = voteData.votes.get(userId);
+      const wasFirstVote = voteData.votes.size === 0;
 
       // Toggle vote: if user already voted for this option, remove vote; otherwise, set vote
       if (currentVote === choice) {
@@ -297,11 +321,16 @@ export async function handleWYRButton(interaction, _client) {
       // Get updated vote counts
       const voteCounts = getVoteCounts(messageId);
 
-      // Update embed with new vote counts
+      // Get user title
+      const userTitle = getUserTitle(userId, voteData, choice, wasFirstVote);
+
+      // Update embed with new vote counts and user title
       const embed = createWYREmbed(
         voteData.question,
         interaction.user,
         voteCounts,
+        null, // No reaction
+        userTitle,
       );
 
       await interaction.deferUpdate();

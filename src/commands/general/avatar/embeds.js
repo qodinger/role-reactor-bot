@@ -174,7 +174,7 @@ export function createCoreEmbed(interaction, userData, creditsNeeded, prompt) {
   // Simplified Core display
   const totalCredits = userData.credits || 0;
 
-  let coreBreakdown = `**Your Balance**: ${totalCredits} ${CORE_EMOJI}`;
+  const coreBreakdown = `**Your Balance**: ${totalCredits} ${CORE_EMOJI}`;
 
   return new EmbedBuilder()
     .setColor(THEME.WARNING)

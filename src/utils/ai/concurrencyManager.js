@@ -11,7 +11,8 @@ export class AIConcurrencyManager {
   constructor() {
     // Global rate limiting
     this.globalRateLimit = parseInt(process.env.AI_GLOBAL_RATE_LIMIT) || 50;
-    this.globalRateWindow = parseInt(process.env.AI_GLOBAL_RATE_WINDOW) || 60000;
+    this.globalRateWindow =
+      parseInt(process.env.AI_GLOBAL_RATE_WINDOW) || 60000;
     this.globalRequests = [];
 
     // User rate limiting
@@ -44,7 +45,9 @@ export class AIConcurrencyManager {
     // Calculate effective rate limit based on credit balance
     let effectiveRateLimit = this.userRateLimit;
     if (coreUserData && coreUserData.hasCredits) {
-      effectiveRateLimit = Math.floor(this.userRateLimit * this.creditUserMultiplier);
+      effectiveRateLimit = Math.floor(
+        this.userRateLimit * this.creditUserMultiplier,
+      );
     }
 
     if (!userData) {
@@ -95,7 +98,9 @@ export class AIConcurrencyManager {
 
     let effectiveRateLimit = this.userRateLimit;
     if (coreUserData && coreUserData.hasCredits) {
-      effectiveRateLimit = Math.floor(this.userRateLimit * this.creditUserMultiplier);
+      effectiveRateLimit = Math.floor(
+        this.userRateLimit * this.creditUserMultiplier,
+      );
     }
 
     if (!userData) {
@@ -171,7 +176,9 @@ export class AIConcurrencyManager {
 
     let effectiveRateLimit = this.userRateLimit;
     if (coreUserData && coreUserData.hasCredits) {
-      effectiveRateLimit = Math.floor(this.userRateLimit * this.creditUserMultiplier);
+      effectiveRateLimit = Math.floor(
+        this.userRateLimit * this.creditUserMultiplier,
+      );
     }
 
     if (!userData) {
@@ -224,7 +231,9 @@ export class AIConcurrencyManager {
       ([, userData]) => now - userData.lastRequest < this.userRateWindow,
     );
 
-    const creditUsers = activeUsers.filter(([, userData]) => userData.hasCredits);
+    const creditUsers = activeUsers.filter(
+      ([, userData]) => userData.hasCredits,
+    );
 
     return {
       activeUsers: activeUsers.length,
@@ -269,7 +278,9 @@ export class AIConcurrencyManager {
       timestamp => now - timestamp < this.globalRateWindow,
     );
 
-    logger.debug(`Cleaned up rate limit data. Active users: ${this.userRequests.size}`);
+    logger.debug(
+      `Cleaned up rate limit data. Active users: ${this.userRequests.size}`,
+    );
   }
 }
 

@@ -18,6 +18,17 @@ const QUESTIONS_FILE = path.join(__dirname, "wyr_questions.json");
 // Cache for loaded questions
 let WYR_QUESTIONS_CACHE = null;
 
+// Funny user titles based on voting patterns
+export const USER_TITLES = {
+  CONTRARIAN: "The Contrarian 🔄", // Always votes for losing option
+  TRENDSETTER: "The Trendsetter 🌟", // Often votes for winning option
+  FIRST_VOTER: "Quick Draw 🏹", // First to vote
+  TIE_BREAKER: "The Decider ⚖️", // Breaks ties
+  FLIP_FLOPPER: "The Flip-Flopper 🔄", // Changes vote multiple times
+  BANDWAGON: "Bandwagon Rider 🚂", // Joins the winning side
+  UNDERDOG: "Underdog Champion 🐕", // Supports the losing side
+};
+
 /**
  * Load questions from JSON file
  * @returns {Object} Questions organized by category
@@ -40,10 +51,15 @@ function loadQuestions() {
     return {
       FUNNY: [],
       SUPERHERO: [],
+      TECHNOLOGY: [],
+      RELATIONSHIPS: [],
       LIFE_CHOICES: [],
       PHILOSOPHICAL: [],
       CHALLENGING: [],
       POP_CULTURE: [],
+      FOOD: [],
+      ADVENTURE: [],
+      MODERN_LIFE: [],
     };
   }
 }
@@ -144,5 +160,76 @@ export function parseQuestionOptions(question) {
   return {
     option1: "Option 1",
     option2: "Option 2",
+  };
+}
+
+/**
+ * Determine user title based on voting behavior
+ * @param {string} userId - User ID
+ * @param {Object} voteData - Current vote data
+ * @param {number} choice - User's choice (1 or 2)
+ * @param {boolean} isFirstVote - Whether this is the first vote on this question
+ * @returns {string|null} User title or null
+ */
+export function getUserTitle(userId, voteData, choice, isFirstVote) {
+  if (isFirstVote) {
+    return USER_TITLES.FIRST_VOTER;
+  }
+
+  const voteCounts = getVoteCounts(voteData);
+  const { option1, option2, total } = voteCounts;
+
+  // Check if this vote breaks a tie
+  if (option1 === option2 && total > 2) {
+    return USER_TITLES.TIE_BREAKER;
+  }
+
+  // Check if user is joining the winning side (bandwagon)
+  if (total >= 3) {
+    const winningOption = option1 > option2 ? 1 : option2 > option1 ? 2 : null;
+    if (
+      winningOption &&
+      choice === winningOption &&
+      Math.abs(option1 - option2) >= 2
+    ) {
+      return USER_TITLES.BANDWAGON;
+    }
+
+    // Check if user is supporting the underdog
+    const losingOption = option1 < option2 ? 1 : option2 < option1 ? 2 : null;
+    if (
+      losingOption &&
+      choice === losingOption &&
+      Math.abs(option1 - option2) >= 2
+    ) {
+      return USER_TITLES.UNDERDOG;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Get vote counts from vote data
+ * @param {Object} voteData - Vote data object
+ * @returns {Object} Vote counts
+ */
+function getVoteCounts(voteData) {
+  if (!voteData || !voteData.votes) {
+    return { option1: 0, option2: 0, total: 0 };
+  }
+
+  let option1 = 0;
+  let option2 = 0;
+
+  for (const choice of voteData.votes.values()) {
+    if (choice === 1) option1++;
+    if (choice === 2) option2++;
+  }
+
+  return {
+    option1,
+    option2,
+    total: option1 + option2,
   };
 }
