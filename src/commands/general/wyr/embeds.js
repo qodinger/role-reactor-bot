@@ -229,7 +229,7 @@ export function createWYREmbed(
     .setTitle(`${categoryInfo.emoji} Would You Rather? • ${categoryInfo.name}`)
     .setDescription(description)
     .setFooter({
-      text: `${userTitle ? `${user.displayName} • ${userTitle} • ` : ''}Role Reactor`,
+      text: `${userTitle ? `${user.displayName} • ${userTitle} • ` : ""}Role Reactor`,
       iconURL: user.displayAvatarURL(),
     })
     .setTimestamp();

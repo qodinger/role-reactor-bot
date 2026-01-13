@@ -7,7 +7,12 @@ import {
   createExpiredChallengeEmbed,
   createErrorEmbed,
 } from "./embeds.js";
-import { getBotChoice, generateChallengeId, determineWinner, CHOICES } from "./utils.js";
+import {
+  getBotChoice,
+  generateChallengeId,
+  determineWinner,
+  CHOICES,
+} from "./utils.js";
 import { createChallengeButtons } from "./components.js";
 
 const logger = getLogger();
@@ -189,9 +194,13 @@ export async function execute(interaction, _client) {
     logger.error("Error in rps command:", error);
     // Only try to reply if we haven't already
     if (interaction.deferred) {
-      await interaction.editReply({ embeds: [createErrorEmbed()] }).catch(() => {});
+      await interaction
+        .editReply({ embeds: [createErrorEmbed()] })
+        .catch(() => {});
     } else if (!interaction.replied) {
-      await interaction.reply({ embeds: [createErrorEmbed()], flags: MessageFlags.Ephemeral }).catch(() => {});
+      await interaction
+        .reply({ embeds: [createErrorEmbed()], flags: MessageFlags.Ephemeral })
+        .catch(() => {});
     }
   }
 }
@@ -238,7 +247,9 @@ export async function handleRPSButton(interaction) {
     if (!validChoices.includes(challengedChoice)) {
       await interaction.reply({
         embeds: [
-          createErrorEmbed().setDescription("Invalid choice. Please use rock, paper, or scissors."),
+          createErrorEmbed().setDescription(
+            "Invalid choice. Please use rock, paper, or scissors.",
+          ),
         ],
         flags: MessageFlags.Ephemeral,
       });
