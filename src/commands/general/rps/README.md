@@ -65,7 +65,7 @@ When you challenge another user:
 - **Challenge Friends**: Challenge other users to multiplayer games with interactive buttons
 - **Interactive Buttons**: Challenged users respond with button clicks (for human players)
 - **Instant Results**: Immediate winner determination
-- **Visual Feedback**: Color-coded embeds (green for win, red for loss, blue for tie)
+- **Visual Feedback**: Color-coded embeds (green for win, red for loss, blue for tie) and dynamic button colors for the winner
 - **Emoji Display**: Visual representation of choices
 - **Challenge Expiration**: Challenges expire after 10 minutes (reasonable time for users to respond)
 - **No Setup Required**: Works immediately in any server

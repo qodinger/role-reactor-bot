@@ -4,7 +4,7 @@
 
 // Conversation management constants
 export const DEFAULT_MAX_HISTORY_LENGTH = 20;
-export const DEFAULT_CONVERSATION_TIMEOUT = 7 * 24 * 60 * 60 * 1000; // 7 days
+export const DEFAULT_CONVERSATION_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours
 export const DEFAULT_MAX_CONVERSATIONS = 1000;
 
 // Response length constants

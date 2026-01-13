@@ -210,14 +210,21 @@ describe("RPS Command", () => {
     });
 
     it("should handle errors gracefully", async () => {
-      // Mock an error that occurs during execution
-      mockInteraction.guild.members.cache.get.mockImplementation(() => {
-        throw new Error("Test error");
+      // Setup error
+      const error = new Error("Test error");
+      mockInteraction.options.getUser.mockImplementation(() => {
+        throw error;
       });
-
-      await expect(execute(mockInteraction, mockClient)).resolves.not.toThrow();
       
-      // Should still attempt to send error embed
+      // Important: Set deferred to true so the safe error handler tries to editReply
+      mockInteraction.deferred = true;
+
+      await execute(mockInteraction, mockClient);
+
+      // Assuming logger is mocked elsewhere or not relevant for this specific instruction
+      // expect(logger.error).toHaveBeenCalledWith("Error in rps command:", error);
+      
+      // Should attempt to send error embed via editReply because it was deferred
       expect(mockInteraction.editReply).toHaveBeenCalled();
     });
   });
