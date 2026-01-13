@@ -469,7 +469,7 @@ export async function handlePollCreateFromModal(interaction, _client) {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     // No rate limiting - Discord doesn't limit poll creation
-    // Let users create as many polls as they want, just like native Discord polls
+    // Allow users to create polls as with native Discord polls
 
     const question = interaction.fields.getTextInputValue("poll_question");
     const optionsString = interaction.fields.getTextInputValue("poll_options");
@@ -1249,7 +1249,7 @@ export async function handlePollListButton(interaction, _client) {
         components,
       });
     } else if (customId === "poll_list_current") {
-      // Current page button is disabled, just acknowledge
+      // Current page button is disabled, acknowledge interaction
       await interaction.deferUpdate();
     }
   } catch (error) {

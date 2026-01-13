@@ -4,7 +4,19 @@ import { getLogger } from "../logger.js";
 const logger = getLogger();
 
 /**
- * AI Credit Manager
+ * Format Core credits to always show exactly 2 decimal places (xx.xx format)
+ * @param {number} credits - Credit amount to format
+ * @returns {number} Formatted credit amount with exactly 2 decimal places
+ */
+export function formatCoreCredits(credits) {
+  if (typeof credits !== 'number' || isNaN(credits)) {
+    return 0.00;
+  }
+  return Math.round(credits * 100) / 100;
+}
+
+/**
+ * AI Credit Manager - Simplified Version
  * Handles credit checks and deductions for AI features
  * Uses centralized config for pricing
  * Implements atomic operations with locking to prevent race conditions
@@ -13,7 +25,7 @@ const logger = getLogger();
 let chatConfigCache = null;
 let imageConfigCache = null;
 // Defaults loaded from config - these are only used as absolute fallback if config loading fails
-const DEFAULT_CREDITS_PER_CHAT = 0.08; // Fallback only - actual value comes from config/ai.js
+const DEFAULT_CREDITS_PER_CHAT = 0.01; // Fallback only - actual value comes from config/ai.js
 const DEFAULT_CREDITS_PER_IMAGE = 1.2; // Fallback only - actual value comes from config/ai.js
 
 // In-memory locks to prevent race conditions in credit operations
@@ -186,10 +198,8 @@ function validateUserId(userId) {
 
 /**
  * Check if user has enough credits for AI request
- * Accounts for potential re-queries (checks for 2x cost to cover initial + re-query)
- * All users must pay Core credits for AI requests (no unlimited access)
  * @param {string} userId - User ID
- * @returns {Promise<{hasCredits: boolean, credits: number, creditsNeeded: number, isCoreMember: boolean}>}
+ * @returns {Promise<{hasCredits: boolean, credits: number, creditsNeeded: number}>}
  */
 export async function checkAICredits(userId) {
   try {
@@ -200,7 +210,6 @@ export async function checkAICredits(userId) {
         hasCredits: false,
         credits: 0,
         creditsNeeded: getCreditsPerRequestValue(),
-        isCoreMember: false,
       };
     }
 
@@ -223,17 +232,15 @@ export async function checkAICredits(userId) {
 
     return {
       hasCredits: hasEnoughCredits,
-      credits: creditData.credits || 0,
-      creditsNeeded: creditsPerRequest, // Return single request credits for display
-      isCoreMember: false,
+      credits: formatCoreCredits(creditData.credits || 0),
+      creditsNeeded: formatCoreCredits(creditsPerRequest), // Return single request credits for display
     };
   } catch (error) {
     logger.error("Error checking AI credits:", error);
     return {
       hasCredits: false,
-      credits: 0,
-      creditsNeeded: getCreditsPerRequestValue(),
-      isCoreMember: false,
+      credits: formatCoreCredits(0),
+      creditsNeeded: formatCoreCredits(getCreditsPerRequestValue()),
     };
   }
 }
@@ -273,37 +280,34 @@ export async function checkAndDeductAICredits(userId) {
       if (creditData.credits < creditsPerRequest) {
         return {
           success: false,
-          creditsRemaining: creditData.credits || 0,
-          creditsDeducted: 0,
+          creditsRemaining: formatCoreCredits(creditData.credits || 0),
+          creditsDeducted: formatCoreCredits(0),
           error: "Insufficient credits",
         };
       }
 
       // Deduct credits per request (atomic operation)
-      creditData.credits = (creditData.credits || 0) - creditsPerRequest;
+      creditData.credits = formatCoreCredits((creditData.credits || 0) - creditsPerRequest);
       creditData.lastUpdated = new Date().toISOString();
-
-      // Round to 2 decimal places to avoid floating point precision issues
-      creditData.credits = Math.round(creditData.credits * 100) / 100;
 
       coreCredits[userId] = creditData;
       await storage.set("core_credit", coreCredits);
 
       logger.debug(
-        `User ${userId} used AI: Deducted ${creditsPerRequest} Core (${creditData.credits} remaining)`,
+        `User ${userId} used AI: Deducted ${formatCoreCredits(creditsPerRequest)} Core (${creditData.credits} remaining)`,
       );
 
       return {
         success: true,
         creditsRemaining: creditData.credits,
-        creditsDeducted: creditsPerRequest,
+        creditsDeducted: formatCoreCredits(creditsPerRequest),
       };
     } catch (error) {
       logger.error("Error in atomic checkAndDeductAICredits:", error);
       return {
         success: false,
-        creditsRemaining: 0,
-        creditsDeducted: 0,
+        creditsRemaining: formatCoreCredits(0),
+        creditsDeducted: formatCoreCredits(0),
         error: error.message,
       };
     }
@@ -315,7 +319,7 @@ export async function checkAndDeductAICredits(userId) {
  * DEPRECATED: Use checkAndDeductAICredits() for atomic operations
  * Kept for backward compatibility but now uses locking
  * @param {string} userId - User ID
- * @returns {Promise<{success: boolean, creditsRemaining: number, isCoreMember: boolean}>}
+ * @returns {Promise<{success: boolean, creditsRemaining: number}>}
  */
 export async function deductAICredits(userId) {
   const result = await checkAndDeductAICredits(userId);
@@ -323,7 +327,6 @@ export async function deductAICredits(userId) {
     success: result.success,
     creditsRemaining: result.creditsRemaining,
     error: result.error,
-    isCoreMember: false,
   };
 }
 
@@ -350,13 +353,13 @@ export async function getAICreditInfo(userId) {
     const requestsRemaining = Math.floor(credits / creditsPerRequest);
 
     return {
-      credits,
+      credits: formatCoreCredits(credits),
       requestsRemaining,
     };
   } catch (error) {
     logger.error("Error getting AI credit info:", error);
     return {
-      credits: 0,
+      credits: formatCoreCredits(0),
       requestsRemaining: 0,
     };
   }
@@ -414,8 +417,6 @@ export async function checkAIImageCredits(userId, provider = null, model = null)
         creditsNeeded: getCreditsPerImageValue(),
         userData: {
           credits: 0,
-          subscriptionCredits: 0,
-          bonusCredits: 0,
           totalGenerated: 0,
         },
       };
@@ -429,8 +430,6 @@ export async function checkAIImageCredits(userId, provider = null, model = null)
 
     const userData = coreCredits[userId] || {
       credits: 0,
-      subscriptionCredits: 0,
-      bonusCredits: 0,
       totalGenerated: 0,
       lastUpdated: new Date().toISOString(),
     };
@@ -446,20 +445,18 @@ export async function checkAIImageCredits(userId, provider = null, model = null)
 
     return {
       hasCredits: hasEnoughCredits,
-      credits: userData.credits || 0,
-      creditsNeeded: creditsPerImage,
+      credits: formatCoreCredits(userData.credits || 0),
+      creditsNeeded: formatCoreCredits(creditsPerImage),
       userData,
     };
   } catch (error) {
     logger.error("Error checking AI image credits:", error);
     return {
       hasCredits: false,
-      credits: 0,
-      creditsNeeded: getCreditsPerImageValue(),
+      credits: formatCoreCredits(0),
+      creditsNeeded: formatCoreCredits(getCreditsPerImageValue()),
       userData: {
-        credits: 0,
-        subscriptionCredits: 0,
-        bonusCredits: 0,
+        credits: formatCoreCredits(0),
         totalGenerated: 0,
       },
     };
@@ -485,8 +482,6 @@ export async function checkAndDeductAIImageCredits(userId, provider = null, mode
       creditsDeducted: 0,
       deductionBreakdown: {
         totalDeducted: 0,
-        subscriptionDeducted: 0,
-        bonusDeducted: 0,
       },
       error: "Invalid user ID",
     };
@@ -502,8 +497,6 @@ export async function checkAndDeductAIImageCredits(userId, provider = null, mode
 
       const userData = coreCredits[userId] || {
         credits: 0,
-        subscriptionCredits: 0,
-        bonusCredits: 0,
         totalGenerated: 0,
         lastUpdated: new Date().toISOString(),
       };
@@ -518,88 +511,53 @@ export async function checkAndDeductAIImageCredits(userId, provider = null, mode
       if (userData.credits < creditsPerImage) {
         return {
           success: false,
-          creditsRemaining: userData.credits || 0,
-          creditsDeducted: 0,
+          creditsRemaining: formatCoreCredits(userData.credits || 0),
+          creditsDeducted: formatCoreCredits(0),
           error: "Insufficient credits",
           deductionBreakdown: {
-            totalDeducted: 0,
-            subscriptionDeducted: 0,
-            bonusDeducted: 0,
+            totalDeducted: formatCoreCredits(0),
           },
         };
       }
 
       const previousCount = userData.totalGenerated || 0;
 
-      // ===== CORE DEDUCTION LOGIC =====
-      // FIFO Order: Existing subscription Cores (if any) first, then bonus Cores
-      let remainingToDeduct = creditsPerImage;
-      let subscriptionDeducted = 0;
-      let bonusDeducted = 0;
-
-      // Step 1: Deduct from subscription Cores first
-      if (userData.subscriptionCredits && userData.subscriptionCredits > 0) {
-        subscriptionDeducted = Math.min(
-          remainingToDeduct,
-          userData.subscriptionCredits,
-        );
-        userData.subscriptionCredits -= subscriptionDeducted;
-        remainingToDeduct -= subscriptionDeducted;
-      }
-
-      // Step 2: Deduct from bonus Cores if still needed
-      if (
-        remainingToDeduct > 0 &&
-        userData.bonusCredits &&
-        userData.bonusCredits > 0
-      ) {
-        bonusDeducted = Math.min(remainingToDeduct, userData.bonusCredits);
-        userData.bonusCredits -= bonusDeducted;
-        remainingToDeduct -= bonusDeducted;
-      }
-
-      // Step 3: Update total Cores (atomic operation)
-      userData.credits -= creditsPerImage;
+      // ===== SIMPLIFIED CORE DEDUCTION LOGIC =====
+      // Simple deduction from total credits
+      
+      // Step 1: Update total Cores (atomic operation)
+      userData.credits = formatCoreCredits(userData.credits - creditsPerImage);
       userData.totalGenerated = (userData.totalGenerated || 0) + 1;
       userData.lastUpdated = new Date().toISOString();
-
-      // Round to 2 decimal places to avoid floating point precision issues
-      userData.credits = Math.round(userData.credits * 100) / 100;
 
       coreCredits[userId] = userData;
       await storage.set("core_credit", coreCredits);
 
       const deductionBreakdown = {
-        totalDeducted: creditsPerImage,
-        subscriptionDeducted,
-        bonusDeducted,
-        remainingToDeduct,
+        totalDeducted: formatCoreCredits(creditsPerImage),
       };
 
       logger.info(
-        `User ${userId} used ${creditsPerImage} Core for ${provider}/${model} image generation. ` +
-          `Deduction: ${subscriptionDeducted} from subscription, ${bonusDeducted} from bonus. ` +
-          `Remaining: ${userData.credits} total (${userData.subscriptionCredits} subscription, ${userData.bonusCredits} bonus). ` +
+        `User ${userId} used ${formatCoreCredits(creditsPerImage)} Core for ${provider}/${model} image generation. ` +
+          `Remaining: ${userData.credits} total. ` +
           `Total generated: ${previousCount} → ${userData.totalGenerated}`,
       );
 
       return {
         success: true,
         creditsRemaining: userData.credits,
-        creditsDeducted: creditsPerImage,
+        creditsDeducted: formatCoreCredits(creditsPerImage),
         deductionBreakdown,
       };
     } catch (error) {
       logger.error("Error in atomic checkAndDeductAIImageCredits:", error);
       return {
         success: false,
-        creditsRemaining: 0,
-        creditsDeducted: 0,
+        creditsRemaining: formatCoreCredits(0),
+        creditsDeducted: formatCoreCredits(0),
         error: error.message,
         deductionBreakdown: {
-          totalDeducted: 0,
-          subscriptionDeducted: 0,
-          bonusDeducted: 0,
+          totalDeducted: formatCoreCredits(0),
         },
       };
     }
@@ -638,12 +596,10 @@ export async function deductCreditsFromUsage(userId, usage, provider, model, con
     logger.warn(`Invalid userId format in deductCreditsFromUsage: ${userId}`);
     return {
       success: false,
-      creditsRemaining: 0,
-      creditsDeducted: 0,
+      creditsRemaining: formatCoreCredits(0),
+      creditsDeducted: formatCoreCredits(0),
       deductionBreakdown: {
-        totalDeducted: 0,
-        subscriptionDeducted: 0,
-        bonusDeducted: 0,
+        totalDeducted: formatCoreCredits(0),
         actualApiCost: 0,
         conversionRate,
       },
@@ -655,12 +611,10 @@ export async function deductCreditsFromUsage(userId, usage, provider, model, con
     logger.warn(`Invalid usage data for user ${userId}: ${JSON.stringify(usage)}`);
     return {
       success: false,
-      creditsRemaining: 0,
-      creditsDeducted: 0,
+      creditsRemaining: formatCoreCredits(0),
+      creditsDeducted: formatCoreCredits(0),
       deductionBreakdown: {
-        totalDeducted: 0,
-        subscriptionDeducted: 0,
-        bonusDeducted: 0,
+        totalDeducted: formatCoreCredits(0),
         actualApiCost: 0,
         conversionRate,
       },
@@ -675,8 +629,6 @@ export async function deductCreditsFromUsage(userId, usage, provider, model, con
 
       const userData = coreCredits[userId] || {
         credits: 0,
-        subscriptionCredits: 0,
-        bonusCredits: 0,
         totalGenerated: 0,
         lastUpdated: new Date().toISOString(),
       };
@@ -697,19 +649,17 @@ export async function deductCreditsFromUsage(userId, usage, provider, model, con
         // Use default minimum if config loading fails
       }
       
-      const finalCreditsToDeduct = Math.max(creditsToDeduct, minimumCharge);
+      const finalCreditsToDeduct = formatCoreCredits(Math.max(creditsToDeduct, minimumCharge));
 
       // Check if user has enough credits
       if (userData.credits < finalCreditsToDeduct) {
         return {
           success: false,
-          creditsRemaining: userData.credits || 0,
-          creditsDeducted: 0,
+          creditsRemaining: formatCoreCredits(userData.credits || 0),
+          creditsDeducted: formatCoreCredits(0),
           error: "Insufficient credits",
           deductionBreakdown: {
-            totalDeducted: 0,
-            subscriptionDeducted: 0,
-            bonusDeducted: 0,
+            totalDeducted: formatCoreCredits(0),
             actualApiCost,
             conversionRate,
           },
@@ -718,49 +668,19 @@ export async function deductCreditsFromUsage(userId, usage, provider, model, con
 
       const previousCount = userData.totalGenerated || 0;
 
-      // ===== CORE DEDUCTION LOGIC =====
-      // FIFO Order: Existing subscription Cores (if any) first, then bonus Cores
-      let remainingToDeduct = finalCreditsToDeduct;
-      let subscriptionDeducted = 0;
-      let bonusDeducted = 0;
+      // ===== SIMPLIFIED CORE DEDUCTION LOGIC =====
+      // Simple deduction from total credits
 
-      // Step 1: Deduct from subscription Cores first
-      if (userData.subscriptionCredits && userData.subscriptionCredits > 0) {
-        subscriptionDeducted = Math.min(
-          remainingToDeduct,
-          userData.subscriptionCredits,
-        );
-        userData.subscriptionCredits -= subscriptionDeducted;
-        remainingToDeduct -= subscriptionDeducted;
-      }
-
-      // Step 2: Deduct from bonus Cores if still needed
-      if (
-        remainingToDeduct > 0 &&
-        userData.bonusCredits &&
-        userData.bonusCredits > 0
-      ) {
-        bonusDeducted = Math.min(remainingToDeduct, userData.bonusCredits);
-        userData.bonusCredits -= bonusDeducted;
-        remainingToDeduct -= bonusDeducted;
-      }
-
-      // Step 3: Update total Cores (atomic operation)
-      userData.credits -= finalCreditsToDeduct;
+      // Step 1: Update total Cores (atomic operation)
+      userData.credits = formatCoreCredits(userData.credits - finalCreditsToDeduct);
       userData.totalGenerated = (userData.totalGenerated || 0) + 1;
       userData.lastUpdated = new Date().toISOString();
-
-      // Round to 2 decimal places to avoid floating point precision issues
-      userData.credits = Math.round(userData.credits * 100) / 100;
 
       coreCredits[userId] = userData;
       await storage.set("core_credit", coreCredits);
 
       const deductionBreakdown = {
         totalDeducted: finalCreditsToDeduct,
-        subscriptionDeducted,
-        bonusDeducted,
-        remainingToDeduct,
         actualApiCost,
         conversionRate,
       };
@@ -768,8 +688,7 @@ export async function deductCreditsFromUsage(userId, usage, provider, model, con
       logger.info(
         `💰 Usage-based deduction for user ${userId}: ${provider}/${model} ` +
           `API cost: ${actualApiCost} credits → ${finalCreditsToDeduct} Core credits (${conversionRate}x rate). ` +
-          `Deduction: ${subscriptionDeducted} from subscription, ${bonusDeducted} from bonus. ` +
-          `Remaining: ${userData.credits} total (${userData.subscriptionCredits} subscription, ${userData.bonusCredits} bonus). ` +
+          `Remaining: ${userData.credits} total. ` +
           `Total generated: ${previousCount} → ${userData.totalGenerated}`,
       );
 
@@ -783,13 +702,11 @@ export async function deductCreditsFromUsage(userId, usage, provider, model, con
       logger.error("Error in usage-based credit deduction:", error);
       return {
         success: false,
-        creditsRemaining: 0,
-        creditsDeducted: 0,
+        creditsRemaining: formatCoreCredits(0),
+        creditsDeducted: formatCoreCredits(0),
         error: error.message,
         deductionBreakdown: {
-          totalDeducted: 0,
-          subscriptionDeducted: 0,
-          bonusDeducted: 0,
+          totalDeducted: formatCoreCredits(0),
           actualApiCost: usage?.cost || 0,
           conversionRate,
         },
@@ -797,6 +714,7 @@ export async function deductCreditsFromUsage(userId, usage, provider, model, con
     }
   });
 }
+
 export async function refundAICredits(userId, amount, reason = "Unknown") {
   // Validate input
   if (!validateUserId(userId)) {
@@ -827,17 +745,14 @@ export async function refundAICredits(userId, amount, reason = "Unknown") {
       };
 
       // Refund credits
-      creditData.credits = (creditData.credits || 0) + amount;
+      creditData.credits = formatCoreCredits((creditData.credits || 0) + amount);
       creditData.lastUpdated = new Date().toISOString();
-
-      // Round to 2 decimal places
-      creditData.credits = Math.round(creditData.credits * 100) / 100;
 
       coreCredits[userId] = creditData;
       await storage.set("core_credit", coreCredits);
 
       logger.info(
-        `User ${userId} refunded ${amount} Core. Reason: ${reason}. New balance: ${creditData.credits}`,
+        `User ${userId} refunded ${formatCoreCredits(amount)} Core. Reason: ${reason}. New balance: ${creditData.credits}`,
       );
 
       return {
@@ -848,7 +763,7 @@ export async function refundAICredits(userId, amount, reason = "Unknown") {
       logger.error("Error refunding AI credits:", error);
       return {
         success: false,
-        creditsRemaining: 0,
+        creditsRemaining: formatCoreCredits(0),
         error: error.message,
       };
     }
@@ -868,7 +783,7 @@ export async function refundAIImageCredits(userId, amount, reason = "Unknown") {
     logger.warn(`Invalid userId format in refundAIImageCredits: ${userId}`);
     return {
       success: false,
-      creditsRemaining: 0,
+      creditsRemaining: formatCoreCredits(0),
       error: "Invalid user ID",
     };
   }
@@ -877,7 +792,7 @@ export async function refundAIImageCredits(userId, amount, reason = "Unknown") {
     logger.warn(`Invalid refund amount: ${amount}`);
     return {
       success: false,
-      creditsRemaining: 0,
+      creditsRemaining: formatCoreCredits(0),
       error: "Invalid refund amount",
     };
   }
@@ -889,24 +804,19 @@ export async function refundAIImageCredits(userId, amount, reason = "Unknown") {
 
       const userData = coreCredits[userId] || {
         credits: 0,
-        subscriptionCredits: 0,
-        bonusCredits: 0,
         totalGenerated: 0,
         lastUpdated: new Date().toISOString(),
       };
 
-      // Refund to total credits (simplified - could be enhanced to track refund source)
-      userData.credits = (userData.credits || 0) + amount;
+      // Refund to total credits (simplified)
+      userData.credits = formatCoreCredits((userData.credits || 0) + amount);
       userData.lastUpdated = new Date().toISOString();
-
-      // Round to 2 decimal places
-      userData.credits = Math.round(userData.credits * 100) / 100;
 
       coreCredits[userId] = userData;
       await storage.set("core_credit", coreCredits);
 
       logger.info(
-        `User ${userId} refunded ${amount} Core for image generation. Reason: ${reason}. New balance: ${userData.credits}`,
+        `User ${userId} refunded ${formatCoreCredits(amount)} Core for image generation. Reason: ${reason}. New balance: ${userData.credits}`,
       );
 
       return {
@@ -917,7 +827,7 @@ export async function refundAIImageCredits(userId, amount, reason = "Unknown") {
       logger.error("Error refunding AI image credits:", error);
       return {
         success: false,
-        creditsRemaining: 0,
+        creditsRemaining: formatCoreCredits(0),
         error: error.message,
       };
     }

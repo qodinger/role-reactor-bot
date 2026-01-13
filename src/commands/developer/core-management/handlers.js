@@ -1,6 +1,7 @@
 import { getLogger } from "../../../utils/logger.js";
 import { isDeveloper } from "../../../utils/discord/permissions.js";
 import { getStorageManager } from "../../../utils/storage/storageManager.js";
+import { formatCoreCredits } from "../../../utils/ai/aiCreditManager.js";
 import { createDetailedCoreManagementEmbed } from "./embeds.js";
 
 const logger = getLogger();
@@ -111,11 +112,8 @@ async function handleAddCores(interaction, targetUser, deferred) {
 
     const userData = coreCredits[targetUser.id] || {
       credits: 0,
-      isCore: false,
       totalGenerated: 0,
       lastUpdated: new Date().toISOString(),
-      subscriptionCredits: 0,
-      bonusCredits: 0,
       username: targetUser.username || targetUser.globalName || null,
     };
 
@@ -129,15 +127,12 @@ async function handleAddCores(interaction, targetUser, deferred) {
       userData.username = targetUser.username || targetUser.globalName;
     }
 
-    // Only manage bonus Cores
-    const oldBonusCores = userData.bonusCredits || 0;
-    const newBonusCores = oldBonusCores + amount;
+    // Only manage total Cores (simplified)
     const oldTotalCores = userData.credits;
     const newTotalCores = oldTotalCores + amount;
 
-    // Update user data - only bonus Cores
-    userData.bonusCredits = newBonusCores;
-    userData.credits = newTotalCores;
+    // Update user data
+    userData.credits = formatCoreCredits(newTotalCores);
     userData.lastUpdated = new Date().toISOString();
 
     // Save to storage
@@ -149,13 +144,11 @@ async function handleAddCores(interaction, targetUser, deferred) {
       type: "add",
       targetUser,
       amount,
-      oldAmount: oldBonusCores,
-      newAmount: newBonusCores,
+      oldAmount: oldTotalCores,
+      newAmount: newTotalCores,
       reason,
       operator: interaction.user,
-      creditType: "bonus",
-      oldTotalCores,
-      newTotalCores,
+      creditType: "total",
     });
 
     if (deferred) {
@@ -164,11 +157,9 @@ async function handleAddCores(interaction, targetUser, deferred) {
       await interaction.reply({ embeds: [embed], flags: 64 });
     }
 
-    logger.info("Bonus Cores added successfully", {
+    logger.info("Cores added successfully", {
       targetUserId: targetUser.id,
       amount,
-      oldBonusCores,
-      newBonusCores,
       oldTotalCores,
       newTotalCores,
       operatorId: interaction.user.id,
@@ -191,22 +182,16 @@ async function handleRemoveCores(interaction, targetUser, deferred) {
 
     const userData = coreCredits[targetUser.id] || {
       credits: 0,
-      isCore: false,
       totalGenerated: 0,
       lastUpdated: new Date().toISOString(),
-      subscriptionCredits: 0,
-      bonusCredits: 0,
     };
 
-    // Only manage bonus Cores
-    const oldBonusCores = userData.bonusCredits || 0;
-    const newBonusCores = Math.max(0, oldBonusCores - amount);
+    // Only manage total Cores (simplified)
     const oldTotalCores = userData.credits;
     const newTotalCores = Math.max(0, oldTotalCores - amount);
 
-    // Update user data - only bonus Cores
-    userData.bonusCredits = newBonusCores;
-    userData.credits = newTotalCores;
+    // Update user data
+    userData.credits = formatCoreCredits(newTotalCores);
     userData.lastUpdated = new Date().toISOString();
 
     // Save to storage
@@ -218,13 +203,11 @@ async function handleRemoveCores(interaction, targetUser, deferred) {
       type: "remove",
       targetUser,
       amount,
-      oldAmount: oldBonusCores,
-      newAmount: newBonusCores,
+      oldAmount: oldTotalCores,
+      newAmount: newTotalCores,
       reason,
       operator: interaction.user,
-      creditType: "bonus",
-      oldTotalCores,
-      newTotalCores,
+      creditType: "total",
     });
 
     if (deferred) {
@@ -260,22 +243,16 @@ async function handleSetCores(interaction, targetUser, deferred) {
 
     const userData = coreCredits[targetUser.id] || {
       credits: 0,
-      isCore: false,
       totalGenerated: 0,
       lastUpdated: new Date().toISOString(),
-      subscriptionCredits: 0,
-      bonusCredits: 0,
     };
 
-    // Only manage bonus Cores
-    const oldBonusCores = userData.bonusCredits || 0;
-    const subscriptionCredits = userData.subscriptionCredits || 0;
-    const newBonusCores = amount;
-    const newTotalCores = subscriptionCredits + newBonusCores;
+    // Only manage total Cores (simplified)
+    const oldTotalCores = userData.credits;
+    const newTotalCores = amount;
 
-    // Update user data - only bonus Cores
-    userData.bonusCredits = newBonusCores;
-    userData.credits = newTotalCores;
+    // Update user data
+    userData.credits = formatCoreCredits(newTotalCores);
     userData.lastUpdated = new Date().toISOString();
 
     // Save to storage
@@ -287,13 +264,11 @@ async function handleSetCores(interaction, targetUser, deferred) {
       type: "set",
       targetUser,
       amount,
-      oldAmount: oldBonusCores,
-      newAmount: newBonusCores,
+      oldAmount: oldTotalCores,
+      newAmount: newTotalCores,
       reason,
       operator: interaction.user,
-      creditType: "bonus",
-      oldTotalCores: userData.credits,
-      newTotalCores,
+      creditType: "total",
     });
 
     if (deferred) {
@@ -302,12 +277,10 @@ async function handleSetCores(interaction, targetUser, deferred) {
       await interaction.reply({ embeds: [embed], flags: 64 });
     }
 
-    logger.info("Bonus Cores set successfully", {
+    logger.info("Cores set successfully", {
       targetUserId: targetUser.id,
       amount,
-      oldBonusCores,
-      newBonusCores,
-      subscriptionCredits,
+      oldTotalCores,
       newTotalCores,
       operatorId: interaction.user.id,
       reason,
@@ -325,12 +298,8 @@ async function handleViewCores(interaction, targetUser, deferred) {
 
     const userData = coreCredits[targetUser.id] || {
       credits: 0,
-      isCore: false,
-      coreTier: null,
       totalGenerated: 0,
       lastUpdated: new Date().toISOString(),
-      subscriptionCredits: 0,
-      bonusCredits: 0,
       username: targetUser.username || targetUser.globalName || null,
     };
 
@@ -344,7 +313,7 @@ async function handleViewCores(interaction, targetUser, deferred) {
       userData.username = targetUser.username || targetUser.globalName;
     }
 
-    // Create view embed with credit breakdown
+    // Create view embed
     const embed = await createDetailedCoreManagementEmbed({
       type: "view",
       targetUser,
@@ -354,7 +323,6 @@ async function handleViewCores(interaction, targetUser, deferred) {
       reason: "View request",
       operator: interaction.user,
       userData,
-      showCreditBreakdown: true,
     });
 
     if (deferred) {
@@ -363,11 +331,9 @@ async function handleViewCores(interaction, targetUser, deferred) {
       await interaction.reply({ embeds: [embed], flags: 64 });
     }
 
-    logger.info("Core Cores viewed successfully", {
+    logger.info("Cores viewed successfully", {
       targetUserId: targetUser.id,
       totalCredits: userData.credits,
-      subscriptionCredits: userData.subscriptionCredits || 0,
-      bonusCredits: userData.bonusCredits || 0,
       operatorId: interaction.user.id,
     });
   } catch (error) {

@@ -214,21 +214,6 @@ class Config {
   }
 
   /**
-   * Get AI model configuration (delegated to ai.js)
-   * @returns {Object} AI model configuration object
-   * @deprecated Use getAIModels() from './ai.js' instead
-   */
-  get aiModels() {
-    return {
-      providers: {
-        openrouter: { enabled: false },
-        stability: { enabled: false },
-        selfhosted: { enabled: false },
-      },
-    };
-  }
-
-  /**
    * Get Core pricing configuration
    * @returns {Object} Core pricing configuration object
    */
@@ -237,6 +222,12 @@ class Config {
       // Package plans for display in /core pricing command
       // Simplified package structure with 4 strategic options
       // Only 4 strategic packages to avoid choice overload
+      // 
+      // PRICING STRATEGY:
+      // - AI values Core at 2.0¢ each (50x conversion rate)
+      // - Packages sell Cores at 5.71¢-6.25¢ each (185-213% markup)
+      // - Markup covers operational costs, development, support, and profit
+      // - Usage estimates based on actual AI costs: 0.01 Core/chat, 2.1 Core/image
       packages: {
         $5: {
           name: "Starter",
@@ -245,7 +236,7 @@ class Config {
           totalCores: 80,
           value: "16.0 Cores/$1",
           description: "Perfect for trying AI features",
-          estimatedUsage: "~1,000 chat messages or 38 images",
+          estimatedUsage: "~8,000 chat messages or 38 images",
           popular: false,
         },
         $10: {
@@ -255,7 +246,7 @@ class Config {
           totalCores: 165,
           value: "16.5 Cores/$1",
           description: "Most popular choice for regular users",
-          estimatedUsage: "~2,060 chat messages or 78 images",
+          estimatedUsage: "~16,500 chat messages or 78 images",
           popular: true, // Mark as most popular
         },
         $25: {
@@ -265,7 +256,7 @@ class Config {
           totalCores: 425,
           value: "17.0 Cores/$1", 
           description: "Best value for power users",
-          estimatedUsage: "~5,310 chat messages or 202 images",
+          estimatedUsage: "~42,500 chat messages or 202 images",
           popular: false,
         },
         $50: {
@@ -275,7 +266,7 @@ class Config {
           totalCores: 875,
           value: "17.5 Cores/$1",
           description: "Maximum value for heavy usage",
-          estimatedUsage: "~10,940 chat messages or 416 images",
+          estimatedUsage: "~87,500 chat messages or 416 images",
           features: ["Priority processing", "Dedicated support"],
           popular: false,
         },
@@ -350,9 +341,9 @@ class Config {
         },
       },
 
-      // Feature credits and avatar filter moved to config/ai.js
-      // Reference functions from ai.js to avoid duplication
-      // Kept here for backward compatibility
+      // Feature credits and avatar filter from standardized AI config
+      // These reference the centralized AI pricing configuration
+      // AI Core value: 2.0¢ each (50x conversion rate)
       featureCosts: getAIFeatureCosts(),
       avatarContentFilter: getAvatarContentFilter(),
     };
@@ -369,7 +360,6 @@ class Config {
       logging: this.logging,
       cacheLimits: this.cacheLimits,
       rateLimits: this.rateLimits,
-      aiModels: this.aiModels,
       corePricing: this.corePricing,
     };
   }

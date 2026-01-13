@@ -22,8 +22,6 @@ export async function getUserData(userId) {
     return (
       coreCredits[userId] || {
         credits: 0,
-        isCore: false,
-        coreTier: null,
         totalGenerated: 0,
         lastUpdated: new Date().toISOString(),
         verifications: [],
@@ -34,8 +32,6 @@ export async function getUserData(userId) {
     // Return default data on error
     return {
       credits: 0,
-      isCore: false,
-      coreTier: null,
       totalGenerated: 0,
       lastUpdated: new Date().toISOString(),
       verifications: [],
@@ -49,13 +45,9 @@ export async function getUserData(userId) {
  * @returns {string} Formatted tier display
  */
 export function formatTierDisplay(userData) {
-  if (userData.isCore && userData.coreTier) {
-    return `${emojiConfig.getTierBadge(userData.coreTier)} ${userData.coreTier}`;
-  } else if (userData.isCore) {
-    return `${customEmojis.core} Core Member`;
-  } else {
-    return "Regular";
-  }
+  // Since we simplified the system, just show "Regular" for now
+  // This can be enhanced later when subscription tiers are added
+  return "Regular";
 }
 
 /**
@@ -191,16 +183,15 @@ export async function getUserCorePriority(userId, logger = null) {
     }
 
     const userData = await getUserData(userId);
-    if (userData.isCore && userData.coreTier) {
-      const tierPriority = getCoreTierPriority(userData.coreTier);
-      return {
-        hasCore: true,
-        tier: userData.coreTier,
-        priority: tierPriority,
-      };
-    }
-
-    return { hasCore: false, tier: null, priority: 0 };
+    // Since we simplified to Core packages only, all users are "Regular"
+    // Priority is now based on credit balance instead of tiers
+    const hasCredits = userData.credits > 0;
+    
+    return {
+      hasCore: hasCredits,
+      tier: hasCredits ? "Core Package User" : null,
+      priority: hasCredits ? 1 : 0, // Simple: 1 if has credits, 0 if not
+    };
   } catch (error) {
     if (logger) {
       logger.debug(
@@ -370,7 +361,7 @@ export function validateUserData(userData) {
     return { valid: false, error: "User data must be an object" };
   }
 
-  const requiredFields = ["credits", "isCore", "totalGenerated", "lastUpdated"];
+  const requiredFields = ["credits", "totalGenerated", "lastUpdated"];
   for (const field of requiredFields) {
     if (!(field in userData)) {
       return { valid: false, error: `Missing required field: ${field}` };
@@ -379,10 +370,6 @@ export function validateUserData(userData) {
 
   if (typeof userData.credits !== "number" || userData.credits < 0) {
     return { valid: false, error: "Credits must be a non-negative number" };
-  }
-
-  if (typeof userData.isCore !== "boolean") {
-    return { valid: false, error: "isCore must be a boolean" };
   }
 
   if (

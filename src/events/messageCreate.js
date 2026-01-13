@@ -44,7 +44,7 @@ export async function execute(message, client) {
         .replace(new RegExp(`<@!?${client.user.id}>`, "g"), "")
         .trim();
 
-      // If message is empty or only whitespace after removing mention, use a default
+      // If message is empty or whitespace after removing mention, use default
       if (!userMessage || userMessage.length === 0) {
         userMessage = "Hello!";
       }
@@ -64,7 +64,7 @@ export async function execute(message, client) {
         const chatCost = creditCheck.creditsNeeded; // Use creditsNeeded from check (already has fallback in aiCreditManager)
         const requestsPerCore = Math.floor(1 / chatCost);
         await message.reply(
-          `❌ **Insufficient Credits**\n\nYou need **${chatCost} ${customEmojis.core}** to use AI chat!\n\n**Your Balance:** ${creditInfo.credits.toFixed(2)} ${customEmojis.core}\n**Cost:** ${chatCost} ${customEmojis.core} per request (1 ${customEmojis.core} = ${requestsPerCore} requests)\n**Requests Available:** ${creditInfo.requestsRemaining}\n\nGet Cores: Visit https://rolereactor.app/sponsor`,
+          `❌ **Insufficient Credits**\n\nYou need **${chatCost.toFixed(2)} ${customEmojis.core}** to use AI chat!\n\n**Your Balance:** ${creditInfo.credits.toFixed(2)} ${customEmojis.core}\n**Cost:** ${chatCost.toFixed(2)} ${customEmojis.core} per request (1 ${customEmojis.core} = ${requestsPerCore} requests)\n**Requests Available:** ${creditInfo.requestsRemaining}\n\nGet Cores: Visit https://rolereactor.app/sponsor`,
         );
         return;
       }
@@ -73,10 +73,11 @@ export async function execute(message, client) {
       let coreUserData = null;
       try {
         const userData = await getUserData(message.author.id);
-        if (userData.isCore) {
+        // Simplified: Check if user has credits (Core package user)
+        if (userData.credits > 0) {
           coreUserData = {
-            isCore: userData.isCore,
-            coreTier: userData.coreTier,
+            hasCredits: true,
+            credits: userData.credits,
           };
         }
       } catch (error) {
@@ -85,7 +86,7 @@ export async function execute(message, client) {
       }
 
       // Atomically check and reserve rate limit (prevents race conditions)
-      // This ensures only one request can pass the check and increment the counter
+      // This ensures single request can pass the check and increment the counter
       const { concurrencyManager } = await import(
         "../utils/ai/concurrencyManager.js"
       );
@@ -207,8 +208,8 @@ export async function execute(message, client) {
 
           // Throttle message updates to avoid Discord rate limits
           // Discord allows 5 message edits per 5 seconds per channel
-          // We'll update at most once per 1.5 seconds to stay well under the limit
-          // Also only update when content changes significantly (50+ new characters)
+          // Update at most once per 1.5 seconds to stay within limits
+          // Update when content changes significantly (50+ new characters)
           let lastUpdateTime = 0;
           const UPDATE_THROTTLE_MS = 1500; // 1.5 seconds between updates
           const MIN_CONTENT_CHANGE = 50; // Only update if 50+ new characters
@@ -304,7 +305,7 @@ export async function execute(message, client) {
                 ? `${messageText.substring(0, 1997)}...`
                 : messageText;
 
-            // Only update if we have actual content (not just status)
+            // Update when content has actual text (not status messages)
             if (displayText && displayText.trim().length > 0) {
               // Check if content has changed significantly
               const contentChanged =
@@ -637,8 +638,8 @@ export async function execute(message, client) {
                 cmdResponse.response?.components &&
                 Array.isArray(cmdResponse.response.components)
               ) {
-                // Components are already in the correct format (ActionRowBuilder, etc.)
-                // Just use them directly
+                // Components are in correct format (ActionRowBuilder, etc.)
+                // Use them directly
                 messageContent.components = cmdResponse.response.components;
               }
 

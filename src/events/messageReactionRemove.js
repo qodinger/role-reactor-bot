@@ -51,7 +51,7 @@ export async function execute(reaction, user, client) {
       // Custom emoji: use the full format <:name:id>
       emoji = `<:${reaction.emoji.name}:${reaction.emoji.id}>`;
     } else {
-      // Unicode emoji: use just the name
+      // Unicode emoji: use the name property
       emoji = reaction.emoji.name;
     }
 

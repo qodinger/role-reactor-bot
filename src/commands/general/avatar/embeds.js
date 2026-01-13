@@ -171,17 +171,10 @@ export function createSuccessEmbed(
  * @returns {import('discord.js').EmbedBuilder}
  */
 export function createCoreEmbed(interaction, userData, creditsNeeded, prompt) {
-  // Enhanced Core breakdown for better user understanding
-  const subscriptionCredits = userData.subscriptionCredits || 0;
-  const bonusCredits = userData.bonusCredits || 0;
-  const isSubscriptionUser = userData.cryptoSubscription?.isActive;
+  // Simplified Core display
+  const totalCredits = userData.credits || 0;
 
-  let coreBreakdown = `**Your Balance**: ${userData.credits} ${CORE_EMOJI}`;
-
-  if (isSubscriptionUser) {
-    coreBreakdown += `\n• **Subscription**: ${subscriptionCredits} ${CORE_EMOJI} (monthly allowance)`;
-    coreBreakdown += `\n• **Bonus**: ${bonusCredits} ${CORE_EMOJI} (bonus credits, never expires)`;
-  }
+  let coreBreakdown = `**Your Balance**: ${totalCredits} ${CORE_EMOJI}`;
 
   return new EmbedBuilder()
     .setColor(THEME.WARNING)

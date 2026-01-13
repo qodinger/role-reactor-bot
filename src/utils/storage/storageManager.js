@@ -450,26 +450,19 @@ class StorageManager {
 
         this.logger.success("✅ Switched to MongoDB for core_credit data");
       } else {
-        // MongoDB not available, ensure we're using file storage
-        if (!(this.provider instanceof FileProvider)) {
-          this.provider = new FileProvider(this.logger);
-          this.logger.info(
-            "📁 Using local file storage for core_credit (MongoDB unavailable)",
-          );
-        }
+        // MongoDB not available - REQUIRE MongoDB for core_credit operations
+        this.logger.error(
+          "❌ MongoDB required for core_credit operations - database unavailable",
+        );
+        throw new Error("MongoDB required for core_credit operations");
       }
     } catch (error) {
-      // MongoDB still not available, ensure we're using file storage
-      if (!(this.provider instanceof FileProvider)) {
-        this.provider = new FileProvider(this.logger);
-        this.logger.info(
-          "📁 Using local file storage for core_credit (MongoDB unavailable)",
-        );
-      }
-      this.logger.debug(
-        "MongoDB not available for core_credit, using file storage:",
+      // MongoDB still not available - REQUIRE MongoDB for core_credit operations
+      this.logger.error(
+        "❌ MongoDB required for core_credit operations:",
         error.message,
       );
+      throw new Error("MongoDB required for core_credit operations");
     }
   }
 

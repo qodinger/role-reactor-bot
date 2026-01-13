@@ -244,7 +244,7 @@ export async function deductCreditsIfNeeded(
     let minimumCharge = 0.01; // Default minimum
     
     try {
-      const { getAIFeatureCosts } = await import("../../config/ai.js");
+      const { getAIFeatureCosts } = await import("../../../config/ai.js");
       const featureCosts = getAIFeatureCosts();
       
       if (featureCosts.tokenPricing && featureCosts.tokenPricing[provider]) {
@@ -270,7 +270,7 @@ export async function deductCreditsIfNeeded(
       );
     } else {
       logger.info(
-        `✅ Deducted ${deductionResult.creditsDeducted} Core based on actual usage (${deductionResult.creditsRemaining} remaining)`,
+        `✅ Deducted ${deductionResult.creditsDeducted.toFixed(2)} Core based on actual usage (${deductionResult.creditsRemaining.toFixed(2)} remaining)`,
       );
     }
     return;
@@ -289,7 +289,7 @@ export async function deductCreditsIfNeeded(
     // Continue anyway - don't fail the request, but log the error
   } else {
     logger.debug(
-      `Deducted ${deductionResult.creditsDeducted} Core for ${callType} API call (${deductionResult.creditsRemaining} remaining)`,
+      `Deducted ${deductionResult.creditsDeducted.toFixed(2)} Core for ${callType} API call (${deductionResult.creditsRemaining.toFixed(2)} remaining)`,
     );
   }
 }

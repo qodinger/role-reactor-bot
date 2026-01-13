@@ -39,10 +39,8 @@ export async function createDetailedCoreManagementEmbed({
   reason,
   operator,
   userData = null,
-  creditType = "bonus",
+  creditType = "total",
   showCreditBreakdown = false,
-  oldTotalCores = null,
-  newTotalCores = null,
 }) {
   // Ensure description is always set
   const description = getEmbedDescription(
@@ -79,37 +77,11 @@ export async function createDetailedCoreManagementEmbed({
         inline: true,
       },
       {
-        name: `Membership Status`,
-        value:
-          userData?.isCore && userData?.coreTier
-            ? `${emojiConfig.getTierBadge(userData.coreTier)} ${userData.coreTier}`
-            : userData?.isCore
-              ? `${CORE_EMOJI} Core Member`
-              : `None`,
+        name: `Total Generated`,
+        value: `${CORE_EMOJI} ${userData?.totalGenerated || 0}`,
         inline: true,
       },
     );
-
-    // Add credit breakdown if available
-    if (showCreditBreakdown && userData) {
-      const subscriptionCredits = userData.subscriptionCredits || 0;
-      const bonusCredits = userData.bonusCredits || 0;
-      const isSubscriptionUser = userData.cryptoSubscription?.isActive;
-
-      if (isSubscriptionUser) {
-        embed.addFields({
-          name: `Credit Breakdown`,
-          value: `Subscription: ${subscriptionCredits} ${CORE_EMOJI} (monthly allowance)\nBonus: ${bonusCredits} ${CORE_EMOJI} (bonus Cores, never expires)`,
-          inline: false,
-        });
-      } else {
-        embed.addFields({
-          name: `Credit Type`,
-          value: `Bonus Cores: ${bonusCredits} ${CORE_EMOJI} (never expires)`,
-          inline: false,
-        });
-      }
-    }
 
     if (userData?.lastUpdated) {
       embed.addFields({
@@ -136,15 +108,6 @@ export async function createDetailedCoreManagementEmbed({
         inline: true,
       },
     );
-
-    // Add total balance impact if available
-    if (oldTotalCores !== null && newTotalCores !== null) {
-      embed.addFields({
-        name: `Total Balance Impact`,
-        value: `Previous Total: ${oldTotalCores} ${CORE_EMOJI}\nNew Total: ${newTotalCores} ${CORE_EMOJI}`,
-        inline: false,
-      });
-    }
 
     // Add reason if provided
     if (reason && reason !== "No reason provided") {
@@ -195,10 +158,10 @@ function getEmbedDescription(
   amount,
   _oldAmount,
   _newAmount,
-  creditType = "bonus",
+  creditType = "total",
 ) {
   const username = targetUser?.username || targetUser?.tag || "Unknown User";
-  const creditTypeText = creditType === "bonus" ? "bonus Cores" : "Cores";
+  const creditTypeText = "Cores";
 
   switch (type) {
     case "add":
@@ -208,7 +171,7 @@ function getEmbedDescription(
     case "set":
       return `Successfully set ${username}'s ${creditTypeText} to ${amount} ${CORE_EMOJI}.`;
     case "view":
-      return `Displaying ${username}'s Core account information and credit breakdown.`;
+      return `Displaying ${username}'s Core account information.`;
     default:
       return "Core account management operation completed successfully.";
   }

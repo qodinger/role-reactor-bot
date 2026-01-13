@@ -98,12 +98,12 @@ export function getMemberCounts(guild) {
   const cached = members.size;
   const uncached = total - cached;
 
-  // Bot/human counts are only accurate for cached members
+  // Bot/human counts are accurate for cached members
   const bots = members.filter(m => m.user.bot).size;
   const humans = members.filter(m => !m.user.bot).size;
 
   // Presence data - separate counts for humans and bots
-  // When asked "how many are online", use human online count only
+  // When asked "how many are online", use human online count
   // Convert Collection to array for filtering
   const humanMembersArray = Array.from(members.filter(m => !m.user.bot));
   const botMembersArray = Array.from(members.filter(m => m.user.bot));
@@ -137,10 +137,10 @@ export function getMemberCounts(guild) {
     total,
     cached,
     uncached,
-    online, // Human members online only
-    idle, // Human members idle only
-    dnd, // Human members dnd only
-    offline, // Human members offline only
+    online, // Human members online
+    idle, // Human members idle
+    dnd, // Human members dnd
+    offline, // Human members offline
     bots,
     humans,
     botsOnline, // For reference

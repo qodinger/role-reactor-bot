@@ -272,10 +272,27 @@ export function getAIModels() {
  * @returns {Object} Feature costs configuration
  */
 export function getAIFeatureCosts() {
+  // =============================================================================
+  // CENTRALIZED CONVERSION RATE CONFIGURATION
+  // =============================================================================
+  // 
+  // IMPORTANT: These are the ONLY values you need to change to adjust pricing
+  // 
+  // Base conversion rate: 1 USD = X Core Credits
+  // Higher rate = cheaper Cores for users, lower revenue per API call
+  // Lower rate = more expensive Cores for users, higher revenue per API call
+  const BASE_CONVERSION_RATE = 50; // 1 USD = 50 Core Credits (1 Core = 2.0 cents)
+  
+  // Minimum charge per request (in Core credits)
+  // Prevents micro-transactions for very small API calls
+  const BASE_MINIMUM_CHARGE = 0.01; // 0.01 Core minimum
+  
+  // Formula: Core_Credits = max(API_Cost_USD × BASE_CONVERSION_RATE, BASE_MINIMUM_CHARGE)
+  
   return {
     // Text generation credits are calculated dynamically based on actual token usage (OpenRouter)
     // or use fixed credits per request (other providers). These values are fallback minimums only.
-    aiChat: 0.08, // Minimum deduction per chat request
+    aiChat: BASE_MINIMUM_CHARGE, // Use standardized minimum charge
     
     // Image generation credits per image - provider and model specific
     aiImage: 1.2, // Default image generation cost
@@ -311,20 +328,21 @@ export function getAIFeatureCosts() {
 
     // Token-based pricing for text generation (when usage data is available)
     // Conversion rates from provider credits to Core credits
+    // All providers use the same BASE_CONVERSION_RATE for consistency
     tokenPricing: {
       openrouter: {
         // OpenRouter returns actual costs in their credits, convert to Core
-        conversionRate: 52.5, // OpenRouter $1 = 52.5 Core credits
-        minimumCharge: 0.08, // Minimum 0.08 Core per request
+        conversionRate: BASE_CONVERSION_RATE, // Uses base rate
+        minimumCharge: BASE_MINIMUM_CHARGE, // Uses base minimum
       },
       // Add other providers as needed
       anthropic: {
-        conversionRate: 52.5,
-        minimumCharge: 0.08,
+        conversionRate: BASE_CONVERSION_RATE, // Uses base rate
+        minimumCharge: BASE_MINIMUM_CHARGE, // Uses base minimum
       },
       openai: {
-        conversionRate: 52.5,
-        minimumCharge: 0.08,
+        conversionRate: BASE_CONVERSION_RATE, // Uses base rate
+        minimumCharge: BASE_MINIMUM_CHARGE, // Uses base minimum
       },
     },
 
@@ -373,10 +391,45 @@ export function getAIConfig() {
   };
 }
 
+/**
+ * Helper function to calculate Core credits from USD cost
+ * Uses the centralized conversion rate for consistency
+ * @param {number} usdCost - Cost in USD
+ * @returns {number} Core credits needed
+ */
+export function calculateCoreCredits(usdCost) {
+  const featureCosts = getAIFeatureCosts();
+  const conversionRate = featureCosts.tokenPricing.openrouter.conversionRate;
+  const minimumCharge = featureCosts.tokenPricing.openrouter.minimumCharge;
+  
+  const calculatedCredits = usdCost * conversionRate;
+  return Math.max(calculatedCredits, minimumCharge);
+}
+
+/**
+ * Helper function to get current conversion rate
+ * @returns {Object} Conversion rate information
+ */
+export function getConversionRateInfo() {
+  const featureCosts = getAIFeatureCosts();
+  const rate = featureCosts.tokenPricing.openrouter.conversionRate;
+  const minimum = featureCosts.tokenPricing.openrouter.minimumCharge;
+  
+  return {
+    conversionRate: rate,
+    minimumCharge: minimum,
+    coreValueUSD: 1 / rate,
+    coreValueCents: (1 / rate) * 100,
+    formula: `Core_Credits = max(API_Cost_USD × ${rate}, ${minimum})`
+  };
+}
+
 // Default export for convenience
 export default {
   getAIModels,
   getAIFeatureCosts,
   getAvatarContentFilter,
   getAIConfig,
+  calculateCoreCredits,
+  getConversionRateInfo,
 };

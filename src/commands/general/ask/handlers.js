@@ -55,10 +55,11 @@ export async function execute(interaction, client) {
     let coreUserData = null;
     try {
       const userData = await getUserData(interaction.user.id);
-      if (userData.isCore) {
+      // Simplified: Check if user has credits (Core package user)
+      if (userData.credits > 0) {
         coreUserData = {
-          isCore: userData.isCore,
-          coreTier: userData.coreTier,
+          hasCredits: true,
+          credits: userData.credits,
         };
       }
     } catch (error) {

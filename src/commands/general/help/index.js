@@ -176,7 +176,7 @@ export async function autocomplete(interaction) {
   // Get all commands from registry (more reliable than client.commands)
   const allCommandNames = commandRegistry.getAllCommandNames();
 
-  // If search is empty or very short, show all commands (just filter by permissions)
+  // If search is empty or short, show all commands (filter by permissions)
   const showAll = !focusedValue || focusedValue.length < 2;
 
   // Score commands based on match quality
@@ -186,7 +186,7 @@ export async function autocomplete(interaction) {
       const metadata = commandRegistry.getCommandMetadata(choice);
 
       // Filter out developer commands if user is not a developer
-      // Developer commands should ONLY be visible to developers
+      // Developer commands should be visible to developers only
       if (metadata?.category === "developer") {
         if (!userIsDeveloper) {
           // User is not a developer, hide this command

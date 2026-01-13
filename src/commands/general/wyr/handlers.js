@@ -49,7 +49,7 @@ function cleanupExpiredVotes() {
  * This prevents memory leaks if votes are not accessed frequently
  */
 function startPeriodicCleanup() {
-  // Only start if not already running
+  // Start cleanup interval if not already running
   if (cleanupInterval) return;
 
   cleanupInterval = setInterval(() => {
@@ -262,7 +262,7 @@ export async function handleWYRButton(interaction, _client) {
       // Update vote data for this message (keep original requester)
       setVoteData(messageId, question, originalRequesterId);
 
-      // Only show refresh button to the requester
+      // Show refresh button to the original requester
       await interaction.editReply({
         embeds: [embed],
         components: [createVoteButtons(messageId, originalRequesterId)],

@@ -375,7 +375,7 @@ export async function handleAvatarGeneration(
       },
       success: true,
       processingTime: durationMs,
-      userTier: userData.isCore ? userData.coreTier || "Core Basic" : "Regular",
+      userTier: userData.credits > 0 ? "Core Package User" : "Regular",
     });
   } catch (error) {
     logger.error(
@@ -392,7 +392,7 @@ export async function handleAvatarGeneration(
       config: {
         artStyle: artStyle || null,
       },
-      userTier: userData.isCore ? userData.coreTier || "Core Basic" : "Regular",
+      userTier: userData.credits > 0 ? "Core Package User" : "Regular",
     });
 
     const errorEmbed = createErrorEmbed(

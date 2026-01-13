@@ -14,13 +14,7 @@ const { customEmojis } = emojiConfig;
  */
 export function createBalanceEmbed(userData, username, avatarURL) {
   const tierDisplay = formatTierDisplay(userData);
-  const bonusCredits = userData.bonusCredits || 0;
-
-  // Build breakdown text - show only if there are credits
-  let breakdownText = "";
-  if (bonusCredits > 0) {
-    breakdownText = `Bonus: ${bonusCredits} ${customEmojis.core}`;
-  }
+  const totalCredits = userData.credits || 0;
 
   const fields = [
     {
@@ -30,17 +24,17 @@ export function createBalanceEmbed(userData, username, avatarURL) {
     },
     {
       name: `Total Balance`,
-      value: `${customEmojis.core} ${userData.credits}`,
+      value: `${customEmojis.core} ${totalCredits}`,
       inline: true,
     },
   ];
 
-  // Only add breakdown field if there are credits to show
-  if (breakdownText) {
+  // Add total generated if available
+  if (userData.totalGenerated && userData.totalGenerated > 0) {
     fields.push({
-      name: `Core Breakdown`,
-      value: breakdownText,
-      inline: false,
+      name: `Total Generated`,
+      value: `${customEmojis.core} ${userData.totalGenerated}`,
+      inline: true,
     });
   }
 

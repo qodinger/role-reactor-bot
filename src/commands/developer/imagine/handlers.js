@@ -218,7 +218,7 @@ export async function handleImagineCommand(
 
   // Get provider and model for credit calculation
   let provider = preferredProvider || "stability"; // Default
-  let model = "sd3.5-large-turbo"; // Default
+  let modelForCredits = model || "sd3.5-large-turbo"; // Default, use parsed model or fallback
   
   try {
     const { getAIConfig } = await import("../../../config/ai.js");
@@ -228,18 +228,18 @@ export async function handleImagineCommand(
       aiConfig.models?.features?.imagineGeneral;
     if (feature) {
       provider = feature.provider || provider;
-      model = feature.model || model;
+      modelForCredits = feature.model || modelForCredits;
     }
   } catch (_error) {
     // Use defaults if config loading fails
   }
 
-  const creditInfo = await checkAIImageCredits(interaction.user.id, provider, model);
+  const creditInfo = await checkAIImageCredits(interaction.user.id, provider, modelForCredits);
   const { userData, creditsNeeded, hasCredits } = creditInfo;
 
   // Log the credit calculation for transparency
   logger.info(
-    `💰 Credit calculation for user ${interaction.user.id}: ${provider}/${model} = ${creditsNeeded} Core credits`,
+    `💰 Credit calculation for user ${interaction.user.id}: ${provider}/${modelForCredits} = ${creditsNeeded} Core credits`,
   );
 
   if (!hasCredits) {
@@ -327,7 +327,7 @@ export async function handleImagineCommand(
     const deductionResult = await checkAndDeductAIImageCredits(
       interaction.user.id,
       provider,
-      model,
+      modelForCredits,
     );
     if (!deductionResult.success) {
       logger.error(
@@ -336,7 +336,7 @@ export async function handleImagineCommand(
       // Continue anyway since image was generated successfully
     } else {
       logger.info(
-        `✅ Deducted ${deductionResult.creditsDeducted} Core from user ${interaction.user.id} for ${provider}/${model} generation (${deductionResult.creditsRemaining} remaining)`,
+        `✅ Deducted ${deductionResult.creditsDeducted} Core from user ${interaction.user.id} for ${provider}/${modelForCredits} generation (${deductionResult.creditsRemaining} remaining)`,
       );
     }
 

@@ -1,5 +1,6 @@
 import { getStorageManager } from "../utils/storage/storageManager.js";
 import { getLogger } from "../utils/logger.js";
+import { formatCoreCredits } from "../utils/ai/aiCreditManager.js";
 import crypto from "crypto";
 
 const logger = getLogger();
@@ -24,7 +25,7 @@ export async function handleCryptoWebhook(req, res) {
       timestamp: new Date().toISOString(),
     });
 
-    // Handle GET requests (health checks) - just return OK
+    // Handle GET requests (health checks) - return OK status
     if (req.method === "GET") {
       return res.status(200).send("OK");
     }
@@ -268,11 +269,8 @@ async function processCryptoPayment(charge) {
     if (!coreCredits[userId]) {
       coreCredits[userId] = {
         credits: 0,
-        isCore: false,
         totalGenerated: 0,
         lastUpdated: new Date().toISOString(),
-        subscriptionCredits: 0,
-        bonusCredits: 0,
         cryptoPayments: [],
         username: null,
       };
@@ -363,9 +361,8 @@ async function processCryptoPayment(charge) {
     }
     coresToAdd = Math.floor(paymentAmount * paymentRate);
 
-    // Add as bonus credits
-    userData.bonusCredits = (userData.bonusCredits || 0) + coresToAdd;
-    userData.credits = (userData.credits || 0) + coresToAdd;
+    // Add credits (simplified)
+    userData.credits = formatCoreCredits((userData.credits || 0) + coresToAdd);
     userData.totalGenerated = (userData.totalGenerated || 0) + coresToAdd;
 
     // Track payment
@@ -390,9 +387,9 @@ async function processCryptoPayment(charge) {
       `✅ Added ${coresToAdd} Cores to user ${userId} from crypto payment of ${paymentAmount} ${currency}`,
     );
 
-    // Send confirmation DM (if client is available)
+    // Send confirmation DM (requires client instance)
     // Note: This would require passing the client to the webhook handler
-    // For now, we'll just log it
+    // Currently logging confirmation instead
 
     return {
       success: true,
