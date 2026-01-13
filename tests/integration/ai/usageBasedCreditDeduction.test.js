@@ -49,15 +49,11 @@ describe('Usage-Based Credit Deduction System', () => {
     mockStorage.set('core_credit', {
       [testUserId]: {
         credits: 10.0,
-        subscriptionCredits: 5.0,
-        bonusCredits: 2.0,
         totalGenerated: 0,
         lastUpdated: new Date().toISOString(),
       },
       [testUserId2]: {
         credits: 0.005, // Insufficient credits for any operation (less than 0.01 minimum)
-        subscriptionCredits: 0.0,
-        bonusCredits: 0.0,
         totalGenerated: 0,
         lastUpdated: new Date().toISOString(),
       },

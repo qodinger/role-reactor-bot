@@ -275,6 +275,7 @@ export class AIConcurrencyManager {
 
 // Export singleton instance
 export const aiConcurrencyManager = new AIConcurrencyManager();
+export const concurrencyManager = aiConcurrencyManager; // Alias for backward compatibility
 
 // Clean up every 5 minutes
 setInterval(() => {

@@ -25,8 +25,6 @@ import {
 import { getDatabaseManager } from "../../../utils/storage/databaseManager.js";
 import {
   getUserData,
-  getCoreUserLimit,
-  getCoreBulkMemberLimit,
 } from "../../../commands/general/core/utils.js";
 
 /**
@@ -159,11 +157,9 @@ export async function handleCreate(interaction, client, deferred = false) {
 
         try {
           const userData = await getUserData(interaction.user.id);
-          if (userData.isCore && userData.coreTier) {
-            MAX_ALL_MEMBERS = getCoreBulkMemberLimit(
-              userData.coreTier,
-              BASE_MAX_ALL_MEMBERS,
-            );
+          // Simple credit-based system: users with credits get enhanced limits
+          if (userData.credits > 0) {
+            MAX_ALL_MEMBERS = Math.floor(BASE_MAX_ALL_MEMBERS * 2); // 2x limit for Core users
           }
         } catch (error) {
           // If lookup fails, use default limit
@@ -282,11 +278,9 @@ export async function handleCreate(interaction, client, deferred = false) {
 
         try {
           const userData = await getUserData(interaction.user.id);
-          if (userData.isCore && userData.coreTier) {
-            MAX_ALL_MEMBERS = getCoreBulkMemberLimit(
-              userData.coreTier,
-              BASE_MAX_ALL_MEMBERS,
-            );
+          // Simple credit-based system: users with credits get enhanced limits
+          if (userData.credits > 0) {
+            MAX_ALL_MEMBERS = Math.floor(BASE_MAX_ALL_MEMBERS * 2); // 2x limit for Core users
           }
         } catch (error) {
           // If lookup fails, use default limit
@@ -399,11 +393,9 @@ export async function handleCreate(interaction, client, deferred = false) {
 
         try {
           const userData = await getUserData(interaction.user.id);
-          if (userData.isCore && userData.coreTier) {
-            MAX_ALL_MEMBERS = getCoreBulkMemberLimit(
-              userData.coreTier,
-              BASE_MAX_ALL_MEMBERS,
-            );
+          // Simple credit-based system: users with credits get enhanced limits
+          if (userData.credits > 0) {
+            MAX_ALL_MEMBERS = Math.floor(BASE_MAX_ALL_MEMBERS * 2); // 2x limit for Core users
           }
         } catch (error) {
           // If lookup fails, use default limit
@@ -500,8 +492,9 @@ export async function handleCreate(interaction, client, deferred = false) {
 
       try {
         const userData = await getUserData(interaction.user.id);
-        if (userData.isCore && userData.coreTier) {
-          MAX_USERS = getCoreUserLimit(userData.coreTier, BASE_MAX_USERS);
+        // Simple credit-based system: users with credits get enhanced limits
+        if (userData.credits > 0) {
+          MAX_USERS = Math.floor(BASE_MAX_USERS * 2); // 2x limit for Core users
         }
       } catch (error) {
         // If lookup fails, use default limit
