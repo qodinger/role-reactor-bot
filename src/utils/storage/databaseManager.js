@@ -14,6 +14,8 @@ import {
   CoreCreditsRepository,
   ScheduledRoleRepository,
   RecurringScheduleRepository,
+  UserRepository,
+  PaymentRepository,
 } from "./repositories/index.js";
 
 // Enhanced cache manager with TTL and size limits
@@ -495,6 +497,8 @@ class DatabaseManager {
     this.conversations = null;
     this.avatarJobs = null;
     this.imagineJobs = null;
+    this.users = null;
+    this.payments = null;
     // Initialize connection manager asynchronously (non-blocking)
     this._initializeConnectionManager().catch(() => {
       // Silently fail - will be initialized on first connect
@@ -614,6 +618,16 @@ class DatabaseManager {
           this.cacheManager,
           this.logger,
           "imagine_jobs",
+        );
+        this.users = new UserRepository(
+          db,
+          this.cacheManager,
+          this.logger,
+        );
+        this.payments = new PaymentRepository(
+          db,
+          this.cacheManager,
+          this.logger,
         );
 
         this.logger.info(

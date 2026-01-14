@@ -13,3 +13,5 @@ export { PollRepository } from "./PollRepository.js";
 export { CoreCreditsRepository } from "./CoreCreditsRepository.js";
 export { ScheduledRoleRepository } from "./ScheduledRoleRepository.js";
 export { RecurringScheduleRepository } from "./RecurringScheduleRepository.js";
+export { UserRepository } from "./UserRepository.js";
+export { PaymentRepository } from "./PaymentRepository.js";
