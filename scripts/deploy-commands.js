@@ -56,7 +56,19 @@ async function loadCommands() {
         const commandData = commandModule.data || commandModule.default?.data;
 
         if (commandData) {
-          categories[folder].push(commandData.toJSON());
+          // Check if command is disabled
+          const isDisabled =
+            commandModule.disabled || commandModule.default?.disabled;
+
+          if (isDisabled) {
+            console.log(
+              colors.dim(
+                `  [-] Skipping disabled command: /${commandData.name}`,
+              ),
+            );
+          } else {
+            categories[folder].push(commandData.toJSON());
+          }
         } else {
           console.warn(
             colors.warning(`  [!] No command data found in ${file}`),
@@ -77,7 +89,19 @@ async function loadCommands() {
         const commandData = commandModule.data || commandModule.default?.data;
 
         if (commandData) {
-          categories[folder].push(commandData.toJSON());
+          // Check if command is disabled
+          const isDisabled =
+            commandModule.disabled || commandModule.default?.disabled;
+
+          if (isDisabled) {
+            console.log(
+              colors.dim(
+                `  [-] Skipping disabled command: /${commandData.name}`,
+              ),
+            );
+          } else {
+            categories[folder].push(commandData.toJSON());
+          }
         } else {
           console.warn(
             colors.warning(

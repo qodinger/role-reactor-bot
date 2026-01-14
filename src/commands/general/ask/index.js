@@ -1,6 +1,8 @@
 import { SlashCommandBuilder, PermissionFlagsBits } from "discord.js";
 import { execute } from "./handlers.js";
 
+export const disabled = true;
+
 // ============================================================================
 // COMMAND METADATA
 // ============================================================================
