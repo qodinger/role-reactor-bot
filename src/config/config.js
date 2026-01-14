@@ -351,6 +351,45 @@ class Config {
   }
 
   /**
+   * Get AI performance and behavior settings
+   * @returns {Object} AI settings object
+   */
+  get aiSettings() {
+    return {
+      maxConcurrent: parseInt(process.env.AI_MAX_CONCURRENT || "100", 10),
+      timeout: parseInt(process.env.AI_REQUEST_TIMEOUT || "300000", 10), // 5 minutes
+      useLongTermMemory: process.env.AI_USE_LONG_TERM_MEMORY === "true",
+      historyLength: parseInt(process.env.AI_CONVERSATION_HISTORY_LENGTH || "20", 10),
+      conversationTimeout: parseInt(process.env.AI_CONVERSATION_TIMEOUT || "604800000", 10), // 7 days
+    };
+  }
+
+  /**
+   * Get feature flags
+   * @returns {Object} Feature flags object
+   */
+  get features() {
+    return {
+      coinbase: process.env.COINBASE_ENABLED === "true",
+      paypal: process.env.PAYPAL_ENABLED === "true",
+      serveStatic: process.env.SERVE_STATIC === "true",
+    };
+  }
+
+  /**
+   * Get bot identity information
+   * @returns {Object} Bot info object
+   */
+  get botInfo() {
+    return {
+      name: process.env.BOT_NAME || "Role Reactor Bot",
+      apiUrl: process.env.BOT_API_URL || "https://api.rolereactor.app",
+      website: process.env.BOT_WEBSITE_URL || "https://rolereactor.app",
+
+    };
+  }
+
+  /**
    * Get all configuration as a single object
    * @returns {Object} Complete configuration object
    */
@@ -362,6 +401,9 @@ class Config {
       cacheLimits: this.cacheLimits,
       rateLimits: this.rateLimits,
       corePricing: this.corePricing,
+      aiSettings: this.aiSettings,
+      features: this.features,
+      botInfo: this.botInfo,
     };
   }
 
