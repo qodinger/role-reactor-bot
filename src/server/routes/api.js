@@ -205,3 +205,462 @@ export function apiStats(req, res) {
     res.status(statusCode).json(response);
   }
 }
+
+/**
+ * Core pricing endpoint - Returns package pricing for website integration
+ * @param {import('express').Request} req - Express request object
+ * @param {import('express').Response} res - Express response object
+ */
+export async function apiPricing(req, res) {
+  logRequest("Pricing info", req);
+
+  try {
+    // Import config dynamically to get latest pricing
+    const { config } = await import("../../config/config.js");
+    const corePricing = config.corePricing;
+
+    if (!corePricing || !corePricing.packages) {
+      const { statusCode, response } = createErrorResponse(
+        "Pricing configuration not available",
+        500,
+      );
+      return res.status(statusCode).json(response);
+    }
+
+    // Get optional user ID for personalized pricing
+    const userId = req.query.user_id || req.query.discord_id || null;
+
+    // Build packages array with clean structure for website
+    const packages = Object.entries(corePricing.packages).map(([key, pkg]) => ({
+      id: key,
+      name: pkg.name,
+      price: parseFloat(key.replace("$", "")),
+      currency: "USD",
+      baseCores: pkg.baseCores,
+      bonusCores: pkg.bonusCores,
+      totalCores: pkg.totalCores,
+      valuePerDollar: pkg.value,
+      description: pkg.description,
+      estimatedUsage: pkg.estimatedUsage,
+      popular: pkg.popular || false,
+      features: pkg.features || [],
+    }));
+
+    // Sort by price
+    packages.sort((a, b) => a.price - b.price);
+
+    // Get active promotions
+    const activePromotions = [];
+    const promotions = corePricing.coreSystem?.promotions;
+
+    if (promotions?.enabled && promotions?.types) {
+      const now = new Date();
+      const dayOfWeek = now.getDay();
+
+      for (const promo of promotions.types) {
+        if (promo.type === "first_purchase") {
+          activePromotions.push({
+            name: promo.name,
+            type: promo.type,
+            bonus: `${promo.bonus * 100}%`,
+            maxBonus: promo.maxBonus,
+            description: `Get ${promo.bonus * 100}% bonus Cores on your first purchase (up to ${promo.maxBonus} bonus Cores)`,
+          });
+        } else if (promo.type === "weekend" && promo.days?.includes(dayOfWeek)) {
+          activePromotions.push({
+            name: promo.name,
+            type: promo.type,
+            bonus: `${promo.bonus * 100}%`,
+            description: `Weekend special: ${promo.bonus * 100}% bonus Cores on all purchases!`,
+            active: true,
+          });
+        }
+      }
+    }
+
+    // Check for first purchase eligibility if user ID provided
+    let userEligibility = null;
+    if (userId) {
+      try {
+        const { getStorageManager } = await import(
+          "../../utils/storage/storageManager.js"
+        );
+        const storage = await getStorageManager();
+        const coreCredits = (await storage.get("core_credit")) || {};
+        const userData = coreCredits[userId];
+
+        const hasPayments =
+          (userData?.paypalPayments?.length > 0) ||
+          (userData?.cryptoPayments?.length > 0);
+
+        userEligibility = {
+          userId,
+          isFirstPurchase: !hasPayments,
+          currentCredits: userData?.credits || 0,
+          eligibleForFirstPurchaseBonus: !hasPayments,
+        };
+      } catch (error) {
+        logger.warn("Failed to check user eligibility:", error.message);
+      }
+    }
+
+    // Build response
+    const response = {
+      packages,
+      minimumPayment: corePricing.coreSystem?.minimumPayment || 3,
+      currency: "USD",
+      paymentMethods: {
+        paypal: process.env.PAYPAL_ENABLED === "true",
+        crypto: process.env.COINBASE_ENABLED === "true",
+      },
+      promotions: activePromotions,
+      referralSystem: corePricing.coreSystem?.referralSystem?.enabled
+        ? {
+            enabled: true,
+            referrerBonus: `${(corePricing.coreSystem.referralSystem.referrerBonus || 0) * 100}%`,
+            refereeBonus: `${(corePricing.coreSystem.referralSystem.refereeBonus || 0) * 100}%`,
+            minimumPurchase: corePricing.coreSystem.referralSystem.minimumPurchase || 10,
+          }
+        : { enabled: false },
+    };
+
+    // Add user eligibility if available
+    if (userEligibility) {
+      response.user = userEligibility;
+    }
+
+    res.json(createSuccessResponse(response));
+  } catch (error) {
+    logger.error("❌ Error getting pricing info:", error);
+    const { statusCode, response } = createErrorResponse(
+      "Failed to retrieve pricing information",
+      500,
+      error.message,
+    );
+    res.status(statusCode).json(response);
+  }
+}
+
+/**
+ * User Core balance endpoint - Returns user's Core credits
+ * @param {import('express').Request} req - Express request object
+ * @param {import('express').Response} res - Express response object
+ */
+export async function apiUserBalance(req, res) {
+  logRequest("User balance", req);
+
+  const userId = req.params.userId || req.query.user_id || req.query.discord_id;
+
+  if (!userId) {
+    const { statusCode, response } = createErrorResponse(
+      "User ID is required",
+      400,
+      "Provide user_id as a URL parameter or query parameter",
+    );
+    return res.status(statusCode).json(response);
+  }
+
+  try {
+    const { getStorageManager } = await import(
+      "../../utils/storage/storageManager.js"
+    );
+    const storage = await getStorageManager();
+    const coreCredits = (await storage.get("core_credit")) || {};
+    const userData = coreCredits[userId];
+
+    if (!userData) {
+      res.json(
+        createSuccessResponse({
+          userId,
+          credits: 0,
+          totalGenerated: 0,
+          hasAccount: false,
+          paymentHistory: {
+            paypal: 0,
+            crypto: 0,
+          },
+        }),
+      );
+      return;
+    }
+
+    res.json(
+      createSuccessResponse({
+        userId,
+        credits: userData.credits || 0,
+        totalGenerated: userData.totalGenerated || 0,
+        hasAccount: true,
+        lastUpdated: userData.lastUpdated || null,
+        paymentHistory: {
+          paypal: userData.paypalPayments?.length || 0,
+          crypto: userData.cryptoPayments?.length || 0,
+        },
+      }),
+    );
+  } catch (error) {
+    logger.error("❌ Error getting user balance:", error);
+    const { statusCode, response } = createErrorResponse(
+      "Failed to retrieve user balance",
+      500,
+      error.message,
+    );
+    res.status(statusCode).json(response);
+  }
+}
+
+/**
+ * User payment history endpoint - Returns user's payment transactions
+ * @param {import('express').Request} req - Express request object
+ * @param {import('express').Response} res - Express response object
+ */
+export async function apiUserPayments(req, res) {
+  logRequest("User payments", req);
+
+  const userId = req.params.userId || req.query.user_id || req.query.discord_id;
+
+  if (!userId) {
+    const { statusCode, response } = createErrorResponse(
+      "User ID is required",
+      400,
+      "Provide user_id as a URL parameter or query parameter",
+    );
+    return res.status(statusCode).json(response);
+  }
+
+  try {
+    const { getDatabaseManager } = await import(
+      "../../utils/storage/databaseManager.js"
+    );
+    const dbManager = await getDatabaseManager();
+
+    if (!dbManager?.payments) {
+      // Fallback to legacy storage if PaymentRepository not available
+      const { getStorageManager } = await import(
+        "../../utils/storage/storageManager.js"
+      );
+      const storage = await getStorageManager();
+      const coreCredits = (await storage.get("core_credit")) || {};
+      const userData = coreCredits[userId];
+
+      const payments = [];
+      if (userData?.paypalPayments) {
+        payments.push(
+          ...userData.paypalPayments.map((p) => ({
+            ...p,
+            provider: "paypal",
+          })),
+        );
+      }
+      if (userData?.cryptoPayments) {
+        payments.push(
+          ...userData.cryptoPayments.map((p) => ({
+            ...p,
+            provider: "coinbase",
+          })),
+        );
+      }
+
+      // Sort by timestamp descending
+      payments.sort(
+        (a, b) => new Date(b.timestamp) - new Date(a.timestamp),
+      );
+
+      res.json(
+        createSuccessResponse({
+          userId,
+          payments,
+          total: payments.length,
+          source: "legacy",
+        }),
+      );
+      return;
+    }
+
+    // Use PaymentRepository
+    const limit = parseInt(req.query.limit) || 50;
+    const skip = parseInt(req.query.skip) || 0;
+    const provider = req.query.provider || null;
+
+    const payments = await dbManager.payments.findByDiscordId(userId, {
+      limit,
+      skip,
+      status: "completed",
+      provider,
+    });
+
+    const stats = await dbManager.payments.getUserStats(userId);
+
+    res.json(
+      createSuccessResponse({
+        userId,
+        payments: payments.map((p) => ({
+          paymentId: p.paymentId,
+          provider: p.provider,
+          amount: p.amount,
+          currency: p.currency,
+          coresGranted: p.coresGranted,
+          tier: p.tier,
+          status: p.status,
+          createdAt: p.createdAt,
+        })),
+        total: stats.totalPayments,
+        stats: {
+          totalAmount: stats.totalAmount,
+          totalCores: stats.totalCores,
+          byProvider: stats.byProvider,
+        },
+        pagination: {
+          limit,
+          skip,
+          hasMore: payments.length === limit,
+        },
+      }),
+    );
+  } catch (error) {
+    logger.error("❌ Error getting user payments:", error);
+    const { statusCode, response } = createErrorResponse(
+      "Failed to retrieve payment history",
+      500,
+      error.message,
+    );
+    res.status(statusCode).json(response);
+  }
+}
+
+/**
+ * Global payment statistics endpoint (admin)
+ * @param {import('express').Request} req - Express request object
+ * @param {import('express').Response} res - Express response object
+ */
+export async function apiPaymentStats(req, res) {
+  logRequest("Payment stats", req);
+
+  try {
+    const { getDatabaseManager } = await import(
+      "../../utils/storage/databaseManager.js"
+    );
+    const dbManager = await getDatabaseManager();
+
+    if (!dbManager?.payments) {
+      const { statusCode, response } = createErrorResponse(
+        "PaymentRepository not available",
+        503,
+      );
+      return res.status(statusCode).json(response);
+    }
+
+    // Optional date range
+    const startDate = req.query.start_date || null;
+    const endDate = req.query.end_date || null;
+
+    const stats = await dbManager.payments.getGlobalStats({
+      startDate,
+      endDate,
+    });
+
+    const recentPayments = await dbManager.payments.getRecent(10);
+
+    res.json(
+      createSuccessResponse({
+        overview: {
+          totalPayments: stats.totalPayments,
+          totalRevenue: stats.totalRevenue,
+          totalCoresGranted: stats.totalCores,
+          uniqueCustomers: stats.uniqueUsers,
+        },
+        recentPayments: recentPayments.map((p) => ({
+          paymentId: p.paymentId,
+          discordId: p.discordId,
+          provider: p.provider,
+          amount: p.amount,
+          coresGranted: p.coresGranted,
+          createdAt: p.createdAt,
+        })),
+        dateRange: {
+          start: startDate,
+          end: endDate,
+        },
+      }),
+    );
+  } catch (error) {
+    logger.error("❌ Error getting payment stats:", error);
+    const { statusCode, response } = createErrorResponse(
+      "Failed to retrieve payment statistics",
+      500,
+      error.message,
+    );
+    res.status(statusCode).json(response);
+  }
+}
+
+/**
+ * Pending payments endpoint (admin)
+ * @param {import('express').Request} req - Express request object
+ * @param {import('express').Response} res - Express response object
+ */
+export async function apiPendingPayments(req, res) {
+  logRequest("Pending payments", req);
+
+  try {
+    const { getDatabaseManager } = await import(
+      "../../utils/storage/databaseManager.js"
+    );
+    const dbManager = await getDatabaseManager();
+
+    if (!dbManager?.payments) {
+      // Fallback to legacy storage
+      const { getStorageManager } = await import(
+        "../../utils/storage/storageManager.js"
+      );
+      const storage = await getStorageManager();
+
+      const pendingPaypal = (await storage.get("pending_paypal_payments")) || [];
+      const pendingCrypto = (await storage.get("pending_crypto_payments")) || [];
+
+      res.json(
+        createSuccessResponse({
+          pending: [...pendingPaypal, ...pendingCrypto],
+          total: pendingPaypal.length + pendingCrypto.length,
+          source: "legacy",
+        }),
+      );
+      return;
+    }
+
+    const pendingPayments = await dbManager.payments.getPending({ limit: 100 });
+    const paymentsWithoutUser = await dbManager.payments.getPaymentsWithoutDiscordId();
+
+    res.json(
+      createSuccessResponse({
+        pending: pendingPayments.map((p) => ({
+          paymentId: p.paymentId,
+          provider: p.provider,
+          amount: p.amount,
+          currency: p.currency,
+          email: p.email,
+          status: p.status,
+          createdAt: p.createdAt,
+        })),
+        awaitingUserLink: paymentsWithoutUser.map((p) => ({
+          paymentId: p.paymentId,
+          provider: p.provider,
+          amount: p.amount,
+          email: p.email,
+          createdAt: p.createdAt,
+        })),
+        totals: {
+          pending: pendingPayments.length,
+          awaitingLink: paymentsWithoutUser.length,
+        },
+      }),
+    );
+  } catch (error) {
+    logger.error("❌ Error getting pending payments:", error);
+    const { statusCode, response } = createErrorResponse(
+      "Failed to retrieve pending payments",
+      500,
+      error.message,
+    );
+    res.status(statusCode).json(response);
+  }
+}

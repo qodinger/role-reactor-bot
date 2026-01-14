@@ -1,5 +1,6 @@
 import express from "express";
 import { handleCryptoWebhook } from "../webhooks/crypto.js";
+import { handlePayPalWebhook } from "../webhooks/paypal.js";
 import { getLogger } from "../utils/logger.js";
 
 // Import middleware
@@ -15,7 +16,16 @@ import {
 // Import route handlers
 import { healthCheck, dockerHealthCheck } from "./routes/health.js";
 import { verifyWebhookToken } from "./routes/webhook.js";
-import { apiInfo, apiStats, setDiscordClient } from "./routes/api.js";
+import {
+  apiInfo,
+  apiStats,
+  apiPricing,
+  apiUserBalance,
+  apiUserPayments,
+  apiPaymentStats,
+  apiPendingPayments,
+  setDiscordClient,
+} from "./routes/api.js";
 import { getServices, getService } from "./routes/services.js";
 import { getSwaggerUI, getOpenAPISpec } from "./routes/docs.js";
 import authRoutes from "./routes/auth.js";
@@ -129,10 +139,18 @@ function initializeRoutes() {
   // Webhook routes with rate limiting
   app.post("/webhook/verify", webhookRateLimiter, verifyWebhookToken);
   app.post("/webhook/crypto", webhookRateLimiter, handleCryptoWebhook);
+  app.post("/webhook/paypal", webhookRateLimiter, handlePayPalWebhook);
 
   // Core API routes with rate limiting
   app.get("/api/info", apiRateLimiter, apiInfo);
   app.get("/api/stats", apiRateLimiter, apiStats);
+  app.get("/api/pricing", apiRateLimiter, apiPricing);
+  app.get("/api/user/:userId/balance", apiRateLimiter, apiUserBalance);
+  app.get("/api/user/:userId/payments", apiRateLimiter, apiUserPayments);
+  app.get("/api/balance", apiRateLimiter, apiUserBalance); // Query param version
+  app.get("/api/payments", apiRateLimiter, apiUserPayments); // Query param version
+  app.get("/api/payments/stats", apiRateLimiter, apiPaymentStats);
+  app.get("/api/payments/pending", apiRateLimiter, apiPendingPayments);
   app.get("/api/services", apiRateLimiter, getServices);
   app.get("/api/services/:name", apiRateLimiter, getService);
 
@@ -256,9 +274,18 @@ export async function startWebhookServer() {
       logger.info(
         `  Crypto: http://localhost:${serverConfig.port}/webhook/crypto`,
       );
+      logger.info(
+        `  PayPal: http://localhost:${serverConfig.port}/webhook/paypal`,
+      );
       logger.info(`  API Info: http://localhost:${serverConfig.port}/api/info`);
       logger.info(
         `  API Stats: http://localhost:${serverConfig.port}/api/stats`,
+      );
+      logger.info(
+        `  Pricing: http://localhost:${serverConfig.port}/api/pricing`,
+      );
+      logger.info(
+        `  Balance: http://localhost:${serverConfig.port}/api/user/:userId/balance`,
       );
       logger.info(
         `  Services: http://localhost:${serverConfig.port}/api/services`,
