@@ -508,23 +508,23 @@ Required Discord bot permissions:
 
 - Check the [GitHub Issues](https://github.com/qodinger/role-reactor-bot/issues) for known problems
 - Join our [Support Server](https://discord.gg/D8tYkU75Ry) for real-time help
-- Review the [Deployment Guide](./docs/DEPLOYMENT.md) for setup issues
+- Review the [Deployment Guide](./docs/setup/deployment.md) for setup issues
 
 ## 🚀 Production Deployment
 
-### Docker Deployment (Recommended)
+### Production Deployment (Docker)
+
+The recommended way to deploy is using the latest automated deployment script:
 
 ```bash
-# Build and start production container
-pnpm docker:build
-pnpm docker:prod
+# Deploy latest version (pulls, builds, and stays running)
+pnpm run deploy:latest
 
 # View logs
-pnpm docker:logs
-
-# Update deployment
-pnpm docker:update
+pnpm run docker:logs
 ```
+
+For more options and troubleshooting, see the **[Deployment Guide](./docs/setup/deployment.md)**.
 
 ### Developer Setup
 
@@ -588,18 +588,17 @@ The bot includes comprehensive health monitoring:
 
 ## 📖 Documentation
 
-- **[🚀 Deployment Guide](./docs/DEPLOYMENT.md)** - Production deployment instructions
-- **[🤝 Contributing Guidelines](./docs/CONTRIBUTING.md)** - How to contribute to the project
-- **[🌿 Git Workflow Guide](./docs/GIT_WORKFLOW.md)** - Branch strategy and workflow patterns
-- **[⚙️ Git Workflow Setup](./docs/GIT_WORKFLOW_SETUP.md)** - Quick setup guide for Git helpers
+- **[🚀 Deployment Guide](./docs/setup/deployment.md)** - Production deployment instructions
+- **[🤝 Contributing Guidelines](./docs/contributing.md)** - How to contribute to the project
+- **[🌿 Git Workflow Guide](./docs/development/workflow.md)** - Branch strategy and workflow patterns
 
 ## 📝 Changelog
 
-See [CHANGELOG.md](./docs/CHANGELOG.md) for detailed version history and updates.
+See [changelog.md](./docs/changelog.md) for detailed version history and updates.
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guidelines](./docs/CONTRIBUTING.md) for detailed information.
+We welcome contributions! Please see our [Contributing Guidelines](./docs/contributing.md) for detailed information.
 
 ### Quick Development Setup
 
@@ -652,8 +651,7 @@ git-finish-feature
 
 ### Documentation
 
-- **[📘 Git Workflow Guide](./docs/GIT_WORKFLOW.md)** - Complete workflow documentation with patterns and best practices
-- **[⚙️ Git Workflow Setup](./docs/GIT_WORKFLOW_SETUP.md)** - Setup guide for Git helper scripts
+- **[📘 Git Workflow Guide](./docs/development/workflow.md)** - Complete workflow documentation with patterns and best practices
 
 ### Git Helper Scripts
 
@@ -675,7 +673,7 @@ git-sync-dev                 # Sync current branch with dev
 git-workflow-help            # Show all available commands
 ```
 
-See [Git Workflow Setup Guide](./docs/GIT_WORKFLOW_SETUP.md) for detailed setup instructions.
+See [Git Workflow Guide](./docs/development/workflow.md) for detailed instructions.
 
 ## 📄 License
 

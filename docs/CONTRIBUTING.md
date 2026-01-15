@@ -21,7 +21,7 @@ Thank you for your interest in contributing to Role Reactor Bot! This document p
 ### Code Contributions
 
 1. **Fork the repository**
-2. **Follow Git Workflow**: See [Git Workflow Guide](./GIT_WORKFLOW.md) for detailed branch strategy
+2. **Follow Git Workflow**: See [Git Workflow Guide](./development/workflow.md) for detailed branch strategy
 3. **Create a feature branch**:
    - Use helper: `source scripts/git-helpers.sh && git-feature amazing-feature`
    - Or manually: `git checkout -b feature/amazing-feature`

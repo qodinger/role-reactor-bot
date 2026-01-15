@@ -46,6 +46,8 @@ The bot includes comprehensive health checks:
 - `/health` - Full system health check
 - `/health/docker` - Docker-specific health check
 
+For more detailed troubleshooting, see the [Troubleshooting Guide](./troubleshooting.md).
+
 ## Troubleshooting
 
 ### Permission Issues
