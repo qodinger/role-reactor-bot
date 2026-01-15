@@ -12,13 +12,16 @@ Welcome to the comprehensive documentation for Role Reactor Bot - a powerful Dis
 ### 🛠️ Development
 - **[Contributing Guidelines](./CONTRIBUTING.md)** - How to contribute to the project
 - **[Testing Guide](./TESTING.md)** - Testing practices and procedures
-- **[Git Workflow](./GIT_WORKFLOW.md)** - Git branching strategy and workflow
-- **[Git Workflow Setup](./GIT_WORKFLOW_SETUP.md)** - Quick setup for Git helpers
+- **[Git Workflow](./GIT_WORKFLOW.md)** - Git branching strategy, workflow, and helper commands
 
 ### 🔧 Technical Documentation
 - **[ComfyUI Integration](./comfyui/README.md)** - AI image generation documentation
 - **[Docker Troubleshooting](./DOCKER_TROUBLESHOOTING.md)** - Docker-specific issues and solutions
 - **[Changelog](./CHANGELOG.md)** - Version history and release notes
+
+### 💳 Integrations
+- **[PayPal Integration](./PAYPAL_INTEGRATION.md)** - PayPal payment webhook setup
+- **[Website Auth Integration](./WEBSITE_AUTH_INTEGRATION.md)** - Frontend authentication guide
 
 ## 🎯 Quick Navigation
 
@@ -32,6 +35,8 @@ Welcome to the comprehensive documentation for Role Reactor Bot - a powerful Dis
 - **Writing tests?** Check [Testing Guide](./TESTING.md)
 - **Working with Git?** Use [Git Workflow](./GIT_WORKFLOW.md)
 - **AI features?** Check [ComfyUI Documentation](./comfyui/README.md)
+- **Adding payments?** See [PayPal Integration](./PAYPAL_INTEGRATION.md)
+- **Building a dashboard?** See [Website Auth Integration](./WEBSITE_AUTH_INTEGRATION.md)
 
 ### For Administrators
 - **Deployment issues?** See [Docker Troubleshooting](./DOCKER_TROUBLESHOOTING.md)
@@ -42,23 +47,23 @@ Welcome to the comprehensive documentation for Role Reactor Bot - a powerful Dis
 
 ```
 docs/
-├── README.md                    # This file - documentation index
-├── SETUP.md                     # Initial setup and configuration
-├── DEPLOYMENT.md                # Production deployment guide
-├── CONTRIBUTING.md              # Contribution guidelines
-├── TESTING.md                   # Testing practices and procedures
-├── CHANGELOG.md                 # Version history
-├── GIT_WORKFLOW.md             # Git branching strategy
-├── GIT_WORKFLOW_SETUP.md       # Git helpers setup
-├── DOCKER_TROUBLESHOOTING.md   # Docker-specific troubleshooting
+├── README.md                       # This file - documentation index
+├── SETUP.md                        # Initial setup and configuration
+├── DEPLOYMENT.md                   # Production deployment guide
+├── CONTRIBUTING.md                 # Contribution guidelines
+├── TESTING.md                      # Testing practices and procedures
+├── CHANGELOG.md                    # Version history
+├── GIT_WORKFLOW.md                 # Git branching strategy and helpers
+├── DOCKER_TROUBLESHOOTING.md       # Docker-specific troubleshooting
+├── PAYPAL_INTEGRATION.md           # PayPal webhook setup
+├── WEBSITE_AUTH_INTEGRATION.md     # Frontend authentication guide
 ├── docker/
-│   └── README.md               # Docker deployment guide
+│   └── README.md                   # Docker deployment guide
 └── comfyui/
-    ├── README.md               # ComfyUI integration overview
-    ├── API-Documentation.md    # ComfyUI API reference
-    ├── Development-Roadmap.md  # ComfyUI development progress
-    ├── Parameters.md           # User guide for AI commands
-    └── workflows/              # ComfyUI workflow files
+    ├── README.md                   # ComfyUI integration overview
+    ├── API-Documentation.md        # ComfyUI API reference
+    ├── Development-Roadmap.md      # ComfyUI development progress
+    └── Parameters.md               # User guide for AI commands
 ```
 
 ## 🔗 External Resources
@@ -87,7 +92,7 @@ When contributing to documentation:
 
 ## 🔄 Last Updated
 
-This documentation index was last updated on January 4, 2026. Individual documents may have different update dates - check each file for specific information.
+This documentation index was last updated on January 14, 2026. Individual documents may have different update dates - check each file for specific information.
 
 ---
 

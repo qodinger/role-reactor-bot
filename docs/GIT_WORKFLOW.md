@@ -2,6 +2,43 @@
 
 This document outlines the Git workflow for the Role Reactor Bot project.
 
+## Quick Setup (Git Helpers)
+
+The project includes optional shell helper functions to speed up common Git operations.
+
+### Setup
+
+**Option 1: Source in current session:**
+```bash
+source scripts/git-helpers.sh
+```
+
+**Option 2: Add to shell profile (permanent):**
+Add to your `~/.bashrc` or `~/.zshrc`:
+```bash
+# Git workflow helpers for role-reactor-bot
+if [ -f "$HOME/dev/projects/discord-bots/role-reactor-bot/scripts/git-helpers.sh" ]; then
+    source "$HOME/dev/projects/discord-bots/role-reactor-bot/scripts/git-helpers.sh"
+fi
+```
+
+### Available Commands
+
+| Command | Description |
+|---------|-------------|
+| `git-feature <name>` | Create and switch to `feature/<name>` |
+| `git-finish-feature` | Merge current feature to dev and cleanup |
+| `git-fix <name>` | Create and switch to `fix/<name>` |
+| `git-finish-fix` | Merge current fix to main and cleanup |
+| `git-hotfix <name>` | Create and switch to `hotfix/<name>` |
+| `git-finish-hotfix` | Merge to main and dev, cleanup |
+| `git-sync-main` | Sync current branch with main |
+| `git-sync-dev` | Sync current branch with dev |
+| `git-cleanup` | Remove merged local branches |
+| `git-workflow-help` | Show all available commands |
+
+---
+
 ## Branch Strategy
 
 ### Branch Types
