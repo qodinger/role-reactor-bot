@@ -33,7 +33,6 @@ import authRoutes from "./routes/auth.js";
 
 // Import services
 import { SupportersService } from "./services/supporters/SupportersService.js";
-import { PaymentsService } from "./services/payments/PaymentsService.js";
 
 // Import service registry
 import { serviceRegistry } from "./services/ServiceRegistry.js";
@@ -177,16 +176,6 @@ function initializeRoutes() {
     app.use("/auth", apiRateLimiter, authRoutes);
     logger.info("✅ Discord OAuth routes enabled");
   }
-
-  // Register services (conditionally for payments)
-  // Legacy PaymentsService (Coinbase specific) - Unified Plisio API is now used instead
-  /*
-  if (process.env.COINBASE_ENABLED === "true") {
-    const paymentsService = new PaymentsService();
-    serviceRegistry.registerService(paymentsService.getRegistrationInfo());
-    logger.info("✅ Payments service registered (BaseService)");
-  }
-  */
 
   // Register SupportersService (always available)
   const supportersService = new SupportersService();

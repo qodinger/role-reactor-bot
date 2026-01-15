@@ -61,5 +61,5 @@ Following the modular pattern established by other general commands:
 - Discord.js
 - Storage manager for data persistence
 - Theme configuration for colors and styling
-- Cryptocurrency payment integration (Coinbase Commerce)
+- Cryptocurrency payment integration (Plisio)
 - Website sponsor page for purchases

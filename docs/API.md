@@ -372,7 +372,7 @@ Returns a user's payment history.
 |-----------|------|---------|-------------|
 | `limit` | number | 50 | Maximum results to return |
 | `skip` | number | 0 | Results to skip (pagination) |
-| `provider` | string | null | Filter by provider (paypal, coinbase, plisio) |
+| `provider` | string | null | Filter by provider (paypal, plisio) |
 
 **Alternative:** `GET /api/payments?user_id=:userId`
 
@@ -597,12 +597,10 @@ These endpoints receive payment notifications from payment providers.
 
 ### POST `/webhook/crypto`
 
-Receives webhooks from crypto payment providers (Plisio, Binance Pay, Coinbase).
+Receives webhooks from crypto payment providers (Plisio).
 
 **Headers (Provider-specific):**
 - Plisio: Body contains `verify_hash`
-- Binance: `binancepay-signature` header
-- Coinbase: `x-cc-webhook-signature` header
 
 **Response:** `200 OK` with `{ "received": true }`
 

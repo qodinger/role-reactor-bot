@@ -214,7 +214,7 @@ DISCORD_CLIENT_SECRET=your_secret # Discord OAuth client secret
 SESSION_SECRET=your_secret      # Session secret for cookies
 
 # Services
-COINBASE_ENABLED=true           # Enable payments service
+PLISIO_SECRET_KEY=your_key        # Enable Plisio payments
 ```
 
 ## Usage

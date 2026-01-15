@@ -376,7 +376,7 @@ class Config {
    */
   get features() {
     return {
-      coinbase: process.env.COINBASE_ENABLED === "true",
+      crypto: !!process.env.PLISIO_SECRET_KEY,
       paypal: process.env.PAYPAL_ENABLED === "true",
       serveStatic: process.env.SERVE_STATIC === "true",
     };

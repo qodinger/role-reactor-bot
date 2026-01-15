@@ -455,12 +455,7 @@ export async function apiUserPayments(req, res) {
         );
       }
       if (userData?.cryptoPayments) {
-        payments.push(
-          ...userData.cryptoPayments.map(p => ({
-            ...p,
-            provider: "coinbase",
-          })),
-        );
+        payments.push(...userData.cryptoPayments);
       }
 
       // Sort by timestamp descending

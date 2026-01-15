@@ -41,7 +41,7 @@ export class PaymentRepository extends BaseRepository {
       const payment = {
         paymentId: paymentData.paymentId, // External ID from PayPal/Crypto
         discordId: paymentData.discordId,
-        provider: paymentData.provider, // "paypal", "coinbase", "stripe", etc.
+        provider: paymentData.provider, // "paypal", "plisio", etc.
         type: paymentData.type || "one_time", // "one_time", "subscription", "refund"
         status: paymentData.status || "completed", // "pending", "completed", "failed", "refunded"
         amount: paymentData.amount,
