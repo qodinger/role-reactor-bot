@@ -24,6 +24,7 @@ import {
   apiUserPayments,
   apiPaymentStats,
   apiPendingPayments,
+  apiCreatePayment,
   setDiscordClient,
 } from "./routes/api.js";
 import { getServices, getService } from "./routes/services.js";
@@ -60,7 +61,14 @@ async function initializeMiddleware() {
   app.set("trust proxy", 1);
 
   // Basic Express middleware
-  app.use(express.json({ limit: "10mb" }));
+  app.use(
+    express.json({
+      limit: "10mb",
+      verify: (req, res, buf) => {
+        req.rawBody = buf.toString();
+      },
+    }),
+  );
   app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
   // Session middleware (for Discord OAuth)
@@ -151,6 +159,7 @@ function initializeRoutes() {
   app.get("/api/payments", apiRateLimiter, apiUserPayments); // Query param version
   app.get("/api/payments/stats", apiRateLimiter, apiPaymentStats);
   app.get("/api/payments/pending", apiRateLimiter, apiPendingPayments);
+  app.post("/api/payments/create", apiRateLimiter, apiCreatePayment); // Create payment with pre-filled email
   app.get("/api/services", apiRateLimiter, getServices);
   app.get("/api/services/:name", apiRateLimiter, getService);
 
@@ -170,11 +179,14 @@ function initializeRoutes() {
   }
 
   // Register services (conditionally for payments)
+  // Legacy PaymentsService (Coinbase specific) - Unified Plisio API is now used instead
+  /*
   if (process.env.COINBASE_ENABLED === "true") {
     const paymentsService = new PaymentsService();
     serviceRegistry.registerService(paymentsService.getRegistrationInfo());
     logger.info("✅ Payments service registered (BaseService)");
   }
+  */
 
   // Register SupportersService (always available)
   const supportersService = new SupportersService();
