@@ -1,6 +1,6 @@
 import { EMOJIS, THEME } from "../../../config/theme.js";
 import { emojiConfig } from "../../../config/emojis.js";
-import { formatTierDisplay } from "./utils.js";
+
 
 // Get custom emojis object
 const { customEmojis } = emojiConfig;
@@ -13,15 +13,9 @@ const { customEmojis } = emojiConfig;
  * @returns {Object} Discord embed object
  */
 export function createBalanceEmbed(userData, username, avatarURL) {
-  const tierDisplay = formatTierDisplay(userData);
   const totalCredits = userData.credits || 0;
 
   const fields = [
-    {
-      name: `Tier`,
-      value: tierDisplay,
-      inline: true,
-    },
     {
       name: `Total Balance`,
       value: `${customEmojis.core} ${totalCredits}`,
@@ -29,21 +23,7 @@ export function createBalanceEmbed(userData, username, avatarURL) {
     },
   ];
 
-  // Add total generated if available
-  if (userData.totalGenerated && userData.totalGenerated > 0) {
-    fields.push({
-      name: `Total Generated`,
-      value: `${customEmojis.core} ${userData.totalGenerated}`,
-      inline: true,
-    });
-  }
 
-  // Add payment link field
-  fields.push({
-    name: `Get More Cores`,
-    value: `[Purchase Cores](https://rolereactor.app/sponsor)`,
-    inline: false,
-  });
 
   return {
     color: THEME.PRIMARY,

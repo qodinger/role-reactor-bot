@@ -29,10 +29,11 @@ export function validateCoreCommandInputs(interaction) {
   }
 
   // Validate subcommand
+  const validSubcommands = ["balance"];
   const subcommand = interaction.options?.getSubcommand();
   if (!subcommand) {
     errors.push("Subcommand is required");
-  } else if (subcommand !== "balance") {
+  } else if (!validSubcommands.includes(subcommand)) {
     errors.push("Invalid subcommand");
   }
 

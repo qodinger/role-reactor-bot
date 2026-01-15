@@ -19,6 +19,7 @@ import {
   validateCommandPermissions,
 } from "./validation.js";
 
+
 const logger = getLogger();
 
 /**
@@ -57,7 +58,10 @@ export async function execute(interaction, _client) {
         inputValidation.errors,
         interaction.client,
       );
-      await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+      await interaction.reply({
+        embeds: [errorEmbed],
+        flags: MessageFlags.Ephemeral,
+      });
       return;
     }
 
@@ -74,6 +78,7 @@ export async function execute(interaction, _client) {
       case "balance":
         await handleBalance(interaction);
         break;
+
       default: {
         const errorEmbed = createErrorEmbed(
           "Unknown Subcommand",
