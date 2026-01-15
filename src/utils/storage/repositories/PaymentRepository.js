@@ -23,7 +23,10 @@ export class PaymentRepository extends BaseRepository {
       await this.collection.createIndex({ discordId: 1, createdAt: -1 }); // Compound for user history
       this.logger.debug("PaymentRepository indexes ensured");
     } catch (error) {
-      this.logger.debug("PaymentRepository indexes already exist or error:", error.message);
+      this.logger.debug(
+        "PaymentRepository indexes already exist or error:",
+        error.message,
+      );
     }
   }
 
@@ -56,14 +59,18 @@ export class PaymentRepository extends BaseRepository {
 
       if (result.acknowledged) {
         payment._id = result.insertedId;
-        this.logger.info(`Payment created: ${payment.paymentId} for user ${payment.discordId}`);
+        this.logger.info(
+          `Payment created: ${payment.paymentId} for user ${payment.discordId}`,
+        );
         return payment;
       }
       return null;
     } catch (error) {
       // Handle duplicate payment ID
       if (error.code === 11000) {
-        this.logger.warn(`Duplicate payment detected: ${paymentData.paymentId}`);
+        this.logger.warn(
+          `Duplicate payment detected: ${paymentData.paymentId}`,
+        );
         return await this.findByPaymentId(paymentData.paymentId);
       }
       this.logger.error("Failed to create payment", error);
@@ -170,8 +177,16 @@ export class PaymentRepository extends BaseRepository {
 
       return stats;
     } catch (error) {
-      this.logger.error(`Failed to get payment stats for user ${discordId}`, error);
-      return { totalPayments: 0, totalAmount: 0, totalCores: 0, byProvider: {} };
+      this.logger.error(
+        `Failed to get payment stats for user ${discordId}`,
+        error,
+      );
+      return {
+        totalPayments: 0,
+        totalAmount: 0,
+        totalCores: 0,
+        byProvider: {},
+      };
     }
   }
 
@@ -267,7 +282,10 @@ export class PaymentRepository extends BaseRepository {
 
       return result.modifiedCount > 0;
     } catch (error) {
-      this.logger.error(`Failed to link payment ${paymentId} to user ${discordId}`, error);
+      this.logger.error(
+        `Failed to link payment ${paymentId} to user ${discordId}`,
+        error,
+      );
       return false;
     }
   }
@@ -312,15 +330,22 @@ export class PaymentRepository extends BaseRepository {
 
       const results = await this.collection.aggregate(pipeline).toArray();
 
-      return results[0] || {
+      return (
+        results[0] || {
+          totalPayments: 0,
+          totalRevenue: 0,
+          totalCores: 0,
+          uniqueUsers: 0,
+        }
+      );
+    } catch (error) {
+      this.logger.error("Failed to get global payment stats", error);
+      return {
         totalPayments: 0,
         totalRevenue: 0,
         totalCores: 0,
         uniqueUsers: 0,
       };
-    } catch (error) {
-      this.logger.error("Failed to get global payment stats", error);
-      return { totalPayments: 0, totalRevenue: 0, totalCores: 0, uniqueUsers: 0 };
     }
   }
 

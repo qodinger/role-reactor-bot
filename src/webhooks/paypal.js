@@ -36,7 +36,10 @@ async function getPayPalAccessToken() {
   }
 
   // Check if cached token is still valid (with 60 second buffer)
-  if (accessTokenCache.token && Date.now() < accessTokenCache.expiresAt - 60000) {
+  if (
+    accessTokenCache.token &&
+    Date.now() < accessTokenCache.expiresAt - 60000
+  ) {
     return accessTokenCache.token;
   }
 
@@ -92,7 +95,9 @@ async function verifyPayPalWebhookSignature(req) {
       logger.error("❌ PAYPAL_WEBHOOK_ID required in production");
       return false;
     }
-    logger.warn("⚠️ PAYPAL_WEBHOOK_ID not configured - skipping verification (dev mode)");
+    logger.warn(
+      "⚠️ PAYPAL_WEBHOOK_ID not configured - skipping verification (dev mode)",
+    );
     return true;
   }
 
@@ -105,7 +110,13 @@ async function verifyPayPalWebhookSignature(req) {
     const transmissionSig = req.headers["paypal-transmission-sig"];
 
     // Validate all required headers are present
-    if (!transmissionId || !transmissionTime || !certUrl || !authAlgo || !transmissionSig) {
+    if (
+      !transmissionId ||
+      !transmissionTime ||
+      !certUrl ||
+      !authAlgo ||
+      !transmissionSig
+    ) {
       logger.warn("❌ Missing PayPal webhook headers", {
         hasTransmissionId: !!transmissionId,
         hasTransmissionTime: !!transmissionTime,
@@ -120,7 +131,7 @@ async function verifyPayPalWebhookSignature(req) {
     try {
       const certUrlObj = new URL(certUrl);
       const validDomains = ["api.paypal.com", "api.sandbox.paypal.com"];
-      if (!validDomains.some((domain) => certUrlObj.hostname.endsWith(domain))) {
+      if (!validDomains.some(domain => certUrlObj.hostname.endsWith(domain))) {
         logger.warn("❌ Invalid PayPal certificate URL domain:", certUrl);
         return false;
       }
@@ -261,7 +272,10 @@ export async function handlePayPalWebhook(req, res) {
       resource_type: webhookData.resource_type,
     });
 
-    logger.debug("🔍 Full PayPal Webhook:", JSON.stringify(webhookData, null, 2));
+    logger.debug(
+      "🔍 Full PayPal Webhook:",
+      JSON.stringify(webhookData, null, 2),
+    );
 
     // ===== STEP 5: PROCESS WEBHOOK BASED ON EVENT TYPE =====
     // PayPal event types: https://developer.paypal.com/docs/api/webhooks/v1/#webhooks_event-types
@@ -270,19 +284,25 @@ export async function handlePayPalWebhook(req, res) {
       // Order completed (Checkout v2)
       case "CHECKOUT.ORDER.COMPLETED":
         processedType = "Order Completed";
-        processingResult = await processPayPalOrderCompleted(webhookData.resource);
+        processingResult = await processPayPalOrderCompleted(
+          webhookData.resource,
+        );
         break;
 
       // Payment captured (Orders v2)
       case "PAYMENT.CAPTURE.COMPLETED":
         processedType = "Payment Captured";
-        processingResult = await processPayPalPaymentCapture(webhookData.resource);
+        processingResult = await processPayPalPaymentCapture(
+          webhookData.resource,
+        );
         break;
 
       // Payment sale completed (older integration)
       case "PAYMENT.SALE.COMPLETED":
         processedType = "Sale Completed";
-        processingResult = await processPayPalSaleCompleted(webhookData.resource);
+        processingResult = await processPayPalSaleCompleted(
+          webhookData.resource,
+        );
         break;
 
       // Payment denied/refunded
@@ -305,7 +325,9 @@ export async function handlePayPalWebhook(req, res) {
         return res.status(200).json({ received: true, status: "pending" });
 
       default:
-        logger.info(`ℹ️ Unhandled PayPal event type: ${webhookData.event_type}`);
+        logger.info(
+          `ℹ️ Unhandled PayPal event type: ${webhookData.event_type}`,
+        );
         return res.status(200).json({ received: true, status: "unhandled" });
     }
 
@@ -359,7 +381,8 @@ async function processPayPalOrderCompleted(resource) {
 
     // Extract custom data (Discord user ID should be in custom_id or reference_id)
     // Your website should set this when creating the order
-    const customId = purchaseUnit.custom_id || purchaseUnit.reference_id || null;
+    const customId =
+      purchaseUnit.custom_id || purchaseUnit.reference_id || null;
 
     // Try to extract Discord user ID from custom data
     let discordUserId = null;
@@ -598,9 +621,7 @@ async function processPayPalPayment(paymentData) {
         });
 
         await storage.set("pending_paypal_payments", pendingPayments);
-        logger.info(
-          `📋 Pending PayPal payment stored (legacy): ${paymentId}`,
-        );
+        logger.info(`📋 Pending PayPal payment stored (legacy): ${paymentId}`);
       }
 
       return {
@@ -719,7 +740,9 @@ async function processPayPalPayment(paymentData) {
         email: payerEmail || null,
         metadata: {},
       });
-      logger.debug(`📝 Payment record saved to PaymentRepository: ${paymentId}`);
+      logger.debug(
+        `📝 Payment record saved to PaymentRepository: ${paymentId}`,
+      );
     }
 
     // Update user's credit balance (using CoreCreditsRepository)
@@ -778,7 +801,9 @@ async function handlePayPalPaymentFailure(resource, eventType) {
     if (eventType.includes("REFUNDED")) {
       const customId = resource.custom_id || resource.custom || null;
       if (customId) {
-        logger.info(`⚠️ Refund detected for payment with customId: ${customId}`);
+        logger.info(
+          `⚠️ Refund detected for payment with customId: ${customId}`,
+        );
         // TODO: Implement credit deduction for refunds if needed
       }
     }

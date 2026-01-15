@@ -21,7 +21,10 @@ export class UserRepository extends BaseRepository {
       this.logger.debug("UserRepository indexes ensured");
     } catch (error) {
       // Indexes may already exist
-      this.logger.debug("UserRepository indexes already exist or error:", error.message);
+      this.logger.debug(
+        "UserRepository indexes already exist or error:",
+        error.message,
+      );
     }
   }
 
@@ -42,7 +45,10 @@ export class UserRepository extends BaseRepository {
       }
       return user;
     } catch (error) {
-      this.logger.error(`Failed to find user by Discord ID ${discordId}`, error);
+      this.logger.error(
+        `Failed to find user by Discord ID ${discordId}`,
+        error,
+      );
       return null;
     }
   }

@@ -16,7 +16,9 @@ const SALT_LENGTH = 32;
 function getEncryptionKey() {
   const key = process.env.TOKEN_ENCRYPTION_KEY;
   if (!key) {
-    logger.warn("⚠️ TOKEN_ENCRYPTION_KEY not set - tokens will not be encrypted");
+    logger.warn(
+      "⚠️ TOKEN_ENCRYPTION_KEY not set - tokens will not be encrypted",
+    );
     return null;
   }
   return key;
@@ -105,7 +107,9 @@ export function decryptToken(encryptedBase64) {
       SALT_LENGTH + IV_LENGTH,
       SALT_LENGTH + IV_LENGTH + AUTH_TAG_LENGTH,
     );
-    const encrypted = combined.subarray(SALT_LENGTH + IV_LENGTH + AUTH_TAG_LENGTH);
+    const encrypted = combined.subarray(
+      SALT_LENGTH + IV_LENGTH + AUTH_TAG_LENGTH,
+    );
 
     // Derive key from password and salt
     const key = deriveKey(encryptionKey, salt);

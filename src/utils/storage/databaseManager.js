@@ -619,11 +619,7 @@ class DatabaseManager {
           this.logger,
           "imagine_jobs",
         );
-        this.users = new UserRepository(
-          db,
-          this.cacheManager,
-          this.logger,
-        );
+        this.users = new UserRepository(db, this.cacheManager, this.logger);
         this.payments = new PaymentRepository(
           db,
           this.cacheManager,
