@@ -38,13 +38,20 @@ export async function getUserData(userId) {
 }
 
 /**
- * Formats user tier display with proper badge emoji
- * @param {Object} _userData - User data object (unused in simplified system)
+ * Formats user tier display with proper labels based on credit balance
+ * @param {Object} userData - User data object
  * @returns {string} Formatted tier display
  */
-export function formatTierDisplay(_userData) {
-  // Since we simplified the system, just show "Regular" for now
-  // This can be enhanced later when subscription tiers are added
+export function formatTierDisplay(userData) {
+  const credits = userData.credits || 0;
+
+  // Thresholds based on package totalCores in config.js
+  if (credits >= 875) return "Ultimate Member 💎";
+  if (credits >= 425) return "Pro Member ✨";
+  if (credits >= 165) return "Basic Member ⚡";
+  if (credits >= 80) return "Starter Member 🌱";
+  if (credits > 0) return "Core Member";
+
   return "Regular";
 }
 
@@ -187,7 +194,7 @@ export async function getUserCorePriority(userId, logger = null) {
 
     return {
       hasCore: hasCredits,
-      tier: hasCredits ? "Core Package User" : null,
+      tier: hasCredits ? formatTierDisplay(userData) : null,
       priority: hasCredits ? 1 : 0, // Simple: 1 if has credits, 0 if not
     };
   } catch (error) {

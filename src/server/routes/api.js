@@ -7,6 +7,7 @@ import {
   createErrorResponse,
   logRequest as logRequestHelper,
 } from "../utils/responseHelpers.js";
+import { plisioPay } from "../../utils/payments/plisio.js";
 
 const logger = getLogger();
 
@@ -266,7 +267,10 @@ export async function apiPricing(req, res) {
             maxBonus: promo.maxBonus,
             description: `Get ${promo.bonus * 100}% bonus Cores on your first purchase (up to ${promo.maxBonus} bonus Cores)`,
           });
-        } else if (promo.type === "weekend" && promo.days?.includes(dayOfWeek)) {
+        } else if (
+          promo.type === "weekend" &&
+          promo.days?.includes(dayOfWeek)
+        ) {
           activePromotions.push({
             name: promo.name,
             type: promo.type,
@@ -290,8 +294,8 @@ export async function apiPricing(req, res) {
         const userData = coreCredits[userId];
 
         const hasPayments =
-          (userData?.paypalPayments?.length > 0) ||
-          (userData?.cryptoPayments?.length > 0);
+          userData?.paypalPayments?.length > 0 ||
+          userData?.cryptoPayments?.length > 0;
 
         userEligibility = {
           userId,
@@ -311,7 +315,7 @@ export async function apiPricing(req, res) {
       currency: "USD",
       paymentMethods: {
         paypal: process.env.PAYPAL_ENABLED === "true",
-        crypto: process.env.COINBASE_ENABLED === "true",
+        crypto: !!process.env.PLISIO_SECRET_KEY, // Check for Plisio configuration
       },
       promotions: activePromotions,
       referralSystem: corePricing.coreSystem?.referralSystem?.enabled
@@ -319,7 +323,8 @@ export async function apiPricing(req, res) {
             enabled: true,
             referrerBonus: `${(corePricing.coreSystem.referralSystem.referrerBonus || 0) * 100}%`,
             refereeBonus: `${(corePricing.coreSystem.referralSystem.refereeBonus || 0) * 100}%`,
-            minimumPurchase: corePricing.coreSystem.referralSystem.minimumPurchase || 10,
+            minimumPurchase:
+              corePricing.coreSystem.referralSystem.minimumPurchase || 10,
           }
         : { enabled: false },
     };
@@ -373,7 +378,6 @@ export async function apiUserBalance(req, res) {
         createSuccessResponse({
           userId,
           credits: 0,
-          totalGenerated: 0,
           hasAccount: false,
           paymentHistory: {
             paypal: 0,
@@ -388,7 +392,6 @@ export async function apiUserBalance(req, res) {
       createSuccessResponse({
         userId,
         credits: userData.credits || 0,
-        totalGenerated: userData.totalGenerated || 0,
         hasAccount: true,
         lastUpdated: userData.lastUpdated || null,
         paymentHistory: {
@@ -445,7 +448,7 @@ export async function apiUserPayments(req, res) {
       const payments = [];
       if (userData?.paypalPayments) {
         payments.push(
-          ...userData.paypalPayments.map((p) => ({
+          ...userData.paypalPayments.map(p => ({
             ...p,
             provider: "paypal",
           })),
@@ -453,7 +456,7 @@ export async function apiUserPayments(req, res) {
       }
       if (userData?.cryptoPayments) {
         payments.push(
-          ...userData.cryptoPayments.map((p) => ({
+          ...userData.cryptoPayments.map(p => ({
             ...p,
             provider: "coinbase",
           })),
@@ -461,9 +464,7 @@ export async function apiUserPayments(req, res) {
       }
 
       // Sort by timestamp descending
-      payments.sort(
-        (a, b) => new Date(b.timestamp) - new Date(a.timestamp),
-      );
+      payments.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
       res.json(
         createSuccessResponse({
@@ -493,7 +494,7 @@ export async function apiUserPayments(req, res) {
     res.json(
       createSuccessResponse({
         userId,
-        payments: payments.map((p) => ({
+        payments: payments.map(p => ({
           paymentId: p.paymentId,
           provider: p.provider,
           amount: p.amount,
@@ -568,7 +569,7 @@ export async function apiPaymentStats(req, res) {
           totalCoresGranted: stats.totalCores,
           uniqueCustomers: stats.uniqueUsers,
         },
-        recentPayments: recentPayments.map((p) => ({
+        recentPayments: recentPayments.map(p => ({
           paymentId: p.paymentId,
           discordId: p.discordId,
           provider: p.provider,
@@ -614,8 +615,10 @@ export async function apiPendingPayments(req, res) {
       );
       const storage = await getStorageManager();
 
-      const pendingPaypal = (await storage.get("pending_paypal_payments")) || [];
-      const pendingCrypto = (await storage.get("pending_crypto_payments")) || [];
+      const pendingPaypal =
+        (await storage.get("pending_paypal_payments")) || [];
+      const pendingCrypto =
+        (await storage.get("pending_crypto_payments")) || [];
 
       res.json(
         createSuccessResponse({
@@ -628,11 +631,12 @@ export async function apiPendingPayments(req, res) {
     }
 
     const pendingPayments = await dbManager.payments.getPending({ limit: 100 });
-    const paymentsWithoutUser = await dbManager.payments.getPaymentsWithoutDiscordId();
+    const paymentsWithoutUser =
+      await dbManager.payments.getPaymentsWithoutDiscordId();
 
     res.json(
       createSuccessResponse({
-        pending: pendingPayments.map((p) => ({
+        pending: pendingPayments.map(p => ({
           paymentId: p.paymentId,
           provider: p.provider,
           amount: p.amount,
@@ -641,7 +645,7 @@ export async function apiPendingPayments(req, res) {
           status: p.status,
           createdAt: p.createdAt,
         })),
-        awaitingUserLink: paymentsWithoutUser.map((p) => ({
+        awaitingUserLink: paymentsWithoutUser.map(p => ({
           paymentId: p.paymentId,
           provider: p.provider,
           amount: p.amount,
@@ -664,3 +668,139 @@ export async function apiPendingPayments(req, res) {
     res.status(statusCode).json(response);
   }
 }
+
+/**
+ * Create payment invoice endpoint - Creates a Plisio crypto payment
+ * Uses the authenticated user's Discord email to pre-fill the invoice
+ * POST /api/payments/create
+ * 
+ * Accepts authentication via:
+ * 1. Discord OAuth session (discordUser in session)
+ * 2. Request body with discordId, email, username (for website integration)
+ * 
+ * @param {import('express').Request} req - Express request object
+ * @param {import('express').Response} res - Express response object
+ */
+export async function apiCreatePayment(req, res) {
+  logRequest("Create payment", req);
+
+  try {
+    // Get user info from session OR request body (for website integration)
+    const sessionUser = req.session?.discordUser;
+    const { discordId, email, username, packageId, amount } = req.body;
+
+    // Determine user info - prefer session, fallback to body params
+    let userInfo = null;
+
+    if (sessionUser) {
+      // User authenticated via Discord OAuth on the bot
+      userInfo = {
+        id: sessionUser.id,
+        email: sessionUser.email,
+        username: sessionUser.username,
+      };
+    } else if (discordId) {
+      // User info passed from website (website already authenticated them)
+      userInfo = {
+        id: discordId,
+        email: email || null,
+        username: username || null,
+      };
+    }
+
+    if (!userInfo) {
+      const { statusCode, response } = createErrorResponse(
+        "Authentication required",
+        401,
+        "Please login with Discord first",
+      );
+      return res.status(statusCode).json(response);
+    }
+
+    // Validate request body
+    if (!amount || typeof amount !== "number" || amount < 1) {
+      const { statusCode, response } = createErrorResponse(
+        "Invalid amount",
+        400,
+        "Amount must be a positive number (minimum $1)",
+      );
+      return res.status(statusCode).json(response);
+    }
+
+    // Validate amount against config
+    const configModule = await import("../../config/config.js").catch(
+      () => null,
+    );
+    const config =
+      configModule?.config || configModule?.default || configModule || {};
+    const minimumAmount = config.corePricing?.coreSystem?.minimumPayment || 1;
+
+    if (amount < minimumAmount) {
+      const { statusCode, response } = createErrorResponse(
+        "Amount too low",
+        400,
+        `Minimum payment amount is $${minimumAmount}`,
+      );
+      return res.status(statusCode).json(response);
+    }
+
+    // Generate unique order number
+    const orderNumber = `${userInfo.id}_${Date.now()}`;
+    const currency = "USD";
+
+    // Build callback URL
+    const callbackBase = process.env.PUBLIC_URL || process.env.BOT_URL || "https://your-domain.com";
+    const callbackUrl = `${callbackBase}/webhook/crypto?json=true`;
+
+    // Get package name for description
+    let orderName = "Core Credits";
+    if (packageId && config.corePricing?.packages?.[packageId]) {
+      orderName = config.corePricing.packages[packageId].name || "Core Credits";
+    }
+
+    // Create Plisio invoice with user's Discord email pre-filled
+    const invoiceUrl = await plisioPay.createInvoice({
+      amount,
+      currency,
+      orderNumber,
+      orderName,
+      email: userInfo.email || null, // Pre-fill email from Discord OAuth
+      callbackUrl,
+    });
+
+    logger.info(
+      `CREATE_PAYMENT: User ${userInfo.id} (${userInfo.username || "unknown"}) created $${amount} payment via ${sessionUser ? "session" : "website"}`,
+    );
+
+    res.json(
+      createSuccessResponse({
+        invoiceUrl,
+        orderId: orderNumber,
+        amount,
+        currency,
+        packageId: packageId || null,
+        user: {
+          discordId: userInfo.id,
+          username: userInfo.username,
+          emailPrefilled: !!userInfo.email,
+        },
+        message: "Payment invoice created successfully. Redirect user to invoiceUrl.",
+      }),
+    );
+  } catch (error) {
+    logger.error("❌ Error creating payment:", error);
+
+    // Handle specific Plisio errors
+    const errorMessage = error.message?.includes("PLISIO_SECRET_KEY")
+      ? "Payment system is not configured"
+      : "Failed to create payment invoice";
+
+    const { statusCode, response } = createErrorResponse(
+      errorMessage,
+      500,
+      error.message,
+    );
+    res.status(statusCode).json(response);
+  }
+}
+
