@@ -1141,30 +1141,11 @@ class StorageManager {
 
   // Generic get and set methods for AI avatar credits and other data
   async get(key) {
-    if (this.provider && this.provider.get) {
-      return this.provider.get(key);
-    }
-    // Fallback to file storage
-    const fileProvider = new FileProvider(this.logger);
-    return fileProvider.read(key);
+    return this.read(key);
   }
 
   async set(key, data) {
-    // Handle core_credit specially to ensure MongoDB storage
-    if (key === "core_credit") {
-      this.logger.debug(
-        `💾 storage.set("core_credit") called with ${Object.keys(data).length} user(s), routing to write()`,
-      );
-      // Use write method which handles MongoDB storage for core_credit
-      return this.write(key, data);
-    }
-
-    if (this.provider && this.provider.set) {
-      return this.provider.set(key, data);
-    }
-    // Fallback to file storage
-    const fileProvider = new FileProvider(this.logger);
-    return fileProvider.write(key, data);
+    return this.write(key, data);
   }
 }
 
