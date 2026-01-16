@@ -107,147 +107,131 @@ export async function processUserList(usersString, interaction) {
     return {
       valid: false,
       error: "No users provided.",
-      solution:
-        "Provide user IDs or mentions separated by commas, semicolons, or spaces.",
+      solution: "Provide user IDs, mentions, role mentions, or @everyone.",
     };
   }
 
-  // Split by comma, semicolon, or spaces, and also handle mentions without spaces
-  let userList = usersString
+  const logger = getLogger();
+  const guild = interaction.guild;
+  const client = interaction.client;
+
+  // Split by comma, semicolon, or spaces
+  const userList = usersString
     .split(/[,;]|\s+/)
     .map(user => user.trim())
     .filter(user => user.length > 0);
 
-  // Handle cases where mentions are concatenated without spaces (e.g., @user1@user2)
-  const expandedUserList = [];
-  for (const userStr of userList) {
-    // Check if this string contains multiple mentions without spaces
-    const mentions = userStr.match(/<@!?\d+>/g);
-    if (mentions && mentions.length > 1) {
-      // Split by mentions and add each mention separately
-      const parts = userStr.split(/(<@!?\d+>)/);
-      for (const part of parts) {
-        if (part.trim() && part.match(/<@!?\d+>/)) {
-          expandedUserList.push(part.trim());
-        }
+  const validUsers = new Map(); // Use Map to avoid duplicates by ID
+  const invalidItems = [];
+  const MAX_USERS = 20; // Increased limit for admin convenience but kept safe
+
+  // Check for @everyone or everyone
+  const hasEveryone = userList.some(item =>
+    ["@everyone", "everyone", "<@everyone>"].includes(item.toLowerCase()),
+  );
+
+  if (hasEveryone) {
+    logger.info("Processing @everyone for temp role");
+    try {
+      const members = await guild.members.fetch();
+      // Filter out bots and people who already have the level of access if possible,
+      // but here we just get all human members up to the limit
+      const humanMembers = members.filter(m => !m.user.bot);
+
+      let count = 0;
+      for (const [, member] of humanMembers) {
+        if (count >= MAX_USERS) break;
+        validUsers.set(member.id, member.user);
+        count++;
       }
-    } else {
-      expandedUserList.push(userStr);
-    }
-  }
 
-  userList = expandedUserList;
-
-  const logger = getLogger();
-  logger.info("Processing user list", {
-    usersString,
-    userList,
-    userCount: userList.length,
-  });
-
-  if (userList.length === 0) {
-    return {
-      valid: false,
-      error: "No valid users found in the provided list.",
-      solution:
-        "Provide user IDs or mentions separated by commas, semicolons, or spaces.",
-    };
-  }
-
-  const validUsers = [];
-  const invalidUsers = [];
-
-  for (const userStr of userList) {
-    let userId = null;
-
-    logger.info("Processing user string", { userStr });
-
-    // Check if it's a mention (<@123456789>)
-    const mentionMatch = userStr.match(/<@!?(\d+)>/);
-    if (mentionMatch) {
-      userId = mentionMatch[1];
-      logger.info("Found mention", { userStr, userId });
-    }
-    // Check if it's a plain user ID
-    else if (/^\d{17,19}$/.test(userStr)) {
-      userId = userStr;
-      logger.info("Found user ID", { userStr, userId });
-    }
-
-    if (userId) {
-      try {
-        const user = await interaction.client.users.fetch(userId);
-        const member = await interaction.guild.members.fetch(userId);
-
-        logger.info("Successfully fetched user and member", {
-          userId,
-          username: user.username,
-          memberId: member.id,
-        });
-
-        if (!validUsers.find(u => u.id === user.id)) {
-          validUsers.push({ user, member });
-          logger.info("Added user to valid users", {
-            userId,
-            username: user.username,
-            totalValidUsers: validUsers.length,
-          });
-        } else {
-          logger.info("User already in valid users list", {
-            userId,
-            username: user.username,
-          });
-        }
-      } catch (error) {
-        logger.info("Failed to fetch user or member", {
-          userStr,
-          userId,
-          error: error.message,
-        });
-        invalidUsers.push(userStr);
+      if (humanMembers.size > MAX_USERS) {
+        logger.warn(
+          `@everyone matched ${humanMembers.size} users, limited to ${MAX_USERS}`,
+        );
       }
-    } else {
-      logger.info("Invalid user format", { userStr });
-      invalidUsers.push(userStr);
-    }
-  }
-
-  if (validUsers.length === 0) {
-    // Check if role mentions were provided
-    const roleMentions = userList.filter(userStr => /<@&\d+>/.test(userStr));
-    if (roleMentions.length > 0) {
+    } catch (error) {
+      logger.error("Failed to fetch all members for @everyone:", error);
       return {
         valid: false,
-        error:
-          "Role mentions are not supported. Please use user mentions or user IDs.",
-        solution:
-          "Use user mentions (@User) or user IDs instead of role mentions (@Role).",
+        error: "Failed to fetch server members for @everyone.",
+        solution: "Try mentioning specific users or roles instead.",
       };
     }
+  } else {
+    // Process individual items (mentions, IDs, role mentions)
+    for (const item of userList) {
+      if (validUsers.size >= MAX_USERS) break;
 
+      // 1. Role Mention (<@&ID>)
+      const roleMentionMatch = item.match(/<@&(\d+)>/);
+      if (roleMentionMatch) {
+        const roleId = roleMentionMatch[1];
+        try {
+          const role = guild.roles.cache.get(roleId);
+          if (role) {
+            // Force fetch members for this role
+            await guild.members.fetch();
+            const membersWithRole = role.members.filter(m => !m.user.bot);
+
+            for (const [, member] of membersWithRole) {
+              if (validUsers.size >= MAX_USERS) break;
+              validUsers.set(member.id, member.user);
+            }
+          } else {
+            invalidItems.push(item);
+          }
+        } catch (error) {
+          logger.debug(
+            `Failed to process role mention ${item}: ${error.message}`,
+          );
+          invalidItems.push(item);
+        }
+        continue;
+      }
+
+      // 2. User Mention (<@123> or <@!123>)
+      const userMentionMatch = item.match(/<@!?(\d+)>/);
+      let userId = userMentionMatch ? userMentionMatch[1] : null;
+
+      // 3. User ID (17-19 digits)
+      if (!userId && /^\d{17,19}$/.test(item)) {
+        userId = item;
+      }
+
+      if (userId) {
+        try {
+          const user = await client.users.fetch(userId);
+          const member = await guild.members.fetch(userId);
+          if (member && !user.bot) {
+            validUsers.set(user.id, user);
+          } else if (user.bot) {
+            logger.debug(`Skipping bot user ${user.tag}`);
+          }
+        } catch (error) {
+          logger.debug(`Failed to fetch user/member ${item}: ${error.message}`);
+          invalidItems.push(item);
+        }
+      } else {
+        invalidItems.push(item);
+      }
+    }
+  }
+
+  if (validUsers.size === 0) {
     return {
       valid: false,
       error: "No valid users found.",
       solution:
-        "Make sure the users are in this server and provide valid user IDs or mentions.",
+        "Make sure you provide valid user mentions, IDs, role mentions, or @everyone.",
     };
   }
 
-  if (invalidUsers.length > 0) {
-    logger.warn(
-      `Invalid users in temp role assignment: ${invalidUsers.join(", ")}`,
-    );
-  }
-
-  const finalValidUsers = validUsers.map(v => v.user);
-  logger.info("Final user processing result", {
-    totalValidUsers: finalValidUsers.length,
-    validUserIds: finalValidUsers.map(u => u.id),
-    validUsernames: finalValidUsers.map(u => u.username),
-    invalidUsers,
-  });
-
-  return { valid: true, validUsers: finalValidUsers };
+  return {
+    valid: true,
+    validUsers: Array.from(validUsers.values()),
+    invalidUsers: invalidItems.length > 0 ? invalidItems : undefined,
+  };
 }
 
 /**

@@ -258,7 +258,7 @@ export async function execute(interaction) {
         solution: "Contact a server administrator for assistance.",
       });
 
-      return interaction.reply({ embeds: [response], flags: 64 });
+      return interaction.reply(response);
     }
 
     // Check bot permissions
@@ -285,7 +285,7 @@ export async function execute(interaction) {
         solution: "Please grant me the Move Members permission and try again.",
       });
 
-      return interaction.reply({ embeds: [response], flags: 64 });
+      return interaction.reply(response);
     }
 
     if (subcommandGroup === "mute" && !hasMuteMembers) {
@@ -296,7 +296,7 @@ export async function execute(interaction) {
         solution: "Please grant me the Mute Members permission and try again.",
       });
 
-      return interaction.reply({ embeds: [response], flags: 64 });
+      return interaction.reply(response);
     }
 
     if (subcommandGroup === "deafen" && !hasDeafenMembers) {
@@ -308,7 +308,7 @@ export async function execute(interaction) {
           "Please grant me the Deafen Members permission and try again.",
       });
 
-      return interaction.reply({ embeds: [response], flags: 64 });
+      return interaction.reply(response);
     }
 
     if (subcommandGroup === "move" && !hasMoveMembers) {
@@ -319,7 +319,7 @@ export async function execute(interaction) {
         solution: "Please grant me the Move Members permission and try again.",
       });
 
-      return interaction.reply({ embeds: [response], flags: 64 });
+      return interaction.reply(response);
     }
 
     if (subcommand === "list") {
@@ -357,7 +357,7 @@ export async function execute(interaction) {
         description: `The subcommand "${subcommand}" is not recognized.`,
         solution: "Use disconnect, mute, deafen, move, or list as subcommands.",
       });
-      await interaction.reply({ embeds: [response], flags: 64 });
+      await interaction.reply(response);
     }
   } catch (error) {
     logger.error("Error in voice-roles command:", error);
@@ -368,9 +368,9 @@ export async function execute(interaction) {
     });
 
     if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({ embeds: [response], flags: 64 });
+      await interaction.reply(response);
     } else if (interaction.deferred) {
-      await interaction.editReply({ embeds: [response] });
+      await interaction.editReply(response);
     }
   }
 }

@@ -323,12 +323,9 @@ export async function execute(interaction, client) {
       });
 
       if (deferred) {
-        return interaction.editReply({ embeds: [response] });
+        return interaction.editReply(response);
       } else {
-        return interaction.reply({
-          embeds: [response],
-          flags: MessageFlags.Ephemeral,
-        });
+        return interaction.reply(response);
       }
     }
 
@@ -371,7 +368,7 @@ export async function execute(interaction, client) {
           title: "Unknown Subcommand",
           description: "Please use a valid subcommand.",
         });
-        await interaction.editReply({ embeds: [response] });
+        await interaction.editReply(response);
         break;
       }
     }
@@ -384,11 +381,9 @@ export async function execute(interaction, client) {
     });
 
     if (interaction.deferred || interaction.replied) {
-      await interaction.editReply({ embeds: [response] }).catch(() => {});
+      await interaction.editReply(response).catch(() => {});
     } else {
-      await interaction
-        .reply({ embeds: [response], flags: MessageFlags.Ephemeral })
-        .catch(() => {});
+      await interaction.reply(response).catch(() => {});
     }
   }
 }
