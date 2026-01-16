@@ -128,8 +128,6 @@ async function processPlisioPayment(data) {
   }
 }
 
-
-
 /**
  * Core logic to credit a user's account
  */
@@ -234,5 +232,3 @@ async function creditUserCore({
   );
   return { success: true, message: "Credited", credits: coresToAdd };
 }
-
-

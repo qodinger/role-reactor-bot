@@ -1,7 +1,6 @@
 import { EMOJIS, THEME } from "../../../config/theme.js";
 import { emojiConfig } from "../../../config/emojis.js";
 
-
 // Get custom emojis object
 const { customEmojis } = emojiConfig;
 
@@ -22,8 +21,6 @@ export function createBalanceEmbed(userData, username, avatarURL) {
       inline: true,
     },
   ];
-
-
 
   return {
     color: THEME.PRIMARY,

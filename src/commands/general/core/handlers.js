@@ -19,7 +19,6 @@ import {
   validateCommandPermissions,
 } from "./validation.js";
 
-
 const logger = getLogger();
 
 /**

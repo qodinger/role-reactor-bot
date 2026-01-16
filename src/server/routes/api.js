@@ -668,11 +668,11 @@ export async function apiPendingPayments(req, res) {
  * Create payment invoice endpoint - Creates a Plisio crypto payment
  * Uses the authenticated user's Discord email to pre-fill the invoice
  * POST /api/payments/create
- * 
+ *
  * Accepts authentication via:
  * 1. Discord OAuth session (discordUser in session)
  * 2. Request body with discordId, email, username (for website integration)
- * 
+ *
  * @param {import('express').Request} req - Express request object
  * @param {import('express').Response} res - Express response object
  */
@@ -744,7 +744,10 @@ export async function apiCreatePayment(req, res) {
     const currency = "USD";
 
     // Build callback URL
-    const callbackBase = process.env.PUBLIC_URL || process.env.BOT_URL || "https://your-domain.com";
+    const callbackBase =
+      process.env.PUBLIC_URL ||
+      process.env.BOT_URL ||
+      "https://your-domain.com";
     const callbackUrl = `${callbackBase}/webhook/crypto?json=true`;
 
     // Get package name for description
@@ -779,7 +782,8 @@ export async function apiCreatePayment(req, res) {
           username: userInfo.username,
           emailPrefilled: !!userInfo.email,
         },
-        message: "Payment invoice created successfully. Redirect user to invoiceUrl.",
+        message:
+          "Payment invoice created successfully. Redirect user to invoiceUrl.",
       }),
     );
   } catch (error) {
@@ -798,4 +802,3 @@ export async function apiCreatePayment(req, res) {
     res.status(statusCode).json(response);
   }
 }
-
