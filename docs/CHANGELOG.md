@@ -29,6 +29,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Voice Restrictions: Removed automatic voice restriction enforcement feature. The bot no longer automatically disconnects or mutes users based on role permissions
 - Sponsor Command: Removed standalone `/sponsor` command. Sponsorships and credit purchases have been consolidated into the `/core` command
 
+### Fixed
+
+- Role Reactions: Fixed issue where invalid emojis (like symbols ♡, ⚡) could be used, causing reaction failures. Added strict validation to reject non-Discord emojis upfront
+- Role Reactions: Fixed role name parsing to require explicit emojis for all roles, preventing ambiguity and ensuring correct reaction assignment
+- Role Reactions: Fixed issue where reaction messages were left behind if reaction addition failed. Messages are now automatically deleted to prevent confusion
+- Error Handling: Improved error messages for invalid emoji detection in role-reactions setup command
+
 ## [1.5.0] - 2025-12-15
 
 ### Added
