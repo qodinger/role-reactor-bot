@@ -282,6 +282,45 @@ export class AIConcurrencyManager {
       `Cleaned up rate limit data. Active users: ${this.userRequests.size}`,
     );
   }
+  /**
+   * Queue a request for execution
+   * Compatible implementation for ChatService that executes immediately after checks
+   * @param {string} requestId - Request ID
+   * @param {Function} task - Async task to execute
+   * @param {Object} options - Options
+   * @returns {Promise<any>} Task result
+   */
+  async queueRequest(requestId, task, options = {}) {
+    const { userId, coreUserData } = options;
+
+    // Check rate limits
+    if (this.isGloballyRateLimited()) {
+      throw new Error(
+        "System is currently under high load. Please try again later.",
+      );
+    }
+
+    if (this.isUserRateLimited(userId, coreUserData)) {
+      const status = this.getRateLimitStatus(userId, coreUserData);
+      const minutes = Math.ceil((status.resetTime - Date.now()) / 60000);
+      throw new Error(
+        `Rate limit exceeded. Please try again in ${minutes} minutes.`,
+      );
+    }
+
+    // Reserve rate limit count
+    this.checkAndReserveRateLimit(userId, coreUserData);
+
+    // Execute immediately (Queue logic removed in simplified version)
+    try {
+      if (options.onQueueStatus) {
+        options.onQueueStatus("processing", 1, 0);
+      }
+      return await task();
+    } catch (error) {
+      throw error;
+    }
+  }
 }
 
 // Export singleton instance
