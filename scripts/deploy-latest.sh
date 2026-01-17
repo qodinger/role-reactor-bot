@@ -69,7 +69,7 @@ deploy_latest() {
     
     # Step 1: Pull latest changes from repository
     print_status "Pulling latest changes from repository..."
-    git fetch --all --tags
+    git fetch --all --tags --force
     git pull origin main
     
     # Get version after pull
