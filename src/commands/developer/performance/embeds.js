@@ -36,7 +36,12 @@ export async function createPerformanceEmbed(client) {
         inline: true,
       },
       {
-        name: "Total Commands",
+        name: "Session Commands",
+        value: performanceSummary.commands.total.toString(),
+        inline: true,
+      },
+      {
+        name: "Session Commands",
         value: performanceSummary.commands.total.toString(),
         inline: true,
       },

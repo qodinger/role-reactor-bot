@@ -8,6 +8,7 @@ import {
   logRequest as logRequestHelper,
 } from "../utils/responseHelpers.js";
 import { plisioPay } from "../../utils/payments/plisio.js";
+import { getCommandHandler } from "../../utils/core/commandHandler.js";
 
 const logger = getLogger();
 
@@ -314,8 +315,8 @@ export async function apiPricing(req, res) {
       minimumPayment: corePricing.coreSystem?.minimumPayment || 3,
       currency: "USD",
       paymentMethods: {
-        paypal: process.env.PAYPAL_ENABLED === "true",
-        crypto: !!process.env.PLISIO_SECRET_KEY, // Check for Plisio configuration
+        paypal: config.payments.paypal.enabled,
+        crypto: config.payments.plisio.enabled,
       },
       promotions: activePromotions,
       referralSystem: corePricing.coreSystem?.referralSystem?.enabled
@@ -743,12 +744,8 @@ export async function apiCreatePayment(req, res) {
     const orderNumber = `${userInfo.id}_${Date.now()}`;
     const currency = "USD";
 
-    // Build callback URL
-    const callbackBase =
-      process.env.PUBLIC_URL ||
-      process.env.BOT_URL ||
-      "https://your-domain.com";
-    const callbackUrl = `${callbackBase}/webhook/crypto?json=true`;
+    // Build callback URL using centralized config
+    const callbackUrl = `${config.botInfo.apiUrl}/webhook/crypto?json=true`;
 
     // Get package name for description
     let orderName = "Core Credits";
@@ -796,6 +793,90 @@ export async function apiCreatePayment(req, res) {
 
     const { statusCode, response } = createErrorResponse(
       errorMessage,
+      500,
+      error.message,
+    );
+    res.status(statusCode).json(response);
+  }
+}
+
+/**
+ * Command usage statistics endpoint
+ * @param {import('express').Request} req - Express request object
+ * @param {import('express').Response} res - Express response object
+ */
+export async function apiCommandUsage(req, res) {
+  logRequest("Command usage stats", req);
+
+  try {
+    const commandHandler = getCommandHandler();
+    const commandStats = await commandHandler.getCommandStats();
+
+    if (!commandStats || Object.keys(commandStats).length === 0) {
+      return res.json(
+        createSuccessResponse({
+          commands: [],
+          summary: {
+            totalCommands: 0,
+            totalExecutions: 0,
+          },
+        }),
+      );
+    }
+
+    // Filter for specific command if requested
+    const specificCommand = req.query.command;
+    if (specificCommand) {
+      const stats = commandStats[specificCommand];
+      if (!stats) {
+        const { statusCode, response } = createErrorResponse(
+          `Command '${specificCommand}' not found or has no usage data`,
+          404,
+        );
+        return res.status(statusCode).json(response);
+      }
+      return res.json(
+        createSuccessResponse({
+          command: specificCommand,
+          ...stats,
+        }),
+      );
+    }
+
+    // Convert to array and sort
+    let commandArray = Object.entries(commandStats).map(([name, stats]) => ({
+      name,
+      ...stats,
+    }));
+
+    // Calculate total executions
+    const totalExecutions = commandArray.reduce(
+      (sum, cmd) => sum + (cmd.count || 0),
+      0,
+    );
+
+    // Sort by count descending
+    commandArray.sort((a, b) => b.count - a.count);
+
+    // Apply limit
+    const limit = parseInt(req.query.limit);
+    if (!isNaN(limit) && limit > 0) {
+      commandArray = commandArray.slice(0, limit);
+    }
+
+    res.json(
+      createSuccessResponse({
+        commands: commandArray,
+        summary: {
+          totalCommands: commandArray.length,
+          totalExecutions,
+        },
+      }),
+    );
+  } catch (error) {
+    logger.error("❌ Error getting command usage stats:", error);
+    const { statusCode, response } = createErrorResponse(
+      "Failed to retrieve command usage statistics",
       500,
       error.message,
     );

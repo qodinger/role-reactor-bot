@@ -1,6 +1,7 @@
 import axios from "axios";
 import crypto from "crypto";
 import { getLogger } from "../logger.js";
+import { config } from "../../config/config.js";
 
 const logger = getLogger();
 
@@ -10,7 +11,7 @@ const logger = getLogger();
  */
 export class PlisioPay {
   constructor() {
-    this.secretKey = process.env.PLISIO_SECRET_KEY;
+    this.secretKey = config.payments.plisio.secretKey;
     this.baseUrl = "https://api.plisio.net/api/v1";
   }
 

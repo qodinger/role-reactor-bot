@@ -16,6 +16,7 @@ import {
   RecurringScheduleRepository,
   UserRepository,
   PaymentRepository,
+  CommandUsageRepository,
 } from "./repositories/index.js";
 
 // Enhanced cache manager with TTL and size limits
@@ -450,6 +451,9 @@ class ConnectionManager {
       await this.db.collection("imagine_jobs").createIndex({ userId: 1 });
       await this.db.collection("imagine_jobs").createIndex({ createdAt: 1 });
       await this.db.collection("imagine_jobs").createIndex({ expiresAt: 1 });
+      await this.db
+        .collection("command_usage")
+        .createIndex({ commandName: 1 }, { unique: true });
 
       this.logger.success("✅ Database indexes created successfully");
     } catch (error) {
@@ -499,6 +503,7 @@ class DatabaseManager {
     this.imagineJobs = null;
     this.users = null;
     this.payments = null;
+    this.commandUsage = null;
     // Initialize connection manager asynchronously (non-blocking)
     this._initializeConnectionManager().catch(() => {
       // Silently fail - will be initialized on first connect
@@ -621,6 +626,11 @@ class DatabaseManager {
         );
         this.users = new UserRepository(db, this.cacheManager, this.logger);
         this.payments = new PaymentRepository(
+          db,
+          this.cacheManager,
+          this.logger,
+        );
+        this.commandUsage = new CommandUsageRepository(
           db,
           this.cacheManager,
           this.logger,

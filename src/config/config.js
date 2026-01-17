@@ -51,6 +51,24 @@ class Config {
         `Missing required environment variables: ${missingVars.join(", ")}`,
       );
     }
+
+    // Secondary validation for payments in production
+    if (this.isProduction && !process.env.PLISIO_SECRET_KEY) {
+      console.warn(
+        "⚠️ PLISIO_SECRET_KEY is missing in production. Crypto payments will be disabled.",
+      );
+    }
+
+    if (
+      this.isProduction &&
+      !process.env.BOT_API_URL &&
+      !process.env.PUBLIC_URL &&
+      !process.env.BOT_URL
+    ) {
+      console.warn(
+        "⚠️ No API/Public URL configured in production. Webhooks may not function correctly.",
+      );
+    }
   }
 
   /**
@@ -376,9 +394,29 @@ class Config {
    */
   get features() {
     return {
-      crypto: !!process.env.PLISIO_SECRET_KEY,
-      paypal: process.env.PAYPAL_ENABLED === "true",
+      crypto: this.payments.plisio.enabled,
+      paypal: this.payments.paypal.enabled,
       serveStatic: process.env.SERVE_STATIC === "true",
+    };
+  }
+
+  /**
+   * Get payment configurations
+   * @returns {Object} Payments config object
+   */
+  get payments() {
+    return {
+      plisio: {
+        secretKey: process.env.PLISIO_SECRET_KEY,
+        enabled: !!process.env.PLISIO_SECRET_KEY,
+      },
+      paypal: {
+        enabled: process.env.PAYPAL_ENABLED === "true",
+        clientId: process.env.PAYPAL_CLIENT_ID,
+        clientSecret: process.env.PAYPAL_CLIENT_SECRET,
+        webhookId: process.env.PAYPAL_WEBHOOK_ID,
+        mode: process.env.PAYPAL_MODE || "sandbox",
+      },
     };
   }
 
@@ -389,7 +427,11 @@ class Config {
   get botInfo() {
     return {
       name: process.env.BOT_NAME || "Role Reactor Bot",
-      apiUrl: process.env.BOT_API_URL || "https://api.rolereactor.app",
+      apiUrl:
+        process.env.BOT_API_URL ||
+        process.env.PUBLIC_URL ||
+        process.env.BOT_URL ||
+        "https://api.rolereactor.app",
       website: process.env.BOT_WEBSITE_URL || "https://rolereactor.app",
     };
   }
@@ -408,6 +450,7 @@ class Config {
       corePricing: this.corePricing,
       aiSettings: this.aiSettings,
       features: this.features,
+      payments: this.payments,
       botInfo: this.botInfo,
     };
   }

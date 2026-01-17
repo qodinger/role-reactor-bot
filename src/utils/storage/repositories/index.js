@@ -15,3 +15,4 @@ export { ScheduledRoleRepository } from "./ScheduledRoleRepository.js";
 export { RecurringScheduleRepository } from "./RecurringScheduleRepository.js";
 export { UserRepository } from "./UserRepository.js";
 export { PaymentRepository } from "./PaymentRepository.js";
+export { CommandUsageRepository } from "./CommandUsageRepository.js";

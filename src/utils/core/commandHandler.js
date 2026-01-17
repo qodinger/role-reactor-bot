@@ -168,11 +168,12 @@ class CommandHandler {
    * @param {string} commandName - Name of the executed command
    * @param {string} userId - ID of the user who executed the command
    * @param {number} duration - Execution time in milliseconds
+   * @param {string} [guildId] - ID of the guild where the command was executed
    * @example
-   * handler.recordCommand('ping', '123456789012345678', 150);
+   * handler.recordCommand('ping', '123456789012345678', 150, '123456789');
    * // Updates statistics for ping command
    */
-  recordCommand(commandName, userId, duration) {
+  recordCommand(commandName, userId, duration, guildId = null) {
     const stats = this.commandStats.get(commandName) || {
       count: 0,
       totalDuration: 0,
@@ -188,6 +189,26 @@ class CommandHandler {
     stats.users.add(userId);
 
     this.commandStats.set(commandName, stats);
+
+    // Persist to database asynchronously
+    setTimeout(async () => {
+      try {
+        const { getDatabaseManager } = await import(
+          "../storage/databaseManager.js"
+        );
+        const dbManager = await getDatabaseManager();
+        if (dbManager && dbManager.commandUsage) {
+          await dbManager.commandUsage.recordUsage(
+            commandName,
+            userId,
+            guildId,
+            duration,
+          );
+        }
+      } catch (error) {
+        this.logger.error("Failed to persist command usage:", error);
+      }
+    });
   }
 
   /**
@@ -196,22 +217,67 @@ class CommandHandler {
    * Returns comprehensive statistics for all commands including
    * usage count, average duration, last used time, and unique users.
    *
-   * @returns {Object} Statistics for all commands
+   * @param {boolean} [includePersistent=true] - Whether to include persistent stats from database
+   * @returns {Promise<Object>} Statistics for all commands
    * @example
-   * const stats = handler.getCommandStats();
+   * const stats = await handler.getCommandStats();
    * console.log(stats.ping.count); // Usage count for ping command
    * console.log(stats.ping.avgDuration); // Average response time
    */
-  getCommandStats() {
+  async getCommandStats(includePersistent = true) {
     const stats = {};
+
+    // Get in-memory stats
     for (const [commandName, data] of this.commandStats) {
       stats[commandName] = {
         count: data.count,
         avgDuration: data.avgDuration,
         lastUsed: new Date(data.lastUsed).toISOString(),
         uniqueUsers: data.users.size,
+        source: "memory",
       };
     }
+
+    // Merge with persistent stats if requested
+    if (includePersistent) {
+      try {
+        const { getDatabaseManager } = await import(
+          "../storage/databaseManager.js"
+        );
+        const dbManager = await getDatabaseManager();
+        if (dbManager && dbManager.commandUsage) {
+          const dbStats = await dbManager.commandUsage.getAllStats();
+          for (const s of dbStats) {
+            if (stats[s.name]) {
+              // Combine if we have both (memory might be more recent but DB has history)
+              // For simplicity, we just show DB stats if available as they are comprehensive
+              stats[s.name] = {
+                count: s.count,
+                avgDuration: s.avgDuration,
+                lastUsed: s.lastUsed
+                  ? new Date(s.lastUsed).toISOString()
+                  : null,
+                uniqueUsers: s.uniqueUsers,
+                source: "database",
+              };
+            } else {
+              stats[s.name] = {
+                count: s.count,
+                avgDuration: s.avgDuration,
+                lastUsed: s.lastUsed
+                  ? new Date(s.lastUsed).toISOString()
+                  : null,
+                uniqueUsers: s.uniqueUsers,
+                source: "database",
+              };
+            }
+          }
+        }
+      } catch (error) {
+        this.logger.error("Failed to get persistent command stats:", error);
+      }
+    }
+
     return stats;
   }
 
@@ -306,7 +372,12 @@ class CommandHandler {
       }
 
       const duration = Date.now() - startTime;
-      this.recordCommand(commandName, interaction.user.id, duration);
+      this.recordCommand(
+        commandName,
+        interaction.user.id,
+        duration,
+        interaction.guild?.id,
+      );
 
       // Award XP for command usage (only for successful commands), unless pre-awarded
       // Make XP processing completely asynchronous to avoid blocking command execution
@@ -530,12 +601,11 @@ class CommandHandler {
     }
   }
 
-  // Get performance metrics
-  getPerformanceMetrics() {
+  async getPerformanceMetrics() {
     return {
       totalCommands: this.commands.size,
       permissionCacheSize: this.permissionCache.size,
-      commandStats: this.getCommandStats(),
+      commandStats: await this.getCommandStats(),
     };
   }
 }

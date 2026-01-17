@@ -25,6 +25,7 @@ import {
   apiPaymentStats,
   apiPendingPayments,
   apiCreatePayment,
+  apiCommandUsage,
   setDiscordClient,
 } from "./routes/api.js";
 import { getServices, getService } from "./routes/services.js";
@@ -158,6 +159,7 @@ function initializeRoutes() {
   app.get("/api/payments", apiRateLimiter, apiUserPayments); // Query param version
   app.get("/api/payments/stats", apiRateLimiter, apiPaymentStats);
   app.get("/api/payments/pending", apiRateLimiter, apiPendingPayments);
+  app.get("/api/commands/usage", apiRateLimiter, apiCommandUsage);
   app.post("/api/payments/create", apiRateLimiter, apiCreatePayment); // Create payment with pre-filled email
   app.get("/api/services", apiRateLimiter, getServices);
   app.get("/api/services/:name", apiRateLimiter, getService);
