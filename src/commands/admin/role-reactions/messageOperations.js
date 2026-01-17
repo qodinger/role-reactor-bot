@@ -177,7 +177,52 @@ export async function addReactionsToMessage(message, validRoles) {
 export function handleReactionFailures(failedReactions, validRoles) {
   const logger = getLogger();
 
-  // If all reactions failed, it's likely a permission issue
+  if (failedReactions.length === 0) {
+    return null;
+  }
+
+  // Check if failures are due to invalid/unknown emojis
+  const unknownEmojiFailures = failedReactions.filter(
+    r => r.error && r.error.toLowerCase().includes("unknown emoji"),
+  );
+
+  // If all reactions failed due to unknown emojis
+  if (unknownEmojiFailures.length === failedReactions.length) {
+    const invalidEmojis = unknownEmojiFailures
+      .map(r => `• \`${r.emoji}\` for **${r.role || "role"}**`)
+      .join("\n");
+
+    logger.error("All reactions failed - invalid emojis", {
+      failedCount: failedReactions.length,
+      totalRoles: validRoles.length,
+    });
+
+    return errorEmbed({
+      title: "Invalid Emoji(s) Detected",
+      description:
+        "The following emoji(s) cannot be used as Discord reactions:\n\n" +
+        invalidEmojis +
+        "\n\n**Symbols like ♡, ⚡︎ are not valid Discord reaction emojis.**",
+      solution:
+        "Please provide valid Discord emojis explicitly. Use standard emojis (🎮, ❤️, ⭐) or server custom emojis.",
+      fields: [
+        {
+          name: "📝 Correct Format",
+          value:
+            "```\n🎮 @RoleName\n❤️ @AnotherRole\n:custom_emoji: @ThirdRole\n```",
+          inline: false,
+        },
+        {
+          name: "💡 Tip",
+          value:
+            "If your role name contains a symbol (e.g. ♡ Supporter), you still need to provide a valid reaction emoji:\n`🩷 @♡ Supporter`",
+          inline: false,
+        },
+      ],
+    });
+  }
+
+  // If all reactions failed but NOT due to unknown emojis - likely permission issue
   if (failedReactions.length === validRoles.length) {
     logger.error("All reactions failed - likely permission issue", {
       failedCount: failedReactions.length,
@@ -201,13 +246,32 @@ export function handleReactionFailures(failedReactions, validRoles) {
     });
   }
 
-  // Some reactions failed but not all - log warning but continue
-  if (failedReactions.length > 0) {
-    logger.warn("Some reactions failed but continuing", {
-      failedCount: failedReactions.length,
+  // Some reactions failed (mixed results)
+  if (unknownEmojiFailures.length > 0) {
+    const invalidEmojis = unknownEmojiFailures
+      .map(r => `• \`${r.emoji}\` for **${r.role || "role"}**`)
+      .join("\n");
+
+    logger.warn("Some reactions failed due to invalid emojis", {
+      failedCount: unknownEmojiFailures.length,
       totalRoles: validRoles.length,
     });
+
+    return errorEmbed({
+      title: "Some Emojis Are Invalid",
+      description:
+        "The role-reaction message was created, but some emojis couldn't be added:\n\n" +
+        invalidEmojis,
+      solution:
+        "Use `/role-reactions update` to fix these roles with valid Discord emojis.",
+    });
   }
+
+  // Some reactions failed but for other reasons - log warning but continue
+  logger.warn("Some reactions failed but continuing", {
+    failedCount: failedReactions.length,
+    totalRoles: validRoles.length,
+  });
 
   return null;
 }

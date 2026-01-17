@@ -1,6 +1,6 @@
 import { PermissionFlagsBits } from "discord.js";
 import { getLogger } from "../logger.js";
-import { parseRoleString, extractEmoji } from "./roleParser.js";
+import { parseRoleString, isValidReactionEmoji } from "./roleParser.js";
 
 // Member cache for reducing API calls
 class MemberCache {
@@ -418,16 +418,21 @@ export async function processRoles(interaction, rolesString) {
       continue;
     }
 
+    // Emoji is REQUIRED - must be explicitly provided in the command
     if (!roleConfig.emoji) {
-      const { emoji } = extractEmoji(role.name);
-      if (emoji) {
-        roleConfig.emoji = emoji;
-      } else {
-        validationErrors.push(
-          `No emoji provided and none found in role name for "${role.name}"`,
-        );
-        continue;
-      }
+      validationErrors.push(
+        `Missing emoji for role "${role.name}". Please provide an emoji before the role, e.g.: 🎮 @${role.name}`,
+      );
+      continue;
+    }
+
+    // Validate that the emoji is a valid Discord reaction emoji
+    const emojiValidation = isValidReactionEmoji(roleConfig.emoji);
+    if (!emojiValidation.valid) {
+      validationErrors.push(
+        `Invalid emoji for role "${role.name}": ${emojiValidation.reason}`,
+      );
+      continue;
     }
 
     validRoles.push({

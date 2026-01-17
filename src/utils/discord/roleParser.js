@@ -12,7 +12,7 @@ function unescapeHtml(str) {
 /**
  * Extracts an emoji (custom, standard, or common symbol) from the beginning of a string.
  * @param {string} str The string to check.
- * @returns {{emoji: string|null, remaining: string}} The extracted emoji and remaining string.
+ * @returns {{emoji: string|null, remaining: string, isSymbol: boolean}} The extracted emoji, remaining string, and whether it's a symbol (not a real emoji).
  */
 export function extractEmoji(str) {
   const customEmojiRegex = /^<a?:.+?:\d+>/;
@@ -23,13 +23,14 @@ export function extractEmoji(str) {
 
   let emoji = null;
   let remaining = str;
+  let isSymbol = false;
 
   // Check custom emoji
   const customMatch = str.match(customEmojiRegex);
   if (customMatch) {
     emoji = customMatch[0];
     remaining = str.slice(emoji.length).trim();
-    return { emoji, remaining };
+    return { emoji, remaining, isSymbol: false };
   }
 
   // Check standard emoji
@@ -38,18 +39,63 @@ export function extractEmoji(str) {
   if (emojiMatch && str.startsWith(emojiMatch[0])) {
     emoji = emojiMatch[0];
     remaining = str.slice(emoji.length).trim();
-    return { emoji, remaining };
+    return { emoji, remaining, isSymbol: false };
   }
 
-  // Check common symbols
+  // Check common symbols - these MAY NOT be valid Discord reaction emojis
   const symbolMatch = str.match(commonSymbolRegex);
   if (symbolMatch) {
     emoji = symbolMatch[0];
     remaining = str.slice(emoji.length).trim();
-    return { emoji, remaining };
+    isSymbol = true; // Mark as symbol, needs validation
+    return { emoji, remaining, isSymbol };
   }
 
-  return { emoji: null, remaining: str };
+  return { emoji: null, remaining: str, isSymbol: false };
+}
+
+/**
+ * Checks if an emoji is likely a valid Discord reaction emoji.
+ * Custom emojis and standard Unicode emojis are valid.
+ * Symbols from certain Unicode ranges (like ♡ U+2661) are NOT valid Discord reactions.
+ * @param {string} emoji The emoji to validate.
+ * @returns {{valid: boolean, reason: string|null}} Validation result.
+ */
+export function isValidReactionEmoji(emoji) {
+  if (!emoji) {
+    return { valid: false, reason: "No emoji provided" };
+  }
+
+  // Custom Discord emoji format: <:name:id> or <a:name:id>
+  if (/^<a?:.+?:\d+>$/.test(emoji)) {
+    return { valid: true, reason: null };
+  }
+
+  // Check if it's a standard emoji using emoji-regex
+  const standardEmojiRegex = emojiRegex();
+  const match = emoji.match(standardEmojiRegex);
+  if (match && match[0] === emoji) {
+    return { valid: true, reason: null };
+  }
+
+  // Known invalid symbols that look like emojis but Discord doesn't accept as reactions
+  // ♡ (U+2661), ♀ (U+2640), ♂ (U+2642), ⚡︎ (U+26A1), etc.
+  const invalidSymbolRanges = [
+    /^[\u2600-\u26FF]$/, // Miscellaneous Symbols (includes ♡, ♀, ♂)
+    /^[\u2700-\u27BF]$/, // Dingbats
+  ];
+
+  for (const range of invalidSymbolRanges) {
+    if (range.test(emoji)) {
+      return {
+        valid: false,
+        reason: `\`${emoji}\` is a symbol, not a valid Discord reaction emoji. Use standard emojis like 🩷, ⚡, ♂️ instead.`,
+      };
+    }
+  }
+
+  // Default: assume valid (let Discord API be the final validator)
+  return { valid: true, reason: null };
 }
 
 /**

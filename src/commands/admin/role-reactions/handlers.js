@@ -149,6 +149,21 @@ export async function handleSetup(interaction, client) {
       validRoles,
     );
     if (reactionFailureResponse) {
+      // Delete the message since reactions failed - it's not usable without reactions
+      try {
+        await message.delete();
+        logger.debug("Deleted role-reaction message due to reaction failures", {
+          messageId: message.id,
+        });
+      } catch (deleteError) {
+        logger.warn(
+          "Failed to delete role-reaction message after reaction failure",
+          {
+            messageId: message.id,
+            error: deleteError.message,
+          },
+        );
+      }
       activeSetups.delete(interaction.id);
       return interaction.editReply(reactionFailureResponse);
     }

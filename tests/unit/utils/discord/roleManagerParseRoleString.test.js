@@ -1,5 +1,8 @@
 import { describe, test, expect } from "vitest";
-import { parseRoleString } from "../../../../src/utils/discord/roleParser.js";
+import {
+  parseRoleString,
+  isValidReactionEmoji,
+} from "../../../../src/utils/discord/roleParser.js";
 
 describe("parseRoleString", () => {
   const cases = [
@@ -373,6 +376,59 @@ describe("parseRoleString", () => {
       expect(roles).toEqual([
         { emoji: null, roleName: "Coder", roleId: null, limit: null },
       ]);
+    });
+  });
+});
+
+describe("isValidReactionEmoji", () => {
+  describe("valid emojis", () => {
+    test("accepts standard Unicode emojis", () => {
+      expect(isValidReactionEmoji("🎮").valid).toBe(true);
+      expect(isValidReactionEmoji("❤️").valid).toBe(true);
+      expect(isValidReactionEmoji("⭐").valid).toBe(true);
+      expect(isValidReactionEmoji("🩷").valid).toBe(true);
+    });
+
+    test("accepts custom Discord emojis", () => {
+      expect(isValidReactionEmoji("<:pepe:123456>").valid).toBe(true);
+      expect(isValidReactionEmoji("<:custom:987654321>").valid).toBe(true);
+    });
+
+    test("accepts animated custom Discord emojis", () => {
+      expect(isValidReactionEmoji("<a:dance:123456>").valid).toBe(true);
+      expect(isValidReactionEmoji("<a:animated:987654321>").valid).toBe(true);
+    });
+  });
+
+  describe("invalid symbols", () => {
+    test("rejects white heart symbol (♡)", () => {
+      const result = isValidReactionEmoji("♡");
+      expect(result.valid).toBe(false);
+      expect(result.reason).toContain("symbol");
+    });
+
+    test("rejects black star symbol (★)", () => {
+      const result = isValidReactionEmoji("★");
+      expect(result.valid).toBe(false);
+      expect(result.reason).toContain("symbol");
+    });
+
+    test("rejects empty emoji", () => {
+      const result = isValidReactionEmoji("");
+      expect(result.valid).toBe(false);
+    });
+
+    test("rejects null/undefined emoji", () => {
+      expect(isValidReactionEmoji(null).valid).toBe(false);
+      expect(isValidReactionEmoji(undefined).valid).toBe(false);
+    });
+  });
+
+  describe("edge cases", () => {
+    test("accepts emojis with variant selectors", () => {
+      // These should be valid as emoji-regex recognizes them
+      expect(isValidReactionEmoji("♂️").valid).toBe(true);
+      expect(isValidReactionEmoji("♀️").valid).toBe(true);
     });
   });
 });
