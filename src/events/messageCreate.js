@@ -63,9 +63,10 @@ export async function execute(message, client) {
         const creditInfo = await getAICreditInfo(message.author.id);
         const chatCost = creditCheck.creditsNeeded; // Use creditsNeeded from check (already has fallback in aiCreditManager)
         const requestsPerCore = Math.floor(1 / chatCost);
-        await message.reply(
-          `❌ **Insufficient Credits**\n\nYou need **${chatCost.toFixed(2)} ${customEmojis.core}** to use AI chat!\n\n**Your Balance:** ${creditInfo.credits.toFixed(2)} ${customEmojis.core}\n**Cost:** ${chatCost.toFixed(2)} ${customEmojis.core} per request (1 ${customEmojis.core} = ${requestsPerCore} requests)\n**Requests Available:** ${creditInfo.requestsRemaining}\n\nGet Cores: Visit https://rolereactor.app/sponsor`,
-        );
+        // Silently ignore users without credits
+        // await message.reply(
+        //   `❌ **Insufficient Credits**\n\nYou need **${chatCost.toFixed(2)} ${customEmojis.core}** to use AI chat!\n\n**Your Balance:** ${creditInfo.credits.toFixed(2)} ${customEmojis.core}\n**Cost:** ${chatCost.toFixed(2)} ${customEmojis.core} per request (1 ${customEmojis.core} = ${requestsPerCore} requests)\n**Requests Available:** ${creditInfo.requestsRemaining}\n\nGet Cores: Visit https://rolereactor.app/sponsor`,
+        // );
         return;
       }
 
