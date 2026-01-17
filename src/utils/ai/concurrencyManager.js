@@ -312,14 +312,10 @@ export class AIConcurrencyManager {
     this.checkAndReserveRateLimit(userId, coreUserData);
 
     // Execute immediately (Queue logic removed in simplified version)
-    try {
-      if (options.onQueueStatus) {
-        options.onQueueStatus("processing", 1, 0);
-      }
-      return await task();
-    } catch (error) {
-      throw error;
+    if (options.onQueueStatus) {
+      options.onQueueStatus("processing", 1, 0);
     }
+    return await task();
   }
 }
 
