@@ -108,7 +108,7 @@ async function createClient() {
   // Base intents (required)
   const intents = [
     GatewayIntentBits.Guilds,
-    // GatewayIntentBits.GuildMembers, // Requires privileged intent
+    GatewayIntentBits.GuildMembers, // Requires privileged intent
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.GuildMessageReactions,
     GatewayIntentBits.GuildVoiceStates,
