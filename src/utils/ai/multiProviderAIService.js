@@ -3,7 +3,7 @@ import { performanceMonitor } from "./performanceMonitor.js";
 import { ProviderManager } from "./providers/providerManager.js";
 import { OpenRouterProvider } from "./providers/openRouterProvider.js";
 import { StabilityProvider } from "./providers/stabilityProvider.js";
-import { ComfyUIProvider } from "./providers/ComfyUIProvider.js";
+import { ComfyUIProvider } from "./providers/comfyUIProvider.js";
 import { RunPodServerlessProvider } from "./providers/runpodServerlessProvider.js";
 import { AI_STATUS_MESSAGES } from "./statusMessages.js";
 
