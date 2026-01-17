@@ -1,6 +1,6 @@
 import { PermissionFlagsBits } from "discord.js";
 import { getLogger } from "../logger.js";
-import { parseRoleString } from "./roleParser.js";
+import { parseRoleString, extractEmoji } from "./roleParser.js";
 
 // Member cache for reducing API calls
 class MemberCache {
@@ -390,7 +390,20 @@ export async function processRoles(interaction, rolesString) {
     if (roleConfig.roleId) {
       role = guild.roles.cache.get(roleConfig.roleId);
     } else {
-      role = roleNameMap.get(roleConfig.roleName.toLowerCase());
+      const cleanName = roleConfig.roleName.toLowerCase();
+      role = roleNameMap.get(cleanName);
+
+      // If not found by cleaned name, and we extracted an emoji,
+      // try to find by re-combining emoji + name (e.g. "♂ Male")
+      if (!role && roleConfig.emoji) {
+        const emoji = roleConfig.emoji;
+        // Try "Emoji Name"
+        role = roleNameMap.get(`${emoji} ${cleanName}`.toLowerCase());
+        // Try "EmojiName"
+        if (!role) {
+          role = roleNameMap.get(`${emoji}${cleanName}`.toLowerCase());
+        }
+      }
     }
 
     if (!role) {
@@ -405,6 +418,18 @@ export async function processRoles(interaction, rolesString) {
       continue;
     }
 
+    if (!roleConfig.emoji) {
+      const { emoji } = extractEmoji(role.name);
+      if (emoji) {
+        roleConfig.emoji = emoji;
+      } else {
+        validationErrors.push(
+          `No emoji provided and none found in role name for "${role.name}"`,
+        );
+        continue;
+      }
+    }
+
     validRoles.push({
       emoji: roleConfig.emoji,
       roleId: role.id,
@@ -415,6 +440,7 @@ export async function processRoles(interaction, rolesString) {
     roleMapping[roleConfig.emoji] = {
       emoji: roleConfig.emoji,
       roleId: role.id,
+      roleName: role.name,
       limit: roleConfig.limit || null,
     };
   }

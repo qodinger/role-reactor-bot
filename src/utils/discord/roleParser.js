@@ -1,3 +1,5 @@
+import emojiRegex from "emoji-regex";
+
 /**
  * Unescapes HTML entities in a string.
  * @param {string} str The string to unescape.
@@ -5,6 +7,49 @@
  */
 function unescapeHtml(str) {
   return str.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+}
+
+/**
+ * Extracts an emoji (custom, standard, or common symbol) from the beginning of a string.
+ * @param {string} str The string to check.
+ * @returns {{emoji: string|null, remaining: string}} The extracted emoji and remaining string.
+ */
+export function extractEmoji(str) {
+  const customEmojiRegex = /^<a?:.+?:\d+>/;
+  const standardEmojiRegex = emojiRegex();
+  // Include common symbols often used as emojis (Hearts, Stars, Gender signs, etc.)
+  // Ranges: U+2600-U+27BF (Misc Symbols, Dingbats), U+2B50 (Star), U+2B55 (Circle)
+  const commonSymbolRegex = /^[\u2600-\u27BF\u2B50\u2B55]/;
+
+  let emoji = null;
+  let remaining = str;
+
+  // Check custom emoji
+  const customMatch = str.match(customEmojiRegex);
+  if (customMatch) {
+    emoji = customMatch[0];
+    remaining = str.slice(emoji.length).trim();
+    return { emoji, remaining };
+  }
+
+  // Check standard emoji
+  // emoji-regex matches anywhere, so we need to ensure it's at start
+  const emojiMatch = str.match(standardEmojiRegex);
+  if (emojiMatch && str.startsWith(emojiMatch[0])) {
+    emoji = emojiMatch[0];
+    remaining = str.slice(emoji.length).trim();
+    return { emoji, remaining };
+  }
+
+  // Check common symbols
+  const symbolMatch = str.match(commonSymbolRegex);
+  if (symbolMatch) {
+    emoji = symbolMatch[0];
+    remaining = str.slice(emoji.length).trim();
+    return { emoji, remaining };
+  }
+
+  return { emoji: null, remaining: str };
 }
 
 /**
@@ -24,15 +69,8 @@ export function parseRoleString(roleString) {
     // Skip empty parts
     if (!str) continue;
 
-    const emojiMatch = str.match(
-      /^(<a?:.+?:\d+>|[\p{Emoji_Presentation}\p{Emoji}\uFE0F]+)/u,
-    );
-    if (!emojiMatch) {
-      errors.push(`Invalid or missing emoji in part: "${part}"`);
-      continue;
-    }
-    const emoji = emojiMatch[0];
-    str = str.slice(emoji.length).trim();
+    const { emoji, remaining } = extractEmoji(str);
+    str = remaining;
 
     // Remove any leading colons with spaces
     str = str.replace(/^:\s*/, "").trim();
@@ -98,7 +136,7 @@ export function parseRoleString(roleString) {
 
     // Check for duplicate emojis
     const existingRole = roles.find(r => r.emoji === emoji);
-    if (existingRole) {
+    if (existingRole && emoji !== null) {
       errors.push(
         `Duplicate emoji ${emoji} found for roles: "${
           existingRole.roleName || existingRole.roleId

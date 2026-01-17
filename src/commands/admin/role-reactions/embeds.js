@@ -28,7 +28,11 @@ export function createSetupRolesEmbed(
   const roleList = validRoles
     .map(role => {
       const limitText = role.limit ? ` (${role.limit} users max)` : "";
-      return `${role.emoji} <@&${role.roleId}>${limitText}`;
+      // Check if role name already starts with the emoji
+      const roleName = role.roleName || "";
+      const emojiAlreadyInName = roleName.startsWith(role.emoji);
+      const displayEmoji = emojiAlreadyInName ? "" : `${role.emoji} `;
+      return `${displayEmoji}<@&${role.roleId}>${limitText}`;
     })
     .join("\n");
 
@@ -195,7 +199,11 @@ export function createUpdatedRolesEmbed(updatedMapping, roleMapping, client) {
   const roleList = rolesToShow
     .map(pair => {
       const limitText = pair.limit ? ` (${pair.limit} users max)` : "";
-      return `${pair.emoji} <@&${pair.roleId}>${limitText}`;
+      // Check if role name already starts with the emoji (to avoid duplication)
+      const roleName = pair.roleName || "";
+      const emojiAlreadyInName = roleName.startsWith(pair.emoji);
+      const displayEmoji = emojiAlreadyInName ? "" : `${pair.emoji} `;
+      return `${displayEmoji}<@&${pair.roleId}>${limitText}`;
     })
     .join("\n");
 

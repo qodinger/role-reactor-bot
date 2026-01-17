@@ -1,4 +1,5 @@
 import { describe, test, expect, beforeEach, vi } from "vitest";
+import { parseRoleString } from "../../../../src/utils/discord/roleParser.js";
 
 // Test file for role-reactions functionality
 
@@ -803,93 +804,48 @@ describe("Role Reactions - Core Functionality", () => {
     });
   });
 
-  describe("parseRoleString", () => {
+  describe("parseRoleString integration", () => {
     test("should parse role string with mentions", () => {
-      const parseRoleString = rolesString => {
-        const rolePairs = rolesString.split(",").map(pair => pair.trim());
-        const parsedRoles = [];
-
-        for (const pair of rolePairs) {
-          const [emoji, roleStr] = pair.split(":").map(s => s.trim());
-          if (emoji && roleStr) {
-            parsedRoles.push({
-              emoji,
-              roleString: roleStr,
-              isMention: roleStr.startsWith("<@&") && roleStr.endsWith(">"),
-              isQuoted: roleStr.startsWith('"') && roleStr.endsWith('"'),
-            });
-          }
-        }
-
-        return parsedRoles;
-      };
-
       const rolesString = '🎉:<@&123456789>, ⭐:"VIP Role"';
-      const result = parseRoleString(rolesString);
+      const { roles } = parseRoleString(rolesString);
 
-      expect(result).toHaveLength(2);
-      expect(result[0].emoji).toBe("🎉");
-      expect(result[0].isMention).toBe(true);
-      expect(result[1].emoji).toBe("⭐");
-      expect(result[1].isQuoted).toBe(true);
+      expect(roles).toHaveLength(2);
+      expect(roles[0].emoji).toBe("🎉");
+      // formatted ID matches <@&...> pattern? parseRoleString stores ID in roleId
+      expect(roles[0].roleId).toBe("123456789");
+      expect(roles[1].emoji).toBe("⭐");
+      expect(roles[1].roleName).toBe("VIP Role");
     });
 
     test("should handle mixed role formats", () => {
-      const parseRoleString = rolesString => {
-        const rolePairs = rolesString.split(",").map(pair => pair.trim());
-        const parsedRoles = [];
-
-        for (const pair of rolePairs) {
-          const [emoji, roleStr] = pair.split(":").map(s => s.trim());
-          if (emoji && roleStr) {
-            parsedRoles.push({
-              emoji,
-              roleString: roleStr,
-              isMention: roleStr.startsWith("<@&") && roleStr.endsWith(">"),
-              isQuoted: roleStr.startsWith('"') && roleStr.endsWith('"'),
-              isPlain: !roleStr.startsWith("<@&") && !roleStr.startsWith('"'),
-            });
-          }
-        }
-
-        return parsedRoles;
-      };
-
       const rolesString = '🎉:Member, ⭐:<@&123456789>, 🔥:"Special Role"';
-      const result = parseRoleString(rolesString);
+      const { roles } = parseRoleString(rolesString);
 
-      expect(result).toHaveLength(3);
-      expect(result[0].isPlain).toBe(true);
-      expect(result[1].isMention).toBe(true);
-      expect(result[2].isQuoted).toBe(true);
+      expect(roles).toHaveLength(3);
+      expect(roles[0].roleName).toBe("Member");
+      expect(roles[1].roleId).toBe("123456789");
+      expect(roles[2].roleName).toBe("Special Role");
     });
 
     test("should handle empty or invalid input", () => {
-      const parseRoleString = rolesString => {
-        if (!rolesString || rolesString.trim().length === 0) {
-          return [];
-        }
+      // Empty input still results in no roles
+      expect(parseRoleString("").roles).toHaveLength(0);
 
-        const rolePairs = rolesString.split(",").map(pair => pair.trim());
-        const parsedRoles = [];
+      // "invalid" is now considered a potential role name (emoji extracted later)
+      const resultInvalid = parseRoleString("invalid");
+      expect(resultInvalid.roles).toHaveLength(1);
+      expect(resultInvalid.roles[0].roleName).toBe("invalid");
+      expect(resultInvalid.roles[0].emoji).toBeNull();
 
-        for (const pair of rolePairs) {
-          const [emoji, roleStr] = pair.split(":").map(s => s.trim());
-          if (emoji && roleStr) {
-            parsedRoles.push({
-              emoji,
-              roleString: roleStr,
-            });
-          }
-        }
+      // "emoji:" is parsed as role name "emoji"
+      const resultEmojiOnly = parseRoleString("emoji:");
+      expect(resultEmojiOnly.roles).toHaveLength(1);
+      expect(resultEmojiOnly.roles[0].roleName).toBe("emoji:");
 
-        return parsedRoles;
-      };
-
-      expect(parseRoleString("")).toHaveLength(0);
-      expect(parseRoleString("invalid")).toHaveLength(0);
-      expect(parseRoleString("emoji:")).toHaveLength(0);
-      expect(parseRoleString(":role")).toHaveLength(0);
+      // ":role" is parsed as role name "role" (leading colons removed)
+      const resultRoleOnly = parseRoleString(":role");
+      expect(resultRoleOnly.roles).toHaveLength(1);
+      expect(resultRoleOnly.roles[0].roleName).toBe("role");
     });
   });
 
@@ -1296,6 +1252,58 @@ describe("Role Reactions - Core Functionality", () => {
 
       const emptyResult = formatEmojiForLookup(emptyNameEmoji);
       expect(emptyResult).toBe("<::empty123>");
+    });
+  });
+
+  describe("Role Display Formatting - Duplicate Emoji Prevention", () => {
+    // Helper function that mirrors the logic in embeds.js
+    const formatRoleForDisplay = role => {
+      const limitText = role.limit ? ` (${role.limit} users max)` : "";
+      const roleName = role.roleName || "";
+      const emojiAlreadyInName = roleName.startsWith(role.emoji);
+      const displayEmoji = emojiAlreadyInName ? "" : `${role.emoji} `;
+      return `${displayEmoji}<@&${role.roleId}>${limitText}`;
+    };
+
+    test("should not duplicate emoji when role name starts with emoji", () => {
+      const role = { emoji: "♡", roleId: "123", roleName: "♡ Supporter" };
+      const result = formatRoleForDisplay(role);
+      expect(result).toBe("<@&123>");
+      expect(result).not.toContain("♡ <@&"); // No duplicate
+    });
+
+    test("should show emoji when role name does not contain it", () => {
+      const role = { emoji: "❤️", roleId: "456", roleName: "Member" };
+      const result = formatRoleForDisplay(role);
+      expect(result).toBe("❤️ <@&456>");
+    });
+
+    test("should handle symbol emojis in role names", () => {
+      const role = { emoji: "♂", roleId: "789", roleName: "♂ Male" };
+      const result = formatRoleForDisplay(role);
+      expect(result).toBe("<@&789>");
+    });
+
+    test("should include limit text when present", () => {
+      const role = { emoji: "🎮", roleId: "101", roleName: "Gamer", limit: 10 };
+      const result = formatRoleForDisplay(role);
+      expect(result).toBe("🎮 <@&101> (10 users max)");
+    });
+
+    test("should handle custom Discord emojis in role names", () => {
+      const role = {
+        emoji: "<:pepe:999>",
+        roleId: "102",
+        roleName: "<:pepe:999> Memer",
+      };
+      const result = formatRoleForDisplay(role);
+      expect(result).toBe("<@&102>");
+    });
+
+    test("should handle missing roleName gracefully", () => {
+      const role = { emoji: "🔥", roleId: "103", roleName: undefined };
+      const result = formatRoleForDisplay(role);
+      expect(result).toBe("🔥 <@&103>");
     });
   });
 });

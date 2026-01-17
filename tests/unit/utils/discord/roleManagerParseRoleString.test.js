@@ -294,6 +294,37 @@ describe("parseRoleString", () => {
         { emoji: "🎮", roleName: "Gamer", roleId: null, limit: 20 },
       ],
     },
+    // Symbol Emojis
+    {
+      input: "♂ Male",
+      expected: [{ emoji: "♂", roleName: "Male", roleId: null, limit: null }],
+    },
+    {
+      input: "♀ Female",
+      expected: [
+        { emoji: "♀", roleName: "Female", roleId: null, limit: null },
+      ],
+    },
+    {
+      input: "⚡ Booster",
+      expected: [
+        { emoji: "⚡", roleName: "Booster", roleId: null, limit: null },
+      ],
+    },
+    {
+      // Symbol as emoji, no space
+      input: "⚡Booster",
+      expected: [
+        { emoji: "⚡", roleName: "Booster", roleId: null, limit: null },
+      ],
+    },
+    {
+      // Emoji inferred from name later (no emoji at start)
+      input: "RoleWithSymbol",
+      expected: [
+        { emoji: null, roleName: "RoleWithSymbol", roleId: null, limit: null },
+      ],
+    },
   ];
 
   cases.forEach(({ input, expected }) => {
@@ -336,10 +367,12 @@ describe("parseRoleString", () => {
       expect(errors.length).toBeGreaterThan(0);
     });
 
-    test("handles missing emoji", () => {
+    test("handles missing emoji (returns null emoji for later matching)", () => {
       const { roles, errors } = parseRoleString("Coder");
-      expect(roles).toEqual([]);
-      expect(errors.length).toBeGreaterThan(0);
+      expect(errors).toEqual([]);
+      expect(roles).toEqual([
+        { emoji: null, roleName: "Coder", roleId: null, limit: null },
+      ]);
     });
   });
 });
