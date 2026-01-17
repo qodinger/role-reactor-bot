@@ -125,6 +125,12 @@ deploy_latest() {
     
     print_success "Docker image version: $DOCKER_VERSION"
     
+    # Ensure directories exist and have proper permissions for UID 1001 (botuser)
+    print_status "Setting up directory permissions..."
+    mkdir -p logs data
+    # Try to set ownership to 1001 (botuser), fallback to 777 if chown fails
+    chown -R 1001:1001 logs data 2>/dev/null || chmod -R 777 logs data
+    
     # Step 7: Start the new container
     print_status "Starting new container..."
     docker-compose -f docker-compose.prod.yml up -d
