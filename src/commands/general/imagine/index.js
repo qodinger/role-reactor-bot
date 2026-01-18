@@ -3,6 +3,8 @@ import { getLogger } from "../../../utils/logger.js";
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 import { handleImagineCommand } from "./handlers.js";
 
+export const disabled = true;
+
 // ============================================================================
 // COMMAND METADATA
 // ============================================================================

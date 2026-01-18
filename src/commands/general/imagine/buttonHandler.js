@@ -25,7 +25,6 @@ export async function handleImagineButton(interaction) {
   const { customId } = interaction;
 
   // 1. Determine action
-  const isRegenerate = customId.startsWith("imagine_regenerate_");
   const isUpscale = customId.startsWith("imagine_upscale_");
 
   if (isUpscale) {

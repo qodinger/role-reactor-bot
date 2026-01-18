@@ -1,7 +1,6 @@
 import { AttachmentBuilder, EmbedBuilder } from "discord.js";
 import { THEME, EMOJIS } from "../../../config/theme.js";
 import { getLogger } from "../../../utils/logger.js";
-import { isDeveloper } from "../../../utils/discord/permissions.js";
 import { concurrencyManager } from "../../../utils/ai/concurrencyManager.js";
 import { multiProviderAIService } from "../../../utils/ai/multiProviderAIService.js";
 import {
@@ -55,11 +54,7 @@ function getPreferredSafeProvider() {
 
 const logger = getLogger();
 
-export async function handleImagineCommand(
-  interaction,
-  _client,
-  deferred = true,
-) {
+export async function handleImagineCommand(interaction, _client) {
   const promptOption = interaction.options.getString("prompt", true);
   const selectedModel = interaction.options.getString("model");
   const selectedAspectRatio = interaction.options.getString("aspect_ratio");
@@ -234,7 +229,10 @@ export async function handleImagineCommand(
   let imageBuffer = null;
   if (attachment) {
     try {
-      progressCallback?.("Downloading source image...");
+      // Use logger for initial feedback since progressCallbackFn isn't defined yet
+      logger.info(
+        `[IMAGINE] Downloading source image for user ${interaction.user.id}...`,
+      );
       const response = await fetch(attachment.url);
       if (response.ok) {
         imageBuffer = Buffer.from(await response.arrayBuffer());
