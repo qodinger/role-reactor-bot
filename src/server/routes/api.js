@@ -248,6 +248,26 @@ export async function apiPricing(req, res) {
       features: pkg.features || [],
     }));
 
+    // Add $1 Test Package only for developers if test mode is enabled
+    if (config.payments.paypal.testMode && config.isDeveloper(userId)) {
+      packages.push({
+        id: "$1",
+        name: "Developer Test Package",
+        price: 1.0,
+        currency: "USD",
+        baseCores: 15,
+        bonusCores: 0,
+        totalCores: 15,
+        valuePerDollar: 0.067,
+        description:
+          "Special test package for developers. Limited to Live Test mode.",
+        estimatedUsage: "Perfect for testing Live webhook signature.",
+        popular: false,
+        features: ["Developer Verification", "Live Signal Test"],
+      });
+      logger.info(`🛠️ Injected $1 test package for developer ${userId}`);
+    }
+
     // Sort by price
     packages.sort((a, b) => a.price - b.price);
 
@@ -310,9 +330,15 @@ export async function apiPricing(req, res) {
     }
 
     // Build response
+    const isDev = config.isDeveloper(userId);
+    const minPayment =
+      isDev && config.payments.paypal.testMode
+        ? 1
+        : corePricing.coreSystem?.minimumPayment || 3;
+
     const response = {
       packages,
-      minimumPayment: corePricing.coreSystem?.minimumPayment || 3,
+      minimumPayment: minPayment,
       currency: "USD",
       paymentMethods: {
         paypal: config.payments.paypal.enabled,
@@ -729,7 +755,13 @@ export async function apiCreatePayment(req, res) {
     );
     const config =
       configModule?.config || configModule?.default || configModule || {};
-    const minimumAmount = config.corePricing?.coreSystem?.minimumPayment || 1;
+
+    // Allow $1 for developers in test mode
+    const isDev = config.isDeveloper(userInfo.id);
+    const minimumAmount =
+      isDev && config.payments?.paypal?.testMode
+        ? 0.5
+        : config.corePricing?.coreSystem?.minimumPayment || 1;
 
     if (amount < minimumAmount) {
       const { statusCode, response } = createErrorResponse(

@@ -216,6 +216,17 @@ class Config {
   }
 
   /**
+   * Check if a user ID is a developer
+   * @param {string} userId - Discord user ID
+   * @returns {boolean} True if developer
+   */
+  isDeveloper(userId) {
+    if (!userId) return false;
+    const developers = this.parseDevelopers();
+    return developers.includes(userId);
+  }
+
+  /**
    * Get external links for help UI
    * @returns {Object} External links object
    */
@@ -411,11 +422,12 @@ class Config {
         enabled: !!process.env.PLISIO_SECRET_KEY,
       },
       paypal: {
-        enabled: process.env.PAYPAL_ENABLED === "true",
         clientId: process.env.PAYPAL_CLIENT_ID,
         clientSecret: process.env.PAYPAL_CLIENT_SECRET,
         webhookId: process.env.PAYPAL_WEBHOOK_ID,
         mode: process.env.PAYPAL_MODE || "sandbox",
+        enabled: process.env.PAYPAL_ENABLED === "true",
+        testMode: process.env.PAYPAL_TEST_MODE === "true", // Added for dev testing
       },
     };
   }

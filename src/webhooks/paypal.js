@@ -679,13 +679,20 @@ async function processPayPalPayment(paymentData) {
     }
 
     // Validate minimum payment amount
-    if (amount < minimumAmount) {
+    const isDev =
+      userId && typeof config.isDeveloper === "function"
+        ? config.isDeveloper(userId)
+        : false;
+    const effectiveMinimum =
+      isDev && config.payments?.paypal?.testMode ? 0.5 : minimumAmount;
+
+    if (amount < effectiveMinimum) {
       logger.warn(
-        `❌ PayPal payment below minimum: $${amount} < $${minimumAmount} (paymentId: ${paymentId})`,
+        `❌ PayPal payment below minimum: $${amount} < $${effectiveMinimum} (paymentId: ${paymentId})`,
       );
       return {
         success: false,
-        error: `Payment amount ($${amount}) is below the minimum required amount ($${minimumAmount}). No credits will be granted.`,
+        error: `Payment amount ($${amount}) is below the minimum required amount ($${effectiveMinimum}). No credits will be granted.`,
       };
     }
 
