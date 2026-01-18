@@ -21,31 +21,31 @@ export class ModelManager {
 
     // Simplified model configurations - only animagine and anything
     const modelConfigs = {
-      // Animagine XL 4.0 - Best quality with NSFW filter bypass
+      // Animagine XL 4.0 - Best quality anime
       "animagine-xl-4.0-opt.safetensors": {
         name: "Animagine XL 4.0",
         key: "animagine",
-        workflow: "animagine-fast.json", // Use fast workflow by default
+        workflow: "animagine-fast.json",
         description:
           "High-quality anime model with superior character knowledge",
         defaultSettings: {
-          steps: 20, // Reduced for speed
-          cfg: 5.0, // Optimized for speed
-          sampler: "dpmpp_2m", // Faster sampler
+          steps: 20,
+          cfg: 5.0,
+          sampler: "dpmpp_2m",
           scheduler: "karras",
         },
       },
 
-      // Anything XL - Uncensored anime model
+      // Anything XL - Versatile anime
       "AnythingXL_xl.safetensors": {
         name: "Anything XL",
         key: "anything",
-        workflow: "anything-fast.json", // Use fast workflow by default
+        workflow: "anything-fast.json",
         description: "Uncensored anime model with versatile style",
         defaultSettings: {
-          steps: 15, // Reduced for speed
-          cfg: 6.0, // Optimized for speed
-          sampler: "dpmpp_2m", // Faster sampler
+          steps: 15,
+          cfg: 6.0,
+          sampler: "dpmpp_2m",
           scheduler: "karras",
         },
       },

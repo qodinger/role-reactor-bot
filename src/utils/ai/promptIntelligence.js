@@ -174,26 +174,53 @@ const PROMPT_PATTERNS = {
   // Art styles and quality
   styles: {
     patterns: [
-      /\b(anime|manga|realistic|cartoon|chibi|kawaii)\b/gi,
-      /\b(detailed|high quality|masterpiece|beautiful|cute|cool|elegant)\b/gi,
+      /\b(anime|manga|realistic|cartoon|chibi|kawaii|ghibli|shinkai|shinkai makoto|kyoto animation|kyoani|k-on|vocaloid|vtuber)\b/gi,
+      /\b(cyberpunk|steampunk|fantasy|dark fantasy|gothic|victorian|modern|futuristic|sci-fi|vaporwave|synthwave)\b/gi,
+      /\b(detailed|high quality|masterpiece|beautiful|cute|cool|elegant|cinematic|photorealistic|ucllay|oil painting|watercolor|sketch)\b/gi,
     ],
     enhancements: {
-      anime: "anime style, Japanese animation, cel shading, vibrant colors",
+      anime:
+        "anime style, Japanese animation, cel shading, vibrant colors, detailed character design",
       manga:
-        "manga style, Japanese comics, black and white line art, dramatic shading",
-      realistic: "realistic style, lifelike appearance, natural proportions",
-      cartoon: "cartoon style, stylized appearance, exaggerated features",
-      chibi: "chibi style, super deformed, cute proportions, adorable design",
-      kawaii:
-        "kawaii style, cute aesthetic, adorable design, Japanese cuteness",
-      detailed:
-        "highly detailed, intricate design, fine details, meticulous artwork",
-      "high quality": "high quality, professional artwork, premium design",
-      masterpiece: "masterpiece quality, exceptional artwork, top-tier design",
-      beautiful: "beautiful design, aesthetic appeal, visually pleasing",
-      cute: "cute design, adorable appearance, charming aesthetic",
-      cool: "cool design, stylish appearance, trendy aesthetic",
-      elegant: "elegant design, refined appearance, graceful aesthetic",
+        "manga style, Japanese comics, high contrast line art, traditional manga aesthetic",
+      ghibli:
+        "Studio Ghibli style, Hayao Miyazaki inspired, hand-drawn aesthetic, painterly backgrounds, whimsical atmosphere, vintage anime look",
+      shinkai:
+        "Makoto Shinkai style, Your Name aesthetic, breathtaking scenery, hyper-detailed lighting, lens flare, emotional atmosphere, vibrant sky",
+      kyoani:
+        "Kyoto Animation style, soft lighting, expressive eye detail, moe aesthetic, fluid character design, high-end production quality",
+      cyberpunk:
+        "cyberpunk aesthetic, neon lighting, rainy streets, futuristic technology, high-tech low-life, glowing accents, cyan and magenta color palette",
+      realistic:
+        "photorealistic style, 8k resolution, highly detailed skin texture, natural lighting, professional photography, cinematic composition, sharp focus, depth of field",
+      cinematic:
+        "cinematic lighting, dramatic shadows, movie-like atmosphere, professional cinematography, anamorphic lens flare, epic composition",
+      vaporwave:
+        "vaporwave aesthetic, 80s retro style, glitch art, pastel neon colors, surreal atmosphere, nostalgic digital vibes",
+      masterpiece:
+        "masterpiece, best quality, ultra detailed, official art, high resolution, 8k, sharp focus, perfect composition",
+    },
+  },
+
+  // Aesthetics and Lighting
+  aesthetics: {
+    patterns: [
+      /\b(soft lighting|dynamic lighting|volumetric lighting|rim lighting|backlighting|golden hour|sunset|sunrise|night|dark|neon|glowing)\b/gi,
+      /\b(bokeh|depth of field|sharp focus|wide angle|portrait|macro|fisheye)\b/gi,
+      /\b(detailed background|scenery|landscape|interior|outdoor|nature|forest|city|street|space|underwater)\b/gi,
+    ],
+    enhancements: {
+      "soft lighting":
+        "soft ambient lighting, gentle shadows, warm glow, diffused light",
+      "dynamic lighting":
+        "dynamic lighting effects, dramatic light rays, high contrast lighting, cinematic atmosphere",
+      "volumetric lighting":
+        "volumetric lighting, god rays, atmospheric fog, visible light beams, ethereal atmosphere",
+      "golden hour":
+        "golden hour lighting, warm sunlight, sunset glow, long shadows, beautiful atmospheric lighting",
+      bokeh:
+        "beautiful bokeh, blurred background, shallow depth of field, sharp subject, professional photography look",
+      neon: "neon glow, vibrant neon lighting, cyberpunk night aesthetic, glowing accents, electric energy",
     },
   },
 };

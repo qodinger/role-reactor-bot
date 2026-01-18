@@ -125,6 +125,7 @@ export function createImagineResultEmbed({
   seed = null,
   aspectRatio = null,
   model = null,
+  provider = null,
   nsfw = false,
   suggestions = null,
 }) {
@@ -155,14 +156,25 @@ export function createImagineResultEmbed({
     });
   }
   if (model !== null) {
+    const cleanModel = model.replace(".safetensors", "").replace("-opt", "");
     fields.push({
       name: "Model",
-      value: `\`${model}\``,
+      value: `\`${cleanModel}\``,
       inline: true,
     });
   }
 
   // Second row of parameters
+  if (provider !== null) {
+    const formattedProvider =
+      provider.charAt(0).toUpperCase() + provider.slice(1);
+    fields.push({
+      name: "AI Engine",
+      value: `\`${formattedProvider}\``,
+      inline: true,
+    });
+  }
+
   if (nsfw) {
     fields.push({
       name: "Content Type",
@@ -186,12 +198,17 @@ export function createImagineResultEmbed({
 }
 
 export function createRegenerateButton(aspectRatio) {
-  const button = new ButtonBuilder()
+  const regenButton = new ButtonBuilder()
     .setCustomId(`imagine_regenerate_${aspectRatio || "1:1"}`)
     .setLabel("🔄 Regenerate")
     .setStyle(ButtonStyle.Secondary);
 
-  return new ActionRowBuilder().addComponents(button);
+  const upscaleButton = new ButtonBuilder()
+    .setCustomId(`imagine_upscale_${aspectRatio || "1:1"}`)
+    .setLabel("🔍 Upscale (4K)")
+    .setStyle(ButtonStyle.Primary);
+
+  return new ActionRowBuilder().addComponents(regenButton, upscaleButton);
 }
 
 export function createImagineErrorEmbed({ prompt, error, interaction = null }) {

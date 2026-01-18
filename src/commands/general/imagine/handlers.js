@@ -60,35 +60,22 @@ export async function handleImagineCommand(
   _client,
   deferred = true,
 ) {
-  if (!isDeveloper(interaction.user.id)) {
-    logger.warn("Permission denied for imagine command", {
-      userId: interaction.user.id,
-      guildId: interaction.guild?.id,
-    });
-
-    const response = {
-      content:
-        "❌ **Permission Denied**\nYou need developer permissions to use this command.",
-      flags: 64, // Ephemeral
-    };
-
-    if (deferred) {
-      await interaction.editReply(response);
-    } else {
-      await interaction.reply(response);
-    }
-    return;
-  }
-
   const promptOption = interaction.options.getString("prompt", true);
+  const selectedModel = interaction.options.getString("model");
+  const selectedAspectRatio = interaction.options.getString("aspect_ratio");
+  const attachment = interaction.options.getAttachment("image");
 
   // Parse inline parameters (--ar, --model, --nsfw)
   const {
     prompt: rawPrompt,
-    aspectRatio,
-    model,
+    aspectRatio: inlineAspectRatio,
+    model: inlineModel,
     nsfw: userRequestedNSFW,
   } = parseInlineParameters(promptOption);
+
+  // Merge slash command options with inline parameters (slash options take precedence)
+  const model = selectedModel || inlineModel;
+  const aspectRatio = selectedAspectRatio || inlineAspectRatio;
 
   // Safety tolerance: 6 = most permissive (default for Stability AI)
   const safetyTolerance = 6;
@@ -158,7 +145,7 @@ export async function handleImagineCommand(
 
   // Intelligently enhance the user's prompt for better results
   // This helps users who don't know proper prompt formatting or model-specific keywords
-  const modelName = model || "anything"; // Default to anything
+  const modelName = model || "animagine"; // Default to animagine for premium feel
   const intelligentlyEnhanced = enhancePromptIntelligently(
     validation.prompt,
     modelName,
@@ -216,34 +203,60 @@ export async function handleImagineCommand(
     `[IMAGINE] Content type: ${nsfwValidation.isNSFW ? "NSFW" : "Safe"}, Feature: ${featureName}, Preferred provider: ${preferredProvider || "auto"}, User requested NSFW: ${userRequestedNSFW}`,
   );
 
-  // Get provider and model for credit calculation
-  let provider = preferredProvider || "stability"; // Default
-  let modelForCredits = model || "sd3.5-large-turbo"; // Default, use parsed model or fallback
+  // Resolve provider and model for credit calculation BEFORE generation
+  let targetProvider = interaction.options.getString("provider"); // Hidden option maybe? No, let's use the service's logic
+  if (!targetProvider) {
+    targetProvider = multiProviderAIService.getImageProvider(
+      nsfwValidation.isNSFW,
+    );
+  }
 
-  try {
-    const { getAIConfig } = await import("../../../config/ai.js");
-    const aiConfig = getAIConfig();
-    const feature = nsfwValidation.isNSFW
-      ? aiConfig.models?.features?.imagineNSFW
-      : aiConfig.models?.features?.imagineGeneral;
-    if (feature) {
-      provider = feature.provider || provider;
-      modelForCredits = feature.model || modelForCredits;
+  // Get model from feature config (matches MultiProviderAIService logic)
+  let targetModel = model;
+  if (!targetModel) {
+    try {
+      const { getAIConfig } = await import("../../../config/ai.js");
+      const aiConfig = getAIConfig();
+      const feature = nsfwValidation.isNSFW
+        ? aiConfig.models.features.imagineNSFW
+        : aiConfig.models.features.imagineGeneral;
+      targetModel = feature?.model;
+      targetProvider =
+        feature?.provider !== "auto" ? feature?.provider : targetProvider;
+    } catch (_error) {
+      targetModel = nsfwValidation.isNSFW
+        ? "animagine-xl-4.0-opt.safetensors"
+        : "sd3.5-large-turbo";
     }
-  } catch (_error) {
-    // Use defaults if config loading fails
+  }
+
+  // Handle image attachment for image-to-image
+  let imageBuffer = null;
+  if (attachment) {
+    try {
+      progressCallback?.("Downloading source image...");
+      const response = await fetch(attachment.url);
+      if (response.ok) {
+        imageBuffer = Buffer.from(await response.arrayBuffer());
+        logger.info(
+          `[IMAGINE] Downloaded source image: ${imageBuffer.length} bytes`,
+        );
+      }
+    } catch (error) {
+      logger.error("[IMAGINE] Failed to download attachment:", error);
+    }
   }
 
   const creditInfo = await checkAIImageCredits(
     interaction.user.id,
-    provider,
-    modelForCredits,
+    targetProvider,
+    targetModel,
   );
   const { userData, creditsNeeded, hasCredits } = creditInfo;
 
   // Log the credit calculation for transparency
   logger.info(
-    `💰 Credit calculation for user ${interaction.user.id}: ${provider}/${modelForCredits} = ${creditsNeeded} Core credits`,
+    `💰 Credit calculation for user ${interaction.user.id}: ${targetProvider}/${targetModel} = ${creditsNeeded} Core credits`,
   );
 
   if (!hasCredits) {
@@ -265,7 +278,7 @@ export async function handleImagineCommand(
   });
 
   // Progress callback to update embed with status messages
-  const progressCallback = async status => {
+  const progressCallbackFn = async status => {
     try {
       processingEmbed = createImagineProcessingEmbed({
         prompt: originalPrompt,
@@ -285,7 +298,7 @@ export async function handleImagineCommand(
   const requestId = `imagine-${interaction.id}`;
 
   logger.info(
-    `[IMAGINE] User: ${interaction.user.id} | Original: "${validation.prompt}" | Enhanced: "${prompt}" | NSFW: ${nsfwValidation.isNSFW} | Safety: ${safetyTolerance}`,
+    `[IMAGINE] User: ${interaction.user.id} | Original: "${validation.prompt}" | Model: ${targetModel} | Provider: ${targetProvider} | NSFW: ${nsfwValidation.isNSFW}`,
   );
 
   try {
@@ -295,17 +308,17 @@ export async function handleImagineCommand(
         multiProviderAIService.generate({
           type: "image",
           prompt,
-          provider: preferredProvider, // Use smart provider routing
+          provider: targetProvider,
           config: {
             safetyTolerance,
-            useAvatarPrompts: false, // Don't use avatar-specific prompts from imagePrompts.js
-            aspectRatio: aspectRatio || "1:1", // Default to 1:1 (square) for versatility
-            negativePrompt: getImagineNegativePrompt(nsfwValidation.isNSFW), // Use appropriate negative prompt
-            isNSFW: nsfwValidation.isNSFW, // Pass NSFW flag for provider-specific handling
-            featureName, // Pass feature name for model selection
-            // ComfyUI-specific parameters
-            model: model || undefined, // animagine or anything
-            // Job recovery information
+            useAvatarPrompts: false,
+            aspectRatio: aspectRatio || "1:1",
+            negativePrompt: getImagineNegativePrompt(nsfwValidation.isNSFW),
+            isNSFW: nsfwValidation.isNSFW,
+            featureName,
+            model: targetModel,
+            imageBuffer, // Pass the downloaded attachment buffer
+            strength: 0.7, // High strength for better "Anime-ify" results
             jobInfo: {
               userId: interaction.user.id,
               guildId: interaction.guild?.id,
@@ -314,7 +327,7 @@ export async function handleImagineCommand(
               prompt: originalPrompt,
             },
           },
-          progressCallback,
+          progressCallback: progressCallbackFn,
         }),
       {
         userId: interaction.user.id,
@@ -330,8 +343,8 @@ export async function handleImagineCommand(
     // ONLY deduct credits after successful image generation and validation
     const deductionResult = await checkAndDeductAIImageCredits(
       interaction.user.id,
-      provider,
-      modelForCredits,
+      targetProvider,
+      targetModel,
     );
     if (!deductionResult.success) {
       logger.error(
@@ -340,7 +353,7 @@ export async function handleImagineCommand(
       // Continue anyway since image was generated successfully
     } else {
       logger.info(
-        `✅ Deducted ${deductionResult.creditsDeducted} Core from user ${interaction.user.id} for ${provider}/${modelForCredits} generation (${deductionResult.creditsRemaining} remaining)`,
+        `✅ Deducted ${deductionResult.creditsDeducted} Core from user ${interaction.user.id} for ${targetProvider}/${targetModel} generation (${deductionResult.creditsRemaining} remaining)`,
       );
     }
 
@@ -363,7 +376,8 @@ export async function handleImagineCommand(
       interaction,
       seed: generatedSeed,
       aspectRatio: currentAspectRatio,
-      model,
+      model: targetModel,
+      provider: result.provider,
       nsfw: nsfwValidation.isNSFW,
       suggestions: limitedSuggestions,
     });

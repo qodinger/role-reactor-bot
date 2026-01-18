@@ -15,63 +15,53 @@ import { handleImagineCommand } from "./handlers.js";
  */
 export const metadata = {
   name: "imagine",
-  category: "developer",
-  description: "Generate AI artwork from any text prompt",
-  keywords: ["imagine", "generate", "art", "image", "ai", "artwork", "create"],
-  emoji: "🖼️",
+  category: "general",
+  description: "Generate professional AI artwork from text or images",
+  keywords: [
+    "imagine",
+    "generate",
+    "art",
+    "image",
+    "ai",
+    "artwork",
+    "create",
+    "anime",
+    "model",
+  ],
+  emoji: "✨",
   helpFields: [
     {
       name: `How to Use`,
       value: [
         "**Basic usage:**",
-        "```/imagine prompt:a futuristic city at sunset with flying cars```",
+        "```/imagine prompt:a futuristic city at sunset```",
         "",
-        "**With quality control:**",
-        "```/imagine prompt:anime girl --hq``` (high quality, slower - 30-35 steps)",
-        "```/imagine prompt:anime girl --fast``` (fast mode, default - 15-20 steps)",
+        "**With specific model:**",
+        "Select from the **model** dropdown to change the AI engine (Animagine, Anything).",
         "",
-        "**With models and quality:**",
-        "```/imagine prompt:portrait --model animagine --hq``` (best quality)",
-        "```/imagine prompt:scene --model anything --fast``` (quick generation)",
+        "**Aspect Ratios:**",
+        "Use the **aspect_ratio** option to choose between Square, Widescreen, or Portrait.",
         "",
-        "**Supported aspect ratios:**",
-        "`1:1` (square), `4:5` (portrait), `2:3` (tall), `3:2` (wide), `5:4` (landscape), `16:9` (widescreen), `9:16` (phone)",
-        "```/imagine prompt:portrait --ar 2:3``` (portrait)",
-        "```/imagine prompt:square image --ar 1:1``` (square, default)",
-        "",
-        "**More examples:**",
-        "```/imagine prompt:a fantasy dragon breathing fire in a magical forest```",
-        "```/imagine prompt:cyberpunk street scene with neon lights and rain```",
+        "**Image-to-Image (Anime-ify):**",
+        "Upload an image in the **image** option and provide a prompt to transform it into the selected style.",
       ].join("\n"),
       inline: false,
     },
     {
-      name: `What You Need`,
-      value:
-        "**prompt** *(required)* - A text description of what you want to generate (max 2000 characters)",
-      inline: false,
-    },
-    {
-      name: `Permissions`,
-      value: "• **Developer** access required",
-      inline: false,
-    },
-    {
-      name: `What You'll See`,
-      value:
-        "AI-generated artwork based on your text prompt. The image is created using advanced AI image generation technology and will appear as a high-quality image result!",
-      inline: false,
-    },
-    {
-      name: `Tips for Better Results`,
+      name: `Parameters`,
       value: [
-        "• Be specific and descriptive in your prompts",
-        "• Include style keywords (e.g., 'photorealistic', 'anime style', 'oil painting')",
-        "• Mention colors, lighting, and mood for better results",
-        "• Combine multiple concepts for creative compositions",
-        "• Use `--ar 1:1` for square (default), `--ar 16:9` for landscapes, `--ar 2:3` for portraits",
-        "• Use `--model animagine` or `--model anything` to choose the AI model",
-        "• Use `--hq` for high quality (slower, 30-35 steps) or `--fast` for fast mode (default, 15-20 steps)",
+        "• **prompt** - Describe what you want to see",
+        "• **model** - Choose a specific AI model",
+        "• **aspect_ratio** - Choose the image shape",
+        "• **image** - (Optional) Transform an existing photo",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `Pro Tips`,
+      value: [
+        "• Use specific descriptive keywords for better results",
+        "• Use `--hq` in your prompt for maximum quality (slower)",
         "• Use `--nsfw` for mature content (requires age-restricted channel)",
       ].join("\n"),
       inline: false,
@@ -85,17 +75,40 @@ export const metadata = {
 
 export const data = new SlashCommandBuilder()
   .setName(metadata.name)
-  .setDescription(`🔒 [DEVELOPER ONLY] ${metadata.description}`)
+  .setDescription(metadata.description)
   .addStringOption(option =>
     option
       .setName("prompt")
-      .setDescription(
-        "Describe what you want to see (e.g., a futuristic city, a fantasy creature)",
-      )
+      .setDescription("Describe what you want to see")
       .setRequired(true)
       .setMaxLength(2000),
   )
-  .setDefaultMemberPermissions(0n) // Visible to all, but restricted by isDeveloper() check
+  .addStringOption(option =>
+    option
+      .setName("model")
+      .setDescription("Choose the AI model (Default: Anime XL)")
+      .addChoices(
+        { name: "🎌 Anime (Animagine XL 4.0)", value: "animagine" },
+        { name: "🎨 Manga/Artistic (Anything XL)", value: "anything" },
+      ),
+  )
+  .addStringOption(option =>
+    option
+      .setName("aspect_ratio")
+      .setDescription("Image orientation (Default: 1:1)")
+      .addChoices(
+        { name: "Square (1:1)", value: "1:1" },
+        { name: "Widescreen (16:9)", value: "16:9" },
+        { name: "Portrait (2:3)", value: "2:3" },
+        { name: "Landscape (3:2)", value: "3:2" },
+        { name: "Phone (9:16)", value: "9:16" },
+      ),
+  )
+  .addAttachmentOption(option =>
+    option
+      .setName("image")
+      .setDescription("Upload a photo to transform (Image-to-Image)"),
+  )
   .setDMPermission(false);
 
 // ============================================================================
