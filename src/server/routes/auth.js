@@ -155,7 +155,44 @@ router.get(
         discriminator: userData.discriminator,
         avatar: userData.avatar,
         email: userData.email,
+        globalName: userData.global_name,
       };
+
+      // Persist user to database for long-term storage and dashboard features
+      try {
+        const { getDatabaseManager } = await import(
+          "../../utils/storage/databaseManager.js"
+        );
+        const db = await getDatabaseManager();
+        if (db?.users) {
+          const {
+            access_token: accessToken,
+            refresh_token: refreshToken,
+            expires_in: expiresIn,
+          } = tokenData;
+
+          await db.users.upsertFromDiscordOAuth({
+            discordId: userData.id,
+            username: userData.username,
+            discriminator: userData.discriminator,
+            email: userData.email,
+            avatar: userData.avatar,
+            globalName: userData.global_name,
+            accessToken,
+            refreshToken,
+            tokenExpiresAt: expiresIn
+              ? new Date(Date.now() + expiresIn * 1000).toISOString()
+              : null,
+          });
+          logger.info(`User persisted to database: ${userData.username}`);
+        }
+      } catch (dbError) {
+        logger.warn(
+          `Failed to persist user ${userData.id} to database:`,
+          dbError.message,
+        );
+        // We don't fail the login if DB persistence fails, as the session is still valid
+      }
 
       // Clear OAuth state
       delete req.session.oauthState;
