@@ -157,7 +157,7 @@ export class WorkflowManager {
       width,
       height,
       seed,
-      sampler_name,
+      sampler_name: samplerName,
       scheduler,
     } = params;
 
@@ -208,7 +208,7 @@ export class WorkflowManager {
           seed: seed || Math.floor(Math.random() * 1000000000),
           steps: steps || 30,
           cfg: cfg || 7.0,
-          sampler_name: sampler_name || "dpmpp_2m",
+          sampler_name: samplerName || "dpmpp_2m",
           scheduler: scheduler || "karras",
           denoise: 1.0,
           model: ["2", 0],

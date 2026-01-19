@@ -564,7 +564,7 @@ export function analyzePrompt(userPrompt, _model = "anything") {
 export function enhancePromptIntelligently(
   userPrompt,
   model = "anything",
-  options = {},
+  _options = {},
 ) {
   if (!userPrompt || typeof userPrompt !== "string") {
     return userPrompt;
@@ -782,106 +782,6 @@ function fixBasicMistakes(prompt, improvements) {
   }
 
   return fixed;
-}
-
-/**
- * Get contextual enhancements based on prompt content and model
- * @param {string} prompt - The prompt to analyze
- * @param {string} model - Model being used
- * @param {Object} options - Enhancement options
- * @returns {Array} Array of contextual enhancement keywords
- */
-function getContextualEnhancements(prompt, _model, options = {}) {
-  const enhancements = [];
-  const lowerPrompt = prompt.toLowerCase();
-
-  // Lighting enhancements based on scene type
-  if (
-    lowerPrompt.includes("portrait") ||
-    lowerPrompt.includes("face") ||
-    lowerPrompt.includes("character")
-  ) {
-    if (!lowerPrompt.includes("lighting")) {
-      enhancements.push("soft lighting", "beautiful lighting");
-    }
-  }
-
-  // Environment-specific enhancements
-  if (
-    lowerPrompt.includes("outdoor") ||
-    lowerPrompt.includes("landscape") ||
-    lowerPrompt.includes("nature")
-  ) {
-    if (!lowerPrompt.includes("natural")) {
-      enhancements.push("natural lighting", "atmospheric perspective");
-    }
-  }
-
-  // Indoor scene enhancements
-  if (
-    lowerPrompt.includes("indoor") ||
-    lowerPrompt.includes("room") ||
-    lowerPrompt.includes("interior")
-  ) {
-    if (!lowerPrompt.includes("ambient")) {
-      enhancements.push("ambient lighting", "cozy atmosphere");
-    }
-  }
-
-  // Fantasy/magical enhancements
-  if (
-    lowerPrompt.includes("fantasy") ||
-    lowerPrompt.includes("magic") ||
-    lowerPrompt.includes("dragon")
-  ) {
-    if (!lowerPrompt.includes("mystical")) {
-      enhancements.push("mystical atmosphere", "magical effects");
-    }
-  }
-
-  // Sci-fi/cyberpunk enhancements
-  if (
-    lowerPrompt.includes("cyberpunk") ||
-    lowerPrompt.includes("futuristic") ||
-    lowerPrompt.includes("sci-fi")
-  ) {
-    if (!lowerPrompt.includes("neon")) {
-      enhancements.push("neon lighting", "futuristic atmosphere");
-    }
-  }
-
-  // Model-specific contextual enhancements
-  if (_model === "animagine") {
-    // Animagine excels at character expressions
-    if (
-      lowerPrompt.includes("girl") ||
-      lowerPrompt.includes("boy") ||
-      lowerPrompt.includes("character")
-    ) {
-      if (!lowerPrompt.includes("expression")) {
-        enhancements.push("expressive eyes", "detailed facial features");
-      }
-    }
-  } else if (_model === "anything") {
-    // Anything XL is good with composition
-    if (!lowerPrompt.includes("composition")) {
-      enhancements.push("beautiful composition");
-    }
-  }
-
-  // Aspect ratio specific enhancements
-  if (options.aspectRatio) {
-    if (options.aspectRatio === "16:9" || options.aspectRatio === "21:9") {
-      enhancements.push("cinematic composition", "wide angle");
-    } else if (
-      options.aspectRatio === "9:16" ||
-      options.aspectRatio === "2:3"
-    ) {
-      enhancements.push("portrait composition", "vertical framing");
-    }
-  }
-
-  return enhancements;
 }
 
 /**

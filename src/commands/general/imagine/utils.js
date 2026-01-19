@@ -37,7 +37,7 @@ export function parseInlineParameters(input) {
 
   // Parse --hq flag
   const hqPattern = /--(?:hq|quality)\b/gi;
-  let hq = hqPattern.test(prompt);
+  const hq = hqPattern.test(prompt);
   if (hq) {
     prompt = prompt.replace(hqPattern, "").trim();
   }

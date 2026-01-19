@@ -3,7 +3,6 @@ import {
   Environment,
   OrdersController,
   PaymentsController,
-  LogLevel,
 } from "@paypal/paypal-server-sdk";
 import { getLogger } from "../logger.js";
 
@@ -40,7 +39,7 @@ export function getPayPalClient() {
       environment:
         mode === "live" ? Environment.Production : Environment.Sandbox,
       logging: {
-        logLevel: LogLevel.Info,
+        logLevel: "Info",
         logRequest: true,
         logResponse: true,
       },
