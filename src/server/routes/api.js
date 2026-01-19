@@ -9,6 +9,7 @@ import {
 } from "../utils/responseHelpers.js";
 import { plisioPay } from "../../utils/payments/plisio.js";
 import { getCommandHandler } from "../../utils/core/commandHandler.js";
+import * as paypal from "../../utils/payments/paypal.js";
 
 const logger = getLogger();
 
@@ -909,6 +910,79 @@ export async function apiCommandUsage(req, res) {
     logger.error("❌ Error getting command usage stats:", error);
     const { statusCode, response } = createErrorResponse(
       "Failed to retrieve command usage statistics",
+      500,
+      error.message,
+    );
+    res.status(statusCode).json(response);
+  }
+}
+
+/**
+ * Handle PayPal order creation
+ * @param {import('express').Request} req - Express request object
+ * @param {import('express').Response} res - Express response object
+ */
+export async function apiCreatePayPalOrder(req, res) {
+  logRequest("Create PayPal order", req);
+
+  try {
+    const { amount, packageId, discordId } = req.body;
+    const sessionUser = req.session?.discordUser;
+    const userId = sessionUser?.id || discordId;
+
+    if (!userId) {
+      return res
+        .status(401)
+        .json(createErrorResponse("Authentication required", 401));
+    }
+
+    if (!amount || isNaN(amount) || amount < 0.5) {
+      return res.status(400).json(createErrorResponse("Invalid amount", 400));
+    }
+
+    const orderData = await paypal.createPayPalOrder({
+      amount,
+      currency: "USD",
+      description: `Role Reactor Bot - ${packageId || "Credits"}`,
+      customId: userId,
+    });
+
+    res.json(createSuccessResponse({ data: orderData }));
+  } catch (error) {
+    logger.error("❌ Error creating PayPal order:", error);
+    const { statusCode, response } = createErrorResponse(
+      "Failed to create PayPal order",
+      500,
+      error.message,
+    );
+    res.status(statusCode).json(response);
+  }
+}
+
+/**
+ * Handle PayPal order capture
+ * @param {import('express').Request} req - Express request object
+ * @param {import('express').Response} res - Express response object
+ */
+export async function apiCapturePayPalOrder(req, res) {
+  logRequest("Capture PayPal order", req);
+
+  try {
+    const { orderID } = req.body;
+    if (!orderID) {
+      return res
+        .status(400)
+        .json(createErrorResponse("Order ID is required", 400));
+    }
+
+    const captureData = await paypal.capturePayPalOrder(orderID);
+
+    // The webhook will handle the credit granting, but we return success here
+    res.json(createSuccessResponse({ data: captureData }));
+  } catch (error) {
+    logger.error("❌ Error capturing PayPal order:", error);
+    const { statusCode, response } = createErrorResponse(
+      "Failed to capture PayPal order",
       500,
       error.message,
     );

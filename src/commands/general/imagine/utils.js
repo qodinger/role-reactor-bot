@@ -11,14 +11,12 @@ export function parseInlineParameters(input) {
     return {
       prompt: "",
       aspectRatio: null,
-      model: null,
       nsfw: false,
     };
   }
 
   let prompt = input.trim();
   let aspectRatio = null;
-  let model = null;
   let nsfw = false;
 
   // Parse --ar or --aspect (aspect ratio)
@@ -29,26 +27,6 @@ export function parseInlineParameters(input) {
     prompt = prompt.replace(arPattern, "").trim();
   }
 
-  // Parse --model or --m (animagine, anything)
-  const modelPattern = /--(?:model|m)\s+(animagine|anything)/gi;
-  const modelMatch = modelPattern.exec(prompt);
-  if (modelMatch) {
-    model = modelMatch[1].toLowerCase();
-    prompt = prompt.replace(modelPattern, "").trim();
-  }
-
-  // Parse shorthand model flags (--animagine, --anything)
-  const animaginePattern = /--animagine\b/gi;
-  const anythingPattern = /--anything\b/gi;
-
-  if (animaginePattern.test(prompt)) {
-    model = "animagine";
-    prompt = prompt.replace(animaginePattern, "").trim();
-  } else if (anythingPattern.test(prompt)) {
-    model = "anything";
-    prompt = prompt.replace(anythingPattern, "").trim();
-  }
-
   // Parse --nsfw flag (enables NSFW content generation)
   const nsfwPattern = /--nsfw\b/gi;
   const nsfwMatch = nsfwPattern.exec(prompt);
@@ -57,14 +35,31 @@ export function parseInlineParameters(input) {
     prompt = prompt.replace(nsfwPattern, "").trim();
   }
 
+  // Parse --hq flag
+  const hqPattern = /--(?:hq|quality)\b/gi;
+  let hq = hqPattern.test(prompt);
+  if (hq) {
+    prompt = prompt.replace(hqPattern, "").trim();
+  }
+
+  // Parse --no or --negative (negative prompt)
+  let negativePrompt = null;
+  const noPattern = /--(?:no|negative)\s+([^--]+)/gi;
+  const noMatch = noPattern.exec(prompt);
+  if (noMatch) {
+    negativePrompt = noMatch[1].trim();
+    prompt = prompt.replace(noPattern, "").trim();
+  }
+
   // Clean up multiple spaces
   prompt = prompt.replace(/\s+/g, " ").trim();
 
   return {
     prompt,
     aspectRatio,
-    model,
     nsfw,
+    hq,
+    negativePrompt,
   };
 }
 

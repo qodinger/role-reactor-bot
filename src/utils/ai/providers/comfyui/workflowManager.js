@@ -131,18 +131,104 @@ export class WorkflowManager {
   }
 
   /**
-   * Get workflow data with parameters injected
+   * Get workflow data with parameters injected (Now creates dynamic workflows without files)
    */
   async getWorkflowWithParameters(name, parameters = {}) {
-    const workflow = await this.getWorkflow(name);
-    const workflowData = JSON.parse(JSON.stringify(workflow.data)); // Deep clone
-
-    this.injectParameters(workflowData, parameters);
+    // We ignore 'name' now and generate the best possible direct workflow for the model
+    const workflowData = this.generateDirectWorkflow(parameters);
 
     return {
-      ...workflow,
+      name: parameters.model || "universal",
       data: workflowData,
       parameters,
+    };
+  }
+
+  /**
+   * Generates a high-quality ComfyUI API graph in memory
+   */
+  generateDirectWorkflow(params) {
+    const {
+      model,
+      prompt,
+      negativePrompt,
+      steps,
+      cfg,
+      width,
+      height,
+      seed,
+      sampler_name,
+      scheduler,
+    } = params;
+
+    const finalWidth = width || 1024;
+    const finalHeight = height || 1024;
+
+    return {
+      2: {
+        inputs: { ckpt_name: model || "AnythingXL_xl.safetensors" },
+        class_type: "CheckpointLoaderSimple",
+        _meta: { title: "Load Checkpoint" },
+      },
+      9: {
+        inputs: {
+          stop_at_clip_layer: -2,
+          clip: ["2", 1],
+        },
+        class_type: "CLIPSetLastLayer",
+        _meta: { title: "Clip Skip 2" },
+      },
+      3: {
+        inputs: {
+          text: prompt,
+          clip: ["9", 0],
+        },
+        class_type: "CLIPTextEncode",
+        _meta: { title: "Positive Prompt" },
+      },
+      4: {
+        inputs: {
+          text: negativePrompt || "",
+          clip: ["9", 0],
+        },
+        class_type: "CLIPTextEncode",
+        _meta: { title: "Negative Prompt" },
+      },
+      5: {
+        inputs: {
+          width: finalWidth,
+          height: finalHeight,
+          batch_size: 1,
+        },
+        class_type: "EmptyLatentImage",
+        _meta: { title: "Empty Latent Image" },
+      },
+      6: {
+        inputs: {
+          seed: seed || Math.floor(Math.random() * 1000000000),
+          steps: steps || 30,
+          cfg: cfg || 7.0,
+          sampler_name: sampler_name || "dpmpp_2m",
+          scheduler: scheduler || "karras",
+          denoise: 1.0,
+          model: ["2", 0],
+          positive: ["3", 0],
+          negative: ["4", 0],
+          latent_image: ["5", 0],
+        },
+        class_type: "KSampler",
+        _meta: { title: "KSampler" },
+      },
+      7: {
+        inputs: { samples: ["6", 0], vae: ["2", 2] },
+        class_type: "VAEDecode",
+        _meta: { title: "VAE Decode" },
+      },
+      8: {
+        inputs: { filename_prefix: "anime_nsfw", images: ["7", 0] },
+        class_type: "SaveImage",
+        _meta: { title: "Save Image" },
+      },
     };
   }
 
@@ -192,6 +278,8 @@ export class WorkflowManager {
       if (classType === "KSampler") {
         if (steps !== null && steps !== undefined) node.inputs.steps = steps;
         if (cfg !== null && cfg !== undefined) node.inputs.cfg = cfg;
+        if (params.sampler_name) node.inputs.sampler_name = params.sampler_name;
+        if (params.scheduler) node.inputs.scheduler = params.scheduler;
         if (seed !== null && seed !== undefined) {
           node.inputs.seed = seed;
         } else {

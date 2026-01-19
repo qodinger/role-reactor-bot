@@ -72,6 +72,7 @@
     "pnpm": ">=9.0.0"
   },
   "dependencies": {
+    "@paypal/paypal-server-sdk": "2.1.0",
     "axios": "1.13.2",
     "boxen": "^8.0.1",
     "chalk": "^5.4.1",

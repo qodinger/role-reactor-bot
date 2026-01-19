@@ -26,6 +26,8 @@ import {
   apiPendingPayments,
   apiCreatePayment,
   apiCommandUsage,
+  apiCreatePayPalOrder,
+  apiCapturePayPalOrder,
   setDiscordClient,
 } from "./routes/api.js";
 import { getServices, getService } from "./routes/services.js";
@@ -163,6 +165,12 @@ function initializeRoutes() {
   app.post("/api/payments/create", apiRateLimiter, apiCreatePayment); // Create payment with pre-filled email
   app.get("/api/services", apiRateLimiter, getServices);
   app.get("/api/services/:name", apiRateLimiter, getService);
+  app.post("/api/payments/paypal/create", apiRateLimiter, apiCreatePayPalOrder);
+  app.post(
+    "/api/payments/paypal/capture",
+    apiRateLimiter,
+    apiCapturePayPalOrder,
+  );
 
   // API Documentation routes
   app.get("/api/docs", apiRateLimiter, getSwaggerUI);

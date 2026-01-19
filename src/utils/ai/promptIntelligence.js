@@ -266,40 +266,47 @@ const MODEL_KEYWORDS = {
     ],
   },
   anything: {
-    // Anything XL responds well to these keywords
+    // Anything XL is trained on Danbooru tags
     quality: [
       "masterpiece",
       "best quality",
-      "ultra detailed",
-      "8k resolution",
-      "sharp focus",
-      "professional",
-      "high quality",
-      "perfect composition",
-      "detailed",
-      "beautiful lighting",
-      "cinematic",
+      "absurdres",
+      "highres",
+      "ultra_detailed",
+      "highly_detailed",
+      "sharp_focus",
+      "amazing_quality",
+      "perfect_composition",
+      "detailed_shading",
+      "cinematic_lighting",
     ],
     style: [
-      "anime style",
+      "anime_style",
       "illustration",
-      "digital art",
-      "artwork",
-      "detailed art",
-      "beautiful art",
-      "professional illustration",
+      "digital_art",
+      "clean_line_art",
+      "cel_shading",
+      "2d",
+      "official_art",
+      "professional_illustration",
     ],
     character: [
-      "beautiful character",
-      "detailed character",
-      "anime girl",
-      "anime boy",
-      "perfect face",
-      "detailed eyes",
-      "beautiful eyes",
-      "detailed hair",
-      "perfect anatomy",
-      "natural lighting",
+      "1girl",
+      "solo",
+      "mature_female",
+      "detailed_facial_features",
+      "expressive_eyes",
+      "detailed_eyes",
+      "beautiful_eyes",
+      "detailed_hair",
+      "detailed_skin_texture",
+      "detailed_body",
+      "perfect_anatomy",
+      "detailed_anatomy",
+      "natural_lighting",
+      "perfect_proportions",
+      "refined_body",
+      "well-defined_body",
     ],
   },
 };
@@ -567,6 +574,22 @@ export function enhancePromptIntelligently(
   const improvements = [];
 
   try {
+    // EXPERT BYPASS: If the prompt contains high-quality markers or specific Danbooru weighting,
+    // we assume the user is an expert and skip ALL modifications to preserve their exact tokenization.
+    const isExpertPrompt =
+      enhanced.includes("(") ||
+      enhanced.includes("_") ||
+      enhanced.toLowerCase().includes("masterpiece") ||
+      enhanced.toLowerCase().includes("absurdres") ||
+      enhanced.toLowerCase().includes("highres");
+
+    if (isExpertPrompt) {
+      logger.info(
+        "[PromptIntelligence] Expert prompt detected, bypassing all enhancement.",
+      );
+      return userPrompt;
+    }
+
     // First, analyze the prompt quality
     const qualityAnalysis = analyzePromptQuality(enhanced);
 
@@ -600,8 +623,17 @@ export function enhancePromptIntelligently(
     enhanced = fixBasicMistakes(enhanced, improvements);
 
     // 2. Enhance based on detected patterns (only for fair/poor quality)
-    if (qualityAnalysis.quality === "poor") {
+    if (qualityAnalysis.score < 10) {
       const enhancements = [];
+
+      // Helper to add keyword only if not already present
+      const addKeyword = keyword => {
+        if (!enhanced.toLowerCase().includes(keyword.toLowerCase())) {
+          enhancements.push(keyword);
+          return true;
+        }
+        return false;
+      };
 
       for (const [category, config] of Object.entries(PROMPT_PATTERNS)) {
         for (const pattern of config.patterns) {
@@ -612,12 +644,15 @@ export function enhancePromptIntelligently(
                 new RegExp(k, "i").test(match),
               );
               if (key && config.enhancements[key]) {
-                // Don't replace the original word, just add enhancement
-                if (!enhanced.includes(config.enhancements[key])) {
-                  enhancements.push(config.enhancements[key]);
-                  improvements.push(
-                    `Enhanced ${category}: "${match}" with detailed keywords`,
-                  );
+                const pieces = config.enhancements[key]
+                  .split(",")
+                  .map(p => p.trim());
+                for (const piece of pieces) {
+                  if (addKeyword(piece)) {
+                    improvements.push(
+                      `Enhanced ${category}: Added "${piece}" context`,
+                    );
+                  }
                 }
               }
             }
@@ -625,73 +660,61 @@ export function enhancePromptIntelligently(
         }
       }
 
-      // Add model-specific quality keywords for very simple prompts
-      const wordCount = enhanced.split(/\s+/).length;
+      // Add model-specific quality keywords
+      if (MODEL_KEYWORDS[model]) {
+        // Quality
+        const qualityKeywords = MODEL_KEYWORDS[model].quality.slice(0, 5);
+        for (const kw of qualityKeywords) {
+          if (addKeyword(kw)) {
+            improvements.push(`Added quality keyword for ${model}: ${kw}`);
+          }
+        }
+
+        // Style (only if missing)
+        if (!qualityAnalysis.hasStyle) {
+          const styleKeywords = MODEL_KEYWORDS[model].style.slice(0, 3);
+          for (const kw of styleKeywords) {
+            if (addKeyword(kw)) {
+              improvements.push(`Added style specification: ${kw}`);
+            }
+          }
+        }
+
+        // Character (if character detected)
+        const hasCharacter =
+          /\b(girl|boy|woman|man|character|person|female|male|lady|guy|dude|1girl|1boy)\b/i.test(
+            enhanced,
+          );
+        if (hasCharacter) {
+          const characterKeywords = MODEL_KEYWORDS[model].character.slice(0, 5);
+          for (const kw of characterKeywords) {
+            if (addKeyword(kw)) {
+              improvements.push(`Refined character design: ${kw}`);
+            }
+          }
+        }
+      }
+
+      // Smart semi-realistic detection
       if (
-        wordCount < 10 &&
-        MODEL_KEYWORDS[model] &&
-        !qualityAnalysis.hasQualityKeywords
+        enhanced.toLowerCase().includes("realistic") ||
+        enhanced.toLowerCase().includes("semi-realistic")
       ) {
-        const qualityKeywords = MODEL_KEYWORDS[model].quality.slice(0, 3);
-        enhancements.push(...qualityKeywords);
-        improvements.push(`Added quality keywords for ${model} model`);
-      }
-
-      // Ensure anime style is specified for anime models (only if no style present)
-      if (
-        (model === "animagine" || model === "anything") &&
-        !qualityAnalysis.hasStyle
-      ) {
-        enhancements.push("anime style");
-        improvements.push("Added anime style specification");
-      }
-
-      // Add character design keywords if character is mentioned
-      const hasCharacter = /\b(girl|boy|woman|man|character|person)\b/i.test(
-        enhanced,
-      );
-      if (hasCharacter && MODEL_KEYWORDS[model] && wordCount < 15) {
-        const characterKeywords = MODEL_KEYWORDS[model].character.slice(0, 2);
-        enhancements.push(...characterKeywords);
-        improvements.push("Added character design keywords");
-      }
-
-      // Smart context enhancement based on prompt analysis
-      const contextEnhancements = getContextualEnhancements(
-        enhanced,
-        model,
-        options,
-      );
-      if (contextEnhancements.length > 0) {
-        enhancements.push(...contextEnhancements);
-        improvements.push("Added contextual enhancements");
+        const realismTags = [
+          "(semi-realistic anime style:1.2)",
+          "detailed skin texture",
+          "soft cinematic lighting",
+          "refined details",
+        ];
+        for (const tag of realismTags) {
+          addKeyword(tag);
+        }
+        improvements.push("Injected semi-realistic anime balancing tags");
       }
 
       // Combine original prompt with enhancements
       if (enhancements.length > 0) {
         enhanced = `${enhanced}, ${enhancements.join(", ")}`;
-      }
-    } else if (qualityAnalysis.quality === "fair") {
-      // For fair quality, only add minimal enhancements
-      const minimalEnhancements = [];
-
-      // Only add style if completely missing
-      if (
-        (model === "animagine" || model === "anything") &&
-        !qualityAnalysis.hasStyle
-      ) {
-        minimalEnhancements.push("anime style");
-        improvements.push("Added missing anime style specification");
-      }
-
-      // Only add basic quality if no quality keywords present
-      if (!qualityAnalysis.hasQualityKeywords) {
-        minimalEnhancements.push("masterpiece", "best quality");
-        improvements.push("Added basic quality keywords");
-      }
-
-      if (minimalEnhancements.length > 0) {
-        enhanced = `${enhanced}, ${minimalEnhancements.join(", ")}`;
       }
     }
 

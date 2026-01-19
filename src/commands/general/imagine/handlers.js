@@ -31,6 +31,7 @@ import {
   analyzeNSFWContent,
   getPromptSuggestions,
 } from "../../../utils/ai/promptIntelligence.js";
+import { modelManager } from "../../../utils/ai/providers/comfyui/modelManager.js";
 
 /**
  * Get preferred provider for NSFW content generation
@@ -64,13 +65,18 @@ export async function handleImagineCommand(interaction, _client) {
   const {
     prompt: rawPrompt,
     aspectRatio: inlineAspectRatio,
-    model: inlineModel,
     nsfw: userRequestedNSFW,
+    negativePrompt: userNegativePrompt,
   } = parseInlineParameters(promptOption);
 
   // Merge slash command options with inline parameters (slash options take precedence)
-  const model = selectedModel || inlineModel;
+  const model = selectedModel || "anything";
   const aspectRatio = selectedAspectRatio || inlineAspectRatio;
+
+  // Use model manager to resolve actual hardware settings based on flags
+  const modelSettings = modelManager.parseModelFlags(promptOption);
+  const stepsOverride = modelSettings.defaultSettings.steps;
+  const cfgOverride = modelSettings.defaultSettings.cfg;
 
   // Safety tolerance: 6 = most permissive (default for Stability AI)
   const safetyTolerance = 6;
@@ -311,10 +317,14 @@ export async function handleImagineCommand(interaction, _client) {
             safetyTolerance,
             useAvatarPrompts: false,
             aspectRatio: aspectRatio || "1:1",
-            negativePrompt: getImagineNegativePrompt(nsfwValidation.isNSFW),
+            negativePrompt:
+              userNegativePrompt ||
+              getImagineNegativePrompt(nsfwValidation.isNSFW),
             isNSFW: nsfwValidation.isNSFW,
             featureName,
             model: targetModel,
+            steps: stepsOverride,
+            cfg: cfgOverride,
             imageBuffer, // Pass the downloaded attachment buffer
             strength: 0.7, // High strength for better "Anime-ify" results
             jobInfo: {

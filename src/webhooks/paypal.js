@@ -2,13 +2,9 @@ import { getStorageManager } from "../utils/storage/storageManager.js";
 import { getLogger } from "../utils/logger.js";
 import { formatCoreCredits } from "../utils/ai/aiCreditManager.js";
 
-const logger = getLogger();
+import { getPayPalClient } from "../utils/payments/paypal.js";
 
-// Cache for PayPal access token
-let accessTokenCache = {
-  token: null,
-  expiresAt: 0,
-};
+const logger = getLogger();
 
 /**
  * Get PayPal API base URL based on mode
@@ -23,29 +19,22 @@ function getPayPalBaseUrl() {
 
 /**
  * Get PayPal access token for API calls
- * Uses caching to avoid unnecessary token requests
+ * Uses the SDK client to handle token retrieval
  * @returns {Promise<string|null>} Access token or null if failed
  */
 async function getPayPalAccessToken() {
-  const clientId = process.env.PAYPAL_CLIENT_ID;
-  const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
-
-  if (!clientId || !clientSecret) {
-    logger.warn("⚠️ PayPal credentials not configured");
-    return null;
-  }
-
-  // Check if cached token is still valid (with 60 second buffer)
-  if (
-    accessTokenCache.token &&
-    Date.now() < accessTokenCache.expiresAt - 60000
-  ) {
-    return accessTokenCache.token;
-  }
+  const { ordersController } = getPayPalClient();
+  if (!ordersController) return null;
 
   try {
-    const auth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
+    // The SDK handles authentication automatically.
+    // We only need the access token if we are manually calling endpoints.
+    // However, verifyPayPalWebhookSignature still needs it for now.
+    // For simplicity, we'll keep the manual logic but use the environment variables.
+    const clientId = process.env.PAYPAL_CLIENT_ID;
+    const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
 
+    const auth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
     const response = await fetch(`${getPayPalBaseUrl()}/v1/oauth2/token`, {
       method: "POST",
       headers: {
@@ -55,27 +44,14 @@ async function getPayPalAccessToken() {
       body: "grant_type=client_credentials",
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      logger.error("❌ Failed to get PayPal access token:", {
-        status: response.status,
-        error: errorText,
-      });
-      return null;
-    }
-
+    if (!response.ok) return null;
     const data = await response.json();
-
-    // Cache the token
-    accessTokenCache = {
-      token: data.access_token,
-      expiresAt: Date.now() + data.expires_in * 1000,
-    };
-
-    logger.debug("✅ PayPal access token obtained successfully");
     return data.access_token;
   } catch (error) {
-    logger.error("❌ Error getting PayPal access token:", error);
+    logger.error(
+      "❌ Error getting PayPal token for webhook verification:",
+      error,
+    );
     return null;
   }
 }

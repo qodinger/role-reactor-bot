@@ -61,7 +61,7 @@ export function getAIModels() {
       imagineNSFW: {
         enabled: true,
         provider: "auto", // Auto-select: RunPod if available, otherwise ComfyUI
-        model: "animagine-xl-4.0-opt.safetensors", // Default model for ComfyUI
+        model: "AnythingXL_xl.safetensors", // Default model for ComfyUI
         allowNSFWProviders: true, // Allow NSFW providers for NSFW content
       },
     },

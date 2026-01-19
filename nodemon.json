@@ -1,13 +1,5 @@
 {
-  "watch": [
-    "src/index.js",
-    "src/config/",
-    "src/utils/core/",
-    "src/utils/ai/",
-    "src/events/",
-    "src/features/",
-    "src/commands/"
-  ],
+  "watch": ["src/"],
   "ignore": [
     "src/utils/storage/",
     "src/utils/monitoring/",

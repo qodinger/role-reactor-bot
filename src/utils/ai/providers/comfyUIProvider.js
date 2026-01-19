@@ -152,6 +152,8 @@ export class ComfyUIProvider {
           width,
           height,
           seed,
+          sampler_name: optimalSettings.sampler_name,
+          scheduler: optimalSettings.scheduler,
         });
 
       // Generate based on deployment type

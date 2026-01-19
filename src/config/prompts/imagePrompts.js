@@ -128,21 +128,10 @@ export const STYLE_MODIFIERS = {
  * Comprehensive exclusions for better quality NSFW generation
  */
 export const NSFW_NEGATIVE_PROMPT = dedent`
-  bad anatomy, bad hands, bad fingers, missing fingers, extra fingers, fused fingers, too many fingers, 
-  poorly drawn hands, poorly drawn face, deformed, ugly, blurry, bad proportions, extra limbs, missing limbs, 
-  bad feet, long neck, mutation, mutilated, out of frame, worst quality, low quality, jpeg artifacts, 
-  watermark, signature, username, text, bad breasts, bad nipples, extra breasts, missing breasts, 
-  fused breasts, asymmetrical breasts, deformed breasts, malformed breasts, unnatural breasts, 
-  bad genitals, deformed genitals, malformed genitals, extra genitals, missing genitals, fused genitals, 
-  unnatural genitals, distorted genitals, three legs, three arms, four arms, four legs, six fingers, 
-  seven fingers, eight fingers, multiple heads, multiple faces, extra heads, extra faces, bad skin, 
-  plastic skin, shiny skin, oily skin, sweaty skin, dirty skin, bad lighting, harsh lighting, 
-  flat lighting, overexposed, underexposed, dark shadows, bad shadows, censored, mosaic, bar censor, 
-  black bar, pixelated, blocked, covered, hidden, amateur, snapshot, low resolution, grainy, noisy, 
-  out of focus, motion blur, cartoon, anime (when realistic requested), 3d render (when 2d requested), 
-  cgi, computer generated, artificial, fake, distorted face, melted face, warped face, stretched face, 
-  compressed face, squished face, asymmetrical face, bad pose, awkward pose, unnatural pose, 
-  impossible pose, twisted body, broken spine, dislocated joints
+  (worst quality, low quality:1.4), (bad anatomy, bad hands:1.3), (missing fingers, extra fingers, fused fingers:1.2), 
+  (poorly drawn hands, poorly drawn face:1.2), (deformed, ugly, blurry:1.2), (bad proportions, extra limbs, missing limbs:1.2), 
+  (long neck, mutation, mutilated:1.1), (out of frame, cropped:1.1), (jpeg artifacts, watermark, signature, username, text:1.2), 
+  (monochrome, grayscale:1.1), (bad feet, bad legs:1.1), (asymmetrical eyes, cross-eyed:1.1), (duplicate, clone:1.1)
 `;
 
 /**
@@ -150,27 +139,13 @@ export const NSFW_NEGATIVE_PROMPT = dedent`
  * Focuses on technical quality issues and prevents NSFW content
  */
 export const IMAGINE_NEGATIVE_PROMPT = dedent`
-  blurry, low quality, distorted, deformed, ugly, low resolution, pixelated, grainy, noisy, bad quality, worst quality,
-  bad anatomy, bad proportions, incorrect anatomy, wrong anatomy, malformed anatomy, distorted anatomy, poor anatomy,
-  extra limbs, missing limbs, malformed hands, malformed feet, malformed body, malformed torso, malformed legs, malformed arms,
-  extra fingers, missing fingers, fused fingers, too many fingers, missing arms, extra arms, missing legs, extra legs,
-  bad hands, bad fingers, bad feet, bad eyes, bad ears, bad mouth, bad teeth, bad hair, bad face, bad nose,
-  long neck, short neck, twisted body, broken spine, unnatural joints, dislocated joints, 
-  asymmetrical body, asymmetrical face, asymmetrical limbs, asymmetrical hands, asymmetrical eyes,
-  incorrect proportions, wrong proportions, disproportionate, disproportional, unnatural proportions,
-  poorly drawn hands, poorly drawn face, poorly drawn body, poorly drawn anatomy, poorly drawn features,
-  multiple heads, multiple faces, double exposure, out of focus, motion blur, depth of field,
-  bad composition, bad perspective, bad angle, awkward pose, unnatural pose, impossible pose,
-  watermark, text, signature, username, jpeg artifacts, compression artifacts, artifacts, glitch,
-  oversaturated, undersaturated, low contrast, high contrast, dark, too bright, overexposed, underexposed,
-  bad lighting, bad shadows, harsh shadows, flat lighting, unnatural lighting, poor lighting,
-  duplicate, mutation, mutated, cloned, clone, cloned face, floating limbs, disconnected limbs,
-  three legs, three arms, four arms, four legs, six fingers, seven fingers, eight fingers,
-  missing body parts, extra body parts, fused body parts, merged body parts, conjoined,
-  distorted face, melted face, warped face, stretched face, compressed face, squished face,
-  nsfw, nude, naked, topless, bottomless, underwear, lingerie, bikini, swimsuit, revealing clothing,
-  sexual, erotic, adult content, inappropriate, explicit, suggestive, seductive, provocative,
-  breast, breasts, cleavage, nipple, nipples, genitals, private parts, intimate, sensual
+  (worst_quality, low_quality:1.4), (bad_anatomy, bad_hands:1.3), (missing_fingers, extra_fingers, fused_fingers:1.2), 
+  (poorly_drawn_hands, poorly_drawn_face:1.2), (deformed, ugly, blurry:1.2), (bad_proportions, extra_limbs, missing_limbs:1.2), 
+  (long_neck, mutation, mutilated:1.1), (out_of_frame, cropped:1.1), (jpeg_artifacts, watermark, signature, username, text:1.2), 
+  (monochrome, grayscale:1.1), (bad_feet, bad_legs:1.1), (asymmetrical_eyes, cross_eyed:1.1), (duplicate, clone:1.1),
+  nsfw, nude, naked, topless, bottomless, underwear, lingerie, bikini, swimsuit, revealing_clothing,
+  sexual, erotic, adult_content, inappropriate, explicit, suggestive, seductive, provocative,
+  breast, breasts, cleavage, nipple, nipples, genitals, private_parts, intimate, sensual
 `;
 
 /**
