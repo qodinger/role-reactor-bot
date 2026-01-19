@@ -26,7 +26,24 @@ export class WorkflowManager {
         process.cwd(),
         "src/utils/ai/providers/comfyui/workflows",
       );
-      const files = await fs.readdir(workflowsPath);
+
+      // Ensure directory exists
+      try {
+        await fs.mkdir(workflowsPath, { recursive: true });
+      } catch (err) {
+        logger.warn(
+          `[WorkflowManager] Could not create workflows directory: ${err.message}`,
+        );
+      }
+
+      let files = [];
+      try {
+        files = await fs.readdir(workflowsPath);
+      } catch (err) {
+        logger.warn(
+          `[WorkflowManager] Could not read workflows directory: ${err.message}`,
+        );
+      }
 
       for (const file of files) {
         if (file.endsWith(".json")) {
@@ -48,8 +65,9 @@ export class WorkflowManager {
       this.initialized = true;
       logger.info(`[WorkflowManager] Loaded ${this.workflows.size} workflows`);
     } catch (error) {
-      logger.error(`[WorkflowManager] Failed to load workflows:`, error);
-      throw error;
+      logger.error(`[WorkflowManager] Initialization error:`, error);
+      // Don't re-throw, as we can still function with dynamic workflows
+      this.initialized = true;
     }
   }
 
