@@ -43,7 +43,7 @@ export function createTempRoleEmbed(
     .setThumbnail(role.iconURL() || null)
     .setTimestamp()
     .setFooter({
-      text: "Role Reactor • Temporary Roles",
+      text: "Temporary Roles",
       iconURL: client.user.displayAvatarURL(),
     });
 
@@ -136,7 +136,7 @@ export function createTempRolesListEmbed(
     .setColor(THEME.PRIMARY)
     .setTimestamp()
     .setFooter({
-      text: "Role Reactor • Temporary Roles",
+      text: "Temporary Roles",
       iconURL: client.user.displayAvatarURL(),
     });
 
@@ -283,7 +283,7 @@ export function createTempRoleRemovedEmbed(
       },
     ])
     .setFooter({
-      text: "Role Reactor • Temporary Roles",
+      text: "Temporary Roles",
       iconURL: client.user.displayAvatarURL(),
     })
     .setTimestamp();
@@ -316,7 +316,7 @@ export function createTempRoleRemovalEmbed(
     .setThumbnail(role.iconURL() || null)
     .setTimestamp()
     .setFooter({
-      text: "Role Reactor • Temporary Roles",
+      text: "Temporary Roles",
       iconURL: client.user.displayAvatarURL(),
     });
 

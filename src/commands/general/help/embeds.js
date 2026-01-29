@@ -259,7 +259,7 @@ export class HelpEmbedBuilder {
         .setTimestamp()
         .setFooter(
           UI_COMPONENTS.createFooter(
-            "Role Reactor Help",
+            "Command Help",
             client?.user?.displayAvatarURL() || null,
           ),
         );

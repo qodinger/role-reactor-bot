@@ -21,7 +21,7 @@ export function createSetupRolesEmbed(
     .setColor(color || THEME.PRIMARY) // Use THEME.PRIMARY
     .setTimestamp()
     .setFooter({
-      text: "Role Reactor • Role Reactions",
+      text: "Role Reactions",
       iconURL: client.user.displayAvatarURL(),
     });
 
@@ -80,7 +80,7 @@ export function createListRolesEmbed(
     .setColor(THEME.PRIMARY) // Use THEME.PRIMARY
     .setTimestamp()
     .setFooter({
-      text: `Role Reactor • Page ${page}/${totalPages}`,
+      text: `Role Reactions • Page ${page}/${totalPages}`,
       iconURL: client.user.displayAvatarURL(),
     });
 
@@ -191,7 +191,7 @@ export function createUpdatedRolesEmbed(updatedMapping, roleMapping, client) {
     .setColor(updatedMapping.color || THEME.PRIMARY) // Use THEME.PRIMARY
     .setTimestamp()
     .setFooter({
-      text: "Role Reactor • Role Reactions",
+      text: "Role Reactions",
       iconURL: client.user.displayAvatarURL(),
     });
 

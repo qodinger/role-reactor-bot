@@ -17,7 +17,7 @@ export function createXpSettingsEmbed(interaction, xpSettings, levelUpChannel) {
     .setColor(THEME.PRIMARY)
     .setTimestamp()
     .setFooter({
-      text: "Role Reactor • XP System",
+      text: "XP System",
       iconURL: interaction.client.user.displayAvatarURL(),
     });
 
@@ -97,7 +97,7 @@ export function createXpSourceEmbed(interaction, xpSettings) {
     .setColor(THEME.PRIMARY)
     .setTimestamp()
     .setFooter({
-      text: "Role Reactor • XP Sources",
+      text: "XP Sources",
       iconURL: interaction.client.user.displayAvatarURL(),
     });
 
@@ -188,7 +188,7 @@ export function createXpTestEmbed(interaction, xpSettings) {
     .setColor(THEME.PRIMARY)
     .setTimestamp()
     .setFooter({
-      text: "Role Reactor • XP Test",
+      text: "XP Test",
       iconURL: interaction.client.user.displayAvatarURL(),
     });
 
@@ -236,7 +236,7 @@ export function createXpConfigPageEmbed(
     .setColor(THEME.PRIMARY)
     .setTimestamp()
     .setFooter({
-      text: "Role Reactor • XP Configuration",
+      text: "XP Configuration",
       iconURL: interaction.client.user.displayAvatarURL(),
     });
 
