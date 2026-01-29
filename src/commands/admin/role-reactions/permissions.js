@@ -11,42 +11,68 @@ import { errorEmbed } from "../../../utils/discord/responseMessages.js";
  * @param {Object} interaction - Discord interaction object
  * @returns {Object} Validation result with success boolean and error response
  */
+// Specific permissions required for Role Reactions feature
+const ROLE_REACTION_PERMISSIONS = [
+  "ManageRoles",
+  "ManageMessages",
+  "AddReactions",
+  "ReadMessageHistory",
+  "ViewChannel",
+  "SendMessages",
+  "EmbedLinks",
+  "UseExternalEmojis",
+];
+
 export function validateGuildPermissions(interaction) {
   const logger = getLogger();
 
-  const guildHasPermissions = botHasRequiredPermissions(interaction.guild);
-  logger.debug("Guild permissions check", {
-    hasAllPermissions: guildHasPermissions,
+  // Check manual permissions instead of global bot permissions
+  // This allows role-reactions to work even if bot lacks moderation/voice permissions
+  const botMember = interaction.guild.members.me;
+  if (!botMember) return { success: false };
+
+  const missingPermissions = [];
+  for (const perm of ROLE_REACTION_PERMISSIONS) {
+    if (!botMember.permissions.has(perm)) {
+      missingPermissions.push(perm);
+    }
+  }
+
+  const hasAllPermissions = missingPermissions.length === 0;
+
+  logger.debug("Guild permissions check for Role Reactions", {
+    hasAllPermissions,
+    missingCount: missingPermissions.length,
     guildId: interaction.guild.id,
-    guildName: interaction.guild.name,
   });
 
-  if (!guildHasPermissions) {
-    const missingPermissions = getMissingBotPermissions(interaction.guild);
+  if (!hasAllPermissions) {
     const permissionNames = missingPermissions
-      .map(formatPermissionName)
+      .map(p => formatPermissionName(p))
       .join(", ");
 
-    logger.warn("Missing guild permissions", { permissions: permissionNames });
+    logger.warn("Missing guild permissions for Role Reactions", {
+      permissions: permissionNames,
+    });
 
     return {
       success: false,
       errorResponse: errorEmbed({
-        title: "Missing Bot Permissions",
-        description: `I need the following server-level permissions: **${permissionNames}**`,
+        title: "Missing Permissions",
+        description: `I need the following permissions for Role Reactions: **${permissionNames}**`,
         solution:
           "Please ask a server administrator to grant me these permissions and try again.",
         fields: [
           {
-            name: "🔧 How to Fix (Server Level)",
+            name: "🔧 How to Fix",
             value:
               "1. Go to **Server Settings** → **Roles**\n2. Find my role (Role Reactor)\n3. Enable the missing permissions listed above\n4. Make sure my role is positioned above the roles you want to assign",
             inline: false,
           },
           {
-            name: "📋 Required Server Permissions",
+            name: "📋 Required Permissions",
             value:
-              "• **Manage Roles** - To assign/remove roles from users\n• **Manage Messages** - To manage role-reaction messages\n• **Add Reactions** - To add emoji reactions to messages\n• **Read Message History** - To read channel history\n• **View Channel** - To access channel information\n• **Send Messages** - To send role-reaction messages\n• **Embed Links** - To create rich embeds\n• **Manage Server** - To manage server settings\n• **Use External Emojis** - To use emojis from other servers",
+              "• **Manage Roles** - To assign/remove roles from users\n• **Manage Messages** - To manage role-reaction messages\n• **Add Reactions** - To add emoji reactions to messages\n• **Read Message History** - To read channel history\n• **View Channel** - To access channel information\n• **Send Messages** - To send role-reaction messages\n• **Embed Links** - To create rich embeds\n• **Use External Emojis** - To use emojis from other servers",
             inline: false,
           },
         ],
