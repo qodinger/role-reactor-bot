@@ -491,28 +491,18 @@ export async function handleUpdate(interaction) {
     // If roles were updated, refresh the reactions
     if (rolesString) {
       try {
-        // Remove all existing reactions
-        await message.reactions.removeAll();
-        logger.debug("Cleared existing reactions for update", { messageId });
-
-        // Add new reactions based on updated role mapping
-        const { addReactionsToMessage } = await import(
-          "./messageOperations.js"
-        );
+        // Sync reactions instead of clearing all (Smart Update)
+        const { syncReactions } = await import("./messageOperations.js");
         const result = await processRoleInput(interaction, rolesString);
         if (result.success) {
-          const reactionResult = await addReactionsToMessage(
+          const syncResult = await syncReactions(
             message,
             result.data.validRoles,
           );
-          if (reactionResult.failedReactions.length > 0) {
-            logger.warn("Some reactions failed during update", {
-              failedCount: reactionResult.failedReactions.length,
-            });
-          }
-          logger.debug("Successfully refreshed reactions", {
+
+          logger.debug("Successfully synced reactions", {
             messageId,
-            reactionCount: result.data.validRoles.length,
+            ...syncResult,
           });
         }
       } catch (reactionError) {

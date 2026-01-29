@@ -148,18 +148,20 @@ export async function addReactionsToMessage(message, validRoles) {
       limiter(async () => {
         try {
           await message.react(role.emoji);
-          logger.debug(`Added reaction ${role.emoji} for role ${role.name}`);
-          return { success: true, role: role.name, emoji: role.emoji };
+          logger.debug(
+            `Added reaction ${role.emoji} for role ${role.roleName}`,
+          );
+          return { success: true, role: role.roleName, emoji: role.emoji };
         } catch (error) {
           logger.warn(
-            `Failed to add reaction ${role.emoji} for role ${role.name}`,
+            `Failed to add reaction ${role.emoji} for role ${role.roleName}`,
             {
               error: error.message,
             },
           );
           return {
             success: false,
-            role: role.name,
+            role: role.roleName,
             emoji: role.emoji,
             error: error.message,
           };
@@ -291,6 +293,106 @@ export function handleReactionFailures(failedReactions, validRoles) {
   });
 
   return null;
+}
+
+/**
+ * Syncs reactions on a message (adds missing, removes obsolete)
+ * @param {Object} message - Discord message object
+ * @param {Array} validRoles - Array of valid role objects
+ * @returns {Promise<Object>} Sync statistics
+ */
+export async function syncReactions(message, validRoles) {
+  const logger = getLogger();
+  // Sequential execution is REQUIRED for correct ordering of new reactions
+  const limiter = pLimit(1);
+
+  logger.debug("Syncing reactions with strict ordering", {
+    messageId: message.id,
+    targetCount: validRoles.length,
+    currentReactionCount: message.reactions.cache.size,
+  });
+
+  // 1. Get current bot reactions in order
+  const currentReactions = [...message.reactions.cache.values()].filter(
+    r => r.me,
+  );
+
+  // 2. Find divergence point (Longest Common Prefix)
+  // We keep reactions that are already in the correct position
+  let divergeIndex = 0;
+  while (
+    divergeIndex < currentReactions.length &&
+    divergeIndex < validRoles.length
+  ) {
+    const reaction = currentReactions[divergeIndex];
+    const targetRole = validRoles[divergeIndex];
+
+    // Check for match (unicode or custom emoji)
+    const isMatch =
+      reaction.emoji.toString() === targetRole.emoji ||
+      reaction.emoji.name === targetRole.emoji ||
+      reaction.emoji.id === targetRole.emoji;
+
+    if (!isMatch) break;
+    divergeIndex++;
+  }
+
+  // 3. Identify operations
+  const toRemove = currentReactions.slice(divergeIndex);
+  const toAdd = validRoles.slice(divergeIndex);
+
+  logger.debug("Reaction sync plan (Prefix Match)", {
+    preserved: divergeIndex,
+    removing: toRemove.length,
+    adding: toAdd.length,
+  });
+
+  // 4. Execute Removes (can be parallel)
+  const removePromises = toRemove.map(r => {
+    return async () => {
+      try {
+        await r.users.remove(message.client.user.id);
+      } catch (error) {
+        logger.warn(`Failed to remove obsolete reaction ${r.emoji.name}`, {
+          error: error.message,
+        });
+      }
+    };
+  });
+
+  // Execute removals in parallel (limit 3)
+  const removalLimiter = pLimit(3);
+  await Promise.all(removePromises.map(fn => removalLimiter(fn)));
+
+  // 5. Execute Adds (MUST be sequential)
+  // We use the sequential limiter defined at start (limit 1)
+  const addPromises = toAdd.map(role =>
+    limiter(async () => {
+      try {
+        await message.react(role.emoji);
+        logger.debug(
+          `Added reaction ${role.emoji} for ${role.roleName || role.name}`,
+        );
+        return { success: true };
+      } catch (error) {
+        logger.warn(
+          `Failed to add reaction ${role.emoji} for ${role.roleName || role.name}`,
+          {
+            error: error.message,
+          },
+        );
+        return { success: false, error: error.message, role };
+      }
+    }),
+  );
+
+  await Promise.all(addPromises);
+
+  return {
+    preserved: divergeIndex,
+    added: toAdd.length,
+    removed: toRemove.length,
+  };
 }
 
 /**
