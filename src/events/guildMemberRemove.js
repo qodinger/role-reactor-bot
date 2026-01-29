@@ -12,6 +12,12 @@ export async function execute(member) {
   const logger = getLogger();
   const startTime = Date.now();
 
+  // Skip bots - don't send goodbye for bots leaving
+  if (member.user.bot) {
+    logger.debug(`Skipping goodbye for bot: ${member.user.tag}`);
+    return;
+  }
+
   try {
     // Get database manager and goodbye settings
     const dbManager = await getDatabaseManager();

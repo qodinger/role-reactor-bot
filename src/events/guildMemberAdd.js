@@ -13,6 +13,12 @@ export async function execute(member) {
   const logger = getLogger();
   const startTime = Date.now();
 
+  // Skip bots - don't welcome or count them as human joins
+  if (member.user.bot) {
+    logger.debug(`Skipping welcome for bot: ${member.user.tag}`);
+    return;
+  }
+
   try {
     // Get database manager and welcome settings
     const dbManager = await getDatabaseManager();

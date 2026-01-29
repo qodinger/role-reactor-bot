@@ -8,6 +8,9 @@ import { THEME_COLOR } from "../../config/theme.js";
  * @returns {string} - Processed message
  */
 export function processGoodbyeMessage(message, member) {
+  // Get human member count (excluding bots)
+  const humanCount = member.guild.members.cache.filter(m => !m.user.bot).size;
+
   return message
     .replace(/{user}/g, member.user.toString())
     .replace(/{user.name}/g, member.user.username)
@@ -15,8 +18,8 @@ export function processGoodbyeMessage(message, member) {
     .replace(/{user.id}/g, member.user.id)
     .replace(/{server}/g, member.guild.name)
     .replace(/{server.id}/g, member.guild.id)
-    .replace(/{memberCount}/g, member.guild.memberCount)
-    .replace(/{memberCount.ordinal}/g, getOrdinal(member.guild.memberCount));
+    .replace(/{memberCount}/g, humanCount)
+    .replace(/{memberCount.ordinal}/g, getOrdinal(humanCount));
 }
 
 /**
@@ -46,7 +49,7 @@ export function createGoodbyeEmbed(settings, member) {
     })
     .addFields({
       name: "📊 Server Statistics",
-      value: `**${member.guild.memberCount}** members remaining`,
+      value: `**${member.guild.members.cache.filter(m => !m.user.bot).size}** members remaining`,
       inline: true,
     })
     .addFields({
