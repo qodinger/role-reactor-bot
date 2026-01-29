@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Welcome System: Bots joining the server no longer trigger welcome messages
+- Goodbye System: Bots leaving the server no longer trigger goodbye messages
+- Member Count: Welcome and goodbye messages now display human member count only (excludes bots)
+- Member Count Placeholder: `{memberCount}` and `{memberCount.ordinal}` placeholders now show human-only count
+- Role Reactions Update: Using `/role-reactions update` with new roles now properly refreshes the reactions on the message
+
 ## [1.6.0] - 2026-01-17
 
 ### Added
