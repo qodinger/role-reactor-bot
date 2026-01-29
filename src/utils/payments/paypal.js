@@ -77,12 +77,17 @@ export async function createPayPalOrder({
         {
           amount: {
             currencyCode: currency,
-            value: amount.toString(),
+            value: Number(amount).toFixed(2),
           },
           description: description,
           customId: customId,
         },
       ],
+      applicationContext: {
+        brandName: "Role Reactor",
+        shippingPreference: "NO_SHIPPING",
+        userAction: "PAY_NOW",
+      },
     },
     prefer: "return=representation",
   };
@@ -92,6 +97,13 @@ export async function createPayPalOrder({
     return result;
   } catch (error) {
     logger.error("❌ PayPal Create Order Error:", error);
+    // Log detailed error from PayPal if available
+    if (error.result) {
+      logger.error(
+        "PayPal Error Details:",
+        JSON.stringify(error.result, null, 2),
+      );
+    }
     throw error;
   }
 }

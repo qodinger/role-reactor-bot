@@ -16,8 +16,9 @@ export function corsMiddleware(req, res, next) {
   // Check if origin is allowed
   let allowedOrigin = "*";
   if (allowedOrigins.includes("*")) {
-    // Allow all origins (less secure, but backward compatible)
-    allowedOrigin = "*";
+    // Mirror the origin if it exists, otherwise use '*'
+    // This is required for Access-Control-Allow-Credentials to work
+    allowedOrigin = origin || "*";
   } else if (origin && allowedOrigins.includes(origin)) {
     // Allow specific origin
     allowedOrigin = origin;

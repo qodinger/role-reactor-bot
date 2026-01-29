@@ -931,13 +931,19 @@ export async function apiCreatePayPalOrder(req, res) {
     const userId = sessionUser?.id || discordId;
 
     if (!userId) {
-      return res
-        .status(401)
-        .json(createErrorResponse("Authentication required", 401));
+      const { statusCode, response } = createErrorResponse(
+        "Authentication required",
+        401,
+      );
+      return res.status(statusCode).json(response);
     }
 
     if (!amount || isNaN(amount) || amount < 0.5) {
-      return res.status(400).json(createErrorResponse("Invalid amount", 400));
+      const { statusCode, response } = createErrorResponse(
+        "Invalid amount",
+        400,
+      );
+      return res.status(statusCode).json(response);
     }
 
     const orderData = await paypal.createPayPalOrder({
@@ -970,9 +976,11 @@ export async function apiCapturePayPalOrder(req, res) {
   try {
     const { orderID } = req.body;
     if (!orderID) {
-      return res
-        .status(400)
-        .json(createErrorResponse("Order ID is required", 400));
+      const { statusCode, response } = createErrorResponse(
+        "Order ID is required",
+        400,
+      );
+      return res.status(statusCode).json(response);
     }
 
     const captureData = await paypal.capturePayPalOrder(orderID);
