@@ -1057,9 +1057,6 @@ class StorageManager {
         // Get all core credits from database
         const allCoreCredits = await this.provider.getAllCoreCredits();
 
-        // Update JSON file as backup
-        await this.updateJsonBackup(allCoreCredits);
-
         return allCoreCredits;
       }
       // For other collections, use file-based storage
