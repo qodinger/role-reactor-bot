@@ -1,9 +1,5 @@
 import { getLogger } from "../../../utils/logger.js";
-import {
-  botHasRequiredPermissions,
-  getMissingBotPermissions,
-  formatPermissionName,
-} from "../../../utils/discord/permissions.js";
+import { formatPermissionName } from "../../../utils/discord/permissions.js";
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 
 /**
