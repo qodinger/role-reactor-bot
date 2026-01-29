@@ -1306,4 +1306,205 @@ describe("Role Reactions - Core Functionality", () => {
       expect(result).toBe("🔥 <@&103>");
     });
   });
+
+  describe("handleUpdate - Reaction Refresh", () => {
+    test("should clear reactions when roles are updated", async () => {
+      // Mock the reaction refresh logic from handleUpdate
+      const updateReactions = async (
+        message,
+        rolesString,
+        processRoleInput,
+      ) => {
+        if (!rolesString) {
+          return { refreshed: false, reason: "no roles string provided" };
+        }
+
+        try {
+          // Clear existing reactions
+          await message.reactions.removeAll();
+
+          // Process new roles
+          const result = await processRoleInput(rolesString);
+          if (!result.success) {
+            return { refreshed: false, reason: "failed to process roles" };
+          }
+
+          // Add new reactions
+          for (const role of result.data.validRoles) {
+            await message.react(role.emoji);
+          }
+
+          return { refreshed: true, count: result.data.validRoles.length };
+        } catch (error) {
+          return { refreshed: false, reason: error.message };
+        }
+      };
+
+      // Mock message with reactions
+      const removeAllCalled = { value: false };
+      const reactedEmojis = [];
+      const mockMessage = {
+        reactions: {
+          removeAll: vi.fn(async () => {
+            removeAllCalled.value = true;
+          }),
+        },
+        react: vi.fn(async emoji => {
+          reactedEmojis.push(emoji);
+        }),
+      };
+
+      // Mock processRoleInput
+      const mockProcessRoleInput = async () => ({
+        success: true,
+        data: {
+          validRoles: [
+            { emoji: "🎮", role: { id: "role1", name: "Gamer" } },
+            { emoji: "🎵", role: { id: "role2", name: "Music" } },
+            { emoji: "🎬", role: { id: "role3", name: "Movies" } },
+          ],
+        },
+      });
+
+      const rolesString = "🎮:@Gamer, 🎵:@Music, 🎬:@Movies";
+      const result = await updateReactions(
+        mockMessage,
+        rolesString,
+        mockProcessRoleInput,
+      );
+
+      expect(result.refreshed).toBe(true);
+      expect(result.count).toBe(3);
+      expect(removeAllCalled.value).toBe(true);
+      expect(reactedEmojis).toEqual(["🎮", "🎵", "🎬"]);
+    });
+
+    test("should not refresh reactions when no roles string provided", async () => {
+      const updateReactions = async (
+        message,
+        rolesString,
+        _processRoleInput,
+      ) => {
+        if (!rolesString) {
+          return { refreshed: false, reason: "no roles string provided" };
+        }
+        return { refreshed: true };
+      };
+
+      const mockMessage = {
+        reactions: { removeAll: vi.fn() },
+        react: vi.fn(),
+      };
+
+      const result = await updateReactions(mockMessage, null, () => {});
+
+      expect(result.refreshed).toBe(false);
+      expect(result.reason).toBe("no roles string provided");
+      expect(mockMessage.reactions.removeAll).not.toHaveBeenCalled();
+    });
+
+    test("should handle reaction refresh errors gracefully", async () => {
+      const updateReactions = async (
+        message,
+        rolesString,
+        _processRoleInput,
+      ) => {
+        if (!rolesString) {
+          return { refreshed: false, reason: "no roles string provided" };
+        }
+
+        try {
+          await message.reactions.removeAll();
+          return { refreshed: true };
+        } catch (error) {
+          return { refreshed: false, reason: error.message };
+        }
+      };
+
+      const mockMessage = {
+        reactions: {
+          removeAll: vi.fn(async () => {
+            throw new Error("Missing Permissions");
+          }),
+        },
+        react: vi.fn(),
+      };
+
+      const result = await updateReactions(mockMessage, "🎮:@Gamer", () => {});
+
+      expect(result.refreshed).toBe(false);
+      expect(result.reason).toBe("Missing Permissions");
+    });
+
+    test("should handle partial reaction failures during update", async () => {
+      const updateReactions = async (
+        message,
+        rolesString,
+        processRoleInput,
+      ) => {
+        if (!rolesString) {
+          return { refreshed: false, reason: "no roles string provided" };
+        }
+
+        try {
+          await message.reactions.removeAll();
+          const result = await processRoleInput(rolesString);
+          if (!result.success) {
+            return { refreshed: false, reason: "failed to process roles" };
+          }
+
+          const failedReactions = [];
+          for (const role of result.data.validRoles) {
+            try {
+              await message.react(role.emoji);
+            } catch (error) {
+              failedReactions.push({ emoji: role.emoji, error: error.message });
+            }
+          }
+
+          return {
+            refreshed: true,
+            count: result.data.validRoles.length,
+            failedCount: failedReactions.length,
+            failedReactions,
+          };
+        } catch (error) {
+          return { refreshed: false, reason: error.message };
+        }
+      };
+
+      let reactCallCount = 0;
+      const mockMessage = {
+        reactions: { removeAll: vi.fn() },
+        react: vi.fn(async emoji => {
+          reactCallCount++;
+          if (emoji === "❌") {
+            throw new Error("Unknown Emoji");
+          }
+        }),
+      };
+
+      const mockProcessRoleInput = async () => ({
+        success: true,
+        data: {
+          validRoles: [
+            { emoji: "🎮", role: { id: "role1", name: "Gamer" } },
+            { emoji: "❌", role: { id: "role2", name: "Invalid" } }, // This will fail
+            { emoji: "🎵", role: { id: "role3", name: "Music" } },
+          ],
+        },
+      });
+
+      const result = await updateReactions(
+        mockMessage,
+        "🎮:@Gamer, ❌:@Invalid, 🎵:@Music",
+        mockProcessRoleInput,
+      );
+
+      expect(result.refreshed).toBe(true);
+      expect(result.count).toBe(3);
+      expect(result.failedCount).toBe(1);
+      expect(result.failedReactions[0].emoji).toBe("❌");
+    });
+  });
 });

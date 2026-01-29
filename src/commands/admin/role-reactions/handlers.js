@@ -485,6 +485,42 @@ export async function handleUpdate(interaction) {
     );
     await message.edit({ embeds: [embed] });
 
+    // If roles were updated, refresh the reactions
+    if (rolesString) {
+      try {
+        // Remove all existing reactions
+        await message.reactions.removeAll();
+        logger.debug("Cleared existing reactions for update", { messageId });
+
+        // Add new reactions based on updated role mapping
+        const { addReactionsToMessage } = await import(
+          "./messageOperations.js"
+        );
+        const result = await processRoleInput(interaction, rolesString);
+        if (result.success) {
+          const reactionResult = await addReactionsToMessage(
+            message,
+            result.data.validRoles,
+          );
+          if (reactionResult.failedReactions.length > 0) {
+            logger.warn("Some reactions failed during update", {
+              failedCount: reactionResult.failedReactions.length,
+            });
+          }
+          logger.debug("Successfully refreshed reactions", {
+            messageId,
+            reactionCount: result.data.validRoles.length,
+          });
+        }
+      } catch (reactionError) {
+        logger.warn("Failed to refresh reactions during update", {
+          messageId,
+          error: reactionError.message,
+        });
+        // Continue with the update - the embed was already updated
+      }
+    }
+
     const { setRoleMapping: setMap } = await import(
       "../../../utils/discord/roleMappingManager.js"
     );
