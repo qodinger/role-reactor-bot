@@ -273,8 +273,15 @@ export async function handleList(
     // Validate page number
     const validPage = Math.max(1, Math.min(page, pagination.totalPages));
 
-    // Convert mappings object to array format for createListRolesEmbed
-    const guildMappingsArray = Object.entries(guildMappings);
+    // Convert mappings object to array format and sort by latest first
+    const guildMappingsArray = Object.entries(guildMappings).sort((a, b) => {
+      const aTime = a[1].updatedAt ? new Date(a[1].updatedAt).getTime() : 0;
+      const bTime = b[1].updatedAt ? new Date(b[1].updatedAt).getTime() : 0;
+      if (bTime === aTime) {
+        return b[0].localeCompare(a[0]); // Secondary sort by Message ID (snowflake) descending
+      }
+      return bTime - aTime;
+    });
 
     const {
       embed,

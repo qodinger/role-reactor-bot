@@ -683,10 +683,18 @@ class StorageManager {
       return this.provider.getRoleMappingsPaginated(guildId, page, limit);
     }
     // Fallback to file-based pagination
-    const allMappings = this.provider.read("role_mappings");
-    const guildMappings = Object.entries(allMappings).filter(
-      ([, m]) => m.guildId === guildId,
-    );
+    const allMappings = await this.provider.read("role_mappings");
+    const guildMappings = Object.entries(allMappings)
+      .filter(([, m]) => m.guildId === guildId)
+      .sort((a, b) => {
+        const aTime = a[1].updatedAt ? new Date(a[1].updatedAt).getTime() : 0;
+        const bTime = b[1].updatedAt ? new Date(b[1].updatedAt).getTime() : 0;
+        // If times are equal or both missing, sort by messageId (snowflake) descending
+        if (bTime === aTime) {
+          return b[0].localeCompare(a[0]);
+        }
+        return bTime - aTime;
+      });
 
     const totalItems = guildMappings.length;
     const totalPages = Math.ceil(totalItems / limit);

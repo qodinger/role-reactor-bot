@@ -50,6 +50,7 @@ export class RoleMappingRepository extends BaseRepository {
     // Get paginated results
     const documents = await this.collection
       .find({ guildId })
+      .sort({ updatedAt: -1, _id: -1 })
       .skip(skip)
       .limit(limit)
       .toArray();
@@ -60,6 +61,7 @@ export class RoleMappingRepository extends BaseRepository {
         guildId: doc.guildId,
         channelId: doc.channelId,
         roles: doc.roles,
+        updatedAt: doc.updatedAt,
       };
     }
 

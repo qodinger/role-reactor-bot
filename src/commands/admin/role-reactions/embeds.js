@@ -42,11 +42,6 @@ export function createSetupRolesEmbed(
       value: roleList || "No roles available",
       inline: false,
     },
-    {
-      name: "Instructions",
-      value: "Click the reactions below to get or remove roles instantly.",
-      inline: false,
-    },
   ]);
 
   return embed;
@@ -65,12 +60,6 @@ export function createListRolesEmbed(
     ? pagination.totalPages
     : Math.ceil(guildMappings.length / itemsPerPage);
   const totalItems = pagination ? pagination.totalItems : guildMappings.length;
-  const startIndex = pagination
-    ? (page - 1) * itemsPerPage
-    : (page - 1) * itemsPerPage;
-  const endIndex = pagination
-    ? startIndex + guildMappings.length
-    : startIndex + itemsPerPage;
 
   const embed = new EmbedBuilder()
     .setTitle("Role Reaction Messages") // Simplified title
@@ -87,7 +76,7 @@ export function createListRolesEmbed(
   if (guildMappings.length === 0) {
     embed.addFields([
       {
-        name: "Messages", // Removed emoji
+        name: "Messages",
         value: "No role-reaction messages found in this server.",
         inline: false,
       },
@@ -95,45 +84,37 @@ export function createListRolesEmbed(
     return { embed, totalPages, currentPage: page };
   }
 
-  const roleList = guildMappings
-    .map(([messageId, mapping]) => {
-      const rolesObj = mapping.roles || {};
-      const rolesArr = Array.isArray(rolesObj)
-        ? rolesObj
-        : Object.values(rolesObj);
-      const roleMentions = rolesArr
-        .map(role =>
-          role.roleId ? `<@&${role.roleId}>` : role.roleName || "Unknown",
-        )
-        .join(", ");
-      const messageLink =
-        mapping.channelId && mapping.guildId
-          ? `https://discord.com/channels/${mapping.guildId}/${mapping.channelId}/${messageId}`
-          : null;
-      const channelInfo = messageLink
-        ? `<#${mapping.channelId}> • [Jump to Message](${messageLink})`
-        : mapping.channelId
-          ? `<#${mapping.channelId}>`
-          : "Unknown channel";
-      return `**Message ID:** ${messageId}\n**Channel:** ${channelInfo}\n**Roles:** ${rolesArr.length} role(s)\n${roleMentions}`;
-    })
-    .join("\n\n");
+  const fields = guildMappings.map(([messageId, mapping]) => {
+    const rolesObj = mapping.roles || {};
+    const rolesArr = Array.isArray(rolesObj)
+      ? rolesObj
+      : Object.values(rolesObj);
 
-  // Ensure the field value is not too long (Discord limit is 1024 characters)
-  const fieldValue =
-    roleList || "No role-reaction messages found in this server.";
-  const truncatedValue =
-    fieldValue.length > 1024
-      ? `${fieldValue.substring(0, 1021)}...`
-      : fieldValue;
+    const roleMentions = rolesArr
+      .map(role =>
+        role.roleId ? `<@&${role.roleId}>` : role.roleName || "Unknown",
+      )
+      .join(", ");
 
-  embed.addFields([
-    {
-      name: `Messages (${startIndex + 1}-${Math.min(endIndex, totalItems)} of ${totalItems})`, // Removed emoji
-      value: truncatedValue,
+    const messageLink =
+      mapping.channelId && mapping.guildId
+        ? `https://discord.com/channels/${mapping.guildId}/${mapping.channelId}/${messageId}`
+        : null;
+
+    const channelInfo = messageLink
+      ? `<#${mapping.channelId}> • [Jump to Message](${messageLink})`
+      : mapping.channelId
+        ? `<#${mapping.channelId}>`
+        : "Unknown channel";
+
+    return {
+      name: `Message ID: ${messageId}`,
+      value: `**Channel:** ${channelInfo}\n**Roles (${rolesArr.length}):** ${roleMentions}`,
       inline: false,
-    },
-  ]);
+    };
+  });
+
+  embed.addFields(fields);
 
   return { embed, totalPages, currentPage: page };
 }
@@ -211,11 +192,6 @@ export function createUpdatedRolesEmbed(updatedMapping, roleMapping, client) {
     {
       name: "Available Roles",
       value: roleList || "No roles available",
-      inline: false,
-    },
-    {
-      name: "Instructions",
-      value: "Click the reactions below to get or remove roles instantly.",
       inline: false,
     },
   ]);
