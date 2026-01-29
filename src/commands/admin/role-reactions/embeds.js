@@ -38,12 +38,12 @@ export function createSetupRolesEmbed(
 
   embed.addFields([
     {
-      name: "Available Roles", // Removed emoji
+      name: "Available Roles",
       value: roleList || "No roles available",
       inline: false,
     },
     {
-      name: "Instructions", // Removed emoji
+      name: "Instructions",
       value: "Click the reactions below to get or remove roles instantly.",
       inline: false,
     },
@@ -209,8 +209,13 @@ export function createUpdatedRolesEmbed(updatedMapping, roleMapping, client) {
 
   embed.addFields([
     {
-      name: "Available Roles", // Removed emoji
+      name: "Available Roles",
       value: roleList || "No roles available",
+      inline: false,
+    },
+    {
+      name: "Instructions",
+      value: "Click the reactions below to get or remove roles instantly.",
       inline: false,
     },
   ]);
