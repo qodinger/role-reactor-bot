@@ -482,7 +482,10 @@ export async function handleUpdate(interaction) {
       updatedMapping,
       roleMapping,
       interaction.client,
-    );
+    ).setFooter({
+      text: `Role Reactions • ID: ${messageId}`,
+      iconURL: interaction.client.user.displayAvatarURL(),
+    });
     await message.edit({ embeds: [embed] });
 
     // If roles were updated, refresh the reactions

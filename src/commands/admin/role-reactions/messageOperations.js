@@ -1,3 +1,4 @@
+import { EmbedBuilder } from "discord.js";
 import pLimit from "p-limit";
 import { getLogger } from "../../../utils/logger.js";
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";
@@ -46,13 +47,6 @@ export async function processRoleInput(interaction, rolesString) {
   };
 }
 
-/**
- * Creates and sends a role-reaction message
- * @param {Object} interaction - Discord interaction object
- * @param {Object} messageData - Message data (title, description, color, validRoles)
- * @param {Object} client - Discord client
- * @returns {Object} Result with success boolean and message/error
- */
 export async function createRoleReactionMessage(
   interaction,
   messageData,
@@ -79,6 +73,29 @@ export async function createRoleReactionMessage(
 
   try {
     const message = await interaction.channel.send({ embeds: [embed] });
+
+    // Update footer to include Message ID
+    try {
+      if (message.embeds.length > 0) {
+        const sentEmbed = message.embeds[0];
+        // Simplified footer without redundant bot name
+        const newFooterText = `Role Reactions • ID: ${message.id}`;
+
+        const updatedEmbed = EmbedBuilder.from(sentEmbed).setFooter({
+          text: newFooterText,
+          iconURL: sentEmbed.footer?.iconURL,
+        });
+
+        await message.edit({ embeds: [updatedEmbed] });
+        logger.debug("Updated embed footer with message ID");
+      }
+    } catch (footerError) {
+      logger.warn("Failed to update footer with ID", {
+        error: footerError.message,
+      });
+      // Not critical, continue
+    }
+
     logger.debug("Successfully sent role-reaction message", {
       messageId: message.id,
     });
