@@ -113,7 +113,6 @@ export function roleCreatedEmbed({ messageUrl, roleCount, channelId }) {
 }
 
 export function roleUpdatedEmbed({
-  messageId,
   updates,
   changeCount = 0,
   messageUrl = null,
