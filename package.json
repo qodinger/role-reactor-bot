@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "role-reactor-bot",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "A powerful Discord bot that helps you manage your server with role management, AI features, moderation tools, and community engagement features. Perfect for communities of all sizes.",
   "main": "src/index.js",
   "scripts": {
