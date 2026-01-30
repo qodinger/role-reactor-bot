@@ -63,14 +63,6 @@ export async function routeSelectMenuInteraction(interaction, _client) {
       return;
     }
 
-    if (customId === "goodbye_channel_select") {
-      const { handleGoodbyeChannelSelect } = await import(
-        "../handlers/goodbyeChannelSelectHandler.js"
-      );
-      await handleGoodbyeChannelSelect(interaction);
-      return;
-    }
-
     if (customId === "welcome_role_select") {
       const { handleWelcomeRoleSelect } = await import(
         "../handlers/welcomeRoleSelectHandler.js"

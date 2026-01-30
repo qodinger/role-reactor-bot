@@ -539,6 +539,8 @@ export async function handleUpdate(interaction) {
         messageId,
         updates: Object.keys(updates).join(", "),
         changeCount: Object.keys(updates).length,
+        messageUrl: message.url,
+        channelId: mapping.channelId,
       }),
     );
 

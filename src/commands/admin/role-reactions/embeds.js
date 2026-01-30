@@ -167,7 +167,7 @@ export function createPaginationButtons(
 // Update Roles embed
 export function createUpdatedRolesEmbed(updatedMapping, roleMapping, client) {
   const embed = new EmbedBuilder()
-    .setTitle(updatedMapping.title || "Role Selection") // Simplified title
+    .setTitle(updatedMapping.title || "Role Reactions") // Simplified title
     .setDescription(updatedMapping.description || "React to get a role!") // Simplified description
     .setColor(updatedMapping.color || THEME.PRIMARY) // Use THEME.PRIMARY
     .setTimestamp()

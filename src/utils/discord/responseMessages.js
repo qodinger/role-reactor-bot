@@ -80,13 +80,13 @@ export function roleCreatedEmbed({ messageUrl, roleCount, channelId }) {
     description: `Your role-reaction message has been created successfully.`,
     fields: [
       {
-        name: "Message Location",
-        value: `[Click here to view](${messageUrl})\nChannel: <#${channelId}>`,
-        inline: false,
+        name: "Channel",
+        value: `<#${channelId}>`,
+        inline: true,
       },
       {
         name: "Roles Configured",
-        value: `${roleCount} role${roleCount !== 1 ? "s" : ""} available for self-assignment`,
+        value: `${roleCount} role${roleCount !== 1 ? "s" : ""} available`,
         inline: true,
       },
       {
@@ -112,22 +112,25 @@ export function roleCreatedEmbed({ messageUrl, roleCount, channelId }) {
   };
 }
 
-export function roleUpdatedEmbed({ messageId, updates, changeCount = 0 }) {
+export function roleUpdatedEmbed({
+  messageId,
+  updates,
+  changeCount = 0,
+  messageUrl = null,
+  channelId = null,
+}) {
   const updatesList = updates.split(", ");
   const formattedUpdates = updatesList.map(update => `• ${update}`).join("\n");
 
-  const fields = [
-    {
-      name: "Message Reference",
-      value: `ID: \`${messageId}\``,
+  const fields = [];
+
+  if (channelId) {
+    fields.push({
+      name: "Channel",
+      value: `<#${channelId}>`,
       inline: true,
-    },
-    {
-      name: "Updated",
-      value: `<t:${Math.floor(Date.now() / 1000)}:R>`,
-      inline: true,
-    },
-  ];
+    });
+  }
 
   if (changeCount > 0) {
     fields.push({
@@ -137,7 +140,13 @@ export function roleUpdatedEmbed({ messageId, updates, changeCount = 0 }) {
     });
   }
 
-  const embed = embedFactory.create("INFO", {
+  fields.push({
+    name: "Updated",
+    value: `<t:${Math.floor(Date.now() / 1000)}:R>`,
+    inline: true,
+  });
+
+  const embed = embedFactory.create("SUCCESS", {
     title: "Configuration Updated",
     description: `Your role-reaction message has been updated with the latest changes.`,
     fields: [
@@ -151,8 +160,20 @@ export function roleUpdatedEmbed({ messageId, updates, changeCount = 0 }) {
     footer: "Role Reactor • Role Reactions",
   });
 
+  const components = [];
+  if (messageUrl) {
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setLabel("View Message")
+        .setStyle(ButtonStyle.Link)
+        .setURL(messageUrl),
+    );
+    components.push(row);
+  }
+
   return {
     embeds: [embed],
+    components,
     flags: 64,
   };
 }
