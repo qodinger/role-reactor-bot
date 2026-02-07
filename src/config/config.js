@@ -247,60 +247,69 @@ class Config {
    * @returns {Object} Core pricing configuration object
    */
   get corePricing() {
-    return {
-      // Package plans for display in /core pricing command
-      // Simplified package structure with 4 strategic options
-      // Only 4 strategic packages to avoid choice overload
-      //
-      // PRICING STRATEGY:
-      // - AI values Core at 2.0¢ each (50x conversion rate)
-      // - Packages sell Cores at 5.71¢-6.25¢ each (185-213% markup)
-      // - Markup covers operational costs, development, support, and profit
-      // - Usage estimates based on actual AI costs: 0.01 Core/chat, 2.1 Core/image
-      packages: {
-        $5: {
-          name: "Starter",
-          baseCores: 75,
-          bonusCores: 5, // 7% bonus
-          totalCores: 80,
-          value: "16.0 Cores/$1",
-          description: "Perfect for trying AI features",
-          estimatedUsage: "~8,000 chat messages or 38 images",
-          popular: false,
-        },
-        $10: {
-          name: "Basic",
-          baseCores: 150,
-          bonusCores: 15, // 10% bonus
-          totalCores: 165,
-          value: "16.5 Cores/$1",
-          description: "Most popular choice for regular users",
-          estimatedUsage: "~16,500 chat messages or 78 images",
-          popular: true, // Mark as most popular
-        },
-        $25: {
-          name: "Pro",
-          baseCores: 375,
-          bonusCores: 50, // 13% bonus
-          totalCores: 425,
-          value: "17.0 Cores/$1",
-          description: "Best value for power users",
-          estimatedUsage: "~42,500 chat messages or 202 images",
-          popular: false,
-        },
-        $50: {
-          name: "Ultimate",
-          baseCores: 750,
-          bonusCores: 125, // 17% bonus
-          totalCores: 875,
-          value: "17.5 Cores/$1",
-          description: "Maximum value for heavy usage",
-          estimatedUsage: "~87,500 chat messages or 416 images",
-          features: ["Priority processing", "Dedicated support"],
-          popular: false,
-        },
+    const rawPackages = {
+      $1: {
+        name: "Test",
+        baseCores: 15,
+        bonusCores: 0,
+        description: "Developer testing package",
+        estimatedUsage: "~300 chat messages or 7 images",
+        popular: false,
+        hidden: true,
       },
+      $5: {
+        name: "Starter",
+        baseCores: 75,
+        bonusCores: 0,
+        description: "Perfect for trying AI features",
+        estimatedUsage: "~1,500 chat messages or 35 images",
+        popular: false,
+      },
+      $10: {
+        name: "Basic",
+        baseCores: 150,
+        bonusCores: 15,
+        description: "Most popular choice for regular users",
+        estimatedUsage: "~3,300 chat messages or 78 images",
+        popular: true,
+      },
+      $25: {
+        name: "Pro",
+        baseCores: 375,
+        bonusCores: 60,
+        description: "Best value for power users",
+        estimatedUsage: "~8,700 chat messages or 207 images",
+        popular: false,
+      },
+      $50: {
+        name: "Ultimate",
+        baseCores: 750,
+        bonusCores: 150,
+        description: "Maximum value for heavy usage",
+        estimatedUsage: "~18,000 chat messages or 428 images",
+        features: ["Priority processing", "Dedicated support"],
+        popular: false,
+      },
+    };
 
+    const packages = Object.fromEntries(
+      Object.entries(rawPackages).map(([key, pkg]) => {
+        const price = parseFloat(key.replace("$", ""));
+        const totalCores = pkg.baseCores + pkg.bonusCores;
+        const rate = totalCores / price;
+        return [
+          key,
+          {
+            ...pkg,
+            totalCores,
+            rate: parseFloat(rate.toFixed(2)),
+          },
+        ];
+      }),
+    );
+
+    return {
+      packages,
       // Moderation auto-escalation thresholds
       // Set to 0 to disable auto-escalation
       autoEscalation: {
@@ -313,7 +322,7 @@ class Config {
 
       // Core system settings with advanced features
       coreSystem: {
-        minimumPayment: 3, // Reduced minimum to $3 for accessibility
+        minimumPayment: 1, // Reduced minimum to $1 for testing and accessibility
         priorityProcessing: true, // Core members get priority (planned feature)
 
         // Advanced pricing features
@@ -328,7 +337,7 @@ class Config {
         freeTier: {
           enabled: false, // Disabled - all usage requires credits
           message:
-            "Purchase Cores to start using AI features! Packages start at just $3.",
+            "Purchase Cores to start using AI features! Packages start at just $1.",
         },
 
         // Trial system - limited to encourage purchases
@@ -446,6 +455,31 @@ class Config {
         "https://api.rolereactor.app",
       website: process.env.BOT_WEBSITE_URL || "https://rolereactor.app",
     };
+  }
+
+  /**
+   * Calculate Cores for a given USD amount based on configured packages
+   * @param {number} amount - USD amount paid
+   * @returns {number} Calculated Cores
+   */
+  calculateCores(amount) {
+    const packages = this.corePricing?.packages || {};
+    const packageList = Object.entries(packages)
+      .map(([key, pkg]) => ({
+        price: parseFloat(key.replace("$", "")),
+        rate: pkg.rate || pkg.totalCores / parseFloat(key.replace("$", "")),
+      }))
+      .sort((a, b) => b.price - a.price);
+
+    // Find the highest package the user qualifies for
+    const applicablePackage = packageList.find(p => amount >= p.price);
+
+    // If no package found (amount below $1), use the lowest available rate
+    const rate = applicablePackage
+      ? applicablePackage.rate
+      : packageList[packageList.length - 1]?.rate || 15.0;
+
+    return Math.floor(amount * rate);
   }
 
   /**

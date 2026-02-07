@@ -91,11 +91,13 @@ async function processPlisioPayment(data) {
     logger.info("💰 Processing Plisio Payment:", data);
 
     const {
+      status,
       order_number: orderNumber,
       amount,
-      currency,
       source_amount: sourceAmount,
       source_currency: sourceCurrency,
+      source_rate: sourceRate,
+      currency,
     } = data;
 
     // Order number format: USERID_TIMESTAMP
@@ -104,14 +106,24 @@ async function processPlisioPayment(data) {
     // Validate User ID
     if (!userId || !/^\d{17,20}$/.test(userId)) {
       logger.warn(`⚠️ Invalid User ID in Plisio order: ${orderNumber}`);
-      // Fallback logic or manual check could be added here
     }
 
-    // Use source amount (USD) if available, otherwise crypto amount
-    const finalAmount = sourceAmount
-      ? parseFloat(sourceAmount)
-      : parseFloat(amount);
-    const finalCurrency = sourceCurrency || currency;
+    // Logic for Mismatch vs Completed:
+    // If mismatch, use the actual received crypto (amount) * rate (source_rate)
+    // If completed (exact match), use the source_amount (requested price)
+    let finalAmount;
+    if (status === "mismatch" && sourceRate && amount) {
+      finalAmount = parseFloat(amount) * parseFloat(sourceRate);
+      logger.info(
+        `⚖️ Handling Mismatch: Paid ${finalAmount} ${sourceCurrency || "USD"} (Requested ${sourceAmount})`,
+      );
+    } else {
+      finalAmount = sourceAmount
+        ? parseFloat(sourceAmount)
+        : parseFloat(amount);
+    }
+
+    const finalCurrency = sourceCurrency || currency || "USD";
 
     return await creditUserCore({
       userId,
@@ -190,27 +202,13 @@ async function creditUserCore({
   const minimumAmount = config.corePricing?.coreSystem?.minimumPayment || 1;
 
   if (amount < minimumAmount) {
+    logger.warn(
+      `⚠️ Payment $${amount} is below minimum $${minimumAmount}. Order: ${paymentId}`,
+    );
     return { success: false, error: "Below minimum amount" };
   }
 
-  let paymentRate = 0;
-  // Default rate logic
-  if (packages.$10)
-    paymentRate = (packages.$10.baseCores + packages.$10.bonusCores) / 10;
-
-  // Tiered override
-  if (amount >= 50 && packages.$50)
-    paymentRate = (packages.$50.baseCores + packages.$50.bonusCores) / 50;
-  else if (amount >= 25 && packages.$25)
-    paymentRate = (packages.$25.baseCores + packages.$25.bonusCores) / 25;
-  else if (amount >= 10 && packages.$10)
-    paymentRate = (packages.$10.baseCores + packages.$10.bonusCores) / 10;
-  else if (amount >= 5 && packages.$5)
-    paymentRate = (packages.$5.baseCores + packages.$5.bonusCores) / 5;
-
-  if (paymentRate === 0) paymentRate = 100; // Fallback
-
-  const coresToAdd = Math.floor(amount * paymentRate);
+  const coresToAdd = config.calculateCores(amount);
 
   userData.credits = formatCoreCredits((userData.credits || 0) + coresToAdd);
   userData.cryptoPayments.push({
@@ -226,6 +224,28 @@ async function creditUserCore({
 
   userData.lastUpdated = new Date().toISOString();
   await storage.set("core_credit", coreCredits);
+
+  // Also log to the separate payments collection (Ledger)
+  try {
+    await storage.createPayment({
+      paymentId: paymentId,
+      discordId: userId,
+      provider: provider,
+      type: "one_time",
+      status: "completed",
+      amount: parseFloat(amount),
+      currency: currency,
+      coresGranted: coresToAdd,
+      email: email,
+      metadata: metadata,
+    });
+    logger.info(`📝 Payment ${paymentId} logged to payments collection`);
+  } catch (logError) {
+    logger.error(
+      `Failed to log payment ${paymentId} to payments collection:`,
+      logError,
+    );
+  }
 
   logger.info(
     `✅ Added ${coresToAdd} Cores to user ${userId} (${provider} payment: $${amount})`,

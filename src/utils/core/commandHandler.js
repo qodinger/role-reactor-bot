@@ -303,6 +303,31 @@ class CommandHandler {
       return;
     }
 
+    // Check if command is disabled in this guild
+    try {
+      if (interaction.guildId) {
+        const { getDatabaseManager } = await import(
+          "../storage/databaseManager.js"
+        );
+        const dbManager = await getDatabaseManager();
+        if (dbManager && dbManager.guildSettings) {
+          const settings = await dbManager.guildSettings.getByGuild(
+            interaction.guildId,
+          );
+          if (settings?.disabledCommands?.includes(commandName)) {
+            await interaction.reply({
+              content: `❌ The \`/${commandName}\` command has been disabled by an administrator in this server.`,
+              flags: 64,
+            });
+            return;
+          }
+        }
+      }
+    } catch (error) {
+      this.logger.error("Failed to check disabled commands:", error);
+      // Continue execution if check fails to avoid blocking commands due to DB issues
+    }
+
     const startTime = Date.now();
     const eventHandler = getEventHandler();
 
@@ -598,6 +623,55 @@ class CommandHandler {
       if (now - data.timestamp > this.cacheTimeout) {
         this.permissionCache.delete(key);
       }
+    }
+  }
+
+  /**
+   * Synchronizes command visibility with Discord for a specific guild
+   *
+   * Hides disabled commands from the slash command menu by setting
+   * permissions for @everyone to false in the target guild.
+   *
+   * @param {string} guildId - The Discord guild ID to sync
+   * @param {Array<string>} disabledCommands - List of command names to hide
+   * @returns {Promise<boolean>} Success status
+   */
+  async syncGuildCommands(guildId, disabledCommands) {
+    if (!this.client || !this.client.isReady()) {
+      this.logger.warn("⚠️ Cannot sync commands: Client not ready");
+      return false;
+    }
+
+    try {
+      const { REST, Routes } = await import("discord.js");
+      const rest = new REST({ version: "10" }).setToken(this.client.token);
+
+      // Get all commands currently registered in the handler
+      const allCommands = Array.from(this.commands.values());
+
+      // Filter: only keep commands NOT in the disabled list
+      const enabledCommands = allCommands.filter(
+        cmd => !disabledCommands.includes(cmd.data.name),
+      );
+
+      this.logger.info(
+        `� Syncing modular commands to guild ${guildId}: ${enabledCommands.length} enabled, ${allCommands.length - enabledCommands.length} removed from registry.`,
+      );
+
+      // Perform a full PUT to the guild command registry
+      // This COMPLETELY removes any command not in the body list, including for Admins
+      await rest.put(
+        Routes.applicationGuildCommands(this.client.user.id, guildId),
+        { body: enabledCommands.map(cmd => cmd.data.toJSON()) },
+      );
+
+      return true;
+    } catch (error) {
+      this.logger.error(
+        `❌ Error syncing guild commands for ${guildId}:`,
+        error,
+      );
+      return false;
     }
   }
 

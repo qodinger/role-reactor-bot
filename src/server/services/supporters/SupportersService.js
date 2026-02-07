@@ -8,15 +8,17 @@ import { apiRateLimiter } from "../../middleware/rateLimiter.js";
 import { validateQuery } from "../../middleware/validation.js";
 import { paginate } from "../../utils/pagination.js";
 import { getLogger } from "../../../utils/logger.js";
+import { serverConfig } from "../../config/serverConfig.js";
 
 const logger = getLogger();
+const API_PREFIX = serverConfig.metadata.apiPrefix;
 
 export class SupportersService extends BaseService {
   constructor() {
     super({
       name: "supporters",
       version: "v1",
-      basePath: "/api/supporters",
+      basePath: `${API_PREFIX}/supporters`,
       metadata: {
         description: "Supporter leaderboard and statistics API",
         version: "1.0.0",
@@ -168,7 +170,7 @@ export class SupportersService extends BaseService {
 export const serviceConfig = {
   name: "supporters",
   version: "v1",
-  basePath: "/api/supporters",
+  basePath: "/api/v1/supporters",
   loader: () => {
     const service = new SupportersService();
     return service;

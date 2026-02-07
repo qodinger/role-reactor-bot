@@ -284,7 +284,7 @@ export function getAIFeatureCosts() {
 
   // Minimum charge per request (in Core credits)
   // Prevents micro-transactions for very small API calls
-  const BASE_MINIMUM_CHARGE = 0.01; // 0.01 Core minimum
+  const BASE_MINIMUM_CHARGE = 0.05; // 0.05 Core minimum (~300 messages per $1)
 
   // Formula: Core_Credits = max(API_Cost_USD × BASE_CONVERSION_RATE, BASE_MINIMUM_CHARGE)
 

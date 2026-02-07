@@ -28,7 +28,7 @@ export class GuildSettingsRepository extends BaseRepository {
             levelUpChannel: null,
             // Level formula is fixed at 100 * level^1.5 - no longer configurable
           },
-
+          disabledCommands: [],
           createdAt: new Date(),
           updatedAt: new Date(),
         }

@@ -18,7 +18,7 @@ export const serverConfig = {
   // CORS configuration
   cors: {
     origin: process.env.CORS_ORIGIN || "*",
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: [
       "Origin",
       "X-Requested-With",
@@ -51,6 +51,7 @@ export const serverConfig = {
     name: "Role Reactor Bot API Server",
     version: "1.0.0",
     description: "Unified API server for Role Reactor Discord Bot",
+    apiPrefix: "/api/v1",
   },
 };
 

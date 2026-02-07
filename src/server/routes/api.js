@@ -232,42 +232,26 @@ export async function apiPricing(req, res) {
 
     // Get optional user ID for personalized pricing
     const userId = req.query.user_id || req.query.discord_id || null;
+    const isDev = config.isDeveloper(userId);
 
     // Build packages array with clean structure for website
-    const packages = Object.entries(corePricing.packages).map(([key, pkg]) => ({
-      id: key,
-      name: pkg.name,
-      price: parseFloat(key.replace("$", "")),
-      currency: "USD",
-      baseCores: pkg.baseCores,
-      bonusCores: pkg.bonusCores,
-      totalCores: pkg.totalCores,
-      valuePerDollar: pkg.value,
-      description: pkg.description,
-      estimatedUsage: pkg.estimatedUsage,
-      popular: pkg.popular || false,
-      features: pkg.features || [],
-    }));
-
-    // Add $1 Test Package only for developers if test mode is enabled
-    if (config.payments.paypal.testMode && config.isDeveloper(userId)) {
-      packages.push({
-        id: "$1",
-        name: "Developer Test Package",
-        price: 1.0,
+    const packages = Object.entries(corePricing.packages)
+      .filter(([_, pkg]) => !pkg.hidden || isDev) // Filter hidden packages for non-devs
+      .map(([key, pkg]) => ({
+        id: key,
+        name: pkg.name,
+        price: parseFloat(key.replace("$", "")),
         currency: "USD",
-        baseCores: 15,
-        bonusCores: 0,
-        totalCores: 15,
-        valuePerDollar: 0.067,
-        description:
-          "Special test package for developers. Limited to Live Test mode.",
-        estimatedUsage: "Perfect for testing Live webhook signature.",
-        popular: false,
-        features: ["Developer Verification", "Live Signal Test"],
-      });
-      logger.info(`🛠️ Injected $1 test package for developer ${userId}`);
-    }
+        baseCores: pkg.baseCores,
+        bonusCores: pkg.bonusCores,
+        totalCores: pkg.totalCores,
+        rate: pkg.rate,
+        valuePerDollar: `${pkg.rate.toFixed(1)} Cores/$1`,
+        description: pkg.description,
+        estimatedUsage: pkg.estimatedUsage,
+        popular: pkg.popular || false,
+        features: pkg.features || [],
+      }));
 
     // Sort by price
     packages.sort((a, b) => a.price - b.price);
@@ -331,7 +315,6 @@ export async function apiPricing(req, res) {
     }
 
     // Build response
-    const isDev = config.isDeveloper(userId);
     const minPayment =
       isDev && config.payments.paypal.testMode
         ? 1
@@ -710,7 +693,8 @@ export async function apiCreatePayment(req, res) {
   try {
     // Get user info from session OR request body (for website integration)
     const sessionUser = req.session?.discordUser;
-    const { discordId, email, username, packageId, amount } = req.body;
+    const { discordId, email, username, packageId, amount, currency } =
+      req.body;
 
     // Determine user info - prefer session, fallback to body params
     let userInfo = null;
@@ -775,7 +759,8 @@ export async function apiCreatePayment(req, res) {
 
     // Generate unique order number
     const orderNumber = `${userInfo.id}_${Date.now()}`;
-    const currency = "USD";
+    const fiatCurrency = "USD";
+    const selectedCrypto = currency; // This comes from the request body (Bitcoin choice)
 
     // Build callback URL using centralized config
     const callbackUrl = `${config.botInfo.apiUrl}/webhook/crypto?json=true`;
@@ -789,7 +774,8 @@ export async function apiCreatePayment(req, res) {
     // Create Plisio invoice with user's Discord email pre-filled
     const invoiceUrl = await plisioPay.createInvoice({
       amount,
-      currency,
+      currency: fiatCurrency,
+      cryptoCurrency: selectedCrypto,
       orderNumber,
       orderName,
       email: userInfo.email || null, // Pre-fill email from Discord OAuth
@@ -991,6 +977,465 @@ export async function apiCapturePayPalOrder(req, res) {
     logger.error("❌ Error capturing PayPal order:", error);
     const { statusCode, response } = createErrorResponse(
       "Failed to capture PayPal order",
+      500,
+      error.message,
+    );
+    res.status(statusCode).json(response);
+  }
+}
+
+/**
+ * Check which of the provided guild IDs the bot is currently in
+ * @param {import('express').Request} req - Express request object
+ * @param {import('express').Response} res - Express response object
+ */
+export async function apiCheckGuilds(req, res) {
+  logRequest("Check guilds", req);
+
+  const { guildIds } = req.body;
+
+  if (!guildIds || !Array.isArray(guildIds)) {
+    const { statusCode, response } = createErrorResponse(
+      "Guild IDs are required",
+      400,
+      "Provide guildIds as an array in the request body",
+    );
+    return res.status(statusCode).json(response);
+  }
+
+  const client = getDiscordClient();
+  if (!client) {
+    const { statusCode, response } = createErrorResponse(
+      "Bot client not available",
+      503,
+    );
+    return res.status(statusCode).json(response);
+  }
+
+  try {
+    const installedGuilds = guildIds.filter(id => client.guilds.cache.has(id));
+
+    res.json(
+      createSuccessResponse({
+        installedGuilds,
+      }),
+    );
+  } catch (error) {
+    logger.error("❌ Error checking guilds:", error);
+    const { statusCode, response } = createErrorResponse(
+      "Failed to check guilds",
+      500,
+      error.message,
+    );
+    res.status(statusCode).json(response);
+  }
+}
+
+/**
+ * Get guild settings and available commands
+ * @param {import('express').Request} req - Express request object
+ * @param {import('express').Response} res - Express response object
+ */
+export async function apiGetGuildSettings(req, res) {
+  const { guildId } = req.params;
+  logRequest(`Get guild settings: ${guildId}`, req);
+
+  if (!guildId) {
+    const { statusCode, response } = createErrorResponse(
+      "Guild ID is required",
+      400,
+    );
+    return res.status(statusCode).json(response);
+  }
+
+  try {
+    const { getDatabaseManager } = await import(
+      "../../utils/storage/databaseManager.js"
+    );
+    const dbManager = await getDatabaseManager();
+    const commandHandler = getCommandHandler();
+
+    if (!dbManager?.guildSettings) {
+      const { statusCode, response } = createErrorResponse(
+        "GuildSettingsRepository not available",
+        503,
+      );
+      return res.status(statusCode).json(response);
+    }
+
+    const settings = await dbManager.guildSettings.getByGuild(guildId);
+
+    // Get all available commands to show in the UI
+    const allCommands = commandHandler.getAllCommands();
+    const commandDetails = allCommands
+      .map(name => {
+        const info = commandHandler.getCommandInfo(name);
+        // Skip developer commands and internal commands
+        if (!info || name === "help" || name === "invite") return null;
+        return {
+          name: info.name,
+          description: info.description,
+          category: name.includes("admin") ? "Admin" : "General", // Simple categorization
+        };
+      })
+      .filter(Boolean);
+
+    // Include premium features info in response
+    const { getPremiumManager } = await import(
+      "../../features/premium/PremiumManager.js"
+    );
+    const { PremiumFeatures } = await import(
+      "../../features/premium/config.js"
+    );
+    const premiumManager = getPremiumManager();
+
+    // Check if pro engine is active
+    const isProActive = await premiumManager.isFeatureActive(
+      guildId,
+      PremiumFeatures.PRO.id,
+    );
+
+    res.json(
+      createSuccessResponse({
+        settings,
+        premiumFeatures: settings.premiumFeatures || {},
+        isPremium: {
+          pro: isProActive,
+        },
+        availableCommands: commandDetails,
+      }),
+    );
+  } catch (error) {
+    logger.error(`❌ Error getting settings for guild ${guildId}:`, error);
+    const { statusCode, response } = createErrorResponse(
+      "Failed to retrieve guild settings",
+      500,
+      error.message,
+    );
+    res.status(statusCode).json(response);
+  }
+}
+
+/**
+ * Get guild channels (Text and Announcement)
+ * @param {import('express').Request} req - Express request object
+ * @param {import('express').Response} res - Express response object
+ */
+export async function apiGetGuildChannels(req, res) {
+  const { guildId } = req.params;
+  logRequest(`Get guild channels: ${guildId}`, req);
+
+  if (!guildId) {
+    const { statusCode, response } = createErrorResponse(
+      "Guild ID is required",
+      400,
+    );
+    return res.status(statusCode).json(response);
+  }
+
+  const client = getDiscordClient();
+  if (!client) {
+    const { statusCode, response } = createErrorResponse(
+      "Discord client not available",
+      503,
+    );
+    return res.status(statusCode).json(response);
+  }
+
+  try {
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) {
+      const { statusCode, response } = createErrorResponse(
+        "Guild not found or bot not in guild",
+        404,
+      );
+      return res.status(statusCode).json(response);
+    }
+
+    // Fetch channels to ensure we have the latest
+    await guild.channels.fetch();
+
+    const channels = guild.channels.cache
+      .filter(channel => channel.type === 0 || channel.type === 5) // Text (0) or Announcement (5)
+      .map(channel => ({
+        id: channel.id,
+        name: channel.name,
+        type: channel.type,
+        parentId: channel.parentId,
+        position: channel.rawPosition,
+      }))
+      .sort((a, b) => a.position - b.position);
+
+    res.json(createSuccessResponse({ channels }));
+  } catch (error) {
+    logger.error(`❌ Error getting channels for guild ${guildId}:`, error);
+    const { statusCode, response } = createErrorResponse(
+      "Failed to retrieve guild channels",
+      500,
+      error.message,
+    );
+    res.status(statusCode).json(response);
+  }
+}
+
+/**
+ * Update guild settings
+ * @param {import('express').Request} req - Express request object
+ * @param {import('express').Response} res - Express response object
+ */
+export async function apiUpdateGuildSettings(req, res) {
+  const { guildId } = req.params;
+  const updates = req.body;
+  logRequest(`Update guild settings: ${guildId}`, req);
+
+  if (!guildId) {
+    const { statusCode, response } = createErrorResponse(
+      "Guild ID is required",
+      400,
+    );
+    return res.status(statusCode).json(response);
+  }
+
+  try {
+    const { getDatabaseManager } = await import(
+      "../../utils/storage/databaseManager.js"
+    );
+    const dbManager = await getDatabaseManager();
+
+    if (!dbManager?.guildSettings) {
+      const { statusCode, response } = createErrorResponse(
+        "GuildSettingsRepository not available",
+        503,
+      );
+      return res.status(statusCode).json(response);
+    }
+
+    // Get existing settings
+    const existingSettings = await dbManager.guildSettings.getByGuild(guildId);
+
+    // Merge updates (careful with nested objects if we had many, but here we just have disabledCommands)
+    const newSettings = {
+      ...existingSettings,
+      ...updates,
+      updatedAt: new Date(),
+    };
+
+    // Check for premium features if trying to update protected settings
+    if (updates.disabledCommands) {
+      const { getPremiumManager } = await import(
+        "../../features/premium/PremiumManager.js"
+      );
+      const { PremiumFeatures } = await import(
+        "../../features/premium/config.js"
+      );
+      const premiumManager = getPremiumManager();
+
+      const isActive = await premiumManager.isFeatureActive(
+        guildId,
+        PremiumFeatures.PRO.id,
+      );
+
+      if (!isActive) {
+        const { statusCode, response } = createErrorResponse(
+          "Premium Feature Required: Pro Engine is a premium feature. Please enable it in the premium settings.",
+          403,
+          "PREMIUM_REQUIRED_PRO",
+        );
+        return res.status(statusCode).json(response);
+      }
+    }
+
+    await dbManager.guildSettings.set(guildId, newSettings);
+
+    // Sync visibility with Discord UI if disabledCommands changed
+    if (updates.disabledCommands) {
+      const commandHandler = getCommandHandler();
+      // We don't await this to keep the API response fast, but it runs in background
+      commandHandler
+        .syncGuildCommands(guildId, newSettings.disabledCommands)
+        .catch(err =>
+          logger.error(
+            `Failed to sync command visibility for guild ${guildId}:`,
+            err,
+          ),
+        );
+    }
+
+    res.json(
+      createSuccessResponse({
+        message: "Settings updated successfully",
+        settings: newSettings,
+      }),
+    );
+  } catch (error) {
+    logger.error(`❌ Error updating settings for guild ${guildId}:`, error);
+    const { statusCode, response } = createErrorResponse(
+      "Failed to update guild settings",
+      500,
+      error.message,
+    );
+    res.status(statusCode).json(response);
+  }
+}
+
+/**
+ * Activate a premium feature
+ * @param {import('express').Request} req - Express request object
+ * @param {import('express').Response} res - Express response object
+ */
+export async function apiActivatePremiumFeature(req, res) {
+  const { guildId } = req.params;
+  const { featureId, userId } = req.body;
+  logRequest(
+    `Activate premium feature: ${featureId} for guild ${guildId}`,
+    req,
+  );
+
+  if (!guildId || !featureId || !userId) {
+    const { statusCode, response } = createErrorResponse(
+      "Guild ID, Feature ID, and User ID are required",
+      400,
+    );
+    return res.status(statusCode).json(response);
+  }
+
+  try {
+    const { getPremiumManager } = await import(
+      "../../features/premium/PremiumManager.js"
+    );
+    const premiumManager = getPremiumManager();
+
+    const result = await premiumManager.activateFeature(
+      guildId,
+      featureId,
+      userId,
+    );
+
+    if (result.success) {
+      res.json(createSuccessResponse(result));
+    } else {
+      const { statusCode, response } = createErrorResponse(result.message, 400);
+      res.status(statusCode).json(response);
+    }
+  } catch (error) {
+    logger.error(
+      `❌ Error activating premium feature ${featureId} for guild ${guildId}:`,
+      error,
+    );
+    const { statusCode, response } = createErrorResponse(
+      "Failed to activate premium feature",
+      500,
+      error.message,
+    );
+    res.status(statusCode).json(response);
+  }
+}
+
+/**
+ * Guild leaderboard endpoint - Returns XP leaderboard for a guild
+ * @param {import('express').Request} req - Express request object
+ * @param {import('express').Response} res - Express response object
+ */
+export async function apiGuildLeaderboard(req, res) {
+  logRequest("Guild leaderboard", req);
+
+  const { guildId } = req.params;
+  const limit = Math.min(parseInt(req.query.limit) || 10, 100); // Max 100
+
+  if (!guildId) {
+    const { statusCode, response } = createErrorResponse(
+      "Guild ID is required",
+      400,
+    );
+    return res.status(statusCode).json(response);
+  }
+
+  try {
+    // Check if XP system is enabled
+    const { getDatabaseManager } = await import(
+      "../../utils/storage/databaseManager.js"
+    );
+    const dbManager = await getDatabaseManager();
+
+    if (dbManager.guildSettings) {
+      const guildSettings = await dbManager.guildSettings.getByGuild(guildId);
+      if (!guildSettings?.experienceSystem?.enabled) {
+        const { statusCode, response } = createErrorResponse(
+          "XP system is disabled in this server",
+          403,
+          "XP_DISABLED",
+        );
+        return res.status(statusCode).json(response);
+      }
+    }
+
+    const { getExperienceManager } = await import(
+      "../../features/experience/ExperienceManager.js"
+    );
+    const experienceManager = await getExperienceManager();
+    const leaderboard = await experienceManager.getLeaderboard(guildId, limit);
+
+    // Enrich with user data from Discord client
+    const client = getDiscordClient();
+    const enrichedLeaderboard = [];
+
+    // Helper to get user details
+    const getUserDetails = async userId => {
+      let userDetails = {
+        username: "Unknown User",
+        discriminator: "0000",
+        avatar: null,
+        bot: false,
+      };
+
+      if (client) {
+        let user = client.users.cache.get(userId);
+        if (!user) {
+          try {
+            user = await client.users.fetch(userId);
+          } catch (e) {
+            // Ignore fetch errors
+          }
+        }
+
+        if (user) {
+          userDetails = {
+            username: user.username,
+            discriminator: user.discriminator,
+            avatar: user.displayAvatarURL({ dynamic: true, size: 64 }),
+            bot: user.bot,
+          };
+        }
+      }
+      return userDetails;
+    };
+
+    // Process entries
+    for (const entry of leaderboard) {
+      const userDetails = await getUserDetails(entry.userId);
+
+      // Exclude bots from public leaderboard
+      if (userDetails.bot) {
+        continue;
+      }
+
+      enrichedLeaderboard.push({
+        ...entry,
+        user: userDetails,
+      });
+    }
+
+    res.json(
+      createSuccessResponse({
+        guildId,
+        leaderboard: enrichedLeaderboard,
+        total: enrichedLeaderboard.length,
+      }),
+    );
+  } catch (error) {
+    logger.error("❌ Error getting guild leaderboard:", error);
+    const { statusCode, response } = createErrorResponse(
+      "Failed to retrieve leaderboard",
       500,
       error.message,
     );

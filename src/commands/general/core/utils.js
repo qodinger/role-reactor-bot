@@ -46,10 +46,10 @@ export function formatTierDisplay(userData) {
   const credits = userData.credits || 0;
 
   // Thresholds based on package totalCores in config.js
-  if (credits >= 875) return "Ultimate Member 💎";
-  if (credits >= 425) return "Pro Member ✨";
+  if (credits >= 900) return "Ultimate Member 💎";
+  if (credits >= 435) return "Pro Member ✨";
   if (credits >= 165) return "Basic Member ⚡";
-  if (credits >= 80) return "Starter Member 🌱";
+  if (credits >= 75) return "Starter Member 🌱";
   if (credits > 0) return "Core Member";
 
   return "Regular";

@@ -12,27 +12,22 @@ import {
   webhookRateLimiter,
   apiRateLimiter,
 } from "./middleware/rateLimiter.js";
+import { internalAuth } from "./middleware/internalAuth.js";
 
 // Import route handlers
 import { healthCheck, dockerHealthCheck } from "./routes/health.js";
 import { verifyWebhookToken } from "./routes/webhook.js";
-import {
-  apiInfo,
-  apiStats,
-  apiPricing,
-  apiUserBalance,
-  apiUserPayments,
-  apiPaymentStats,
-  apiPendingPayments,
-  apiCreatePayment,
-  apiCommandUsage,
-  apiCreatePayPalOrder,
-  apiCapturePayPalOrder,
-  setDiscordClient,
-} from "./routes/api.js";
-import { getServices, getService } from "./routes/services.js";
-import { getSwaggerUI, getOpenAPISpec } from "./routes/docs.js";
+import { setDiscordClient } from "./routes/api.js";
 import authRoutes from "./routes/auth.js";
+
+// Import V1 Routers
+import rootRouter from "./routes/v1/root.js";
+import guildsRouter from "./routes/v1/guilds.js";
+import paymentsRouter from "./routes/v1/payments.js";
+import userRouter from "./routes/v1/user.js";
+import commandsRouter from "./routes/v1/commands.js";
+import servicesRouter from "./routes/v1/services.js";
+import docsRouter from "./routes/v1/docs.js";
 
 // Import services
 import { SupportersService } from "./services/supporters/SupportersService.js";
@@ -51,6 +46,7 @@ import {
 
 const logger = getLogger();
 const app = express();
+const API_PREFIX = serverConfig.metadata.apiPrefix;
 
 /**
  * Initialize server middleware
@@ -152,29 +148,14 @@ function initializeRoutes() {
   app.post("/webhook/paypal", webhookRateLimiter, handlePayPalWebhook);
 
   // Core API routes with rate limiting
-  app.get("/api/info", apiRateLimiter, apiInfo);
-  app.get("/api/stats", apiRateLimiter, apiStats);
-  app.get("/api/pricing", apiRateLimiter, apiPricing);
-  app.get("/api/user/:userId/balance", apiRateLimiter, apiUserBalance);
-  app.get("/api/user/:userId/payments", apiRateLimiter, apiUserPayments);
-  app.get("/api/balance", apiRateLimiter, apiUserBalance); // Query param version
-  app.get("/api/payments", apiRateLimiter, apiUserPayments); // Query param version
-  app.get("/api/payments/stats", apiRateLimiter, apiPaymentStats);
-  app.get("/api/payments/pending", apiRateLimiter, apiPendingPayments);
-  app.get("/api/commands/usage", apiRateLimiter, apiCommandUsage);
-  app.post("/api/payments/create", apiRateLimiter, apiCreatePayment); // Create payment with pre-filled email
-  app.get("/api/services", apiRateLimiter, getServices);
-  app.get("/api/services/:name", apiRateLimiter, getService);
-  app.post("/api/payments/paypal/create", apiRateLimiter, apiCreatePayPalOrder);
-  app.post(
-    "/api/payments/paypal/capture",
-    apiRateLimiter,
-    apiCapturePayPalOrder,
-  );
-
-  // API Documentation routes
-  app.get("/api/docs", apiRateLimiter, getSwaggerUI);
-  app.get("/api/docs/openapi.json", apiRateLimiter, getOpenAPISpec);
+  app.use(API_PREFIX, apiRateLimiter);
+  app.use(API_PREFIX, rootRouter);
+  app.use(`${API_PREFIX}/guilds`, guildsRouter);
+  app.use(`${API_PREFIX}/payments`, paymentsRouter);
+  app.use(`${API_PREFIX}/user`, userRouter);
+  app.use(`${API_PREFIX}/commands`, commandsRouter);
+  app.use(`${API_PREFIX}/services`, servicesRouter);
+  app.use(`${API_PREFIX}/docs`, docsRouter);
 
   // Register existing routes as services for discovery
   if (process.env.DISCORD_CLIENT_ID) {

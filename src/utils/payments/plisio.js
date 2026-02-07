@@ -29,6 +29,7 @@ export class PlisioPay {
   async createInvoice({
     amount,
     currency,
+    cryptoCurrency,
     orderNumber,
     orderName,
     email,
@@ -50,9 +51,17 @@ export class PlisioPay {
       callback_url: callbackUrl,
     };
 
+    if (cryptoCurrency) {
+      params.currency = cryptoCurrency;
+      params.allowed_psys_cids = cryptoCurrency;
+    }
+
     if (email) {
       params.email = email;
     }
+
+    // Merchant pays the network fee (better UX for customer)
+    // params.pay_fee = 1;
 
     try {
       const response = await axios.get(url, { params });
@@ -86,25 +95,22 @@ export class PlisioPay {
 
     const receivedHash = body.verify_hash;
 
-    // 1. Sort keys and process payload
-    // Exclude 'verify_hash'
-    const orderedKeys = Object.keys(body)
-      .filter(key => key !== "verify_hash")
-      .sort();
+    // 1. Create a clean copy and remove verify_hash
+    const payload = { ...body };
+    delete payload.verify_hash;
 
-    const orderedData = {};
-    for (const key of orderedKeys) {
-      // Ensure values are strings to match Plisio's hashing logic
-      // Handle null/undefined as empty strings if necessary, though typical payloads are strings/numbers
-      const val = body[key];
-      orderedData[key] =
-        val === null || val === undefined ? "" : val.toString();
+    // 2. Sort keys alphabetically (Plisio requirement for deterministic hashing)
+    const sortedKeys = Object.keys(payload).sort();
+    const sortedData = {};
+    for (const key of sortedKeys) {
+      sortedData[key] = payload[key];
     }
 
-    // 2. JSON Stringify the sorted object
-    const dataString = JSON.stringify(orderedData);
+    // 3. Stringify the sorted object
+    // JSON.stringify in Node.js defaults to compact (no spaces) which matches Plisio's json=true expectations
+    const dataString = JSON.stringify(sortedData);
 
-    // 3. HMAC-SHA1 calculation
+    // 4. HMAC-SHA1 calculation
     const calculatedHash = crypto
       .createHmac("sha1", this.secretKey)
       .update(dataString)

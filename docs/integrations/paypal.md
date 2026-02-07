@@ -57,15 +57,18 @@ The bot server provides these API endpoints for your website integration:
 Returns all Core package pricing information.
 
 **Query Parameters:**
+
 - `user_id` or `discord_id` (optional) - Discord user ID for personalized pricing info
 
 **Example Request:**
+
 ```bash
 curl https://your-server.com/api/pricing
 curl https://your-server.com/api/pricing?user_id=123456789012345678
 ```
 
 **Example Response:**
+
 ```json
 {
   "status": "success",
@@ -77,11 +80,12 @@ curl https://your-server.com/api/pricing?user_id=123456789012345678
         "price": 5,
         "currency": "USD",
         "baseCores": 75,
-        "bonusCores": 5,
-        "totalCores": 80,
-        "valuePerDollar": "16.0 Cores/$1",
+        "bonusCores": 0,
+        "totalCores": 75,
+        "rate": 15.0,
+        "valuePerDollar": "15.0 Cores/$1",
         "description": "Perfect for trying AI features",
-        "estimatedUsage": "~8,000 chat messages or 38 images",
+        "estimatedUsage": "~1,500 chat messages or 35 images",
         "popular": false,
         "features": []
       },
@@ -93,9 +97,10 @@ curl https://your-server.com/api/pricing?user_id=123456789012345678
         "baseCores": 150,
         "bonusCores": 15,
         "totalCores": 165,
+        "rate": 16.5,
         "valuePerDollar": "16.5 Cores/$1",
         "description": "Most popular choice for regular users",
-        "estimatedUsage": "~16,500 chat messages or 78 images",
+        "estimatedUsage": "~3,300 chat messages or 78 images",
         "popular": true,
         "features": []
       }
@@ -136,17 +141,21 @@ curl https://your-server.com/api/pricing?user_id=123456789012345678
 Returns a user's Core balance and payment history.
 
 **URL Parameters:**
+
 - `userId` - Discord user ID
 
 **Alternative:**
+
 - `GET /api/balance?user_id=123456789012345678`
 
 **Example Request:**
+
 ```bash
 curl https://your-server.com/api/user/123456789012345678/balance
 ```
 
 **Example Response:**
+
 ```json
 {
   "status": "success",
@@ -182,14 +191,14 @@ const orderPayload = {
     {
       amount: {
         currency_code: "USD",
-        value: "10.00"
+        value: "10.00",
       },
       description: "Core Package - Basic ($10)",
       custom_id: "123456789012345678", // Discord User ID
       // OR with tier info:
       // custom_id: "123456789012345678:$10"
-    }
-  ]
+    },
+  ],
 };
 ```
 
@@ -204,16 +213,16 @@ const orderPayload = {
     {
       amount: {
         currency_code: "USD",
-        value: "10.00"
+        value: "10.00",
       },
       description: "Core Package - Basic ($10)",
       custom_id: JSON.stringify({
         discord_user_id: "123456789012345678",
         tier: "$10",
-        package: "Basic"
-      })
-    }
-  ]
+        package: "Basic",
+      }),
+    },
+  ],
 };
 ```
 
@@ -231,33 +240,39 @@ const orderPayload = {
   const packageAmount = "10.00";
   const packageTier = "$10";
 
-  paypal.Buttons({
-    createOrder: function(data, actions) {
-      return actions.order.create({
-        purchase_units: [{
-          amount: {
-            value: packageAmount
-          },
-          description: `Core Package - ${packageTier}`,
-          custom_id: JSON.stringify({
-            discord_user_id: discordUserId,
-            tier: packageTier
-          })
-        }]
-      });
-    },
-    onApprove: function(data, actions) {
-      return actions.order.capture().then(function(details) {
-        // Payment completed!
-        // The webhook will automatically credit the user's account
-        alert('Thank you for your purchase! Cores will be added to your account shortly.');
-      });
-    },
-    onError: function(err) {
-      console.error('PayPal error:', err);
-      alert('An error occurred with your payment.');
-    }
-  }).render('#paypal-button-container');
+  paypal
+    .Buttons({
+      createOrder: function (data, actions) {
+        return actions.order.create({
+          purchase_units: [
+            {
+              amount: {
+                value: packageAmount,
+              },
+              description: `Core Package - ${packageTier}`,
+              custom_id: JSON.stringify({
+                discord_user_id: discordUserId,
+                tier: packageTier,
+              }),
+            },
+          ],
+        });
+      },
+      onApprove: function (data, actions) {
+        return actions.order.capture().then(function (details) {
+          // Payment completed!
+          // The webhook will automatically credit the user's account
+          alert(
+            "Thank you for your purchase! Cores will be added to your account shortly.",
+          );
+        });
+      },
+      onError: function (err) {
+        console.error("PayPal error:", err);
+        alert("An error occurred with your payment.");
+      },
+    })
+    .render("#paypal-button-container");
 </script>
 ```
 
@@ -266,24 +281,24 @@ const orderPayload = {
 For more control, create orders on your server:
 
 ```javascript
-import fetch from 'node-fetch';
+import fetch from "node-fetch";
 
 // Get PayPal access token
 async function getPayPalAccessToken() {
   const auth = Buffer.from(
-    `${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_CLIENT_SECRET}`
-  ).toString('base64');
+    `${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_CLIENT_SECRET}`,
+  ).toString("base64");
 
   const response = await fetch(
-    `https://api-m${process.env.PAYPAL_MODE === 'sandbox' ? '.sandbox' : ''}.paypal.com/v1/oauth2/token`,
+    `https://api-m${process.env.PAYPAL_MODE === "sandbox" ? ".sandbox" : ""}.paypal.com/v1/oauth2/token`,
     {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Authorization': `Basic ${auth}`,
-        'Content-Type': 'application/x-www-form-urlencoded'
+        Authorization: `Basic ${auth}`,
+        "Content-Type": "application/x-www-form-urlencoded",
       },
-      body: 'grant_type=client_credentials'
-    }
+      body: "grant_type=client_credentials",
+    },
   );
 
   const data = await response.json();
@@ -295,28 +310,30 @@ async function createPayPalOrder(discordUserId, amount, tier) {
   const accessToken = await getPayPalAccessToken();
 
   const response = await fetch(
-    `https://api-m${process.env.PAYPAL_MODE === 'sandbox' ? '.sandbox' : ''}.paypal.com/v2/checkout/orders`,
+    `https://api-m${process.env.PAYPAL_MODE === "sandbox" ? ".sandbox" : ""}.paypal.com/v2/checkout/orders`,
     {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        intent: 'CAPTURE',
-        purchase_units: [{
-          amount: {
-            currency_code: 'USD',
-            value: amount
+        intent: "CAPTURE",
+        purchase_units: [
+          {
+            amount: {
+              currency_code: "USD",
+              value: amount,
+            },
+            description: `Core Package - ${tier}`,
+            custom_id: JSON.stringify({
+              discord_user_id: discordUserId,
+              tier: tier,
+            }),
           },
-          description: `Core Package - ${tier}`,
-          custom_id: JSON.stringify({
-            discord_user_id: discordUserId,
-            tier: tier
-          })
-        }]
-      })
-    }
+        ],
+      }),
+    },
   );
 
   return await response.json();
@@ -327,14 +344,16 @@ async function createPayPalOrder(discordUserId, amount, tier) {
 
 The bot automatically calculates Cores based on the payment amount and these packages:
 
-| Package | Price | Base Cores | Bonus | Total Cores | Rate |
-|---------|-------|------------|-------|-------------|------|
-| Starter | $5 | 75 | +5 | 80 | 16.0/$ |
-| Basic | $10 | 150 | +15 | 165 | 16.5/$ |
-| Pro | $25 | 375 | +50 | 425 | 17.0/$ |
-| Ultimate | $50 | 750 | +125 | 875 | 17.5/$ |
+| Package  | Price | Base Cores | Bonus | Total Cores | Rate   |
+| -------- | ----- | ---------- | ----- | ----------- | ------ |
+| Test     | $1    | 15         | 0     | 15          | 15.0/$ |
+| Starter  | $5    | 75         | 0     | 75          | 15.0/$ |
+| Basic    | $10   | 150        | +15   | 165         | 16.5/$ |
+| Pro      | $25   | 375        | +60   | 435         | 17.4/$ |
+| Ultimate | $50   | 750        | +150  | 900         | 18.0/$ |
 
 Payments between tiers use the highest applicable tier rate:
+
 - $5-9.99 → Starter rate
 - $10-24.99 → Basic rate
 - $25-49.99 → Pro rate
@@ -357,13 +376,13 @@ If a Discord user ID is not provided in `custom_id`, the system will try to matc
 
 The server handles these PayPal events:
 
-| Event | Action |
-|-------|--------|
-| `CHECKOUT.ORDER.COMPLETED` | Credits Cores to user |
-| `PAYMENT.CAPTURE.COMPLETED` | Credits Cores to user |
-| `PAYMENT.CAPTURE.PENDING` | Logs pending status |
-| `PAYMENT.CAPTURE.DENIED` | Logs failure |
-| `PAYMENT.CAPTURE.REFUNDED` | Logs refund (future: deduct Cores) |
+| Event                       | Action                             |
+| --------------------------- | ---------------------------------- |
+| `CHECKOUT.ORDER.COMPLETED`  | Credits Cores to user              |
+| `PAYMENT.CAPTURE.COMPLETED` | Credits Cores to user              |
+| `PAYMENT.CAPTURE.PENDING`   | Logs pending status                |
+| `PAYMENT.CAPTURE.DENIED`    | Logs failure                       |
+| `PAYMENT.CAPTURE.REFUNDED`  | Logs refund (future: deduct Cores) |
 
 ## Troubleshooting
 
@@ -405,7 +424,7 @@ The bot uses **PayPal's official webhook signature verification API** to ensure 
 **Requirements for production:**
 
 - `PAYPAL_CLIENT_ID` - Required for API authentication
-- `PAYPAL_CLIENT_SECRET` - Required for API authentication  
+- `PAYPAL_CLIENT_SECRET` - Required for API authentication
 - `PAYPAL_WEBHOOK_ID` - Required for signature verification
 
 **Development mode:**
@@ -422,13 +441,13 @@ In development (`NODE_ENV !== "production"`), verification is optional if creden
 
 ### Environment Variables Summary
 
-| Variable | Required (Production) | Description |
-|----------|----------------------|-------------|
-| `PAYPAL_CLIENT_ID` | ✅ Yes | PayPal REST API Client ID |
-| `PAYPAL_CLIENT_SECRET` | ✅ Yes | PayPal REST API Client Secret |
-| `PAYPAL_WEBHOOK_ID` | ✅ Yes | Webhook ID for signature verification |
-| `PAYPAL_MODE` | Optional | `sandbox` or `live` (default: `sandbox`) |
-| `PAYPAL_ENABLED` | Optional | Set to `true` to enable PayPal payments |
+| Variable               | Required (Production) | Description                              |
+| ---------------------- | --------------------- | ---------------------------------------- |
+| `PAYPAL_CLIENT_ID`     | ✅ Yes                | PayPal REST API Client ID                |
+| `PAYPAL_CLIENT_SECRET` | ✅ Yes                | PayPal REST API Client Secret            |
+| `PAYPAL_WEBHOOK_ID`    | ✅ Yes                | Webhook ID for signature verification    |
+| `PAYPAL_MODE`          | Optional              | `sandbox` or `live` (default: `sandbox`) |
+| `PAYPAL_ENABLED`       | Optional              | Set to `true` to enable PayPal payments  |
 
 ### Access Token Caching
 

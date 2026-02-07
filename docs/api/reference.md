@@ -39,11 +39,11 @@ Most read endpoints are public. Payment creation and user-specific endpoints req
 
 ```javascript
 // Example authenticated request
-fetch('/api/payments/create', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  credentials: 'include', // Required for session auth
-  body: JSON.stringify({ amount: 10 })
+fetch("/api/payments/create", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  credentials: "include", // Required for session auth
+  body: JSON.stringify({ amount: 10 }),
 });
 ```
 
@@ -58,6 +58,7 @@ Returns server information and capabilities.
 **Authentication:** None required
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -89,6 +90,7 @@ Returns bot statistics including guild and user counts.
 **Authentication:** None required
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -121,27 +123,45 @@ Returns Core credit packages and current promotions.
 | `user_id` | string | Optional. Discord user ID for personalized pricing info |
 
 **Request:**
+
 ```
 GET /api/pricing?user_id=639696408592777227
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
   "data": {
     "packages": [
       {
+        "id": "$1",
+        "name": "Test",
+        "price": 1,
+        "currency": "USD",
+        "baseCores": 15,
+        "bonusCores": 0,
+        "totalCores": 15,
+        "rate": 15.0,
+        "valuePerDollar": "15.0 Cores/$1",
+        "description": "Developer testing package",
+        "estimatedUsage": "~300 chat messages or 7 images",
+        "popular": false,
+        "features": []
+      },
+      {
         "id": "$5",
         "name": "Starter",
         "price": 5,
         "currency": "USD",
         "baseCores": 75,
-        "bonusCores": 5,
-        "totalCores": 80,
-        "valuePerDollar": "16.0 Cores/$1",
+        "bonusCores": 0,
+        "totalCores": 75,
+        "rate": 15.0,
+        "valuePerDollar": "15.0 Cores/$1",
         "description": "Perfect for trying AI features",
-        "estimatedUsage": "~8,000 chat messages or 38 images",
+        "estimatedUsage": "~1,500 chat messages or 35 images",
         "popular": false,
         "features": []
       },
@@ -153,9 +173,10 @@ GET /api/pricing?user_id=639696408592777227
         "baseCores": 150,
         "bonusCores": 15,
         "totalCores": 165,
+        "rate": 16.5,
         "valuePerDollar": "16.5 Cores/$1",
         "description": "Most popular choice for regular users",
-        "estimatedUsage": "~16,500 chat messages or 78 images",
+        "estimatedUsage": "~3,300 chat messages or 78 images",
         "popular": true,
         "features": []
       },
@@ -165,11 +186,12 @@ GET /api/pricing?user_id=639696408592777227
         "price": 25,
         "currency": "USD",
         "baseCores": 375,
-        "bonusCores": 50,
-        "totalCores": 425,
-        "valuePerDollar": "17.0 Cores/$1",
+        "bonusCores": 60,
+        "totalCores": 435,
+        "rate": 17.4,
+        "valuePerDollar": "17.4 Cores/$1",
         "description": "Best value for power users",
-        "estimatedUsage": "~42,500 chat messages or 202 images",
+        "estimatedUsage": "~8,700 chat messages or 207 images",
         "popular": false,
         "features": []
       },
@@ -179,11 +201,12 @@ GET /api/pricing?user_id=639696408592777227
         "price": 50,
         "currency": "USD",
         "baseCores": 750,
-        "bonusCores": 125,
-        "totalCores": 875,
-        "valuePerDollar": "17.5 Cores/$1",
+        "bonusCores": 150,
+        "totalCores": 900,
+        "rate": 18.0,
+        "valuePerDollar": "18.0 Cores/$1",
         "description": "Maximum value for heavy usage",
-        "estimatedUsage": "~87,500 chat messages or 416 images",
+        "estimatedUsage": "~18,000 chat messages or 428 images",
         "popular": false,
         "features": ["Priority processing", "Dedicated support"]
       }
@@ -244,6 +267,7 @@ Creates a new payment invoice using Plisio. **Email is automatically pre-filled 
 | `packageId` | string | No | Package identifier (e.g., "$10", "$25") |
 
 **Request:**
+
 ```json
 {
   "packageId": "$10",
@@ -252,6 +276,7 @@ Creates a new payment invoice using Plisio. **Email is automatically pre-filled 
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -274,30 +299,31 @@ Creates a new payment invoice using Plisio. **Email is automatically pre-filled 
 
 **Error Responses:**
 
-| Status | Error | Description |
-|--------|-------|-------------|
-| 401 | Authentication required | User not logged in |
-| 400 | Invalid amount | Amount must be positive number |
-| 400 | Amount too low | Below minimum payment threshold |
-| 500 | Payment system not configured | PLISIO_SECRET_KEY not set |
+| Status | Error                         | Description                     |
+| ------ | ----------------------------- | ------------------------------- |
+| 401    | Authentication required       | User not logged in              |
+| 400    | Invalid amount                | Amount must be positive number  |
+| 400    | Amount too low                | Below minimum payment threshold |
+| 500    | Payment system not configured | PLISIO_SECRET_KEY not set       |
 
 **Usage Example:**
+
 ```javascript
 async function createPayment(packageId, amount) {
-  const response = await fetch('/api/payments/create', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({ packageId, amount })
+  const response = await fetch("/api/payments/create", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ packageId, amount }),
   });
-  
+
   const data = await response.json();
-  
+
   if (data.success) {
     // Redirect to payment page (email pre-filled!)
     window.location.href = data.data.invoiceUrl;
   } else {
-    console.error('Payment failed:', data.error);
+    console.error("Payment failed:", data.error);
   }
 }
 ```
@@ -318,6 +344,7 @@ Returns a user's Core credit balance.
 **Alternative:** `GET /api/balance?user_id=:userId`
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -337,6 +364,7 @@ Returns a user's Core credit balance.
 ```
 
 **New User Response:**
+
 ```json
 {
   "success": true,
@@ -377,6 +405,7 @@ Returns a user's payment history.
 **Alternative:** `GET /api/payments?user_id=:userId`
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -428,13 +457,14 @@ Returns global payment statistics. (Admin endpoint)
 | `end_date` | string | Optional. ISO date string for range end |
 
 **Response:**
+
 ```json
 {
   "success": true,
   "data": {
     "overview": {
       "totalPayments": 150,
-      "totalRevenue": 2500.00,
+      "totalRevenue": 2500.0,
       "totalCoresGranted": 45000,
       "uniqueCustomers": 85
     },
@@ -466,6 +496,7 @@ Returns pending payments awaiting processing. (Admin endpoint)
 **Authentication:** None required (consider adding auth for production)
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -515,6 +546,7 @@ Initiates Discord OAuth2 login flow.
 **Response:** Redirects to Discord OAuth authorization page
 
 **Example:**
+
 ```
 GET /auth/discord?redirect=/pricing
 ```
@@ -542,6 +574,7 @@ Returns the currently authenticated user's information.
 **Authentication:** Required (session cookie)
 
 **Response (Authenticated):**
+
 ```json
 {
   "success": true,
@@ -559,6 +592,7 @@ Returns the currently authenticated user's information.
 ```
 
 **Response (Not Authenticated):**
+
 ```json
 {
   "success": false,
@@ -579,6 +613,7 @@ Logs out the current user and destroys the session.
 **Authentication:** Required (session cookie)
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -600,6 +635,7 @@ These endpoints receive payment notifications from payment providers.
 Receives webhooks from crypto payment providers (Plisio).
 
 **Headers (Provider-specific):**
+
 - Plisio: Body contains `verify_hash`
 
 **Response:** `200 OK` with `{ "received": true }`
@@ -611,6 +647,7 @@ Receives webhooks from crypto payment providers (Plisio).
 Receives webhooks from PayPal.
 
 **Headers:**
+
 - Various PayPal signature headers for verification
 
 **Response:** `200 OK` with `{ "received": true }`
@@ -632,6 +669,7 @@ Verifies webhook token configuration.
 Returns server health status.
 
 **Response:**
+
 ```json
 {
   "status": "healthy",
@@ -651,6 +689,7 @@ Returns server health status.
 All API responses follow a consistent format:
 
 ### Success Response
+
 ```json
 {
   "success": true,
@@ -660,6 +699,7 @@ All API responses follow a consistent format:
 ```
 
 ### Error Response
+
 ```json
 {
   "success": false,
@@ -676,18 +716,18 @@ All API responses follow a consistent format:
 
 ## Error Codes
 
-| Status Code | Description |
-|-------------|-------------|
-| 200 | Success |
-| 400 | Bad Request - Invalid parameters |
-| 401 | Unauthorized - Authentication required |
-| 403 | Forbidden - Insufficient permissions |
-| 404 | Not Found - Resource doesn't exist |
-| 405 | Method Not Allowed |
-| 408 | Request Timeout |
-| 429 | Too Many Requests - Rate limited |
-| 500 | Internal Server Error |
-| 503 | Service Unavailable |
+| Status Code | Description                            |
+| ----------- | -------------------------------------- |
+| 200         | Success                                |
+| 400         | Bad Request - Invalid parameters       |
+| 401         | Unauthorized - Authentication required |
+| 403         | Forbidden - Insufficient permissions   |
+| 404         | Not Found - Resource doesn't exist     |
+| 405         | Method Not Allowed                     |
+| 408         | Request Timeout                        |
+| 429         | Too Many Requests - Rate limited       |
+| 500         | Internal Server Error                  |
+| 503         | Service Unavailable                    |
 
 ---
 
@@ -699,6 +739,7 @@ API requests are rate-limited to prevent abuse:
 - **Webhook endpoints:** 30 requests per minute per IP
 
 When rate limited, you'll receive:
+
 ```json
 {
   "success": false,
@@ -724,42 +765,42 @@ For session-based authentication, ensure you include `credentials: 'include'` in
 
 ```javascript
 class RoleReactorAPI {
-  constructor(baseUrl = '') {
+  constructor(baseUrl = "") {
     this.baseUrl = baseUrl;
   }
 
   async request(endpoint, options = {}) {
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       ...options,
-      credentials: 'include',
+      credentials: "include",
       headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-      }
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
     });
     return response.json();
   }
 
   // Auth
   async getCurrentUser() {
-    return this.request('/auth/me');
+    return this.request("/auth/me");
   }
 
   async logout() {
-    return this.request('/auth/logout', { method: 'POST' });
+    return this.request("/auth/logout", { method: "POST" });
   }
 
   // Pricing
   async getPricing(userId = null) {
-    const query = userId ? `?user_id=${userId}` : '';
+    const query = userId ? `?user_id=${userId}` : "";
     return this.request(`/api/pricing${query}`);
   }
 
   // Payments
   async createPayment(amount, packageId = null) {
-    return this.request('/api/payments/create', {
-      method: 'POST',
-      body: JSON.stringify({ amount, packageId })
+    return this.request("/api/payments/create", {
+      method: "POST",
+      body: JSON.stringify({ amount, packageId }),
     });
   }
 
@@ -774,13 +815,17 @@ class RoleReactorAPI {
 }
 
 // Usage
-const api = new RoleReactorAPI('https://api.rolereactor.app');
+const api = new RoleReactorAPI("https://api.rolereactor.app");
 
 // Get current user
-const { data: { user } } = await api.getCurrentUser();
+const {
+  data: { user },
+} = await api.getCurrentUser();
 
 // Create payment
-const { data: { invoiceUrl } } = await api.createPayment(10, '$10');
+const {
+  data: { invoiceUrl },
+} = await api.createPayment(10, "$10");
 window.location.href = invoiceUrl;
 ```
 
@@ -812,4 +857,4 @@ ALLOWED_ORIGINS=https://your-domain.com,https://www.your-domain.com
 
 ---
 
-*Last updated: 2026-01-14*
+_Last updated: 2026-01-14_

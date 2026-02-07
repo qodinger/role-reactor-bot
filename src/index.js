@@ -680,6 +680,26 @@ async function main() {
       global.tempRoleScheduler = tempRoleScheduler; // Store globally for shutdown
       tempRoleScheduler.start();
 
+      // Start Premium Feature scheduler (handles Cores consumption for features)
+      try {
+        const { getPremiumFeatureScheduler } = await import(
+          "./features/premium/PremiumFeatureScheduler.js"
+        );
+        const { getPremiumManager } = await import(
+          "./features/premium/PremiumManager.js"
+        );
+        const premiumScheduler = getPremiumFeatureScheduler();
+        global.premiumScheduler = premiumScheduler;
+
+        // Set client for DM notifications
+        const premiumManager = getPremiumManager();
+        premiumManager.setClient(client);
+
+        premiumScheduler.start();
+      } catch (error) {
+        logger.error("❌ Failed to start premium scheduler:", error);
+      }
+
       // Native Discord polls handle their own UI updates automatically
 
       // Start poll cleanup scheduler (runs every 6 hours)

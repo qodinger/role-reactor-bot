@@ -1144,6 +1144,21 @@ class StorageManager {
     return await this.provider.write(collection, data);
   }
 
+  /**
+   * Create a new payment record in the payments collection
+   * @param {Object} paymentData - Payment data
+   * @returns {Promise<Object|boolean>} Created payment or success status
+   */
+  async createPayment(paymentData) {
+    if (this.provider instanceof DatabaseProvider) {
+      if (this.dbManager && this.dbManager.payments) {
+        return await this.dbManager.payments.create(paymentData);
+      }
+    }
+    // Fallback or if not using DB (we don't persist separate payments file currently)
+    return true;
+  }
+
   // Generic get and set methods for AI avatar credits and other data
   async get(key) {
     return this.read(key);

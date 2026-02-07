@@ -709,3 +709,6 @@ export async function getDatabaseManager() {
 
   return databaseManager;
 }
+
+// Alias for backward compatibility or clarity if needed
+export const getStorageManager = getDatabaseManager;
