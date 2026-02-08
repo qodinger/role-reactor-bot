@@ -9,6 +9,7 @@ import {
 } from "../utils/responseHelpers.js";
 import { plisioPay } from "../../utils/payments/plisio.js";
 import { getCommandHandler } from "../../utils/core/commandHandler.js";
+import { commandRegistry } from "../../utils/core/commandRegistry.js";
 import * as paypal from "../../utils/payments/paypal.js";
 
 const logger = getLogger();
@@ -1064,18 +1065,33 @@ export async function apiGetGuildSettings(req, res) {
     }
 
     const settings = await dbManager.guildSettings.getByGuild(guildId);
+    const client = getDiscordClient();
+
+    // Ensure command registry is initialized
+    if (!commandRegistry.initialized) {
+      await commandRegistry.initialize(client);
+    }
 
     // Get all available commands to show in the UI
     const allCommands = commandHandler.getAllCommands();
     const commandDetails = allCommands
       .map(name => {
         const info = commandHandler.getCommandInfo(name);
-        // Skip developer commands and internal commands
+        const metadata = commandRegistry.getCommandMetadata(name);
+
+        // Skip internal commands that shouldn't be toggled
         if (!info || name === "help" || name === "invite") return null;
+
+        // Get category from metadata, fallback to "General"
+        let category = metadata?.category || "general";
+
+        // Capitalize for UI
+        category = category.charAt(0).toUpperCase() + category.slice(1);
+
         return {
           name: info.name,
           description: info.description,
-          category: name.includes("admin") ? "Admin" : "General", // Simple categorization
+          category,
         };
       })
       .filter(Boolean);
@@ -1095,9 +1111,53 @@ export async function apiGetGuildSettings(req, res) {
       PremiumFeatures.PRO.id,
     );
 
+    // Get live guild stats from Discord Client
+    let guildStats = null;
+
+    if (client) {
+      try {
+        logger.info(`Fetching live stats for guild: ${guildId}`);
+        const guild =
+          client.guilds.cache.get(guildId) ||
+          (await client.guilds.fetch(guildId).catch(err => {
+            logger.warn(`Could not fetch guild ${guildId}: ${err.message}`);
+            return null;
+          }));
+
+        if (guild) {
+          logger.info(
+            `Found guild: ${guild.name} (${guild.memberCount} members)`,
+          );
+          guildStats = {
+            name: guild.name,
+            icon: guild.icon,
+            memberCount: guild.memberCount,
+            channelCount: guild.channels.cache.size,
+            roleCount: guild.roles.cache.size,
+            emojiCount: guild.emojis.cache.size,
+            ownerId: guild.ownerId,
+            joinedAt: guild.joinedAt,
+            premiumSubscriptionCount: guild.premiumSubscriptionCount || 0,
+            features: guild.features,
+          };
+        } else {
+          logger.warn(`Guild ${guildId} not found in client cache or fetch.`);
+        }
+      } catch (err) {
+        logger.warn(
+          `Failed to fetch live guild stats for ${guildId}: ${err.message}`,
+        );
+      }
+    } else {
+      logger.error(
+        "Discord client is NULL in apiGetGuildSettings - cannot fetch live stats",
+      );
+    }
+
     res.json(
       createSuccessResponse({
         settings,
+        guildStats,
         premiumFeatures: settings.premiumFeatures || {},
         isPremium: {
           pro: isProActive,
@@ -1171,6 +1231,129 @@ export async function apiGetGuildChannels(req, res) {
     logger.error(`❌ Error getting channels for guild ${guildId}:`, error);
     const { statusCode, response } = createErrorResponse(
       "Failed to retrieve guild channels",
+      500,
+      error.message,
+    );
+    res.status(statusCode).json(response);
+  }
+}
+
+/**
+ * Get guild roles
+ * @param {import('express').Request} req - Express request object
+ * @param {import('express').Response} res - Express response object
+ */
+export async function apiGetGuildRoles(req, res) {
+  const { guildId } = req.params;
+  logRequest(`Get guild roles: ${guildId}`, req);
+
+  if (!guildId) {
+    const { statusCode, response } = createErrorResponse(
+      "Guild ID is required",
+      400,
+    );
+    return res.status(statusCode).json(response);
+  }
+
+  const client = getDiscordClient();
+  if (!client) {
+    const { statusCode, response } = createErrorResponse(
+      "Discord client not available",
+      503,
+    );
+    return res.status(statusCode).json(response);
+  }
+
+  try {
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) {
+      const { statusCode, response } = createErrorResponse(
+        "Guild not found or bot not in guild",
+        404,
+      );
+      return res.status(statusCode).json(response);
+    }
+
+    // Fetch roles to ensure we have the latest
+    await guild.roles.fetch();
+
+    const roles = guild.roles.cache
+      .map(role => ({
+        id: role.id,
+        name: role.name,
+        color: role.color,
+        rawPosition: role.rawPosition,
+        hoist: role.hoist,
+        managed: role.managed,
+        mentionable: role.mentionable,
+        permissions: role.permissions.bitfield.toString(),
+      }))
+      .sort((a, b) => b.rawPosition - a.rawPosition);
+
+    res.json(createSuccessResponse({ roles }));
+  } catch (error) {
+    logger.error(`❌ Error getting roles for guild ${guildId}:`, error);
+    const { statusCode, response } = createErrorResponse(
+      "Failed to retrieve guild roles",
+      500,
+      error.message,
+    );
+    res.status(statusCode).json(response);
+  }
+}
+
+/**
+ * Get guild custom emojis
+ * @param {import('express').Request} req - Express request object
+ * @param {import('express').Response} res - Express response object
+ */
+export async function apiGetGuildEmojis(req, res) {
+  const { guildId } = req.params;
+  logRequest(`Get guild emojis: ${guildId}`, req);
+
+  if (!guildId) {
+    const { statusCode, response } = createErrorResponse(
+      "Guild ID is required",
+      400,
+    );
+    return res.status(statusCode).json(response);
+  }
+
+  const client = getDiscordClient();
+  if (!client) {
+    const { statusCode, response } = createErrorResponse(
+      "Discord client not available",
+      503,
+    );
+    return res.status(statusCode).json(response);
+  }
+
+  try {
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) {
+      const { statusCode, response } = createErrorResponse(
+        "Guild not found or bot not in guild",
+        404,
+      );
+      return res.status(statusCode).json(response);
+    }
+
+    // Fetch emojis to ensure we have the latest
+    await guild.emojis.fetch();
+
+    const emojis = guild.emojis.cache.map(emoji => ({
+      id: emoji.id,
+      name: emoji.name,
+      animated: emoji.animated,
+      url: emoji.url,
+      identifier: `<${emoji.animated ? "a" : ""}:${emoji.name}:${emoji.id}>`,
+    }));
+
+    res.json(createSuccessResponse({ emojis }));
+  } catch (error) {
+    logger.error(`❌ Error getting emojis for guild ${guildId}:`, error);
+    const { statusCode, response } = createErrorResponse(
+      "Failed to retrieve guild emojis",
       500,
       error.message,
     );

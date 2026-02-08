@@ -28,6 +28,7 @@ import userRouter from "./routes/v1/user.js";
 import commandsRouter from "./routes/v1/commands.js";
 import servicesRouter from "./routes/v1/services.js";
 import docsRouter from "./routes/v1/docs.js";
+import statsRouter from "./routes/v1/stats.js";
 
 // Import services
 import { SupportersService } from "./services/supporters/SupportersService.js";
@@ -150,12 +151,13 @@ function initializeRoutes() {
   // Core API routes with rate limiting
   app.use(API_PREFIX, apiRateLimiter);
   app.use(API_PREFIX, rootRouter);
-  app.use(`${API_PREFIX}/guilds`, guildsRouter);
-  app.use(`${API_PREFIX}/payments`, paymentsRouter);
-  app.use(`${API_PREFIX}/user`, userRouter);
+  app.use(`${API_PREFIX}/guilds`, internalAuth, guildsRouter);
+  app.use(`${API_PREFIX}/payments`, internalAuth, paymentsRouter);
+  app.use(`${API_PREFIX}/user`, internalAuth, userRouter);
   app.use(`${API_PREFIX}/commands`, commandsRouter);
-  app.use(`${API_PREFIX}/services`, servicesRouter);
-  app.use(`${API_PREFIX}/docs`, docsRouter);
+  app.use(`${API_PREFIX}/services`, internalAuth, servicesRouter);
+  app.use(`${API_PREFIX}/docs`, internalAuth, docsRouter);
+  app.use(`${API_PREFIX}/stats`, internalAuth, statsRouter);
 
   // Register existing routes as services for discovery
   if (process.env.DISCORD_CLIENT_ID) {

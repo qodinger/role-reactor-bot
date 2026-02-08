@@ -1,4 +1,5 @@
-import { getLogger } from "../utils/logger.js";
+import crypto from "crypto";
+import { getLogger } from "../../utils/logger.js";
 import { createErrorResponse } from "../utils/responseHelpers.js";
 
 const logger = getLogger();
@@ -14,8 +15,14 @@ export function internalAuth(req, res, next) {
   const internalKey = process.env.INTERNAL_API_KEY;
 
   if (!internalKey) {
-    logger.warn("⚠️ INTERNAL_API_KEY not configured in environment");
-    return next(); // Default to open in dev if not set? No, let's be strict.
+    logger.error(
+      "❌ INTERNAL_API_KEY not configured in environment. Access denied.",
+    );
+    const { statusCode, response } = createErrorResponse(
+      "Internal Server Error: Authentication misconfigured",
+      500,
+    );
+    return res.status(statusCode).json(response);
   }
 
   // Support "Bearer <key>" or just "<key>"
@@ -23,7 +30,22 @@ export function internalAuth(req, res, next) {
     ? apiKey.substring(7)
     : apiKey;
 
-  if (!providedKey || providedKey !== internalKey) {
+  // Use timingSafeEqual to prevent timing attacks
+  let isAuthorized = false;
+  if (providedKey) {
+    try {
+      const providedBuffer = Buffer.from(providedKey);
+      const internalBuffer = Buffer.from(internalKey);
+
+      if (providedBuffer.length === internalBuffer.length) {
+        isAuthorized = crypto.timingSafeEqual(providedBuffer, internalBuffer);
+      }
+    } catch (error) {
+      logger.error("Error during timing-safe comparison:", error);
+    }
+  }
+
+  if (!isAuthorized) {
     logger.warn("🔒 Unauthorized internal API attempt", {
       ip: req.ip,
       endpoint: req.originalUrl,

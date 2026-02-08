@@ -3,6 +3,8 @@ import {
   apiGetGuildSettings,
   apiUpdateGuildSettings,
   apiGetGuildChannels,
+  apiGetGuildRoles,
+  apiGetGuildEmojis,
   apiCheckGuilds,
   apiActivatePremiumFeature,
   apiGuildLeaderboard,
@@ -20,6 +22,12 @@ router.patch("/:guildId/settings", internalAuth, apiUpdateGuildSettings);
 
 // Channels
 router.get("/:guildId/channels", internalAuth, apiGetGuildChannels);
+
+// Roles
+router.get("/:guildId/roles", internalAuth, apiGetGuildRoles);
+
+// Emojis
+router.get("/:guildId/emojis", internalAuth, apiGetGuildEmojis);
 
 // Premium
 router.post("/:guildId/premium/activate", apiActivatePremiumFeature);

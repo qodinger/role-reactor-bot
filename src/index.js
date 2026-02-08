@@ -113,6 +113,7 @@ async function createClient() {
     GatewayIntentBits.GuildMessageReactions,
     GatewayIntentBits.GuildVoiceStates,
     GatewayIntentBits.GuildMessagePolls,
+    GatewayIntentBits.GuildEmojisAndStickers,
   ];
 
   // Optional privileged intents (only add if enabled in Developer Portal)
