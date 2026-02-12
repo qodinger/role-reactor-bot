@@ -111,15 +111,14 @@ export async function handleCreate(interaction, client, deferred = false) {
           }
         }
 
-        // Fetch all members to check their roles
-        await interaction.guild.members.fetch();
-
-        // Get all members who have ANY of the target roles (OR logic)
+        // Optimized: Fetch ONLY members who have these specific roles
+        // This is much lighter than fetching every single member of the guild
         const roleIds = targetRoles.map(r => r.id);
-        const roleMemberIds = interaction.guild.members.cache
-          .filter(member =>
-            roleIds.some(roleId => member.roles.cache.has(roleId)),
-          )
+        const roleMembers = await interaction.guild.members.fetch({
+          roles: roleIds,
+        });
+
+        const roleMemberIds = roleMembers
           .filter(
             member =>
               !member.user.bot || member.user.id === interaction.client.user.id,
@@ -171,10 +170,10 @@ export async function handleCreate(interaction, client, deferred = false) {
             solution: dedent`
               For operations with more than ${MAX_ALL_MEMBERS.toLocaleString()} total members, please use one of these alternatives:
             
-**Recommended Solutions:**
-1. **Reduce Targeting**: Use fewer roles or split into multiple schedules
-2. **Direct Role Assignment**: Assign the target role to another role in Server Settings (instant and efficient)
-3. **Split Operations**: Create multiple schedules targeting different groups
+              **Recommended Solutions:**
+              1. **Reduce Targeting**: Use fewer roles or split into multiple schedules
+              2. **Direct Role Assignment**: Assign the target role to another role in Server Settings (instant and efficient)
+              3. **Split Operations**: Create multiple schedules targeting different groups
 
               **Why this limit?** Operations on ${userIds.length.toLocaleString()} members would take ${Math.ceil(userIds.length / 500)}-${Math.ceil(userIds.length / 500) * 2} minutes to complete and have higher reliability risks.
             `,
@@ -199,12 +198,17 @@ export async function handleCreate(interaction, client, deferred = false) {
         }
       } catch (error) {
         logger.error("Error fetching members by mixed targeting:", error);
+
+        // Add specific troubleshooting for 100+ server bots
+        const isLargeBot = interaction.client.guilds.cache.size >= 100;
         const response = errorEmbed({
           title: "Failed to Fetch Members",
-          description:
-            "Could not fetch members with the specified roles or process user mentions. This requires the GUILD_MEMBERS privileged intent.",
-          solution:
-            "Make sure the bot has the GUILD_MEMBERS intent enabled in the Discord Developer Portal.",
+          description: isLargeBot
+            ? "Could not fetch members with the specified roles. Since this bot is in 100+ servers, Discord requires manual approval for the **Server Members Intent**."
+            : "Could not fetch members with the specified roles or process user mentions. This requires the GUILD_MEMBERS privileged intent.",
+          solution: isLargeBot
+            ? "The bot owner must ensure the intent is **Verified and Approved** in the Discord Developer Portal. Approval can take several days."
+            : "Make sure the bot has the GUILD_MEMBERS intent enabled in the Discord Developer Portal.",
         });
 
         if (deferred) {
@@ -232,15 +236,13 @@ export async function handleCreate(interaction, client, deferred = false) {
           }
         }
 
-        // Fetch all members to check their roles
-        await interaction.guild.members.fetch();
-
-        // Get all members who have ANY of the target roles (OR logic)
+        // Optimized: Fetch ONLY members who have these specific roles
         const roleIds = targetRoles.map(r => r.id);
-        userIds = interaction.guild.members.cache
-          .filter(member =>
-            roleIds.some(roleId => member.roles.cache.has(roleId)),
-          )
+        const roleMembers = await interaction.guild.members.fetch({
+          roles: roleIds,
+        });
+
+        userIds = roleMembers
           .filter(
             member =>
               !member.user.bot || member.user.id === interaction.client.user.id,
@@ -292,10 +294,10 @@ export async function handleCreate(interaction, client, deferred = false) {
             solution: dedent`
               For roles with more than ${MAX_ALL_MEMBERS.toLocaleString()} total members, please use one of these alternatives:
             
-**Recommended Solutions:**
-1. **Direct Role Assignment**: Assign the target role to another role in Server Settings (instant and efficient)
-2. **Split Operations**: Create multiple schedules targeting fewer roles or specific role groups
-3. **Discord's Built-in Features**: Use Discord's role management in Server Settings
+              **Recommended Solutions:**
+              1. **Direct Role Assignment**: Assign the target role to another role in Server Settings (instant and efficient)
+              2. **Split Operations**: Create multiple schedules targeting fewer roles or specific role groups
+              3. **Discord's Built-in Features**: Use Discord's role management in Server Settings
 
               **Why this limit?** Operations on ${userIds.length.toLocaleString()} members would take ${Math.ceil(userIds.length / 500)}-${Math.ceil(userIds.length / 500) * 2} minutes to complete and have higher reliability risks.
             `,
@@ -313,12 +315,17 @@ export async function handleCreate(interaction, client, deferred = false) {
         }
       } catch (error) {
         logger.error("Error fetching members by role:", error);
+
+        // Add specific troubleshooting for 100+ server bots
+        const isLargeBot = interaction.client.guilds.cache.size >= 100;
         const response = errorEmbed({
           title: "Failed to Fetch Members",
-          description:
-            "Could not fetch members with the specified role. This requires the GUILD_MEMBERS privileged intent.",
-          solution:
-            "Make sure the bot has the GUILD_MEMBERS intent enabled in the Discord Developer Portal.",
+          description: isLargeBot
+            ? "Could not fetch members with the specified role. Since this bot is in 100+ servers, Discord requires manual approval for the **Server Members Intent**."
+            : "Could not fetch members with the specified role. This requires the GUILD_MEMBERS privileged intent.",
+          solution: isLargeBot
+            ? "The bot owner must ensure the intent is **Verified and Approved** in the Discord Developer Portal. Approval can take several days."
+            : "Make sure the bot has the GUILD_MEMBERS intent enabled in the Discord Developer Portal.",
         });
 
         if (deferred) {
@@ -407,10 +414,10 @@ export async function handleCreate(interaction, client, deferred = false) {
             solution: dedent`
               For servers with more than ${MAX_ALL_MEMBERS.toLocaleString()} members, please use one of these alternatives:
             
-**Recommended Solutions:**
-1. **Role-Based Targeting**: Assign the role to another role instead of individual members (instant and efficient)
-2. **Split Operations**: Create multiple schedules targeting specific role groups or subsets
-3. **Discord's Built-in Features**: Use Discord's role management in Server Settings
+              **Recommended Solutions:**
+              1. **Role-Based Targeting**: Assign the role to another role instead of individual members (instant and efficient)
+              2. **Split Operations**: Create multiple schedules targeting specific role groups or subsets
+              3. **Discord's Built-in Features**: Use Discord's role management in Server Settings
 
               **Why this limit?** Operations on ${userIds.length.toLocaleString()} members would take ${Math.ceil(userIds.length / 500)}-${Math.ceil(userIds.length / 500) * 2} minutes to complete and have higher reliability risks.
             `,
@@ -449,12 +456,17 @@ export async function handleCreate(interaction, client, deferred = false) {
         }
       } catch (error) {
         logger.error("Error fetching all members:", error);
+
+        // Add specific troubleshooting for 100+ server bots
+        const isLargeBot = interaction.client.guilds.cache.size >= 100;
         const response = errorEmbed({
           title: "Failed to Fetch Members",
-          description:
-            "Could not fetch all server members. This requires the GUILD_MEMBERS privileged intent.",
-          solution:
-            "Make sure the bot has the GUILD_MEMBERS intent enabled in the Discord Developer Portal.",
+          description: isLargeBot
+            ? "Could not fetch server members. Since this bot is in 100+ servers, Discord requires manual approval for the **Server Members Intent**."
+            : "Could not fetch all server members. This requires the GUILD_MEMBERS privileged intent.",
+          solution: isLargeBot
+            ? "The bot owner must ensure the intent is **Verified and Approved** in the Discord Developer Portal. Approval can take several days."
+            : "Make sure the bot has the GUILD_MEMBERS intent enabled in the Discord Developer Portal.",
         });
 
         if (deferred) {
@@ -505,8 +517,8 @@ export async function handleCreate(interaction, client, deferred = false) {
           description: `You can only schedule roles for a maximum of **${MAX_USERS} users** at once when specifying individual users.`,
           solution: dedent`
             For bulk operations, you can:
-- Use \`users:@everyone\` to target all members
-- Mention roles (e.g., \`users:@RoleName\`) to target members with those roles
+            - Use \`users:@everyone\` to target all members
+            - Mention roles (e.g., \`users:@RoleName\`) to target members with those roles
             - Mix users and roles (e.g., \`users:@user1,@user2,@RoleName\`) to combine both
           `,
         });
