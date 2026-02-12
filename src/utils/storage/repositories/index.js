@@ -16,3 +16,5 @@ export { RecurringScheduleRepository } from "./RecurringScheduleRepository.js";
 export { UserRepository } from "./UserRepository.js";
 export { PaymentRepository } from "./PaymentRepository.js";
 export { CommandUsageRepository } from "./CommandUsageRepository.js";
+export { GuildAnalyticsRepository } from "./GuildAnalyticsRepository.js";
+export { ModerationLogRepository } from "./ModerationLogRepository.js";

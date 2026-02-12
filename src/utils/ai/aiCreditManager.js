@@ -1,317 +1,223 @@
 import { getStorageManager } from "../storage/storageManager.js";
 import { getLogger } from "../logger.js";
+import { getAIFeatureCosts } from "../../config/ai.js";
 
 const logger = getLogger();
 
+const DEFAULT_CREDITS_PER_CHAT = 0.05;
+const DEFAULT_CREDITS_PER_IMAGE = 1.2;
+
 /**
- * Format Core credits to always show exactly 2 decimal places (xx.xx format)
- * @param {number} credits - Credit amount to format
- * @returns {number} Formatted credit amount with exactly 2 decimal places
+ * Format Core credits to always show exactly 2 decimal places
  */
 export function formatCoreCredits(credits) {
-  if (typeof credits !== "number" || isNaN(credits)) {
-    return 0.0;
-  }
+  if (typeof credits !== "number" || isNaN(credits)) return 0.0;
   return Math.round(credits * 100) / 100;
 }
 
-/**
- * AI Credit Manager - Simplified Version
- * Handles credit checks and deductions for AI features
- * Uses centralized config for pricing
- * Implements atomic operations with locking to prevent race conditions
- */
-
-let chatConfigCache = null;
-let imageConfigCache = null;
-// Defaults loaded from config - these are only used as absolute fallback if config loading fails
-const DEFAULT_CREDITS_PER_CHAT = 0.01; // Fallback only - actual value comes from config/ai.js
-const DEFAULT_CREDITS_PER_IMAGE = 1.2; // Fallback only - actual value comes from config/ai.js
-
-// In-memory locks to prevent race conditions in credit operations
-// Maps userId -> Promise that resolves when lock is released
+// In-memory locks to prevent overlapping operations for the same user
 const creditLocks = new Map();
 
 /**
- * Execute an operation with a per-user lock to prevent race conditions
- * @param {string} userId - User ID
- * @param {Function} operation - Async operation to execute
- * @returns {Promise<any>} Result of the operation
+ * Sequential execution lock - atomic chain version
+ * Ensures multiple bot instances (if any) or rapid successive calls
+ * process in strict order.
  */
 async function withCreditLock(userId, operation) {
-  if (!userId || typeof userId !== "string" || userId.trim() === "") {
-    throw new Error("Invalid userId: must be a non-empty string");
+  if (!userId) throw new Error("Invalid userId");
+
+  const previousLock = creditLocks.get(userId) || Promise.resolve();
+  let resolveNext;
+  const nextLock = new Promise(resolve => {
+    resolveNext = resolve;
+  });
+  creditLocks.set(userId, nextLock);
+
+  try {
+    await previousLock;
+  } catch (_e) {
+    // Ignore errors from previous operations in the chain
   }
 
-  while (creditLocks.has(userId)) {
-    try {
-      await creditLocks.get(userId);
-    } catch {
-      // Ignore errors from previous operations
-    }
-  }
-
-  const lockPromise = (async () => {
-    try {
-      return await operation();
-    } finally {
+  try {
+    return await operation();
+  } finally {
+    resolveNext();
+    if (creditLocks.get(userId) === nextLock) {
       creditLocks.delete(userId);
     }
-  })();
-
-  creditLocks.set(userId, lockPromise);
-
-  return lockPromise;
+  }
 }
 
+/**
+ * Internal helper to get fresh config values
+ */
 async function getConfig() {
-  // Always load fresh feature costs to ensure provider-specific costs are available
-  let featureCosts = null;
-
   try {
-    // Try new AI config first
-    const aiConfigModule = await import("../../config/ai.js").catch(() => null);
-    if (aiConfigModule) {
-      const getFeatureCosts =
-        aiConfigModule.getAIFeatureCosts ||
-        aiConfigModule.default?.getAIFeatureCosts;
-      if (getFeatureCosts) {
-        featureCosts =
-          typeof getFeatureCosts === "function"
-            ? getFeatureCosts()
-            : getFeatureCosts;
-      }
-    }
-  } catch (error) {
-    logger.debug("Failed to load fresh feature costs:", error);
-  }
-
-  if (chatConfigCache !== null && imageConfigCache !== null) {
+    const featureCosts = getAIFeatureCosts();
     return {
-      aiChat: chatConfigCache,
-      aiImage: imageConfigCache,
-      featureCosts, // Return fresh feature costs
+      aiChat: featureCosts.aiChat || DEFAULT_CREDITS_PER_CHAT,
+      aiImage: featureCosts.aiImage || DEFAULT_CREDITS_PER_IMAGE,
+      featureCosts,
+    };
+  } catch (_e) {
+    return {
+      aiChat: DEFAULT_CREDITS_PER_CHAT,
+      aiImage: DEFAULT_CREDITS_PER_IMAGE,
+      featureCosts: null,
     };
   }
-
-  try {
-    // Try new AI config first (if not already loaded above)
-    if (!featureCosts) {
-      const aiConfigModule = await import("../../config/ai.js").catch(
-        () => null,
-      );
-      if (aiConfigModule) {
-        const getFeatureCosts =
-          aiConfigModule.getAIFeatureCosts ||
-          aiConfigModule.default?.getAIFeatureCosts;
-        if (getFeatureCosts) {
-          featureCosts =
-            typeof getFeatureCosts === "function"
-              ? getFeatureCosts()
-              : getFeatureCosts;
-        }
-      }
-    }
-
-    if (featureCosts) {
-      const chatValue = featureCosts?.aiChat;
-      const imageValue = featureCosts?.aiImage;
-
-      if (typeof chatValue === "number" && chatValue > 0) {
-        chatConfigCache = chatValue;
-      } else {
-        chatConfigCache = DEFAULT_CREDITS_PER_CHAT;
-      }
-
-      if (typeof imageValue === "number" && imageValue > 0) {
-        imageConfigCache = imageValue;
-      } else {
-        imageConfigCache = DEFAULT_CREDITS_PER_IMAGE;
-      }
-
-      return {
-        aiChat: chatConfigCache,
-        aiImage: imageConfigCache,
-        featureCosts,
-      };
-    }
-
-    // Fallback to old config location for backward compatibility
-    const configModule = await import("../../config/config.js").catch(
-      () => null,
-    );
-
-    if (configModule) {
-      const config = configModule.default || configModule;
-      const chatValue = config?.corePricing?.featureCosts?.aiChat;
-      const imageValue = config?.corePricing?.featureCosts?.aiImage;
-
-      if (typeof chatValue === "number" && chatValue > 0) {
-        chatConfigCache = chatValue;
-      } else {
-        chatConfigCache = DEFAULT_CREDITS_PER_CHAT;
-      }
-
-      if (typeof imageValue === "number" && imageValue > 0) {
-        imageConfigCache = imageValue;
-      } else {
-        imageConfigCache = DEFAULT_CREDITS_PER_IMAGE;
-      }
-
-      return {
-        aiChat: chatConfigCache,
-        aiImage: imageConfigCache,
-        featureCosts: config?.corePricing?.featureCosts,
-      };
-    }
-  } catch (error) {
-    logger.debug("Failed to load config, using defaults:", error);
-  }
-
-  chatConfigCache = DEFAULT_CREDITS_PER_CHAT;
-  imageConfigCache = DEFAULT_CREDITS_PER_IMAGE;
-  return {
-    aiChat: chatConfigCache,
-    aiImage: imageConfigCache,
-    featureCosts: null,
-  };
-}
-
-function getCreditsPerRequestValue() {
-  return chatConfigCache ?? DEFAULT_CREDITS_PER_CHAT;
-}
-
-function getCreditsPerImageValue() {
-  return imageConfigCache ?? DEFAULT_CREDITS_PER_IMAGE;
 }
 
 /**
- * Validate userId format (Discord snowflake)
- * @param {string} userId - User ID to validate
- * @returns {boolean} True if valid
+ * Validate userId format (Discord Snowflake)
  */
 function validateUserId(userId) {
-  if (!userId || typeof userId !== "string") {
-    return false;
-  }
-  // Discord snowflakes are 17-19 digit numbers
-  return /^\d{17,19}$/.test(userId.trim());
+  return typeof userId === "string" && /^\d{17,19}$/.test(userId.trim());
 }
 
 /**
- * Check if user has enough credits for AI request
- * @param {string} userId - User ID
- * @returns {Promise<{hasCredits: boolean, credits: number, creditsNeeded: number}>}
+ * Get the cost for a specific provider and model
+ */
+export async function getProviderModelCost(provider, model) {
+  try {
+    const config = await getConfig();
+    const costs = config.featureCosts;
+    if (costs?.providerCosts?.[provider]) {
+      const pCosts = costs.providerCosts[provider];
+      if (model && pCosts[model]) return pCosts[model];
+      if (pCosts.default) return pCosts.default;
+    }
+    return config.aiImage;
+  } catch (_e) {
+    return DEFAULT_CREDITS_PER_IMAGE;
+  }
+}
+
+/**
+ * Check if user has enough credits (for UI/Pre-checks)
  */
 export async function checkAICredits(userId) {
   try {
-    // Validate input
-    if (!validateUserId(userId)) {
-      logger.warn(`Invalid userId format: ${userId}`);
+    if (!validateUserId(userId))
       return {
         hasCredits: false,
         credits: 0,
-        creditsNeeded: getCreditsPerRequestValue(),
+        creditsNeeded: DEFAULT_CREDITS_PER_CHAT,
       };
-    }
-
-    // Ensure config is loaded
-    await getConfig();
-
     const storage = await getStorageManager();
-    const coreCredits = (await storage.get("core_credit")) || {};
-
-    const creditData = coreCredits[userId] || {
-      credits: 0,
-    };
-
-    // Check if user has enough credits for potential re-queries
-    // Re-queries can happen when AI needs to fetch data or execute commands
-    // Check for 2x credits to cover initial API call + potential re-query
-    const creditsPerRequest = getCreditsPerRequestValue();
-    const creditsNeededForReQuery = creditsPerRequest * 2; // Initial + potential re-query
-    const hasEnoughCredits = creditData.credits >= creditsNeededForReQuery;
+    const data = await storage.getCoreCredits(userId);
+    const credits = data ? data.credits : 0;
+    const config = await getConfig();
+    const needed = config.aiChat;
 
     return {
-      hasCredits: hasEnoughCredits,
-      credits: formatCoreCredits(creditData.credits || 0),
-      creditsNeeded: formatCoreCredits(creditsPerRequest), // Return single request credits for display
+      hasCredits: credits >= needed, // Removed legacy needed*2 buffer for UI consistency
+      credits: formatCoreCredits(credits),
+      creditsNeeded: formatCoreCredits(needed),
     };
-  } catch (error) {
-    logger.error("Error checking AI credits:", error);
+  } catch (_error) {
     return {
       hasCredits: false,
-      credits: formatCoreCredits(0),
-      creditsNeeded: formatCoreCredits(getCreditsPerRequestValue()),
+      credits: 0,
+      creditsNeeded: DEFAULT_CREDITS_PER_CHAT,
     };
   }
 }
 
 /**
- * Atomic check and deduct credits for AI request
- * Prevents race conditions by combining check and deduct in single locked operation
- * @param {string} userId - User ID
- * @returns {Promise<{success: boolean, creditsRemaining: number, creditsDeducted: number, error?: string}>}
+ * Atomic Add Credits (Safe for Webhooks/Top-ups)
+ */
+export async function addCoreCredits(userId, amount, source = "payment") {
+  if (!validateUserId(userId))
+    return { success: false, error: "Invalid user ID" };
+  if (typeof amount !== "number" || amount <= 0)
+    return { success: false, error: "Invalid amount" };
+
+  return withCreditLock(userId, async () => {
+    try {
+      const storage = await getStorageManager();
+      let data = await storage.getCoreCredits(userId);
+
+      if (!data) {
+        data = {
+          credits: 0,
+          totalGenerated: 0,
+          lastUpdated: new Date().toISOString(),
+          username: null,
+        };
+      }
+
+      data.credits = formatCoreCredits((data.credits || 0) + amount);
+      data.totalGenerated = (data.totalGenerated || 0) + amount; // Sync with historical total
+      data.lastUpdated = new Date().toISOString();
+
+      await storage.setCoreCredits(userId, data);
+      logger.info(
+        `Credits added for ${userId}: +${amount} (${source}). New balance: ${data.credits}`,
+      );
+
+      return { success: true, newBalance: data.credits };
+    } catch (error) {
+      logger.error(`Failed to add credits to ${userId}:`, error);
+      return { success: false, error: error.message };
+    }
+  });
+}
+
+/**
+ * Atomic check and deduct credits for AI chat
  */
 export async function checkAndDeductAICredits(userId) {
-  // Validate input
-  if (!validateUserId(userId)) {
-    logger.warn(`Invalid userId format in checkAndDeductAICredits: ${userId}`);
+  if (!validateUserId(userId))
     return {
       success: false,
       creditsRemaining: 0,
       creditsDeducted: 0,
       error: "Invalid user ID",
     };
-  }
 
   return withCreditLock(userId, async () => {
     try {
-      // Ensure config is loaded
-      await getConfig();
-
       const storage = await getStorageManager();
-      const coreCredits = (await storage.get("core_credit")) || {};
+      let data = await storage.getCoreCredits(userId);
 
-      const creditData = coreCredits[userId] || {
-        credits: 0,
-      };
+      if (!data) {
+        data = {
+          credits: 0,
+          totalGenerated: 0,
+          lastUpdated: new Date().toISOString(),
+        };
+      }
 
-      // Check if user has enough credits
-      const creditsPerRequest = getCreditsPerRequestValue();
-      if (creditData.credits < creditsPerRequest) {
+      const config = await getConfig();
+      const needed = config.aiChat;
+
+      if ((data.credits || 0) < needed) {
         return {
           success: false,
-          creditsRemaining: formatCoreCredits(creditData.credits || 0),
-          creditsDeducted: formatCoreCredits(0),
+          creditsRemaining: formatCoreCredits(data.credits),
+          creditsDeducted: 0,
           error: "Insufficient credits",
         };
       }
 
-      // Deduct credits per request (atomic operation)
-      creditData.credits = formatCoreCredits(
-        (creditData.credits || 0) - creditsPerRequest,
-      );
-      creditData.lastUpdated = new Date().toISOString();
+      data.credits = formatCoreCredits(data.credits - needed);
+      data.totalGenerated = (data.totalGenerated || 0) + 1; // Increment for chat too
+      data.lastUpdated = new Date().toISOString();
 
-      coreCredits[userId] = creditData;
-      await storage.set("core_credit", coreCredits);
-
-      logger.debug(
-        `User ${userId} used AI: Deducted ${formatCoreCredits(creditsPerRequest)} Core (${creditData.credits} remaining)`,
-      );
+      await storage.setCoreCredits(userId, data);
 
       return {
         success: true,
-        creditsRemaining: creditData.credits,
-        creditsDeducted: formatCoreCredits(creditsPerRequest),
+        creditsRemaining: data.credits,
+        creditsDeducted: formatCoreCredits(needed),
       };
     } catch (error) {
-      logger.error("Error in atomic checkAndDeductAICredits:", error);
       return {
         success: false,
-        creditsRemaining: formatCoreCredits(0),
-        creditsDeducted: formatCoreCredits(0),
+        creditsRemaining: 0,
+        creditsDeducted: 0,
         error: error.message,
       };
     }
@@ -319,96 +225,7 @@ export async function checkAndDeductAICredits(userId) {
 }
 
 /**
- * Deduct credits for AI request
- * DEPRECATED: Use checkAndDeductAICredits() for atomic operations
- * Kept for backward compatibility but now uses locking
- * @param {string} userId - User ID
- * @returns {Promise<{success: boolean, creditsRemaining: number}>}
- */
-export async function deductAICredits(userId) {
-  const result = await checkAndDeductAICredits(userId);
-  return {
-    success: result.success,
-    creditsRemaining: result.creditsRemaining,
-    error: result.error,
-  };
-}
-
-/**
- * Get AI credit information for display
- * @param {string} userId - User ID
- * @returns {Promise<{credits: number, requestsRemaining: number}>}
- */
-export async function getAICreditInfo(userId) {
-  try {
-    // Ensure config is loaded
-    await getConfig();
-
-    const storage = await getStorageManager();
-    const coreCredits = (await storage.get("core_credit")) || {};
-
-    const userData = coreCredits[userId] || {
-      credits: 0,
-    };
-
-    const credits = userData.credits || 0;
-    // Calculate how many requests user can make with current credits
-    const creditsPerRequest = getCreditsPerRequestValue();
-    const requestsRemaining = Math.floor(credits / creditsPerRequest);
-
-    return {
-      credits: formatCoreCredits(credits),
-      requestsRemaining,
-    };
-  } catch (error) {
-    logger.error("Error getting AI credit info:", error);
-    return {
-      credits: formatCoreCredits(0),
-      requestsRemaining: 0,
-    };
-  }
-}
-
-/**
- * Get the cost for a specific provider and model
- * @param {string} provider - Provider name (stability, comfyui, etc.)
- * @param {string} model - Model name
- * @returns {Promise<number>} Cost in Core credits
- */
-async function getProviderModelCost(provider, model) {
-  try {
-    const config = await getConfig();
-    const featureCosts = config.featureCosts || {};
-
-    // Check for provider-specific credits first
-    if (featureCosts.providerCosts && featureCosts.providerCosts[provider]) {
-      const providerCosts = featureCosts.providerCosts[provider];
-
-      // Check for model-specific credits
-      if (providerCosts[model]) {
-        return providerCosts[model];
-      }
-
-      // Check for default provider credits
-      if (providerCosts.default) {
-        return providerCosts.default;
-      }
-    }
-
-    // Fallback to generic image credits
-    return featureCosts.aiImage || DEFAULT_CREDITS_PER_IMAGE;
-  } catch (error) {
-    logger.debug("Error getting provider model cost, using default:", error);
-    return DEFAULT_CREDITS_PER_IMAGE;
-  }
-}
-
-/**
- * Check if user has enough credits for AI image generation with provider/model specific costs
- * @param {string} userId - User ID
- * @param {string} provider - Provider name (optional)
- * @param {string} model - Model name (optional)
- * @returns {Promise<{hasCredits: boolean, credits: number, creditsNeeded: number, userData: Object}>}
+ * Check AI image credits
  */
 export async function checkAIImageCredits(
   userId,
@@ -416,191 +233,96 @@ export async function checkAIImageCredits(
   model = null,
 ) {
   try {
-    // Validate input
-    if (!validateUserId(userId)) {
-      logger.warn(`Invalid userId format in checkAIImageCredits: ${userId}`);
+    if (!validateUserId(userId))
       return {
         hasCredits: false,
         credits: 0,
-        creditsNeeded: getCreditsPerImageValue(),
-        userData: {
-          credits: 0,
-          totalGenerated: 0,
-        },
+        creditsNeeded: DEFAULT_CREDITS_PER_IMAGE,
       };
-    }
-
-    // Ensure config is loaded
-    await getConfig();
-
     const storage = await getStorageManager();
-    const coreCredits = (await storage.get("core_credit")) || {};
-
-    const userData = coreCredits[userId] || {
-      credits: 0,
-      totalGenerated: 0,
-      lastUpdated: new Date().toISOString(),
-    };
-
-    // Get provider and model-specific credits
-    let creditsPerImage = getCreditsPerImageValue(); // Default fallback
-    if (provider && model) {
-      creditsPerImage = await getProviderModelCost(provider, model);
-    }
-
-    // Check if user has enough credits
-    const hasEnoughCredits = userData.credits >= creditsPerImage;
+    const data = await storage.getCoreCredits(userId);
+    const credits = data ? data.credits : 0;
+    const needed = await getProviderModelCost(provider, model);
 
     return {
-      hasCredits: hasEnoughCredits,
-      credits: formatCoreCredits(userData.credits || 0),
-      creditsNeeded: formatCoreCredits(creditsPerImage),
-      userData,
+      hasCredits: credits >= needed,
+      credits: formatCoreCredits(credits),
+      creditsNeeded: formatCoreCredits(needed),
+      userData: data || { credits: 0 },
     };
-  } catch (error) {
-    logger.error("Error checking AI image credits:", error);
+  } catch (_e) {
     return {
       hasCredits: false,
-      credits: formatCoreCredits(0),
-      creditsNeeded: formatCoreCredits(getCreditsPerImageValue()),
-      userData: {
-        credits: formatCoreCredits(0),
-        totalGenerated: 0,
-      },
+      credits: 0,
+      creditsNeeded: DEFAULT_CREDITS_PER_IMAGE,
     };
   }
 }
 
 /**
- * Atomic check and deduct credits for AI image generation with provider/model specific costs
- * @param {string} userId - User ID
- * @param {string} provider - Provider name (optional)
- * @param {string} model - Model name (optional)
- * @returns {Promise<{success: boolean, creditsRemaining: number, creditsDeducted: number, deductionBreakdown: Object, error?: string}>}
+ * Atomic check and deduct credits for AI image generation
  */
 export async function checkAndDeductAIImageCredits(
   userId,
   provider = null,
   model = null,
 ) {
-  // Validate input
-  if (!validateUserId(userId)) {
-    logger.warn(
-      `Invalid userId format in checkAndDeductAIImageCredits: ${userId}`,
-    );
+  if (!validateUserId(userId))
     return {
       success: false,
       creditsRemaining: 0,
       creditsDeducted: 0,
-      deductionBreakdown: {
-        totalDeducted: 0,
-      },
       error: "Invalid user ID",
     };
-  }
 
   return withCreditLock(userId, async () => {
     try {
-      // Ensure config is loaded
-      await getConfig();
-
       const storage = await getStorageManager();
-      const coreCredits = (await storage.get("core_credit")) || {};
+      let data = await storage.getCoreCredits(userId);
 
-      const userData = coreCredits[userId] || {
-        credits: 0,
-        totalGenerated: 0,
-        lastUpdated: new Date().toISOString(),
-      };
-
-      // Get provider and model-specific credits
-      let creditsPerImage = getCreditsPerImageValue(); // Default fallback
-      if (provider && model) {
-        creditsPerImage = await getProviderModelCost(provider, model);
-      }
-
-      // Check if user has enough credits (atomic check)
-      if (userData.credits < creditsPerImage) {
-        return {
-          success: false,
-          creditsRemaining: formatCoreCredits(userData.credits || 0),
-          creditsDeducted: formatCoreCredits(0),
-          error: "Insufficient credits",
-          deductionBreakdown: {
-            totalDeducted: formatCoreCredits(0),
-          },
+      if (!data) {
+        data = {
+          credits: 0,
+          totalGenerated: 0,
+          lastUpdated: new Date().toISOString(),
         };
       }
 
-      const previousCount = userData.totalGenerated || 0;
+      const needed = await getProviderModelCost(provider, model);
 
-      // ===== SIMPLIFIED CORE DEDUCTION LOGIC =====
-      // Simple deduction from total credits
+      if ((data.credits || 0) < needed) {
+        return {
+          success: false,
+          creditsRemaining: formatCoreCredits(data.credits),
+          creditsDeducted: 0,
+          error: "Insufficient credits",
+        };
+      }
 
-      // Step 1: Update total Cores (atomic operation)
-      userData.credits = formatCoreCredits(userData.credits - creditsPerImage);
-      userData.totalGenerated = (userData.totalGenerated || 0) + 1;
-      userData.lastUpdated = new Date().toISOString();
-
-      coreCredits[userId] = userData;
-      await storage.set("core_credit", coreCredits);
-
-      const deductionBreakdown = {
-        totalDeducted: formatCoreCredits(creditsPerImage),
-      };
-
-      logger.info(
-        `User ${userId} used ${formatCoreCredits(creditsPerImage)} Core for ${provider}/${model} image generation. ` +
-          `Remaining: ${userData.credits} total. ` +
-          `Total generated: ${previousCount} → ${userData.totalGenerated}`,
-      );
+      data.credits = formatCoreCredits(data.credits - needed);
+      data.totalGenerated = (data.totalGenerated || 0) + 1;
+      data.lastUpdated = new Date().toISOString();
+      await storage.setCoreCredits(userId, data);
 
       return {
         success: true,
-        creditsRemaining: userData.credits,
-        creditsDeducted: formatCoreCredits(creditsPerImage),
-        deductionBreakdown,
+        creditsRemaining: data.credits,
+        creditsDeducted: formatCoreCredits(needed),
+        deductionBreakdown: { totalDeducted: formatCoreCredits(needed) },
       };
     } catch (error) {
-      logger.error("Error in atomic checkAndDeductAIImageCredits:", error);
       return {
         success: false,
-        creditsRemaining: formatCoreCredits(0),
-        creditsDeducted: formatCoreCredits(0),
+        creditsRemaining: 0,
+        creditsDeducted: 0,
         error: error.message,
-        deductionBreakdown: {
-          totalDeducted: formatCoreCredits(0),
-        },
       };
     }
   });
 }
 
 /**
- * Deduct credits for AI image generation
- * DEPRECATED: Use checkAndDeductAIImageCredits() for atomic operations
- * Kept for backward compatibility but now uses locking
- * @param {string} userId - User ID
- * @returns {Promise<{success: boolean, creditsRemaining: number, deductionBreakdown: Object}>}
- */
-export async function deductAIImageCredits(userId) {
-  const result = await checkAndDeductAIImageCredits(userId);
-  return {
-    success: result.success,
-    creditsRemaining: result.creditsRemaining,
-    deductionBreakdown: result.deductionBreakdown,
-    error: result.error,
-  };
-}
-
-/**
- * Deduct credits based on actual API usage (for providers that return usage info)
- * @param {string} userId - User ID
- * @param {Object} usage - Usage information from API response
- * @param {string} provider - Provider name
- * @param {string} model - Model name
- * @param {number} conversionRate - Rate to convert API credits to Core credits (default: 1:1)
- * @returns {Promise<{success: boolean, creditsRemaining: number, creditsDeducted: number, deductionBreakdown: Object, error?: string}>}
+ * Deduct credits based on actual API usage (Token-based)
  */
 export async function deductCreditsFromUsage(
   userId,
@@ -609,188 +331,74 @@ export async function deductCreditsFromUsage(
   model,
   conversionRate = 1.0,
 ) {
-  // Validate input
-  if (!validateUserId(userId)) {
-    logger.warn(`Invalid userId format in deductCreditsFromUsage: ${userId}`);
+  if (!validateUserId(userId))
     return {
       success: false,
-      creditsRemaining: formatCoreCredits(0),
-      creditsDeducted: formatCoreCredits(0),
-      deductionBreakdown: {
-        totalDeducted: formatCoreCredits(0),
-        actualApiCost: 0,
-        conversionRate,
-      },
+      creditsRemaining: 0,
+      creditsDeducted: 0,
       error: "Invalid user ID",
     };
-  }
-
-  if (!usage || typeof usage.cost !== "number") {
-    logger.warn(
-      `Invalid usage data for user ${userId}: ${JSON.stringify(usage)}`,
-    );
+  if (!usage || typeof usage.cost !== "number")
     return {
       success: false,
-      creditsRemaining: formatCoreCredits(0),
-      creditsDeducted: formatCoreCredits(0),
-      deductionBreakdown: {
-        totalDeducted: formatCoreCredits(0),
-        actualApiCost: 0,
-        conversionRate,
-      },
+      creditsRemaining: 0,
+      creditsDeducted: 0,
       error: "Invalid usage data",
     };
-  }
 
   return withCreditLock(userId, async () => {
     try {
       const storage = await getStorageManager();
-      const coreCredits = (await storage.get("core_credit")) || {};
+      let data = await storage.getCoreCredits(userId);
 
-      const userData = coreCredits[userId] || {
-        credits: 0,
-        totalGenerated: 0,
-        lastUpdated: new Date().toISOString(),
-      };
-
-      // Calculate Core credits to deduct based on actual API usage
-      const actualApiCost = usage.cost; // OpenRouter credits
-      const creditsToDeduct = actualApiCost * conversionRate; // Convert to Core credits, preserve decimals
-
-      // Minimum deduction of 0.01 Core credits (configurable per provider)
-      let minimumCharge = 0.01;
-      try {
-        const { getAIFeatureCosts } = await import("../../config/ai.js");
-        const featureCosts = getAIFeatureCosts();
-        if (featureCosts.tokenPricing && featureCosts.tokenPricing[provider]) {
-          minimumCharge =
-            featureCosts.tokenPricing[provider].minimumCharge || 0.01;
-        }
-      } catch (_error) {
-        // Use default minimum if config loading fails
+      if (!data) {
+        data = {
+          credits: 0,
+          totalGenerated: 0,
+          lastUpdated: new Date().toISOString(),
+        };
       }
 
-      const finalCreditsToDeduct = formatCoreCredits(
-        Math.max(creditsToDeduct, minimumCharge),
+      const featureCosts = getAIFeatureCosts();
+      const min = featureCosts.tokenPricing?.[provider]?.minimumCharge || 0.05;
+      const needed = formatCoreCredits(
+        Math.max(usage.cost * conversionRate, min),
       );
 
-      // Check if user has enough credits
-      if (userData.credits < finalCreditsToDeduct) {
+      if ((data.credits || 0) < needed) {
         return {
           success: false,
-          creditsRemaining: formatCoreCredits(userData.credits || 0),
-          creditsDeducted: formatCoreCredits(0),
+          creditsRemaining: formatCoreCredits(data.credits),
+          creditsDeducted: 0,
           error: "Insufficient credits",
           deductionBreakdown: {
-            totalDeducted: formatCoreCredits(0),
-            actualApiCost,
+            totalDeducted: 0,
+            actualApiCost: usage.cost,
             conversionRate,
           },
         };
       }
 
-      const previousCount = userData.totalGenerated || 0;
-
-      // ===== SIMPLIFIED CORE DEDUCTION LOGIC =====
-      // Simple deduction from total credits
-
-      // Step 1: Update total Cores (atomic operation)
-      userData.credits = formatCoreCredits(
-        userData.credits - finalCreditsToDeduct,
-      );
-      userData.totalGenerated = (userData.totalGenerated || 0) + 1;
-      userData.lastUpdated = new Date().toISOString();
-
-      coreCredits[userId] = userData;
-      await storage.set("core_credit", coreCredits);
-
-      const deductionBreakdown = {
-        totalDeducted: finalCreditsToDeduct,
-        actualApiCost,
-        conversionRate,
-      };
-
-      logger.info(
-        `💰 Usage-based deduction for user ${userId}: ${provider}/${model} ` +
-          `API cost: ${actualApiCost} credits → ${finalCreditsToDeduct} Core credits (${conversionRate}x rate). ` +
-          `Remaining: ${userData.credits} total. ` +
-          `Total generated: ${previousCount} → ${userData.totalGenerated}`,
-      );
+      data.credits = formatCoreCredits(data.credits - needed);
+      data.totalGenerated = (data.totalGenerated || 0) + 1;
+      data.lastUpdated = new Date().toISOString();
+      await storage.setCoreCredits(userId, data);
 
       return {
         success: true,
-        creditsRemaining: userData.credits,
-        creditsDeducted: finalCreditsToDeduct,
-        deductionBreakdown,
-      };
-    } catch (error) {
-      logger.error("Error in usage-based credit deduction:", error);
-      return {
-        success: false,
-        creditsRemaining: formatCoreCredits(0),
-        creditsDeducted: formatCoreCredits(0),
-        error: error.message,
+        creditsRemaining: data.credits,
+        creditsDeducted: needed,
         deductionBreakdown: {
-          totalDeducted: formatCoreCredits(0),
-          actualApiCost: usage?.cost || 0,
+          totalDeducted: needed,
+          actualApiCost: usage.cost,
           conversionRate,
         },
       };
-    }
-  });
-}
-
-export async function refundAICredits(userId, amount, reason = "Unknown") {
-  // Validate input
-  if (!validateUserId(userId)) {
-    logger.warn(`Invalid userId format in refundAICredits: ${userId}`);
-    return {
-      success: false,
-      creditsRemaining: 0,
-      error: "Invalid user ID",
-    };
-  }
-
-  if (typeof amount !== "number" || amount <= 0) {
-    logger.warn(`Invalid refund amount: ${amount}`);
-    return {
-      success: false,
-      creditsRemaining: 0,
-      error: "Invalid refund amount",
-    };
-  }
-
-  return withCreditLock(userId, async () => {
-    try {
-      const storage = await getStorageManager();
-      const coreCredits = (await storage.get("core_credit")) || {};
-
-      const creditData = coreCredits[userId] || {
-        credits: 0,
-      };
-
-      // Refund credits
-      creditData.credits = formatCoreCredits(
-        (creditData.credits || 0) + amount,
-      );
-      creditData.lastUpdated = new Date().toISOString();
-
-      coreCredits[userId] = creditData;
-      await storage.set("core_credit", coreCredits);
-
-      logger.info(
-        `User ${userId} refunded ${formatCoreCredits(amount)} Core. Reason: ${reason}. New balance: ${creditData.credits}`,
-      );
-
-      return {
-        success: true,
-        creditsRemaining: creditData.credits,
-      };
     } catch (error) {
-      logger.error("Error refunding AI credits:", error);
       return {
         success: false,
-        creditsRemaining: formatCoreCredits(0),
+        creditsRemaining: 0,
+        creditsDeducted: 0,
         error: error.message,
       };
     }
@@ -798,65 +406,69 @@ export async function refundAICredits(userId, amount, reason = "Unknown") {
 }
 
 /**
- * Refund credits for AI image generation (for failed generations)
- * @param {string} userId - User ID
- * @param {number} amount - Amount to refund
- * @param {string} reason - Reason for refund (for audit trail)
- * @returns {Promise<{success: boolean, creditsRemaining: number, error?: string}>}
+ * Atomic Refund
  */
-export async function refundAIImageCredits(userId, amount, reason = "Unknown") {
-  // Validate input
-  if (!validateUserId(userId)) {
-    logger.warn(`Invalid userId format in refundAIImageCredits: ${userId}`);
+export async function refundAICredits(userId, amount, reason = "Unknown") {
+  if (!validateUserId(userId))
+    return { success: false, creditsRemaining: 0, error: "Invalid user ID" };
+  if (typeof amount !== "number" || amount <= 0)
     return {
       success: false,
-      creditsRemaining: formatCoreCredits(0),
-      error: "Invalid user ID",
-    };
-  }
-
-  if (typeof amount !== "number" || amount <= 0) {
-    logger.warn(`Invalid refund amount: ${amount}`);
-    return {
-      success: false,
-      creditsRemaining: formatCoreCredits(0),
+      creditsRemaining: 0,
       error: "Invalid refund amount",
     };
-  }
 
   return withCreditLock(userId, async () => {
     try {
       const storage = await getStorageManager();
-      const coreCredits = (await storage.get("core_credit")) || {};
+      let data = await storage.getCoreCredits(userId);
 
-      const userData = coreCredits[userId] || {
-        credits: 0,
-        totalGenerated: 0,
-        lastUpdated: new Date().toISOString(),
-      };
+      if (!data)
+        data = {
+          credits: 0,
+          totalGenerated: 0,
+          lastUpdated: new Date().toISOString(),
+        };
 
-      // Refund to total credits (simplified)
-      userData.credits = formatCoreCredits((userData.credits || 0) + amount);
-      userData.lastUpdated = new Date().toISOString();
-
-      coreCredits[userId] = userData;
-      await storage.set("core_credit", coreCredits);
+      data.credits = formatCoreCredits(data.credits + amount);
+      data.lastUpdated = new Date().toISOString();
+      await storage.setCoreCredits(userId, data);
 
       logger.info(
-        `User ${userId} refunded ${formatCoreCredits(amount)} Core for image generation. Reason: ${reason}. New balance: ${userData.credits}`,
+        `Credits refunded to ${userId}: +${amount} (Reason: ${reason})`,
       );
-
-      return {
-        success: true,
-        creditsRemaining: userData.credits,
-      };
+      return { success: true, creditsRemaining: data.credits };
     } catch (error) {
-      logger.error("Error refunding AI image credits:", error);
-      return {
-        success: false,
-        creditsRemaining: formatCoreCredits(0),
-        error: error.message,
-      };
+      return { success: false, creditsRemaining: 0, error: error.message };
     }
   });
+}
+
+export async function refundAIImageCredits(userId, amount, reason = "Unknown") {
+  return await refundAICredits(userId, amount, reason);
+}
+
+// Legacy Aliases
+export async function deductAICredits(userId) {
+  return await checkAndDeductAICredits(userId);
+}
+export async function deductAIImageCredits(userId) {
+  return await checkAndDeductAIImageCredits(userId);
+}
+
+/**
+ * Get AI credit information for display
+ */
+export async function getAICreditInfo(userId) {
+  try {
+    const config = await getConfig();
+    const storage = await getStorageManager();
+    const userData = (await storage.getCoreCredits(userId)) || { credits: 0 };
+    return {
+      credits: formatCoreCredits(userData.credits),
+      requestsRemaining: Math.floor(userData.credits / config.aiChat),
+    };
+  } catch (_error) {
+    return { credits: 0, requestsRemaining: 0 };
+  }
 }

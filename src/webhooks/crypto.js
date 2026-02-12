@@ -6,248 +6,150 @@ import { plisioPay } from "../utils/payments/plisio.js";
 const logger = getLogger();
 
 /**
- * Handle Crypto Webhook events (Plisio only)
- * @param {import('express').Request} req - Express request object
- * @param {import('express').Response} res - Express response object
+ * Handle Crypto Payment Webhook (Plisio)
  */
 export async function handleCryptoWebhook(req, res) {
-  const startTime = Date.now();
-  let processedType = "Unknown";
-  let processingResult = { success: false, error: null };
+  const {
+    order_number: paymentId,
+    status,
+    amount,
+    currency,
+    email,
+    metadata,
+  } = req.body;
 
-  // Determine provider
-  let provider = "Unknown";
-  if (req.body && req.body.verify_hash) provider = "Plisio";
-
-  try {
-    // ===== STEP 1: LOG REQUEST =====
-    logger.info(`🔔 ${provider} Webhook Received`, {
-      method: req.method,
-      url: req.url,
-      ip: req.ip || req.connection?.remoteAddress,
-      timestamp: new Date().toISOString(),
-    });
-
-    if (req.method === "GET") return res.status(200).send("OK");
-    if (req.method !== "POST")
-      return res.status(405).send("Method Not Allowed");
-
-    // ===== STEP 2: VERIFY SIGNATURE & EXTRACT DATA =====
-
-    // --- PLISIO HANDLING ---
-    if (provider === "Plisio") {
-      const isValid = plisioPay.verifyWebhook(req.body);
-
-      if (!isValid) {
-        logger.warn("❌ Invalid Plisio signature");
-        return res.status(200).send("OK");
-      }
-
-      const data = req.body;
-      logger.info("📋 Plisio Webhook Data:", JSON.stringify(data, null, 2));
-
-      // Check status
-      if (data.status === "completed" || data.status === "mismatch") {
-        processedType = `Plisio Payment ${data.status === "mismatch" ? "Mismatch (Accepted)" : "Confirmed"}`;
-        processingResult = await processPlisioPayment(data);
-      } else {
-        processedType = `Plisio Status: ${data.status}`;
-        logger.info(`ℹ️ Plisio payment status update: ${data.status}`);
-        return res.status(200).send("OK");
-      }
-    } else {
-      logger.warn("❌ Unknown webhook provider (missing signatures)");
-      return res.status(200).send("OK");
-    }
-
-    // ===== STEP 3: SEND RESPONSE =====
-    const duration = Date.now() - startTime;
-    logger.info(
-      `✅ ${provider} webhook processed: ${processedType} in ${duration}ms`,
-      { success: processingResult.success, duration },
-    );
-
-    return res.status(200).json({
-      received: true,
-      processed: processingResult.success,
-      type: processedType,
-    });
-  } catch (error) {
-    logger.error(`❌ Error processing ${provider} webhook:`, error);
-    return res.status(200).json({ received: true, error: error.message });
+  // 1. Verify Webhook Signature (SECURITY CRITICAL)
+  if (!plisioPay.verifyWebhook(req.body)) {
+    logger.warn(`❌ Invalid Plisio webhook signature for payment ${paymentId}`);
+    return res
+      .status(401)
+      .json({ status: "error", message: "Invalid signature" });
   }
-}
 
-// ------------------------------------------------------------------
-// PROCESSORS
-// ------------------------------------------------------------------
+  // 2. Filter for successful payment statuses
+  if (status !== "completed" && status !== "mismatch") {
+    return res.status(200).json({ status: "ignored" });
+  }
 
-/**
- * Process confirmed Plisio payment
- * @param {Object} data - Plisio webhook data
- */
-async function processPlisioPayment(data) {
+  const userId = metadata?.discordId;
+  if (!userId) {
+    logger.warn(`⚠️ Crypto payment without Discord ID: ${paymentId}`);
+    return res.status(200).json({ status: "no_user_linked" });
+  }
+
   try {
-    logger.info("💰 Processing Plisio Payment:", data);
-
-    const {
-      status,
-      order_number: orderNumber,
-      amount,
-      source_amount: sourceAmount,
-      source_currency: sourceCurrency,
-      source_rate: sourceRate,
-      currency,
-    } = data;
-
-    // Order number format: USERID_TIMESTAMP
-    const userId = orderNumber ? orderNumber.split("_")[0] : null;
-
-    // Validate User ID
-    if (!userId || !/^\d{17,20}$/.test(userId)) {
-      logger.warn(`⚠️ Invalid User ID in Plisio order: ${orderNumber}`);
-    }
-
-    // Logic for Mismatch vs Completed:
-    // If mismatch, use the actual received crypto (amount) * rate (source_rate)
-    // If completed (exact match), use the source_amount (requested price)
-    let finalAmount;
-    if (status === "mismatch" && sourceRate && amount) {
-      finalAmount = parseFloat(amount) * parseFloat(sourceRate);
-      logger.info(
-        `⚖️ Handling Mismatch: Paid ${finalAmount} ${sourceCurrency || "USD"} (Requested ${sourceAmount})`,
-      );
-    } else {
-      finalAmount = sourceAmount
-        ? parseFloat(sourceAmount)
-        : parseFloat(amount);
-    }
-
-    const finalCurrency = sourceCurrency || currency || "USD";
-
-    return await creditUserCore({
+    const result = await processCryptoPayment(
       userId,
-      amount: finalAmount,
-      currency: finalCurrency,
-      paymentId: orderNumber, // Use orderNumber (unique)
-      provider: "Plisio",
-      metadata: { ...data },
-      email: data.email || null,
-    });
+      paymentId,
+      amount,
+      currency,
+      email,
+      metadata,
+    );
+    return res.status(200).json(result);
   } catch (error) {
-    logger.error("❌ Error processing Plisio payment:", error);
-    return { success: false, error: error.message };
+    logger.error(`❌ Failed to process crypto payment ${paymentId}:`, error);
+    return res.status(500).json({ status: "error", error: error.message });
   }
 }
 
 /**
- * Core logic to credit a user's account
+ * Atomic processing of Crypto payment
  */
-async function creditUserCore({
+async function processCryptoPayment(
   userId,
+  paymentId,
   amount,
   currency,
-  paymentId,
-  provider,
-  metadata,
-  email,
-}) {
-  if (!userId) {
-    logger.warn(
-      `⚠️ Payment without Discord ID (${provider}): ${paymentId} - Storing as pending`,
-    );
+  _email,
+  _metadata,
+) {
+  // We use the same locking mechanism as AI credits to prevent races
+  const { withCreditLock } = await import("../utils/ai/aiCreditManager.js");
+
+  return withCreditLock(userId, async () => {
     const storage = await getStorageManager();
-    const pendingPayments =
-      (await storage.get("pending_crypto_payments")) || [];
+    const configModule = await import("../config/config.js").catch(() => null);
+    const config =
+      configModule?.config || configModule?.default || configModule || {};
 
-    pendingPayments.push({
-      chargeId: paymentId,
-      amount,
-      currency,
-      provider,
-      email: email || null,
-      timestamp: new Date().toISOString(),
-      metadata,
-    });
+    // Check for duplicate payment
+    const existingData = await storage.getCoreCredits(userId);
+    if (existingData?.cryptoPayments?.some(p => p.chargeId === paymentId)) {
+      return { success: true, message: "Already processed" };
+    }
 
-    await storage.set("pending_crypto_payments", pendingPayments);
-    return { success: true, message: "Stored as pending", pending: true };
-  }
-
-  const storage = await getStorageManager();
-  const coreCredits = (await storage.get("core_credit")) || {};
-
-  if (!coreCredits[userId]) {
-    coreCredits[userId] = {
+    const userData = existingData || {
       credits: 0,
       totalGenerated: 0,
       lastUpdated: new Date().toISOString(),
-      cryptoPayments: [],
-      username: null,
     };
-  }
 
-  const userData = coreCredits[userId];
-  const processedCharges = userData.cryptoPayments?.map(p => p.chargeId) || [];
-  if (processedCharges.includes(paymentId)) {
-    logger.warn(`⚠️ Duplicate payment detected: ${paymentId}`);
-    return { success: true, message: "Duplicate ignored" };
-  }
+    const minimumAmount = config.corePricing?.coreSystem?.minimumPayment || 1.0;
+    const paymentAmount = parseFloat(amount);
 
-  // Calculate Credits (Using Config)
-  const configModule = await import("../config/config.js").catch(() => null);
-  const config =
-    configModule?.config || configModule?.default || configModule || {};
-  const minimumAmount = config.corePricing?.coreSystem?.minimumPayment || 1;
+    if (paymentAmount < minimumAmount) {
+      logger.warn(
+        `❌ Crypto payment below minimum: $${paymentAmount} < $${minimumAmount}`,
+      );
+      return { success: false, error: "Below minimum amount" };
+    }
 
-  if (amount < minimumAmount) {
-    logger.warn(
-      `⚠️ Payment $${amount} is below minimum $${minimumAmount}. Order: ${paymentId}`,
-    );
-    return { success: false, error: "Below minimum amount" };
-  }
+    // Use centralized calculateCores method from config
+    const coresToAdd =
+      typeof config.calculateCores === "function"
+        ? config.calculateCores(paymentAmount)
+        : Math.floor(
+            paymentAmount *
+              (config.corePricing?.coreSystem?.conversionRate || 50),
+          );
 
-  const coresToAdd = config.calculateCores(amount);
+    // Update balance and historical total
+    userData.credits = formatCoreCredits((userData.credits || 0) + coresToAdd);
+    userData.totalGenerated = (userData.totalGenerated || 0) + coresToAdd;
 
-  userData.credits = formatCoreCredits((userData.credits || 0) + coresToAdd);
-  userData.cryptoPayments.push({
-    chargeId: paymentId,
-    type: "payment",
-    amount,
-    currency,
-    cores: coresToAdd,
-    provider,
-    timestamp: new Date().toISOString(),
-    processed: true,
-  });
-
-  userData.lastUpdated = new Date().toISOString();
-  await storage.set("core_credit", coreCredits);
-
-  // Also log to the separate payments collection (Ledger)
-  try {
-    await storage.createPayment({
-      paymentId: paymentId,
-      discordId: userId,
-      provider: provider,
-      type: "one_time",
-      status: "completed",
-      amount: parseFloat(amount),
-      currency: currency,
-      coresGranted: coresToAdd,
-      email: email,
-      metadata: metadata,
+    // Track the crypto specific payment metadata
+    if (!userData.cryptoPayments) userData.cryptoPayments = [];
+    userData.cryptoPayments.push({
+      chargeId: paymentId,
+      type: "payment",
+      amount: paymentAmount,
+      currency,
+      cores: coresToAdd,
+      provider: "plisio",
+      timestamp: new Date().toISOString(),
+      processed: true,
     });
-    logger.info(`📝 Payment ${paymentId} logged to payments collection`);
-  } catch (logError) {
-    logger.error(
-      `Failed to log payment ${paymentId} to payments collection:`,
-      logError,
-    );
-  }
 
-  logger.info(
-    `✅ Added ${coresToAdd} Cores to user ${userId} (${provider} payment: $${amount})`,
-  );
-  return { success: true, message: "Credited", credits: coresToAdd };
+    userData.lastUpdated = new Date().toISOString();
+    await storage.setCoreCredits(userId, userData);
+
+    // Update separate payments ledger
+    try {
+      await storage.createPayment({
+        paymentId: paymentId,
+        discordId: userId,
+        provider: "plisio",
+        type: "one_time",
+        status: "completed",
+        amount: paymentAmount,
+        currency: currency,
+        coresGranted: coresToAdd,
+        email: _email,
+        metadata: _metadata,
+      });
+      logger.debug(`📝 Payment ${paymentId} logged to payments collection`);
+    } catch (logError) {
+      logger.error(
+        `Failed to log payment ${paymentId} to payments collection:`,
+        logError,
+      );
+    }
+
+    logger.info(
+      `✅ Added ${coresToAdd} Cores to user ${userId} via Crypto ($${paymentAmount})`,
+    );
+
+    return { success: true, message: "Credited", credits: coresToAdd };
+  });
 }

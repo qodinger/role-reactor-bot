@@ -61,19 +61,12 @@ class AnalyticsManager {
    */
   async updateCounter(guildId, dateKey, type, amount) {
     try {
-      const data = (await this.storageManager.read("guild_analytics")) || {};
-
-      if (!data[guildId]) data[guildId] = {};
-      if (!data[guildId][dateKey]) {
-        data[guildId][dateKey] = { joins: 0, leaves: 0, members: 0 };
-      }
-
-      data[guildId][dateKey][type] += amount;
-
-      // Also update current member count snapshot if possible
-      // This will be handled more accurately by the scheduled daily snapshot
-
-      await this.storageManager.write("guild_analytics", data);
+      await this.storageManager.updateGuildAnalytics(
+        guildId,
+        dateKey,
+        type,
+        amount,
+      );
     } catch (error) {
       this.logger.error(
         `Error updating analytics counter for ${guildId}:`,
@@ -87,31 +80,39 @@ class AnalyticsManager {
    */
   async getHistory(guildId, days = 30) {
     await this.initialize();
-    const data = (await this.storageManager.read("guild_analytics")) || {};
-    const guildData = data[guildId] || {};
-
-    const history = [];
     const now = new Date();
+    const start = new Date(now);
+    start.setDate(now.getDate() - (days - 1));
 
-    for (let i = days - 1; i >= 0; i--) {
-      const date = new Date(now);
-      date.setDate(date.getDate() - i);
-      const dateKey = date.toISOString().split("T")[0];
+    const startDate = start.toISOString().split("T")[0];
+    const endDate = now.toISOString().split("T")[0];
 
-      const dayData = guildData[dateKey] || { joins: 0, leaves: 0, members: 0 };
+    try {
+      const history = await this.storageManager.getGuildAnalyticsHistory(
+        guildId,
+        startDate,
+        endDate,
+      );
 
-      history.push({
-        date: dateKey,
-        label: date.toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-        }),
-        joins: dayData.joins,
-        leaves: dayData.leaves,
+      return history.map(h => {
+        const date = new Date(h.date);
+        return {
+          date: h.date,
+          label: date.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+          }),
+          joins: h.joins,
+          leaves: h.leaves,
+        };
       });
+    } catch (error) {
+      this.logger.error(
+        `Error getting analytics history for ${guildId}:`,
+        error,
+      );
+      return [];
     }
-
-    return history;
   }
 
   /**
@@ -119,25 +120,15 @@ class AnalyticsManager {
    */
   async cleanupOldData() {
     try {
-      const data = (await this.storageManager.read("guild_analytics")) || {};
       const now = new Date();
       const cutoff = new Date();
       cutoff.setDate(now.getDate() - 90);
       const cutoffKey = cutoff.toISOString().split("T")[0];
 
-      let modified = false;
-      for (const guildId in data) {
-        for (const dateKey in data[guildId]) {
-          if (dateKey < cutoffKey) {
-            delete data[guildId][dateKey];
-            modified = true;
-          }
-        }
-      }
-
-      if (modified) {
-        await this.storageManager.write("guild_analytics", data);
-        this.logger.info("🧹 Cleaned up old analytics data");
+      const deletedCount =
+        await this.storageManager.cleanupOldAnalytics(cutoffKey);
+      if (deletedCount > 0) {
+        this.logger.info(`🧹 Cleaned up ${deletedCount} old analytics records`);
       }
     } catch (error) {
       this.logger.error("Error cleaning up old analytics data:", error);

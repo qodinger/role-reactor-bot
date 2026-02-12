@@ -27,14 +27,48 @@ vi.mock("../../../src/utils/logger.js", () => ({
 
 // Mock storage manager with in-memory implementation
 const mockStorage = new Map();
+const mockStorageInstance = {
+  get: vi.fn(key => Promise.resolve(mockStorage.get(key) || {})),
+  set: vi.fn((key, data) => {
+    mockStorage.set(key, data);
+    return Promise.resolve();
+  }),
+  getCoreCredits: vi.fn(userId => {
+    const data = mockStorage.get("core_credit") || {};
+    return Promise.resolve(data[userId] || null);
+  }),
+  setCoreCredits: vi.fn((userId, data) => {
+    const allData = mockStorage.get("core_credit") || {};
+    allData[userId] = data;
+    mockStorage.set("core_credit", allData);
+    return Promise.resolve();
+  }),
+  updateCoreCredits: vi.fn(async (userId, amount) => {
+    // Small artificial delay to expose race conditions if not locked
+    await new Promise(resolve => setTimeout(resolve, 10));
+
+    const allData = mockStorage.get("core_credit") || {};
+    if (!allData[userId]) {
+      allData[userId] = {
+        credits: 0,
+        totalGenerated: 0,
+        lastUpdated: new Date().toISOString(),
+      };
+    }
+
+    // Atomic-like update in the mock
+    const userLevelData = { ...allData[userId] };
+    userLevelData.credits = (userLevelData.credits || 0) + amount;
+    userLevelData.lastUpdated = new Date().toISOString();
+
+    allData[userId] = userLevelData;
+    mockStorage.set("core_credit", allData);
+    return true;
+  }),
+};
+
 vi.mock("../../../src/utils/storage/storageManager.js", () => ({
-  getStorageManager: vi.fn(() => ({
-    get: vi.fn(key => Promise.resolve(mockStorage.get(key) || {})),
-    set: vi.fn((key, data) => {
-      mockStorage.set(key, data);
-      return Promise.resolve();
-    }),
-  })),
+  getStorageManager: vi.fn(() => mockStorageInstance),
 }));
 
 describe("Usage-Based Credit Deduction System", () => {
@@ -563,10 +597,15 @@ describe("Usage-Based Credit Deduction System", () => {
       const { getStorageManager } = await import(
         "../../../src/utils/storage/storageManager.js"
       );
-      getStorageManager.mockResolvedValueOnce({
+      getStorageManager.mockImplementationOnce(() => ({
         get: vi.fn().mockRejectedValue(new Error("Storage error")),
         set: vi.fn().mockRejectedValue(new Error("Storage error")),
-      });
+        getCoreCredits: vi.fn().mockRejectedValue(new Error("Storage error")),
+        setCoreCredits: vi.fn().mockRejectedValue(new Error("Storage error")),
+        updateCoreCredits: vi
+          .fn()
+          .mockRejectedValue(new Error("Storage error")),
+      }));
 
       const result = await checkAndDeductAICredits(testUserId);
 
@@ -614,7 +653,6 @@ describe("Usage-Based Credit Deduction System", () => {
           testCase.provider,
           testCase.model,
         );
-
         expect(result.creditsNeeded).toBe(testCase.expectedCost);
       }
     });

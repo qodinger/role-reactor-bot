@@ -1,6 +1,6 @@
 import { getStorageManager } from "../utils/storage/storageManager.js";
 import { getLogger } from "../utils/logger.js";
-import { formatCoreCredits } from "../utils/ai/aiCreditManager.js";
+import { addCoreCredits } from "../utils/ai/aiCreditManager.js";
 
 import { getPayPalClient } from "../utils/payments/paypal.js";
 
@@ -728,26 +728,14 @@ async function processPayPalPayment(paymentData) {
       );
     }
 
-    // Update user's credit balance (using CoreCreditsRepository)
-    const storage = await getStorageManager();
-    const coreCredits = (await storage.get("core_credit")) || {};
+    // Update user's credit balance atomically using the lock
+    const creditResult = await addCoreCredits(userId, coresToAdd, "paypal");
 
-    if (!coreCredits[userId]) {
-      coreCredits[userId] = {
-        credits: 0,
-        totalGenerated: 0,
-        lastUpdated: new Date().toISOString(),
-        username: null,
-      };
+    if (!creditResult.success) {
+      logger.error(
+        `❌ Failed to add credits to user ${userId} for payment ${paymentId}`,
+      );
     }
-
-    const userData = coreCredits[userId];
-    userData.credits = formatCoreCredits((userData.credits || 0) + coresToAdd);
-    userData.totalGenerated = (userData.totalGenerated || 0) + coresToAdd;
-    userData.lastUpdated = new Date().toISOString();
-
-    // Save updated credits
-    await storage.set("core_credit", coreCredits);
 
     logger.info(
       `✅ Added ${coresToAdd} Cores to user ${userId} from PayPal payment of ${amount} ${currency}`,

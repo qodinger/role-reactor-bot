@@ -92,6 +92,9 @@ export class ScheduledRoleRepository extends BaseRepository {
     try {
       const document = {
         ...scheduleData,
+        scheduledAt: scheduleData.scheduledAt
+          ? new Date(scheduleData.scheduledAt)
+          : null,
         createdAt: new Date(),
         updatedAt: new Date(),
       };

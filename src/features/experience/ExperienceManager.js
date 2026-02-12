@@ -51,12 +51,12 @@ class ExperienceCache {
 
     try {
       const storageManager = await getStorageManager();
-      const currentData = (await storageManager.read("user_experience")) || {};
-
       // Apply all batched updates
       for (const { guildId, userId, updates } of this.batchUpdates.values()) {
-        const key = `${guildId}_${userId}`;
-        const userData = currentData[key] || {
+        const userData = (await storageManager.getUserExperience(
+          guildId,
+          userId,
+        )) || {
           totalXP: 0,
           level: 1,
           lastUpdated: new Date(),
@@ -76,12 +76,9 @@ class ExperienceCache {
         userData.level = level - 1;
 
         // Update cache and storage
-        currentData[key] = userData;
+        await storageManager.setUserExperience(guildId, userId, userData);
         this.set(guildId, userId, userData);
       }
-
-      // Write all updates to storage in one operation
-      await storageManager.write("user_experience", currentData);
 
       logger.debug(
         `Successfully processed ${this.batchUpdates.size} batched XP updates`,
@@ -279,9 +276,10 @@ class ExperienceManager {
   async getUserData(guildId, userId) {
     await this.initialize();
 
-    const experienceData = await this.storageManager.read("user_experience");
-    const userKey = `${guildId}_${userId}`;
-    const userData = experienceData[userKey] || {
+    const userData = (await this.storageManager.getUserExperience(
+      guildId,
+      userId,
+    )) || {
       guildId,
       userId,
       totalXP: 0,
@@ -316,42 +314,21 @@ class ExperienceManager {
   async getLeaderboard(guildId, limit = 10) {
     await this.initialize();
 
-    // If using database provider, use optimized database query
-    if (this.storageManager.provider.constructor.name === "DatabaseProvider") {
-      const docs =
-        await this.storageManager.provider.getUserExperienceLeaderboard(
-          guildId,
-          limit,
-        );
-      // Normalize fields to match file-provider shape
-      return docs
-        .map(doc => ({
-          ...doc,
-          totalXP: typeof doc.totalXP === "number" ? doc.totalXP : doc.xp || 0,
-          level:
-            typeof doc.level === "number"
-              ? doc.level
-              : this.calculateLevel(
-                  typeof doc.totalXP === "number" ? doc.totalXP : doc.xp || 0,
-                ),
-        }))
-        .sort((a, b) => b.totalXP - a.totalXP)
-        .slice(0, limit);
-    }
-
-    // Fallback to file-based query
-    const experienceData = await this.storageManager.read("user_experience");
-    const guildUsers = Object.entries(experienceData)
-      .filter(([key]) => key.startsWith(`${guildId}_`))
-      .map(([key, data]) => ({
-        userId: key.split("_")[1],
-        ...data,
-        level: this.calculateLevel(data.totalXP),
-      }))
-      .sort((a, b) => b.totalXP - a.totalXP)
-      .slice(0, limit);
-
-    return guildUsers;
+    const docs = await this.storageManager.getUserExperienceLeaderboard(
+      guildId,
+      limit,
+    );
+    // Normalize fields to match file-provider shape
+    return docs.map(doc => ({
+      ...doc,
+      totalXP: typeof doc.totalXP === "number" ? doc.totalXP : doc.xp || 0,
+      level:
+        typeof doc.level === "number"
+          ? doc.level
+          : this.calculateLevel(
+              typeof doc.totalXP === "number" ? doc.totalXP : doc.xp || 0,
+            ),
+    }));
   }
 
   /**
@@ -362,10 +339,14 @@ class ExperienceManager {
   async getGuildStats(guildId) {
     await this.initialize();
 
-    const experienceData = await this.storageManager.read("user_experience");
-    const guildUsers = Object.entries(experienceData)
-      .filter(([key]) => key.startsWith(`${guildId}_`))
-      .map(([_key, data]) => data);
+    // For statistics, we might still need all users or we could add a specialized method.
+    // For now, let's just get the leaderboard with a high limit if file-based,
+    // or use a new method if we want to be efficient.
+    // Let's assume for now we want to keep it simple but functional.
+    const experienceData =
+      (await this.storageManager.getUserExperienceLeaderboard(guildId, 1000)) ||
+      [];
+    const guildUsers = experienceData;
 
     if (guildUsers.length === 0) {
       return {
@@ -463,15 +444,10 @@ class ExperienceManager {
     const userData = await this.addXP(guildId, userId, xp, client);
 
     // Update last earned timestamp
-    const experienceData = await this.storageManager.read("user_experience");
-    const userKey = `${guildId}_${userId}`;
-    experienceData[userKey] = {
-      ...userData,
-      lastEarned: new Date(),
-      messagesSent: (userData.messagesSent || 0) + 1,
-    };
+    userData.lastEarned = new Date();
+    userData.messagesSent = (userData.messagesSent || 0) + 1;
 
-    await this.storageManager.write("user_experience", experienceData);
+    await this.storageManager.setUserExperience(guildId, userId, userData);
 
     return {
       xp,
@@ -509,14 +485,9 @@ class ExperienceManager {
     const userData = await this.addXP(guildId, userId, xp);
 
     // Update roles earned
-    const experienceData = await this.storageManager.read("user_experience");
-    const userKey = `${guildId}_${userId}`;
-    experienceData[userKey] = {
-      ...userData,
-      rolesEarned: (userData.rolesEarned || 0) + 1,
-    };
+    userData.rolesEarned = (userData.rolesEarned || 0) + 1;
 
-    await this.storageManager.write("user_experience", experienceData);
+    await this.storageManager.setUserExperience(guildId, userId, userData);
 
     return {
       xp,
@@ -604,15 +575,10 @@ class ExperienceManager {
     const userData = await this.addXP(guildId, userId, xp);
 
     // Update commands used and last command earned timestamp
-    const experienceData = await this.storageManager.read("user_experience");
-    const userKey = `${guildId}_${userId}`;
-    experienceData[userKey] = {
-      ...userData,
-      commandsUsed: (userData.commandsUsed || 0) + 1,
-      lastCommandEarned: new Date(),
-    };
+    userData.commandsUsed = (userData.commandsUsed || 0) + 1;
+    userData.lastCommandEarned = new Date();
 
-    await this.storageManager.write("user_experience", experienceData);
+    await this.storageManager.setUserExperience(guildId, userId, userData);
 
     return {
       xp,

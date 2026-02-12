@@ -202,4 +202,22 @@ export class VoiceControlRepository extends BaseRepository {
       throw error;
     }
   }
+
+  async set(guildId, roleData) {
+    try {
+      await this.collection.updateOne(
+        { guildId },
+        { $set: { ...roleData, guildId, updatedAt: new Date() } },
+        { upsert: true },
+      );
+      this.cache.clear();
+      return true;
+    } catch (error) {
+      this.logger.error(
+        `Failed to set voice control roles for guild ${guildId}`,
+        error,
+      );
+      return false;
+    }
+  }
 }

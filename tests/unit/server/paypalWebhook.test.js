@@ -11,10 +11,24 @@ vi.mock("../../../src/utils/logger.js", () => ({
   }),
 }));
 
+const mockStorageData = new Map();
 vi.mock("../../../src/utils/storage/storageManager.js", () => ({
   getStorageManager: vi.fn().mockResolvedValue({
-    get: vi.fn(),
-    set: vi.fn(),
+    get: vi.fn(key => Promise.resolve(mockStorageData.get(key))),
+    set: vi.fn((key, data) => {
+      mockStorageData.set(key, data);
+      return Promise.resolve();
+    }),
+    getCoreCredits: vi.fn(userId => {
+      const credits = mockStorageData.get("core_credit") || {};
+      return Promise.resolve(credits[userId] || null);
+    }),
+    setCoreCredits: vi.fn((userId, data) => {
+      const credits = mockStorageData.get("core_credit") || {};
+      credits[userId] = data;
+      mockStorageData.set("core_credit", credits);
+      return Promise.resolve();
+    }),
   }),
 }));
 

@@ -12,6 +12,12 @@ export function requestLogger(req, res, next) {
   const startTime = Date.now();
   const requestId = req.requestId || "unknown";
 
+  // Skip logging for logs endpoint to avoid infinite loop of "watching the watcher"
+  if (req.url.includes("/api/v1/logs")) {
+    next();
+    return;
+  }
+
   // Log request details
   logger.debug("📥 Incoming request", {
     requestId,

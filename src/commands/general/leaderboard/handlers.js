@@ -155,14 +155,10 @@ async function getCustomLeaderboard(
     getStorageManager = defaultGetStorageManager;
   }
   const storageManager = await getStorageManager();
-  const experienceData = await storageManager.read("user_experience");
-
-  const guildUsers = Object.entries(experienceData)
-    .filter(([key]) => key.startsWith(`${guildId}_`))
-    .map(([key, data]) => ({
-      userId: key.split("_")[1],
-      ...data,
-    }));
+  const guildUsers = await storageManager.getUserExperienceLeaderboard(
+    guildId,
+    1000,
+  );
 
   // Sort based on type
   let sortedUsers;
@@ -170,17 +166,16 @@ async function getCustomLeaderboard(
     case "level":
       sortedUsers = guildUsers.sort((a, b) => {
         // Calculate level from totalXP using the correct formula
-        let levelA = 1;
-        while (Math.floor(100 * Math.pow(levelA, 1.5)) <= (a.totalXP || 0)) {
-          levelA++;
-        }
-        levelA = levelA - 1;
+        const getLevel = totalXP => {
+          let level = 1;
+          while (Math.floor(100 * Math.pow(level, 1.5)) <= (totalXP || 0)) {
+            level++;
+          }
+          return level - 1;
+        };
 
-        let levelB = 1;
-        while (Math.floor(100 * Math.pow(levelB, 1.5)) <= (b.totalXP || 0)) {
-          levelB++;
-        }
-        levelB = levelB - 1;
+        const levelA = getLevel(a.totalXP || a.xp || 0);
+        const levelB = getLevel(b.totalXP || b.xp || 0);
 
         return levelB - levelA;
       });
@@ -197,7 +192,7 @@ async function getCustomLeaderboard(
       break;
     default:
       sortedUsers = guildUsers.sort(
-        (a, b) => (b.totalXP || 0) - (a.totalXP || 0),
+        (a, b) => (b.totalXP || b.xp || 0) - (a.totalXP || a.xp || 0),
       );
   }
 

@@ -108,9 +108,7 @@ async function handleAddCores(interaction, targetUser, deferred) {
 
   try {
     const storage = await getStorageManager();
-    const coreCredits = (await storage.get("core_credit")) || {};
-
-    const userData = coreCredits[targetUser.id] || {
+    const userData = (await storage.getCoreCredits(targetUser.id)) || {
       credits: 0,
       totalGenerated: 0,
       lastUpdated: new Date().toISOString(),
@@ -136,8 +134,7 @@ async function handleAddCores(interaction, targetUser, deferred) {
     userData.lastUpdated = new Date().toISOString();
 
     // Save to storage
-    coreCredits[targetUser.id] = userData;
-    await storage.set("core_credit", coreCredits);
+    await storage.setCoreCredits(targetUser.id, userData);
 
     // Create success embed
     const embed = await createDetailedCoreManagementEmbed({
@@ -178,9 +175,7 @@ async function handleRemoveCores(interaction, targetUser, deferred) {
 
   try {
     const storage = await getStorageManager();
-    const coreCredits = (await storage.get("core_credit")) || {};
-
-    const userData = coreCredits[targetUser.id] || {
+    const userData = (await storage.getCoreCredits(targetUser.id)) || {
       credits: 0,
       totalGenerated: 0,
       lastUpdated: new Date().toISOString(),
@@ -195,8 +190,7 @@ async function handleRemoveCores(interaction, targetUser, deferred) {
     userData.lastUpdated = new Date().toISOString();
 
     // Save to storage
-    coreCredits[targetUser.id] = userData;
-    await storage.set("core_credit", coreCredits);
+    await storage.setCoreCredits(targetUser.id, userData);
 
     // Create success embed
     const embed = await createDetailedCoreManagementEmbed({
@@ -237,9 +231,7 @@ async function handleSetCores(interaction, targetUser, deferred) {
 
   try {
     const storage = await getStorageManager();
-    const coreCredits = (await storage.get("core_credit")) || {};
-
-    const userData = coreCredits[targetUser.id] || {
+    const userData = (await storage.getCoreCredits(targetUser.id)) || {
       credits: 0,
       totalGenerated: 0,
       lastUpdated: new Date().toISOString(),
@@ -254,8 +246,7 @@ async function handleSetCores(interaction, targetUser, deferred) {
     userData.lastUpdated = new Date().toISOString();
 
     // Save to storage
-    coreCredits[targetUser.id] = userData;
-    await storage.set("core_credit", coreCredits);
+    await storage.setCoreCredits(targetUser.id, userData);
 
     // Create success embed
     const embed = await createDetailedCoreManagementEmbed({
@@ -292,9 +283,7 @@ async function handleSetCores(interaction, targetUser, deferred) {
 async function handleViewCores(interaction, targetUser, deferred) {
   try {
     const storage = await getStorageManager();
-    const coreCredits = (await storage.get("core_credit")) || {};
-
-    const userData = coreCredits[targetUser.id] || {
+    const userData = (await storage.getCoreCredits(targetUser.id)) || {
       credits: 0,
       totalGenerated: 0,
       lastUpdated: new Date().toISOString(),

@@ -105,6 +105,33 @@ class FileProvider {
       return false;
     }
   }
+
+  async delete(collection) {
+    try {
+      const filePath = this._getFilePath(collection);
+      await fs.unlink(filePath);
+      return true;
+    } catch (error) {
+      if (error.code !== "ENOENT") {
+        this.logger.error(`❌ Failed to delete ${collection} file:`, error);
+      }
+      return false;
+    }
+  }
+
+  async archive(collection) {
+    try {
+      const filePath = this._getFilePath(collection);
+      const archivedPath = `${filePath}.migrated`;
+      await fs.rename(filePath, archivedPath);
+      return true;
+    } catch (error) {
+      if (error.code !== "ENOENT") {
+        this.logger.error(`❌ Failed to archive ${collection} file:`, error);
+      }
+      return false;
+    }
+  }
 }
 
 class DatabaseProvider {
@@ -261,17 +288,13 @@ class DatabaseProvider {
     if (this.dbManager?.voiceControlRoles) {
       return this.dbManager.voiceControlRoles.getByGuild(guildId);
     }
-    // Fallback to file storage
-    const data = await this.provider.read("voice_control_roles");
-    return (
-      data[guildId] || {
-        guildId,
-        disconnectRoleIds: [],
-        muteRoleIds: [],
-        deafenRoleIds: [],
-        moveRoleMappings: {},
-      }
-    );
+    return {
+      guildId,
+      disconnectRoleIds: [],
+      muteRoleIds: [],
+      deafenRoleIds: [],
+      moveRoleMappings: {},
+    };
   }
 
   async addVoiceDisconnectRole(guildId, roleId) {
@@ -281,15 +304,7 @@ class DatabaseProvider {
         roleId,
       );
     }
-    // Fallback to file storage
-    const data = await this.provider.read("voice_control_roles");
-    if (!data[guildId]) {
-      data[guildId] = { guildId, disconnectRoleIds: [], muteRoleIds: [] };
-    }
-    if (!data[guildId].disconnectRoleIds.includes(roleId)) {
-      data[guildId].disconnectRoleIds.push(roleId);
-    }
-    return this.provider.write("voice_control_roles", data);
+    return false;
   }
 
   async removeVoiceDisconnectRole(guildId, roleId) {
@@ -299,78 +314,35 @@ class DatabaseProvider {
         roleId,
       );
     }
-    // Fallback to file storage
-    const data = await this.provider.read("voice_control_roles");
-    if (data[guildId]) {
-      data[guildId].disconnectRoleIds = data[guildId].disconnectRoleIds.filter(
-        id => id !== roleId,
-      );
-    }
-    return this.provider.write("voice_control_roles", data);
+    return false;
   }
 
   async addVoiceMuteRole(guildId, roleId) {
     if (this.dbManager?.voiceControlRoles) {
       return this.dbManager.voiceControlRoles.addMuteRole(guildId, roleId);
     }
-    // Fallback to file storage
-    const data = await this.provider.read("voice_control_roles");
-    if (!data[guildId]) {
-      data[guildId] = { guildId, disconnectRoleIds: [], muteRoleIds: [] };
-    }
-    if (!data[guildId].muteRoleIds.includes(roleId)) {
-      data[guildId].muteRoleIds.push(roleId);
-    }
-    return this.provider.write("voice_control_roles", data);
+    return false;
   }
 
   async removeVoiceMuteRole(guildId, roleId) {
     if (this.dbManager?.voiceControlRoles) {
       return this.dbManager.voiceControlRoles.removeMuteRole(guildId, roleId);
     }
-    // Fallback to file storage
-    const data = await this.provider.read("voice_control_roles");
-    if (data[guildId]) {
-      data[guildId].muteRoleIds = data[guildId].muteRoleIds.filter(
-        id => id !== roleId,
-      );
-    }
-    return this.provider.write("voice_control_roles", data);
+    return false;
   }
 
   async addVoiceDeafenRole(guildId, roleId) {
     if (this.dbManager?.voiceControlRoles) {
       return this.dbManager.voiceControlRoles.addDeafenRole(guildId, roleId);
     }
-    // Fallback to file storage
-    const data = await this.provider.read("voice_control_roles");
-    if (!data[guildId]) {
-      data[guildId] = {
-        guildId,
-        disconnectRoleIds: [],
-        muteRoleIds: [],
-        deafenRoleIds: [],
-        moveRoleMappings: {},
-      };
-    }
-    if (!data[guildId].deafenRoleIds.includes(roleId)) {
-      data[guildId].deafenRoleIds.push(roleId);
-    }
-    return this.provider.write("voice_control_roles", data);
+    return false;
   }
 
   async removeVoiceDeafenRole(guildId, roleId) {
     if (this.dbManager?.voiceControlRoles) {
       return this.dbManager.voiceControlRoles.removeDeafenRole(guildId, roleId);
     }
-    // Fallback to file storage
-    const data = await this.provider.read("voice_control_roles");
-    if (data[guildId]) {
-      data[guildId].deafenRoleIds = data[guildId].deafenRoleIds.filter(
-        id => id !== roleId,
-      );
-    }
-    return this.provider.write("voice_control_roles", data);
+    return false;
   }
 
   async addVoiceMoveRole(guildId, roleId, channelId) {
@@ -381,34 +353,86 @@ class DatabaseProvider {
         channelId,
       );
     }
-    // Fallback to file storage
-    const data = await this.provider.read("voice_control_roles");
-    if (!data[guildId]) {
-      data[guildId] = {
-        guildId,
-        disconnectRoleIds: [],
-        muteRoleIds: [],
-        deafenRoleIds: [],
-        moveRoleMappings: {},
-      };
-    }
-    if (!data[guildId].moveRoleMappings) {
-      data[guildId].moveRoleMappings = {};
-    }
-    data[guildId].moveRoleMappings[roleId] = channelId;
-    return this.provider.write("voice_control_roles", data);
+    return false;
   }
 
   async removeVoiceMoveRole(guildId, roleId) {
     if (this.dbManager?.voiceControlRoles) {
       return this.dbManager.voiceControlRoles.removeMoveRole(guildId, roleId);
     }
-    // Fallback to file storage
-    const data = await this.provider.read("voice_control_roles");
-    if (data[guildId]?.moveRoleMappings) {
-      delete data[guildId].moveRoleMappings[roleId];
+    return false;
+  }
+
+  // Guild Analytics methods
+  async updateGuildAnalytics(guildId, date, type, amount) {
+    if (this.dbManager?.guildAnalytics) {
+      await this.dbManager.guildAnalytics.updateCounter(
+        guildId,
+        date,
+        type,
+        amount,
+      );
+      return true;
     }
-    return this.provider.write("voice_control_roles", data);
+    return false;
+  }
+
+  async getGuildAnalyticsHistory(guildId, startDate, endDate) {
+    if (this.dbManager?.guildAnalytics) {
+      return await this.dbManager.guildAnalytics.getHistory(
+        guildId,
+        startDate,
+        endDate,
+      );
+    }
+    return [];
+  }
+
+  async cleanupOldAnalytics(cutoffDate) {
+    if (this.dbManager?.guildAnalytics) {
+      return await this.dbManager.guildAnalytics.deleteOlderThan(cutoffDate);
+    }
+    return 0;
+  }
+
+  // Moderation methods
+  async logModerationAction(actionData) {
+    if (this.dbManager?.moderationLogs) {
+      return await this.dbManager.moderationLogs.create(actionData);
+    }
+    return false;
+  }
+
+  async getModerationHistory(guildId, userId) {
+    if (this.dbManager?.moderationLogs) {
+      return await this.dbManager.moderationLogs.getByUser(guildId, userId);
+    }
+    return [];
+  }
+
+  async getAllModerationHistory(guildId) {
+    if (this.dbManager?.moderationLogs) {
+      return await this.dbManager.moderationLogs.getByGuild(guildId);
+    }
+    return [];
+  }
+
+  async getWarnCount(guildId, userId) {
+    if (this.dbManager?.moderationLogs) {
+      return await this.dbManager.moderationLogs.getWarnCount(guildId, userId);
+    }
+    return 0;
+  }
+
+  async removeWarning(guildId, userId, caseId) {
+    if (this.dbManager?.moderationLogs) {
+      return await this.dbManager.moderationLogs.deleteWarning(
+        guildId,
+        userId,
+        caseId,
+      );
+    }
+    return false;
   }
 }
 
@@ -421,159 +445,142 @@ class StorageManager {
   }
 
   /**
-   * Ensure MongoDB is used for core_credit data when available
-   * If MongoDB is not available, use local data as fallback
+   * Migrate core_credit data from local JSON to MongoDB
    */
-  async ensureMongoDBForCoreCredits() {
-    // If we're already using DatabaseProvider, we're good
-    if (this.provider instanceof DatabaseProvider) {
-      return;
-    }
-
+  async migrateCoreCreditsToDatabase() {
     try {
-      // Try to get database manager
-      const dbManager = await getDatabaseManager();
-      if (
-        dbManager &&
-        dbManager.connectionManager &&
-        dbManager.connectionManager.db
-      ) {
-        this.logger.info(
-          "🔄 MongoDB connection restored, switching to database storage for core_credit",
-        );
+      this.logger.info("🔄 Checking for local core_credit data to migrate...");
 
-        // Switch to database provider
-        this.provider = new DatabaseProvider(dbManager, this.logger);
-
-        // Sync data between local and MongoDB
-        await this.syncCoreCreditsToMongoDB();
-
-        this.logger.success("✅ Switched to MongoDB for core_credit data");
-      } else {
-        // MongoDB not available - REQUIRE MongoDB for core_credit operations
-        this.logger.error(
-          "❌ MongoDB required for core_credit operations - database unavailable",
-        );
-        throw new Error("MongoDB required for core_credit operations");
-      }
-    } catch (error) {
-      // MongoDB still not available - REQUIRE MongoDB for core_credit operations
-      this.logger.error(
-        "❌ MongoDB required for core_credit operations:",
-        error.message,
-      );
-      throw new Error("MongoDB required for core_credit operations");
-    }
-  }
-
-  /**
-   * Sync core_credit data between local JSON and MongoDB
-   * Uses the most recent data as the source of truth
-   */
-  async syncCoreCreditsToMongoDB() {
-    try {
-      this.logger.info(
-        "🔄 Syncing core_credit data between local and MongoDB...",
-      );
-
-      // Read from both sources
       const fileProvider = new FileProvider(this.logger);
-      const jsonData = await fileProvider.read("core_credit");
-      const mongoData = await this.provider.getAllCoreCredits();
+      const localData = await fileProvider.read("core_credit");
 
-      const jsonUserCount = Object.keys(jsonData).length;
-      const mongoUserCount = Object.keys(mongoData).length;
-
-      this.logger.info(
-        `📊 Local JSON: ${jsonUserCount} users, MongoDB: ${mongoUserCount} users`,
-      );
-
-      // If both are empty, nothing to sync
-      if (jsonUserCount === 0 && mongoUserCount === 0) {
-        this.logger.info("📁 No core_credit data to sync");
+      if (Object.keys(localData).length === 0) {
+        this.logger.info("📁 No local core_credit data to migrate");
         return;
       }
 
-      // Determine which data is more recent and complete
-      const mergedData = this.mergeCoreCreditsData(jsonData, mongoData);
-      const mergedUserCount = Object.keys(mergedData).length;
-
-      this.logger.info(`🔄 Merged data: ${mergedUserCount} users`);
-
-      // Update MongoDB with merged data (exclude MongoDB internal fields)
-      for (const [userId, userData] of Object.entries(mergedData)) {
-        // Remove MongoDB internal fields that shouldn't be updated
-        // eslint-disable-next-line no-unused-vars
-        const { _id, ...cleanUserData } = userData;
-        await this.provider.setCoreCredits(userId, cleanUserData);
+      // Check if database has any core credits
+      const dbCount =
+        await this.dbManager.coreCredits.collection.countDocuments();
+      if (dbCount > 0) {
+        this.logger.info(
+          `📊 Database already has ${dbCount} core_credit records, skipping migration`,
+        );
+        return;
       }
 
-      // Update JSON file with merged data as backup
-      await this.updateJsonBackup(mergedData);
-
-      this.logger.success(
-        `✅ Synced ${mergedUserCount} users between local and MongoDB`,
-      );
-    } catch (error) {
-      this.logger.error("❌ Failed to sync core_credit data:", error);
-    }
-  }
-
-  /**
-   * Merge core credits data from JSON and MongoDB, using the most recent data
-   */
-  mergeCoreCreditsData(jsonData, mongoData) {
-    const merged = {};
-
-    // Get all unique user IDs from both sources
-    const allUserIds = new Set([
-      ...Object.keys(jsonData),
-      ...Object.keys(mongoData),
-    ]);
-
-    for (const userId of allUserIds) {
-      const jsonUser = jsonData[userId];
-      const mongoUser = mongoData[userId];
-
-      if (!jsonUser && mongoUser) {
-        // Only exists in MongoDB
-        merged[userId] = mongoUser;
-      } else if (jsonUser && !mongoUser) {
-        // Only exists in JSON
-        merged[userId] = jsonUser;
-      } else {
-        // Exists in both, use the most recent
-        const jsonLastUpdated = new Date(jsonUser.lastUpdated || 0);
-        const mongoLastUpdated = new Date(mongoUser.lastUpdated || 0);
-
-        if (jsonLastUpdated >= mongoLastUpdated) {
-          merged[userId] = jsonUser;
-        } else {
-          merged[userId] = mongoUser;
+      this.logger.info("🔄 Migrating core_credit data to database...");
+      let migratedCount = 0;
+      for (const [userId, userData] of Object.entries(localData)) {
+        try {
+          // eslint-disable-next-line no-unused-vars
+          const { _id, ...cleanUserData } = userData;
+          if (
+            cleanUserData.lastUpdated &&
+            typeof cleanUserData.lastUpdated === "string"
+          ) {
+            cleanUserData.lastUpdated = new Date(cleanUserData.lastUpdated);
+          }
+          await this.provider.setCoreCredits(userId, cleanUserData);
+          migratedCount++;
+        } catch (error) {
+          this.logger.warn(
+            `Failed to migrate core_credit for user ${userId}:`,
+            error.message,
+          );
         }
       }
-    }
 
-    return merged;
+      this.logger.success(
+        `✅ Successfully migrated ${migratedCount} core_credit records to database`,
+      );
+
+      // Automatically archive local file after successful migration
+      await fileProvider.archive("core_credit");
+      this.logger.info(
+        "📦 Archived local core_credit.json to core_credit.json.migrated",
+      );
+    } catch (error) {
+      this.logger.error("❌ core_credit migration failed:", error);
+    }
   }
 
   /**
-   * Update JSON file as backup when MongoDB is the primary source
+   * Migrate user_experience data from local JSON to MongoDB
    */
-  async updateJsonBackup(mongoData) {
+  async migrateUserExperienceToDatabase() {
     try {
+      this.logger.info(
+        "🔄 Checking for local user_experience data to migrate...",
+      );
+
       const fileProvider = new FileProvider(this.logger);
-      // Clean data before writing to JSON (remove MongoDB internal fields)
-      const cleanData = {};
-      for (const [userId, userData] of Object.entries(mongoData)) {
-        // eslint-disable-next-line no-unused-vars
-        const { _id, ...cleanUserData } = userData;
-        cleanData[userId] = cleanUserData;
+      const localData = await fileProvider.read("user_experience");
+
+      if (Object.keys(localData).length === 0) {
+        this.logger.info("📁 No local user_experience data to migrate");
+        return;
       }
-      await fileProvider.write("core_credit", cleanData);
-      this.logger.debug("📁 Updated JSON backup with MongoDB data");
+
+      // Check if database already has user experience data
+      const dbCount =
+        await this.dbManager.userExperience.collection.countDocuments();
+      if (dbCount > 0) {
+        this.logger.info(
+          `📊 Database already has ${dbCount} user_experience records, skipping migration`,
+        );
+        return;
+      }
+
+      this.logger.info("🔄 Migrating user_experience data to database...");
+      let migratedCount = 0;
+      for (const [key, userData] of Object.entries(localData)) {
+        try {
+          const [guildId, userId] = key.split("_");
+          if (guildId && userId) {
+            // eslint-disable-next-line no-unused-vars
+            const { _id, ...cleanUserData } = userData;
+            // Convert strings to Dates
+            if (
+              cleanUserData.lastMessageAt &&
+              typeof cleanUserData.lastMessageAt === "string"
+            ) {
+              cleanUserData.lastMessageAt = new Date(
+                cleanUserData.lastMessageAt,
+              );
+            }
+            if (
+              cleanUserData.updatedAt &&
+              typeof cleanUserData.updatedAt === "string"
+            ) {
+              cleanUserData.updatedAt = new Date(cleanUserData.updatedAt);
+            }
+            await this.provider.setUserExperience(
+              guildId,
+              userId,
+              cleanUserData,
+            );
+            migratedCount++;
+          }
+        } catch (error) {
+          this.logger.warn(
+            `Failed to migrate user_experience for ${key}:`,
+            error.message,
+          );
+        }
+      }
+
+      this.logger.success(
+        `✅ Successfully migrated ${migratedCount} user_experience records to database`,
+      );
+
+      // Automatically archive local file after successful migration
+      await fileProvider.archive("user_experience");
+      this.logger.info(
+        "📦 Archived local user_experience.json to user_experience.json.migrated",
+      );
     } catch (error) {
-      this.logger.warn("⚠️ Failed to update JSON backup:", error.message);
+      this.logger.error("❌ user_experience migration failed:", error);
     }
   }
 
@@ -582,55 +589,316 @@ class StorageManager {
    */
   async migrateLocalDataToDatabase() {
     try {
-      this.logger.info("🔄 Checking for local data to migrate...");
-
-      // Create a temporary file provider to read local data
+      this.logger.info("🔄 Checking for remaining local data to migrate...");
       const fileProvider = new FileProvider(this.logger);
 
-      // Check if there are polls in local files
+      // 1. Migrate Polls
       const localPolls = await fileProvider.read("polls");
       const localPollCount = Object.keys(localPolls).length;
 
-      if (localPollCount === 0) {
-        this.logger.info("📁 No local poll data to migrate");
-        return;
-      }
-
-      this.logger.info(
-        `📁 Found ${localPollCount} polls in local files, checking database...`,
-      );
-
-      // Check if database already has polls
-      const dbPolls = await this.provider.getAllPolls();
-      const dbPollCount = Object.keys(dbPolls).length;
-
-      if (dbPollCount > 0) {
-        this.logger.info(
-          `📊 Database already has ${dbPollCount} polls, skipping migration`,
-        );
-        return;
-      }
-
-      // Migrate polls from local files to database
-      this.logger.info(`🔄 Migrating ${localPollCount} polls to database...`);
-
-      let migratedCount = 0;
-      for (const [pollId, pollData] of Object.entries(localPolls)) {
-        try {
-          await this.provider.createPoll(pollData);
-          migratedCount++;
-        } catch (error) {
-          this.logger.warn(`Failed to migrate poll ${pollId}:`, error.message);
+      if (localPollCount > 0) {
+        const dbPolls = await this.provider.getAllPolls();
+        if (Object.keys(dbPolls).length === 0) {
+          this.logger.info(
+            `🔄 Migrating ${localPollCount} polls to database...`,
+          );
+          let migratedCount = 0;
+          for (const pollData of Object.values(localPolls)) {
+            try {
+              await this.provider.createPoll(pollData);
+              migratedCount++;
+            } catch (error) {
+              this.logger.warn(`Failed to migrate poll:`, error.message);
+            }
+          }
+          this.logger.success(
+            `✅ Successfully migrated ${migratedCount} polls`,
+          );
+          await fileProvider.archive("polls");
         }
       }
 
-      this.logger.success(
-        `✅ Successfully migrated ${migratedCount}/${localPollCount} polls to database`,
-      );
+      // 2. Migrate Moderation Logs
+      const localModLogs = await fileProvider.read("moderation_logs");
+      if (Object.keys(localModLogs).length > 0) {
+        const dbCount =
+          await this.dbManager.moderationLogs.collection.countDocuments();
+        if (dbCount === 0) {
+          this.logger.info("🔄 Migrating moderation logs to database...");
+          let migratedCount = 0;
+          for (const [guildId, guildLogs] of Object.entries(localModLogs)) {
+            for (const [userId, userLogs] of Object.entries(guildLogs)) {
+              for (const log of userLogs) {
+                try {
+                  const logToMigrate = {
+                    ...log,
+                    guildId: log.guildId || guildId,
+                    userId: log.userId || userId,
+                  };
+                  if (
+                    logToMigrate.timestamp &&
+                    typeof logToMigrate.timestamp === "string"
+                  ) {
+                    logToMigrate.timestamp = new Date(logToMigrate.timestamp);
+                  }
+                  await this.dbManager.moderationLogs.create(logToMigrate);
+                  migratedCount++;
+                } catch (error) {
+                  this.logger.warn(
+                    "Failed to migrate moderation log:",
+                    error.message,
+                  );
+                }
+              }
+            }
+          }
+          this.logger.success(
+            `✅ Successfully migrated ${migratedCount} moderation logs`,
+          );
+          await fileProvider.archive("moderation_logs");
+        }
+      }
 
-      // Optionally, you can clear local files after successful migration
-      // Uncomment the next line if you want to clear local files after migration
-      // await fileProvider.write("polls", {});
+      // 3. Migrate Scheduled Roles
+      const localSchedRoles = await fileProvider.read("scheduled_roles");
+      if (Object.keys(localSchedRoles).length > 0) {
+        const dbCount =
+          await this.dbManager.scheduledRoles.collection.countDocuments();
+        if (dbCount === 0) {
+          this.logger.info("🔄 Migrating scheduled roles to database...");
+          let migratedCount = 0;
+          for (const schedule of Object.values(localSchedRoles)) {
+            try {
+              await this.dbManager.scheduledRoles.create(schedule);
+              migratedCount++;
+            } catch (error) {
+              this.logger.warn(
+                "Failed to migrate scheduled role:",
+                error.message,
+              );
+            }
+          }
+          this.logger.success(
+            `✅ Successfully migrated ${migratedCount} scheduled roles`,
+          );
+          await fileProvider.archive("scheduled_roles");
+        }
+      }
+
+      // 4. Migrate Recurring Schedules
+      const localRecurSchedules = await fileProvider.read(
+        "recurring_schedules",
+      );
+      if (Object.keys(localRecurSchedules).length > 0) {
+        const dbCount =
+          await this.dbManager.recurringSchedules.collection.countDocuments();
+        if (dbCount === 0) {
+          this.logger.info("🔄 Migrating recurring schedules to database...");
+          let migratedCount = 0;
+          for (const schedule of Object.values(localRecurSchedules)) {
+            try {
+              if (
+                schedule.lastExecutedAt &&
+                typeof schedule.lastExecutedAt === "string"
+              ) {
+                schedule.lastExecutedAt = new Date(schedule.lastExecutedAt);
+              }
+              await this.dbManager.recurringSchedules.create(schedule);
+              migratedCount++;
+            } catch (error) {
+              this.logger.warn(
+                "Failed to migrate recurring schedule:",
+                error.message,
+              );
+            }
+          }
+          this.logger.success(
+            `✅ Successfully migrated ${migratedCount} recurring schedules`,
+          );
+          await fileProvider.archive("recurring_schedules");
+        }
+      }
+
+      // 5. Migrate Voice Control Roles
+      const localVoiceRoles = await fileProvider.read("voice_control_roles");
+      if (Object.keys(localVoiceRoles).length > 0) {
+        const dbCount =
+          await this.dbManager.voiceControlRoles.collection.countDocuments();
+        if (dbCount === 0) {
+          this.logger.info("🔄 Migrating voice control roles to database...");
+          let migratedCount = 0;
+          for (const [guildId, roleData] of Object.entries(localVoiceRoles)) {
+            try {
+              await this.dbManager.voiceControlRoles.set(guildId, roleData);
+              migratedCount++;
+            } catch (error) {
+              this.logger.warn(
+                `Failed to migrate voice roles for ${guildId}:`,
+                error.message,
+              );
+            }
+          }
+          this.logger.success(
+            `✅ Successfully migrated ${migratedCount} voice control roles`,
+          );
+          await fileProvider.archive("voice_control_roles");
+        }
+      }
+
+      // 6. Migrate Role Mappings
+      const localRoleMappings = await fileProvider.read("role_mappings");
+      if (Object.keys(localRoleMappings).length > 0) {
+        const dbCount =
+          await this.dbManager.roleMappings.collection.countDocuments();
+        if (dbCount === 0) {
+          this.logger.info("🔄 Migrating role mappings to database...");
+          let migratedCount = 0;
+          for (const [messageId, mapping] of Object.entries(
+            localRoleMappings,
+          )) {
+            try {
+              await this.dbManager.roleMappings.set(
+                messageId,
+                mapping.guildId,
+                mapping.channelId,
+                mapping.roles,
+              );
+              migratedCount++;
+            } catch (error) {
+              this.logger.warn(
+                `Failed to migrate role mapping ${messageId}:`,
+                error.message,
+              );
+            }
+          }
+          this.logger.success(
+            `✅ Successfully migrated ${migratedCount} role mappings`,
+          );
+          await fileProvider.archive("role_mappings");
+        }
+      }
+
+      // 7. Migrate Temporary Roles
+      const localTempRoles = await fileProvider.read("temporary_roles");
+      if (Object.keys(localTempRoles).length > 0) {
+        const dbCount =
+          await this.dbManager.temporaryRoles.collection.countDocuments();
+        if (dbCount === 0) {
+          this.logger.info("🔄 Migrating temporary roles to database...");
+          let migratedCount = 0;
+          for (const [guildId, users] of Object.entries(localTempRoles)) {
+            for (const [userId, roles] of Object.entries(users)) {
+              for (const [roleId, data] of Object.entries(roles)) {
+                try {
+                  await this.dbManager.temporaryRoles.add(
+                    guildId,
+                    userId,
+                    roleId,
+                    new Date(data.expiresAt),
+                    data.notifyExpiry,
+                  );
+                  migratedCount++;
+                } catch (error) {
+                  this.logger.warn(
+                    `Failed to migrate temp role ${roleId}:`,
+                    error.message,
+                  );
+                }
+              }
+            }
+          }
+          this.logger.success(
+            `✅ Successfully migrated ${migratedCount} temporary roles`,
+          );
+          await fileProvider.archive("temporary_roles");
+        }
+      }
+
+      // 8. Migrate Guild Settings
+      const localGuildSettings = await fileProvider.read("guild_settings");
+      if (Object.keys(localGuildSettings).length > 0) {
+        const dbCount =
+          await this.dbManager.guildSettings.collection.countDocuments();
+        if (dbCount === 0) {
+          this.logger.info("🔄 Migrating guild settings to database...");
+          let migratedCount = 0;
+          for (const [guildId, settings] of Object.entries(
+            localGuildSettings,
+          )) {
+            try {
+              await this.dbManager.guildSettings.set(guildId, settings);
+              migratedCount++;
+            } catch (error) {
+              this.logger.warn(
+                `Failed to migrate guild settings for ${guildId}:`,
+                error.message,
+              );
+            }
+          }
+          this.logger.success(
+            `✅ Successfully migrated ${migratedCount} guild settings`,
+          );
+          await fileProvider.archive("guild_settings");
+        }
+      }
+
+      // 9. Migrate Welcome Settings
+      const localWelcomeSettings = await fileProvider.read("welcome_settings");
+      if (Object.keys(localWelcomeSettings).length > 0) {
+        const dbCount =
+          await this.dbManager.welcomeSettings.collection.countDocuments();
+        if (dbCount === 0) {
+          this.logger.info("🔄 Migrating welcome settings to database...");
+          let migratedCount = 0;
+          for (const [guildId, settings] of Object.entries(
+            localWelcomeSettings,
+          )) {
+            try {
+              await this.dbManager.welcomeSettings.set(guildId, settings);
+              migratedCount++;
+            } catch (error) {
+              this.logger.warn(
+                `Failed to migrate welcome settings for ${guildId}:`,
+                error.message,
+              );
+            }
+          }
+          this.logger.success(
+            `✅ Successfully migrated ${migratedCount} welcome settings`,
+          );
+          await fileProvider.archive("welcome_settings");
+        }
+      }
+
+      // 10. Migrate Goodbye Settings
+      const localGoodbyeSettings = await fileProvider.read("goodbye_settings");
+      if (Object.keys(localGoodbyeSettings).length > 0) {
+        const dbCount =
+          await this.dbManager.goodbyeSettings.collection.countDocuments();
+        if (dbCount === 0) {
+          this.logger.info("🔄 Migrating goodbye settings to database...");
+          let migratedCount = 0;
+          for (const [guildId, settings] of Object.entries(
+            localGoodbyeSettings,
+          )) {
+            try {
+              await this.dbManager.goodbyeSettings.set(guildId, settings);
+              migratedCount++;
+            } catch (error) {
+              this.logger.warn(
+                `Failed to migrate goodbye settings for ${guildId}:`,
+                error.message,
+              );
+            }
+          }
+          this.logger.success(
+            `✅ Successfully migrated ${migratedCount} goodbye settings`,
+          );
+          await fileProvider.archive("goodbye_settings");
+        }
+      }
+
+      this.logger.info("🏁 Local data migration check completed");
     } catch (error) {
       this.logger.error("❌ Migration failed:", error);
     }
@@ -650,8 +918,14 @@ class StorageManager {
         // Migrate data from local files to database
         await this.migrateLocalDataToDatabase();
 
-        // Sync core_credit data from JSON file to MongoDB if needed
-        await this.syncCoreCreditsToMongoDB();
+        // Migrate core_credit data from JSON file to MongoDB if needed
+        await this.migrateCoreCreditsToDatabase();
+
+        // Migrate user_experience data from JSON file to MongoDB if needed
+        await this.migrateUserExperienceToDatabase();
+
+        // Migrate analytics data from local files if needed
+        await this.migrateAnalyticsToDatabase();
       } else {
         this.provider = new FileProvider(this.logger);
         this.logger.warn(
@@ -1044,29 +1318,7 @@ class StorageManager {
 
   // Generic storage methods for other features
   async read(collection) {
-    // For core_credit, always try to use MongoDB if available
-    if (collection === "core_credit") {
-      await this.ensureMongoDBForCoreCredits();
-    }
-
     if (this.provider instanceof DatabaseProvider) {
-      // Use database for user_experience collection
-      if (collection === "user_experience") {
-        // Normalize to a key-value map like the file provider returns
-        const documents = await this.provider.getAllUserExperience();
-        const map = {};
-        for (const doc of documents) {
-          map[`${doc.guildId}_${doc.userId}`] = doc;
-        }
-        return map;
-      }
-      // Use database for core_credit collection
-      if (collection === "core_credit") {
-        // Get all core credits from database
-        const allCoreCredits = await this.provider.getAllCoreCredits();
-
-        return allCoreCredits;
-      }
       // For other collections, use file-based storage
       const fileProvider = new FileProvider(this.logger);
       return await fileProvider.read(collection);
@@ -1077,70 +1329,13 @@ class StorageManager {
   }
 
   async write(collection, data) {
-    // For core_credit, always try to use MongoDB if available
-    if (collection === "core_credit") {
-      await this.ensureMongoDBForCoreCredits();
-      this.logger.debug(
-        `🔍 Provider check for core_credit: ${this.provider?.constructor?.name || "null"}`,
-      );
-    }
-
     if (this.provider instanceof DatabaseProvider) {
-      // Use database for user_experience collection
-      if (collection === "user_experience") {
-        // Update all user experience data in database
-        for (const [key, userData] of Object.entries(data)) {
-          const [guildId, userId] = key.split("_");
-          if (guildId && userId) {
-            await this.provider.setUserExperience(guildId, userId, userData);
-          }
-        }
-        return true;
-      }
-      // Use database for core_credit collection
-      if (collection === "core_credit") {
-        this.logger.info(
-          `💾 Saving core_credit data to MongoDB: ${Object.keys(data).length} user(s)`,
-        );
-        // Update all core credit data in database (exclude MongoDB internal fields)
-        for (const [userId, userData] of Object.entries(data)) {
-          // eslint-disable-next-line no-unused-vars
-          const { _id, ...cleanUserData } = userData;
-          this.logger.debug(
-            `💾 Saving user ${userId} to MongoDB: ${cleanUserData.credits} credits`,
-          );
-          const result = await this.provider.setCoreCredits(
-            userId,
-            cleanUserData,
-          );
-          if (result) {
-            this.logger.debug(
-              `✅ Successfully saved user ${userId} to MongoDB`,
-            );
-          } else {
-            this.logger.error(`❌ Failed to save user ${userId} to MongoDB`);
-          }
-        }
-
-        this.logger.info(
-          `✅ Saved ${Object.keys(data).length} user(s) to MongoDB core_credits collection`,
-        );
-
-        // Update JSON file as backup
-        await this.updateJsonBackup(data);
-        return true;
-      }
       // For other collections, use file-based storage
       const fileProvider = new FileProvider(this.logger);
       return await fileProvider.write(collection, data);
     }
 
     // Fallback to file storage when MongoDB is not available
-    if (collection === "core_credit") {
-      this.logger.warn(
-        "⚠️ MongoDB not available, falling back to file storage for core_credit",
-      );
-    }
     return await this.provider.write(collection, data);
   }
 
@@ -1166,6 +1361,274 @@ class StorageManager {
 
   async set(key, data) {
     return this.write(key, data);
+  }
+
+  /**
+   * Migrate analytics data from local files to database
+   */
+  async migrateAnalyticsToDatabase() {
+    try {
+      this.logger.info("🔄 Checking for local analytics data to migrate...");
+
+      const fileProvider = new FileProvider(this.logger);
+      const localData = await fileProvider.read("guild_analytics");
+
+      if (Object.keys(localData).length === 0) {
+        this.logger.info("📁 No local analytics data to migrate");
+        return;
+      }
+
+      // Check if database has any analytics
+      const dbCount =
+        await this.dbManager.guildAnalytics.collection.countDocuments();
+      if (dbCount > 0) {
+        this.logger.info(
+          `📊 Database already has ${dbCount} analytics records, skipping migration`,
+        );
+        return;
+      }
+
+      this.logger.info("🔄 Migrating analytics data to database...");
+      const migratedCount =
+        await this.dbManager.guildAnalytics.migrateFromJson(localData);
+
+      this.logger.success(
+        `✅ Successfully migrated ${migratedCount} analytics records to database`,
+      );
+
+      // Automatically archive local file after successful migration
+      await fileProvider.archive("guild_analytics");
+      this.logger.info(
+        "📦 Archived local guild_analytics.json to guild_analytics.json.migrated",
+      );
+    } catch (error) {
+      this.logger.error("❌ Analytics migration failed:", error);
+    }
+  }
+
+  // Guild Analytics explicit methods
+  async updateGuildAnalytics(guildId, date, type, amount) {
+    if (this.provider instanceof DatabaseProvider) {
+      return await this.provider.updateGuildAnalytics(
+        guildId,
+        date,
+        type,
+        amount,
+      );
+    }
+    // Fallback for file provider
+    const data = await this.provider.read("guild_analytics");
+    if (!data[guildId]) data[guildId] = {};
+    if (!data[guildId][date]) {
+      data[guildId][date] = { joins: 0, leaves: 0, members: 0 };
+    }
+    data[guildId][date][type] += amount;
+    return await this.provider.write("guild_analytics", data);
+  }
+
+  async getGuildAnalyticsHistory(guildId, startDate, endDate) {
+    if (this.provider instanceof DatabaseProvider) {
+      const history = await this.provider.getGuildAnalyticsHistory(
+        guildId,
+        startDate,
+        endDate,
+      );
+      // Map MongoDB documents to the format expected by AnalyticsManager
+      return history.map(h => ({
+        date: h.date,
+        joins: h.joins || 0,
+        leaves: h.leaves || 0,
+        members: h.members || 0,
+      }));
+    }
+
+    // File provider fallback
+    const data = await this.provider.read("guild_analytics");
+    const guildData = data[guildId] || {};
+    const history = [];
+
+    const current = new Date(startDate);
+    const end = new Date(endDate);
+
+    while (current <= end) {
+      const dateKey = current.toISOString().split("T")[0];
+      const dayData = guildData[dateKey] || { joins: 0, leaves: 0, members: 0 };
+      history.push({
+        date: dateKey,
+        ...dayData,
+      });
+      current.setDate(current.getDate() + 1);
+    }
+
+    return history;
+  }
+
+  async cleanupOldAnalytics(cutoffDate) {
+    if (this.provider instanceof DatabaseProvider) {
+      return await this.provider.cleanupOldAnalytics(cutoffDate);
+    }
+
+    // File provider fallback
+    const data = await this.provider.read("guild_analytics");
+    let modified = false;
+    for (const guildId in data) {
+      for (const dateKey in data[guildId]) {
+        if (dateKey < cutoffDate) {
+          delete data[guildId][dateKey];
+          modified = true;
+        }
+      }
+    }
+    if (modified) {
+      await this.provider.write("guild_analytics", data);
+    }
+    return 0; // Don't track count for file-based
+  }
+
+  // User Experience explicit methods
+  async getUserExperience(guildId, userId) {
+    if (this.provider instanceof DatabaseProvider) {
+      return await this.provider.getUserExperience(guildId, userId);
+    }
+    const data = await this.provider.read("user_experience");
+    return data[`${guildId}_${userId}`] || null;
+  }
+
+  async setUserExperience(guildId, userId, userData) {
+    if (this.provider instanceof DatabaseProvider) {
+      return await this.provider.setUserExperience(guildId, userId, userData);
+    }
+    const data = await this.provider.read("user_experience");
+    data[`${guildId}_${userId}`] = userData;
+    return await this.provider.write("user_experience", data);
+  }
+
+  async getUserExperienceLeaderboard(guildId, limit = 10) {
+    if (this.provider instanceof DatabaseProvider) {
+      return await this.provider.getUserExperienceLeaderboard(guildId, limit);
+    }
+    const data = await this.provider.read("user_experience");
+    return Object.entries(data)
+      .filter(([key]) => key.startsWith(`${guildId}_`))
+      .map(([key, value]) => ({
+        userId: key.split("_")[1],
+        guildId,
+        ...value,
+      }))
+      .sort((a, b) => (b.totalXP || b.xp || 0) - (a.totalXP || a.xp || 0))
+      .slice(0, limit);
+  }
+
+  // Core Credits explicit methods
+  async getCoreCredits(userId) {
+    if (this.provider instanceof DatabaseProvider) {
+      return await this.provider.getCoreCredits(userId);
+    }
+    const data = await this.provider.read("core_credit");
+    return data[userId] || null;
+  }
+
+  async setCoreCredits(userId, userData) {
+    if (this.provider instanceof DatabaseProvider) {
+      return await this.provider.setCoreCredits(userId, userData);
+    }
+    const data = await this.provider.read("core_credit");
+    data[userId] = userData;
+    return await this.provider.write("core_credit", data);
+  }
+
+  async updateCoreCredits(userId, creditsChange) {
+    if (this.provider instanceof DatabaseProvider) {
+      return await this.provider.updateCoreCredits(userId, creditsChange);
+    }
+    const data = await this.provider.read("core_credit");
+    if (!data[userId]) {
+      data[userId] = { credits: 0, lastUpdated: new Date().toISOString() };
+    }
+    data[userId].credits = (data[userId].credits || 0) + creditsChange;
+    data[userId].lastUpdated = new Date().toISOString();
+    return await this.provider.write("core_credit", data);
+  }
+
+  // Moderation explicit methods
+  async logModerationAction(actionData) {
+    if (this.provider instanceof DatabaseProvider) {
+      return await this.provider.logModerationAction(actionData);
+    }
+    // File fallback handled in moderation utils via generic get/set for now
+    // but we can make it explicit here if we want to refactor fully
+    const moderationLogs = (await this.provider.read("moderation_logs")) || {};
+    if (!moderationLogs[actionData.guildId])
+      moderationLogs[actionData.guildId] = {};
+    if (!moderationLogs[actionData.guildId][actionData.userId])
+      moderationLogs[actionData.guildId][actionData.userId] = [];
+
+    const logEntry = {
+      ...actionData,
+      timestamp: actionData.timestamp || new Date().toISOString(),
+    };
+    moderationLogs[actionData.guildId][actionData.userId].push(logEntry);
+
+    // Keep only last 100 entries per user
+    if (moderationLogs[actionData.guildId][actionData.userId].length > 100) {
+      moderationLogs[actionData.guildId][actionData.userId] =
+        moderationLogs[actionData.guildId][actionData.userId].slice(-100);
+    }
+
+    return await this.provider.write("moderation_logs", moderationLogs);
+  }
+
+  async getModerationHistory(guildId, userId) {
+    if (this.provider instanceof DatabaseProvider) {
+      return await this.provider.getModerationHistory(guildId, userId);
+    }
+    const moderationLogs = (await this.provider.read("moderation_logs")) || {};
+    return moderationLogs[guildId]?.[userId] || [];
+  }
+
+  async getAllModerationHistory(guildId) {
+    if (this.provider instanceof DatabaseProvider) {
+      return await this.provider.getAllModerationHistory(guildId);
+    }
+    const moderationLogs = (await this.provider.read("moderation_logs")) || {};
+    if (!moderationLogs[guildId]) return [];
+
+    const allHistory = [];
+    for (const [userId, userHistory] of Object.entries(
+      moderationLogs[guildId],
+    )) {
+      for (const log of userHistory) {
+        allHistory.push({ ...log, userId });
+      }
+    }
+    return allHistory;
+  }
+
+  async getWarnCount(guildId, userId) {
+    if (this.provider instanceof DatabaseProvider) {
+      return await this.provider.getWarnCount(guildId, userId);
+    }
+    const history = await this.getModerationHistory(guildId, userId);
+    return history.filter(log => log.action === "warn").length;
+  }
+
+  async removeWarning(guildId, userId, caseId) {
+    if (this.provider instanceof DatabaseProvider) {
+      return await this.provider.removeWarning(guildId, userId, caseId);
+    }
+    const moderationLogs = (await this.provider.read("moderation_logs")) || {};
+    if (!moderationLogs[guildId]?.[userId]) return false;
+
+    const initialLength = moderationLogs[guildId][userId].length;
+    moderationLogs[guildId][userId] = moderationLogs[guildId][userId].filter(
+      log => !(log.action === "warn" && log.caseId === caseId),
+    );
+
+    const removed = moderationLogs[guildId][userId].length < initialLength;
+    if (removed) {
+      await this.provider.write("moderation_logs", moderationLogs);
+    }
+    return removed;
   }
 }
 

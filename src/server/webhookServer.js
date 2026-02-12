@@ -29,6 +29,9 @@ import commandsRouter from "./routes/v1/commands.js";
 import servicesRouter from "./routes/v1/services.js";
 import docsRouter from "./routes/v1/docs.js";
 import statsRouter from "./routes/v1/stats.js";
+import logsRouter from "./routes/v1/logs.js";
+import configRouter from "./routes/v1/config.js";
+import healthRouter from "./routes/v1/health.js";
 
 // Import services
 import { SupportersService } from "./services/supporters/SupportersService.js";
@@ -158,6 +161,9 @@ function initializeRoutes() {
   app.use(`${API_PREFIX}/services`, internalAuth, servicesRouter);
   app.use(`${API_PREFIX}/docs`, internalAuth, docsRouter);
   app.use(`${API_PREFIX}/stats`, internalAuth, statsRouter);
+  app.use(`${API_PREFIX}/logs`, internalAuth, logsRouter);
+  app.use(`${API_PREFIX}/config`, internalAuth, configRouter);
+  app.use(`${API_PREFIX}/health`, internalAuth, healthRouter);
 
   // Register existing routes as services for discovery
   if (process.env.DISCORD_CLIENT_ID) {

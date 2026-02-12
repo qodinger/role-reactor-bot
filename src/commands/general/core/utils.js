@@ -15,10 +15,10 @@ const logger = getLogger();
 export async function getUserData(userId) {
   try {
     const storage = await getStorageManager();
-    const coreCredits = (await storage.get("core_credit")) || {};
+    const userData = await storage.getCoreCredits(userId);
 
     return (
-      coreCredits[userId] || {
+      userData || {
         credits: 0,
         totalGenerated: 0,
         lastUpdated: new Date().toISOString(),

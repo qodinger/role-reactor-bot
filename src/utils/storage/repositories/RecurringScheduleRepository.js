@@ -84,6 +84,9 @@ export class RecurringScheduleRepository extends BaseRepository {
     try {
       const document = {
         ...scheduleData,
+        lastExecutedAt: scheduleData.lastExecutedAt
+          ? new Date(scheduleData.lastExecutedAt)
+          : null,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -98,9 +101,13 @@ export class RecurringScheduleRepository extends BaseRepository {
 
   async update(scheduleId, scheduleData) {
     try {
+      const dataToUpdate = { ...scheduleData, updatedAt: new Date() };
+      if (dataToUpdate.lastExecutedAt) {
+        dataToUpdate.lastExecutedAt = new Date(dataToUpdate.lastExecutedAt);
+      }
       await this.collection.updateOne(
         { id: scheduleId },
-        { $set: { ...scheduleData, updatedAt: new Date() } },
+        { $set: dataToUpdate },
       );
       this.cache.clear();
       return true;
@@ -155,7 +162,12 @@ export class RecurringScheduleRepository extends BaseRepository {
     try {
       await this.collection.updateOne(
         { id: scheduleId },
-        { $set: { lastExecutedAt, updatedAt: new Date() } },
+        {
+          $set: {
+            lastExecutedAt: new Date(lastExecutedAt),
+            updatedAt: new Date(),
+          },
+        },
       );
       this.cache.clear();
       return true;

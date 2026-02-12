@@ -17,6 +17,8 @@ import {
   UserRepository,
   PaymentRepository,
   CommandUsageRepository,
+  GuildAnalyticsRepository,
+  ModerationLogRepository,
 } from "./repositories/index.js";
 
 // Enhanced cache manager with TTL and size limits
@@ -454,6 +456,17 @@ class ConnectionManager {
       await this.db
         .collection("command_usage")
         .createIndex({ commandName: 1 }, { unique: true });
+      await this.db
+        .collection("guild_analytics")
+        .createIndex({ guildId: 1, date: 1 }, { unique: true });
+      await this.db.collection("moderation_logs").createIndex({ guildId: 1 });
+      await this.db.collection("moderation_logs").createIndex({ userId: 1 });
+      await this.db
+        .collection("moderation_logs")
+        .createIndex({ caseId: 1 }, { unique: true });
+      await this.db
+        .collection("moderation_logs")
+        .createIndex({ timestamp: -1 });
 
       this.logger.success("✅ Database indexes created successfully");
     } catch (error) {
@@ -504,6 +517,8 @@ class DatabaseManager {
     this.users = null;
     this.payments = null;
     this.commandUsage = null;
+    this.guildAnalytics = null;
+    this.moderationLogs = null;
     // Initialize connection manager asynchronously (non-blocking)
     this._initializeConnectionManager().catch(() => {
       // Silently fail - will be initialized on first connect
@@ -631,6 +646,16 @@ class DatabaseManager {
           this.logger,
         );
         this.commandUsage = new CommandUsageRepository(
+          db,
+          this.cacheManager,
+          this.logger,
+        );
+        this.guildAnalytics = new GuildAnalyticsRepository(
+          db,
+          this.cacheManager,
+          this.logger,
+        );
+        this.moderationLogs = new ModerationLogRepository(
           db,
           this.cacheManager,
           this.logger,

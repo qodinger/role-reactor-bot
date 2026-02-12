@@ -1,3 +1,13 @@
+/**
+ * User Roles constants
+ */
+export const UserRoles = {
+  USER: "user", // Standard user
+  SUPPORT: "support", // Access to stats and logs, but not revenue or config
+  ADMIN: "admin", // Full access but limited to system settings
+  OWNER: "owner", // Absolute access to everything (Revenue, Bot Config)
+};
+
 import { BaseRepository } from "./BaseRepository.js";
 
 /**
@@ -17,6 +27,7 @@ export class UserRepository extends BaseRepository {
     try {
       await this.collection.createIndex({ discordId: 1 }, { unique: true });
       await this.collection.createIndex({ email: 1 }, { sparse: true });
+      await this.collection.createIndex({ role: 1 });
       await this.collection.createIndex({ createdAt: 1 });
       this.logger.debug("UserRepository indexes ensured");
     } catch (error) {
@@ -103,6 +114,10 @@ export class UserRepository extends BaseRepository {
         updatedAt: now,
       };
 
+      // Auto-promote if user is in the developers list
+      const { config } = await import("../../../config/config.js");
+      const developers = config.parseDevelopers();
+
       // Only update email if provided (requires email scope)
       if (email) {
         updateData.email = email.toLowerCase().trim();
@@ -117,11 +132,23 @@ export class UserRepository extends BaseRepository {
         updateData.refreshToken = encryptToken(refreshToken);
       }
 
+      const setOnInsert = {
+        createdAt: now,
+      };
+
+      if (developers.includes(discordId)) {
+        updateData.role = UserRoles.OWNER;
+      } else {
+        // Only set default role on initial creation for non-developers
+        // This prevents overwriting existing roles (like admin/support) on every login
+        setOnInsert.role = UserRoles.USER;
+      }
+
       const result = await this.collection.findOneAndUpdate(
         { discordId },
         {
           $set: updateData,
-          $setOnInsert: { createdAt: now },
+          $setOnInsert: setOnInsert,
         },
         { upsert: true, returnDocument: "after" },
       );
@@ -254,11 +281,12 @@ export class UserRepository extends BaseRepository {
 
   /**
    * Get user count
+   * @param {Object} filter - Query filter
    * @returns {Promise<number>} Total user count
    */
-  async count() {
+  async count(filter = {}) {
     try {
-      return await this.collection.countDocuments();
+      return await this.collection.countDocuments(filter);
     } catch (error) {
       this.logger.error("Failed to count users", error);
       return 0;
@@ -279,6 +307,51 @@ export class UserRepository extends BaseRepository {
         .toArray();
     } catch (error) {
       this.logger.error("Failed to get recently active users", error);
+      return [];
+    }
+  }
+
+  /**
+   * Update user role
+   * @param {string} discordId - Discord user ID
+   * @param {string} role - New role
+   * @returns {Promise<boolean>} Success status
+   */
+  async setRole(discordId, role) {
+    try {
+      if (!Object.values(UserRoles).includes(role)) {
+        throw new Error(`Invalid role: ${role}`);
+      }
+
+      const result = await this.collection.updateOne(
+        { discordId },
+        { $set: { role, updatedAt: new Date().toISOString() } },
+      );
+
+      this.cache.delete(`user_discord_${discordId}`);
+      return result.modifiedCount > 0;
+    } catch (error) {
+      this.logger.error(`Failed to set role for user ${discordId}`, error);
+      return false;
+    }
+  }
+
+  /**
+   * List users with pagination and filtering
+   * @param {Object} filter - Query filter
+   * @param {number} limit - Limit results
+   * @param {number} skip - Skip results
+   */
+  async listUsers(filter = {}, limit = 50, skip = 0) {
+    try {
+      return await this.collection
+        .find(filter)
+        .sort({ lastLogin: -1 })
+        .skip(skip)
+        .limit(limit)
+        .toArray();
+    } catch (error) {
+      this.logger.error("Failed to list users", error);
       return [];
     }
   }

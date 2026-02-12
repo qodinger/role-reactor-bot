@@ -158,14 +158,9 @@ class VoiceTracker {
     const userData = await experienceManager.addXP(guildId, userId, xp);
 
     // Update voice time
-    const experienceData = await this.storageManager.read("user_experience");
-    const userKey = `${guildId}_${userId}`;
-    experienceData[userKey] = {
-      ...userData,
-      voiceTime: (userData.voiceTime || 0) + 5, // 5 minutes
-    };
+    userData.voiceTime = (userData.voiceTime || 0) + 5; // 5 minutes
 
-    await this.storageManager.write("user_experience", experienceData);
+    await this.storageManager.setUserExperience(guildId, userId, userData);
 
     this.logger.debug(
       `🎤 Awarded ${xp} voice XP to user ${userId} in guild ${guildId}`,

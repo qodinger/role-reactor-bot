@@ -2,10 +2,7 @@ import { getLogger } from "../../utils/logger.js";
 import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
-import {
-  createSuccessResponse,
-  createErrorResponse,
-} from "../utils/responseHelpers.js";
+import { createSuccessResponse } from "../utils/responseHelpers.js";
 import { logRequest as logRequestHelper } from "../utils/apiShared.js";
 
 const logger = getLogger();

@@ -240,30 +240,8 @@ export async function logModerationAction(actionData) {
     timestamp,
   };
 
-  // Get existing moderation logs
-  const moderationLogs = (await storage.get("moderation_logs")) || {};
-
-  // Initialize guild logs if needed
-  if (!moderationLogs[actionData.guildId]) {
-    moderationLogs[actionData.guildId] = {};
-  }
-
-  // Initialize user logs if needed
-  if (!moderationLogs[actionData.guildId][actionData.userId]) {
-    moderationLogs[actionData.guildId][actionData.userId] = [];
-  }
-
-  // Add log entry
-  moderationLogs[actionData.guildId][actionData.userId].push(logEntry);
-
-  // Keep only last 100 entries per user to prevent storage bloat
-  if (moderationLogs[actionData.guildId][actionData.userId].length > 100) {
-    moderationLogs[actionData.guildId][actionData.userId] =
-      moderationLogs[actionData.guildId][actionData.userId].slice(-100);
-  }
-
-  // Save to storage
-  await storage.set("moderation_logs", moderationLogs);
+  // Save to storage using explicit method
+  await storage.logModerationAction(logEntry);
 
   logger.info(
     `${EMOJIS.MODERATION.DEFAULT} Moderation action logged: ${actionData.action} on user ${actionData.userId} by ${actionData.moderatorId} (Case: ${caseId})`,
@@ -284,13 +262,7 @@ export async function getModerationHistory(guildId, userId) {
   );
   const storage = await getStorageManager();
 
-  const moderationLogs = (await storage.get("moderation_logs")) || {};
-
-  if (!moderationLogs[guildId] || !moderationLogs[guildId][userId]) {
-    return [];
-  }
-
-  return moderationLogs[guildId][userId];
+  return await storage.getModerationHistory(guildId, userId);
 }
 
 /**
@@ -304,24 +276,7 @@ export async function getAllModerationHistory(guildId) {
   );
   const storage = await getStorageManager();
 
-  const moderationLogs = (await storage.get("moderation_logs")) || {};
-
-  if (!moderationLogs[guildId]) {
-    return [];
-  }
-
-  // Flatten all user histories into a single array with userId included
-  const allHistory = [];
-  for (const [userId, userHistory] of Object.entries(moderationLogs[guildId])) {
-    for (const log of userHistory) {
-      allHistory.push({
-        ...log,
-        userId, // Include userId for server-wide history
-      });
-    }
-  }
-
-  return allHistory;
+  return await storage.getAllModerationHistory(guildId);
 }
 
 /**
@@ -331,8 +286,11 @@ export async function getAllModerationHistory(guildId) {
  * @returns {Promise<number>} Number of warnings
  */
 export async function getWarnCount(guildId, userId) {
-  const history = await getModerationHistory(guildId, userId);
-  return history.filter(log => log.action === "warn").length;
+  const { getStorageManager } = await import(
+    "../../../utils/storage/storageManager.js"
+  );
+  const storage = await getStorageManager();
+  return await storage.getWarnCount(guildId, userId);
 }
 
 /**
@@ -348,33 +306,9 @@ export async function removeWarning(guildId, userId, caseId) {
   );
   const storage = await getStorageManager();
 
-  const moderationLogs = (await storage.get("moderation_logs")) || {};
-
-  if (
-    !moderationLogs[guildId] ||
-    !moderationLogs[guildId][userId] ||
-    !Array.isArray(moderationLogs[guildId][userId])
-  ) {
-    return {
-      success: false,
-      removed: false,
-      error: "No moderation history found for this user",
-    };
-  }
-
-  const userLogs = moderationLogs[guildId][userId];
-  const initialLength = userLogs.length;
-
-  // Remove the warning with matching case ID
-  moderationLogs[guildId][userId] = userLogs.filter(
-    log => !(log.action === "warn" && log.caseId === caseId),
-  );
-
-  const removed = moderationLogs[guildId][userId].length < initialLength;
+  const removed = await storage.removeWarning(guildId, userId, caseId);
 
   if (removed) {
-    // Save updated logs
-    await storage.set("moderation_logs", moderationLogs);
     logger.info(
       `🗑️ Warning removed: Case ${caseId} for user ${userId} in guild ${guildId}`,
     );
