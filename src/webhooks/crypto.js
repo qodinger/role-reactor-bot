@@ -198,7 +198,6 @@ async function creditUserCore({
   const configModule = await import("../config/config.js").catch(() => null);
   const config =
     configModule?.config || configModule?.default || configModule || {};
-  const packages = config.corePricing?.packages || {};
   const minimumAmount = config.corePricing?.coreSystem?.minimumPayment || 1;
 
   if (amount < minimumAmount) {

@@ -1149,8 +1149,8 @@ export async function apiGetGuildSettings(req, res) {
             }
             // Always try to fetch roles as it's lightweight
             await guild.roles.fetch().catch(() => null);
-          } catch (e) {
-            logger.warn(`Error ensuring guild caches: ${e.message}`);
+          } catch (_e) {
+            logger.warn(`Error ensuring guild caches: ${_e.message}`);
           }
 
           const botsInCache = guild.members.cache.filter(m => m.user.bot).size;
@@ -1218,7 +1218,7 @@ export async function apiGetGuildSettings(req, res) {
                 );
                 const analyticsManager = await getAnalyticsManager();
                 return await analyticsManager.getHistory(guild.id, 14); // 14 days for the chart
-              } catch (e) {
+              } catch (_e) {
                 return [];
               }
             })(),
@@ -1251,8 +1251,10 @@ export async function apiGetGuildSettings(req, res) {
                     level: l.level || 1,
                   };
                 });
-              } catch (e) {
-                logger.warn(`Failed to fetch leaderboard for ${guildId}: ${e}`);
+              } catch (_e) {
+                logger.warn(
+                  `Failed to fetch leaderboard for ${guildId}: ${_e}`,
+                );
                 return [];
               }
             })(),
@@ -1309,8 +1311,8 @@ export async function apiGetGuildSettings(req, res) {
                   topChatters,
                   topVoiceUsers,
                 };
-              } catch (e) {
-                logger.warn(`Failed to fetch activity for ${guildId}: ${e}`);
+              } catch (_e) {
+                logger.warn(`Failed to fetch activity for ${guildId}: ${_e}`);
                 return null;
               }
             })(),
@@ -1341,10 +1343,10 @@ export async function apiGetGuildSettings(req, res) {
                     }),
                     joinedAt: m.joinedAt || new Date(),
                   }));
-              } catch (e) {
+              } catch (_e) {
                 logger.error(
                   `Error in recentMembers fetch for ${guild.id}:`,
-                  e,
+                  _e,
                 );
                 return [];
               }
@@ -1786,7 +1788,7 @@ export async function apiGuildLeaderboard(req, res) {
         if (!user) {
           try {
             user = await client.users.fetch(userId);
-          } catch (e) {
+          } catch (_e) {
             // Ignore fetch errors
           }
         }

@@ -1,4 +1,4 @@
-import { PremiumFeatures, PERIOD_DAYS } from "./config.js";
+import { PremiumFeatures } from "./config.js";
 import { getStorageManager } from "../../utils/storage/databaseManager.js";
 import { getLogger } from "../../utils/logger.js";
 import { getCommandHandler } from "../../utils/core/commandHandler.js";
