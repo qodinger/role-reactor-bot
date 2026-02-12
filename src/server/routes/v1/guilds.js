@@ -6,15 +6,19 @@ import {
   apiGetGuildRoles,
   apiGetGuildEmojis,
   apiCheckGuilds,
+  apiListGuilds,
   apiActivatePremiumFeature,
   apiGuildLeaderboard,
-} from "../api.js";
+} from "../../controllers/GuildController.js";
 import { internalAuth } from "../../middleware/internalAuth.js";
 
 const router = express.Router();
 
 // Bulk check
 router.post("/check", apiCheckGuilds);
+
+// List all guilds
+router.get("/", internalAuth, apiListGuilds);
 
 // Settings
 router.get("/:guildId/settings", internalAuth, apiGetGuildSettings);

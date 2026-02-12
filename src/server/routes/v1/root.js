@@ -1,11 +1,11 @@
 import express from "express";
+import { apiInfo } from "../api.js";
+import { apiStats } from "../../controllers/StatsController.js";
 import {
-  apiInfo,
-  apiStats,
   apiPricing,
   apiUserBalance,
   apiUserPayments,
-} from "../api.js";
+} from "../../controllers/PaymentController.js";
 
 const router = express.Router();
 

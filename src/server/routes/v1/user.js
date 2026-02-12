@@ -1,5 +1,8 @@
 import express from "express";
-import { apiUserBalance, apiUserPayments } from "../api.js";
+import {
+  apiUserBalance,
+  apiUserPayments,
+} from "../../controllers/PaymentController.js";
 
 import { internalAuth } from "../../middleware/internalAuth.js";
 

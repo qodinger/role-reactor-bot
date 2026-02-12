@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { apiCommandUsage } from "../../../src/server/routes/api.js";
+import { apiCommandUsage } from "../../../src/server/controllers/StatsController.js";
 import * as commandHandlerModule from "../../../src/utils/core/commandHandler.js";
 
 // Mock the response helpers

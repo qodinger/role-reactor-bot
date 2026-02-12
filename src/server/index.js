@@ -21,7 +21,8 @@ export { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 // Route handlers
 export { healthCheck, dockerHealthCheck } from "./routes/health.js";
 export { verifyWebhookToken } from "./routes/webhook.js";
-export { apiInfo, apiStats, apiCommandUsage } from "./routes/api.js";
+export { apiInfo } from "./routes/api.js";
+export { apiStats, apiCommandUsage } from "./controllers/StatsController.js";
 export { getServices, getService } from "./routes/services.js";
 
 // Services

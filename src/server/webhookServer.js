@@ -17,7 +17,7 @@ import { internalAuth } from "./middleware/internalAuth.js";
 // Import route handlers
 import { healthCheck, dockerHealthCheck } from "./routes/health.js";
 import { verifyWebhookToken } from "./routes/webhook.js";
-import { setDiscordClient } from "./routes/api.js";
+import { setDiscordClient } from "./utils/apiShared.js";
 import authRoutes from "./routes/auth.js";
 
 // Import V1 Routers

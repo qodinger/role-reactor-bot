@@ -5,7 +5,7 @@ import {
   apiCreatePayment,
   apiCreatePayPalOrder,
   apiCapturePayPalOrder,
-} from "../api.js";
+} from "../../controllers/PaymentController.js";
 
 import { internalAuth } from "../../middleware/internalAuth.js";
 

@@ -1,5 +1,5 @@
 import express from "express";
-import { apiCommandUsage } from "../api.js";
+import { apiCommandUsage } from "../../controllers/StatsController.js";
 
 const router = express.Router();
 

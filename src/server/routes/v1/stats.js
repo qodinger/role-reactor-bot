@@ -1,5 +1,10 @@
 import express from "express";
-import { apiInfo, apiStats, apiCommandUsage, apiPricing } from "../api.js";
+import { apiInfo } from "../api.js";
+import {
+  apiStats,
+  apiCommandUsage,
+} from "../../controllers/StatsController.js";
+import { apiPricing } from "../../controllers/PaymentController.js";
 
 const router = express.Router();
 

@@ -241,16 +241,18 @@ class RoleScheduler {
     const guild = this.client.guilds.cache.get(schedule.guildId);
     if (!guild) {
       this.logger.warn(
-        `Guild ${schedule.guildId} not found, skipping schedule ${schedule.id}`,
+        `Guild ${schedule.guildId} not found, deactivating recurring schedule ${schedule.id}`,
       );
+      await databaseManager.recurringSchedules.cancel(schedule.id);
       return;
     }
 
     const role = guild.roles.cache.get(schedule.roleId);
     if (!role) {
       this.logger.warn(
-        `Role ${schedule.roleId} not found in guild ${guild.name}, skipping schedule ${schedule.id}`,
+        `Role ${schedule.roleId} not found in guild ${guild.name}, deactivating recurring schedule ${schedule.id}`,
       );
+      await databaseManager.recurringSchedules.cancel(schedule.id);
       return;
     }
 
@@ -283,7 +285,7 @@ class RoleScheduler {
         try {
           const member = await getCachedMember(guild, userId);
           if (!member) {
-            this.logger.warn(
+            this.logger.debug(
               `Member ${userId} not found in guild ${guild.name}`,
             );
             continue;
@@ -382,7 +384,9 @@ class RoleScheduler {
       try {
         const member = await getCachedMember(guild, userId);
         if (!member) {
-          this.logger.warn(`Member ${userId} not found in guild ${guild.name}`);
+          this.logger.debug(
+            `Member ${userId} not found in guild ${guild.name}`,
+          );
           continue;
         }
 
