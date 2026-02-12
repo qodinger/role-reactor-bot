@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.2] - 2026-02-12
+
+### Added
+
+- **Server Growth Tracking**: New automated system to track member joins and leaves for improved community oversight.
+- **Enhanced Server Statistics**: View detailed real-time information about server activity, 14-day growth trends, and top member leaderboards.
+
+### Changed
+
+- **Smart Troubleshooting**: Added clearer guidance for larger bots (100+ servers) encountering Discord verification limits, with direct steps on how to resolve them.
+- **Improved Message Layouts**: Refined the appearance and spacing of instructions in role scheduling messages for better readability.
+
+### Performance
+
+- **Schedule Role Efficiency**: Significantly improved the speed and reliability of role assignments and removals, especially for large servers.
+
 ## [1.6.1] - 2026-01-30
 
 ### Changed
