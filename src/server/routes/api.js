@@ -142,7 +142,9 @@ function calculateBotStats(useCache = true) {
   const uniqueUsers = new Set();
   client.guilds.cache.forEach(guild => {
     guild.members.cache.forEach(member => {
-      uniqueUsers.add(member.user.id);
+      if (!member.user.bot) {
+        uniqueUsers.add(member.user.id);
+      }
     });
   });
 
@@ -1128,17 +1130,225 @@ export async function apiGetGuildSettings(req, res) {
           logger.info(
             `Found guild: ${guild.name} (${guild.memberCount} members)`,
           );
+
+          // Best-effort fetch for accurate counts
+          try {
+            // First fetch the guild itself to get accurate counts (requires withCounts: true for approximate values)
+            await client.guilds
+              .fetch({ guild: guildId, withCounts: true, force: true })
+              .catch(() => null);
+
+            // Then ensure members are cached (for role counts etc)
+            if (
+              guild.memberCount !== guild.members.cache.size &&
+              guild.memberCount < 5000
+            ) {
+              await guild.members.fetch({ time: 2000 }).catch(() => {
+                logger.warn(`Timeout fetching members for ${guild.name}`);
+              });
+            }
+            // Always try to fetch roles as it's lightweight
+            await guild.roles.fetch().catch(() => null);
+          } catch (e) {
+            logger.warn(`Error ensuring guild caches: ${e.message}`);
+          }
+
+          const botsInCache = guild.members.cache.filter(m => m.user.bot).size;
+          const humansInCache = guild.members.cache.filter(
+            m => !m.user.bot,
+          ).size;
+
           guildStats = {
             name: guild.name,
             icon: guild.icon,
             memberCount: guild.memberCount,
+            humanCount: humansInCache,
+            botCount: botsInCache,
+            onlineCount: (function () {
+              const precise = guild.members.cache.filter(
+                m =>
+                  !m.user.bot &&
+                  m.presence?.status &&
+                  m.presence.status !== "offline",
+              ).size;
+              // Fallback to approximate count if precise count is 0 (likely missing intents)
+              // We subtract bots from approximatePresenceCount because it includes EVERYONE online
+              return (
+                precise ||
+                Math.max(
+                  0,
+                  (guild.approximatePresenceCount || 0) - botsInCache,
+                ) ||
+                0
+              );
+            })(),
             channelCount: guild.channels.cache.size,
-            roleCount: guild.roles.cache.size,
+            roleCount: guild.roles.cache.filter(
+              r => !r.managed && r.id !== guild.id,
+            ).size,
             emojiCount: guild.emojis.cache.size,
+            stickerCount: guild.stickers.cache.size,
+            verificationLevel: guild.verificationLevel,
+            vanityURLCode: guild.vanityURLCode,
+            isPartnered: guild.partnered,
+            isVerified: guild.verified,
             ownerId: guild.ownerId,
             joinedAt: guild.joinedAt,
             premiumSubscriptionCount: guild.premiumSubscriptionCount || 0,
+            premiumTier: guild.premiumTier,
             features: guild.features,
+            latency: client.ws.ping,
+            uptime: client.uptime,
+            growth: {
+              new24h: guild.members.cache.filter(
+                m =>
+                  !m.user.bot &&
+                  m.joinedTimestamp > Date.now() - 24 * 60 * 60 * 1000,
+              ).size,
+              new7d: guild.members.cache.filter(
+                m =>
+                  !m.user.bot &&
+                  m.joinedTimestamp > Date.now() - 7 * 24 * 60 * 60 * 1000,
+              ).size,
+            },
+            growthHistory: await (async () => {
+              try {
+                const { getAnalyticsManager } = await import(
+                  "../../features/analytics/AnalyticsManager.js"
+                );
+                const analyticsManager = await getAnalyticsManager();
+                return await analyticsManager.getHistory(guild.id, 14); // 14 days for the chart
+              } catch (e) {
+                return [];
+              }
+            })(),
+            leaderboard: await (async () => {
+              try {
+                const { getStorageManager } = await import(
+                  "../../utils/storage/storageManager.js"
+                );
+                const storageManager = await getStorageManager();
+                const xpData =
+                  (await storageManager.read("user_experience")) || {};
+
+                // Filter for this guild and sort
+                const guildUsers = Object.values(xpData)
+                  .filter(u => u.guildId === guild.id)
+                  .sort((a, b) => (b.totalXP || 0) - (a.totalXP || 0))
+                  .slice(0, 3);
+
+                return guildUsers.map((l, i) => {
+                  const member = guild.members.cache.get(l.userId);
+                  return {
+                    rank: i + 1,
+                    userId: l.userId,
+                    username: member?.user.username || "Unknown User",
+                    avatar: member?.user.displayAvatarURL({
+                      dynamic: true,
+                      size: 64,
+                    }),
+                    xp: l.totalXP || l.xp || 0,
+                    level: l.level || 1,
+                  };
+                });
+              } catch (e) {
+                logger.warn(`Failed to fetch leaderboard for ${guildId}: ${e}`);
+                return [];
+              }
+            })(),
+            activity: await (async () => {
+              try {
+                const { getStorageManager } = await import(
+                  "../../utils/storage/storageManager.js"
+                );
+                const storageManager = await getStorageManager();
+                const xpData =
+                  (await storageManager.read("user_experience")) || {};
+
+                const guildUsers = Object.values(xpData).filter(
+                  u => u.guildId === guild.id,
+                );
+
+                const totalMessages = guildUsers.reduce(
+                  (sum, u) => sum + (u.messagesSent || 0),
+                  0,
+                );
+                const totalVoiceMins = guildUsers.reduce(
+                  (sum, u) => sum + (u.voiceTime || 0),
+                  0,
+                );
+                const totalCommands = guildUsers.reduce(
+                  (sum, u) => sum + (u.commandsUsed || 0),
+                  0,
+                );
+
+                const topChatters = [...guildUsers]
+                  .sort((a, b) => (b.messagesSent || 0) - (a.messagesSent || 0))
+                  .slice(0, 3)
+                  .map(u => ({
+                    username:
+                      guild.members.cache.get(u.userId)?.user.username ||
+                      "Unknown",
+                    count: u.messagesSent || 0,
+                  }));
+
+                const topVoiceUsers = [...guildUsers]
+                  .sort((a, b) => (b.voiceTime || 0) - (a.voiceTime || 0))
+                  .slice(0, 3)
+                  .map(u => ({
+                    username:
+                      guild.members.cache.get(u.userId)?.user.username ||
+                      "Unknown",
+                    count: u.voiceTime || 0,
+                  }));
+
+                return {
+                  totalMessages,
+                  totalVoiceMins,
+                  totalCommands,
+                  topChatters,
+                  topVoiceUsers,
+                };
+              } catch (e) {
+                logger.warn(`Failed to fetch activity for ${guildId}: ${e}`);
+                return null;
+              }
+            })(),
+            recentMembers: (function () {
+              try {
+                const members = Array.from(guild.members.cache.values()).filter(
+                  m => m.user && !m.user.bot,
+                );
+
+                if (members.length === 0) {
+                  return [];
+                }
+
+                // Sort by join date (most recent first)
+                return members
+                  .sort((a, b) => {
+                    const timeA = a.joinedTimestamp || 0;
+                    const timeB = b.joinedTimestamp || 0;
+                    return timeB - timeA;
+                  })
+                  .slice(0, 3)
+                  .map(m => ({
+                    userId: m.user.id,
+                    username: m.user.username,
+                    avatar: m.user.displayAvatarURL({
+                      forceStatic: false,
+                      size: 64,
+                    }),
+                    joinedAt: m.joinedAt || new Date(),
+                  }));
+              } catch (e) {
+                logger.error(
+                  `Error in recentMembers fetch for ${guild.id}:`,
+                  e,
+                );
+                return [];
+              }
+            })(),
           };
         } else {
           logger.warn(`Guild ${guildId} not found in client cache or fetch.`);

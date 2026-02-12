@@ -5,6 +5,8 @@ import {
   createGoodbyeEmbed,
 } from "../utils/discord/goodbyeUtils.js";
 
+import { getAnalyticsManager } from "../features/analytics/AnalyticsManager.js";
+
 export const name = "guildMemberRemove";
 export const once = false;
 
@@ -19,6 +21,10 @@ export async function execute(member) {
   }
 
   try {
+    // Record leave in analytics
+    const analyticsManager = await getAnalyticsManager();
+    await analyticsManager.recordLeave(member.guild.id);
+
     // Get database manager and goodbye settings
     const dbManager = await getDatabaseManager();
 

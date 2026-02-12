@@ -6,6 +6,8 @@ import {
   assignAutoRole,
 } from "../utils/discord/welcomeUtils.js";
 
+import { getAnalyticsManager } from "../features/analytics/AnalyticsManager.js";
+
 export const name = "guildMemberAdd";
 export const once = false;
 
@@ -18,8 +20,11 @@ export async function execute(member) {
     logger.debug(`Skipping welcome for bot: ${member.user.tag}`);
     return;
   }
-
   try {
+    // Record join in analytics
+    const analyticsManager = await getAnalyticsManager();
+    await analyticsManager.recordJoin(member.guild.id);
+
     // Get database manager and welcome settings
     const dbManager = await getDatabaseManager();
 
