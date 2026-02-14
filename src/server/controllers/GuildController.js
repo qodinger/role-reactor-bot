@@ -316,14 +316,11 @@ export async function apiGetGuildSettings(req, res) {
                   "../../utils/storage/storageManager.js"
                 );
                 const storageManager = await getStorageManager();
-                const xpData =
-                  (await storageManager.read("user_experience")) || {};
-
-                // Filter for this guild and sort
-                const guildUsers = Object.values(xpData)
-                  .filter(u => u.guildId === guild.id)
-                  .sort((a, b) => (b.totalXP || 0) - (a.totalXP || 0))
-                  .slice(0, 3);
+                const guildUsers =
+                  await storageManager.getUserExperienceLeaderboard(
+                    guild.id,
+                    3,
+                  );
 
                 return guildUsers.map((l, i) => {
                   const member = guild.members.cache.get(l.userId);
@@ -352,12 +349,8 @@ export async function apiGetGuildSettings(req, res) {
                   "../../utils/storage/storageManager.js"
                 );
                 const storageManager = await getStorageManager();
-                const xpData =
-                  (await storageManager.read("user_experience")) || {};
-
-                const guildUsers = Object.values(xpData).filter(
-                  u => u.guildId === guild.id,
-                );
+                const guildUsers =
+                  await storageManager.getUserExperienceByGuild(guild.id);
 
                 const totalMessages = guildUsers.reduce(
                   (sum, u) => sum + (u.messagesSent || 0),

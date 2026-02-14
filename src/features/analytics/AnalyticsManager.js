@@ -104,6 +104,7 @@ class AnalyticsManager {
           }),
           joins: h.joins,
           leaves: h.leaves,
+          members: h.members || 0,
         };
       });
     } catch (error) {

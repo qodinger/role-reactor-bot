@@ -205,6 +205,10 @@ class DatabaseProvider {
     return this.dbManager.userExperience.getAll();
   }
 
+  async getUserExperienceByGuild(guildId) {
+    return this.dbManager.userExperience.getByGuild(guildId);
+  }
+
   async getUserExperienceLeaderboard(guildId, limit) {
     return this.dbManager.userExperience.getLeaderboard(guildId, limit);
   }
@@ -444,466 +448,6 @@ class StorageManager {
     this.isInitialized = false;
   }
 
-  /**
-   * Migrate core_credit data from local JSON to MongoDB
-   */
-  async migrateCoreCreditsToDatabase() {
-    try {
-      this.logger.info("🔄 Checking for local core_credit data to migrate...");
-
-      const fileProvider = new FileProvider(this.logger);
-      const localData = await fileProvider.read("core_credit");
-
-      if (Object.keys(localData).length === 0) {
-        this.logger.info("📁 No local core_credit data to migrate");
-        return;
-      }
-
-      // Check if database has any core credits
-      const dbCount =
-        await this.dbManager.coreCredits.collection.countDocuments();
-      if (dbCount > 0) {
-        this.logger.info(
-          `📊 Database already has ${dbCount} core_credit records, skipping migration`,
-        );
-        return;
-      }
-
-      this.logger.info("🔄 Migrating core_credit data to database...");
-      let migratedCount = 0;
-      for (const [userId, userData] of Object.entries(localData)) {
-        try {
-          // eslint-disable-next-line no-unused-vars
-          const { _id, ...cleanUserData } = userData;
-          if (
-            cleanUserData.lastUpdated &&
-            typeof cleanUserData.lastUpdated === "string"
-          ) {
-            cleanUserData.lastUpdated = new Date(cleanUserData.lastUpdated);
-          }
-          await this.provider.setCoreCredits(userId, cleanUserData);
-          migratedCount++;
-        } catch (error) {
-          this.logger.warn(
-            `Failed to migrate core_credit for user ${userId}:`,
-            error.message,
-          );
-        }
-      }
-
-      this.logger.success(
-        `✅ Successfully migrated ${migratedCount} core_credit records to database`,
-      );
-
-      // Automatically archive local file after successful migration
-      await fileProvider.archive("core_credit");
-      this.logger.info(
-        "📦 Archived local core_credit.json to core_credit.json.migrated",
-      );
-    } catch (error) {
-      this.logger.error("❌ core_credit migration failed:", error);
-    }
-  }
-
-  /**
-   * Migrate user_experience data from local JSON to MongoDB
-   */
-  async migrateUserExperienceToDatabase() {
-    try {
-      this.logger.info(
-        "🔄 Checking for local user_experience data to migrate...",
-      );
-
-      const fileProvider = new FileProvider(this.logger);
-      const localData = await fileProvider.read("user_experience");
-
-      if (Object.keys(localData).length === 0) {
-        this.logger.info("📁 No local user_experience data to migrate");
-        return;
-      }
-
-      // Check if database already has user experience data
-      const dbCount =
-        await this.dbManager.userExperience.collection.countDocuments();
-      if (dbCount > 0) {
-        this.logger.info(
-          `📊 Database already has ${dbCount} user_experience records, skipping migration`,
-        );
-        return;
-      }
-
-      this.logger.info("🔄 Migrating user_experience data to database...");
-      let migratedCount = 0;
-      for (const [key, userData] of Object.entries(localData)) {
-        try {
-          const [guildId, userId] = key.split("_");
-          if (guildId && userId) {
-            // eslint-disable-next-line no-unused-vars
-            const { _id, ...cleanUserData } = userData;
-            // Convert strings to Dates
-            if (
-              cleanUserData.lastMessageAt &&
-              typeof cleanUserData.lastMessageAt === "string"
-            ) {
-              cleanUserData.lastMessageAt = new Date(
-                cleanUserData.lastMessageAt,
-              );
-            }
-            if (
-              cleanUserData.updatedAt &&
-              typeof cleanUserData.updatedAt === "string"
-            ) {
-              cleanUserData.updatedAt = new Date(cleanUserData.updatedAt);
-            }
-            await this.provider.setUserExperience(
-              guildId,
-              userId,
-              cleanUserData,
-            );
-            migratedCount++;
-          }
-        } catch (error) {
-          this.logger.warn(
-            `Failed to migrate user_experience for ${key}:`,
-            error.message,
-          );
-        }
-      }
-
-      this.logger.success(
-        `✅ Successfully migrated ${migratedCount} user_experience records to database`,
-      );
-
-      // Automatically archive local file after successful migration
-      await fileProvider.archive("user_experience");
-      this.logger.info(
-        "📦 Archived local user_experience.json to user_experience.json.migrated",
-      );
-    } catch (error) {
-      this.logger.error("❌ user_experience migration failed:", error);
-    }
-  }
-
-  /**
-   * Migrate data from local files to database when MongoDB becomes available
-   */
-  async migrateLocalDataToDatabase() {
-    try {
-      this.logger.info("🔄 Checking for remaining local data to migrate...");
-      const fileProvider = new FileProvider(this.logger);
-
-      // 1. Migrate Polls
-      const localPolls = await fileProvider.read("polls");
-      const localPollCount = Object.keys(localPolls).length;
-
-      if (localPollCount > 0) {
-        const dbPolls = await this.provider.getAllPolls();
-        if (Object.keys(dbPolls).length === 0) {
-          this.logger.info(
-            `🔄 Migrating ${localPollCount} polls to database...`,
-          );
-          let migratedCount = 0;
-          for (const pollData of Object.values(localPolls)) {
-            try {
-              await this.provider.createPoll(pollData);
-              migratedCount++;
-            } catch (error) {
-              this.logger.warn(`Failed to migrate poll:`, error.message);
-            }
-          }
-          this.logger.success(
-            `✅ Successfully migrated ${migratedCount} polls`,
-          );
-          await fileProvider.archive("polls");
-        }
-      }
-
-      // 2. Migrate Moderation Logs
-      const localModLogs = await fileProvider.read("moderation_logs");
-      if (Object.keys(localModLogs).length > 0) {
-        const dbCount =
-          await this.dbManager.moderationLogs.collection.countDocuments();
-        if (dbCount === 0) {
-          this.logger.info("🔄 Migrating moderation logs to database...");
-          let migratedCount = 0;
-          for (const [guildId, guildLogs] of Object.entries(localModLogs)) {
-            for (const [userId, userLogs] of Object.entries(guildLogs)) {
-              for (const log of userLogs) {
-                try {
-                  const logToMigrate = {
-                    ...log,
-                    guildId: log.guildId || guildId,
-                    userId: log.userId || userId,
-                  };
-                  if (
-                    logToMigrate.timestamp &&
-                    typeof logToMigrate.timestamp === "string"
-                  ) {
-                    logToMigrate.timestamp = new Date(logToMigrate.timestamp);
-                  }
-                  await this.dbManager.moderationLogs.create(logToMigrate);
-                  migratedCount++;
-                } catch (error) {
-                  this.logger.warn(
-                    "Failed to migrate moderation log:",
-                    error.message,
-                  );
-                }
-              }
-            }
-          }
-          this.logger.success(
-            `✅ Successfully migrated ${migratedCount} moderation logs`,
-          );
-          await fileProvider.archive("moderation_logs");
-        }
-      }
-
-      // 3. Migrate Scheduled Roles
-      const localSchedRoles = await fileProvider.read("scheduled_roles");
-      if (Object.keys(localSchedRoles).length > 0) {
-        const dbCount =
-          await this.dbManager.scheduledRoles.collection.countDocuments();
-        if (dbCount === 0) {
-          this.logger.info("🔄 Migrating scheduled roles to database...");
-          let migratedCount = 0;
-          for (const schedule of Object.values(localSchedRoles)) {
-            try {
-              await this.dbManager.scheduledRoles.create(schedule);
-              migratedCount++;
-            } catch (error) {
-              this.logger.warn(
-                "Failed to migrate scheduled role:",
-                error.message,
-              );
-            }
-          }
-          this.logger.success(
-            `✅ Successfully migrated ${migratedCount} scheduled roles`,
-          );
-          await fileProvider.archive("scheduled_roles");
-        }
-      }
-
-      // 4. Migrate Recurring Schedules
-      const localRecurSchedules = await fileProvider.read(
-        "recurring_schedules",
-      );
-      if (Object.keys(localRecurSchedules).length > 0) {
-        const dbCount =
-          await this.dbManager.recurringSchedules.collection.countDocuments();
-        if (dbCount === 0) {
-          this.logger.info("🔄 Migrating recurring schedules to database...");
-          let migratedCount = 0;
-          for (const schedule of Object.values(localRecurSchedules)) {
-            try {
-              if (
-                schedule.lastExecutedAt &&
-                typeof schedule.lastExecutedAt === "string"
-              ) {
-                schedule.lastExecutedAt = new Date(schedule.lastExecutedAt);
-              }
-              await this.dbManager.recurringSchedules.create(schedule);
-              migratedCount++;
-            } catch (error) {
-              this.logger.warn(
-                "Failed to migrate recurring schedule:",
-                error.message,
-              );
-            }
-          }
-          this.logger.success(
-            `✅ Successfully migrated ${migratedCount} recurring schedules`,
-          );
-          await fileProvider.archive("recurring_schedules");
-        }
-      }
-
-      // 5. Migrate Voice Control Roles
-      const localVoiceRoles = await fileProvider.read("voice_control_roles");
-      if (Object.keys(localVoiceRoles).length > 0) {
-        const dbCount =
-          await this.dbManager.voiceControlRoles.collection.countDocuments();
-        if (dbCount === 0) {
-          this.logger.info("🔄 Migrating voice control roles to database...");
-          let migratedCount = 0;
-          for (const [guildId, roleData] of Object.entries(localVoiceRoles)) {
-            try {
-              await this.dbManager.voiceControlRoles.set(guildId, roleData);
-              migratedCount++;
-            } catch (error) {
-              this.logger.warn(
-                `Failed to migrate voice roles for ${guildId}:`,
-                error.message,
-              );
-            }
-          }
-          this.logger.success(
-            `✅ Successfully migrated ${migratedCount} voice control roles`,
-          );
-          await fileProvider.archive("voice_control_roles");
-        }
-      }
-
-      // 6. Migrate Role Mappings
-      const localRoleMappings = await fileProvider.read("role_mappings");
-      if (Object.keys(localRoleMappings).length > 0) {
-        const dbCount =
-          await this.dbManager.roleMappings.collection.countDocuments();
-        if (dbCount === 0) {
-          this.logger.info("🔄 Migrating role mappings to database...");
-          let migratedCount = 0;
-          for (const [messageId, mapping] of Object.entries(
-            localRoleMappings,
-          )) {
-            try {
-              await this.dbManager.roleMappings.set(
-                messageId,
-                mapping.guildId,
-                mapping.channelId,
-                mapping.roles,
-              );
-              migratedCount++;
-            } catch (error) {
-              this.logger.warn(
-                `Failed to migrate role mapping ${messageId}:`,
-                error.message,
-              );
-            }
-          }
-          this.logger.success(
-            `✅ Successfully migrated ${migratedCount} role mappings`,
-          );
-          await fileProvider.archive("role_mappings");
-        }
-      }
-
-      // 7. Migrate Temporary Roles
-      const localTempRoles = await fileProvider.read("temporary_roles");
-      if (Object.keys(localTempRoles).length > 0) {
-        const dbCount =
-          await this.dbManager.temporaryRoles.collection.countDocuments();
-        if (dbCount === 0) {
-          this.logger.info("🔄 Migrating temporary roles to database...");
-          let migratedCount = 0;
-          for (const [guildId, users] of Object.entries(localTempRoles)) {
-            for (const [userId, roles] of Object.entries(users)) {
-              for (const [roleId, data] of Object.entries(roles)) {
-                try {
-                  await this.dbManager.temporaryRoles.add(
-                    guildId,
-                    userId,
-                    roleId,
-                    new Date(data.expiresAt),
-                    data.notifyExpiry,
-                  );
-                  migratedCount++;
-                } catch (error) {
-                  this.logger.warn(
-                    `Failed to migrate temp role ${roleId}:`,
-                    error.message,
-                  );
-                }
-              }
-            }
-          }
-          this.logger.success(
-            `✅ Successfully migrated ${migratedCount} temporary roles`,
-          );
-          await fileProvider.archive("temporary_roles");
-        }
-      }
-
-      // 8. Migrate Guild Settings
-      const localGuildSettings = await fileProvider.read("guild_settings");
-      if (Object.keys(localGuildSettings).length > 0) {
-        const dbCount =
-          await this.dbManager.guildSettings.collection.countDocuments();
-        if (dbCount === 0) {
-          this.logger.info("🔄 Migrating guild settings to database...");
-          let migratedCount = 0;
-          for (const [guildId, settings] of Object.entries(
-            localGuildSettings,
-          )) {
-            try {
-              await this.dbManager.guildSettings.set(guildId, settings);
-              migratedCount++;
-            } catch (error) {
-              this.logger.warn(
-                `Failed to migrate guild settings for ${guildId}:`,
-                error.message,
-              );
-            }
-          }
-          this.logger.success(
-            `✅ Successfully migrated ${migratedCount} guild settings`,
-          );
-          await fileProvider.archive("guild_settings");
-        }
-      }
-
-      // 9. Migrate Welcome Settings
-      const localWelcomeSettings = await fileProvider.read("welcome_settings");
-      if (Object.keys(localWelcomeSettings).length > 0) {
-        const dbCount =
-          await this.dbManager.welcomeSettings.collection.countDocuments();
-        if (dbCount === 0) {
-          this.logger.info("🔄 Migrating welcome settings to database...");
-          let migratedCount = 0;
-          for (const [guildId, settings] of Object.entries(
-            localWelcomeSettings,
-          )) {
-            try {
-              await this.dbManager.welcomeSettings.set(guildId, settings);
-              migratedCount++;
-            } catch (error) {
-              this.logger.warn(
-                `Failed to migrate welcome settings for ${guildId}:`,
-                error.message,
-              );
-            }
-          }
-          this.logger.success(
-            `✅ Successfully migrated ${migratedCount} welcome settings`,
-          );
-          await fileProvider.archive("welcome_settings");
-        }
-      }
-
-      // 10. Migrate Goodbye Settings
-      const localGoodbyeSettings = await fileProvider.read("goodbye_settings");
-      if (Object.keys(localGoodbyeSettings).length > 0) {
-        const dbCount =
-          await this.dbManager.goodbyeSettings.collection.countDocuments();
-        if (dbCount === 0) {
-          this.logger.info("🔄 Migrating goodbye settings to database...");
-          let migratedCount = 0;
-          for (const [guildId, settings] of Object.entries(
-            localGoodbyeSettings,
-          )) {
-            try {
-              await this.dbManager.goodbyeSettings.set(guildId, settings);
-              migratedCount++;
-            } catch (error) {
-              this.logger.warn(
-                `Failed to migrate goodbye settings for ${guildId}:`,
-                error.message,
-              );
-            }
-          }
-          this.logger.success(
-            `✅ Successfully migrated ${migratedCount} goodbye settings`,
-          );
-          await fileProvider.archive("goodbye_settings");
-        }
-      }
-
-      this.logger.info("🏁 Local data migration check completed");
-    } catch (error) {
-      this.logger.error("❌ Migration failed:", error);
-    }
-  }
-
   async initialize() {
     if (this.isInitialized) return;
     this.logger.info("🔧 Initializing storage manager...");
@@ -915,17 +459,7 @@ class StorageManager {
         this.provider = new DatabaseProvider(dbManager, this.logger);
         this.logger.success("✅ Database storage enabled");
 
-        // Migrate data from local files to database
-        await this.migrateLocalDataToDatabase();
-
-        // Migrate core_credit data from JSON file to MongoDB if needed
-        await this.migrateCoreCreditsToDatabase();
-
-        // Migrate user_experience data from JSON file to MongoDB if needed
-        await this.migrateUserExperienceToDatabase();
-
-        // Migrate analytics data from local files if needed
-        await this.migrateAnalyticsToDatabase();
+        // Initial migration phase completed
       } else {
         this.provider = new FileProvider(this.logger);
         this.logger.warn(
@@ -949,7 +483,7 @@ class StorageManager {
     if (this.provider instanceof DatabaseProvider) {
       return this.provider.getRoleMappings();
     }
-    return this.provider.read("role_mappings");
+    return await this.provider.read("role_mappings");
   }
 
   async getRoleMappingsPaginated(guildId, page = 1, limit = 4) {
@@ -997,7 +531,7 @@ class StorageManager {
     if (this.provider instanceof DatabaseProvider) {
       return this.provider.setRoleMapping(messageId, guildId, channelId, roles);
     }
-    const mappings = this.provider.read("role_mappings");
+    const mappings = await this.provider.read("role_mappings");
     mappings[messageId] = { guildId, channelId, roles };
     return this.provider.write("role_mappings", mappings);
   }
@@ -1006,7 +540,7 @@ class StorageManager {
     if (this.provider instanceof DatabaseProvider) {
       return this.provider.deleteRoleMapping(messageId);
     }
-    const mappings = this.provider.read("role_mappings");
+    const mappings = await this.provider.read("role_mappings");
     delete mappings[messageId];
     return this.provider.write("role_mappings", mappings);
   }
@@ -1022,7 +556,7 @@ class StorageManager {
     if (this.provider instanceof DatabaseProvider) {
       return this.provider.getTemporaryRoles();
     }
-    return this.provider.read("temporary_roles");
+    return await this.provider.read("temporary_roles");
   }
 
   async addTemporaryRole(
@@ -1041,7 +575,7 @@ class StorageManager {
         notifyExpiry,
       );
     }
-    const tempRoles = this.provider.read("temporary_roles");
+    const tempRoles = await this.provider.read("temporary_roles");
     if (!tempRoles[guildId]) tempRoles[guildId] = {};
     if (!tempRoles[guildId][userId]) tempRoles[guildId][userId] = {};
     tempRoles[guildId][userId][roleId] = { expiresAt, notifyExpiry };
@@ -1052,7 +586,7 @@ class StorageManager {
     if (this.provider instanceof DatabaseProvider) {
       return this.provider.removeTemporaryRole(guildId, userId, roleId);
     }
-    const tempRoles = this.provider.read("temporary_roles");
+    const tempRoles = await this.provider.read("temporary_roles");
     if (tempRoles[guildId]?.[userId]?.[roleId]) {
       delete tempRoles[guildId][userId][roleId];
       if (Object.keys(tempRoles[guildId][userId]).length === 0) {
@@ -1071,14 +605,14 @@ class StorageManager {
     if (this.provider instanceof DatabaseProvider) {
       return this.provider.getAllPolls();
     }
-    return this.provider.read("polls");
+    return await this.provider.read("polls");
   }
 
   async getPollById(pollId) {
     if (this.provider instanceof DatabaseProvider) {
       return this.provider.getPollById(pollId);
     }
-    const polls = this.provider.read("polls");
+    const polls = await this.provider.read("polls");
     return polls[pollId] || null;
   }
 
@@ -1086,7 +620,7 @@ class StorageManager {
     if (this.provider instanceof DatabaseProvider) {
       return this.provider.getPollsByGuild(guildId);
     }
-    const polls = this.provider.read("polls");
+    const polls = await this.provider.read("polls");
     const guildPolls = {};
     for (const [pollId, poll] of Object.entries(polls)) {
       if (poll.guildId === guildId) {
@@ -1100,7 +634,7 @@ class StorageManager {
     if (this.provider instanceof DatabaseProvider) {
       return this.provider.getPollByMessageId(messageId);
     }
-    const polls = this.provider.read("polls");
+    const polls = await this.provider.read("polls");
     for (const [, poll] of Object.entries(polls)) {
       if (poll.messageId === messageId) {
         return poll;
@@ -1113,7 +647,7 @@ class StorageManager {
     if (this.provider instanceof DatabaseProvider) {
       return this.provider.createPoll(pollData);
     }
-    const polls = this.provider.read("polls");
+    const polls = await this.provider.read("polls");
     polls[pollData.id] = pollData;
     return this.provider.write("polls", polls);
   }
@@ -1122,7 +656,7 @@ class StorageManager {
     if (this.provider instanceof DatabaseProvider) {
       return this.provider.updatePoll(pollId, pollData);
     }
-    const polls = this.provider.read("polls");
+    const polls = await this.provider.read("polls");
     if (polls[pollId]) {
       polls[pollId] = { ...polls[pollId], ...pollData };
       return this.provider.write("polls", polls);
@@ -1134,7 +668,7 @@ class StorageManager {
     if (this.provider instanceof DatabaseProvider) {
       return this.provider.deletePoll(pollId);
     }
-    const polls = this.provider.read("polls");
+    const polls = await this.provider.read("polls");
     if (polls[pollId]) {
       delete polls[pollId];
       return this.provider.write("polls", polls);
@@ -1363,49 +897,6 @@ class StorageManager {
     return this.write(key, data);
   }
 
-  /**
-   * Migrate analytics data from local files to database
-   */
-  async migrateAnalyticsToDatabase() {
-    try {
-      this.logger.info("🔄 Checking for local analytics data to migrate...");
-
-      const fileProvider = new FileProvider(this.logger);
-      const localData = await fileProvider.read("guild_analytics");
-
-      if (Object.keys(localData).length === 0) {
-        this.logger.info("📁 No local analytics data to migrate");
-        return;
-      }
-
-      // Check if database has any analytics
-      const dbCount =
-        await this.dbManager.guildAnalytics.collection.countDocuments();
-      if (dbCount > 0) {
-        this.logger.info(
-          `📊 Database already has ${dbCount} analytics records, skipping migration`,
-        );
-        return;
-      }
-
-      this.logger.info("🔄 Migrating analytics data to database...");
-      const migratedCount =
-        await this.dbManager.guildAnalytics.migrateFromJson(localData);
-
-      this.logger.success(
-        `✅ Successfully migrated ${migratedCount} analytics records to database`,
-      );
-
-      // Automatically archive local file after successful migration
-      await fileProvider.archive("guild_analytics");
-      this.logger.info(
-        "📦 Archived local guild_analytics.json to guild_analytics.json.migrated",
-      );
-    } catch (error) {
-      this.logger.error("❌ Analytics migration failed:", error);
-    }
-  }
-
   // Guild Analytics explicit methods
   async updateGuildAnalytics(guildId, date, type, amount) {
     if (this.provider instanceof DatabaseProvider) {
@@ -1492,6 +983,14 @@ class StorageManager {
     }
     const data = await this.provider.read("user_experience");
     return data[`${guildId}_${userId}`] || null;
+  }
+
+  async getUserExperienceByGuild(guildId) {
+    if (this.provider instanceof DatabaseProvider) {
+      return await this.provider.getUserExperienceByGuild(guildId);
+    }
+    const data = await this.provider.read("user_experience");
+    return Object.values(data).filter(u => u.guildId === guildId);
   }
 
   async setUserExperience(guildId, userId, userData) {

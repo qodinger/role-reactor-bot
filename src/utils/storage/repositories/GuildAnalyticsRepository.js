@@ -90,35 +90,4 @@ export class GuildAnalyticsRepository extends BaseRepository {
       return 0;
     }
   }
-
-  /**
-   * Migrates data from the old JSON format
-   * @param {Object} data - The nested object from guild_analytics.json
-   * @returns {Promise<number>} Number of records migrated
-   */
-  async migrateFromJson(data) {
-    let count = 0;
-    try {
-      const operations = [];
-      for (const [guildId, dates] of Object.entries(data)) {
-        for (const [date, stats] of Object.entries(dates)) {
-          operations.push({
-            updateOne: {
-              filter: { guildId, date },
-              update: { $set: { ...stats, guildId, date } },
-              upsert: true,
-            },
-          });
-        }
-      }
-
-      if (operations.length > 0) {
-        const result = await this.collection.bulkWrite(operations);
-        count = result.upsertedCount + result.modifiedCount;
-      }
-    } catch (error) {
-      this.logger.error("Error migrating analytics from JSON:", error);
-    }
-    return count;
-  }
 }
