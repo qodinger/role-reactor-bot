@@ -89,6 +89,32 @@ export const apiRateLimiter = rateLimit({
   },
   skip: req => {
     // Skip rate limiting for health checks
-    return req.path === "/health" || req.path.startsWith("/health/");
+    if (req.path === "/health" || req.path.startsWith("/health/")) {
+      return true;
+    }
+
+    // Skip if internal API key is provided and matches
+    const apiKey = req.headers["authorization"] || req.headers["x-api-key"];
+    const internalKey = process.env.INTERNAL_API_KEY;
+
+    if (apiKey && internalKey) {
+      const providedKey = apiKey.startsWith("Bearer ")
+        ? apiKey.substring(7)
+        : apiKey;
+
+      // Use timing-safe comparison logic if possible, or direct string compare
+      // For now, direct compare is fine for rate limiter skip logic
+      if (providedKey === internalKey) {
+        return true;
+      } else {
+        // Debug logging for mismatched keys (only in dev/debug mode ideally, but useful here)
+        // logger.debug(`Rate limit skip failed: Valid key provided? ${!!providedKey}, Match? ${providedKey === internalKey}`);
+      }
+    }
+
+    // Fallback: Check for localhost or specific trusted IPs if key auth fails?
+    // No, key auth should be sufficient.
+
+    return false;
   },
 });
