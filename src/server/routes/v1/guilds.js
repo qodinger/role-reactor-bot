@@ -10,6 +10,7 @@ import {
   apiActivatePremiumFeature,
   apiGuildLeaderboard,
 } from "../../controllers/GuildController.js";
+import { apiGetGuildAnalytics } from "../../controllers/GuildAnalyticsController.js";
 import { internalAuth } from "../../middleware/internalAuth.js";
 
 const router = express.Router();
@@ -38,5 +39,8 @@ router.post("/:guildId/premium/activate", apiActivatePremiumFeature);
 
 // Leaderboard
 router.get("/:guildId/leaderboard", apiGuildLeaderboard);
+
+// Analytics
+router.get("/:guildId/analytics", internalAuth, apiGetGuildAnalytics);
 
 export default router;
