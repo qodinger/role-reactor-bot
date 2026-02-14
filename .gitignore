@@ -123,6 +123,8 @@ coverage/
 # Bot data and caches
 data/
 cache/
+!src/utils/cache/
+!src/utils/cache/**
 
 # Backup files
 *.backup
