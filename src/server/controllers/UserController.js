@@ -4,6 +4,7 @@ import {
   createErrorResponse,
   logRequest,
 } from "../utils/responseHelpers.js";
+import { getDiscordClient } from "../utils/apiShared.js";
 
 const logger = getLogger();
 
@@ -38,6 +39,24 @@ export async function apiListUsers(req, res) {
     const users = await storage.dbManager.users.listUsers(filter, limit, skip);
     const total = await storage.dbManager.users.count(filter);
 
+    // Enrich with Core Credits
+    const userIds = users.map(u => u.discordId);
+    let creditsMap = {};
+
+    if (userIds.length > 0 && storage.dbManager.coreCredits) {
+      try {
+        const credits = await storage.dbManager.coreCredits.collection
+          .find({ userId: { $in: userIds } })
+          .toArray();
+
+        credits.forEach(c => {
+          creditsMap[c.userId] = c.credits;
+        });
+      } catch (err) {
+        logger.warn("Failed to fetch credits for user list", err);
+      }
+    }
+
     return res.json(
       createSuccessResponse({
         users: users.map(u => ({
@@ -46,6 +65,7 @@ export async function apiListUsers(req, res) {
           globalName: u.globalName,
           avatar: u.avatar,
           role: u.role || "user",
+          credits: creditsMap[u.discordId] || 0,
           lastLogin: u.lastLogin,
           createdAt: u.createdAt,
         })),
@@ -216,6 +236,167 @@ export async function apiSyncUser(req, res) {
     logger.error("❌ Failed to sync user", error);
     const { statusCode, response } = createErrorResponse(
       "Internal Server Error",
+    );
+    return res.status(statusCode).json(response);
+  }
+}
+
+/**
+ * Manage user core credits (Admin only)
+ * Can add, remove, or set cores for a user.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+export async function apiManageUserCores(req, res) {
+  const { userId } = req.params;
+  const { action, amount, reason } = req.body;
+
+  logRequest(logger, `Manage cores for ${userId}: ${action} ${amount}`, req);
+
+  if (!userId || !action || amount === undefined) {
+    const { statusCode, response } = createErrorResponse(
+      "Missing required fields: userId, action, amount",
+      400,
+    );
+    return res.status(statusCode).json(response);
+  }
+
+  if (amount < 0) {
+    const { statusCode, response } = createErrorResponse(
+      "Amount must be non-negative",
+      400,
+    );
+    return res.status(statusCode).json(response);
+  }
+
+  try {
+    const { getDatabaseManager } = await import(
+      "../../utils/storage/databaseManager.js"
+    );
+    const dbManager = await getDatabaseManager();
+
+    // Get current balance
+    const credits = await dbManager.coreCredits.getByUserId(userId);
+    let currentBalance = credits?.credits || 0;
+    let newBalance = currentBalance;
+
+    switch (action) {
+      case "add":
+        newBalance += amount;
+        break;
+      case "remove":
+        newBalance = Math.max(0, newBalance - amount);
+        break;
+      case "set":
+        newBalance = amount;
+        break;
+      default:
+        const { statusCode, response } = createErrorResponse(
+          "Invalid action. Use 'add', 'remove', or 'set'.",
+          400,
+        );
+        return res.status(statusCode).json(response);
+    }
+
+    // Set new balance
+    await dbManager.coreCredits.updateCredits(
+      userId,
+      newBalance - currentBalance,
+    );
+
+    // Log transaction
+    const change = newBalance - currentBalance;
+    if (change !== 0 && dbManager.payments) {
+      await dbManager.payments.create({
+        paymentId: `admin_adjust_${userId}_${Date.now()}`,
+        discordId: userId,
+        provider: "admin_adjustment",
+        type: "adjustment",
+        status: "completed",
+        amount: 0,
+        currency: "USD",
+        coresGranted: change,
+        tier: "admin_action",
+        metadata: {
+          reason: reason || "Admin manual adjustment",
+          action,
+          originalAmount: amount,
+          previousBalance: currentBalance,
+          newBalance: newBalance,
+          adminUser: req.session?.discordUser?.id || "unknown_admin",
+        },
+      });
+
+      logger.info(
+        `🔧 Admin adjusted cores for ${userId}: ${currentBalance} -> ${newBalance} (${reason || "No reason"})`,
+      );
+
+      // Send DM Notification
+      try {
+        const client = getDiscordClient();
+        if (client) {
+          const user = await client.users.fetch(userId);
+          if (user) {
+            const embed = {
+              title: "Core Balance Updated",
+              color: change > 0 ? 0x00ff00 : 0xff0000,
+              description: `An administrator has updated your Core balance.`,
+              fields: [
+                {
+                  name: "Type",
+                  value: change > 0 ? "Bonus Received" : "Debited",
+                  inline: true,
+                },
+                {
+                  name: "Amount",
+                  value: `${change > 0 ? "+" : ""}${change} Cores`,
+                  inline: true,
+                },
+                {
+                  name: "New Balance",
+                  value: `${newBalance} Cores`,
+                  inline: true,
+                },
+              ],
+              timestamp: new Date().toISOString(),
+              footer: {
+                text: "Role Reactor System",
+              },
+            };
+
+            if (reason) {
+              embed.fields.push({
+                name: "Reason",
+                value: reason,
+                inline: false,
+              });
+            }
+
+            await user.send({ embeds: [embed] });
+          }
+        }
+      } catch (dmError) {
+        logger.warn(
+          `Failed to send DM to ${userId} regarding core update: ${dmError.message}`,
+        );
+      }
+    }
+
+    return res.json(
+      createSuccessResponse({
+        userId,
+        previousBalance: currentBalance,
+        newBalance,
+        change,
+        message: `Successfully ${action}ed ${amount} cores.`,
+      }),
+    );
+  } catch (error) {
+    logger.error("❌ Failed to manage user cores", error);
+    const { statusCode, response } = createErrorResponse(
+      "Internal Server Error",
+      500,
+      error.message,
     );
     return res.status(statusCode).json(response);
   }
