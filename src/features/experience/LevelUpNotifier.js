@@ -1,7 +1,8 @@
 import { getLogger } from "../../utils/logger.js";
 import { getDatabaseManager } from "../../utils/storage/databaseManager.js";
 import { EmbedBuilder } from "discord.js";
-import { THEME_COLOR, EMOJIS } from "../../config/theme.js";
+import { EMOJIS } from "../../config/theme.js";
+import { getRankTitle, getFormattedRank } from "./rankTitles.js";
 
 /**
  * Level Up Notification System
@@ -117,8 +118,16 @@ class LevelUpNotifier {
 
       // Send level-up message
       try {
+        const oldRank = getRankTitle(oldLevel);
+        const newRank = getRankTitle(newLevel);
+        const rankedUp = oldRank.title !== newRank.title;
+
+        const content = rankedUp
+          ? `🎉 **${user.displayName || user.username}** leveled up and reached the **${newRank.emoji} ${newRank.title}** rank!`
+          : `🎉 **${user.displayName || user.username}** leveled up!`;
+
         await levelUpChannel.send({
-          content: `🎉 **${user.displayName || user.username}** leveled up!`,
+          content,
           embeds: [embed],
         });
 
@@ -220,17 +229,29 @@ class LevelUpNotifier {
     const progress = this.calculateProgress(totalXP, newLevel);
     const nextLevelXP = this.calculateXPForLevel(newLevel + 1);
     const xpNeeded = nextLevelXP - totalXP;
+    const newRank = getRankTitle(newLevel);
+    const oldRank = getRankTitle(oldLevel);
+    const rankedUp = oldRank.title !== newRank.title;
 
-    return new EmbedBuilder()
-      .setColor(THEME_COLOR)
-      .setTitle(`🎉 Level Up!`)
+    const embed = new EmbedBuilder()
+      .setColor(newRank.color)
+      .setTitle(rankedUp ? `🎉 Level Up + Rank Up!` : `🎉 Level Up!`)
       .setDescription(
-        `**${user.displayName || user.username}** reached level **${newLevel}**!`,
+        rankedUp
+          ? `**${user.displayName || user.username}** reached level **${newLevel}** and unlocked the **${newRank.emoji} ${newRank.title}** rank!`
+          : `**${user.displayName || user.username}** reached level **${newLevel}**!`,
       )
       .addFields([
         {
           name: `${EMOJIS.STATUS.INFO} Level Progress`,
           value: `**${oldLevel}** → **${newLevel}**`,
+          inline: true,
+        },
+        {
+          name: `${EMOJIS.FEATURES.EXPERIENCE} Rank`,
+          value: rankedUp
+            ? `${oldRank.emoji} ${oldRank.title} → ${newRank.emoji} **${newRank.title}**`
+            : `${getFormattedRank(newLevel)}`,
           inline: true,
         },
         {
@@ -255,6 +276,8 @@ class LevelUpNotifier {
         iconURL: user.displayAvatarURL({ dynamic: true }),
       })
       .setTimestamp();
+
+    return embed;
   }
 
   /**

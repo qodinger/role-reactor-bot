@@ -8,6 +8,8 @@ import {
   apiCheckGuilds,
   apiListGuilds,
   apiActivatePremiumFeature,
+  apiCancelPremiumFeature,
+  apiGetPremiumStatus,
   apiGuildLeaderboard,
 } from "../../controllers/GuildController.js";
 import { apiGetGuildAnalytics } from "../../controllers/GuildAnalyticsController.js";
@@ -36,6 +38,8 @@ router.get("/:guildId/emojis", internalAuth, apiGetGuildEmojis);
 
 // Premium
 router.post("/:guildId/premium/activate", apiActivatePremiumFeature);
+router.post("/:guildId/premium/cancel", apiCancelPremiumFeature);
+router.get("/:guildId/premium/status", internalAuth, apiGetPremiumStatus);
 
 // Leaderboard
 router.get("/:guildId/leaderboard", apiGuildLeaderboard);

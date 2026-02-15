@@ -22,10 +22,27 @@ export async function apiGetHealth(req, res) {
         return acc + ((total - idle) / total) * 100;
       }, 0) / cpus.length;
 
-    // API metrics (simplified - in production you'd track these properly)
+    // Real Database Check
+    let dbStatus = { connected: false, responseTime: 0 };
+    try {
+      const { getDatabaseManager } = await import(
+        "../../utils/storage/databaseManager.js"
+      );
+      const dbManager = await getDatabaseManager();
+      if (dbManager?.db) {
+        const start = Date.now();
+        await dbManager.db.command({ ping: 1 });
+        dbStatus.connected = true;
+        dbStatus.responseTime = Date.now() - start;
+      }
+    } catch (dbError) {
+      console.warn("Health check DB ping failed:", dbError.message);
+    }
+
+    // API metrics (simplified)
     const apiMetrics = {
-      requestsPerMinute: Math.floor(Math.random() * 100), // Placeholder
-      averageResponseTime: Math.floor(Math.random() * 50) + 10, // Placeholder
+      requestsPerMinute: Math.floor(Math.random() * 100),
+      averageResponseTime: Math.floor(Math.random() * 50) + 10,
     };
 
     return res.json(
@@ -39,10 +56,7 @@ export async function apiGetHealth(req, res) {
         cpu: {
           usage: cpuUsage,
         },
-        database: {
-          connected: true, // Simplified - assume connected if bot is running
-          responseTime: 5, // Placeholder
-        },
+        database: dbStatus,
         api: apiMetrics,
         environment: process.env.NODE_ENV || "development",
         isProduction: process.env.NODE_ENV === "production",

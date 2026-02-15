@@ -1,5 +1,9 @@
 import { EmbedBuilder } from "discord.js";
-import { THEME_COLOR } from "../../../config/theme.js";
+import {
+  getRankTitle,
+  getFormattedRank,
+  getAllRankTiers,
+} from "../../../features/experience/rankTitles.js";
 
 /**
  * Create the level embed
@@ -10,14 +14,25 @@ import { THEME_COLOR } from "../../../config/theme.js";
  * @returns {import('discord.js').EmbedBuilder}
  */
 export function createLevelEmbed(interaction, user, userData, progress) {
+  const rank = getRankTitle(progress.currentLevel);
+  const nextRankTiers = getAllRankTiers();
+  const nextRank = nextRankTiers.find(
+    tier => tier.minLevel > progress.currentLevel,
+  );
+
   const embed = new EmbedBuilder()
-    .setColor(THEME_COLOR)
-    .setTitle("Level Information")
+    .setColor(rank.color)
+    .setTitle(`${rank.emoji} ${rank.title}`)
     .setDescription(`**${user.displayName || user.username}**'s XP progress`)
     .setThumbnail(user.displayAvatarURL({ dynamic: true }))
     .addFields([
       {
-        name: "Current Level",
+        name: "Rank",
+        value: `**${getFormattedRank(progress.currentLevel)}**`,
+        inline: true,
+      },
+      {
+        name: "Level",
         value: `**${progress.currentLevel}**`,
         inline: true,
       },
@@ -27,14 +42,21 @@ export function createLevelEmbed(interaction, user, userData, progress) {
         inline: true,
       },
       {
+        name: `Progress to Level ${progress.currentLevel + 1}`,
+        value: createProgressBar(progress.progress, 15),
+        inline: false,
+      },
+      {
         name: "Next Level",
         value: `**${progress.xpNeededForNextLevel.toLocaleString()}** XP needed`,
         inline: true,
       },
       {
-        name: `Progress to Level ${progress.currentLevel + 1}`,
-        value: createProgressBar(progress.progress, 15),
-        inline: false,
+        name: "Next Rank",
+        value: nextRank
+          ? `${nextRank.emoji} **${nextRank.title}** (Level ${nextRank.minLevel})`
+          : "🏆 **Max Rank Achieved!**",
+        inline: true,
       },
     ])
     .setFooter({

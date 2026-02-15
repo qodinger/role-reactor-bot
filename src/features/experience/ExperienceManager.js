@@ -256,6 +256,29 @@ class ExperienceManager {
         } catch (error) {
           this.logger.error("Error sending level-up notification:", error);
         }
+
+        // Process level reward roles
+        try {
+          const { getLevelRewardsManager } = await import(
+            "./LevelRewardsManager.js"
+          );
+          const rewardsManager = await getLevelRewardsManager();
+          const guild = client.guilds.cache.get(guildId);
+
+          if (guild) {
+            const awarded = await rewardsManager.processLevelUp(
+              guild,
+              userId,
+              oldLevel,
+              newLevel,
+            );
+            if (awarded.length) {
+              updatedData.awardedRoles = awarded;
+            }
+          }
+        } catch (error) {
+          this.logger.error("Error processing level rewards:", error);
+        }
       }
     }
 

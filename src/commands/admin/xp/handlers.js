@@ -821,3 +821,274 @@ export async function handleXpTestLevelUp(interaction) {
     );
   }
 }
+
+// ============================================================================
+// LEVEL REWARDS SUBCOMMANDS
+// ============================================================================
+
+/**
+ * Handle /xp rewards subcommand group
+ * @param {import('discord.js').CommandInteraction} interaction
+ * @param {string} subcommand - add, remove, list, mode
+ * @param {import('discord.js').Client} client
+ */
+export async function handleRewardsCommand(interaction, subcommand, _client) {
+  const logger = getLogger();
+
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+  try {
+    const { getLevelRewardsManager, LEVEL_REWARDS_CONFIG } = await import(
+      "../../../features/experience/LevelRewardsManager.js"
+    );
+    const rewardsManager = await getLevelRewardsManager();
+    const { EmbedBuilder } = await import("discord.js");
+
+    switch (subcommand) {
+      case "add": {
+        const level = interaction.options.getInteger("level");
+        const role = interaction.options.getRole("role");
+
+        // Validate role
+        if (role.managed || role.id === interaction.guild.id) {
+          return interaction.editReply(
+            errorEmbed({
+              title: "Invalid Role",
+              description:
+                "You cannot use bot-managed roles or @everyone as a reward.",
+              solution: "Choose a regular role.",
+            }),
+          );
+        }
+
+        const result = await rewardsManager.addReward(
+          interaction.guild.id,
+          level,
+          role.id,
+        );
+
+        if (!result.success) {
+          if (result.premiumRequired) {
+            return interaction.editReply({
+              embeds: [
+                new EmbedBuilder()
+                  .setTitle(`${EMOJIS.lock || "🔒"} Premium Required`)
+                  .setDescription(result.message)
+                  .setColor(0xffcc00)
+                  .setFooter({
+                    text: "Enable Pro Engine from the dashboard to unlock unlimited rewards.",
+                  }),
+              ],
+            });
+          }
+          return interaction.editReply(
+            errorEmbed({
+              title: "Could Not Add Reward",
+              description: result.message,
+            }),
+          );
+        }
+
+        const embed = new EmbedBuilder()
+          .setTitle("🎁 Level Reward Added")
+          .setDescription(result.message)
+          .addFields(
+            {
+              name: "Level",
+              value: `\`${level}\``,
+              inline: true,
+            },
+            {
+              name: "Role",
+              value: `<@&${role.id}>`,
+              inline: true,
+            },
+            {
+              name: "Slots Remaining",
+              value: `${result.remaining === "unlimited" ? "♾️ Unlimited (Pro)" : `${result.remaining} / ${LEVEL_REWARDS_CONFIG.FREE_LIMIT}`}`,
+              inline: true,
+            },
+          )
+          .setColor(0x00ff88)
+          .setTimestamp();
+
+        await interaction.editReply({ embeds: [embed] });
+        break;
+      }
+
+      case "remove": {
+        const level = interaction.options.getInteger("level");
+        const role = interaction.options.getRole("role");
+
+        const result = await rewardsManager.removeReward(
+          interaction.guild.id,
+          level,
+          role.id,
+        );
+
+        if (!result.success) {
+          return interaction.editReply(
+            errorEmbed({
+              title: "Could Not Remove Reward",
+              description: result.message,
+            }),
+          );
+        }
+
+        const embed = new EmbedBuilder()
+          .setTitle("🗑️ Level Reward Removed")
+          .setDescription(result.message)
+          .addFields(
+            {
+              name: "Level",
+              value: `\`${level}\``,
+              inline: true,
+            },
+            {
+              name: "Role",
+              value: `<@&${role.id}>`,
+              inline: true,
+            },
+          )
+          .setColor(0xff4444)
+          .setTimestamp();
+
+        await interaction.editReply({ embeds: [embed] });
+        break;
+      }
+
+      case "list": {
+        const rewards = await rewardsManager.getRewards(interaction.guild.id);
+        const mode = await rewardsManager.getRewardMode(interaction.guild.id);
+        const isPro = await rewardsManager._isProActive(interaction.guild.id);
+
+        if (!rewards.length) {
+          return interaction.editReply({
+            embeds: [
+              new EmbedBuilder()
+                .setTitle("🎁 Level Rewards")
+                .setDescription(
+                  "No level rewards configured yet.\n\nUse `/xp rewards add` to get started!",
+                )
+                .setColor(0x555555)
+                .setFooter({
+                  text: `Mode: ${mode === "stack" ? "Stack (keep all roles)" : "Replace (highest only)"} • ${isPro ? "Pro Engine Active" : `Free tier: ${LEVEL_REWARDS_CONFIG.FREE_LIMIT} rewards max`}`,
+                }),
+            ],
+          });
+        }
+
+        const rewardLines = rewards.map((r, i) => {
+          const role = interaction.guild.roles.cache.get(r.roleId);
+          const roleName = role ? `<@&${r.roleId}>` : `*Deleted Role*`;
+
+          // Check if this reward is active (within free limit)
+          const isInactive = !isPro && i >= LEVEL_REWARDS_CONFIG.FREE_LIMIT;
+
+          if (isInactive) {
+            return `**${i + 1}.** Level \`${r.level}\` → ${roleName} ${EMOJIS.lock || "🔒"} *(Premium Only)*`;
+          }
+          return `**${i + 1}.** Level \`${r.level}\` → ${roleName}`;
+        });
+
+        const embed = new EmbedBuilder()
+          .setTitle("🎁 Level Rewards")
+          .setDescription(rewardLines.join("\n"))
+          .addFields(
+            {
+              name: "Mode",
+              value:
+                mode === "stack"
+                  ? "📚 **Stack** — Users keep all earned roles"
+                  : `🔄 **Replace** — Users only keep the highest role${!isPro ? "\n⚠️ *Reverts to Stack without Pro Engine*" : ""}`,
+              inline: true,
+            },
+            {
+              name: "Slots Used",
+              value: isPro
+                ? `${rewards.length} / ♾️`
+                : `${rewards.length} / ${LEVEL_REWARDS_CONFIG.FREE_LIMIT}${rewards.length > LEVEL_REWARDS_CONFIG.FREE_LIMIT ? " ⚠️" : ""}`,
+              inline: true,
+            },
+          )
+          .setColor(0x7c3aed)
+          .setTimestamp()
+          .setFooter({
+            text: isPro
+              ? "Pro Engine — Unlimited rewards & all modes"
+              : `Free tier: Only first ${LEVEL_REWARDS_CONFIG.FREE_LIMIT} rewards active`,
+          });
+
+        await interaction.editReply({ embeds: [embed] });
+        break;
+      }
+
+      case "mode": {
+        const mode = interaction.options.getString("mode");
+
+        const result = await rewardsManager.setRewardMode(
+          interaction.guild.id,
+          mode,
+        );
+
+        if (!result.success) {
+          if (result.premiumRequired) {
+            return interaction.editReply({
+              embeds: [
+                new EmbedBuilder()
+                  .setTitle(`${EMOJIS.lock || "🔒"} Premium Required`)
+                  .setDescription(result.message)
+                  .setColor(0xffcc00)
+                  .setFooter({
+                    text: "Enable Pro Engine from the dashboard to use Replace mode.",
+                  }),
+              ],
+            });
+          }
+          return interaction.editReply(
+            errorEmbed({
+              title: "Could Not Set Mode",
+              description: result.message,
+            }),
+          );
+        }
+
+        const modeEmoji = mode === "stack" ? "📚" : "🔄";
+        const modeDesc =
+          mode === "stack"
+            ? "Users will **keep all** earned level reward roles."
+            : "Users will **only keep the highest** earned level reward role. Lower roles are removed.";
+
+        const embed = new EmbedBuilder()
+          .setTitle(`${modeEmoji} Reward Mode Updated`)
+          .setDescription(result.message)
+          .addFields({
+            name: "How It Works",
+            value: modeDesc,
+          })
+          .setColor(0x7c3aed)
+          .setTimestamp();
+
+        await interaction.editReply({ embeds: [embed] });
+        break;
+      }
+
+      default:
+        await interaction.editReply(
+          errorEmbed({
+            title: "Unknown Subcommand",
+            description: "The requested rewards subcommand is not available.",
+          }),
+        );
+    }
+  } catch (error) {
+    logger.error("Error in rewards command:", error);
+    await interaction.editReply(
+      errorEmbed({
+        title: "Error",
+        description: "Failed to process rewards command.",
+        solution: "Please try again or contact support if the issue persists.",
+      }),
+    );
+  }
+}

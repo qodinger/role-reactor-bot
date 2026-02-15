@@ -447,6 +447,12 @@ export async function apiGetGuildSettings(req, res) {
       );
     }
 
+    // Get subscription details
+    const proSubscription = await premiumManager.getSubscriptionStatus(
+      guildId,
+      PremiumFeatures.PRO.id,
+    );
+
     res.json(
       createSuccessResponse({
         settings,
@@ -455,6 +461,17 @@ export async function apiGetGuildSettings(req, res) {
         isPremium: {
           pro: isProActive,
         },
+        subscription: proSubscription
+          ? {
+              activatedAt: proSubscription.activatedAt,
+              expiresAt: proSubscription.nextDeductionDate,
+              cancelled: proSubscription.cancelled,
+              cancelledAt: proSubscription.cancelledAt,
+              autoRenew: proSubscription.autoRenew,
+              cost: proSubscription.cost,
+              period: proSubscription.period,
+            }
+          : null,
         availableCommands: commandDetails,
       }),
     );
@@ -800,6 +817,107 @@ export async function apiActivatePremiumFeature(req, res) {
     );
     const { statusCode, response } = createErrorResponse(
       "Failed to activate premium feature",
+      500,
+      error.message,
+    );
+    res.status(statusCode).json(response);
+  }
+}
+
+/**
+ * Cancel a premium feature subscription
+ * The feature remains active until the end of the current billing cycle.
+ * @param {import('express').Request} req - Express request object
+ * @param {import('express').Response} res - Express response object
+ */
+export async function apiCancelPremiumFeature(req, res) {
+  const { guildId } = req.params;
+  const { featureId, userId } = req.body;
+  logRequest(`Cancel premium feature: ${featureId} for guild ${guildId}`, req);
+
+  if (!guildId || !featureId || !userId) {
+    const { statusCode, response } = createErrorResponse(
+      "Guild ID, Feature ID, and User ID are required",
+      400,
+    );
+    return res.status(statusCode).json(response);
+  }
+
+  try {
+    const { getPremiumManager } = await import(
+      "../../features/premium/PremiumManager.js"
+    );
+    const premiumManager = getPremiumManager();
+
+    const result = await premiumManager.cancelFeature(
+      guildId,
+      featureId,
+      userId,
+    );
+
+    if (result.success) {
+      res.json(createSuccessResponse(result));
+    } else {
+      const { statusCode, response } = createErrorResponse(result.message, 400);
+      res.status(statusCode).json(response);
+    }
+  } catch (error) {
+    logger.error(
+      `❌ Error cancelling premium feature ${featureId} for guild ${guildId}:`,
+      error,
+    );
+    const { statusCode, response } = createErrorResponse(
+      "Failed to cancel premium feature",
+      500,
+      error.message,
+    );
+    res.status(statusCode).json(response);
+  }
+}
+
+/**
+ * Get premium subscription status for a guild
+ * @param {import('express').Request} req - Express request object
+ * @param {import('express').Response} res - Express response object
+ */
+export async function apiGetPremiumStatus(req, res) {
+  const { guildId } = req.params;
+  const featureId = req.query.featureId || "pro_engine";
+  logRequest(`Get premium status: ${featureId} for guild ${guildId}`, req);
+
+  if (!guildId) {
+    const { statusCode, response } = createErrorResponse(
+      "Guild ID is required",
+      400,
+    );
+    return res.status(statusCode).json(response);
+  }
+
+  try {
+    const { getPremiumManager } = await import(
+      "../../features/premium/PremiumManager.js"
+    );
+    const premiumManager = getPremiumManager();
+
+    const status = await premiumManager.getSubscriptionStatus(
+      guildId,
+      featureId,
+    );
+
+    res.json(
+      createSuccessResponse({
+        guildId,
+        featureId,
+        subscription: status,
+      }),
+    );
+  } catch (error) {
+    logger.error(
+      `❌ Error getting premium status for guild ${guildId}:`,
+      error,
+    );
+    const { statusCode, response } = createErrorResponse(
+      "Failed to get premium status",
       500,
       error.message,
     );

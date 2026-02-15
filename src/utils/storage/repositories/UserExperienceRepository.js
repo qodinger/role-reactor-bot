@@ -3,6 +3,25 @@ import { BaseRepository } from "./BaseRepository.js";
 export class UserExperienceRepository extends BaseRepository {
   constructor(db, cache, logger) {
     super(db, "user_experience", cache, logger);
+    this._ensureIndexes();
+  }
+
+  async _ensureIndexes() {
+    try {
+      // Ensure unique compound index on guildId + userId
+      await this.collection.createIndex(
+        { guildId: 1, userId: 1 },
+        { unique: true },
+      );
+      // Index for leaderboard sorting (guildId + totalXP descending)
+      await this.collection.createIndex({ guildId: 1, totalXP: -1 });
+      this.logger.debug("UserExperienceRepository indexes ensured");
+    } catch (error) {
+      this.logger.warn(
+        "Failed to ensure UserExperienceRepository indexes",
+        error,
+      );
+    }
   }
 
   async getAll() {

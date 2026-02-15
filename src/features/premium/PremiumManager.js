@@ -5,6 +5,12 @@ import { getCommandHandler } from "../../utils/core/commandHandler.js";
 
 const logger = getLogger();
 
+/**
+ * Grace period in days after expiration before disabling the feature.
+ * During the grace period, the feature remains active but the user is warned.
+ */
+const GRACE_PERIOD_DAYS = 3;
+
 export class PremiumManager {
   constructor() {
     this.client = null;
@@ -33,8 +39,11 @@ export class PremiumManager {
       const subscription = settings?.premiumFeatures?.[featureId];
       if (!subscription || !subscription.active) return false;
 
-      // Check if it's expired (safety check, though scheduler should handle this)
-      if (new Date(subscription.nextDeductionDate) < new Date()) {
+      // Allow access during grace period
+      const graceDeadline = new Date(subscription.nextDeductionDate);
+      graceDeadline.setDate(graceDeadline.getDate() + GRACE_PERIOD_DAYS);
+
+      if (graceDeadline < new Date()) {
         return false;
       }
 
@@ -89,7 +98,17 @@ export class PremiumManager {
         };
       }
 
-      // 3. Update guild settings
+      // 3. Log the transaction
+      await this._logTransaction(dbManager, {
+        guildId,
+        userId,
+        featureId,
+        featureName: feature.name,
+        type: "activation",
+        amount: -feature.cost,
+      });
+
+      // 4. Update guild settings
       const settings = await dbManager.guildSettings.getByGuild(guildId);
       const premiumFeatures = settings.premiumFeatures || {};
 
@@ -133,14 +152,84 @@ export class PremiumManager {
   }
 
   /**
+   * Cancel a premium feature for a guild
+   * The feature remains active until the current billing cycle ends (nextDeductionDate).
+   * @param {string} guildId - Discord guild ID
+   * @param {string} featureId - Feature ID
+   * @param {string} userId - User ID requesting cancellation
+   * @returns {Promise<{success: boolean, message: string, expiresAt?: string}>}
+   */
+  async cancelFeature(guildId, featureId, userId) {
+    try {
+      const dbManager = await getStorageManager();
+      const settings = await dbManager.guildSettings.getByGuild(guildId);
+
+      const subscription = settings?.premiumFeatures?.[featureId];
+      if (!subscription || !subscription.active) {
+        return {
+          success: false,
+          message: "This feature is not currently active.",
+        };
+      }
+
+      // Only the payer or a guild admin should be able to cancel
+      // For now, we allow the payer
+      if (subscription.payerUserId !== userId) {
+        return {
+          success: false,
+          message: "Only the user who activated this feature can cancel it.",
+        };
+      }
+
+      // Mark as cancelled — it stays active until nextDeductionDate
+      subscription.cancelledAt = new Date();
+      subscription.cancelledBy = userId;
+      subscription.autoRenew = false;
+
+      await dbManager.guildSettings.set(guildId, settings);
+
+      // Log the cancellation
+      const feature = Object.values(PremiumFeatures).find(
+        f => f.id === featureId,
+      );
+      await this._logTransaction(dbManager, {
+        guildId,
+        userId,
+        featureId,
+        featureName: feature?.name || featureId,
+        type: "cancellation",
+        amount: 0,
+      });
+
+      const expiresAt = new Date(
+        subscription.nextDeductionDate,
+      ).toLocaleDateString();
+
+      logger.info(
+        `🚫 Premium feature ${featureId} cancelled for guild ${guildId} by user ${userId}. Active until ${expiresAt}.`,
+      );
+
+      return {
+        success: true,
+        message: `Subscription cancelled. ${feature?.name || "Feature"} will remain active until ${expiresAt}.`,
+        expiresAt: subscription.nextDeductionDate,
+      };
+    } catch (error) {
+      logger.error(
+        `Error cancelling feature ${featureId} for guild ${guildId}:`,
+        error,
+      );
+      return { success: false, message: "An internal error occurred." };
+    }
+  }
+
+  /**
    * Process periodic renewals
    */
   async processRenewals() {
     logger.info("🔄 Checking for premium feature renewals...");
     try {
       const dbManager = await getStorageManager();
-      // This is a bit inefficient if thousands of guilds, but fine for now.
-      // Ideally we'd use a MongoDB query for guilds with active features and nextDate < now
       const guilds = await dbManager.guildSettings.collection
         .find({
           premiumFeatures: { $exists: true },
@@ -148,6 +237,9 @@ export class PremiumManager {
         .toArray();
 
       const now = new Date();
+      let renewed = 0;
+      let disabled = 0;
+      let warned = 0;
 
       for (const settings of guilds) {
         const guildId = settings.guildId;
@@ -164,26 +256,37 @@ export class PremiumManager {
           if (!feature) {
             // If feature no longer exists in config, deactivate it
             await this.disableFeature(guildId, featureId);
+            disabled++;
+            continue;
+          }
+
+          // Skip renewal if user cancelled
+          if (sub.cancelledAt || sub.autoRenew === false) {
+            // If past the expiration date, disable
+            if (deductionDate <= now) {
+              await this.disableFeature(guildId, featureId, {
+                reason: "cancelled",
+              });
+              disabled++;
+            }
             continue;
           }
 
           // 1. Check for Low Balance (Warning)
-          // If renewal is within 3 days and balance is insufficient
           const threeDaysFromNow = new Date();
           threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
 
           if (deductionDate <= threeDaysFromNow && deductionDate > now) {
-            await this.checkAndWarnLowBalance(
+            const didWarn = await this.checkAndWarnLowBalance(
               guildId,
               feature,
               sub.payerUserId,
             );
+            if (didWarn) warned++;
           }
 
           // 2. Process actual renewal
           if (deductionDate <= now) {
-            // Time to renew!
-
             const credits = await dbManager.coreCredits.getByUserId(
               sub.payerUserId,
             );
@@ -203,17 +306,53 @@ export class PremiumManager {
               sub.nextDeductionDate = nextDate;
 
               await dbManager.guildSettings.set(guildId, settings);
+
+              // Log the renewal transaction
+              await this._logTransaction(dbManager, {
+                guildId,
+                userId: sub.payerUserId,
+                featureId,
+                featureName: feature.name,
+                type: "renewal",
+                amount: -feature.cost,
+              });
+
+              renewed++;
               logger.info(
                 `✅ Renewed feature ${featureId} for guild ${guildId}`,
               );
             } else {
-              // Fail
-              await this.disableFeature(guildId, featureId);
-              // TODO: Send DM to payer or system message to guild?
+              // Grace period check
+              const graceDeadline = new Date(sub.nextDeductionDate);
+              graceDeadline.setDate(
+                graceDeadline.getDate() + GRACE_PERIOD_DAYS,
+              );
+
+              if (now < graceDeadline) {
+                // Still within grace period — warn but don't disable yet
+                await this._sendGracePeriodWarning(
+                  guildId,
+                  feature,
+                  sub.payerUserId,
+                  graceDeadline,
+                  balance,
+                );
+                warned++;
+              } else {
+                // Grace period expired — disable
+                await this.disableFeature(guildId, featureId, {
+                  reason: "insufficient_balance",
+                });
+                disabled++;
+              }
             }
           }
         }
       }
+
+      logger.info(
+        `🔄 Premium renewal check complete: ${renewed} renewed, ${disabled} disabled, ${warned} warned`,
+      );
     } catch (error) {
       logger.error("Error during premium renewal process:", error);
     }
@@ -221,10 +360,11 @@ export class PremiumManager {
 
   /**
    * Check user balance and send a DM warning if it's too low for an upcoming renewal
+   * @returns {Promise<boolean>} Whether a warning was sent
    */
   async checkAndWarnLowBalance(guildId, feature, userId) {
     const warningKey = `${guildId}-${feature.id}-${userId}`;
-    if (this.sentWarnings.has(warningKey)) return;
+    if (this.sentWarnings.has(warningKey)) return false;
 
     try {
       const dbManager = await getStorageManager();
@@ -261,6 +401,11 @@ export class PremiumManager {
                         value: `${balance} Cores`,
                         inline: true,
                       },
+                      {
+                        name: "Grace Period",
+                        value: `You have a **${GRACE_PERIOD_DAYS}-day grace period** after expiration to top up your Cores before the feature is disabled.`,
+                        inline: false,
+                      },
                     ],
                     color: 0xffcc00, // Yellow/Orange
                     footer: {
@@ -271,6 +416,7 @@ export class PremiumManager {
               });
               logger.info(`📧 Sent low balance DM to user ${userId}`);
               this.sentWarnings.add(warningKey);
+              return true;
             }
           } catch (dmError) {
             logger.warn(
@@ -282,27 +428,126 @@ export class PremiumManager {
           }
         }
       }
+      return false;
     } catch (error) {
       logger.error(`Error in checkAndWarnLowBalance:`, error);
+      return false;
     }
   }
 
   /**
-   * Disable a feature (usually when Cores run out)
+   * Send a grace period warning DM
+   */
+  async _sendGracePeriodWarning(
+    guildId,
+    feature,
+    userId,
+    graceDeadline,
+    balance,
+  ) {
+    const warningKey = `grace-${guildId}-${feature.id}-${userId}`;
+    if (this.sentWarnings.has(warningKey)) return;
+
+    if (!this.client) return;
+
+    try {
+      const user = await this.client.users.fetch(userId);
+      if (!user) return;
+
+      const guild = await this.client.guilds.fetch(guildId).catch(() => null);
+      const guildName = guild?.name || "Unknown Server";
+
+      const daysLeft = Math.max(
+        0,
+        Math.ceil((graceDeadline - new Date()) / (1000 * 60 * 60 * 24)),
+      );
+
+      await user.send({
+        embeds: [
+          {
+            title: "🚨 Grace Period — Top Up Required",
+            description: `Your **${feature.name}** subscription in **${guildName}** has expired, but it's still active during the ${GRACE_PERIOD_DAYS}-day grace period.`,
+            fields: [
+              {
+                name: "Feature",
+                value: feature.name,
+                inline: true,
+              },
+              {
+                name: "Required",
+                value: `${feature.cost} Cores`,
+                inline: true,
+              },
+              {
+                name: "Your Balance",
+                value: `${balance} Cores`,
+                inline: true,
+              },
+              {
+                name: "⏰ Time Remaining",
+                value: `**${daysLeft} day${daysLeft !== 1 ? "s" : ""}** before the feature is disabled.`,
+                inline: false,
+              },
+            ],
+            color: 0xff4444, // Red
+            footer: {
+              text: "Top up your Cores on the dashboard to keep this feature active!",
+            },
+          },
+        ],
+      });
+
+      logger.info(`🚨 Sent grace period warning DM to user ${userId}`);
+      this.sentWarnings.add(warningKey);
+    } catch (dmError) {
+      logger.warn(
+        `Could not send grace period DM to user ${userId}:`,
+        dmError.message,
+      );
+      this.sentWarnings.add(`grace-${guildId}-${feature.id}-${userId}`);
+    }
+  }
+
+  /**
+   * Disable a feature (usually when Cores run out or user cancels)
    * @param {string} guildId
    * @param {string} featureId
+   * @param {object} options
+   * @param {string} options.reason - "insufficient_balance" or "cancelled"
    */
-  async disableFeature(guildId, featureId) {
+  async disableFeature(guildId, featureId, options = {}) {
+    const { reason = "insufficient_balance" } = options;
+
     try {
       const dbManager = await getStorageManager();
       const settings = await dbManager.guildSettings.getByGuild(guildId);
 
       if (settings?.premiumFeatures?.[featureId]) {
-        settings.premiumFeatures[featureId].active = false;
+        const sub = settings.premiumFeatures[featureId];
+        const payerUserId = sub.payerUserId;
+
+        sub.active = false;
+        sub.disabledAt = new Date();
+        sub.disableReason = reason;
+
         await dbManager.guildSettings.set(guildId, settings);
 
+        // Log the disablement
+        const feature = Object.values(PremiumFeatures).find(
+          f => f.id === featureId,
+        );
+        await this._logTransaction(dbManager, {
+          guildId,
+          userId: payerUserId,
+          featureId,
+          featureName: feature?.name || featureId,
+          type: "disabled",
+          amount: 0,
+          reason,
+        });
+
         logger.info(
-          `🚫 Premium feature ${featureId} disabled for guild ${guildId} due to insufficient Cores.`,
+          `🚫 Premium feature ${featureId} disabled for guild ${guildId}. Reason: ${reason}`,
         );
 
         // Special logic: If pro engine is disabled, re-enable all commands in Discord UI
@@ -310,17 +555,142 @@ export class PremiumManager {
           const commandHandler = getCommandHandler();
           // Empty array means no commands are disabled
           await commandHandler.syncGuildCommands(guildId, []);
-
-          // Note: we might also want to reset settings.disabledCommands = []
-          // or just keep them hidden in DB but active in Discord.
-          // Let's keep them in DB so if they resubscribe, their choices are still there.
         }
+
+        // Send deactivation DM to the payer
+        await this._sendDeactivationDM(
+          guildId,
+          feature || { name: featureId, cost: 0 },
+          payerUserId,
+          reason,
+        );
       }
     } catch (error) {
       logger.error(
         `Error disabling feature ${featureId} for guild ${guildId}:`,
         error,
       );
+    }
+  }
+
+  /**
+   * Send a deactivation DM to the payer
+   */
+  async _sendDeactivationDM(guildId, feature, userId, reason) {
+    if (!this.client) return;
+
+    try {
+      const user = await this.client.users.fetch(userId);
+      if (!user) return;
+
+      const guild = await this.client.guilds.fetch(guildId).catch(() => null);
+      const guildName = guild?.name || "Unknown Server";
+
+      const reasonText =
+        reason === "cancelled"
+          ? "You cancelled the subscription and the billing cycle has ended."
+          : `Your Core balance was too low to renew (needed ${feature.cost} Cores) and the ${GRACE_PERIOD_DAYS}-day grace period has expired.`;
+
+      await user.send({
+        embeds: [
+          {
+            title: "❌ Premium Feature Deactivated",
+            description: `**${feature.name}** has been deactivated for **${guildName}**.`,
+            fields: [
+              {
+                name: "Reason",
+                value: reasonText,
+                inline: false,
+              },
+              {
+                name: "What happens now?",
+                value:
+                  "Premium features are no longer available for this server. You can re-activate at any time from the dashboard.",
+                inline: false,
+              },
+            ],
+            color: 0xff4444, // Red
+            footer: {
+              text: "Visit the dashboard to re-activate or top up your Cores.",
+            },
+          },
+        ],
+      });
+
+      logger.info(
+        `📧 Sent deactivation DM to user ${userId} for feature ${feature.name} in guild ${guildId}`,
+      );
+    } catch (dmError) {
+      logger.warn(
+        `Could not send deactivation DM to user ${userId}:`,
+        dmError.message,
+      );
+    }
+  }
+
+  /**
+   * Log a premium transaction to the database for audit trail
+   * @param {object} dbManager - Database manager instance
+   * @param {object} transaction - Transaction details
+   */
+  async _logTransaction(dbManager, transaction) {
+    try {
+      // Use the payments collection to store premium transactions
+      if (dbManager.payments) {
+        await dbManager.payments.create({
+          paymentId: `premium_${transaction.type}_${transaction.guildId}_${Date.now()}`,
+          discordId: transaction.userId,
+          provider: "premium_system",
+          type: transaction.type, // "activation", "renewal", "cancellation", "disabled"
+          status: "completed",
+          amount: 0, // No real money involved, just Cores
+          currency: "CORES",
+          coresGranted: transaction.amount, // Negative for deductions
+          tier: transaction.featureId,
+          metadata: {
+            guildId: transaction.guildId,
+            featureName: transaction.featureName,
+            reason: transaction.reason || null,
+          },
+        });
+      }
+    } catch (error) {
+      // Don't fail the main operation if logging fails
+      logger.warn(`Failed to log premium transaction: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get premium subscription status for a guild (used by API)
+   * @param {string} guildId - Discord guild ID
+   * @param {string} featureId - Feature ID
+   * @returns {Promise<object|null>} Subscription details
+   */
+  async getSubscriptionStatus(guildId, featureId) {
+    try {
+      const dbManager = await getStorageManager();
+      const settings = await dbManager.guildSettings.getByGuild(guildId);
+      const sub = settings?.premiumFeatures?.[featureId];
+
+      if (!sub) return null;
+
+      return {
+        active: sub.active,
+        payerUserId: sub.payerUserId,
+        activatedAt: sub.activatedAt,
+        nextDeductionDate: sub.nextDeductionDate,
+        cost: sub.cost,
+        period: sub.period,
+        cancelled: !!sub.cancelledAt,
+        cancelledAt: sub.cancelledAt || null,
+        autoRenew: sub.autoRenew !== false,
+      };
+    } catch (error) {
+      logger.error(
+        `Error getting subscription status for guild ${guildId}:`,
+        error,
+      );
+      return null;
     }
   }
 }

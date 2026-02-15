@@ -686,3 +686,77 @@ export async function apiCapturePayPalOrder(req, res) {
     res.status(statusCode).json(response);
   }
 }
+
+/**
+ * Admin action logs endpoint - Returns logs of admin core adjustments
+ * @param {import('express').Request} req - Express request object
+ * @param {import('express').Response} res - Express response object
+ */
+export async function apiGetAdminActionLogs(req, res) {
+  logRequest("Admin action logs", req);
+
+  try {
+    const { getDatabaseManager } = await import(
+      "../../utils/storage/databaseManager.js"
+    );
+    const dbManager = await getDatabaseManager();
+
+    if (!dbManager?.payments) {
+      const { statusCode, response } = createErrorResponse(
+        "PaymentRepository not available",
+        503,
+      );
+      return res.status(statusCode).json(response);
+    }
+
+    const limit = parseInt(req.query.limit) || 50;
+    const skip = parseInt(req.query.skip) || 0;
+    const userId = req.query.userId || null;
+
+    const query = { provider: "admin_adjustment" };
+    if (userId) {
+      query.discordId = userId;
+    }
+
+    const logs = await dbManager.payments.collection
+      .find(query)
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .skip(skip)
+      .toArray();
+
+    const total = await dbManager.payments.collection.countDocuments(query);
+
+    res.json(
+      createSuccessResponse({
+        logs: logs.map(l => ({
+          logId: l.paymentId,
+          userId: l.discordId,
+          type: "adjustment",
+          change: l.coresGranted,
+          adminUser: l.metadata?.adminUser || "unknown",
+          reason: l.metadata?.reason || "No reason provided",
+          action: l.metadata?.action,
+          originalAmount: l.metadata?.originalAmount,
+          oldBalance: l.metadata?.previousBalance,
+          newBalance: l.metadata?.newBalance,
+          timestamp: l.createdAt,
+        })),
+        pagination: {
+          total,
+          limit,
+          skip,
+          hasMore: skip + logs.length < total,
+        },
+      }),
+    );
+  } catch (error) {
+    logger.error("❌ Error getting admin action logs:", error);
+    const { statusCode, response } = createErrorResponse(
+      "Failed to retrieve admin logs",
+      500,
+      error.message,
+    );
+    res.status(statusCode).json(response);
+  }
+}

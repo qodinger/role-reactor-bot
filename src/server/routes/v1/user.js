@@ -8,6 +8,7 @@ import {
   apiUserInfo,
   apiSetUserRole,
   apiSyncUser,
+  apiManageUserCores, // Added new function
 } from "../../controllers/UserController.js";
 
 import { internalAuth } from "../../middleware/internalAuth.js";
@@ -23,5 +24,6 @@ router.get("/:userId/payments", internalAuth, apiUserPayments);
 router.get("/", internalAuth, apiListUsers);
 router.get("/:userId", internalAuth, apiUserInfo);
 router.patch("/:userId/role", internalAuth, apiSetUserRole);
+router.post("/:userId/cores/manage", internalAuth, apiManageUserCores);
 
 export default router;

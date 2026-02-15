@@ -1,5 +1,6 @@
 import { EmbedBuilder } from "discord.js";
 import { THEME_COLOR } from "../../../config/theme.js";
+import { getFormattedRank } from "../../../features/experience/rankTitles.js";
 
 /**
  * Create the leaderboard embed
@@ -106,9 +107,11 @@ function formatLeaderboardEntry(position, medal, username, user, type) {
   }
   level = level - 1;
 
+  const rankStr = getFormattedRank(level);
+
   switch (type) {
     case "level":
-      return `${medal} **${username}** - Level ${level}`;
+      return `${medal} **${username}** - Level ${level} (${rankStr})`;
     case "messages":
       return `${medal} **${username}** - ${(user.messagesSent || 0).toLocaleString()} messages`;
     case "voice": {
@@ -117,6 +120,6 @@ function formatLeaderboardEntry(position, medal, username, user, type) {
       return `${medal} **${username}** - ${voiceHours}h ${voiceMinutes}m`;
     }
     default:
-      return `${medal} **${username}** - ${(user.totalXP || 0).toLocaleString()} XP (Level ${level})`;
+      return `${medal} **${username}** - ${(user.totalXP || 0).toLocaleString()} XP (${rankStr})`;
   }
 }

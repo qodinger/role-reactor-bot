@@ -17,26 +17,41 @@ import { handleXpCommand } from "./handlers.js";
 export const metadata = {
   name: "xp",
   category: "admin",
-  description: "Manage the XP system settings and configuration",
-  keywords: ["xp", "experience", "level", "settings", "config", "points"],
+  description:
+    "Manage the XP system settings, level rewards, and configuration",
+  keywords: [
+    "xp",
+    "experience",
+    "level",
+    "settings",
+    "config",
+    "points",
+    "rewards",
+    "roles",
+  ],
   emoji: "📈",
   helpFields: [
     {
       name: `How to Use`,
-      value: "```/xp settings```",
+      value:
+        "```/xp settings\n/xp rewards add\n/xp rewards remove\n/xp rewards list\n/xp rewards mode```",
       inline: false,
     },
     {
       name: `What You Need`,
       value:
-        "No parameters needed - just run the subcommand to access the XP system settings!",
+        "No parameters needed for settings - just run the subcommand to access the XP system settings!",
       inline: false,
     },
     {
       name: `Subcommands`,
-      value: ["**settings** - View and configure XP system settings"].join(
-        "\n",
-      ),
+      value: [
+        "**settings** - View and configure XP system settings",
+        "**rewards add** - Add a role reward for reaching a level",
+        "**rewards remove** - Remove a level reward",
+        "**rewards list** - View all configured level rewards",
+        "**rewards mode** - Set reward mode (stack or replace)",
+      ].join("\n"),
       inline: false,
     },
     {
@@ -52,6 +67,7 @@ export const metadata = {
         "• Enable/disable message XP, command XP, role XP, and voice XP individually",
         "• View current XP amounts, cooldowns, and settings",
         "• Access configuration help and reset options",
+        "• Configure level-based role rewards",
       ].join("\n"),
       inline: false,
     },
@@ -79,6 +95,72 @@ export const data = new SlashCommandBuilder()
     subcommand
       .setName("settings")
       .setDescription("View and configure XP system settings"),
+  )
+  .addSubcommandGroup(group =>
+    group
+      .setName("rewards")
+      .setDescription("Manage level-based role rewards")
+      .addSubcommand(sub =>
+        sub
+          .setName("add")
+          .setDescription("Add a role reward for reaching a specific level")
+          .addIntegerOption(option =>
+            option
+              .setName("level")
+              .setDescription("The level required to earn this role")
+              .setRequired(true)
+              .setMinValue(1)
+              .setMaxValue(100),
+          )
+          .addRoleOption(option =>
+            option
+              .setName("role")
+              .setDescription("The role to award")
+              .setRequired(true),
+          ),
+      )
+      .addSubcommand(sub =>
+        sub
+          .setName("remove")
+          .setDescription("Remove a level reward")
+          .addIntegerOption(option =>
+            option
+              .setName("level")
+              .setDescription("The level of the reward to remove")
+              .setRequired(true)
+              .setMinValue(1)
+              .setMaxValue(100),
+          )
+          .addRoleOption(option =>
+            option
+              .setName("role")
+              .setDescription("The role to remove from rewards")
+              .setRequired(true),
+          ),
+      )
+      .addSubcommand(sub =>
+        sub.setName("list").setDescription("View all configured level rewards"),
+      )
+      .addSubcommand(sub =>
+        sub
+          .setName("mode")
+          .setDescription(
+            "Set reward mode: stack (keep all) or replace (highest only)",
+          )
+          .addStringOption(option =>
+            option
+              .setName("mode")
+              .setDescription("The reward mode")
+              .setRequired(true)
+              .addChoices(
+                { name: "Stack — Keep all earned roles", value: "stack" },
+                {
+                  name: "Replace — Only keep the highest role (Pro)",
+                  value: "replace",
+                },
+              ),
+          ),
+      ),
   );
 
 // ============================================================================
@@ -101,7 +183,13 @@ export async function execute(interaction, client) {
       );
     }
 
+    const subcommandGroup = interaction.options.getSubcommandGroup(false);
     const subcommand = interaction.options.getSubcommand();
+
+    if (subcommandGroup === "rewards") {
+      const { handleRewardsCommand } = await import("./handlers.js");
+      return await handleRewardsCommand(interaction, subcommand, client);
+    }
 
     switch (subcommand) {
       case "settings":

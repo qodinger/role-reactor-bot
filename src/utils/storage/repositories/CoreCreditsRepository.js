@@ -3,6 +3,16 @@ import { BaseRepository } from "./BaseRepository.js";
 export class CoreCreditsRepository extends BaseRepository {
   constructor(db, cache, logger) {
     super(db, "core_credits", cache, logger);
+    this._ensureIndexes();
+  }
+
+  async _ensureIndexes() {
+    try {
+      await this.collection.createIndex({ userId: 1 }, { unique: true });
+      this.logger.debug("CoreCreditsRepository indexes ensured");
+    } catch (error) {
+      this.logger.warn("Failed to ensure CoreCreditsRepository indexes", error);
+    }
   }
 
   async getAll() {

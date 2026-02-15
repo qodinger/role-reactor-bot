@@ -3,6 +3,19 @@ import { BaseRepository } from "./BaseRepository.js";
 export class GuildSettingsRepository extends BaseRepository {
   constructor(db, cache, logger) {
     super(db, "guild_settings", cache, logger);
+    this._ensureIndexes();
+  }
+
+  async _ensureIndexes() {
+    try {
+      await this.collection.createIndex({ guildId: 1 }, { unique: true });
+      this.logger.debug("GuildSettingsRepository indexes ensured");
+    } catch (error) {
+      this.logger.warn(
+        "Failed to ensure GuildSettingsRepository indexes",
+        error,
+      );
+    }
   }
 
   async getByGuild(guildId) {
