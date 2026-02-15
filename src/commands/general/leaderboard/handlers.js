@@ -12,7 +12,7 @@ import { createLeaderboardEmbed } from "./embeds.js";
  * @param {Function} options.getExperienceManager - Optional experience manager getter
  * @param {Function} options.getStorageManager - Optional storage manager getter
  */
-export async function handleLeaderboard(interaction, _client, options = {}) {
+export async function handleLeaderboard(interaction, client, options = {}) {
   const logger = getLogger();
   const startTime = Date.now();
 
@@ -76,9 +76,10 @@ export async function handleLeaderboard(interaction, _client, options = {}) {
     // Get leaderboard data
     let leaderboardData;
     if (type === "xp") {
+      // Fetch one extra in case the bot is included, will filter below
       leaderboardData = await experienceManager.getLeaderboard(
         interaction.guild.id,
-        limit,
+        limit + 1,
       );
     } else {
       // For other types, we'll need to implement custom sorting
@@ -92,7 +93,15 @@ export async function handleLeaderboard(interaction, _client, options = {}) {
         type,
         limit,
         getStorageManager,
+        client.user.id,
       );
+    }
+
+    // Exclude the bot from the leaderboard
+    if (leaderboardData && leaderboardData.length > 0) {
+      leaderboardData = leaderboardData
+        .filter(user => user.userId !== client.user.id)
+        .slice(0, limit);
     }
 
     if (!leaderboardData || leaderboardData.length === 0) {
@@ -147,6 +156,7 @@ async function getCustomLeaderboard(
   type,
   limit,
   getStorageManager = null,
+  botId = null,
 ) {
   if (!getStorageManager) {
     const { getStorageManager: defaultGetStorageManager } = await import(
@@ -155,10 +165,9 @@ async function getCustomLeaderboard(
     getStorageManager = defaultGetStorageManager;
   }
   const storageManager = await getStorageManager();
-  const guildUsers = await storageManager.getUserExperienceLeaderboard(
-    guildId,
-    1000,
-  );
+  const guildUsers = (
+    await storageManager.getUserExperienceLeaderboard(guildId, 1000)
+  ).filter(user => user.userId !== botId);
 
   // Sort based on type
   let sortedUsers;

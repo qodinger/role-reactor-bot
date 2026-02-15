@@ -61,6 +61,17 @@ export async function handleLevel(interaction, _client, options = {}) {
       );
     }
 
+    // Ignore bots
+    if (targetUser.bot) {
+      return interaction.editReply(
+        errorEmbed({
+          title: "Bot Account",
+          description: "Bot accounts do not participate in the XP system.",
+          solution: "Check the level of a human member instead!",
+        }),
+      );
+    }
+
     // Allow dependency injection for testing
     const getExperienceManager =
       options.getExperienceManager ||
