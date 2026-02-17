@@ -610,6 +610,17 @@ class ExperienceManager {
       leveledUp: userData.level > this.calculateLevel(userData.totalXP - xp),
     };
   }
+
+  /**
+   * Get a user's rank in a guild
+   * @param {string} guildId - Discord guild ID
+   * @param {string} userId - Discord user ID
+   * @returns {Promise<number>} User's rank (0 if not found)
+   */
+  async getUserRank(guildId, userId) {
+    await this.initialize();
+    return this.storageManager.getUserRank(guildId, userId);
+  }
 }
 
 let experienceManager = null;

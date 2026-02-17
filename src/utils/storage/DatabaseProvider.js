@@ -77,6 +77,10 @@ export class DatabaseProvider {
     return this.dbManager.userExperience.getLeaderboard(guildId, limit);
   }
 
+  async getUserRank(guildId, userId) {
+    return this.dbManager.userExperience.getUserRank(guildId, userId);
+  }
+
   // Supporter management methods
   async getSupporters() {
     try {

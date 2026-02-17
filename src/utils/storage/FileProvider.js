@@ -470,6 +470,19 @@ export class FileProvider {
       .slice(0, limit);
   }
 
+  async getUserRank(guildId, userId) {
+    const data = await this.read("user_experience");
+    // Get all users in guild and sort by XP descending
+    const sortedUsers = Object.entries(data)
+      .filter(([key]) => key.startsWith(`${guildId}_`))
+      .map(([, value]) => value)
+      .sort((a, b) => (b.totalXP || 0) - (a.totalXP || 0));
+
+    // Find index (rank is index + 1)
+    const index = sortedUsers.findIndex(u => u.userId === userId);
+    return index !== -1 ? index + 1 : 0;
+  }
+
   async getCoreCredits(userId) {
     const data = await this.read("core_credit");
     return data[userId] || null;

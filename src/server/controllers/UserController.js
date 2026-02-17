@@ -110,6 +110,15 @@ export async function apiUserInfo(req, res) {
       return res.status(statusCode).json(response);
     }
 
+    // Get Core Credits
+    let credits = 0;
+    try {
+      const creditData = await storage.getCoreCredits(userId);
+      credits = creditData?.credits || 0;
+    } catch (err) {
+      logger.warn(`Failed to fetch credits for user ${userId}`, err);
+    }
+
     return res.json(
       createSuccessResponse({
         id: user.discordId,
@@ -118,6 +127,7 @@ export async function apiUserInfo(req, res) {
         avatar: user.avatar,
         email: user.email,
         role: user.role || "user",
+        credits,
         lastLogin: user.lastLogin,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,

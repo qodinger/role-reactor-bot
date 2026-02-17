@@ -6,6 +6,7 @@ import {
 import { getDiscordClient, logRequest } from "../utils/apiShared.js";
 import { getCommandHandler } from "../../utils/core/commandHandler.js";
 import { commandRegistry } from "../../utils/core/commandRegistry.js";
+import { getRankTitle } from "../../features/experience/rankTitles.js";
 
 const logger = getLogger();
 
@@ -334,6 +335,7 @@ export async function apiGetGuildSettings(req, res) {
                     }),
                     xp: l.totalXP || l.xp || 0,
                     level: l.level || 1,
+                    rankInfo: getRankTitle(l.level || 1),
                   };
                 });
               } catch (_e) {
@@ -778,13 +780,42 @@ export async function apiUpdateGuildSettings(req, res) {
  */
 export async function apiActivatePremiumFeature(req, res) {
   const { guildId } = req.params;
-  const { featureId, userId } = req.body;
+  let { featureId, userId } = req.body;
+
+  // Basic validation and defaults
+  if (!featureId) featureId = "pro_engine"; // Default to the main feature
+
+  // Try to find userId from other sources if not in body
+  if (!userId) {
+    if (req.user && req.user.id) userId = req.user.id;
+    else if (
+      req.session &&
+      req.session.discordUser &&
+      req.session.discordUser.id
+    )
+      userId = req.session.discordUser.id;
+    // Check headers for potential userId passed by proxy/internal call
+    else if (req.headers["x-user-id"]) userId = req.headers["x-user-id"];
+    else if (req.headers["x-discord-id"]) userId = req.headers["x-discord-id"];
+  }
+
   logRequest(
     `Activate premium feature: ${featureId} for guild ${guildId}`,
     req,
   );
 
+  // Detailed logging for debugging
   if (!guildId || !featureId || !userId) {
+    logger.warn(`Missing parameters for activate request:`, {
+      guildId,
+      featureId,
+      userId,
+      body: req.body,
+      headers: req.headers, // Added to debug
+      hasSession: !!req.session,
+      hasUser: !!req.user,
+    });
+
     const { statusCode, response } = createErrorResponse(
       "Guild ID, Feature ID, and User ID are required",
       400,
@@ -832,10 +863,39 @@ export async function apiActivatePremiumFeature(req, res) {
  */
 export async function apiCancelPremiumFeature(req, res) {
   const { guildId } = req.params;
-  const { featureId, userId } = req.body;
+  let { featureId, userId } = req.body;
+
+  // Basic validation and defaults
+  if (!featureId) featureId = "pro_engine"; // Default to the main feature
+
+  // Try to find userId from other sources if not in body
+  if (!userId) {
+    if (req.user && req.user.id) userId = req.user.id;
+    else if (
+      req.session &&
+      req.session.discordUser &&
+      req.session.discordUser.id
+    )
+      userId = req.session.discordUser.id;
+    // Check headers for potential userId passed by proxy/internal call
+    else if (req.headers["x-user-id"]) userId = req.headers["x-user-id"];
+    else if (req.headers["x-discord-id"]) userId = req.headers["x-discord-id"];
+  }
+
   logRequest(`Cancel premium feature: ${featureId} for guild ${guildId}`, req);
 
+  // Detailed logging for debugging
   if (!guildId || !featureId || !userId) {
+    logger.warn(`Missing parameters for cancel request:`, {
+      guildId,
+      featureId,
+      userId,
+      body: req.body,
+      headers: req.headers, // Added headers to debug log
+      hasSession: !!req.session,
+      hasUser: !!req.user,
+    });
+
     const { statusCode, response } = createErrorResponse(
       "Guild ID, Feature ID, and User ID are required",
       400,
@@ -1016,6 +1076,7 @@ export async function apiGuildLeaderboard(req, res) {
       enrichedLeaderboard.push({
         ...entry,
         user: userDetails,
+        rankInfo: getRankTitle(entry.level || 1),
       });
     }
 

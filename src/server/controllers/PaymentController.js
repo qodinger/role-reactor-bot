@@ -95,8 +95,7 @@ export async function apiPricing(req, res) {
           "../../utils/storage/storageManager.js"
         );
         const storage = await getStorageManager();
-        const coreCredits = (await storage.get("core_credit")) || {};
-        const userData = coreCredits[userId];
+        const userData = await storage.getCoreCredits(userId);
 
         const hasPayments =
           userData?.paypalPayments?.length > 0 ||
@@ -180,8 +179,7 @@ export async function apiUserBalance(req, res) {
       "../../utils/storage/storageManager.js"
     );
     const storage = await getStorageManager();
-    const coreCredits = (await storage.get("core_credit")) || {};
-    const userData = coreCredits[userId];
+    const userData = await storage.getCoreCredits(userId);
 
     if (!userData) {
       res.json(

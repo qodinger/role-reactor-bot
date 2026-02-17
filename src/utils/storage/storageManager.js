@@ -182,6 +182,10 @@ class StorageManager {
     return this.provider.getUserExperienceLeaderboard(guildId, limit);
   }
 
+  async getUserRank(guildId, userId) {
+    return this.provider.getUserRank(guildId, userId);
+  }
+
   async getCoreCredits(userId) {
     return this.provider.getCoreCredits(userId);
   }

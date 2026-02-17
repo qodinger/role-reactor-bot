@@ -1,5 +1,5 @@
 import { PremiumFeatures } from "./config.js";
-import { getStorageManager } from "../../utils/storage/databaseManager.js";
+import { getStorageManager } from "../../utils/storage/storageManager.js";
 import { getLogger } from "../../utils/logger.js";
 import { getCommandHandler } from "../../utils/core/commandHandler.js";
 
@@ -33,8 +33,12 @@ export class PremiumManager {
    */
   async isFeatureActive(guildId, featureId) {
     try {
-      const dbManager = await getStorageManager();
-      const settings = await dbManager.guildSettings.getByGuild(guildId);
+      const storage = await getStorageManager();
+      // Ensure we have DB access or handle file fallback if implemented, currently DB only for premium
+      if (!storage.dbManager) return false;
+
+      const settings =
+        await storage.dbManager.guildSettings.getByGuild(guildId);
 
       const subscription = settings?.premiumFeatures?.[featureId];
       if (!subscription || !subscription.active) return false;
@@ -73,11 +77,17 @@ export class PremiumManager {
     }
 
     try {
-      const dbManager = await getStorageManager();
+      const storage = await getStorageManager();
+      if (!storage.dbManager) {
+        return {
+          success: false,
+          message: "Database connection required for Premium features.",
+        };
+      }
 
-      // 1. Check user balance
-      const credits = await dbManager.coreCredits.getByUserId(userId);
-      const balance = credits?.credits || 0;
+      // 1. Check user balance using StorageManager abstraction
+      const creditData = await storage.getCoreCredits(userId);
+      const balance = creditData?.credits || 0;
 
       if (balance < feature.cost) {
         return {
@@ -86,8 +96,8 @@ export class PremiumManager {
         };
       }
 
-      // 2. Deduct credits
-      const deducted = await dbManager.coreCredits.updateCredits(
+      // 2. Deduct credits (Direct DB write)
+      const deducted = await storage.dbManager.coreCredits.updateCredits(
         userId,
         -feature.cost,
       );
@@ -99,7 +109,7 @@ export class PremiumManager {
       }
 
       // 3. Log the transaction
-      await this._logTransaction(dbManager, {
+      await this._logTransaction(storage.dbManager, {
         guildId,
         userId,
         featureId,
@@ -109,7 +119,8 @@ export class PremiumManager {
       });
 
       // 4. Update guild settings
-      const settings = await dbManager.guildSettings.getByGuild(guildId);
+      const settings =
+        await storage.dbManager.guildSettings.getByGuild(guildId);
       const premiumFeatures = settings.premiumFeatures || {};
 
       const nextDate = new Date();
@@ -125,7 +136,7 @@ export class PremiumManager {
         period: feature.period,
       };
 
-      await dbManager.guildSettings.set(guildId, {
+      await storage.dbManager.guildSettings.set(guildId, {
         ...settings,
         premiumFeatures,
       });
@@ -161,8 +172,11 @@ export class PremiumManager {
    */
   async cancelFeature(guildId, featureId, userId) {
     try {
-      const dbManager = await getStorageManager();
-      const settings = await dbManager.guildSettings.getByGuild(guildId);
+      const storage = await getStorageManager();
+      if (!storage.dbManager)
+        return { success: false, message: "Database connection required." };
+      const settings =
+        await storage.dbManager.guildSettings.getByGuild(guildId);
 
       const subscription = settings?.premiumFeatures?.[featureId];
       if (!subscription || !subscription.active) {
@@ -186,13 +200,13 @@ export class PremiumManager {
       subscription.cancelledBy = userId;
       subscription.autoRenew = false;
 
-      await dbManager.guildSettings.set(guildId, settings);
+      await storage.dbManager.guildSettings.set(guildId, settings);
 
       // Log the cancellation
       const feature = Object.values(PremiumFeatures).find(
         f => f.id === featureId,
       );
-      await this._logTransaction(dbManager, {
+      await this._logTransaction(storage.dbManager, {
         guildId,
         userId,
         featureId,
@@ -229,8 +243,9 @@ export class PremiumManager {
   async processRenewals() {
     logger.info("🔄 Checking for premium feature renewals...");
     try {
-      const dbManager = await getStorageManager();
-      const guilds = await dbManager.guildSettings.collection
+      const storage = await getStorageManager();
+      if (!storage.dbManager) return;
+      const guilds = await storage.dbManager.guildSettings.collection
         .find({
           premiumFeatures: { $exists: true },
         })
@@ -287,14 +302,14 @@ export class PremiumManager {
 
           // 2. Process actual renewal
           if (deductionDate <= now) {
-            const credits = await dbManager.coreCredits.getByUserId(
+            const credits = await storage.dbManager.coreCredits.getByUserId(
               sub.payerUserId,
             );
             const balance = credits?.credits || 0;
 
             if (balance >= feature.cost) {
               // Deduct and renew
-              await dbManager.coreCredits.updateCredits(
+              await storage.dbManager.coreCredits.updateCredits(
                 sub.payerUserId,
                 -feature.cost,
               );
@@ -305,10 +320,10 @@ export class PremiumManager {
               sub.lastDeductionDate = now;
               sub.nextDeductionDate = nextDate;
 
-              await dbManager.guildSettings.set(guildId, settings);
+              await storage.dbManager.guildSettings.set(guildId, settings);
 
               // Log the renewal transaction
-              await this._logTransaction(dbManager, {
+              await this._logTransaction(storage.dbManager, {
                 guildId,
                 userId: sub.payerUserId,
                 featureId,
@@ -367,9 +382,10 @@ export class PremiumManager {
     if (this.sentWarnings.has(warningKey)) return false;
 
     try {
-      const dbManager = await getStorageManager();
-      const credits = await dbManager.coreCredits.getByUserId(userId);
-      const balance = credits?.credits || 0;
+      const storage = await getStorageManager();
+      if (!storage.dbManager) return false;
+      const creditData = await storage.getCoreCredits(userId);
+      const balance = creditData?.credits || 0;
 
       if (balance < feature.cost) {
         // Send DM
@@ -519,8 +535,10 @@ export class PremiumManager {
     const { reason = "insufficient_balance" } = options;
 
     try {
-      const dbManager = await getStorageManager();
-      const settings = await dbManager.guildSettings.getByGuild(guildId);
+      const storage = await getStorageManager();
+      if (!storage.dbManager) return;
+      const settings =
+        await storage.dbManager.guildSettings.getByGuild(guildId);
 
       if (settings?.premiumFeatures?.[featureId]) {
         const sub = settings.premiumFeatures[featureId];
@@ -530,13 +548,13 @@ export class PremiumManager {
         sub.disabledAt = new Date();
         sub.disableReason = reason;
 
-        await dbManager.guildSettings.set(guildId, settings);
+        await storage.dbManager.guildSettings.set(guildId, settings);
 
         // Log the disablement
         const feature = Object.values(PremiumFeatures).find(
           f => f.id === featureId,
         );
-        await this._logTransaction(dbManager, {
+        await this._logTransaction(storage.dbManager, {
           guildId,
           userId: payerUserId,
           featureId,
@@ -668,8 +686,10 @@ export class PremiumManager {
    */
   async getSubscriptionStatus(guildId, featureId) {
     try {
-      const dbManager = await getStorageManager();
-      const settings = await dbManager.guildSettings.getByGuild(guildId);
+      const storage = await getStorageManager();
+      if (!storage.dbManager) return null;
+      const settings =
+        await storage.dbManager.guildSettings.getByGuild(guildId);
       const sub = settings?.premiumFeatures?.[featureId];
 
       if (!sub) return null;

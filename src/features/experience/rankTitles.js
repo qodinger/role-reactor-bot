@@ -12,11 +12,11 @@
  * Each entry defines the minimum level required for that rank.
  */
 const RANK_TIERS = [
-  { minLevel: 50, title: "Legend", emoji: "🔴", color: 0xef4444 },
-  { minLevel: 35, title: "Master", emoji: "🟠", color: 0xf97316 },
-  { minLevel: 20, title: "Veteran", emoji: "🟡", color: 0xeab308 },
-  { minLevel: 10, title: "Adept", emoji: "🟣", color: 0xa855f7 },
-  { minLevel: 5, title: "Apprentice", emoji: "🔵", color: 0x3b82f6 },
+  { minLevel: 300, title: "Legend", emoji: "🔴", color: 0xef4444 },
+  { minLevel: 150, title: "Master", emoji: "🟠", color: 0xf97316 },
+  { minLevel: 80, title: "Veteran", emoji: "🟡", color: 0xeab308 },
+  { minLevel: 40, title: "Adept", emoji: "🟣", color: 0xa855f7 },
+  { minLevel: 15, title: "Apprentice", emoji: "🔵", color: 0x3b82f6 },
   { minLevel: 1, title: "Novice", emoji: "🟢", color: 0x22c55e },
 ];
 

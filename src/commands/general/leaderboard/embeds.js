@@ -27,10 +27,8 @@ export function createLeaderboardEmbed(
     .map((user, index) => {
       const position = index + 1;
       const medal = getPositionMedal(position);
-      const username =
-        interaction.guild.members.cache.get(user.userId)?.displayName ||
-        interaction.guild.members.cache.get(user.userId)?.user.username ||
-        `User ${user.userId}`;
+      // Use pre-fetched displayName or fallback
+      const username = user.displayName || `User ${user.userId}`;
 
       return formatLeaderboardEntry(position, medal, username, user, type);
     })
@@ -109,17 +107,21 @@ function formatLeaderboardEntry(position, medal, username, user, type) {
 
   const rankStr = getFormattedRank(level);
 
+  // Use • separator and cleaner format
+  // Escape markdown in username to prevent formatting issues
+  const safeUsername = username.replace(/[*_~`]/g, "\\$&");
+
   switch (type) {
     case "level":
-      return `${medal} **${username}** - Level ${level} (${rankStr})`;
+      return `${medal} **${safeUsername}** • Level ${level} • ${rankStr}`;
     case "messages":
-      return `${medal} **${username}** - ${(user.messagesSent || 0).toLocaleString()} messages`;
+      return `${medal} **${safeUsername}** • ${(user.messagesSent || 0).toLocaleString()} messages`;
     case "voice": {
       const voiceHours = Math.floor((user.voiceTime || 0) / 60);
       const voiceMinutes = (user.voiceTime || 0) % 60;
-      return `${medal} **${username}** - ${voiceHours}h ${voiceMinutes}m`;
+      return `${medal} **${safeUsername}** • ${voiceHours}h ${voiceMinutes}m`;
     }
     default:
-      return `${medal} **${username}** - ${(user.totalXP || 0).toLocaleString()} XP (${rankStr})`;
+      return `${medal} **${safeUsername}** • ${(user.totalXP || 0).toLocaleString()} XP • ${rankStr}`;
   }
 }

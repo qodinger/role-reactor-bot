@@ -86,12 +86,74 @@ export async function handleLevel(interaction, _client, options = {}) {
     );
     const progress = experienceManager.calculateProgress(userData.totalXP);
 
-    // Create level embed
-    const embed = createLevelEmbed(interaction, targetUser, userData, progress);
+    // Get rank for everyone
+    const rank = await experienceManager.getUserRank(
+      interaction.guild.id,
+      targetUser.id,
+    );
 
-    await interaction.editReply({
-      embeds: [embed],
-    });
+    // Check for Pro Engine (Premium)
+    const { getPremiumManager } = await import(
+      "../../../features/premium/PremiumManager.js"
+    );
+    const { PremiumFeatures } = await import(
+      "../../../features/premium/config.js"
+    );
+    const premiumManager = getPremiumManager();
+    const isPro = await premiumManager.isFeatureActive(
+      interaction.guild.id,
+      PremiumFeatures.PRO.id,
+    );
+
+    if (isPro) {
+      try {
+        const { getRankCardGenerator } = await import(
+          "../../../features/experience/RankCardGenerator.js"
+        );
+        const generator = getRankCardGenerator();
+
+        const cardBuffer = await generator.generate(
+          targetUser,
+          userData,
+          rank || 0,
+        );
+
+        const { AttachmentBuilder } = await import("discord.js");
+        const attachment = new AttachmentBuilder(cardBuffer, {
+          name: `rank-${targetUser.id}.png`,
+        });
+
+        await interaction.editReply({
+          files: [attachment],
+          // Still could include embed if desired, or replace it completely
+          embeds: [],
+          content: `📊 Rank Card for **${targetUser.username}**`,
+        });
+      } catch (genError) {
+        logger.error(
+          `Failed to generate rank card, falling back to embed: ${genError}`,
+        );
+        // Fallback to embed
+        const embed = createLevelEmbed(
+          interaction,
+          targetUser,
+          userData,
+          progress,
+          rank,
+        );
+        await interaction.editReply({ embeds: [embed] });
+      }
+    } else {
+      // Free User - Standard Embed
+      const embed = createLevelEmbed(
+        interaction,
+        targetUser,
+        userData,
+        progress,
+        rank,
+      );
+      await interaction.editReply({ embeds: [embed] });
+    }
 
     const duration = Date.now() - startTime;
     logger.info(

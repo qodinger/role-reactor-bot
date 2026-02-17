@@ -114,6 +114,31 @@ export async function handleLeaderboard(interaction, client, options = {}) {
       );
     }
 
+    // Resolve display names
+    try {
+      const userIds = leaderboardData.map(u => u.userId);
+      const members = await interaction.guild.members.fetch({ user: userIds });
+      leaderboardData = leaderboardData.map(entry => {
+        const member = members.get(entry.userId);
+        return {
+          ...entry,
+          displayName:
+            member?.displayName ||
+            member?.user?.username ||
+            `User ${entry.userId}`,
+        };
+      });
+    } catch (e) {
+      logger.warn("Failed to fetch leaderboard members", e);
+      // Fallback to cache or IDs
+      leaderboardData = leaderboardData.map(entry => ({
+        ...entry,
+        displayName:
+          interaction.guild.members.cache.get(entry.userId)?.displayName ||
+          `User ${entry.userId}`,
+      }));
+    }
+
     // Create leaderboard embed
     const embed = createLeaderboardEmbed(
       interaction,

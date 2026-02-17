@@ -110,4 +110,24 @@ export class UserExperienceRepository extends BaseRepository {
       throw error;
     }
   }
+
+  async getUserRank(guildId, userId) {
+    try {
+      const userData = await this.collection.findOne({ guildId, userId });
+      if (!userData) return 0;
+
+      const count = await this.collection.countDocuments({
+        guildId,
+        totalXP: { $gt: userData.totalXP || 0 },
+      });
+
+      return count + 1;
+    } catch (error) {
+      this.logger.error(
+        `Failed to get user rank for ${userId} in ${guildId}`,
+        error,
+      );
+      return 0;
+    }
+  }
 }

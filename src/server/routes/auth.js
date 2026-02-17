@@ -216,7 +216,7 @@ router.get(
  * Get current user information
  * GET /auth/me
  */
-router.get("/me", (req, res) => {
+router.get("/me", async (req, res) => {
   try {
     if (!req.session.discordUser) {
       return res
@@ -224,7 +224,41 @@ router.get("/me", (req, res) => {
         .json(createErrorResponse("Not authenticated", 401).response);
     }
 
-    res.json(createSuccessResponse({ user: req.session.discordUser }));
+    // Fetch latest credits and role from DB to ensure session is up to date
+    let credits = 0;
+    let role = "user";
+    try {
+      const { getStorageManager } = await import(
+        "../../utils/storage/storageManager.js"
+      );
+      const storage = await getStorageManager();
+
+      // Get credits
+      const creditData = await storage.getCoreCredits(
+        req.session.discordUser.id,
+      );
+      credits = creditData?.credits || 0;
+
+      // Get role (admin status might change)
+      const user = await storage.dbManager.users.findByDiscordId(
+        req.session.discordUser.id,
+      );
+      if (user && user.role) {
+        role = user.role;
+      }
+    } catch (dbError) {
+      logger.warn("Failed to fetch fresh user data for /auth/me", dbError);
+    }
+
+    res.json(
+      createSuccessResponse({
+        user: {
+          ...req.session.discordUser,
+          credits,
+          role, // Ensure role is also fresh
+        },
+      }),
+    );
   } catch (error) {
     logger.error("Error getting user info:", error);
     res
