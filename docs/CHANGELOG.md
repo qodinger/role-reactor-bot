@@ -5,7 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.6.3] - 2026-02-17
+
+### Added
+
+- **Cyberpunk Rank Progression**: Your server level now comes with evocative new Cyberpunk-themed titles that reflect your growing status.
+
+### Changed
+
+- **Flexible Pro Subscription**: The Pro Engine has moved to a simpler weekly billing cycle (15 Cores per week), making it easier to manage your server's premium features.
+- **Modern Leaderboards**: Level and leaderboard messages have been redesigned with a fresh look and better readability.
+- **Improved Dashboard Reliability**: The web settings and balance tracking are now faster and more accurate for a better management experience.
+- **Enhanced Configuration Sync**: Bot settings now update more reliably across all server management commands.
 
 ## [1.6.2] - 2026-02-12
 

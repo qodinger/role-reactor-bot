@@ -4,9 +4,9 @@ export const PremiumFeatures = {
     name: "Pro Engine",
     description:
       "Unlock all premium features, automated tools, and advanced customization",
-    cost: 50, // Cores (~$3.30/mo)
-    period: "month",
-    periodDays: 30,
+    cost: 15, // Cores (weekly cycle)
+    period: "week",
+    periodDays: 7,
     includes: [
       "Unlimited Level Rewards (free tier: 5)",
       "Replace reward mode (highest role only)",

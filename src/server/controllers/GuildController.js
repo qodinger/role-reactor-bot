@@ -472,9 +472,13 @@ export async function apiGetGuildSettings(req, res) {
               autoRenew: proSubscription.autoRenew,
               cost: proSubscription.cost,
               period: proSubscription.period,
+              lastDeductionDate:
+                proSubscription.lastDeductionDate ||
+                proSubscription.activatedAt,
             }
           : null,
         availableCommands: commandDetails,
+        premiumConfig: PremiumFeatures,
       }),
     );
   } catch (error) {

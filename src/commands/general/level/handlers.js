@@ -105,55 +105,15 @@ export async function handleLevel(interaction, _client, options = {}) {
       PremiumFeatures.PRO.id,
     );
 
-    if (isPro) {
-      try {
-        const { getRankCardGenerator } = await import(
-          "../../../features/experience/RankCardGenerator.js"
-        );
-        const generator = getRankCardGenerator();
-
-        const cardBuffer = await generator.generate(
-          targetUser,
-          userData,
-          rank || 0,
-        );
-
-        const { AttachmentBuilder } = await import("discord.js");
-        const attachment = new AttachmentBuilder(cardBuffer, {
-          name: `rank-${targetUser.id}.png`,
-        });
-
-        await interaction.editReply({
-          files: [attachment],
-          // Still could include embed if desired, or replace it completely
-          embeds: [],
-          content: `📊 Rank Card for **${targetUser.username}**`,
-        });
-      } catch (genError) {
-        logger.error(
-          `Failed to generate rank card, falling back to embed: ${genError}`,
-        );
-        // Fallback to embed
-        const embed = createLevelEmbed(
-          interaction,
-          targetUser,
-          userData,
-          progress,
-          rank,
-        );
-        await interaction.editReply({ embeds: [embed] });
-      }
-    } else {
-      // Free User - Standard Embed
-      const embed = createLevelEmbed(
-        interaction,
-        targetUser,
-        userData,
-        progress,
-        rank,
-      );
-      await interaction.editReply({ embeds: [embed] });
-    }
+    // Standard Embed Display (Rank cards disabled)
+    const embed = createLevelEmbed(
+      interaction,
+      targetUser,
+      userData,
+      progress,
+      rank,
+    );
+    await interaction.editReply({ embeds: [embed] });
 
     const duration = Date.now() - startTime;
     logger.info(
