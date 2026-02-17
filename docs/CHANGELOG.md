@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Cyberpunk Rank Progression**: Your server level now comes with evocative new Cyberpunk-themed titles that reflect your growing status.
+- **Enhanced Rank Titles**: Your server level now comes with evocative new rank titles that reflect your growing status and contribution to the community.
 
 ### Changed
 
