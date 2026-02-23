@@ -108,7 +108,7 @@ export function parseRoleString(roleString) {
   const errors = [];
   const input = unescapeHtml(roleString.trim());
 
-  const parts = input.split(/\s*(?:,|;|\n)\s*/).filter(Boolean);
+  const parts = input.split(/\s*(?:,|;|\n|\\n)\s*/).filter(Boolean);
   for (const part of parts) {
     let str = part.trim();
 

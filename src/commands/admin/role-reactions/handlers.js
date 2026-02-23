@@ -105,8 +105,10 @@ export async function handleSetup(interaction, client) {
     const { validRoles, roleMapping } = roleProcessingResult.data;
 
     // Prepare message data
-    const title = interaction.options.getString("title");
-    const description = interaction.options.getString("description");
+    const title = interaction.options.getString("title")?.replace(/\\n/g, "\n");
+    const description = interaction.options
+      .getString("description")
+      ?.replace(/\\n/g, "\n");
     let colorHex = interaction.options.getString("color");
     let color = THEME_COLOR;
     if (colorHex) {
@@ -439,8 +441,10 @@ export async function handleUpdate(interaction) {
     }
 
     const messageId = interaction.options.getString("message_id");
-    const title = interaction.options.getString("title");
-    const description = interaction.options.getString("description");
+    const title = interaction.options.getString("title")?.replace(/\\n/g, "\n");
+    const description = interaction.options
+      .getString("description")
+      ?.replace(/\\n/g, "\n");
     const rolesString = interaction.options.getString("roles");
     const colorHex = interaction.options.getString("color");
 
