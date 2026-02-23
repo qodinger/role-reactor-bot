@@ -1,7 +1,6 @@
 import { EmbedBuilder } from "discord.js";
 import {
   getRankTitle,
-  getFormattedRank,
   getAllRankTiers,
 } from "../../../features/experience/rankTitles.js";
 

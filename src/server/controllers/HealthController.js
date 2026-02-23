@@ -23,7 +23,7 @@ export async function apiGetHealth(req, res) {
       }, 0) / cpus.length;
 
     // Real Database Check
-    let dbStatus = { connected: false, responseTime: 0 };
+    const dbStatus = { connected: false, responseTime: 0 };
     try {
       const { getDatabaseManager } = await import(
         "../../utils/storage/databaseManager.js"

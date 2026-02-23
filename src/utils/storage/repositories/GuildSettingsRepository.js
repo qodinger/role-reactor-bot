@@ -58,7 +58,8 @@ export class GuildSettingsRepository extends BaseRepository {
   async set(guildId, settings) {
     try {
       // Strip _id to avoid immutable field error
-      const { _id, ...safeSettings } = settings;
+      const safeSettings = { ...settings };
+      delete safeSettings._id;
       await this.collection.updateOne(
         { guildId },
         { $set: { ...safeSettings, guildId, updatedAt: new Date() } },

@@ -100,7 +100,7 @@ export async function handleLevel(interaction, _client, options = {}) {
       "../../../features/premium/config.js"
     );
     const premiumManager = getPremiumManager();
-    const isPro = await premiumManager.isFeatureActive(
+    await premiumManager.isFeatureActive(
       interaction.guild.id,
       PremiumFeatures.PRO.id,
     );

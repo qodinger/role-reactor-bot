@@ -41,7 +41,7 @@ export async function apiListUsers(req, res) {
 
     // Enrich with Core Credits
     const userIds = users.map(u => u.discordId);
-    let creditsMap = {};
+    const creditsMap = {};
 
     if (userIds.length > 0 && storage.dbManager.coreCredits) {
       try {
@@ -287,7 +287,7 @@ export async function apiManageUserCores(req, res) {
 
     // Get current balance
     const credits = await dbManager.coreCredits.getByUserId(userId);
-    let currentBalance = credits?.credits || 0;
+    const currentBalance = credits?.credits || 0;
     let newBalance = currentBalance;
 
     switch (action) {
@@ -300,12 +300,13 @@ export async function apiManageUserCores(req, res) {
       case "set":
         newBalance = amount;
         break;
-      default:
+      default: {
         const { statusCode, response } = createErrorResponse(
           "Invalid action. Use 'add', 'remove', or 'set'.",
           400,
         );
         return res.status(statusCode).json(response);
+      }
     }
 
     // Set new balance
