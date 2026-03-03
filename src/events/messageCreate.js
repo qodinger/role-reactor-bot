@@ -32,8 +32,8 @@ export async function execute(message, client) {
       return;
     }
 
-    // Check if bot is mentioned
-    const isBotMentioned = message.mentions.has(client.user.id);
+    // Check if bot is mentioned via explicit ping or reply (ignores @everyone/@here and role mentions)
+    const isBotMentioned = message.mentions.users.has(client.user.id);
 
     if (isBotMentioned) {
       // Extract message content without the mention
