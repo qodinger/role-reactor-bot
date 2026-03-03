@@ -116,11 +116,10 @@ async function createClient() {
     GatewayIntentBits.GuildEmojisAndStickers,
   ];
 
-  // Optional privileged intents (only add if enabled in Developer Portal)
-  // GuildPresences is required for user status/activity in /userinfo command
-  // If not enabled, status will simply not be shown (graceful degradation)
-  // Uncomment the line below after enabling "Presence Intent" in Discord Developer Portal
-  // intents.push(GatewayIntentBits.GuildPresences);
+  // Privileged Intent Note:
+  // - GuildMembers: Required for XP tracking and member management.
+  // - MessageContent: NOT required as the bot uses Slash Commands and Mentions.
+  // - GuildPresences: NOT required; the bot degrades gracefully for user info.
 
   // Default cache limits
   const defaultCacheLimits = {

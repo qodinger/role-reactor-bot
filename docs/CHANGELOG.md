@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Enhanced Rank Titles**: Your server level now comes with evocative new rank titles that reflect your growing status and contribution to the community.
+- **Role Reactions**: Added an optional `hide_list` toggle to `/role-reactions setup` and `update` commands, allowing administrators to hide the automated roles list and fully customize their own menus in the description field.
 
 ### Changed
 

@@ -14,6 +14,7 @@ export function createSetupRolesEmbed(
   color,
   validRoles,
   client,
+  hideList = false,
 ) {
   const embed = new EmbedBuilder()
     .setTitle(title || "Role Reactions") // Simplified title
@@ -36,13 +37,15 @@ export function createSetupRolesEmbed(
     })
     .join("\n");
 
-  embed.addFields([
-    {
-      name: "Available Roles",
-      value: roleList || "No roles available",
-      inline: false,
-    },
-  ]);
+  if (!hideList) {
+    embed.addFields([
+      {
+        name: "Available Roles",
+        value: roleList || "No roles available",
+        inline: false,
+      },
+    ]);
+  }
 
   return embed;
 }
@@ -188,13 +191,15 @@ export function createUpdatedRolesEmbed(updatedMapping, roleMapping, client) {
     })
     .join("\n");
 
-  embed.addFields([
-    {
-      name: "Available Roles",
-      value: roleList || "No roles available",
-      inline: false,
-    },
-  ]);
+  if (!updatedMapping.hideList) {
+    embed.addFields([
+      {
+        name: "Available Roles",
+        value: roleList || "No roles available",
+        inline: false,
+      },
+    ]);
+  }
 
   return embed;
 }

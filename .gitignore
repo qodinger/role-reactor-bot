@@ -192,4 +192,7 @@ audit.log
 # Development files
 dev/
 test-bot/
-temp/ 
+temp/
+
+# Unpublished Drafts
+docs/.drafts/

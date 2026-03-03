@@ -119,6 +119,14 @@ export const data = new SlashCommandBuilder()
           .setDescription("Choose a color for the embed")
           .setRequired(false)
           .addChoices(...getColorChoices()),
+      )
+      .addBooleanOption(opt =>
+        opt
+          .setName("hide_list")
+          .setDescription(
+            "Hide the automatic list of available roles at the bottom of the embed",
+          )
+          .setRequired(false),
       ),
   )
   .addSubcommand(sub =>
@@ -168,6 +176,14 @@ export const data = new SlashCommandBuilder()
           .setDescription("Choose a color for the embed")
           .setRequired(false)
           .addChoices(...getColorChoices()),
+      )
+      .addBooleanOption(opt =>
+        opt
+          .setName("hide_list")
+          .setDescription(
+            "Hide the automatic list of available roles at the bottom of the embed",
+          )
+          .setRequired(false),
       ),
   )
   .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles);

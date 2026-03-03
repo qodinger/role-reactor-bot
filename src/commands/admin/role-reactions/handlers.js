@@ -115,6 +115,7 @@ export async function handleSetup(interaction, client) {
       if (!colorHex.startsWith("#")) colorHex = `#${colorHex}`;
       color = colorHex;
     }
+    const hideList = interaction.options.getBoolean("hide_list") ?? false;
 
     // Perform final permission check
     const finalPermissionCheck = performFinalPermissionCheck(interaction);
@@ -131,6 +132,7 @@ export async function handleSetup(interaction, client) {
         description,
         color,
         validRoles,
+        hideList,
       },
       client,
     );
@@ -175,7 +177,10 @@ export async function handleSetup(interaction, client) {
       message.id,
       interaction.guild.id,
       interaction.channel.id,
-      roleMapping,
+      {
+        roles: roleMapping,
+        hideList,
+      },
     );
 
     // Send success response
@@ -447,6 +452,7 @@ export async function handleUpdate(interaction) {
       ?.replace(/\\n/g, "\n");
     const rolesString = interaction.options.getString("roles");
     const colorHex = interaction.options.getString("color");
+    const hideList = interaction.options.getBoolean("hide_list");
 
     const mapping = await getRoleMapping(messageId, interaction.guild.id);
     if (!mapping) {
@@ -462,6 +468,7 @@ export async function handleUpdate(interaction) {
     const updates = {};
     if (title) updates.title = title;
     if (description) updates.description = description;
+    if (hideList !== null) updates.hideList = hideList;
 
     let roleMapping = mapping.roles;
     if (rolesString) {

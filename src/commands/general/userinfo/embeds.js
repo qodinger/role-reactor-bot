@@ -1,14 +1,11 @@
-import { EmbedBuilder, ActivityType } from "discord.js";
+import { EmbedBuilder } from "discord.js";
 import { THEME, UI_COMPONENTS } from "../../../config/theme.js";
-import { getLogger } from "../../../utils/logger.js";
 import {
   formatUserFlags,
   formatRoles,
   formatUserStatus,
   formatUserActivity,
 } from "./utils.js";
-
-const logger = getLogger();
 
 /**
  * Create user info embed
@@ -76,30 +73,6 @@ export function createUserInfoEmbed(user, memberData, guild, warnCount = null) {
       // User has valid presence data (online, idle, dnd, or offline with cached presence)
       const status = formatUserStatus(memberData.presence);
       const activity = formatUserActivity(memberData.presence);
-
-      // Debug logging for activity detection
-      logger.debug("Activity formatting result:", {
-        hasActivity: !!activity,
-        activityText: activity,
-        activitiesCount: memberData.presence.activities?.length || 0,
-        activities: memberData.presence.activities?.map(a => {
-          let typeName = "Unknown";
-          if (a.type === ActivityType.Playing) typeName = "Playing";
-          else if (a.type === ActivityType.Streaming) typeName = "Streaming";
-          else if (a.type === ActivityType.Listening) typeName = "Listening";
-          else if (a.type === ActivityType.Watching) typeName = "Watching";
-          else if (a.type === ActivityType.Custom) typeName = "Custom";
-          else if (a.type === ActivityType.Competing) typeName = "Competing";
-
-          return {
-            type: a.type,
-            name: a.name,
-            url: a.url,
-            typeName,
-            isStreaming: a.type === ActivityType.Streaming,
-          };
-        }),
-      });
 
       // Truncate activity text if too long (Discord field value limit is 1024)
       let activityText = activity;

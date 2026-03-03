@@ -54,13 +54,14 @@ export async function createRoleReactionMessage(
 ) {
   const logger = getLogger();
 
-  const { title, description, color, validRoles } = messageData;
+  const { title, description, color, validRoles, hideList } = messageData;
 
   logger.debug("Creating role-reaction message", {
     title,
     description,
     color,
     rolesCount: validRoles.length,
+    hideList,
   });
 
   const embed = createSetupRolesEmbed(
@@ -69,6 +70,7 @@ export async function createRoleReactionMessage(
     color,
     validRoles,
     client,
+    hideList,
   );
 
   try {

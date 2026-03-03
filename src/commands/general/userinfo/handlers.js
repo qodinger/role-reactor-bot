@@ -37,51 +37,10 @@ export async function execute(interaction, _client) {
       return;
     }
 
-    // Get presence data - try multiple sources
-    let presence = null;
-    if (member && _client && interaction.guild) {
-      // Try guild's presence cache first (this is more reliable for activities)
-      // Use optional chaining to safely access presences (may be null if Presence Intent is disabled)
-      const guildPresence = interaction.guild.presences?.cache?.get(
-        targetUser.id,
-      );
-      if (guildPresence) {
-        presence = guildPresence;
-        logger.debug(`Found presence in guild cache for ${targetUser.tag}`, {
-          hasActivities: (presence.activities?.length || 0) > 0,
-          activitiesCount: presence.activities?.length || 0,
-        });
-      }
-
-      // Fallback to member.presence if guild cache doesn't have it
-      if (!presence) {
-        presence = member.presence;
-        logger.debug(`Using member.presence for ${targetUser.tag}`, {
-          hasActivities: (presence?.activities?.length || 0) > 0,
-          activitiesCount: presence?.activities?.length || 0,
-        });
-      }
-
-      // Last resort: try client's global presence cache
-      if (
-        !presence ||
-        !presence.activities ||
-        presence.activities.length === 0
-      ) {
-        const clientPresence = _client.guilds.cache
-          .get(interaction.guild.id)
-          ?.presences?.cache?.get(targetUser.id);
-        if (clientPresence && clientPresence.activities?.length > 0) {
-          presence = clientPresence;
-          logger.debug(`Found presence in client cache for ${targetUser.tag}`, {
-            activitiesCount: presence.activities?.length || 0,
-          });
-        }
-      }
-    } else if (member) {
-      // Fallback if no client or guild
-      presence = member.presence;
-    }
+    // Get presence data (requires Presence Intent for full data)
+    // Without the intent, this will typically only return 'offline' or basic status
+    // for users who haven't interacted with the bot recently.
+    const presence = member?.presence || null;
 
     // Debug logging
     logger.debug(
