@@ -10,6 +10,8 @@ class AnalyticsManager {
     this.storageManager = null;
     this.isInitialized = false;
     this.saveInterval = null;
+    this.batchInterval = null;
+    this.batch = {}; // guildId:dateKey -> { type: amount }
   }
 
   async initialize() {
@@ -24,6 +26,12 @@ class AnalyticsManager {
       this.saveInterval = setInterval(
         () => this.cleanupOldData(),
         24 * 60 * 60 * 1000,
+      ).unref();
+
+      // Flush batch every 1 minute to prevent database spam
+      this.batchInterval = setInterval(
+        () => this.flushBatch(),
+        60 * 1000,
       ).unref();
     } catch (error) {
       this.logger.error("Failed to initialize Analytics Manager", error);
@@ -57,21 +65,85 @@ class AnalyticsManager {
   }
 
   /**
-   * Update a specific counter in the storage
+   * Record a message sent in a guild
+   */
+  async recordMessage(guildId) {
+    await this.initialize();
+    const dateKey = this.getDateKey();
+    await this.updateCounter(guildId, dateKey, "messages", 1);
+  }
+
+  /**
+   * Record voice activity minutes in a guild
+   */
+  async recordVoiceMinutes(guildId, minutes) {
+    await this.initialize();
+    const dateKey = this.getDateKey();
+    await this.updateCounter(guildId, dateKey, "voiceMinutes", minutes);
+  }
+
+  /**
+   * Record a command used in a guild
+   */
+  async recordCommand(guildId) {
+    await this.initialize();
+    const dateKey = this.getDateKey();
+    await this.updateCounter(guildId, dateKey, "commands", 1);
+  }
+
+  /**
+   * Record a role reaction event in a guild
+   */
+  async recordRoleReaction(guildId) {
+    await this.initialize();
+    const dateKey = this.getDateKey();
+    await this.updateCounter(guildId, dateKey, "roleReactions", 1);
+  }
+
+  /**
+   * Update a specific counter in the storage (Batched)
    */
   async updateCounter(guildId, dateKey, type, amount) {
     try {
-      await this.storageManager.updateGuildAnalytics(
-        guildId,
-        dateKey,
-        type,
-        amount,
-      );
+      const key = `${guildId}:${dateKey}`;
+      if (!this.batch[key]) {
+        this.batch[key] = {};
+      }
+      this.batch[key][type] = (this.batch[key][type] || 0) + amount;
     } catch (error) {
       this.logger.error(
-        `Error updating analytics counter for ${guildId}:`,
+        `Error queueing analytics counter for ${guildId}:`,
         error,
       );
+    }
+  }
+
+  /**
+   * Flush all batched analytics to the database
+   */
+  async flushBatch() {
+    if (Object.keys(this.batch).length === 0) return;
+
+    const currentBatch = { ...this.batch };
+    this.batch = {};
+
+    for (const [key, data] of Object.entries(currentBatch)) {
+      const [guildId, dateKey] = key.split(":");
+      for (const [type, amount] of Object.entries(data)) {
+        try {
+          await this.storageManager.updateGuildAnalytics(
+            guildId,
+            dateKey,
+            type,
+            amount,
+          );
+        } catch (error) {
+          this.logger.error(
+            `Error flushing analytics counter for ${guildId}:`,
+            error,
+          );
+        }
+      }
     }
   }
 
@@ -105,6 +177,10 @@ class AnalyticsManager {
           joins: h.joins,
           leaves: h.leaves,
           members: h.members || 0,
+          messages: h.messages || 0,
+          voiceMinutes: h.voiceMinutes || 0,
+          commands: h.commands || 0,
+          roleReactions: h.roleReactions || 0,
         };
       });
     } catch (error) {

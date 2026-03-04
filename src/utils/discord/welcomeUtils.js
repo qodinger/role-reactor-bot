@@ -102,6 +102,13 @@ export async function assignAutoRole(member, roleId, logger) {
     logger.info(
       `Auto-role ${role.name} assigned to ${member.user.tag} in ${member.guild.name}`,
     );
+
+    // Record automated role assignment (fire-and-forget)
+    import("../../features/analytics/AnalyticsManager.js")
+      .then(({ getAnalyticsManager }) => getAnalyticsManager())
+      .then(am => am.recordRoleReaction(member.guild.id))
+      .catch(() => {});
+
     return true;
   } catch (error) {
     logger.error(

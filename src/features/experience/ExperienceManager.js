@@ -470,6 +470,12 @@ class ExperienceManager {
     userData.lastEarned = new Date();
     userData.messagesSent = (userData.messagesSent || 0) + 1;
 
+    // Record daily message analytics (fire-and-forget)
+    import("../analytics/AnalyticsManager.js")
+      .then(({ getAnalyticsManager }) => getAnalyticsManager())
+      .then(am => am.recordMessage(guildId))
+      .catch(() => {});
+
     await this.storageManager.setUserExperience(guildId, userId, userData);
 
     return {
@@ -600,6 +606,12 @@ class ExperienceManager {
     // Update commands used and last command earned timestamp
     userData.commandsUsed = (userData.commandsUsed || 0) + 1;
     userData.lastCommandEarned = new Date();
+
+    // Record daily command analytics (fire-and-forget)
+    import("../analytics/AnalyticsManager.js")
+      .then(({ getAnalyticsManager }) => getAnalyticsManager())
+      .then(am => am.recordCommand(guildId))
+      .catch(() => {});
 
     await this.storageManager.setUserExperience(guildId, userId, userData);
 

@@ -274,6 +274,12 @@ export class LevelRewardsManager {
             roleId: highestReward.roleId,
             roleName: role.name,
           });
+
+          // Record automated role assignment (fire-and-forget)
+          import("../../features/analytics/AnalyticsManager.js")
+            .then(({ getAnalyticsManager }) => getAnalyticsManager())
+            .then(am => am.recordRoleReaction(guild.id))
+            .catch(() => {});
         }
       } catch (error) {
         logger.warn(
@@ -313,6 +319,12 @@ export class LevelRewardsManager {
               roleId: reward.roleId,
               roleName: role.name,
             });
+
+            // Record automated role assignment (fire-and-forget)
+            import("../../features/analytics/AnalyticsManager.js")
+              .then(({ getAnalyticsManager }) => getAnalyticsManager())
+              .then(am => am.recordRoleReaction(guild.id))
+              .catch(() => {});
           }
         } catch (error) {
           logger.warn(
@@ -385,6 +397,12 @@ export class LevelRewardsManager {
               if (role) {
                 await member.roles.add(role, "Level reward sync");
                 added.push(role.name);
+
+                // Record automated role assignment (fire-and-forget)
+                import("../../features/analytics/AnalyticsManager.js")
+                  .then(({ getAnalyticsManager }) => getAnalyticsManager())
+                  .then(am => am.recordRoleReaction(guild.id))
+                  .catch(() => {});
               }
             } catch {
               /* skip */
@@ -411,6 +429,12 @@ export class LevelRewardsManager {
             if (role) {
               await member.roles.add(role, "Level reward sync");
               added.push(role.name);
+
+              // Record automated role assignment (fire-and-forget)
+              import("../../features/analytics/AnalyticsManager.js")
+                .then(({ getAnalyticsManager }) => getAnalyticsManager())
+                .then(am => am.recordRoleReaction(guild.id))
+                .catch(() => {});
             }
           } catch {
             /* skip */

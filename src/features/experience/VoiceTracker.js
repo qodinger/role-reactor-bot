@@ -160,6 +160,12 @@ class VoiceTracker {
     // Update voice time
     userData.voiceTime = (userData.voiceTime || 0) + 5; // 5 minutes
 
+    // Record daily voice analytics (fire-and-forget)
+    import("../analytics/AnalyticsManager.js")
+      .then(({ getAnalyticsManager }) => getAnalyticsManager())
+      .then(am => am.recordVoiceMinutes(guildId, 5))
+      .catch(() => {});
+
     await this.storageManager.setUserExperience(guildId, userId, userData);
 
     this.logger.debug(

@@ -166,6 +166,12 @@ export async function execute(reaction, user, client) {
           ? Promise.resolve()
           : member.roles.add(roleId).then(() => {
               logger.info(`✅ Role assigned: ${roleId} to ${user.tag}`);
+
+              // Record daily role reaction (fire-and-forget)
+              import("../features/analytics/AnalyticsManager.js")
+                .then(({ getAnalyticsManager }) => getAnalyticsManager())
+                .then(am => am.recordRoleReaction(reaction.message.guild.id))
+                .catch(() => {});
             }),
       ]);
 
@@ -180,6 +186,12 @@ export async function execute(reaction, user, client) {
 
     await member.roles.add(roleId);
     logger.info(`✅ Role assigned: ${roleId} to ${user.tag}`);
+
+    // Record daily role reaction (fire-and-forget)
+    import("../features/analytics/AnalyticsManager.js")
+      .then(({ getAnalyticsManager }) => getAnalyticsManager())
+      .then(am => am.recordRoleReaction(reaction.message.guild.id))
+      .catch(() => {});
   } catch (error) {
     logger.error("Error processing reaction", error);
   }

@@ -26,7 +26,15 @@ export class GuildAnalyticsRepository extends BaseRepository {
     try {
       // Create setOnInsert object for fields not being incremented to avoid path collision
       const setOnInsert = {};
-      const fields = ["joins", "leaves", "members"];
+      const fields = [
+        "joins",
+        "leaves",
+        "members",
+        "messages",
+        "voiceMinutes",
+        "commands",
+        "roleReactions",
+      ];
       fields.forEach(field => {
         if (field !== type) {
           setOnInsert[field] = 0;

@@ -60,12 +60,87 @@ export async function apiGetGuildAnalytics(req, res) {
       ),
     };
 
+    // Get top members (chatters + voice) - resolve usernames from guild cache
+    const topMembers = { chatters: [], voiceUsers: [] };
+    try {
+      const { getDiscordClient } = await import("../utils/apiShared.js");
+      const client = getDiscordClient();
+      const guild = client?.guilds?.cache?.get(guildId);
+
+      const resolveUserInfo = async userId => {
+        let user = null;
+        if (guild) {
+          try {
+            // Try fetching member directly from guild (will use cache if available)
+            const member = await guild.members.fetch(userId);
+            user = member?.user;
+          } catch (err) {
+            // Member might have left the guild
+          }
+        }
+
+        if (!user && client) {
+          try {
+            // Fallback to fetching user globally
+            user = await client.users.fetch(userId);
+          } catch (err) {
+            // Failed globally
+          }
+        }
+
+        return {
+          username: user?.username || `User ${userId.slice(-4)}`,
+          avatar: user?.displayAvatarURL?.({ size: 64 }) || null,
+        };
+      };
+
+      const rawChatters = [...guildUsers]
+        .filter(u => (u.messagesSent || 0) > 0)
+        .sort((a, b) => (b.messagesSent || 0) - (a.messagesSent || 0))
+        .slice(0, 5);
+
+      topMembers.chatters = await Promise.all(
+        rawChatters.map(async u => {
+          const info = await resolveUserInfo(u.userId);
+          return {
+            userId: u.userId,
+            username: info.username,
+            avatar: info.avatar,
+            count: u.messagesSent || 0,
+          };
+        }),
+      );
+
+      const rawVoice = [...guildUsers]
+        .filter(u => (u.voiceTime || 0) > 0)
+        .sort((a, b) => (b.voiceTime || 0) - (a.voiceTime || 0))
+        .slice(0, 5);
+
+      topMembers.voiceUsers = await Promise.all(
+        rawVoice.map(async u => {
+          const info = await resolveUserInfo(u.userId);
+          return {
+            userId: u.userId,
+            username: info.username,
+            avatar: info.avatar,
+            count: u.voiceTime || 0,
+          };
+        }),
+      );
+    } catch (topErr) {
+      logger.warn(
+        `Could not resolve top members for ${guildId}:`,
+        topErr.message,
+      );
+    }
+
     res.json(
       createSuccessResponse({
         guildId,
         days,
         history,
         activityStats,
+        topMembers,
       }),
     );
   } catch (error) {
