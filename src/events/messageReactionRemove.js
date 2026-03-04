@@ -43,7 +43,16 @@ export async function execute(reaction, user, client) {
       return;
     }
 
-    const rolesObj = roleMapping.roles ? roleMapping.roles : roleMapping;
+    let rolesObj = roleMapping.roles ? roleMapping.roles : roleMapping;
+
+    // Handle double-nested roles (cache stores { roles: {emoji_map}, hideList })
+    if (
+      rolesObj.roles &&
+      typeof rolesObj.roles === "object" &&
+      !Array.isArray(rolesObj.roles)
+    ) {
+      rolesObj = rolesObj.roles;
+    }
 
     // Handle both custom emojis and Unicode emojis
     let emoji;

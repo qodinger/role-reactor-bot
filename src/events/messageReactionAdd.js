@@ -44,7 +44,20 @@ export async function execute(reaction, user, client) {
       return;
     }
 
-    const rolesObj = roleMapping.roles ? roleMapping.roles : roleMapping;
+    let rolesObj = roleMapping.roles ? roleMapping.roles : roleMapping;
+
+    // Capture selectionMode before unwrapping (it lives alongside roles)
+    const selectionMode =
+      roleMapping.selectionMode || rolesObj.selectionMode || "standard";
+
+    // Handle double-nested roles (cache stores { roles: {emoji_map}, hideList })
+    if (
+      rolesObj.roles &&
+      typeof rolesObj.roles === "object" &&
+      !Array.isArray(rolesObj.roles)
+    ) {
+      rolesObj = rolesObj.roles;
+    }
 
     // Handle both custom emojis and Unicode emojis
     let emoji;
@@ -79,6 +92,87 @@ export async function execute(reaction, user, client) {
       return;
     }
 
+    // Handle Unique mode: remove other roles from this menu concurrently
+    if (selectionMode === "unique") {
+      // Fetch the message to access all reactions
+      const message = reaction.message.partial
+        ? await reaction.message.fetch()
+        : reaction.message;
+
+      // Collect all remove operations to run in parallel
+      const removeOps = [];
+
+      for (const [emojiKey, config] of Object.entries(rolesObj)) {
+        // Skip non-role keys
+        if (
+          emojiKey === "hideList" ||
+          emojiKey === "selectionMode" ||
+          emojiKey === "roles"
+        )
+          continue;
+        if (
+          typeof config === "boolean" ||
+          config === null ||
+          config === undefined
+        )
+          continue;
+        // Skip the current emoji (the one they just reacted to)
+        if (emojiKey === emoji) continue;
+
+        // Resolve role ID for this emoji
+        let otherRoleId;
+        if (typeof config === "string") {
+          otherRoleId = config;
+        } else if (config.roleId) {
+          otherRoleId = config.roleId;
+        }
+
+        // Queue role removal if member has it
+        if (otherRoleId && member.roles.cache.has(otherRoleId)) {
+          removeOps.push(
+            member.roles
+              .remove(otherRoleId)
+              .catch(() => null)
+              .then(() => {
+                logger.info(
+                  `🔄 Unique mode: removed role ${otherRoleId} from ${user.tag}`,
+                );
+              }),
+          );
+        }
+
+        // Queue reaction removal for the other emoji
+        const otherReaction = message.reactions.cache.find(r => {
+          if (r.emoji.id) {
+            return `<:${r.emoji.name}:${r.emoji.id}>` === emojiKey;
+          }
+          return r.emoji.name === emojiKey;
+        });
+
+        if (otherReaction) {
+          removeOps.push(otherReaction.users.remove(user.id).catch(() => null));
+        }
+      }
+
+      // If user already has the new role and nothing to remove, bail early
+      if (member.roles.cache.has(roleId) && removeOps.length === 0) {
+        return;
+      }
+
+      // Run all removals AND the new role grant simultaneously
+      await Promise.all([
+        ...removeOps,
+        member.roles.cache.has(roleId)
+          ? Promise.resolve()
+          : member.roles.add(roleId).then(() => {
+              logger.info(`✅ Role assigned: ${roleId} to ${user.tag}`);
+            }),
+      ]);
+
+      return;
+    }
+
+    // Standard toggle mode
     // Check if user already has the role
     if (member.roles.cache.has(roleId)) {
       return;
