@@ -11,6 +11,10 @@ import {
   apiCancelPremiumFeature,
   apiGetPremiumStatus,
   apiGuildLeaderboard,
+  apiGetGuildRoleMappings,
+  apiDeleteGuildRoleMapping,
+  apiDeployRoleReactions,
+  apiUpdateRoleReactions,
 } from "../../controllers/GuildController.js";
 import { apiGetGuildAnalytics } from "../../controllers/GuildAnalyticsController.js";
 import { internalAuth } from "../../middleware/internalAuth.js";
@@ -46,5 +50,19 @@ router.get("/:guildId/leaderboard", apiGuildLeaderboard);
 
 // Analytics
 router.get("/:guildId/analytics", internalAuth, apiGetGuildAnalytics);
+
+// Role Reactions
+router.get("/:guildId/role-reactions", internalAuth, apiGetGuildRoleMappings);
+router.delete(
+  "/:guildId/role-reactions/:messageId",
+  internalAuth,
+  apiDeleteGuildRoleMapping,
+);
+router.post("/:guildId/roles/deploy", internalAuth, apiDeployRoleReactions);
+router.patch(
+  "/:guildId/role-reactions/:messageId",
+  internalAuth,
+  apiUpdateRoleReactions,
+);
 
 export default router;

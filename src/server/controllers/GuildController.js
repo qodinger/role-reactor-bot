@@ -1101,3 +1101,690 @@ export async function apiGuildLeaderboard(req, res) {
     res.status(statusCode).json(response);
   }
 }
+
+/**
+ * Get guild role mappings (reaction roles)
+ * @param {import('express').Request} req - Express request object
+ * @param {import('express').Response} res - Express response object
+ */
+export async function apiGetGuildRoleMappings(req, res) {
+  const { guildId } = req.params;
+  logRequest(`Get guild role mappings: ${guildId}`, req);
+
+  if (!guildId) {
+    const { statusCode, response } = createErrorResponse(
+      "Guild ID is required",
+      400,
+    );
+    return res.status(statusCode).json(response);
+  }
+
+  try {
+    const { getStorageManager } = await import(
+      "../../utils/storage/storageManager.js"
+    );
+    const storageManager = await getStorageManager();
+
+    // Parse pagination params
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(20, Math.max(1, parseInt(req.query.limit) || 6));
+
+    const allMappings = await storageManager.getRoleMappings();
+    const client = getDiscordClient();
+
+    let guild = client?.guilds.cache.get(guildId);
+    if (!guild && client) {
+      guild = await client.guilds.fetch(guildId).catch(() => null);
+    }
+
+    // Ensure roles are cached for name resolution
+    if (guild) {
+      await guild.roles.fetch().catch(() => null);
+      await guild.channels.fetch().catch(() => null);
+    }
+
+    // Step 1: Filter and sort ALL mappings (cheap — no Discord API calls)
+    const sortedMappings = Object.entries(allMappings)
+      .filter(([, m]) => m.guildId === guildId)
+      .map(([messageId, mapping]) => ({ messageId, mapping }))
+      .sort((a, b) => {
+        const aTime = new Date(
+          a.mapping.createdAt || a.mapping.updatedAt || 0,
+        ).getTime();
+        const bTime = new Date(
+          b.mapping.createdAt || b.mapping.updatedAt || 0,
+        ).getTime();
+        return bTime - aTime;
+      });
+
+    const total = sortedMappings.length;
+    const startIndex = (page - 1) * limit;
+    const paginatedSlice = sortedMappings.slice(startIndex, startIndex + limit);
+
+    // Step 2: Only enrich the paginated slice (expensive — Discord API calls)
+    const guildMappings = [];
+
+    for (const { messageId, mapping } of paginatedSlice) {
+      let channelName = null;
+      let embedTitle = null;
+      let embedDescription = null;
+      let embedColor = null;
+
+      if (guild) {
+        const channel = guild.channels.cache.get(mapping.channelId);
+        if (channel) {
+          channelName = channel.name;
+
+          // Try to fetch the actual Discord message to get embed title/description
+          try {
+            const msg = await channel.messages.fetch(messageId);
+            if (msg && msg.embeds.length > 0) {
+              const embed = msg.embeds[0];
+              embedTitle = embed.title || null;
+              embedDescription = embed.description || null;
+              embedColor = embed.color || null;
+            }
+          } catch (_e) {
+            // Message might have been deleted — that's okay
+          }
+        }
+      }
+
+      // Resolve role names and colors from Discord
+      // Handle two storage formats:
+      // Format A (from setup): mapping.roles = { roles: { emoji: config }, hideList: bool }
+      // Format B (from update): mapping.roles = { emoji: config }
+      const enrichedRoles = {};
+      let rawRoles = mapping.roles || {};
+      let hideList = mapping.hideList || false;
+      let selectionMode = mapping.selectionMode || "standard";
+
+      // Detect wrapped format
+      if (
+        rawRoles.roles &&
+        typeof rawRoles.roles === "object" &&
+        !rawRoles.roleId
+      ) {
+        hideList =
+          rawRoles.hideList !== undefined ? rawRoles.hideList : hideList;
+        selectionMode = rawRoles.selectionMode || selectionMode;
+        rawRoles = rawRoles.roles;
+      }
+
+      for (const [emoji, roleConfig] of Object.entries(rawRoles)) {
+        if (
+          emoji === "hideList" ||
+          emoji === "updatedAt" ||
+          emoji === "createdAt"
+        )
+          continue;
+        if (
+          typeof roleConfig === "boolean" ||
+          roleConfig === null ||
+          roleConfig === undefined
+        )
+          continue;
+
+        let roleName = "Unknown Role";
+        let roleColor = 0;
+        let roleId = null;
+
+        if (typeof roleConfig === "string") {
+          roleId = roleConfig;
+        } else if (typeof roleConfig === "object") {
+          roleId = roleConfig.roleId || null;
+          roleName = roleConfig.roleName || roleConfig.name || "Unknown Role";
+        }
+
+        // Resolve from live Discord data
+        if (guild && roleId) {
+          const discordRole = guild.roles.cache.get(roleId);
+          if (discordRole) {
+            roleName = discordRole.name;
+            roleColor = discordRole.color;
+          }
+        }
+
+        enrichedRoles[emoji] = {
+          emoji,
+          roleId,
+          roleName,
+          roleColor,
+        };
+      }
+
+      guildMappings.push({
+        messageId,
+        channelId: mapping.channelId,
+        channelName: channelName || mapping.channelId,
+        embedTitle,
+        embedDescription,
+        embedColor,
+        roles: enrichedRoles,
+        hideList,
+        selectionMode,
+        createdAt: mapping.createdAt || mapping.updatedAt || null,
+        updatedAt: mapping.updatedAt || null,
+      });
+    }
+
+    res.json(
+      createSuccessResponse({
+        roleMappings: guildMappings,
+        total,
+        page,
+        limit,
+        hasMore: startIndex + limit < total,
+      }),
+    );
+  } catch (error) {
+    logger.error(`❌ Error getting role mappings for guild ${guildId}:`, error);
+    const { statusCode, response } = createErrorResponse(
+      "Failed to retrieve role mappings",
+      500,
+      error.message,
+    );
+    res.status(statusCode).json(response);
+  }
+}
+
+/**
+ * Delete a guild role mapping (reaction role menu)
+ * @param {import('express').Request} req - Express request object
+ * @param {import('express').Response} res - Express response object
+ */
+export async function apiDeleteGuildRoleMapping(req, res) {
+  const { guildId, messageId } = req.params;
+  logRequest(`Delete role mapping: ${messageId} for guild ${guildId}`, req);
+
+  if (!guildId || !messageId) {
+    const { statusCode, response } = createErrorResponse(
+      "Guild ID and Message ID are required",
+      400,
+    );
+    return res.status(statusCode).json(response);
+  }
+
+  try {
+    const { removeRoleMapping } = await import(
+      "../../utils/discord/roleMappingManager.js"
+    );
+    const { getStorageManager } = await import(
+      "../../utils/storage/storageManager.js"
+    );
+
+    const storageManager = await getStorageManager();
+    const allMappings = await storageManager.getRoleMappings();
+    const mapping = allMappings[messageId];
+
+    // Verify the mapping belongs to this guild
+    if (!mapping || mapping.guildId !== guildId) {
+      const { statusCode, response } = createErrorResponse(
+        "Role mapping not found in this guild",
+        404,
+      );
+      return res.status(statusCode).json(response);
+    }
+
+    // Try to delete the Discord message
+    let messageDeleted = false;
+    const client = getDiscordClient();
+    if (client) {
+      try {
+        const guild = client.guilds.cache.get(guildId);
+        if (guild) {
+          const channel = guild.channels.cache.get(mapping.channelId);
+          if (channel) {
+            const msg = await channel.messages
+              .fetch(messageId)
+              .catch(() => null);
+            if (msg) {
+              await msg.delete();
+              messageDeleted = true;
+            }
+          }
+        }
+      } catch (_e) {
+        // Message may already be deleted, that's fine
+      }
+    }
+
+    // Remove from database
+    await removeRoleMapping(messageId, guildId);
+
+    res.json(
+      createSuccessResponse({
+        message: "Role mapping deleted successfully",
+        messageDeleted,
+      }),
+    );
+  } catch (error) {
+    logger.error(
+      `❌ Error deleting role mapping ${messageId} for guild ${guildId}:`,
+      error,
+    );
+    const { statusCode, response } = createErrorResponse(
+      "Failed to delete role mapping",
+      500,
+      error.message,
+    );
+    res.status(statusCode).json(response);
+  }
+}
+
+/**
+ * Deploy a new role-reaction setup from the website dashboard.
+ * Creates an embed message in the specified channel, adds reactions, and saves the mapping.
+ *
+ * POST /guilds/:guildId/roles/deploy
+ * Body: { title, description, color, channelId, selectionMode, hideList, reactions }
+ */
+export async function apiDeployRoleReactions(req, res) {
+  const { guildId } = req.params;
+  logRequest(`Deploy role reactions for guild ${guildId}`, req);
+
+  try {
+    const client = getDiscordClient();
+    if (!client) {
+      const { statusCode, response } = createErrorResponse(
+        "Bot is not connected",
+        503,
+        "The Discord bot is currently offline. Please try again later.",
+      );
+      return res.status(statusCode).json(response);
+    }
+
+    const {
+      title,
+      description,
+      color,
+      channelId,
+      selectionMode,
+      hideList,
+      reactions,
+    } = req.body;
+
+    // Validate required fields
+    if (!channelId) {
+      const { statusCode, response } = createErrorResponse(
+        "Channel ID is required",
+        400,
+        "Please select a target channel.",
+      );
+      return res.status(statusCode).json(response);
+    }
+
+    if (!reactions || !Array.isArray(reactions) || reactions.length === 0) {
+      const { statusCode, response } = createErrorResponse(
+        "At least one role mapping is required",
+        400,
+        "Add at least one emoji-role mapping before deploying.",
+      );
+      return res.status(statusCode).json(response);
+    }
+
+    // Get the guild
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) {
+      const { statusCode, response } = createErrorResponse(
+        "Guild not found",
+        404,
+        "The bot is not in this server or the server ID is invalid.",
+      );
+      return res.status(statusCode).json(response);
+    }
+
+    // Get the channel
+    const channel = guild.channels.cache.get(channelId);
+    if (!channel) {
+      const { statusCode, response } = createErrorResponse(
+        "Channel not found",
+        404,
+        "The specified channel was not found in this server.",
+      );
+      return res.status(statusCode).json(response);
+    }
+
+    // Check bot permissions in the channel
+    const botMember = guild.members.cache.get(client.user.id);
+    const permissions = channel.permissionsFor(botMember);
+    if (
+      !permissions?.has("SendMessages") ||
+      !permissions?.has("AddReactions")
+    ) {
+      const { statusCode, response } = createErrorResponse(
+        "Missing permissions",
+        403,
+        "The bot needs 'Send Messages' and 'Add Reactions' permissions in the target channel.",
+      );
+      return res.status(statusCode).json(response);
+    }
+
+    // Build validRoles format expected by createSetupRolesEmbed
+    const validRoles = reactions.map(r => ({
+      emoji: r.emoji,
+      roleName: r.roleName,
+      roleId: r.roleId,
+      roleColor: r.roleColor || 0,
+    }));
+
+    // Build role mapping for storage (emoji -> role config)
+    const roleMapping = {};
+    for (const r of reactions) {
+      roleMapping[r.emoji] = {
+        roleId: r.roleId,
+        roleName: r.roleName,
+        roleColor: r.roleColor || 0,
+        emoji: r.emoji,
+      };
+    }
+
+    // Parse color
+    let embedColor = color || "#9b8bf0";
+    if (embedColor && !embedColor.startsWith("#")) {
+      embedColor = `#${embedColor}`;
+    }
+
+    // Import the embed builder dynamically to avoid circular deps
+    const { createSetupRolesEmbed } = await import(
+      "../../commands/admin/role-reactions/embeds.js"
+    );
+
+    // Create the embed
+    const embed = createSetupRolesEmbed(
+      title,
+      description,
+      embedColor,
+      validRoles,
+      client,
+      hideList || false,
+    );
+
+    // Send the message to the channel
+    const message = await channel.send({ embeds: [embed] });
+
+    // Update footer with message ID
+    try {
+      if (message.embeds.length > 0) {
+        const { EmbedBuilder } = await import("discord.js");
+        const sentEmbed = message.embeds[0];
+        const updatedEmbed = EmbedBuilder.from(sentEmbed).setFooter({
+          text: `Role Reactions • ID: ${message.id}`,
+          iconURL: sentEmbed.footer?.iconURL,
+        });
+        await message.edit({ embeds: [updatedEmbed] });
+      }
+    } catch (footerError) {
+      logger.warn("Failed to update footer with ID", {
+        error: footerError.message,
+      });
+    }
+
+    // Add reactions
+    const { addReactionsToMessage } = await import(
+      "../../commands/admin/role-reactions/messageOperations.js"
+    );
+    const reactionResult = await addReactionsToMessage(message, validRoles);
+
+    if (
+      !reactionResult.success &&
+      reactionResult.failedReactions.length === validRoles.length
+    ) {
+      // All reactions failed — delete the message
+      try {
+        await message.delete();
+      } catch (deleteErr) {
+        logger.warn("Failed to delete message after reaction failure", {
+          error: deleteErr.message,
+        });
+      }
+
+      const { statusCode, response } = createErrorResponse(
+        "Failed to add reactions",
+        500,
+        "Could not add emoji reactions to the message. Check that the emojis are valid Discord emojis.",
+      );
+      return res.status(statusCode).json(response);
+    }
+
+    // Save the role mapping
+    const { setRoleMapping } = await import(
+      "../../utils/discord/roleMappingManager.js"
+    );
+
+    const mappingData = {
+      roles: roleMapping,
+      hideList: hideList || false,
+    };
+
+    // Include selectionMode if not standard
+    if (selectionMode && selectionMode !== "standard") {
+      mappingData.selectionMode = selectionMode;
+    }
+
+    await setRoleMapping(message.id, guildId, channelId, mappingData);
+
+    logger.info(
+      `✅ Role-reaction deployed via dashboard: ${message.id} in #${channel.name} (${guildId}) with ${validRoles.length} roles`,
+    );
+
+    res.json(
+      createSuccessResponse({
+        message: "Role-reaction setup deployed successfully!",
+        messageId: message.id,
+        channelId,
+        roleCount: validRoles.length,
+        messageUrl: `https://discord.com/channels/${guildId}/${channelId}/${message.id}`,
+      }),
+    );
+  } catch (error) {
+    logger.error(
+      `❌ Error deploying role reactions for guild ${guildId}:`,
+      error,
+    );
+    const { statusCode, response } = createErrorResponse(
+      "Failed to deploy role reactions",
+      500,
+      error.message,
+    );
+    res.status(statusCode).json(response);
+  }
+}
+
+/**
+ * Update an existing role-reaction setup from the website dashboard.
+ * Updates the embed message, syncs reactions, and saves the updated mapping.
+ *
+ * PATCH /guilds/:guildId/role-reactions/:messageId
+ * Body: { title, description, color, selectionMode, hideList, reactions }
+ */
+export async function apiUpdateRoleReactions(req, res) {
+  const { guildId, messageId } = req.params;
+  logRequest(`Update role reactions ${messageId} for guild ${guildId}`, req);
+
+  try {
+    const client = getDiscordClient();
+    if (!client) {
+      const { statusCode, response } = createErrorResponse(
+        "Bot is not connected",
+        503,
+        "The Discord bot is currently offline.",
+      );
+      return res.status(statusCode).json(response);
+    }
+
+    const { title, description, color, selectionMode, hideList, reactions } =
+      req.body;
+
+    logger.info(
+      `Updating role reaction ${messageId} with selectionMode: ${selectionMode}`,
+    );
+
+    // Get the existing mapping
+    const { getRoleMapping, setRoleMapping } = await import(
+      "../../utils/discord/roleMappingManager.js"
+    );
+
+    const existingMapping = await getRoleMapping(messageId, guildId);
+    if (!existingMapping) {
+      const { statusCode, response } = createErrorResponse(
+        "Role mapping not found",
+        404,
+        "No role-reaction setup found with this message ID.",
+      );
+      return res.status(statusCode).json(response);
+    }
+
+    // Get guild and channel
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) {
+      const { statusCode, response } = createErrorResponse(
+        "Guild not found",
+        404,
+        "The bot is not in this server.",
+      );
+      return res.status(statusCode).json(response);
+    }
+
+    const channelId = existingMapping.channelId;
+    const channel = guild.channels.cache.get(channelId);
+    if (!channel) {
+      const { statusCode, response } = createErrorResponse(
+        "Channel not found",
+        404,
+        "The channel for this setup no longer exists.",
+      );
+      return res.status(statusCode).json(response);
+    }
+
+    // Fetch the existing Discord message
+    let message;
+    try {
+      message = await channel.messages.fetch(messageId);
+    } catch {
+      const { statusCode, response } = createErrorResponse(
+        "Message not found",
+        404,
+        "The Discord message for this setup no longer exists. It may have been deleted.",
+      );
+      return res.status(statusCode).json(response);
+    }
+
+    // Build updated role mapping
+    const roleMapping = {};
+    const validRoles = [];
+    if (reactions && Array.isArray(reactions) && reactions.length > 0) {
+      for (const r of reactions) {
+        roleMapping[r.emoji] = {
+          roleId: r.roleId,
+          roleName: r.roleName,
+          roleColor: r.roleColor || 0,
+          emoji: r.emoji,
+        };
+        validRoles.push({
+          emoji: r.emoji,
+          roleName: r.roleName,
+          roleId: r.roleId,
+          roleColor: r.roleColor || 0,
+        });
+      }
+    }
+
+    // Use existing roles if none provided
+    const finalRoleMapping =
+      Object.keys(roleMapping).length > 0
+        ? roleMapping
+        : existingMapping.roles || {};
+    const finalValidRoles =
+      validRoles.length > 0
+        ? validRoles
+        : Object.values(existingMapping.roles || {});
+
+    // Parse color
+    let embedColor = color || existingMapping.color || "#9b8bf0";
+    if (embedColor && !embedColor.startsWith("#")) {
+      embedColor = `#${embedColor}`;
+    }
+
+    // Build the updated embed
+    const { createSetupRolesEmbed } = await import(
+      "../../commands/admin/role-reactions/embeds.js"
+    );
+
+    const finalHideList =
+      hideList !== undefined ? hideList : existingMapping.hideList || false;
+
+    const embed = createSetupRolesEmbed(
+      title || existingMapping.title || "Role Reactions",
+      description || existingMapping.description || "React to get a role!",
+      embedColor,
+      finalValidRoles,
+      client,
+      finalHideList,
+    );
+
+    // Update footer with message ID
+    const { EmbedBuilder } = await import("discord.js");
+    const updatedEmbed = EmbedBuilder.from(embed).setFooter({
+      text: `Role Reactions • ID: ${messageId}`,
+      iconURL: client.user.displayAvatarURL(),
+    });
+
+    // Edit the message
+    await message.edit({ embeds: [updatedEmbed] });
+
+    // Sync reactions if roles changed
+    if (validRoles.length > 0) {
+      const { syncReactions } = await import(
+        "../../commands/admin/role-reactions/messageOperations.js"
+      );
+      try {
+        await syncReactions(message, validRoles);
+      } catch (syncError) {
+        logger.warn("Failed to sync reactions during dashboard update", {
+          error: syncError.message,
+        });
+      }
+    }
+
+    // Save updated mapping
+    const mappingData = {
+      roles: finalRoleMapping,
+      hideList: finalHideList,
+      title: title || existingMapping.title,
+      description: description || existingMapping.description,
+      color: embedColor,
+    };
+
+    if (selectionMode) {
+      mappingData.selectionMode = selectionMode;
+    }
+
+    await setRoleMapping(messageId, guildId, channelId, mappingData);
+
+    logger.info(
+      `✅ Role-reaction updated via dashboard: ${messageId} in #${channel.name} (${guildId})`,
+    );
+
+    res.json(
+      createSuccessResponse({
+        message: "Role-reaction setup updated successfully!",
+        messageId,
+        channelId,
+        roleCount: finalValidRoles.length,
+        messageUrl: `https://discord.com/channels/${guildId}/${channelId}/${messageId}`,
+      }),
+    );
+  } catch (error) {
+    logger.error(
+      `❌ Error updating role reactions ${messageId} for guild ${guildId}:`,
+      error,
+    );
+    const { statusCode, response } = createErrorResponse(
+      "Failed to update role reactions",
+      500,
+      error.message,
+    );
+    res.status(statusCode).json(response);
+  }
+}
