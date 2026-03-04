@@ -167,7 +167,14 @@ export class FileProvider {
 
   async setRoleMapping(messageId, guildId, channelId, roles) {
     const mappings = await this.read("role_mappings");
-    mappings[messageId] = { guildId, channelId, roles };
+    const existing = mappings[messageId] || {};
+    mappings[messageId] = {
+      guildId,
+      channelId,
+      roles,
+      createdAt: existing.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
     return this.write("role_mappings", mappings);
   }
 

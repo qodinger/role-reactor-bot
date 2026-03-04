@@ -17,6 +17,8 @@ export class RoleMappingRepository extends BaseRepository {
         guildId: doc.guildId,
         channelId: doc.channelId,
         roles: doc.roles,
+        createdAt: doc.createdAt,
+        updatedAt: doc.updatedAt,
       };
     }
     this.cache.set(cacheKey, mappings);
@@ -26,7 +28,10 @@ export class RoleMappingRepository extends BaseRepository {
   async set(messageId, guildId, channelId, roles) {
     await this.collection.updateOne(
       { messageId },
-      { $set: { guildId, channelId, roles, updatedAt: new Date() } },
+      {
+        $set: { guildId, channelId, roles, updatedAt: new Date() },
+        $setOnInsert: { createdAt: new Date() },
+      },
       { upsert: true },
     );
     this.cache.clear();
@@ -61,6 +66,7 @@ export class RoleMappingRepository extends BaseRepository {
         guildId: doc.guildId,
         channelId: doc.channelId,
         roles: doc.roles,
+        createdAt: doc.createdAt,
         updatedAt: doc.updatedAt,
       };
     }

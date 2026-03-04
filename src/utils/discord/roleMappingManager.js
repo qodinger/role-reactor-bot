@@ -149,10 +149,10 @@ async function refreshAllMappings() {
  * @param {string} messageId The ID of the message.
  * @param {string} guildId The ID of the guild.
  * @param {string} channelId The ID of the channel.
- * @param {object} roles The roles to map.
+ * @param {object} data The mapping data (contains roles, hideList, selectionMode).
  * @returns {Promise<boolean>} True if the mapping was set successfully.
  */
-export async function setRoleMapping(messageId, guildId, channelId, roles) {
+export async function setRoleMapping(messageId, guildId, channelId, data) {
   const logger = getLogger();
 
   try {
@@ -161,12 +161,13 @@ export async function setRoleMapping(messageId, guildId, channelId, roles) {
       messageId,
       guildId,
       channelId,
-      roles,
+      data,
     );
 
     if (success) {
-      // Update cache
-      roleMappingCache.set(messageId, { guildId, channelId, roles });
+      // Update cache — spread data so { roles, hideList, selectionMode }
+      // are at the same level as guildId/channelId, matching storage format
+      roleMappingCache.set(messageId, { guildId, channelId, ...data });
     }
 
     return success;
