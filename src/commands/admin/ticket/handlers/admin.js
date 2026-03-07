@@ -93,8 +93,7 @@ export async function handleSetup(interaction) {
   return interaction.editReply({
     embeds: [
       createSuccessEmbed(
-        `Ticket panel created!\n\n` +
-          `**Panel:** \`#${result.panel.panelId.split("-").pop()}\`\n` +
+        `**Panel:** \`#${result.panel.panelId.split("-").pop()}\`\n` +
           `**Channel:** ${channel}`,
         "Panel Created",
         interaction.client,
@@ -192,7 +191,7 @@ async function handleInfoView(
   const staffRoleId = settings?.ticketSettings?.staffRoleId;
   const staffRoleDisplay = staffRoleId
     ? `<@&${staffRoleId}>`
-    : "Not configured ⚠️";
+    : "Not configured";
 
   const embed = createInfoEmbed(
     "Ticket System Information",
@@ -212,7 +211,7 @@ async function handleInfoView(
     },
     {
       name: "Tier",
-      value: ticketLimit.isPro ? "Pro Engine ✨" : "Free Tier",
+      value: ticketLimit.isPro ? "Pro Engine" : "Free Tier",
       inline: true,
     },
     {
@@ -249,7 +248,7 @@ async function handleInfoStats(interaction, guildId, ticketManager) {
     { name: "Archived", value: stats.archived.toString(), inline: true },
     {
       name: "Tier",
-      value: stats.isPro ? "Pro Engine ✨" : "Free Tier",
+      value: stats.isPro ? "Pro Engine" : "Free Tier",
       inline: true,
     },
     {
@@ -398,8 +397,7 @@ async function handlePanelDelete(interaction) {
     return interaction.editReply({
       embeds: [
         createSuccessEmbed(
-          `**Panel Deleted!**\n\n` +
-            `Panel \`#${panel.panelId.split("-").pop()}\` has been deleted successfully.\n\n` +
+          `Panel \`#${panel.panelId.split("-").pop()}\` has been deleted successfully.\n\n` +
             `Existing tickets are not affected.`,
           "Panel Deleted",
           interaction.client,

@@ -79,7 +79,7 @@ export async function handleClaim(interaction) {
   return interaction.editReply({
     embeds: [
       createSuccessEmbed(
-        `**Ticket Claimed!**\n\nYou are now handling this ticket.`,
+        `You are now handling this ticket.`,
         "Ticket Claimed",
         interaction.client,
       ),
@@ -170,7 +170,7 @@ export async function handleClose(interaction) {
   const duration = formatDuration(new Date(ticket.openedAt), new Date());
 
   const closeEmbed = createSuccessEmbed(
-    `**Ticket Closed**\n\nClosed by ${interaction.user}.\n**Duration:** ${duration}`,
+    `Closed by ${interaction.user}.\n**Duration:** ${duration}`,
     "Ticket Closed",
     interaction.client,
   );
@@ -283,7 +283,7 @@ export async function handleAdd(interaction) {
   return interaction.editReply({
     embeds: [
       createSuccessEmbed(
-        `**User Added**\n\n${userToAdd} has been added to this ticket.`,
+        `${userToAdd} has been added to this ticket.`,
         "User Added",
         interaction.client,
       ),
@@ -382,7 +382,7 @@ export async function handleTransfer(interaction) {
   return interaction.editReply({
     embeds: [
       createSuccessEmbed(
-        `**Ticket Transferred**\n\nTransferred to ${staffToTransfer}.`,
+        `Transferred to ${staffToTransfer}.`,
         "Ticket Transferred",
         interaction.client,
       ),
@@ -479,7 +479,7 @@ export async function handleRemove(interaction) {
   return interaction.editReply({
     embeds: [
       createSuccessEmbed(
-        `**User Removed**\n\n${userToRemove} has been removed from this ticket.`,
+        `${userToRemove} has been removed from this ticket.`,
         "User Removed",
         interaction.client,
       ),
@@ -531,7 +531,7 @@ export async function handleRename(interaction) {
     return interaction.editReply({
       embeds: [
         createSuccessEmbed(
-          `**Ticket Renamed**\n\nThe channel has been renamed to \`${newName}\`.`,
+          `The channel has been renamed to \`${newName}\`.`,
           "Ticket Renamed",
           interaction.client,
         ),

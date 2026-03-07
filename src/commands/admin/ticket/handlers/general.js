@@ -60,7 +60,7 @@ export async function handleList(interaction) {
 
   if (tickets.length > 10) {
     embed.addFields({
-      name: "📝 Note",
+      name: "Note",
       value: `Showing first 10 of ${tickets.length} tickets.`,
       inline: false,
     });

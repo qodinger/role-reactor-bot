@@ -215,8 +215,7 @@ async function handleTicketCreate(interaction, customId) {
     await interaction.editReply({
       embeds: [
         createSuccessEmbed(
-          `**Ticket Created!**\n\n` +
-            `Your ticket has been created: ${channel}\n\n` +
+          `Your ticket has been created: ${channel}\n\n` +
             `Please describe your issue and our team will help you shortly.`,
           "Ticket Created",
           interaction.client,
@@ -346,8 +345,7 @@ async function handleTicketClaim(interaction) {
     return interaction.editReply({
       embeds: [
         createSuccessEmbed(
-          `**Ticket Claimed!**\n\n` +
-            `You are now handling this ticket.\n` +
+          `You are now handling this ticket.\n` +
             `Ticket: \`#${ticket.ticketId.split("-").pop()}\``,
           "Ticket Claimed",
           interaction.client,

@@ -94,7 +94,7 @@ export function createTicketWelcomeEmbed(options) {
   } = options;
 
   return new EmbedBuilder()
-    .setTitle(`🎫 Support Ticket  •  #${ticketNumber}`)
+    .setTitle(`Support Ticket  •  #${ticketNumber}`)
     .setDescription(
       `Welcome, **${userName}**! A staff member will be with you shortly.\n\n` +
         `**How can we help you today?**\n` +
@@ -176,7 +176,7 @@ export function createLimitReachedEmbed(options) {
   const { type = "ticket", current, max, isPro, client } = options;
 
   const title =
-    type === "ticket" ? "🔒 Ticket Limit Reached" : "🔒 Panel Limit Reached";
+    type === "ticket" ? "Ticket Limit Reached" : "Panel Limit Reached";
   const itemType = type === "ticket" ? "tickets" : "panels";
 
   const description = isPro
