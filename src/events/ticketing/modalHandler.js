@@ -123,12 +123,22 @@ async function handleAddUserModal(interaction) {
       console.error("Failed to add user to channel permissions:", error);
     }
 
-    // Success!
+    // Notify everyone in the ticket
+    await interaction.channel.send({
+      embeds: [
+        createSuccessEmbed(
+          `${member} has been added to this ticket by ${interaction.user}.`,
+          "User Added",
+          interaction.client,
+        ),
+      ],
+    });
+
+    // Ephemeral confirmation
     return interaction.editReply({
       embeds: [
         createSuccessEmbed(
-          `${member} has been added to this ticket.\n\n` +
-            `They can now view and participate in the conversation.`,
+          `${member} has been added to this ticket.`,
           "User Added",
           interaction.client,
         ),
@@ -238,12 +248,22 @@ async function handleTransferModal(interaction) {
       });
     }
 
-    // Success!
+    // Notify everyone in the ticket
+    await interaction.channel.send({
+      embeds: [
+        createSuccessEmbed(
+          `This ticket has been transferred to ${targetMember} by ${interaction.user}.`,
+          "Ticket Transferred",
+          interaction.client,
+        ),
+      ],
+    });
+
+    // Ephemeral confirmation
     return interaction.editReply({
       embeds: [
         createSuccessEmbed(
-          `This ticket has been transferred to ${targetMember}.\n\n` +
-            `They are now responsible for handling this ticket.`,
+          `Transferred to ${targetMember}.`,
           "Ticket Transferred",
           interaction.client,
         ),

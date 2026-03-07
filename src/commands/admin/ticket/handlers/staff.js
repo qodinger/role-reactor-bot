@@ -76,6 +76,17 @@ export async function handleClaim(interaction) {
     });
   }
 
+  // Notify everyone in the ticket
+  await interaction.channel.send({
+    embeds: [
+      createSuccessEmbed(
+        `${interaction.user} is now handling this ticket.`,
+        "Ticket Claimed",
+        interaction.client,
+      ),
+    ],
+  });
+
   return interaction.editReply({
     embeds: [
       createSuccessEmbed(
@@ -290,6 +301,17 @@ export async function handleAdd(interaction) {
     console.error("Failed to add user permissions:", error);
   }
 
+  // Notify everyone in the ticket
+  await interaction.channel.send({
+    embeds: [
+      createSuccessEmbed(
+        `${userToAdd} has been added to this ticket by ${interaction.user}.`,
+        "User Added",
+        interaction.client,
+      ),
+    ],
+  });
+
   return interaction.editReply({
     embeds: [
       createSuccessEmbed(
@@ -389,6 +411,17 @@ export async function handleTransfer(interaction) {
     });
   }
 
+  // Notify everyone in the ticket
+  await interaction.channel.send({
+    embeds: [
+      createSuccessEmbed(
+        `This ticket has been transferred to ${staffToTransfer} by ${interaction.user}.`,
+        "Ticket Transferred",
+        interaction.client,
+      ),
+    ],
+  });
+
   return interaction.editReply({
     embeds: [
       createSuccessEmbed(
@@ -485,6 +518,17 @@ export async function handleRemove(interaction) {
   } catch (error) {
     console.error("Failed to remove user permissions:", error);
   }
+
+  // Notify everyone in the ticket
+  await interaction.channel.send({
+    embeds: [
+      createSuccessEmbed(
+        `${userToRemove} has been removed from this ticket by ${interaction.user}.`,
+        "User Removed",
+        interaction.client,
+      ),
+    ],
+  });
 
   return interaction.editReply({
     embeds: [
