@@ -206,6 +206,11 @@ export class TicketTranscript {
       margin-bottom: 10px;
       border-left: 3px solid #5865F2;
     }
+    .message.system {
+      border-left-color: #f1c40f;
+      background: #3c3f41;
+      font-style: italic;
+    }
     .message-header {
       display: flex;
       align-items: center;
@@ -215,6 +220,9 @@ export class TicketTranscript {
       font-weight: bold;
       color: #5865F2;
       margin-right: 10px;
+    }
+    .system .username {
+      color: #f1c40f;
     }
     .timestamp {
       font-size: 12px;
@@ -249,9 +257,9 @@ export class TicketTranscript {
       ${messages
         .map(
           msg => `
-        <div class="message">
+        <div class="message ${msg.isBot ? "system" : ""}">
           <div class="message-header">
-            <span class="username">${this.escapeHtml(msg.username)}</span>
+            <span class="username">${this.escapeHtml(msg.username)}${msg.isBot ? " [BOT]" : ""}</span>
             <span class="timestamp">${new Date(msg.timestamp).toLocaleString()}</span>
           </div>
           <div class="content">
