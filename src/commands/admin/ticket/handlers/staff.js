@@ -1,9 +1,11 @@
+import { AttachmentBuilder } from "discord.js";
 import { getTicketManager } from "../../../../features/ticketing/TicketManager.js";
 import { getTicketTranscript } from "../../../../features/ticketing/TicketTranscript.js";
 import {
   createSuccessEmbed,
   createErrorEmbed,
   createInfoEmbed,
+  createTranscriptLogEmbed,
 } from "../../../../features/ticketing/embeds.js";
 import {
   checkStaffRole,
@@ -189,7 +191,7 @@ export async function handleClose(interaction) {
   }
 
   await ticketTranscript.initialize();
-  await ticketTranscript.generateFromChannel({
+  const transcriptResult = await ticketTranscript.generateFromChannel({
     ticketId: ticket.ticketId,
     guildId: ticket.guildId,
     channel: interaction.channel,
@@ -238,6 +240,46 @@ export async function handleClose(interaction) {
       ),
     ],
   });
+
+  // Handle log channel
+  if (transcriptResult.success) {
+    try {
+      const settings =
+        await ticketManager.storage.dbManager.guildSettings.getByGuild(
+          interaction.guildId,
+        );
+      const logChannelId = settings?.ticketSettings?.transcriptChannelId;
+
+      if (logChannelId) {
+        const logChannel = await interaction.guild.channels
+          .fetch(logChannelId)
+          .catch(() => null);
+        if (logChannel) {
+          const attachment = new AttachmentBuilder(
+            Buffer.from(transcriptResult.content),
+            {
+              name: `transcript-${ticket.ticketId.split("-").pop()}.html`,
+            },
+          );
+
+          const logEmbed = createTranscriptLogEmbed({
+            ticketId: ticket.ticketId,
+            userName: ticket.userDisplayName || "Unknown",
+            userId: ticket.userId,
+            closedBy: interaction.user.tag,
+            reason: reason || "No reason provided",
+            duration: duration,
+            messages: transcriptResult.transcript.messages,
+            client: interaction.client,
+          });
+
+          await logChannel.send({ embeds: [logEmbed], files: [attachment] });
+        }
+      }
+    } catch (err) {
+      logger.debug(`Failed to send transcript to log channel: ${err.message}`);
+    }
+  }
 
   setTimeout(async () => {
     try {

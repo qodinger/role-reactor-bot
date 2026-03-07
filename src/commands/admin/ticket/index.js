@@ -7,6 +7,7 @@ import {
   handleStaffRole,
   handleInfo,
   handlePanel,
+  handleLogs,
 } from "./handlers/admin.js";
 import { handleList, handleView } from "./handlers/general.js";
 import {
@@ -168,6 +169,19 @@ export const data = new SlashCommandBuilder()
           ),
       ),
   )
+  .addSubcommand(sub =>
+    sub
+      .setName("logs")
+      .setDescription("Configure the log channel for ticket transcripts")
+      .addChannelOption(
+        opt =>
+          opt
+            .setName("channel")
+            .setDescription("The channel to send ticket transcripts to")
+            .setRequired(true)
+            .addChannelTypes(0), // Text channels
+      ),
+  )
   .addSubcommandGroup(group =>
     group
       .setName("panel")
@@ -309,6 +323,8 @@ export async function execute(interaction) {
         return await handleStaffRole(interaction);
       case "info":
         return await handleInfo(interaction);
+      case "logs":
+        return await handleLogs(interaction);
       case "list":
         return await handleList(interaction);
       case "view":

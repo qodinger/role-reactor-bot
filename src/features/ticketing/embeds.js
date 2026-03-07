@@ -162,6 +162,52 @@ export function createTicketClosedEmbed(options) {
     .setTimestamp();
 }
 
+/**
+ * Create transcript log embed (sent to the logs channel)
+ * @param {Object} options
+ * @param {import('discord.js').Client} [options.client]
+ * @returns {EmbedBuilder}
+ */
+export function createTranscriptLogEmbed(options) {
+  const {
+    ticketId,
+    userName,
+    userId,
+    closedBy,
+    reason,
+    duration,
+    messages,
+    client,
+  } = options;
+
+  const embed = new EmbedBuilder()
+    .setTitle(`Ticket Log  •  #${ticketId.split("-").pop()}`)
+    .setDescription(`A ticket has been closed and the transcript is attached.`)
+    .setColor(THEME.INFO)
+    .addFields(
+      {
+        name: "Ticket Owner",
+        value: `<@${userId}>`,
+        inline: true,
+      },
+      { name: "Closed By", value: `${closedBy}`, inline: true },
+      { name: "Duration", value: duration || "Unknown", inline: true },
+      {
+        name: "Messages",
+        value: messages?.length?.toString() || "0",
+        inline: true,
+      },
+    )
+    .setFooter(ticketFooter(client))
+    .setTimestamp();
+
+  if (reason) {
+    embed.addFields({ name: "Reason", value: reason, inline: false });
+  }
+
+  return embed;
+}
+
 // ─────────────────────────────────────────────
 // Limit embeds
 // ─────────────────────────────────────────────

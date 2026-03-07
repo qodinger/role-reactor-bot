@@ -163,6 +163,56 @@ export async function handleStaffRole(interaction) {
   }
 }
 
+export async function handleLogs(interaction) {
+  await interaction.deferReply({ ephemeral: true });
+
+  const channel = interaction.options.getChannel("channel");
+  const guildId = interaction.guildId;
+
+  if (!channel.isTextBased()) {
+    return interaction.editReply({
+      embeds: [
+        createErrorEmbed(
+          "Please select a text channel.",
+          "Invalid Channel",
+          interaction.client,
+        ),
+      ],
+    });
+  }
+
+  try {
+    const ticketManager = getTicketManager();
+    await ticketManager.initialize();
+
+    const settings =
+      await ticketManager.storage.dbManager.guildSettings.getByGuild(guildId);
+    settings.ticketSettings = settings.ticketSettings || {};
+    settings.ticketSettings.transcriptChannelId = channel.id;
+    await ticketManager.storage.dbManager.guildSettings.set(guildId, settings);
+
+    return interaction.editReply({
+      embeds: [
+        createSuccessEmbed(
+          `Ticket transcripts will now be automatically sent to ${channel}.`,
+          "Logs Configured",
+          interaction.client,
+        ),
+      ],
+    });
+  } catch (error) {
+    return interaction.editReply({
+      embeds: [
+        createErrorEmbed(
+          `Failed to save log channel: ${error.message}`,
+          "Save Failed",
+          interaction.client,
+        ),
+      ],
+    });
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // /ticket info
 // ─────────────────────────────────────────────────────────────────────────────
