@@ -150,10 +150,15 @@ async function handleTicketCreate(interaction, customId) {
         allow: ["ViewChannel", "SendMessages", "ReadMessageHistory"],
       }));
 
+      // Get or create category for the ticket
+      let parentId = panel.settings?.ticketCategoryId;
+      if (!parentId) {
+        parentId = await getOrCreateTicketCategory(guild, staffRoles);
+      }
+
       channel = await guild.channels.create({
         name: channelName,
-        parent:
-          panel.settings?.ticketCategoryId || interaction.channel.parentId,
+        parent: parentId || interaction.channel.parentId,
         permissionOverwrites: [
           {
             id: guild.roles.everyone,
@@ -672,6 +677,54 @@ async function getStaffRoleId(guildId) {
       await ticketManager.storage.dbManager.guildSettings.getByGuild(guildId);
     return settings?.ticketSettings?.staffRoleId || null;
   } catch {
+    return null;
+  }
+}
+
+/**
+ * Get or create the default ticket category
+ * @param {import('discord.js').Guild} guild
+ * @param {Array} staffRoles
+ * @returns {Promise<string|null>} Category ID
+ */
+async function getOrCreateTicketCategory(guild, staffRoles) {
+  const CATEGORY_NAME = "🎫 TICKETS";
+
+  try {
+    // 1. Try to find existing category by name
+    const existing = guild.channels.cache.find(
+      c =>
+        c.type === 4 && // CategoryChannel
+        c.name.toLowerCase() === CATEGORY_NAME.toLowerCase(),
+    );
+
+    if (existing) return existing.id;
+
+    // 2. Create if not found
+    const overwrites = [
+      {
+        id: guild.roles.everyone,
+        deny: ["ViewChannel"],
+      },
+    ];
+
+    // Add staff roles permissions
+    for (const role of staffRoles) {
+      overwrites.push({
+        id: role.id,
+        allow: ["ViewChannel", "SendMessages", "ReadMessageHistory"],
+      });
+    }
+
+    const category = await guild.channels.create({
+      name: CATEGORY_NAME,
+      type: 4, // Category
+      permissionOverwrites: overwrites,
+    });
+
+    return category.id;
+  } catch (error) {
+    logger.error("Failed to get/create ticket category:", error);
     return null;
   }
 }
