@@ -1,5 +1,6 @@
 import { getTicketTranscript } from "../../features/ticketing/TicketTranscript.js";
 import { getTicketManager } from "../../features/ticketing/TicketManager.js";
+import { createTicketClosedEmbed } from "../../features/ticketing/embeds.js";
 import { getLogger } from "../../utils/logger.js";
 
 const logger = getLogger();
@@ -46,10 +47,12 @@ async function runCleanup() {
     }
 
     // Get all guilds with tickets using aggregation
-    const result = await storageManager.dbManager.tickets.collection.aggregate([
-      { $match: { status: "open" } },
-      { $group: { _id: "$guildId" } }
-    ]).toArray();
+    const result = await storageManager.dbManager.tickets.collection
+      .aggregate([
+        { $match: { status: "open" } },
+        { $group: { _id: "$guildId" } },
+      ])
+      .toArray();
 
     const guildIds = result.map(r => r._id);
 
@@ -127,37 +130,75 @@ async function cleanupGuild(guildId, storageManager) {
         continue;
       }
 
+      // Get settings to determine tier limits
+      const isPro = await ticketManager.premiumManager.isFeatureActive(
+        guildId,
+        "pro_engine",
+      );
+      const inactiveDays = isPro ? 30 : 7;
+      const inactiveMs = inactiveDays * 24 * 60 * 60 * 1000;
+
       // Check last message activity
       const messages = await channel.messages
         .fetch({ limit: 1 })
-        .catch(() => []);
-      if (messages.size === 0) {
-        // Empty channel, check ticket age
-        const ticketAge = Date.now() - new Date(ticket.openedAt).getTime();
-        const sevenDays = 7 * 24 * 60 * 60 * 1000;
+        .catch(() => null);
+      let lastActivity = new Date(ticket.updatedAt).getTime();
 
-        if (ticketAge > sevenDays) {
-          // Generate transcript before closing
-          await ticketTranscript.generateFromChannel({
-            ticketId: ticket.ticketId,
-            guildId,
-            channel,
-            ticket,
-            format: "html",
-          });
+      if (messages && messages.size > 0) {
+        lastActivity = messages.first().createdAt.getTime();
+      }
 
-          // Close and delete
-          await ticketManager.closeTicket(
-            ticket.ticketId,
-            "system",
-            "Auto-closed: inactive",
-          );
-          await channel.delete("Auto-closed: inactive for 7+ days");
-          ticketsDeleted++;
-          logger.info(
-            `🎫 Auto-closed ticket ${ticket.ticketId} (inactive for 7+ days)`,
-          );
+      const timeSinceActivity = Date.now() - lastActivity;
+
+      if (timeSinceActivity > inactiveMs) {
+        // Generate transcript before closing
+        await ticketTranscript.generateFromChannel({
+          ticketId: ticket.ticketId,
+          guildId,
+          channel,
+          ticket,
+          format: "html",
+        });
+
+        // Send a final notification embed
+        const closeEmbed = createTicketClosedEmbed({
+          ticketNumber: ticket.ticketId.split("-").pop(),
+          closedBy: "System",
+          reason: `Auto-closed: inactive for ${inactiveDays}+ days`,
+          client: guild.client,
+        });
+
+        try {
+          await channel.send({ embeds: [closeEmbed] });
+        } catch (e) {
+          logger.warn(`Could not send auto-close message in ${channel.id}`);
         }
+
+        // Close and delete
+        await ticketManager.closeTicket(
+          ticket.ticketId,
+          "system",
+          `Auto-closed: inactive for ${inactiveDays}+ days`,
+        );
+
+        // Delete channel after a short delay so the message is visible for a moment
+        setTimeout(async () => {
+          try {
+            await channel.delete(
+              `Auto-closed: inactive for ${inactiveDays}+ days`,
+            );
+          } catch (error) {
+            logger.error(
+              "Failed to delete ticket channel during cleanup:",
+              error,
+            );
+          }
+        }, 5000);
+
+        ticketsDeleted++;
+        logger.info(
+          `🎫 Auto-closed ticket ${ticket.ticketId} (inactive for ${inactiveDays}+ days)`,
+        );
       }
     } catch (error) {
       logger.error(

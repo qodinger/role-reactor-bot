@@ -34,17 +34,14 @@ export async function handleList(interaction) {
     });
   }
 
-  const STATUS_EMOJI = { open: "🟢", closed: "✅", archived: "📦" };
-
   const ticketList = tickets
     .slice(0, 10)
     .map(ticket => {
-      const statusEmoji = STATUS_EMOJI[ticket.status] || "⚪";
       const openedDate = new Date(ticket.openedAt).toLocaleDateString();
       const claimedInfo = ticket.claimedBy
         ? ` • Claimed: <@${ticket.claimedBy}>`
         : " • Unclaimed";
-      return `${statusEmoji} **#${ticket.ticketId.split("-").pop()}** - ${openedDate}${claimedInfo}`;
+      return `**#${ticket.ticketId.split("-").pop()}** - ${openedDate}${claimedInfo}`;
     })
     .join("\n");
 
@@ -119,8 +116,8 @@ export async function handleView(interaction) {
     });
   }
 
-  const STATUS_EMOJI = { open: "🟢", closed: "✅", archived: "📦" };
-  const statusEmoji = STATUS_EMOJI[ticket.status] || "⚪";
+  const statusText =
+    ticket.status.charAt(0).toUpperCase() + ticket.status.slice(1);
 
   const fields = [
     {
@@ -130,7 +127,7 @@ export async function handleView(interaction) {
     },
     {
       name: "Status",
-      value: `${statusEmoji} ${ticket.status}`,
+      value: statusText,
       inline: true,
     },
     { name: "Created By", value: `<@${ticket.userId}>`, inline: true },
