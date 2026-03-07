@@ -85,6 +85,18 @@ export async function handleClaim(interaction) {
     });
   }
 
+  // Sync Discord permissions
+  try {
+    await interaction.channel.permissionOverwrites.edit(interaction.user, {
+      ViewChannel: true,
+      SendMessages: true,
+      ReadMessageHistory: true,
+      AttachFiles: true,
+    });
+  } catch (err) {
+    logger.debug(`Failed to update claim permissions: ${err.message}`);
+  }
+
   // Notify everyone in the ticket
   await interaction.channel.send({
     embeds: [
@@ -455,6 +467,18 @@ export async function handleTransfer(interaction) {
         ),
       ],
     });
+  }
+
+  // Sync Discord permissions for the new staff member
+  try {
+    await interaction.channel.permissionOverwrites.edit(staffToTransfer, {
+      ViewChannel: true,
+      SendMessages: true,
+      ReadMessageHistory: true,
+      AttachFiles: true,
+    });
+  } catch (err) {
+    logger.debug(`Failed to update transfer permissions: ${err.message}`);
   }
 
   const wasClaimed = !!ticket.claimedBy;
