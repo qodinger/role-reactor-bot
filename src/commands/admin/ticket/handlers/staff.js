@@ -440,12 +440,16 @@ export async function handleTransfer(interaction) {
     });
   }
 
+  const wasClaimed = !!ticket.claimedBy;
+  const actionText = wasClaimed ? "transferred to" : "assigned to";
+  const titleText = wasClaimed ? "Ticket Transferred" : "Ticket Assigned";
+
   // Notify everyone in the ticket
   await interaction.channel.send({
     embeds: [
       createSuccessEmbed(
-        `This ticket has been transferred to ${staffToTransfer} by ${interaction.user}.`,
-        "Ticket Transferred",
+        `This ticket has been ${actionText} ${staffToTransfer} by ${interaction.user}.`,
+        titleText,
         interaction.client,
       ),
     ],
@@ -454,8 +458,8 @@ export async function handleTransfer(interaction) {
   return interaction.editReply({
     embeds: [
       createSuccessEmbed(
-        `Transferred to ${staffToTransfer}.`,
-        "Ticket Transferred",
+        `${wasClaimed ? "Transferred" : "Assigned"} to ${staffToTransfer}.`,
+        titleText,
         interaction.client,
       ),
     ],
