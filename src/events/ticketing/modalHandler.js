@@ -220,10 +220,14 @@ async function handleTransferModal(interaction) {
 
     const isTargetStaff = await checkStaffRoleForMember(targetMember, guild.id);
     if (!isTargetStaff) {
+      const staffRoleId = await getStaffRoleId(guild.id);
+      const roleText = staffRoleId
+        ? `the <@&${staffRoleId}> role`
+        : "a staff role";
       return interaction.editReply({
         embeds: [
           createErrorEmbed(
-            "Please select a user with a staff role.",
+            `Please select a user with ${roleText}.`,
             `${targetMember.user.tag} is not a staff member`,
             interaction.client,
           ),
@@ -306,6 +310,23 @@ function parseUserId(input) {
   }
 
   return null;
+}
+
+/**
+ * Get the configured staff role ID for a guild
+ * @param {string} guildId
+ * @returns {Promise<string|null>}
+ */
+async function getStaffRoleId(guildId) {
+  try {
+    const ticketManager = getTicketManager();
+    await ticketManager.initialize();
+    const settings =
+      await ticketManager.storage.dbManager.guildSettings.getByGuild(guildId);
+    return settings?.ticketSettings?.staffRoleId || null;
+  } catch {
+    return null;
+  }
 }
 
 /**
