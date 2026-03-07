@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Ticketing System**: Complete support ticket system with `/ticket setup` and `/ticket info` commands for comprehensive server support
+- **Ticket Management**: Full lifecycle management for staff with `/ticket claim`, `/ticket close`, `/ticket add`, and `/ticket remove` commands
+- **Ticket Panels**: Create multiple custom ticket panels for different support categories with customizable titles, descriptions, and embed colors
+- **Ticket Alerts**: Quickly grab the attention of claimed staff or ticket creators with the `/ticket alert` command
+- **Ticket Transcripts**: Automatically generate and save detailed HTML or plain text transcripts of closed tickets
+- **Ticket Analytics**: Detailed tracking of open, closed, and active tickets with the `/ticket list` and `/ticket view` commands
+
 ## [1.6.3] - 2026-02-17
 
 ### Added

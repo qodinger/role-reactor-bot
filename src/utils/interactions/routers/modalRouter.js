@@ -56,6 +56,18 @@ export async function routeModalInteraction(interaction, _client) {
       return;
     }
 
+    // Handle ticket modals
+    if (
+      customId === "ticket_add_user_modal" ||
+      customId === "ticket_transfer_modal"
+    ) {
+      const { handleTicketModals } = await import(
+        "../../../events/ticketing/modalHandler.js"
+      );
+      await handleTicketModals(interaction);
+      return;
+    }
+
     // Add more modal routing patterns here as needed
     logger.debug(`Unknown modal interaction: ${customId}`);
   } catch (error) {

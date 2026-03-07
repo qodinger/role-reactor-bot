@@ -1,0 +1,361 @@
+import { SlashCommandBuilder } from "discord.js";
+import { getLogger } from "../../../utils/logger.js";
+import { createErrorEmbed } from "../../../features/ticketing/embeds.js";
+import { getColorChoices } from "../role-reactions/utils.js";
+import {
+  handleSetup,
+  handleStaffRole,
+  handleInfo,
+  handlePanel,
+} from "./handlers/admin.js";
+import { handleList, handleView } from "./handlers/general.js";
+import {
+  handleClaim,
+  handleClose,
+  handleAdd,
+  handleTransfer,
+  handleRemove,
+  handleRename,
+  handleAlert,
+} from "./handlers/staff.js";
+
+const logger = getLogger();
+
+// ============================================================================
+// COMMAND METADATA
+// ============================================================================
+
+export const metadata = {
+  name: "ticket",
+  category: "admin",
+  description: "Manage the ticket support system",
+  keywords: ["ticket", "support", "help", "ticketing", "support ticket"],
+  emoji: "🎫",
+  helpFields: [
+    {
+      name: `How to Use`,
+      value: [
+        "```/ticket setup channel:#support```",
+        "```/ticket info action:stats```",
+        "```/ticket panel list```",
+        "```/ticket panel delete panel-id:1```",
+        "```/ticket list status:open```",
+        "```/ticket view ticket-id:00001```",
+        "```/ticket claim```",
+        "```/ticket close reason:Issue resolved```",
+        "```/ticket add user:@Staff```",
+        "```/ticket remove user:@User```",
+        "```/ticket transfer staff:@SeniorStaff```",
+        "```/ticket rename name:bug-report```",
+        "```/ticket alert```",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `Subcommands`,
+      value: [
+        "**setup** - Create a new ticket panel (Manage Server)",
+        "**info** - View system information and stats (Manage Server)",
+        "**panel list** - List all ticket panels in the server (Manage Server)",
+        "**panel delete** - Delete a ticket panel by ID (Manage Server)",
+        "**list** - View your tickets with status filter (Everyone)",
+        "**view** - View details of a specific ticket (Everyone)",
+        "**claim** - Claim the current ticket (Staff)",
+        "**close** - Close ticket with optional reason (Owner/Staff)",
+        "**add** - Add user to current ticket (Staff)",
+        "**remove** - Remove user from current ticket (Staff)",
+        "**transfer** - Transfer ticket to another staff (Staff)",
+        "**rename** - Rename the ticket channel (Staff)",
+        "**alert** - Ping the claimed staff or the ticket owner (Owner/Staff)",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `Permissions`,
+      value: [
+        "**Setup/Config** - Manage Server permission",
+        "**Claim/Add/Remove/Transfer/Rename** - Staff role",
+        "**Close** - Ticket creator or staff",
+        "**List/View/Alert** - Everyone",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `What You'll See`,
+      value:
+        "Interactive ticket panels, real-time ticket management with staff " +
+        "claims, automatic transcript generation, and secure channel creation. " +
+        "Perfect for server support and user assistance!",
+      inline: false,
+    },
+  ],
+};
+
+// ============================================================================
+// COMMAND DEFINITION
+// ============================================================================
+
+export const data = new SlashCommandBuilder()
+  .setName("ticket")
+  .setDescription("🎫 Manage the ticket support system")
+
+  // Admin commands
+  .addSubcommand(sub =>
+    sub
+      .setName("setup")
+      .setDescription("Create a new ticket panel")
+      .addChannelOption(opt =>
+        opt
+          .setName("channel")
+          .setDescription("Channel to create the panel in")
+          .setRequired(true),
+      )
+      .addStringOption(opt =>
+        opt
+          .setName("title")
+          .setDescription("Panel title")
+          .setRequired(false)
+          .setMaxLength(100),
+      )
+      .addStringOption(opt =>
+        opt
+          .setName("description")
+          .setDescription("Panel description")
+          .setRequired(false)
+          .setMaxLength(1000),
+      )
+      .addStringOption(opt =>
+        opt
+          .setName("color")
+          .setDescription("Choose a color for the embed")
+          .setRequired(false)
+          .addChoices(...getColorChoices()),
+      ),
+  )
+  .addSubcommand(sub =>
+    sub
+      .setName("staff-role")
+      .setDescription("Configure a custom staff role for ticket management")
+      .addRoleOption(opt =>
+        opt
+          .setName("role")
+          .setDescription("The role to grant ticket management access")
+          .setRequired(true),
+      ),
+  )
+  .addSubcommand(sub =>
+    sub
+      .setName("info")
+      .setDescription("View ticket system information and limits")
+      .addStringOption(opt =>
+        opt
+          .setName("action")
+          .setDescription("Action to perform")
+          .setRequired(false)
+          .addChoices(
+            { name: "View Settings", value: "view" },
+            { name: "View Statistics", value: "stats" },
+            { name: "View Storage", value: "storage" },
+          ),
+      ),
+  )
+  .addSubcommandGroup(group =>
+    group
+      .setName("panel")
+      .setDescription("Manage ticket panels")
+      .addSubcommand(sub =>
+        sub
+          .setName("list")
+          .setDescription("List all ticket panels in the server"),
+      )
+      .addSubcommand(sub =>
+        sub
+          .setName("delete")
+          .setDescription("Delete a ticket panel")
+          .addStringOption(opt =>
+            opt
+              .setName("panel-id")
+              .setDescription("Panel number to delete (e.g., 1)")
+              .setRequired(true),
+          ),
+      ),
+  )
+
+  // General commands
+  .addSubcommand(sub =>
+    sub
+      .setName("list")
+      .setDescription("View your tickets")
+      .addStringOption(opt =>
+        opt
+          .setName("status")
+          .setDescription("Filter by status")
+          .setRequired(false)
+          .addChoices(
+            { name: "Open", value: "open" },
+            { name: "Closed", value: "closed" },
+            { name: "All", value: "all" },
+          ),
+      ),
+  )
+  .addSubcommand(sub =>
+    sub
+      .setName("view")
+      .setDescription("View a specific ticket")
+      .addStringOption(opt =>
+        opt
+          .setName("ticket-id")
+          .setDescription("Ticket number (e.g., 1)")
+          .setRequired(true),
+      ),
+  )
+  .addSubcommand(sub =>
+    sub.setName("claim").setDescription("Claim the current ticket"),
+  )
+  .addSubcommand(sub =>
+    sub
+      .setName("close")
+      .setDescription("Close the current ticket")
+      .addStringOption(opt =>
+        opt
+          .setName("reason")
+          .setDescription("Reason for closing")
+          .setRequired(false)
+          .setMaxLength(200),
+      ),
+  )
+  .addSubcommand(sub =>
+    sub
+      .setName("add")
+      .setDescription("Add user to the current ticket")
+      .addUserOption(opt =>
+        opt.setName("user").setDescription("User to add").setRequired(true),
+      ),
+  )
+  .addSubcommand(sub =>
+    sub
+      .setName("transfer")
+      .setDescription("Transfer ticket to another staff")
+      .addUserOption(opt =>
+        opt
+          .setName("staff")
+          .setDescription("Staff member to transfer to")
+          .setRequired(true),
+      ),
+  )
+  .addSubcommand(sub =>
+    sub
+      .setName("remove")
+      .setDescription("Remove user from the current ticket")
+      .addUserOption(opt =>
+        opt.setName("user").setDescription("User to remove").setRequired(true),
+      ),
+  )
+  .addSubcommand(sub =>
+    sub
+      .setName("rename")
+      .setDescription("Rename the ticket channel")
+      .addStringOption(opt =>
+        opt
+          .setName("name")
+          .setDescription("New channel name")
+          .setRequired(true)
+          .setMaxLength(100),
+      ),
+  )
+  .addSubcommand(sub =>
+    sub
+      .setName("alert")
+      .setDescription("Ping the claimed staff or ticket owner for attention"),
+  );
+
+// ============================================================================
+// PERMISSIONS
+// ============================================================================
+
+// Note: permission enforcement is done inside each handler
+export const permissions = [];
+
+// ============================================================================
+// COMMAND EXECUTION
+// ============================================================================
+
+/**
+ * Execute the /ticket command — thin router, all logic lives in handlers/.
+ * @param {import('discord.js').ChatInputCommandInteraction} interaction
+ */
+export async function execute(interaction) {
+  const subcommandGroup = interaction.options.getSubcommandGroup(false);
+  const subcommand = interaction.options.getSubcommand();
+
+  try {
+    if (subcommandGroup === "panel") {
+      return await handlePanel(interaction);
+    }
+
+    switch (subcommand) {
+      case "setup":
+        return await handleSetup(interaction);
+      case "staff-role":
+        return await handleStaffRole(interaction);
+      case "info":
+        return await handleInfo(interaction);
+      case "list":
+        return await handleList(interaction);
+      case "view":
+        return await handleView(interaction);
+      case "claim":
+        return await handleClaim(interaction);
+      case "close":
+        return await handleClose(interaction);
+      case "add":
+        return await handleAdd(interaction);
+      case "transfer":
+        return await handleTransfer(interaction);
+      case "remove":
+        return await handleRemove(interaction);
+      case "rename":
+        return await handleRename(interaction);
+      case "alert":
+        return await handleAlert(interaction);
+      default:
+        return interaction.reply({
+          embeds: [
+            createErrorEmbed(
+              "Unknown subcommand. Please use a valid subcommand.",
+              "Unknown Subcommand",
+              interaction.client,
+            ),
+          ],
+          ephemeral: true,
+        });
+    }
+  } catch (error) {
+    logger.error("Ticket command error:", error);
+
+    if (!interaction.replied && !interaction.deferred) {
+      return interaction.reply({
+        embeds: [
+          createErrorEmbed(
+            `Command failed: ${error.message}`,
+            "Command Error",
+            interaction.client,
+          ),
+        ],
+        ephemeral: true,
+      });
+    }
+
+    if (interaction.deferred && !interaction.replied) {
+      return interaction.editReply({
+        embeds: [
+          createErrorEmbed(
+            `Command failed: ${error.message}`,
+            "Command Error",
+            interaction.client,
+          ),
+        ],
+      });
+    }
+  }
+}

@@ -18,3 +18,6 @@ export { PaymentRepository } from "./PaymentRepository.js";
 export { CommandUsageRepository } from "./CommandUsageRepository.js";
 export { GuildAnalyticsRepository } from "./GuildAnalyticsRepository.js";
 export { ModerationLogRepository } from "./ModerationLogRepository.js";
+export { TicketRepository } from "./TicketRepository.js";
+export { TicketPanelRepository } from "./TicketPanelRepository.js";
+export { TicketTranscriptRepository } from "./TicketTranscriptRepository.js";

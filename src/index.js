@@ -680,6 +680,17 @@ async function main() {
       global.tempRoleScheduler = tempRoleScheduler; // Store globally for shutdown
       tempRoleScheduler.start();
 
+      // Start ticketing system cleanup scheduler
+      try {
+        const { startTicketCleanup } = await import(
+          "./events/ticketing/ticketCleanup.js"
+        );
+        startTicketCleanup();
+        logger.info("✅ Ticketing system cleanup started");
+      } catch (error) {
+        logger.error("❌ Failed to start ticket cleanup:", error);
+      }
+
       // Start Premium Feature scheduler (handles Cores consumption for features)
       try {
         const { getPremiumFeatureScheduler } = await import(

@@ -227,6 +227,213 @@ class StorageManager {
     return true;
   }
 
+  // Ticket methods
+  async createTicket(ticketData) {
+    if (this.provider instanceof DatabaseProvider) {
+      if (this.dbManager && this.dbManager.tickets) {
+        return await this.dbManager.tickets.create(ticketData);
+      }
+    }
+    return null;
+  }
+
+  async getTicket(ticketId) {
+    if (this.provider instanceof DatabaseProvider) {
+      if (this.dbManager && this.dbManager.tickets) {
+        return await this.dbManager.tickets.findByTicketId(ticketId);
+      }
+    }
+    return null;
+  }
+
+  async getTicketByChannel(channelId) {
+    if (this.provider instanceof DatabaseProvider) {
+      if (this.dbManager && this.dbManager.tickets) {
+        return await this.dbManager.tickets.findByChannelId(channelId);
+      }
+    }
+    return null;
+  }
+
+  async getTicketsByGuild(guildId, options = {}) {
+    if (this.provider instanceof DatabaseProvider) {
+      if (this.dbManager && this.dbManager.tickets) {
+        return await this.dbManager.tickets.findByGuild(guildId, options);
+      }
+    }
+    return [];
+  }
+
+  async getTicketsByUser(userId, guildId, options = {}) {
+    if (this.provider instanceof DatabaseProvider) {
+      if (this.dbManager && this.dbManager.tickets) {
+        return await this.dbManager.tickets.findByUser(
+          userId,
+          guildId,
+          options,
+        );
+      }
+    }
+    return [];
+  }
+
+  async countMonthlyTickets(guildId) {
+    if (this.provider instanceof DatabaseProvider) {
+      if (this.dbManager && this.dbManager.tickets) {
+        return await this.dbManager.tickets.countMonthlyTickets(guildId);
+      }
+    }
+    return 0;
+  }
+
+  async countOpenTickets(guildId) {
+    if (this.provider instanceof DatabaseProvider) {
+      if (this.dbManager && this.dbManager.tickets) {
+        return await this.dbManager.tickets.countOpenTickets(guildId);
+      }
+    }
+    return 0;
+  }
+
+  async closeTicket(ticketId, closeData) {
+    if (this.provider instanceof DatabaseProvider) {
+      if (this.dbManager && this.dbManager.tickets) {
+        return await this.dbManager.tickets.close(ticketId, closeData);
+      }
+    }
+    return false;
+  }
+
+  async claimTicket(ticketId, staffId) {
+    if (this.provider instanceof DatabaseProvider) {
+      if (this.dbManager && this.dbManager.tickets) {
+        return await this.dbManager.tickets.claim(ticketId, staffId);
+      }
+    }
+    return false;
+  }
+
+  async addTicketParticipant(ticketId, userId) {
+    if (this.provider instanceof DatabaseProvider) {
+      if (this.dbManager && this.dbManager.tickets) {
+        return await this.dbManager.tickets.addParticipant(ticketId, userId);
+      }
+    }
+    return false;
+  }
+
+  async removeTicketParticipant(ticketId, userId) {
+    if (this.provider instanceof DatabaseProvider) {
+      if (this.dbManager && this.dbManager.tickets) {
+        return await this.dbManager.tickets.removeParticipant(ticketId, userId);
+      }
+    }
+    return false;
+  }
+
+  async getTicketStats(guildId) {
+    if (this.provider instanceof DatabaseProvider) {
+      if (this.dbManager && this.dbManager.tickets) {
+        return await this.dbManager.tickets.getStats(guildId);
+      }
+    }
+    return { total: 0, open: 0, closed: 0, archived: 0 };
+  }
+
+  // Ticket panel methods
+  async createTicketPanel(panelData) {
+    if (this.provider instanceof DatabaseProvider) {
+      if (this.dbManager && this.dbManager.ticketPanels) {
+        return await this.dbManager.ticketPanels.create(panelData);
+      }
+    }
+    return null;
+  }
+
+  async getTicketPanel(panelId) {
+    if (this.provider instanceof DatabaseProvider) {
+      if (this.dbManager && this.dbManager.ticketPanels) {
+        return await this.dbManager.ticketPanels.findByPanelId(panelId);
+      }
+    }
+    return null;
+  }
+
+  async getTicketPanelByMessage(messageId) {
+    if (this.provider instanceof DatabaseProvider) {
+      if (this.dbManager && this.dbManager.ticketPanels) {
+        return await this.dbManager.ticketPanels.findByMessageId(messageId);
+      }
+    }
+    return null;
+  }
+
+  async getTicketPanelsByGuild(guildId) {
+    if (this.provider instanceof DatabaseProvider) {
+      if (this.dbManager && this.dbManager.ticketPanels) {
+        return await this.dbManager.ticketPanels.findByGuild(guildId);
+      }
+    }
+    return [];
+  }
+
+  async updateTicketPanel(panelId, updateData) {
+    if (this.provider instanceof DatabaseProvider) {
+      if (this.dbManager && this.dbManager.ticketPanels) {
+        return await this.dbManager.ticketPanels.update(panelId, updateData);
+      }
+    }
+    return false;
+  }
+
+  async deleteTicketPanel(panelId) {
+    if (this.provider instanceof DatabaseProvider) {
+      if (this.dbManager && this.dbManager.ticketPanels) {
+        return await this.dbManager.ticketPanels.delete(panelId);
+      }
+    }
+    return false;
+  }
+
+  // Ticket transcript methods
+  async createTicketTranscript(transcriptData) {
+    if (this.provider instanceof DatabaseProvider) {
+      if (this.dbManager && this.dbManager.ticketTranscripts) {
+        return await this.dbManager.ticketTranscripts.create(transcriptData);
+      }
+    }
+    return null;
+  }
+
+  async getTicketTranscript(transcriptId) {
+    if (this.provider instanceof DatabaseProvider) {
+      if (this.dbManager && this.dbManager.ticketTranscripts) {
+        return await this.dbManager.ticketTranscripts.findByTranscriptId(
+          transcriptId,
+        );
+      }
+    }
+    return null;
+  }
+
+  async getTicketTranscriptByTicket(ticketId) {
+    if (this.provider instanceof DatabaseProvider) {
+      if (this.dbManager && this.dbManager.ticketTranscripts) {
+        return await this.dbManager.ticketTranscripts.findByTicketId(ticketId);
+      }
+    }
+    return null;
+  }
+
+  async deleteTicketTranscript(transcriptId) {
+    if (this.provider instanceof DatabaseProvider) {
+      if (this.dbManager && this.dbManager.ticketTranscripts) {
+        return await this.dbManager.ticketTranscripts.delete(transcriptId);
+      }
+    }
+    return false;
+  }
+
   // Generic storage methods
   async read(collection) {
     if (this.provider instanceof DatabaseProvider) {

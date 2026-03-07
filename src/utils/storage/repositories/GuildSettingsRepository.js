@@ -88,6 +88,39 @@ export class GuildSettingsRepository extends BaseRepository {
     }
   }
 
+  /**
+   * Atomically increment a counter field for a guild
+   * @param {string} guildId - Guild ID
+   * @param {string} counterField - Field path to increment (e.g. "counters.ticket")
+   * @returns {Promise<number>} The new counter value
+   */
+  async incrementCounter(guildId, counterField) {
+    try {
+      const result = await this.collection.findOneAndUpdate(
+        { guildId },
+        {
+          $inc: { [counterField]: 1 },
+          $setOnInsert: { guildId, createdAt: new Date() },
+          $set: { updatedAt: new Date() },
+        },
+        { upsert: true, returnDocument: "after" },
+      );
+      // Navigate the dot path to get the value
+      const parts = counterField.split(".");
+      let value = result;
+      for (const part of parts) {
+        value = value?.[part];
+      }
+      return value || 1;
+    } catch (error) {
+      this.logger.error(
+        `Failed to increment counter ${counterField} for guild ${guildId}`,
+        error,
+      );
+      throw error;
+    }
+  }
+
   async getAllWithExperienceEnabled() {
     try {
       const settings = await this.collection

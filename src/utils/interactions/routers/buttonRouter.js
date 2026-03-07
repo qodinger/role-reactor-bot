@@ -111,6 +111,21 @@ export async function routeButtonInteraction(interaction, _client) {
       return;
     }
 
+    // Handle ticket buttons
+    if (
+      customId.startsWith("ticket_create_") ||
+      customId === "ticket_claim" ||
+      customId === "ticket_close" ||
+      customId === "ticket_add_user" ||
+      customId === "ticket_transfer"
+    ) {
+      const { handleTicketButtons } = await import(
+        "../../../events/ticketing/buttonHandler.js"
+      );
+      await handleTicketButtons(interaction);
+      return;
+    }
+
     // AI feedback buttons removed - ignore any legacy feedback button clicks
     if (customId.startsWith("ai_feedback_")) {
       logger.debug(

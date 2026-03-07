@@ -74,7 +74,7 @@ export async function apiGetGuildAnalytics(req, res) {
             // Try fetching member directly from guild (will use cache if available)
             const member = await guild.members.fetch(userId);
             user = member?.user;
-          } catch (err) {
+          } catch (_err) {
             // Member might have left the guild
           }
         }
@@ -83,7 +83,7 @@ export async function apiGetGuildAnalytics(req, res) {
           try {
             // Fallback to fetching user globally
             user = await client.users.fetch(userId);
-          } catch (err) {
+          } catch (_err) {
             // Failed globally
           }
         }

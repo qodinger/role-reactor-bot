@@ -18,6 +18,9 @@ import {
   CommandUsageRepository,
   GuildAnalyticsRepository,
   ModerationLogRepository,
+  TicketRepository,
+  TicketPanelRepository,
+  TicketTranscriptRepository,
 } from "./repositories/index.js";
 import { CacheManager } from "../cache/CacheManager.js";
 import { QueryCache } from "../cache/QueryCache.js";
@@ -60,6 +63,9 @@ class DatabaseManager {
     this.commandUsage = null;
     this.guildAnalytics = null;
     this.moderationLogs = null;
+    this.tickets = null;
+    this.ticketPanels = null;
+    this.ticketTranscripts = null;
     // Initialize connection manager asynchronously (non-blocking)
     this._initializeConnectionManager().catch(() => {
       // Silently fail - will be initialized on first connect
@@ -197,6 +203,17 @@ class DatabaseManager {
           this.logger,
         );
         this.moderationLogs = new ModerationLogRepository(
+          db,
+          this.cacheManager,
+          this.logger,
+        );
+        this.tickets = new TicketRepository(db, this.cacheManager, this.logger);
+        this.ticketPanels = new TicketPanelRepository(
+          db,
+          this.cacheManager,
+          this.logger,
+        );
+        this.ticketTranscripts = new TicketTranscriptRepository(
           db,
           this.cacheManager,
           this.logger,

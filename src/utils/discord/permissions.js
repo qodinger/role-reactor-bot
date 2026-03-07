@@ -42,6 +42,8 @@ export const BOT_PERMISSIONS = [
   PermissionFlagsBits.MoveMembers, // For voice disconnect and move features
   PermissionFlagsBits.MuteMembers, // For voice mute feature
   PermissionFlagsBits.DeafenMembers, // For voice deafen feature
+  // Ticketing permissions
+  PermissionFlagsBits.ManageChannels, // For ticket channel creation and management
 ];
 
 /**
