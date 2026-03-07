@@ -267,11 +267,15 @@ async function handleTicketClaim(interaction) {
     // Check staff role
     const isStaff = await checkStaffRole(interaction);
     if (!isStaff) {
+      const staffRoleId = await getStaffRoleId(interaction.guildId);
+      const roleText = staffRoleId
+        ? `the <@&${staffRoleId}> role`
+        : "a staff role";
       return interaction.editReply({
         embeds: [
           createErrorEmbed(
-            "You need the configured staff role to claim tickets.",
-            "No Staff Role",
+            `You need ${roleText} to claim tickets.`,
+            "Permission Denied",
             interaction.client,
           ),
         ],
@@ -495,10 +499,14 @@ async function handleTicketAddUser(interaction) {
     // Check staff role
     const isStaff = await checkStaffRole(interaction);
     if (!isStaff) {
+      const staffRoleId = await getStaffRoleId(interaction.guildId);
+      const roleText = staffRoleId
+        ? `the <@&${staffRoleId}> role`
+        : "a staff role";
       return interaction.reply({
         embeds: [
           createErrorEmbed(
-            "You need a staff role to add users.",
+            `You need ${roleText} to add users.`,
             "Permission Denied",
             interaction.client,
           ),
@@ -553,10 +561,14 @@ async function handleTicketTransfer(interaction) {
     // Check staff role
     const isStaff = await checkStaffRole(interaction);
     if (!isStaff) {
+      const staffRoleId = await getStaffRoleId(interaction.guildId);
+      const roleText = staffRoleId
+        ? `the <@&${staffRoleId}> role`
+        : "a staff role";
       return interaction.reply({
         embeds: [
           createErrorEmbed(
-            "You need a staff role to transfer tickets.",
+            `You need ${roleText} to transfer tickets.`,
             "Permission Denied",
             interaction.client,
           ),
@@ -630,6 +642,23 @@ async function checkStaffRole(interaction) {
   } catch {}
 
   return false;
+}
+
+/**
+ * Get the configured staff role ID for a guild
+ * @param {string} guildId
+ * @returns {Promise<string|null>}
+ */
+async function getStaffRoleId(guildId) {
+  try {
+    const ticketManager = getTicketManager();
+    await ticketManager.initialize();
+    const settings =
+      await ticketManager.storage.dbManager.guildSettings.getByGuild(guildId);
+    return settings?.ticketSettings?.staffRoleId || null;
+  } catch {
+    return null;
+  }
 }
 
 /**

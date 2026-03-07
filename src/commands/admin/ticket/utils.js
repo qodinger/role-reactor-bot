@@ -43,6 +43,23 @@ export async function checkStaffRoleForMember(member, guildId) {
 }
 
 /**
+ * Get the configured staff role ID for a guild.
+ * @param {string} guildId
+ * @returns {Promise<string|null>}
+ */
+export async function getStaffRoleId(guildId) {
+  try {
+    const ticketManager = getTicketManager();
+    await ticketManager.initialize();
+    const settings =
+      await ticketManager.storage.dbManager.guildSettings.getByGuild(guildId);
+    return settings?.ticketSettings?.staffRoleId || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Format the duration between two dates into a human-readable string.
  * @param {Date} start
  * @param {Date} end

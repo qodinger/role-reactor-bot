@@ -7,6 +7,7 @@ import {
 import {
   checkStaffRole,
   checkStaffRoleForMember,
+  getStaffRoleId,
   formatDuration,
 } from "../utils.js";
 
@@ -19,10 +20,14 @@ export async function handleClaim(interaction) {
 
   const isStaff = await checkStaffRole(interaction);
   if (!isStaff) {
+    const staffRoleId = await getStaffRoleId(interaction.guildId);
+    const roleText = staffRoleId
+      ? `the <@&${staffRoleId}> role`
+      : "a staff role";
     return interaction.editReply({
       embeds: [
         createErrorEmbed(
-          "You need a staff role to claim tickets.",
+          `You need ${roleText} to claim tickets.`,
           "Permission Denied",
           interaction.client,
         ),
@@ -222,10 +227,14 @@ export async function handleAdd(interaction) {
   const isStaff = await checkStaffRole(interaction);
 
   if (!isStaff) {
+    const staffRoleId = await getStaffRoleId(interaction.guildId);
+    const roleText = staffRoleId
+      ? `the <@&${staffRoleId}> role`
+      : "a staff role";
     return interaction.editReply({
       embeds: [
         createErrorEmbed(
-          "You need a staff role to add users.",
+          `You need ${roleText} to add users.`,
           "Permission Denied",
           interaction.client,
         ),
@@ -334,10 +343,14 @@ export async function handleTransfer(interaction) {
   const isStaff = await checkStaffRole(interaction);
 
   if (!isStaff) {
+    const staffRoleId = await getStaffRoleId(interaction.guildId);
+    const roleText = staffRoleId
+      ? `the <@&${staffRoleId}> role`
+      : "a staff role";
     return interaction.editReply({
       embeds: [
         createErrorEmbed(
-          "You need a staff role to transfer tickets.",
+          `You need ${roleText} to transfer tickets.`,
           "Permission Denied",
           interaction.client,
         ),
@@ -444,10 +457,14 @@ export async function handleRemove(interaction) {
   const isStaff = await checkStaffRole(interaction);
 
   if (!isStaff) {
+    const staffRoleId = await getStaffRoleId(interaction.guildId);
+    const roleText = staffRoleId
+      ? `the <@&${staffRoleId}> role`
+      : "a staff role";
     return interaction.editReply({
       embeds: [
         createErrorEmbed(
-          "You need a staff role to remove users.",
+          `You need ${roleText} to remove users.`,
           "Permission Denied",
           interaction.client,
         ),
@@ -552,10 +569,14 @@ export async function handleRename(interaction) {
   const isStaff = await checkStaffRole(interaction);
 
   if (!isStaff) {
+    const staffRoleId = await getStaffRoleId(interaction.guildId);
+    const roleText = staffRoleId
+      ? `the <@&${staffRoleId}> role`
+      : "a staff role";
     return interaction.editReply({
       embeds: [
         createErrorEmbed(
-          "You need a staff role to rename tickets.",
+          `You need ${roleText} to rename tickets.`,
           "Permission Denied",
           interaction.client,
         ),
