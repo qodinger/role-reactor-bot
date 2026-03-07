@@ -9,7 +9,11 @@ import {
   handlePanel,
   handleLogs,
 } from "./handlers/admin.js";
-import { handleList, handleView } from "./handlers/general.js";
+import {
+  handleList,
+  handleView,
+  handleTranscript,
+} from "./handlers/general.js";
 import {
   handleClaim,
   handleClose,
@@ -233,6 +237,17 @@ export const data = new SlashCommandBuilder()
       ),
   )
   .addSubcommand(sub =>
+    sub
+      .setName("transcript")
+      .setDescription("Get the full transcript of a ticket")
+      .addStringOption(opt =>
+        opt
+          .setName("ticket-id")
+          .setDescription("Ticket number (e.g., 1)")
+          .setRequired(true),
+      ),
+  )
+  .addSubcommand(sub =>
     sub.setName("claim").setDescription("Claim the current ticket"),
   )
   .addSubcommand(sub =>
@@ -329,6 +344,8 @@ export async function execute(interaction) {
         return await handleList(interaction);
       case "view":
         return await handleView(interaction);
+      case "transcript":
+        return await handleTranscript(interaction);
       case "claim":
         return await handleClaim(interaction);
       case "close":

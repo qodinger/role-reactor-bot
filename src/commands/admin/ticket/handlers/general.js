@@ -1,4 +1,6 @@
+import { AttachmentBuilder } from "discord.js";
 import { getTicketManager } from "../../../../features/ticketing/TicketManager.js";
+import { getTicketTranscript } from "../../../../features/ticketing/TicketTranscript.js";
 import {
   createInfoEmbed,
   createErrorEmbed,
@@ -179,4 +181,84 @@ export async function handleView(interaction) {
   ).addFields(fields);
 
   return interaction.editReply({ embeds: [embed] });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// /ticket transcript
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function handleTranscript(interaction) {
+  await interaction.deferReply({ ephemeral: true });
+
+  const ticketNumber = interaction.options
+    .getString("ticket-id")
+    .replace(/^#/, "");
+  const guildId = interaction.guildId;
+  const formattedId = ticketNumber.padStart(4, "0");
+
+  const ticketManager = getTicketManager();
+  const ticketTranscript = getTicketTranscript();
+  await ticketManager.initialize();
+  await ticketTranscript.initialize();
+
+  // Find ticket record first
+  let ticket = await ticketManager.getTicket(`TIX-${guildId}-${formattedId}`);
+  if (!ticket) {
+    const allTickets = await ticketManager.storage.getTicketsByGuild(guildId);
+    ticket = allTickets.find(t => t.ticketId.endsWith(`-${formattedId}`));
+  }
+
+  if (!ticket) {
+    return interaction.editReply({
+      embeds: [
+        createErrorEmbed(
+          `Ticket #${formattedId} not found in our records.`,
+          "Ticket Not Found",
+          interaction.client,
+        ),
+      ],
+    });
+  }
+
+  // Permission Check
+  const isOwner = ticket.userId === interaction.user.id;
+  const isStaff = await checkStaffRole(interaction);
+
+  if (!isOwner && !isStaff) {
+    return interaction.editReply({
+      embeds: [
+        createErrorEmbed(
+          "You can only view transcripts for your own tickets.",
+          "Permission Denied",
+          interaction.client,
+        ),
+      ],
+    });
+  }
+
+  // Get transcript data
+  const transcript = await ticketTranscript.storage.getTicketTranscriptByTicket(
+    ticket.ticketId,
+  );
+
+  if (!transcript || !transcript.content) {
+    return interaction.editReply({
+      embeds: [
+        createErrorEmbed(
+          `No transcript data found for ticket #${formattedId}. It might have expired or was never generated.`,
+          "Transcript Missing",
+          interaction.client,
+        ),
+      ],
+    });
+  }
+
+  const attachment = new AttachmentBuilder(Buffer.from(transcript.content), {
+    name: `transcript-${formattedId}.html`,
+  });
+
+  return interaction.editReply({
+    content: `Here is the transcript for Ticket **#${formattedId}**.`,
+    files: [attachment],
+  });
 }
