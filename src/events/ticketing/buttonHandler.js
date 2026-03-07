@@ -142,6 +142,7 @@ async function handleTicketCreate(interaction, customId) {
     }
 
     // 2. Identify the target category
+    // Default to the category the panel is in if nothing else is specified.
     const targetCategoryId =
       panel.settings?.ticketCategoryId || interaction.channel.parentId;
     const targetCategory = targetCategoryId
@@ -178,15 +179,13 @@ async function handleTicketCreate(interaction, customId) {
         allow: ["ViewChannel", "SendMessages", "ReadMessageHistory"],
       }));
 
-      // Get or create category for the ticket
-      let parentId = panel.settings?.ticketCategoryId;
-      if (!parentId) {
-        parentId = await getOrCreateTicketCategory(guild, staffRoles);
-      }
+      // Use configured category, or falls back to the category where the panel is.
+      const parentId =
+        panel.settings?.ticketCategoryId || interaction.channel.parentId;
 
       channel = await guild.channels.create({
         name: channelName,
-        parent: parentId || interaction.channel.parentId,
+        parent: parentId,
         permissionOverwrites: [
           {
             id: guild.roles.everyone,
