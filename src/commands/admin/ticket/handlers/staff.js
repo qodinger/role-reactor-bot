@@ -15,7 +15,7 @@ import {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function handleClaim(interaction) {
-  await interaction.deferReply({ ephemeral: false });
+  await interaction.deferReply({ ephemeral: true });
 
   const isStaff = await checkStaffRole(interaction);
   if (!isStaff) {
@@ -92,7 +92,7 @@ export async function handleClaim(interaction) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function handleClose(interaction) {
-  await interaction.deferReply({ ephemeral: false });
+  await interaction.deferReply({ ephemeral: true });
 
   const reason = interaction.options.getString("reason");
   const ticketManager = getTicketManager();
@@ -179,7 +179,17 @@ export async function handleClose(interaction) {
     closeEmbed.addFields({ name: "Reason", value: reason, inline: false });
   }
 
-  await interaction.editReply({ embeds: [closeEmbed] });
+  // Send close notification publicly so everyone sees it
+  await interaction.channel.send({ embeds: [closeEmbed] });
+  await interaction.editReply({
+    embeds: [
+      createSuccessEmbed(
+        "This ticket has been closed. Channel will be deleted shortly.",
+        "Ticket Closed",
+        interaction.client,
+      ),
+    ],
+  });
 
   setTimeout(async () => {
     try {
@@ -195,7 +205,7 @@ export async function handleClose(interaction) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function handleAdd(interaction) {
-  await interaction.deferReply({ ephemeral: false });
+  await interaction.deferReply({ ephemeral: true });
 
   const userToAdd = interaction.options.getUser("user");
   const isStaff = await checkStaffRole(interaction);
@@ -296,7 +306,7 @@ export async function handleAdd(interaction) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function handleTransfer(interaction) {
-  await interaction.deferReply({ ephemeral: false });
+  await interaction.deferReply({ ephemeral: true });
 
   const staffToTransfer = interaction.options.getUser("staff");
   const isStaff = await checkStaffRole(interaction);
@@ -395,7 +405,7 @@ export async function handleTransfer(interaction) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function handleRemove(interaction) {
-  await interaction.deferReply({ ephemeral: false });
+  await interaction.deferReply({ ephemeral: true });
 
   const userToRemove = interaction.options.getUser("user");
   const isStaff = await checkStaffRole(interaction);
@@ -492,7 +502,7 @@ export async function handleRemove(interaction) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function handleRename(interaction) {
-  await interaction.deferReply({ ephemeral: false });
+  await interaction.deferReply({ ephemeral: true });
 
   const newName = interaction.options.getString("name");
   const isStaff = await checkStaffRole(interaction);
@@ -555,7 +565,7 @@ export async function handleRename(interaction) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function handleAlert(interaction) {
-  await interaction.deferReply({ ephemeral: false });
+  await interaction.deferReply({ ephemeral: true });
 
   const ticketManager = getTicketManager();
   await ticketManager.initialize();

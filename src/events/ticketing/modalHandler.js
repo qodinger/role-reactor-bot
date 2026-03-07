@@ -28,7 +28,7 @@ export async function handleTicketModals(interaction) {
  */
 async function handleAddUserModal(interaction) {
   try {
-    await interaction.deferReply({ ephemeral: false });
+    await interaction.deferReply({ ephemeral: true });
 
     const userIdInput = interaction.fields.getTextInputValue("user_id");
     const channelId = interaction.channelId;
@@ -154,7 +154,7 @@ async function handleAddUserModal(interaction) {
  */
 async function handleTransferModal(interaction) {
   try {
-    await interaction.deferReply({ ephemeral: false });
+    await interaction.deferReply({ ephemeral: true });
 
     const staffIdInput = interaction.fields.getTextInputValue("staff_id");
     const channelId = interaction.channelId;
