@@ -24,6 +24,7 @@ export async function handleSetup(interaction) {
     interaction.options.getString("description") ||
     "Click a button below to create a ticket and get support from our team.";
   const colorInput = interaction.options.getString("color");
+  const ticketCategory = interaction.options.getChannel("category");
 
   let color = 0x5865f2;
   if (colorInput) {
@@ -74,6 +75,9 @@ export async function handleSetup(interaction) {
     title,
     description,
     categories: [DEFAULT_CATEGORY],
+    settings: {
+      ticketCategoryId: ticketCategory?.id || null,
+    },
     styling: { color },
   });
 

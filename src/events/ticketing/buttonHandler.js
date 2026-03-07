@@ -103,6 +103,20 @@ async function handleTicketCreate(interaction, customId) {
       });
     }
 
+    // Get panel info
+    const panel = await ticketPanel.getPanelByMessage(interaction.message.id);
+    if (!panel) {
+      return interaction.editReply({
+        embeds: [
+          createErrorEmbed(
+            "This ticket panel is no longer valid. Please contact an administrator.",
+            "Panel Not Found",
+            interaction.client,
+          ),
+        ],
+      });
+    }
+
     // Get next ticket number from atomic counter (peek only, actual increment happens in TicketManager.createTicket)
     const settings =
       await ticketManager.storage.dbManager.guildSettings.getByGuild(guildId);
@@ -138,7 +152,8 @@ async function handleTicketCreate(interaction, customId) {
 
       channel = await guild.channels.create({
         name: channelName,
-        parent: interaction.channel.parentId,
+        parent:
+          panel.settings?.ticketCategoryId || interaction.channel.parentId,
         permissionOverwrites: [
           {
             id: guild.roles.everyone,

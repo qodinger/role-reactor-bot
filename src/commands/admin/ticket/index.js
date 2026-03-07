@@ -130,6 +130,15 @@ export const data = new SlashCommandBuilder()
           .setDescription("Choose a color for the embed")
           .setRequired(false)
           .addChoices(...getColorChoices()),
+      )
+      .addChannelOption(opt =>
+        opt
+          .setName("category")
+          .setDescription(
+            "Category to create tickets in (defaults to panel category)",
+          )
+          .setRequired(false)
+          .addChannelTypes(4),
       ),
   )
   .addSubcommand(sub =>
