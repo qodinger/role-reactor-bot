@@ -259,7 +259,7 @@ async function handleTicketCreate(interaction, customId) {
  */
 async function handleTicketClaim(interaction) {
   try {
-    await interaction.deferReply({ ephemeral: false });
+    await interaction.deferReply({ ephemeral: true });
 
     const staffId = interaction.user.id;
     const channelId = interaction.channelId;
@@ -372,7 +372,7 @@ async function handleTicketClaim(interaction) {
  */
 async function handleTicketClose(interaction) {
   try {
-    await interaction.deferReply({ ephemeral: false });
+    await interaction.deferReply({ ephemeral: true });
 
     const userId = interaction.user.id;
     const channelId = interaction.channelId;
@@ -452,7 +452,17 @@ async function handleTicketClose(interaction) {
       client: interaction.client,
     });
 
-    await interaction.editReply({ embeds: [closeEmbed] });
+    // Send close notification publicly so everyone sees it
+    await interaction.channel.send({ embeds: [closeEmbed] });
+    await interaction.editReply({
+      embeds: [
+        createSuccessEmbed(
+          "This ticket has been closed. Channel will be deleted shortly.",
+          "Ticket Closed",
+          interaction.client,
+        ),
+      ],
+    });
 
     // Delete channel after delay
     setTimeout(async () => {
