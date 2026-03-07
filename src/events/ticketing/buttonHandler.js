@@ -124,19 +124,48 @@ async function handleTicketCreate(interaction, customId) {
     const channelName = `ticket-${ticketNumber.toString().padStart(4, "0")}`;
 
     // Check bot permissions before creating channel
-    // We check at the guild level to ensure we can create categories and channels
-    const botMember = await guild.members.me;
+    // We check both the guild-level and category-level permissions.
+    const botMember = await guild.members.fetchMe();
+
+    // 1. Initial global check
     if (!botMember.permissions.has("ManageChannels")) {
       return interaction.editReply({
         embeds: [
           createErrorEmbed(
-            "I don't have the **Manage Channels** permission in this server.\n\n" +
-              "Please enable this permission for my role so I can create ticket categories and channels.",
-            "Missing Permissions",
+            "I don't have the **Manage Channels** permission globally.\n\n" +
+              "Please enable this permission for the **Role Reactor Dev** role in **Server Settings**.",
+            "Missing Global Permissions",
             interaction.client,
           ),
         ],
       });
+    }
+
+    // 2. Identify the target category
+    const targetCategoryId =
+      panel.settings?.ticketCategoryId || interaction.channel.parentId;
+    const targetCategory = targetCategoryId
+      ? guild.channels.cache.get(targetCategoryId)
+      : null;
+
+    // 3. Category-specific check (If a category exists, the bot must be allowed to Manage Channels *within* it)
+    if (targetCategory) {
+      const categoryPermissions = targetCategory.permissionsFor(botMember);
+      if (
+        !categoryPermissions?.has("ManageChannels") ||
+        !categoryPermissions?.has("ViewChannel")
+      ) {
+        return interaction.editReply({
+          embeds: [
+            createErrorEmbed(
+              `I'm blocked from managing channels in the **${targetCategory.name}** category.\n\n` +
+                `Please right-click the category -> **Edit Category** -> **Permissions** -> and make sure **Role Reactor Dev** has "View Channel" and "Manage Channels" checked.`,
+              "Missing Category Permissions",
+              interaction.client,
+            ),
+          ],
+        });
+      }
     }
 
     let channel;
