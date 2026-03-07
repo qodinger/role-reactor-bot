@@ -3,6 +3,7 @@ import { getTicketTranscript } from "../../../../features/ticketing/TicketTransc
 import {
   createSuccessEmbed,
   createErrorEmbed,
+  createInfoEmbed,
 } from "../../../../features/ticketing/embeds.js";
 import {
   checkStaffRole,
@@ -473,27 +474,30 @@ export async function handleTransfer(interaction) {
   });
 
   // Also send a DM to the assigned staff member with a direct link
-  try {
-    const guildName = interaction.guild.name;
-    const channelLink = `https://discord.com/channels/${interaction.guildId}/${interaction.channelId}`;
+  // Don't send DM if transferring to self
+  if (staffToTransfer.id !== interaction.user.id) {
+    try {
+      const guildName = interaction.guild.name;
+      const channelLink = `https://discord.com/channels/${interaction.guildId}/${interaction.channelId}`;
 
-    await staffToTransfer.send({
-      embeds: [
-        createInfoEmbed(
-          `📫 **New Ticket Assignment**`,
-          `You have been ${actionText} a ticket in **${guildName}**.\n\n` +
-            `**Ticket ID:** \`#${ticket.ticketId.split("-").pop()}\`\n` +
-            `**Assigned By:** ${interaction.user}\n\n` +
-            `**[Go to Ticket Channel](${channelLink})**`,
-          interaction.client,
-        ),
-      ],
-    });
-  } catch (error) {
-    // If DMs are closed, we just log it and move on
-    logger.debug(
-      `Could not send assignment DM to ${staffToTransfer.tag}: ${error.message}`,
-    );
+      await staffToTransfer.send({
+        embeds: [
+          createInfoEmbed(
+            `📫 **New Ticket Assignment**`,
+            `You have been ${actionText} a ticket in **${guildName}**.\n\n` +
+              `**Ticket ID:** \`#${ticket.ticketId.split("-").pop()}\`\n` +
+              `**Assigned By:** ${interaction.user}\n\n` +
+              `**[Go to Ticket Channel](${channelLink})**`,
+            interaction.client,
+          ),
+        ],
+      });
+    } catch (error) {
+      // If DMs are closed, we just log it and move on
+      logger.debug(
+        `Could not send assignment DM to ${staffToTransfer.tag}: ${error.message}`,
+      );
+    }
   }
 
   return interaction.editReply({
