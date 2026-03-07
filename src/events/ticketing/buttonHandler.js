@@ -124,15 +124,14 @@ async function handleTicketCreate(interaction, customId) {
     const channelName = `ticket-${ticketNumber.toString().padStart(4, "0")}`;
 
     // Check bot permissions before creating channel
-    const botMember = await guild.members.fetch(interaction.client.user.id);
-    const botPermissions = interaction.channel.permissionsFor(botMember);
-
-    if (!botPermissions?.has("ManageChannels")) {
+    // We check at the guild level to ensure we can create categories and channels
+    const botMember = await guild.members.me;
+    if (!botMember.permissions.has("ManageChannels")) {
       return interaction.editReply({
         embeds: [
           createErrorEmbed(
-            "I don't have permission to create channels in this category.\n\n" +
-              "Please grant me the **Manage Channels** permission.",
+            "I don't have the **Manage Channels** permission in this server.\n\n" +
+              "Please enable this permission for my role so I can create ticket categories and channels.",
             "Missing Permissions",
             interaction.client,
           ),
@@ -199,13 +198,20 @@ async function handleTicketCreate(interaction, customId) {
       }
     } catch (error) {
       logger.error("Ticket create error:", error);
+
+      let errorMessage = "Please try again or contact an administrator.";
+      let errorTitle = "Failed to Create Ticket";
+
+      if (error.code === 50013) {
+        errorMessage =
+          "I don't have enough permissions to create the ticket channel.\n\n" +
+          "Please verify that I have the **Manage Channels** permission and that it's not denied in the category I'm trying to create the ticket in.";
+        errorTitle = "Missing Permissions";
+      }
+
       return interaction.editReply({
         embeds: [
-          createErrorEmbed(
-            `Please try again or contact an administrator.`,
-            "Failed to Create Ticket",
-            interaction.client,
-          ),
+          createErrorEmbed(errorMessage, errorTitle, interaction.client),
         ],
       });
     }

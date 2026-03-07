@@ -157,6 +157,22 @@ export async function handleClose(interaction) {
     });
   }
 
+  // Check bot permissions
+  const botMember = await interaction.guild.members.me;
+  if (!botMember.permissions.has("ManageChannels")) {
+    return interaction.editReply({
+      embeds: [
+        createErrorEmbed(
+          "I don't have the **Manage Channels** permission in this server.\n\n" +
+            "I need this permission to delete the ticket channel when closing.",
+          "Missing Permissions",
+          interaction.client,
+        ),
+      ],
+    });
+  }
+
+  await ticketTranscript.initialize();
   await ticketTranscript.generateFromChannel({
     ticketId: ticket.ticketId,
     guildId: ticket.guildId,
@@ -578,6 +594,21 @@ export async function handleRename(interaction) {
         createErrorEmbed(
           `You need ${roleText} to rename tickets.`,
           "Permission Denied",
+          interaction.client,
+        ),
+      ],
+    });
+  }
+
+  // Check bot permissions
+  const botMember = await interaction.guild.members.me;
+  if (!botMember.permissions.has("ManageChannels")) {
+    return interaction.editReply({
+      embeds: [
+        createErrorEmbed(
+          "I don't have the **Manage Channels** permission in this server.\n\n" +
+            "I need this permission to rename the ticket channel.",
+          "Missing Permissions",
           interaction.client,
         ),
       ],

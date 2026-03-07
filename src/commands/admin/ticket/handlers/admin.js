@@ -66,6 +66,21 @@ export async function handleSetup(interaction) {
     });
   }
 
+  // Check bot permissions
+  const botMember = await interaction.guild.members.me;
+  if (!botMember.permissions.has("ManageChannels")) {
+    return interaction.editReply({
+      embeds: [
+        createErrorEmbed(
+          "I don't have the **Manage Channels** permission in this server.\n\n" +
+            "I need this permission to create categories and channels for your tickets. Please enable it in my role settings.",
+          "Missing Permissions",
+          interaction.client,
+        ),
+      ],
+    });
+  }
+
   const ticketPanel = getTicketPanel();
   await ticketPanel.initialize();
 
