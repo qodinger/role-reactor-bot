@@ -8,8 +8,9 @@ const logger = getLogger();
 /**
  * Auto-cleanup cron job for expired transcripts and tickets
  * Runs every 6 hours
+ * @param {DiscordClient} client - Discord client instance
  */
-export function startTicketCleanup() {
+export function startTicketCleanup(client) {
   logger.info("🎫 Starting ticket cleanup cron job...");
 
   // Run every 6 hours
@@ -17,7 +18,7 @@ export function startTicketCleanup() {
 
   setInterval(async () => {
     try {
-      await runCleanup();
+      await runCleanup(client);
     } catch (error) {
       logger.error("Ticket cleanup error:", error);
     }
@@ -25,7 +26,7 @@ export function startTicketCleanup() {
 
   // Run on startup
   setTimeout(() => {
-    runCleanup().catch(error => {
+    runCleanup(client).catch(error => {
       logger.error("Initial ticket cleanup error:", error);
     });
   }, 60000); // 1 minute after startup
@@ -35,9 +36,15 @@ export function startTicketCleanup() {
 
 /**
  * Run cleanup for all guilds
+ * @param {DiscordClient} client - Discord client instance
  */
-async function runCleanup() {
+async function runCleanup(client) {
   try {
+    if (!client) {
+      logger.warn("Discord client not available, skipping ticket cleanup");
+      return;
+    }
+
     const storage = await import("../../utils/storage/storageManager.js");
     const storageManager = await storage.getStorageManager();
 
@@ -61,7 +68,11 @@ async function runCleanup() {
 
     for (const guildId of guildIds) {
       try {
-        const cleanupResult = await cleanupGuild(guildId, storageManager);
+        const cleanupResult = await cleanupGuild(
+          guildId,
+          storageManager,
+          client,
+        );
         totalDeleted += cleanupResult.ticketsDeleted;
         totalTranscriptsDeleted += cleanupResult.transcriptsDeleted;
       } catch (error) {
@@ -86,9 +97,10 @@ async function runCleanup() {
  * Cleanup expired tickets and transcripts for a guild
  * @param {string} guildId - Guild ID
  * @param {Object} storageManager - Storage manager instance
+ * @param {DiscordClient} client - Discord client instance
  * @returns {Promise<Object>} Cleanup results
  */
-async function cleanupGuild(guildId, storageManager) {
+async function cleanupGuild(guildId, storageManager, client) {
   const ticketManager = getTicketManager();
   const ticketTranscript = getTicketTranscript();
 
@@ -96,7 +108,7 @@ async function cleanupGuild(guildId, storageManager) {
   await ticketTranscript.initialize();
 
   // Get expired tickets (7+ days inactive for free, 30+ for pro)
-  const expiredTickets = await ticketManager.getExpiredTickets(guildId, 7);
+  const expiredTickets = await ticketManager.getExpiredTickets(guildId);
 
   let ticketsDeleted = 0;
   let transcriptsDeleted = 0;
@@ -104,10 +116,7 @@ async function cleanupGuild(guildId, storageManager) {
   for (const ticket of expiredTickets) {
     try {
       // Check if channel still exists
-      const guild =
-        await storageManager.dbManager.connectionManager.db.adapter.db.client.guilds
-          .fetch(guildId)
-          .catch(() => null);
+      const guild = await client.guilds.fetch(guildId).catch(() => null);
 
       if (!guild) {
         // Guild no longer exists, delete ticket

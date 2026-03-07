@@ -685,7 +685,7 @@ async function main() {
         const { startTicketCleanup } = await import(
           "./events/ticketing/ticketCleanup.js"
         );
-        startTicketCleanup();
+        startTicketCleanup(client);
         logger.info("✅ Ticketing system cleanup started");
       } catch (error) {
         logger.error("❌ Failed to start ticket cleanup:", error);
