@@ -426,6 +426,19 @@ export async function handleTransfer(interaction) {
     });
   }
 
+  // Prevent transferring to the same person already handling it
+  if (ticket.claimedBy === staffToTransfer.id) {
+    return interaction.editReply({
+      embeds: [
+        createErrorEmbed(
+          `${staffToTransfer} is already handling this ticket.`,
+          "Redundant Transfer",
+          interaction.client,
+        ),
+      ],
+    });
+  }
+
   const success = await ticketManager.transferTicket(
     ticket.ticketId,
     staffToTransfer.id,
