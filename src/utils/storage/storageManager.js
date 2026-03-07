@@ -304,6 +304,15 @@ class StorageManager {
     return false;
   }
 
+  async deleteTicket(ticketId) {
+    if (this.provider instanceof DatabaseProvider) {
+      if (this.dbManager && this.dbManager.tickets) {
+        return await this.dbManager.tickets.delete(ticketId);
+      }
+    }
+    return false;
+  }
+
   async claimTicket(ticketId, staffId) {
     if (this.provider instanceof DatabaseProvider) {
       if (this.dbManager && this.dbManager.tickets) {
@@ -432,6 +441,35 @@ class StorageManager {
       }
     }
     return false;
+  }
+
+  async getExpiredTickets(guildId, days) {
+    if (this.provider instanceof DatabaseProvider) {
+      if (this.dbManager && this.dbManager.tickets) {
+        return await this.dbManager.tickets.getExpiredTickets(guildId, days);
+      }
+    }
+    return [];
+  }
+
+  async getExpiredTranscripts(guildId) {
+    if (this.provider instanceof DatabaseProvider) {
+      if (this.dbManager && this.dbManager.ticketTranscripts) {
+        return await this.dbManager.ticketTranscripts.getExpiredTranscripts(
+          guildId,
+        );
+      }
+    }
+    return [];
+  }
+
+  async getTranscriptStorageUsage(guildId) {
+    if (this.provider instanceof DatabaseProvider) {
+      if (this.dbManager && this.dbManager.ticketTranscripts) {
+        return await this.dbManager.ticketTranscripts.getStorageUsage(guildId);
+      }
+    }
+    return { totalTranscripts: 0, totalSizeBytes: 0, totalSizeMB: "0" };
   }
 
   // Generic storage methods

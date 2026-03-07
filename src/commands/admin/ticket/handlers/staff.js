@@ -10,6 +10,9 @@ import {
   getStaffRoleId,
   formatDuration,
 } from "../utils.js";
+import { getLogger } from "../../../../utils/logger.js";
+
+const logger = getLogger();
 
 // ─────────────────────────────────────────────────────────────────────────────
 // /ticket claim

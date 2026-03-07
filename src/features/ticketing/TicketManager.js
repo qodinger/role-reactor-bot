@@ -413,7 +413,7 @@ export class TicketManager {
       }
 
       // Then delete ticket
-      const success = await this.storage.tickets.delete(ticketId);
+      const success = await this.storage.deleteTicket(ticketId);
 
       if (success) {
         logger.info(`Ticket deleted: ${ticketId}`);
@@ -445,7 +445,7 @@ export class TicketManager {
       // Use the smaller of the two (config or tier limit)
       const daysToUse = days > 0 ? Math.min(days, inactiveDays) : inactiveDays;
 
-      return await this.storage.tickets.getExpiredTickets(guildId, daysToUse);
+      return await this.storage.getExpiredTickets(guildId, daysToUse);
     } catch (error) {
       logger.error("Failed to get expired tickets:", error);
       return [];

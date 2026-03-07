@@ -1,4 +1,5 @@
 import { getStorageManager } from "../../utils/storage/storageManager.js";
+import { getPremiumManager } from "../premium/PremiumManager.js";
 import { getLogger } from "../../utils/logger.js";
 import { FREE_TIER, PRO_ENGINE } from "./config.js";
 
@@ -10,6 +11,7 @@ const logger = getLogger();
 export class TicketTranscript {
   constructor() {
     this.storage = null;
+    this.premiumManager = null;
   }
 
   /**
@@ -17,6 +19,7 @@ export class TicketTranscript {
    */
   async initialize() {
     this.storage = await getStorageManager();
+    this.premiumManager = getPremiumManager();
     logger.info("🎫 TicketTranscript initialized");
   }
 
@@ -46,10 +49,10 @@ export class TicketTranscript {
       }
 
       // Calculate expiry
-      const isPro = await this.storage.dbManager.guildSettings
-        .getByGuild(guildId)
-        .then(s => s?.premiumFeatures?.pro_engine?.active || false)
-        .catch(() => false);
+      const isPro = await this.premiumManager.isFeatureActive(
+        guildId,
+        "pro_engine",
+      );
 
       const retentionDays = isPro
         ? PRO_ENGINE.TRANSCRIPT_RETENTION_DAYS
@@ -338,8 +341,7 @@ export class TicketTranscript {
    */
   async cleanupExpired(guildId) {
     try {
-      const expired =
-        await this.storage.ticketTranscripts.getExpiredTranscripts(guildId);
+      const expired = await this.storage.getExpiredTranscripts(guildId);
       let deleted = 0;
 
       for (const transcript of expired) {
@@ -366,7 +368,7 @@ export class TicketTranscript {
    */
   async getStorageUsage(guildId) {
     try {
-      return await this.storage.ticketTranscripts.getStorageUsage(guildId);
+      return await this.storage.getTranscriptStorageUsage(guildId);
     } catch (error) {
       logger.error("Failed to get storage usage:", error);
       return { totalTranscripts: 0, totalSizeBytes: 0, totalSizeMB: "0" };
