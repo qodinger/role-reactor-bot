@@ -32,6 +32,7 @@ import statsRouter from "./routes/v1/stats.js";
 import logsRouter from "./routes/v1/logs.js";
 import configRouter from "./routes/v1/config.js";
 import healthRouter from "./routes/v1/health.js";
+import transcriptsRouter from "./routes/v1/transcripts.js";
 
 // Import services
 import { SupportersService } from "./services/supporters/SupportersService.js";
@@ -145,6 +146,9 @@ function initializeRoutes() {
       app.get("/health/docker", dockerHealthCheck);
     }
   }
+
+  // Public transcript viewing route
+  app.use("/t", transcriptsRouter);
 
   // Webhook routes with rate limiting
   app.post("/webhook/verify", webhookRateLimiter, verifyWebhookToken);

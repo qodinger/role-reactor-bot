@@ -1,4 +1,10 @@
-import { AttachmentBuilder } from "discord.js";
+import {
+  AttachmentBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+} from "discord.js";
+import config from "../../../../config/config.js";
 import { getTicketManager } from "../../../../features/ticketing/TicketManager.js";
 import { getTicketTranscript } from "../../../../features/ticketing/TicketTranscript.js";
 import {
@@ -273,7 +279,20 @@ export async function handleClose(interaction) {
             client: interaction.client,
           });
 
-          await logChannel.send({ embeds: [logEmbed], files: [attachment] });
+          const logRow = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+              .setLabel("View in Browser")
+              .setStyle(ButtonStyle.Link)
+              .setURL(
+                `${config.botInfo.apiUrl}/t/${transcriptResult.transcript.transcriptId}`,
+              ),
+          );
+
+          await logChannel.send({
+            embeds: [logEmbed],
+            files: [attachment],
+            components: [logRow],
+          });
         }
       }
     } catch (err) {
@@ -297,7 +316,7 @@ export async function handleClose(interaction) {
 export async function handleAdd(interaction) {
   await interaction.deferReply({ ephemeral: true });
 
-  const userToAdd = interaction.options.getUser("user");
+  const userToAdd = interaction.options.getUser("member");
   const isStaff = await checkStaffRole(interaction);
 
   if (!isStaff) {
@@ -308,7 +327,7 @@ export async function handleAdd(interaction) {
     return interaction.editReply({
       embeds: [
         createErrorEmbed(
-          `You need ${roleText} to add users.`,
+          `You need ${roleText} to add members.`,
           "Permission Denied",
           interaction.client,
         ),
@@ -337,7 +356,7 @@ export async function handleAdd(interaction) {
     return interaction.editReply({
       embeds: [
         createErrorEmbed(
-          "Cannot add users to a closed ticket.",
+          "Cannot add members to a closed ticket.",
           "Ticket Closed",
           interaction.client,
         ),
@@ -366,7 +385,7 @@ export async function handleAdd(interaction) {
     return interaction.editReply({
       embeds: [
         createErrorEmbed(
-          "Failed to add user.",
+          "Failed to add member.",
           "Add Failed",
           interaction.client,
         ),
@@ -389,7 +408,7 @@ export async function handleAdd(interaction) {
     embeds: [
       createSuccessEmbed(
         `${userToAdd} has been added to this ticket by ${interaction.user}.`,
-        "User Added",
+        "Member Added",
         interaction.client,
       ),
     ],
@@ -399,7 +418,7 @@ export async function handleAdd(interaction) {
     embeds: [
       createSuccessEmbed(
         `${userToAdd} has been added to this ticket.`,
-        "User Added",
+        "Member Added",
         interaction.client,
       ),
     ],
@@ -585,7 +604,7 @@ export async function handleTransfer(interaction) {
 export async function handleRemove(interaction) {
   await interaction.deferReply({ ephemeral: true });
 
-  const userToRemove = interaction.options.getUser("user");
+  const userToRemove = interaction.options.getUser("member");
   const isStaff = await checkStaffRole(interaction);
 
   if (!isStaff) {
@@ -596,7 +615,7 @@ export async function handleRemove(interaction) {
     return interaction.editReply({
       embeds: [
         createErrorEmbed(
-          `You need ${roleText} to remove users.`,
+          `You need ${roleText} to remove members.`,
           "Permission Denied",
           interaction.client,
         ),
@@ -625,7 +644,7 @@ export async function handleRemove(interaction) {
     return interaction.editReply({
       embeds: [
         createErrorEmbed(
-          "Cannot remove users from a closed ticket.",
+          "Cannot remove members from a closed ticket.",
           "Ticket Closed",
           interaction.client,
         ),
@@ -654,7 +673,7 @@ export async function handleRemove(interaction) {
     return interaction.editReply({
       embeds: [
         createErrorEmbed(
-          "Failed to remove user.",
+          "Failed to remove member.",
           "Remove Failed",
           interaction.client,
         ),
@@ -673,7 +692,7 @@ export async function handleRemove(interaction) {
     embeds: [
       createSuccessEmbed(
         `${userToRemove} has been removed from this ticket by ${interaction.user}.`,
-        "User Removed",
+        "Member Removed",
         interaction.client,
       ),
     ],
@@ -826,7 +845,7 @@ export async function handleAlert(interaction) {
 
     try {
       await interaction.channel.send({
-        content: `🔔 <@${ticket.claimedBy}> - The ticket creator is requesting your attention!`,
+        content: `👋 <@${ticket.claimedBy}> - The ticket creator is requesting your assistance.`,
       });
       return interaction.editReply({
         embeds: [
@@ -853,7 +872,7 @@ export async function handleAlert(interaction) {
   if (isClaimedByMe) {
     try {
       await interaction.channel.send({
-        content: `🔔 <@${ticket.userId}> - Please check this ticket, staff are waiting for your response!`,
+        content: `👋 <@${ticket.userId}> - A staff member is waiting for your response.`,
       });
       return interaction.editReply({
         embeds: [

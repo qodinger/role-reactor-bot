@@ -4,10 +4,9 @@ import { createErrorEmbed } from "../../../features/ticketing/embeds.js";
 import { getColorChoices } from "../role-reactions/utils.js";
 import {
   handleSetup,
-  handleStaffRole,
   handleInfo,
   handlePanel,
-  handleLogs,
+  handleSettings,
 } from "./handlers/admin.js";
 import {
   handleList,
@@ -40,6 +39,7 @@ export const metadata = {
     {
       name: `How to Use`,
       value: [
+        "```/ticket settings```",
         "```/ticket setup channel:#support```",
         "```/ticket info action:stats```",
         "```/ticket panel list```",
@@ -48,8 +48,8 @@ export const metadata = {
         "```/ticket view ticket-id:00001```",
         "```/ticket claim```",
         "```/ticket close reason:Issue resolved```",
-        "```/ticket add user:@Staff```",
-        "```/ticket remove user:@User```",
+        "```/ticket add member:@Staff```",
+        "```/ticket remove member:@User```",
         "```/ticket transfer staff:@SeniorStaff```",
         "```/ticket rename name:bug-report```",
         "```/ticket alert```",
@@ -61,14 +61,15 @@ export const metadata = {
       value: [
         "**setup** - Create a new ticket panel (Manage Server)",
         "**info** - View system information and stats (Manage Server)",
+
         "**panel list** - List all ticket panels in the server (Manage Server)",
         "**panel delete** - Delete a ticket panel by ID (Manage Server)",
-        "**list** - View your tickets with status filter (Everyone)",
-        "**view** - View details of a specific ticket (Everyone)",
+        "**list** - View your tickets with status filter (Members)",
+        "**view** - View details of a specific ticket (Members)",
         "**claim** - Claim the current ticket (Staff)",
         "**close** - Close ticket with optional reason (Owner/Staff)",
-        "**add** - Add user to current ticket (Staff)",
-        "**remove** - Remove user from current ticket (Staff)",
+        "**add** - Add member to current ticket (Staff)",
+        "**remove** - Remove member from current ticket (Staff)",
         "**transfer** - Transfer ticket to another staff (Staff)",
         "**rename** - Rename the ticket channel (Staff)",
         "**alert** - Ping the claimed staff or the ticket owner (Owner/Staff)",
@@ -81,7 +82,7 @@ export const metadata = {
         "**Setup/Config** - Manage Server permission",
         "**Claim/Add/Remove/Transfer/Rename** - Staff role",
         "**Close** - Ticket creator or staff",
-        "**List/View/Alert** - Everyone",
+        "**List/View/Alert** - Members",
       ].join("\n"),
       inline: false,
     },
@@ -90,7 +91,7 @@ export const metadata = {
       value:
         "Interactive ticket panels, real-time ticket management with staff " +
         "claims, automatic transcript generation, and secure channel creation. " +
-        "Perfect for server support and user assistance!",
+        "Perfect for server support and member assistance!",
       inline: false,
     },
   ],
@@ -146,17 +147,7 @@ export const data = new SlashCommandBuilder()
           .addChannelTypes(4),
       ),
   )
-  .addSubcommand(sub =>
-    sub
-      .setName("staff-role")
-      .setDescription("Configure a custom staff role for ticket management")
-      .addRoleOption(opt =>
-        opt
-          .setName("role")
-          .setDescription("The role to grant ticket management access")
-          .setRequired(true),
-      ),
-  )
+
   .addSubcommand(sub =>
     sub
       .setName("info")
@@ -175,16 +166,8 @@ export const data = new SlashCommandBuilder()
   )
   .addSubcommand(sub =>
     sub
-      .setName("logs")
-      .setDescription("Configure the log channel for ticket transcripts")
-      .addChannelOption(
-        opt =>
-          opt
-            .setName("channel")
-            .setDescription("The channel to send ticket transcripts to")
-            .setRequired(true)
-            .addChannelTypes(0), // Text channels
-      ),
+      .setName("settings")
+      .setDescription("Open the interactive ticket settings dashboard"),
   )
   .addSubcommandGroup(group =>
     group
@@ -203,6 +186,81 @@ export const data = new SlashCommandBuilder()
             opt
               .setName("panel-id")
               .setDescription("Panel number to delete (e.g., 1)")
+              .setRequired(true),
+          ),
+      )
+      .addSubcommand(sub =>
+        sub
+          .setName("add-category")
+          .setDescription("Add a new category (department) to a ticket panel")
+          .addStringOption(opt =>
+            opt
+              .setName("panel-id")
+              .setDescription("The panel to add the category to")
+              .setRequired(true),
+          )
+          .addStringOption(opt =>
+            opt
+              .setName("label")
+              .setDescription("The button label (e.g., Bug Report)")
+              .setRequired(true)
+              .setMaxLength(80),
+          )
+          .addStringOption(opt =>
+            opt
+              .setName("id")
+              .setDescription("A unique keyword for this category (e.g., bug)")
+              .setRequired(true)
+              .setMaxLength(20),
+          )
+          .addStringOption(opt =>
+            opt
+              .setName("emoji")
+              .setDescription("Emoji for the button")
+              .setRequired(false),
+          )
+          .addStringOption(opt =>
+            opt
+              .setName("description")
+              .setDescription(
+                "Custom description for the ticket welcome message",
+              )
+              .setRequired(false)
+              .setMaxLength(500),
+          )
+          .addStringOption(opt =>
+            opt
+              .setName("color")
+              .setDescription("Embed color for this category")
+              .setRequired(false)
+              .addChoices(...getColorChoices()),
+          ),
+      )
+      .addSubcommand(sub =>
+        sub
+          .setName("remove-category")
+          .setDescription("Remove a category from a ticket panel")
+          .addStringOption(opt =>
+            opt
+              .setName("panel-id")
+              .setDescription("The panel to remove the category from")
+              .setRequired(true),
+          )
+          .addStringOption(opt =>
+            opt
+              .setName("category-id")
+              .setDescription("The ID of the category to remove")
+              .setRequired(true),
+          ),
+      )
+      .addSubcommand(sub =>
+        sub
+          .setName("list-categories")
+          .setDescription("List all categories for a ticket panel")
+          .addStringOption(opt =>
+            opt
+              .setName("panel-id")
+              .setDescription("The panel to list categories for")
               .setRequired(true),
           ),
       ),
@@ -245,6 +303,17 @@ export const data = new SlashCommandBuilder()
           .setName("ticket-id")
           .setDescription("Ticket number (e.g., 1)")
           .setRequired(true),
+      )
+      .addStringOption(opt =>
+        opt
+          .setName("format")
+          .setDescription("Export format (HTML/JSON require Pro Engine)")
+          .setRequired(false)
+          .addChoices(
+            { name: "HTML", value: "html" },
+            { name: "JSON", value: "json" },
+            { name: "Markdown", value: "md" },
+          ),
       ),
   )
   .addSubcommand(sub =>
@@ -265,9 +334,9 @@ export const data = new SlashCommandBuilder()
   .addSubcommand(sub =>
     sub
       .setName("add")
-      .setDescription("Add user to the current ticket")
+      .setDescription("Add a member to the current ticket")
       .addUserOption(opt =>
-        opt.setName("user").setDescription("User to add").setRequired(true),
+        opt.setName("member").setDescription("Member to add").setRequired(true),
       ),
   )
   .addSubcommand(sub =>
@@ -284,9 +353,12 @@ export const data = new SlashCommandBuilder()
   .addSubcommand(sub =>
     sub
       .setName("remove")
-      .setDescription("Remove user from the current ticket")
+      .setDescription("Remove a member from the current ticket")
       .addUserOption(opt =>
-        opt.setName("user").setDescription("User to remove").setRequired(true),
+        opt
+          .setName("member")
+          .setDescription("Member to remove")
+          .setRequired(true),
       ),
   )
   .addSubcommand(sub =>
@@ -334,12 +406,10 @@ export async function execute(interaction) {
     switch (subcommand) {
       case "setup":
         return await handleSetup(interaction);
-      case "staff-role":
-        return await handleStaffRole(interaction);
       case "info":
         return await handleInfo(interaction);
-      case "logs":
-        return await handleLogs(interaction);
+      case "settings":
+        return await handleSettings(interaction);
       case "list":
         return await handleList(interaction);
       case "view":

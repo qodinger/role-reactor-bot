@@ -85,26 +85,29 @@ export function createPanelEmbed(options) {
  * @returns {EmbedBuilder}
  */
 export function createTicketWelcomeEmbed(options) {
-  const {
-    ticketNumber,
-    userName,
-    category,
-    color = THEME.PRIMARY,
-    client,
-  } = options;
+  const { ticketNumber, userName, category, client } = options;
+
+  const categoryLabel = category?.label || "General Support";
+  const defaultDescription =
+    `Welcome, **${userName}**! A staff member will be with you shortly.\n\n` +
+    `**How can we help you today?**\n` +
+    `> Please describe your issue in as much detail as possible.\n` +
+    `> Include screenshots, links, or any relevant context.\n`;
+
+  const customDescription = category?.description
+    ? `Welcome, **${userName}**! A staff member will be with you shortly.\n\n${category.description}`
+    : defaultDescription;
+
+  // Use category color if available, otherwise default to primary theme
+  const embedColor = category?.color || THEME.PRIMARY;
 
   return new EmbedBuilder()
-    .setTitle(`Support Ticket  •  #${ticketNumber}`)
-    .setDescription(
-      `Welcome, **${userName}**! A staff member will be with you shortly.\n\n` +
-        `**How can we help you today?**\n` +
-        `> Please describe your issue in as much detail as possible.\n` +
-        `> Include screenshots, links, or any relevant context.\n`,
-    )
+    .setTitle(`${categoryLabel}  •  #${ticketNumber}`)
+    .setDescription(customDescription)
     .addFields(
       {
         name: "Category",
-        value: `\`${category?.label || "General Support"}\``,
+        value: `\`${categoryLabel}\``,
         inline: true,
       },
       {
@@ -113,7 +116,7 @@ export function createTicketWelcomeEmbed(options) {
         inline: true,
       },
     )
-    .setColor(color)
+    .setColor(embedColor)
     .setFooter(ticketFooter(client))
     .setTimestamp();
 }

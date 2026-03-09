@@ -1,4 +1,10 @@
-import { AttachmentBuilder } from "discord.js";
+import {
+  AttachmentBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+} from "discord.js";
+import config from "../../config/config.js";
 import { getTicketManager } from "../../features/ticketing/TicketManager.js";
 import { getTicketPanel } from "../../features/ticketing/TicketPanel.js";
 import { getTicketTranscript } from "../../features/ticketing/TicketTranscript.js";
@@ -246,12 +252,27 @@ async function handleTicketCreate(interaction, customId) {
       });
     }
 
-    // Send welcome message (outside try-catch, ticket and channel are defined)
+    // Get category settings from panel structure
+    const panelCategories = panel.categories || [];
+    let selectedCategory = panelCategories.find(c => c.id === categoryId);
+
+    // Provide safe defaults if the category was deleted or is the default
+    if (!selectedCategory) {
+      selectedCategory = {
+        name: "General Support",
+        description: "A staff member will arrive shortly to assist you.",
+        emoji: "🎫",
+        color: 0x5865f2,
+        id: "default",
+      };
+    }
+
+    // Send welcome message using specific category data
     const welcomeEmbed = createTicketWelcomeEmbed({
       ticketId: ticket.ticketId,
       ticketNumber: ticketNumber.toString().padStart(4, "0"),
       userName: `<@${userId}>`,
-      category: DEFAULT_CATEGORY,
+      category: selectedCategory,
       client: interaction.client,
     });
 
@@ -556,7 +577,20 @@ async function handleTicketClose(interaction) {
               client: interaction.client,
             });
 
-            await logChannel.send({ embeds: [logEmbed], files: [attachment] });
+            const logRow = new ActionRowBuilder().addComponents(
+              new ButtonBuilder()
+                .setLabel("View in Browser")
+                .setStyle(ButtonStyle.Link)
+                .setURL(
+                  `${config.botInfo.apiUrl}/t/${transcriptResult.transcript.transcriptId}`,
+                ),
+            );
+
+            await logChannel.send({
+              embeds: [logEmbed],
+              files: [attachment],
+              components: [logRow],
+            });
           }
         }
       } catch (err) {

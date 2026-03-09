@@ -9,7 +9,7 @@ export const FREE_TIER = {
   MAX_PANELS: 1, // Maximum ticket panels
   MAX_CATEGORIES: 3, // Maximum categories per panel
   TRANSCRIPT_RETENTION_DAYS: 7, // Days before transcript deletion
-  EXPORT_FORMATS: ["html"], // Available export formats
+  EXPORT_FORMATS: ["md"], // Available export formats
   ANALYTICS: "basic", // Analytics level: 'basic' | 'advanced'
   AUTOMATION: false, // Auto-close, auto-assign rules
   CUSTOM_BRANDING: false, // Custom colors, footer, etc.
@@ -18,6 +18,7 @@ export const FREE_TIER = {
   BOT_BRANDING_FOOTER: true, // Show "Powered by" footer
   MAX_ACTIVE_TICKETS: 10, // Maximum simultaneously open tickets
   DAILY_TICKET_LIMIT: 5, // Maximum tickets per day
+  MAX_MESSAGES_PER_TRANSCRIPT: 1000, // Message limit
 };
 
 // Pro Engine features - unlocked with subscription
@@ -26,7 +27,7 @@ export const PRO_ENGINE = {
   MAX_PANELS: 10, // Multiple panels
   MAX_CATEGORIES: 20, // Many categories
   TRANSCRIPT_RETENTION_DAYS: -1, // Unlimited (-1 = no expiry)
-  EXPORT_FORMATS: ["html", "pdf", "json"], // All formats
+  EXPORT_FORMATS: ["html", "json", "md"], // All formats
   ANALYTICS: "advanced", // Full analytics dashboard
   AUTOMATION: true, // Automation rules enabled
   CUSTOM_BRANDING: true, // Remove bot branding
@@ -38,6 +39,7 @@ export const PRO_ENGINE = {
   TEMPLATES: true, // Save/load panel templates
   CUSTOM_COLORS: true, // Custom embed colors
   MULTI_SERVER_STATS: true, // Cross-server analytics
+  MAX_MESSAGES_PER_TRANSCRIPT: 5000, // Higher message limit
 };
 
 // Ticket status constants
@@ -60,6 +62,7 @@ export const EXPORT_FORMATS = {
   HTML: "html",
   PDF: "pdf",
   JSON: "json",
+  MD: "md",
 };
 
 // Default ticket category

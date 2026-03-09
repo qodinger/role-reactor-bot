@@ -1,4 +1,9 @@
-import { AttachmentBuilder } from "discord.js";
+import {
+  AttachmentBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+} from "discord.js";
 import { getTicketManager } from "../../../../features/ticketing/TicketManager.js";
 import { getTicketTranscript } from "../../../../features/ticketing/TicketTranscript.js";
 import {
@@ -6,6 +11,11 @@ import {
   createErrorEmbed,
 } from "../../../../features/ticketing/embeds.js";
 import { checkStaffRole } from "../utils.js";
+import {
+  FREE_TIER,
+  PRO_ENGINE,
+} from "../../../../features/ticketing/config.js";
+import config from "../../../../config/config.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // /ticket list
@@ -25,45 +35,71 @@ export async function handleList(interaction) {
 
   if (tickets.length === 0) {
     const statusText = status === "all" ? "" : ` ${status}`;
-    return interaction.editReply({
-      embeds: [
-        createInfoEmbed(
-          "Your Tickets",
-          `You don't have any${statusText} tickets.`,
-          interaction.client,
-        ),
-      ],
+    const embed = createInfoEmbed(
+      `🎫 | Your ${status.charAt(0).toUpperCase() + status.slice(1)} Tickets`,
+      `You don't have any${statusText} tickets in this server.`,
+      interaction.client,
+    );
+
+    const isPro = await ticketManager.premiumManager.isFeatureActive(
+      guildId,
+      "pro_engine",
+    );
+    const retentionInfo = isPro
+      ? "Transcripts stored forever"
+      : "Transcripts expire in 7 days";
+
+    embed.setFooter({
+      text: retentionInfo,
+      iconURL: interaction.guild.iconURL(),
     });
+
+    return interaction.editReply({ embeds: [embed] });
   }
 
+  // Format the ticket list for the description
   const ticketList = tickets
     .slice(0, 10)
     .map(ticket => {
-      const openedDate = new Date(ticket.openedAt).toLocaleDateString();
-      const claimedInfo = ticket.claimedBy
-        ? ` • Claimed: <@${ticket.claimedBy}>`
-        : " • Unclaimed";
-      return `**#${ticket.ticketId.split("-").pop()}** - ${openedDate}${claimedInfo}`;
+      const ticketNum = ticket.ticketId.split("-").pop();
+      const formattedId = `\`#${ticketNum.padStart(4, "0")}\``;
+      const date = new Date(ticket.openedAt).toLocaleDateString();
+
+      let statusIcon = "🟢"; // Open
+      let statusDetail = "Open";
+
+      if (ticket.status === "closed") {
+        statusIcon = "🔴";
+        statusDetail = "Closed";
+      } else if (ticket.claimedBy) {
+        statusIcon = "🤝";
+        statusDetail = `Claimed by <@${ticket.claimedBy}>`;
+      }
+
+      return `${statusIcon} ${formattedId} | ${date} | ${statusDetail}`;
     })
     .join("\n");
 
-  const embed = createInfoEmbed(
-    "Your Tickets",
-    "List of your tickets in this server.",
-    interaction.client,
-  ).addFields({
-    name: `Tickets (${tickets.length})`,
-    value: ticketList,
-    inline: false,
-  });
+  const isPro = await ticketManager.premiumManager.isFeatureActive(
+    guildId,
+    "pro_engine",
+  );
 
-  if (tickets.length > 10) {
-    embed.addFields({
-      name: "Note",
-      value: `Showing first 10 of ${tickets.length} tickets.`,
-      inline: false,
-    });
-  }
+  const retentionInfo = isPro
+    ? "Transcripts stored forever"
+    : "Transcripts expire in 7 days";
+
+  const embed = createInfoEmbed(
+    `🎫 | Your ${status.charAt(0).toUpperCase() + status.slice(1)} Tickets`,
+    `Below is a list of your most recent tickets.\n\n${ticketList}`,
+    interaction.client,
+  );
+
+  // Add metadata footer
+  embed.setFooter({
+    text: `${retentionInfo} • Showing ${Math.min(10, tickets.length)} of ${tickets.length}`,
+    iconURL: interaction.guild.iconURL(),
+  });
 
   return interaction.editReply({ embeds: [embed] });
 }
@@ -228,8 +264,51 @@ export async function handleTranscript(interaction) {
     return interaction.editReply({
       embeds: [
         createErrorEmbed(
-          "You can only view transcripts for your own tickets.",
+          "You do not have permission to view this transcript.",
           "Permission Denied",
+          interaction.client,
+        ),
+      ],
+    });
+  }
+
+  // Check if members are allowed to export their own transcripts
+  if (isOwner && !isStaff) {
+    const settings =
+      await ticketManager.storage.dbManager.guildSettings.getByGuild(guildId);
+    const allowUserTranscripts =
+      settings?.ticketSettings?.allowUserTranscripts !== false;
+
+    if (!allowUserTranscripts) {
+      return interaction.editReply({
+        embeds: [
+          createErrorEmbed(
+            "Access to ticket transcripts has been disabled for members in this server. Please contact a staff member if you need a copy of your chat history.",
+            "Access Disabled",
+            interaction.client,
+          ),
+        ],
+      });
+    }
+  }
+
+  // Check tier restrictions for format
+  const tierInfo = await ticketManager.checkTicketLimit(guildId);
+  const allowedFormats = tierInfo.isPro
+    ? PRO_ENGINE.EXPORT_FORMATS
+    : FREE_TIER.EXPORT_FORMATS;
+
+  // Get format option, defaulting to the best available for the tier
+  const formatInput = interaction.options.getString("format");
+  const format = formatInput || (tierInfo.isPro ? "html" : "md");
+
+  if (!allowedFormats.includes(format)) {
+    return interaction.editReply({
+      embeds: [
+        createErrorEmbed(
+          `The **${format.toUpperCase()}** export format is only available with **Pro Engine**.\n\n` +
+            "Upgrade your server to unlock HTML transcripts, data exports, and unlimited retention.",
+          "Premium Feature",
           interaction.client,
         ),
       ],
@@ -241,7 +320,11 @@ export async function handleTranscript(interaction) {
     ticket.ticketId,
   );
 
-  if (!transcript || !transcript.content) {
+  if (
+    !transcript ||
+    (!transcript.content &&
+      (!transcript.messages || transcript.messages.length === 0))
+  ) {
     return interaction.editReply({
       embeds: [
         createErrorEmbed(
@@ -253,12 +336,70 @@ export async function handleTranscript(interaction) {
     });
   }
 
-  const attachment = new AttachmentBuilder(Buffer.from(transcript.content), {
-    name: `transcript-${formattedId}.html`,
+  // Determine content and filename
+  let content = transcript.content;
+  let filename = `transcript-${formattedId}.${format}`;
+
+  // Regenerate if content is missing OR a different format is requested
+  if ((!content || format !== transcript.format) && transcript.messages) {
+    if (format === "json") {
+      content = ticketTranscript.generateJSON(transcript.messages, {
+        ...ticket,
+        isTruncated: transcript.metadata?.isTruncated,
+      });
+    } else if (format === "md") {
+      content = ticketTranscript.generateMarkdown(transcript.messages, {
+        ...ticket,
+        isTruncated: transcript.metadata?.isTruncated,
+      });
+    } else if (format === "html") {
+      content = ticketTranscript.generateHTML(transcript.messages, {
+        ...ticket,
+        isTruncated: transcript.metadata?.isTruncated,
+      });
+    }
+  }
+
+  if (!content) {
+    return interaction.editReply({
+      embeds: [
+        createErrorEmbed(
+          "The transcript content is currently unavailable. Please try again later.",
+          "Content Error",
+          interaction.client,
+        ),
+      ],
+    });
+  }
+
+  const attachment = new AttachmentBuilder(Buffer.from(content), {
+    name: filename,
   });
 
+  const components = [];
+  // Only show "View in Browser" button for HTML transcripts
+  if (format === "html") {
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setLabel("View in Browser")
+        .setStyle(ButtonStyle.Link)
+        .setURL(`${config.botInfo.apiUrl}/t/${transcript.transcriptId}`),
+    );
+    components.push(row);
+  }
+
   return interaction.editReply({
-    content: `Here is the transcript for Ticket **#${formattedId}**.`,
+    content: `Here is the transcript for Ticket **#${formattedId}** in **${format.toUpperCase()}** format.`,
+    embeds: [
+      createInfoEmbed(
+        `Ticket Transcript • #${formattedId}`,
+        format === "html"
+          ? "Use the button below to view the full chat history in your browser, or download the attached HTML file."
+          : `Your transcript has been exported as a **${format.toUpperCase()}** file for your records.`,
+        interaction.client,
+      ),
+    ],
     files: [attachment],
+    components,
   });
 }

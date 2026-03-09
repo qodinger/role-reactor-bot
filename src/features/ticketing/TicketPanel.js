@@ -372,6 +372,52 @@ export class TicketPanel {
       };
     }
   }
+
+  /**
+   * Refresh the panel message in Discord
+   * @param {import('discord.js').Guild} guild - Discord guild
+   * @param {string} panelId - Panel ID
+   * @returns {Promise<Object>} Result
+   */
+  async refreshPanelMessage(guild, panelId) {
+    try {
+      const panel = await this.storage.getTicketPanel(panelId);
+      if (!panel || !panel.messageId || !panel.channelId) {
+        return { success: false, error: "Panel message not found" };
+      }
+
+      const channel = await guild.channels.fetch(panel.channelId);
+      if (!channel?.isTextBased()) {
+        return { success: false, error: "Channel not found" };
+      }
+
+      const message = await channel.messages.fetch(panel.messageId);
+      if (!message) {
+        return { success: false, error: "Message not found" };
+      }
+
+      const embed = createPanelEmbed({
+        title: panel.title,
+        description: panel.description,
+        color: panel.styling?.color || 0x5865f2,
+        footer: panel.styling?.footer ? { text: panel.styling.footer } : null,
+      });
+
+      const buttons = createPanelButtons(
+        panel.categories || [DEFAULT_CATEGORY],
+      );
+
+      await message.edit({
+        embeds: [embed],
+        components: buttons,
+      });
+
+      return { success: true };
+    } catch (error) {
+      logger.error(`Failed to refresh panel message ${panelId}:`, error);
+      return { success: false, error: error.message };
+    }
+  }
 }
 
 // Singleton instance

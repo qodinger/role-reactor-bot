@@ -2,6 +2,7 @@ import { getStorageManager } from "../../utils/storage/storageManager.js";
 import { getPremiumManager } from "../premium/PremiumManager.js";
 import { getLogger } from "../../utils/logger.js";
 import { FREE_TIER, PRO_ENGINE } from "./config.js";
+import dedent from "dedent";
 
 const logger = getLogger();
 
@@ -32,8 +33,21 @@ export class TicketTranscript {
     try {
       const { ticketId, guildId, channel, ticket, format = "html" } = options;
 
+      // Determine max messages based on tier
+      const isPro = await this.premiumManager.isFeatureActive(
+        guildId,
+        "pro_engine",
+      );
+
+      const maxMessages = isPro
+        ? PRO_ENGINE.MAX_MESSAGES_PER_TRANSCRIPT
+        : FREE_TIER.MAX_MESSAGES_PER_TRANSCRIPT;
+
       // Fetch messages from channel
-      const messages = await this.fetchChannelMessages(channel);
+      const { messages, isTruncated } = await this.fetchChannelMessages(
+        channel,
+        maxMessages,
+      );
 
       // Format messages
       const formattedMessages = this.formatMessages(messages);
@@ -41,19 +55,23 @@ export class TicketTranscript {
       // Generate content based on format
       let content;
       if (format === "html") {
-        content = this.generateHTML(formattedMessages, ticket);
+        content = this.generateHTML(formattedMessages, {
+          ...ticket,
+          isTruncated,
+        });
       } else if (format === "json") {
-        content = JSON.stringify(formattedMessages, null, 2);
+        content = this.generateJSON(formattedMessages, {
+          ...ticket,
+          isTruncated,
+        });
       } else {
-        content = this.generateText(formattedMessages);
+        content = this.generateMarkdown(formattedMessages, {
+          ...ticket,
+          isTruncated,
+        });
       }
 
       // Calculate expiry
-      const isPro = await this.premiumManager.isFeatureActive(
-        guildId,
-        "pro_engine",
-      );
-
       const retentionDays = isPro
         ? PRO_ENGINE.TRANSCRIPT_RETENTION_DAYS
         : FREE_TIER.TRANSCRIPT_RETENTION_DAYS;
@@ -74,13 +92,14 @@ export class TicketTranscript {
         ticketId,
         guildId,
         format,
-        content,
+        content: "", // Save space by not storing rendered string (regenerate on on-the-fly)
         messages: formattedMessages,
         metadata: {
           ticketOpenedAt: ticket?.openedAt,
           ticketClosedAt: ticket?.closedAt || new Date().toISOString(),
           claimedBy: ticket?.claimedBy,
           totalMessages: formattedMessages.length,
+          isTruncated: !!isTruncated,
           duration: ticket?.openedAt
             ? new Date(ticket.closedAt || Date.now()) -
               new Date(ticket.openedAt)
@@ -116,15 +135,23 @@ export class TicketTranscript {
    * @param {DiscordChannel} channel - Discord channel
    * @returns {Promise<Array>} Array of messages
    */
-  async fetchChannelMessages(channel) {
+  /**
+   * Fetch messages from a channel with a limit
+   * @param {Object} channel - Discord channel
+   * @param {number} maxMessages - Maximum messages to fetch
+   * @returns {Promise<Object>} Messages and truncated flag
+   */
+  async fetchChannelMessages(channel, maxMessages = 1000) {
     try {
       const messages = [];
       let lastId = null;
+      let isTruncated = false;
 
       // Fetch messages in batches (Discord limit: 100 per request)
-      while (messages.length < 1000) {
-        // Max 1000 messages
-        const options = { limit: 100 };
+      while (messages.length < maxMessages) {
+        const remaining = maxMessages - messages.length;
+        const limit = Math.min(100, remaining);
+        const options = { limit };
         if (lastId) {
           options.before = lastId;
         }
@@ -135,13 +162,22 @@ export class TicketTranscript {
 
         messages.push(...fetched.values());
         lastId = fetched.last().id;
+
+        // If we fetched the max we could in this request and still have more to go
+        if (messages.length >= maxMessages) {
+          isTruncated = true;
+          break;
+        }
       }
 
       // Sort by creation time (oldest first)
-      return messages.reverse();
+      return {
+        messages: messages.reverse(),
+        isTruncated,
+      };
     } catch (error) {
       logger.error("Failed to fetch channel messages:", error);
-      return [];
+      return { messages: [], isTruncated: false };
     }
   }
 
@@ -155,8 +191,18 @@ export class TicketTranscript {
       id: msg.id,
       userId: msg.author?.id || "unknown",
       username: msg.author?.username || "Unknown",
-      discriminator: msg.author?.discriminator || "0000",
-      content: msg.content || "",
+      displayName: msg.member?.displayName || msg.author?.username || "Unknown",
+      avatarUrl:
+        msg.author?.displayAvatarURL({ size: 64 }) ||
+        "https://cdn.discordapp.com/embed/avatars/0.png",
+      content: msg.cleanContent || msg.content || "",
+      embeds:
+        msg.embeds?.map(e => ({
+          title: e.title || null,
+          description: e.description || null,
+          fields: e.fields?.map(f => ({ name: f.name, value: f.value })) || [],
+          color: e.color || null,
+        })) || [],
       timestamp: msg.createdAt?.toISOString() || new Date().toISOString(),
       attachments: msg.attachments?.map(a => a.url) || [],
       isBot: msg.author?.bot || false,
@@ -170,139 +216,465 @@ export class TicketTranscript {
    * @returns {string} HTML content
    */
   generateHTML(messages, ticket) {
-    const html = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Ticket Transcript - ${ticket?.ticketId || "Unknown"}</title>
-  <style>
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #2c2f33;
-      color: #ffffff;
-      margin: 0;
-      padding: 20px;
+    // Group consecutive messages from the same user (within 7 minutes)
+    const groupedMessages = [];
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i];
+      const prev = messages[i - 1];
+      const sameUser =
+        prev &&
+        ((msg.userId && prev.userId && msg.userId === prev.userId) ||
+          (!msg.userId && msg.displayName === prev?.displayName));
+      const isGrouped =
+        sameUser &&
+        new Date(msg.timestamp) - new Date(prev.timestamp) < 7 * 60 * 1000;
+      groupedMessages.push({ ...msg, isGrouped });
     }
-    .container {
-      max-width: 800px;
-      margin: 0 auto;
-    }
-    .header {
-      background: #5865F2;
-      padding: 20px;
-      border-radius: 8px;
-      margin-bottom: 20px;
-    }
-    .header h1 {
-      margin: 0;
-      font-size: 24px;
-    }
-    .header p {
-      margin: 10px 0 0;
-      opacity: 0.8;
-    }
-    .message {
-      background: #36393f;
-      padding: 15px;
-      border-radius: 8px;
-      margin-bottom: 10px;
-      border-left: 3px solid #5865F2;
-    }
-    .message.system {
-      border-left-color: #f1c40f;
-      background: #3c3f41;
-      font-style: italic;
-    }
-    .message-header {
-      display: flex;
-      align-items: center;
-      margin-bottom: 8px;
-    }
-    .username {
-      font-weight: bold;
-      color: #5865F2;
-      margin-right: 10px;
-    }
-    .system .username {
-      color: #f1c40f;
-    }
-    .timestamp {
-      font-size: 12px;
-      opacity: 0.6;
-    }
-    .content {
-      line-height: 1.5;
-    }
-    .attachment {
-      margin-top: 10px;
-      padding: 10px;
-      background: #2c2f33;
-      border-radius: 4px;
-    }
-    .attachment a {
-      color: #5865F2;
-      text-decoration: none;
-    }
+
+    const html = dedent`
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width">
+        <title>Ticket Transcript - ${ticket?.ticketId || "Unknown"}</title>
+        <style>
+          html, body {
+            margin: 0;
+            padding: 0;
+            background-color: #313338;
+            color: #dcddde;
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            font-size: 16px;
+            font-weight: 400;
+            scroll-behavior: smooth;
+          }
+          a { color: #00aff4; text-decoration: none; }
+          a:hover { text-decoration: underline; }
+          img { object-fit: contain; }
+
+          /* Container */
+          .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0.5rem 1rem;
+          }
+
+          /* Preamble / Header */
+          .preamble {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            max-width: 100%;
+            padding: 1rem;
+          }
+          .preamble__entries-container {
+            padding: 0.6rem 1rem;
+          }
+          .preamble__entry {
+            margin-bottom: 0.1rem;
+            color: #ffffff;
+            font-size: 1.4rem;
+          }
+          .preamble__entry--small {
+            font-size: 1rem;
+            color: #dcddde;
+          }
+
+          /* Chatlog */
+          .chatlog {
+            padding: 1rem 0;
+            width: 100%;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+          }
+          .chatlog__message-group {
+            margin-bottom: 0;
+          }
+
+          /* Individual message row */
+          .chatlog__message {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            padding: 0.15rem 0;
+          }
+          .chatlog__message--group-start {
+            margin-top: 1.0625rem;
+          }
+          .chatlog__message:hover {
+            background-color: #32353b;
+          }
+
+          /* Avatar column */
+          .chatlog__message-aside {
+            grid-column: 1;
+            width: 72px;
+            padding: 0.15rem 0.15rem 0 0.15rem;
+            text-align: center;
+          }
+          .chatlog__avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+          }
+          .chatlog__short-timestamp {
+            display: none;
+            color: #a3a6aa;
+            font-size: 0.75rem;
+            font-weight: 500;
+          }
+          .chatlog__message:hover .chatlog__short-timestamp {
+            display: block;
+          }
+
+          /* Content column */
+          .chatlog__message-primary {
+            grid-column: 2;
+            min-width: 0;
+          }
+          .chatlog__header {
+            margin-bottom: 0.1rem;
+          }
+          .chatlog__author {
+            font-weight: 500;
+            color: #ffffff;
+          }
+          .chatlog__author-tag {
+            position: relative;
+            top: -0.1rem;
+            margin-left: 0.3rem;
+            padding: 0.05rem 0.3rem;
+            border-radius: 3px;
+            background-color: #5865F2;
+            color: #ffffff;
+            font-size: 0.625rem;
+            font-weight: 500;
+            line-height: 1.3;
+          }
+          .chatlog__timestamp {
+            margin-left: 0.3rem;
+            color: #a3a6aa;
+            font-size: 0.75rem;
+            font-weight: 500;
+          }
+
+          /* Message content */
+          .chatlog__content {
+            padding-right: 1rem;
+            font-size: 0.95rem;
+            word-wrap: break-word;
+            line-height: 1.375;
+            white-space: pre-wrap;
+          }
+
+          /* Embeds */
+          .chatlog__embed {
+            display: flex;
+            margin-top: 0.3rem;
+            max-width: 520px;
+          }
+          .chatlog__embed-color-pill {
+            flex-shrink: 0;
+            width: 0.25rem;
+            border-top-left-radius: 3px;
+            border-bottom-left-radius: 3px;
+          }
+          .chatlog__embed-color-pill--default {
+            background-color: #202225;
+          }
+          .chatlog__embed-content-container {
+            display: flex;
+            flex-direction: column;
+            padding: 0.5rem 0.6rem;
+            border: 1px solid rgba(46, 48, 54, 0.6);
+            border-top-right-radius: 3px;
+            border-bottom-right-radius: 3px;
+            background-color: rgba(46, 48, 54, 0.3);
+          }
+          .chatlog__embed-title {
+            margin-bottom: 0.3rem;
+            color: #ffffff;
+            font-size: 0.875rem;
+            font-weight: 600;
+          }
+          .chatlog__embed-description {
+            color: #dcddde;
+            font-weight: 500;
+            font-size: 0.85rem;
+            white-space: pre-wrap;
+          }
+          .chatlog__embed-fields {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0 0.5rem;
+          }
+          .chatlog__embed-field {
+            flex: 0;
+            min-width: 100%;
+            max-width: 506px;
+            padding-top: 0.6rem;
+            font-size: 0.875rem;
+          }
+          .chatlog__embed-field-name {
+            margin-bottom: 0.2rem;
+            color: #ffffff;
+            font-weight: 600;
+          }
+          .chatlog__embed-field-value {
+            color: #dcddde;
+            font-weight: 500;
+          }
+
+          /* Attachments */
+          .chatlog__attachment {
+            position: relative;
+            width: fit-content;
+            margin-top: 0.3rem;
+            border-radius: 3px;
+            overflow: hidden;
+          }
+          .chatlog__attachment a {
+            color: #00aff4;
+            font-size: 0.85rem;
+          }
+
+          /* Markdown */
+          .chatlog__markdown {
+            max-width: 100%;
+            line-height: 1.3;
+            overflow-wrap: break-word;
+          }
+          .chatlog__markdown-pre {
+            background-color: #2f3136;
+            font-family: "Consolas", "Courier New", Courier, monospace;
+            font-size: 0.85rem;
+          }
+          .chatlog__markdown-pre--multiline {
+            display: block;
+            margin-top: 0.25rem;
+            padding: 0.5rem;
+            border: 2px solid #282b30;
+            border-radius: 5px;
+            color: #b9bbbe;
+          }
+          .chatlog__markdown-pre--inline {
+            display: inline-block;
+            padding: 2px;
+            border-radius: 3px;
+          }
+          .chatlog__markdown-mention {
+            border-radius: 3px;
+            padding: 0 2px;
+            background-color: rgba(88, 101, 242, .3);
+            color: #dee0fc;
+            font-weight: 500;
+          }
+          .chatlog__markdown-mention:hover {
+            background-color: #5865f2;
+            color: #ffffff;
+          }
+          strong { font-weight: 700; color: #ffffff; }
+          em { font-style: italic; }
+          u { text-decoration: underline; }
+          del { text-decoration: line-through; }
+          .warning-box {
+            background-color: rgba(255, 170, 0, 0.1);
+            border: 1px solid rgba(255, 170, 0, 0.3);
+            border-radius: 4px;
+            padding: 12px;
+            margin-bottom: 20px;
+            color: #ffaa00;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+          }
+          .warning-box span {
+            margin-right: 10px;
+            font-size: 1.2rem;
+          }
+
+          /* Postamble */
+          .postamble {
+            padding: 1.25rem;
+          }
+          .postamble__entry {
+            color: #ffffff;
+          }
   </style>
 </head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1>🎫 Ticket Transcript</h1>
-      <p><strong>Ticket ID:</strong> ${ticket?.ticketId || "Unknown"}</p>
-      <p><strong>Created:</strong> ${new Date(ticket?.openedAt || Date.now()).toLocaleString()}</p>
-      <p><strong>Closed:</strong> ${ticket?.closedAt ? new Date(ticket.closedAt).toLocaleString() : "Not closed"}</p>
-      <p><strong>Messages:</strong> ${messages.length}</p>
-    </div>
-    
-    <div class="messages">
-      ${messages
-        .map(
-          msg => `
-        <div class="message ${msg.isBot ? "system" : ""}">
-          <div class="message-header">
-            <span class="username">${this.escapeHtml(msg.username)}${msg.isBot ? " [BOT]" : ""}</span>
-            <span class="timestamp">${new Date(msg.timestamp).toLocaleString()}</span>
-          </div>
-          <div class="content">
-            ${this.escapeHtml(msg.content)}
-            ${
-              msg.attachments?.length > 0
-                ? `
-              <div class="attachment">
-                <strong>Attachments:</strong><br>
-                ${msg.attachments.map(url => `<a href="${url}" target="_blank">${url}</a>`).join("<br>")}
-              </div>
-            `
-                : ""
-            }
+      <body>
+      <div class="container">
+        <div class="preamble">
+          <div class="preamble__entries-container">
+            <div class="preamble__entry">🎫 Ticket Transcript</div>
+            <div class="preamble__entry--small"><strong>Ticket ID:</strong> ${ticket?.ticketId || "Unknown"}</div>
+            <div class="preamble__entry--small"><strong>Created:</strong> ${new Date(ticket?.openedAt || Date.now()).toLocaleString()}</div>
+            <div class="preamble__entry--small"><strong>Closed:</strong> ${ticket?.closedAt ? new Date(ticket.closedAt).toLocaleString() : "Not closed"}</div>
+            <div class="preamble__entry--small"><strong>Messages:</strong> ${messages.length}</div>
           </div>
         </div>
-      `,
-        )
-        .join("")}
-    </div>
-  </div>
-</body>
-</html>
-    `.trim();
+
+        ${
+          ticket?.isTruncated
+            ? `
+        <div class="warning-box">
+          <span>⚠️</span> This transcript was truncated because it reached the maximum message limit. Some earlier context may be missing.
+        </div>`
+            : ""
+        }
+
+        <div class="chatlog">
+          ${groupedMessages
+            .map(msg => {
+              const header = !msg.isGrouped
+                ? `<div class="chatlog__header"><span class="chatlog__author">${this.escapeHtml(msg.displayName)}</span>${msg.isBot ? '<span class="chatlog__author-tag">BOT</span>' : ""}<span class="chatlog__timestamp">${new Date(msg.timestamp).toLocaleString()}</span></div>`
+                : "";
+              const aside = !msg.isGrouped
+                ? `<img class="chatlog__avatar" src="${msg.avatarUrl}" alt="Avatar">`
+                : `<span class="chatlog__short-timestamp">${new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>`;
+              const content = `<div class="chatlog__content chatlog__markdown"><span class="chatlog__markdown-preserve">${this.parseMarkdown(msg.content)}</span></div>`;
+              const embeds = (msg.embeds || [])
+                .map(embed => {
+                  const pill = `<div class="chatlog__embed-color-pill${embed.color ? "" : " chatlog__embed-color-pill--default"}" style="${embed.color ? "background-color: #" + embed.color.toString(16).padStart(6, "0") : ""}"></div>`;
+                  const title = embed.title
+                    ? `<div class="chatlog__embed-title">${this.parseMarkdown(embed.title)}</div>`
+                    : "";
+                  const desc = embed.description
+                    ? `<div class="chatlog__embed-description">${this.parseMarkdown(embed.description)}</div>`
+                    : "";
+                  const fields =
+                    embed.fields && embed.fields.length > 0
+                      ? `<div class="chatlog__embed-fields">${embed.fields.map(f => `<div class="chatlog__embed-field"><div class="chatlog__embed-field-name">${this.parseMarkdown(f.name)}</div><div class="chatlog__embed-field-value">${this.parseMarkdown(f.value)}</div></div>`).join("")}</div>`
+                      : "";
+                  return `<div class="chatlog__embed">${pill}<div class="chatlog__embed-content-container">${title}${desc}${fields}</div></div>`;
+                })
+                .join("");
+              const attachments =
+                msg.attachments?.length > 0
+                  ? `<div class="chatlog__attachment">${msg.attachments.map(url => `<a href="${url}" target="_blank">📎 View Attachment</a>`).join("<br>")}</div>`
+                  : "";
+              return `<div class="chatlog__message${!msg.isGrouped ? " chatlog__message--group-start" : ""}"><div class="chatlog__message-aside">${aside}</div><div class="chatlog__message-primary">${header}${content}${embeds}${attachments}</div></div>`;
+            })
+            .join("")}
+        </div>
+
+        <div class="postamble">
+          <div class="postamble__entry">Exported ${messages.length} message(s)</div>
+        </div>
+      </div>
+      </body>
+      </html>
+    `;
 
     return html;
   }
 
   /**
-   * Generate plain text transcript
+   * Generate markdown transcript
    * @param {Array} messages - Formatted messages
-   * @returns {string} Text content
+   * @param {Object} ticket - Ticket data
+   * @returns {string} Markdown content
    */
-  generateText(messages) {
-    return messages
-      .map(
-        msg =>
-          `[${new Date(msg.timestamp).toLocaleString()}] ${msg.username}: ${msg.content}`,
-      )
-      .join("\n");
+  generateMarkdown(messages, ticket) {
+    let md = `# Ticket Transcript - ${ticket?.ticketId || "Unknown"}\n\n`;
+    md += `**Created:** ${new Date(ticket?.openedAt || Date.now()).toLocaleString()}\n`;
+    md += `**Closed:** ${ticket?.closedAt ? new Date(ticket.closedAt).toLocaleString() : "Not closed"}\n`;
+    md += `**Messages:** ${messages.length}\n`;
+    if (ticket?.isTruncated) {
+      md += `**⚠️ Notice:** This transcript was truncated due to the maximum message limit.\n`;
+    }
+    md += `\n---\n\n`;
+
+    // Grouping logic (same as HTML)
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i];
+      const prev = messages[i - 1];
+      const sameUser =
+        prev &&
+        ((msg.userId && prev.userId && msg.userId === prev.userId) ||
+          (!msg.userId &&
+            (msg.displayName || msg.username) ===
+              (prev?.displayName || prev?.username)));
+      const isGrouped =
+        sameUser &&
+        new Date(msg.timestamp) - new Date(prev.timestamp) < 7 * 60 * 1000;
+
+      if (!isGrouped) {
+        if (i > 0) md += "\n---\n\n";
+        const name = msg.displayName || msg.username || "Unknown Member";
+        const timestamp = new Date(msg.timestamp).toLocaleString();
+        md += `**${name}** \`[${timestamp}]\`\n`;
+      } else {
+        // Just a small gap for continuation
+        md += "\n";
+      }
+
+      // Message Content
+      if (msg.content) {
+        md += `${msg.content}\n`;
+      }
+
+      // Embeds
+      if (msg.embeds?.length > 0) {
+        msg.embeds.forEach(e => {
+          md += "\n> ";
+          if (e.title) md += `**${e.title}**\n> `;
+          if (e.description) md += `${e.description}\n> `;
+          e.fields?.forEach(f => {
+            md += `\n> **${f.name}**\n> ${f.value}\n> `;
+          });
+          md += "\n";
+        });
+      }
+
+      // Attachments
+      if (msg.attachments?.length > 0) {
+        md +=
+          "\n" +
+          msg.attachments.map(url => `[📎 Attachment](${url})`).join("\n") +
+          "\n";
+      }
+    }
+
+    return md.trim();
+  }
+
+  /**
+   * Generate JSON transcript with metadata
+   * @param {Array} messages - Formatted messages
+   * @param {Object} ticket - Ticket data
+   * @returns {string} JSON string
+   */
+  generateJSON(messages, ticket) {
+    return JSON.stringify(
+      {
+        ticketInfo: {
+          ticketId: ticket?.ticketId || "Unknown",
+          guildId: ticket?.guildId || "Unknown",
+          openedAt: ticket?.openedAt || null,
+          closedAt: ticket?.closedAt || new Date().toISOString(),
+          status: ticket?.status || "unknown",
+          isTruncated: ticket?.isTruncated || false,
+          exportDate: new Date().toISOString(),
+          totalMessages: messages.length,
+        },
+        messages: messages.map(msg => ({
+          id: msg.id,
+          timestamp: msg.timestamp,
+          author: {
+            id: msg.userId,
+            username: msg.username,
+            displayName: msg.displayName,
+            isBot: msg.isBot,
+            avatarUrl: msg.avatarUrl,
+          },
+          content: msg.content,
+          embeds: msg.embeds,
+          attachments: msg.attachments,
+        })),
+      },
+      null,
+      2,
+    );
   }
 
   /**
@@ -318,6 +690,61 @@ export class TicketTranscript {
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#039;");
+  }
+
+  /**
+   * Parse basic Discord markdown (bold, italic, code, mentions)
+   * @param {string} text - Raw text
+   * @returns {string} HTML parsed text
+   */
+  parseMarkdown(text) {
+    if (!text) return "";
+    let parsed = this.escapeHtml(text);
+
+    // Bold
+    parsed = parsed.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+
+    // Italic
+    parsed = parsed
+      .replace(/\*([^\*]+)\*/g, "<em>$1</em>")
+      .replace(/_([^_]+)_/g, "<em>$1</em>");
+
+    // Underline
+    parsed = parsed.replace(/__(.*?)__/g, "<u>$1</u>");
+
+    // Strikethrough
+    parsed = parsed.replace(/~~(.*?)~~/g, "<del>$1</del>");
+
+    // Code blocks
+    parsed = parsed.replace(
+      /```([\s\S]*?)```/g,
+      '<div class="chatlog__markdown-pre chatlog__markdown-pre--multiline">$1</div>',
+    );
+
+    // Inline code
+    parsed = parsed.replace(
+      /`([^`]+)`/g,
+      '<span class="chatlog__markdown-pre chatlog__markdown-pre--inline">$1</span>',
+    );
+
+    // Discord Mentions
+    parsed = parsed.replace(
+      /&lt;@!?(\d+)&gt;/g,
+      '<span class="chatlog__markdown-mention">@User</span>',
+    );
+    parsed = parsed.replace(
+      /&lt;@&amp;(\d+)&gt;/g,
+      '<span class="chatlog__markdown-mention">@Role</span>',
+    );
+    parsed = parsed.replace(
+      /&lt;#(\d+)&gt;/g,
+      '<span class="chatlog__markdown-mention">#Channel</span>',
+    );
+
+    // Line breaks
+    parsed = parsed.replace(/\n/g, "<br>");
+
+    return parsed;
   }
 
   /**
