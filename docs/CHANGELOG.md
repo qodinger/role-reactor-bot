@@ -9,12 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Ticketing System**: Complete support ticket system with `/ticket setup` and `/ticket info` commands for comprehensive server support
-- **Ticket Management**: Full lifecycle management for staff with `/ticket claim`, `/ticket close`, `/ticket add`, and `/ticket remove` commands
-- **Ticket Panels**: Create multiple custom ticket panels for different support categories with customizable titles, descriptions, and embed colors
-- **Ticket Alerts**: Quickly grab the attention of claimed staff or ticket creators with the `/ticket alert` command
-- **Ticket Transcripts**: Automatically generate and save detailed HTML or plain text transcripts of closed tickets
-- **Ticket Analytics**: Detailed tracking of open, closed, and active tickets with the `/ticket list` and `/ticket view` commands
+- **Ticketing System**: Complete support ticket system with `/ticket setup` and `/ticket info` commands for comprehensive server support.
+- **Ticket Management**: Full lifecycle management with `/ticket claim`, `/ticket close`, `/ticket add`, and `/ticket remove` commands.
+- **Ticket Panels**: Multiple custom panels with customizable titles, branding, and categorizations.
+- **Scalable Transcripts**: High-performance transcript system supporting **HTML/JSON** for Pro servers and **Markdown** for everyone, rendered on-the-fly to ensure maximum server performance.
+- **Guild Data Purge**: Administrative tool to securely wipe all ticket history and reset the global counter to #0001 from a simplified, secure dashboard.
+- **Pro Engine Benefits**: Increased message limits (5,000+), advanced exports, and priority processing for high-volume servers.
+- **User Accessibility**: Members can now download their own transcripts (if enabled by admins) through a clean, reliable interface.
+- **Ticket Analytics**: Live tracking of open, closed, and active tickets with the `/ticket list` and `/ticket view` commands.
 
 ## [1.6.3] - 2026-02-17
 

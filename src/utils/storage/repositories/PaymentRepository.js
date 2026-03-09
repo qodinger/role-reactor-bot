@@ -59,9 +59,6 @@ export class PaymentRepository extends BaseRepository {
 
       if (result.acknowledged) {
         payment._id = result.insertedId;
-        this.logger.info(
-          `Payment created: ${payment.paymentId} for user ${payment.discordId}`,
-        );
         return payment;
       }
       return null;

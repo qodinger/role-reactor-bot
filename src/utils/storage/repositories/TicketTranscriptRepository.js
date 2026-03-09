@@ -62,9 +62,6 @@ export class TicketTranscriptRepository extends BaseRepository {
 
       if (result.acknowledged) {
         transcript._id = result.insertedId;
-        this.logger.info(
-          `Transcript created: ${transcript.transcriptId} for ticket ${transcript.ticketId}`,
-        );
         return transcript;
       }
       return null;

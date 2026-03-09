@@ -82,9 +82,6 @@ export class TicketPanelRepository extends BaseRepository {
 
       if (result.acknowledged) {
         panel._id = result.insertedId;
-        this.logger.info(
-          `Ticket panel created: ${panel.panelId} for guild ${panel.guildId}`,
-        );
         return panel;
       }
       return null;

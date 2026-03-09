@@ -80,9 +80,6 @@ export class TicketRepository extends BaseRepository {
 
       if (result.acknowledged) {
         ticket._id = result.insertedId;
-        this.logger.info(
-          `Ticket created: ${ticket.ticketId} for user ${ticket.userId}`,
-        );
         return ticket;
       }
       return null;
