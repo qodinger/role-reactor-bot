@@ -472,6 +472,31 @@ class StorageManager {
     return { totalTranscripts: 0, totalSizeBytes: 0, totalSizeMB: "0" };
   }
 
+  async purgeGuildTickets(guildId) {
+    if (this.provider instanceof DatabaseProvider && this.dbManager) {
+      if (this.dbManager.tickets) {
+        await this.dbManager.tickets.deleteByGuild(guildId);
+      }
+      if (this.dbManager.ticketTranscripts) {
+        await this.dbManager.ticketTranscripts.deleteByGuild(guildId);
+      }
+      return true;
+    }
+    return false;
+  }
+
+  async resetTicketCounter(guildId) {
+    if (this.provider instanceof DatabaseProvider && this.dbManager) {
+      if (this.dbManager.guildSettings) {
+        return await this.dbManager.guildSettings.resetCounter(
+          guildId,
+          "counters.ticket",
+        );
+      }
+    }
+    return false;
+  }
+
   // Generic storage methods
   async read(collection) {
     if (this.provider instanceof DatabaseProvider) {

@@ -451,6 +451,27 @@ export class TicketManager {
       return [];
     }
   }
+
+  /**
+   * Purge all ticket data and transcripts for a guild
+   * @param {string} guildId - Guild ID
+   * @returns {Promise<boolean>} Success status
+   */
+  async purgeGuildData(guildId) {
+    try {
+      // 1. Delete all tickets and transcripts
+      await this.storage.purgeGuildTickets(guildId);
+
+      // 2. Reset the ticket counter
+      await this.storage.resetTicketCounter(guildId);
+
+      logger.info(`Total Purge complete for guild ${guildId}`);
+      return true;
+    } catch (error) {
+      logger.error("Failed to purge guild data:", error);
+      return false;
+    }
+  }
 }
 
 // Singleton instance

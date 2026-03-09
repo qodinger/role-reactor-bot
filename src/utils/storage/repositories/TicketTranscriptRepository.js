@@ -219,6 +219,25 @@ export class TicketTranscriptRepository extends BaseRepository {
   }
 
   /**
+   * Delete all transcripts for a guild
+   * @param {string} guildId - Guild ID
+   * @returns {Promise<boolean>} Success status
+   */
+  async deleteByGuild(guildId) {
+    try {
+      const result = await this.collection.deleteMany({ guildId });
+      if (this.cache) this.cache.clear();
+      return result.acknowledged;
+    } catch (error) {
+      this.logger.error(
+        `Failed to delete transcripts for guild ${guildId}`,
+        error,
+      );
+      return false;
+    }
+  }
+
+  /**
    * Get transcript count for a guild
    * @param {string} guildId - Guild ID
    * @returns {Promise<number>} Transcript count

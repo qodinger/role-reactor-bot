@@ -88,12 +88,6 @@ export class GuildSettingsRepository extends BaseRepository {
     }
   }
 
-  /**
-   * Atomically increment a counter field for a guild
-   * @param {string} guildId - Guild ID
-   * @param {string} counterField - Field path to increment (e.g. "counters.ticket")
-   * @returns {Promise<number>} The new counter value
-   */
   async incrementCounter(guildId, counterField) {
     try {
       const result = await this.collection.findOneAndUpdate(
@@ -115,6 +109,32 @@ export class GuildSettingsRepository extends BaseRepository {
     } catch (error) {
       this.logger.error(
         `Failed to increment counter ${counterField} for guild ${guildId}`,
+        error,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Reset a counter field for a guild
+   * @param {string} guildId - Guild ID
+   * @param {string} counterField - Field path to reset (e.g. "counters.ticket")
+   * @returns {Promise<boolean>} Success status
+   */
+  async resetCounter(guildId, counterField) {
+    try {
+      await this.collection.updateOne(
+        { guildId },
+        {
+          $set: { [counterField]: 0, updatedAt: new Date() },
+        },
+        { upsert: true },
+      );
+      if (this.cache) this.cache.clear();
+      return true;
+    } catch (error) {
+      this.logger.error(
+        `Failed to reset counter ${counterField} for guild ${guildId}`,
         error,
       );
       throw error;

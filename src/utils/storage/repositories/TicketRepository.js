@@ -470,6 +470,22 @@ export class TicketRepository extends BaseRepository {
   }
 
   /**
+   * Delete all tickets for a guild
+   * @param {string} guildId - Guild ID
+   * @returns {Promise<boolean>} Success status
+   */
+  async deleteByGuild(guildId) {
+    try {
+      const result = await this.collection.deleteMany({ guildId });
+      if (this.cache) this.cache.clear();
+      return result.acknowledged;
+    } catch (error) {
+      this.logger.error(`Failed to delete tickets for guild ${guildId}`, error);
+      return false;
+    }
+  }
+
+  /**
    * Get expired tickets (for auto-cleanup)
    * @param {string} guildId - Guild ID
    * @param {number} days - Days of inactivity
