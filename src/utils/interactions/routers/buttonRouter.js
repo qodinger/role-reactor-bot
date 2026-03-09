@@ -14,6 +14,9 @@ export async function routeButtonInteraction(interaction, _client) {
   const logger = getLogger();
   const { customId } = interaction;
 
+  // Ignore temporary interactions handled by local collectors (e.g. settings menu)
+  if (customId.startsWith("t_")) return;
+
   try {
     logger.debug(
       `Routing interaction: ${customId}, type: ${interaction.type}, isStringSelectMenu: ${interaction.isStringSelectMenu()}`,

@@ -14,6 +14,9 @@ export async function routeSelectMenuInteraction(interaction, _client) {
   const logger = getLogger();
   const { customId } = interaction;
 
+  // Ignore temporary interactions handled by local collectors (e.g. settings menu)
+  if (customId.startsWith("t_")) return;
+
   try {
     // Handle poll creation select menus
     if (customId.startsWith("poll_") && customId.endsWith("_select")) {

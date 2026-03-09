@@ -149,7 +149,13 @@ export class InteractionManager {
         break;
       case InteractionType.MessageComponent:
         // Check if it's a select menu or button
-        if (interaction.isStringSelectMenu()) {
+        if (
+          interaction.isStringSelectMenu() ||
+          interaction.isUserSelectMenu() ||
+          interaction.isRoleSelectMenu() ||
+          interaction.isChannelSelectMenu() ||
+          interaction.isMentionableSelectMenu()
+        ) {
           await this.handleSelectMenuInteraction(interaction, client);
         } else {
           await this.handleButtonInteraction(interaction, client);
