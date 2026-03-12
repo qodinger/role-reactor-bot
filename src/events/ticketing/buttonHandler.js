@@ -18,7 +18,6 @@ import {
   createSuccessEmbed,
   createTranscriptLogEmbed,
 } from "../../features/ticketing/embeds.js";
-import { DEFAULT_CATEGORY } from "../../features/ticketing/config.js";
 
 const logger = getLogger();
 
@@ -799,47 +798,6 @@ async function getStaffRoleId(guildId) {
  * @param {Array} staffRoles
  * @returns {Promise<string|null>} Category ID
  */
-async function getOrCreateTicketCategory(guild, staffRoles) {
-  const CATEGORY_NAME = "🎫 TICKETS";
-
-  try {
-    // 1. Try to find existing category by name
-    const existing = guild.channels.cache.find(
-      c =>
-        c.type === 4 && // CategoryChannel
-        c.name.toLowerCase() === CATEGORY_NAME.toLowerCase(),
-    );
-
-    if (existing) return existing.id;
-
-    // 2. Create if not found
-    const overwrites = [
-      {
-        id: guild.roles.everyone,
-        deny: ["ViewChannel"],
-      },
-    ];
-
-    // Add staff roles permissions
-    for (const role of staffRoles) {
-      overwrites.push({
-        id: role.id,
-        allow: ["ViewChannel", "SendMessages", "ReadMessageHistory"],
-      });
-    }
-
-    const category = await guild.channels.create({
-      name: CATEGORY_NAME,
-      type: 4, // Category
-      permissionOverwrites: overwrites,
-    });
-
-    return category.id;
-  } catch (error) {
-    logger.error("Failed to get/create ticket category:", error);
-    return null;
-  }
-}
 
 /**
  * Get staff roles for channel overwrites

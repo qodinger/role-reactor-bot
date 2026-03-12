@@ -172,16 +172,8 @@ export function createTicketClosedEmbed(options) {
  * @returns {EmbedBuilder}
  */
 export function createTranscriptLogEmbed(options) {
-  const {
-    ticketId,
-    userName,
-    userId,
-    closedBy,
-    reason,
-    duration,
-    messages,
-    client,
-  } = options;
+  const { ticketId, userId, closedBy, reason, duration, messages, client } =
+    options;
 
   const embed = new EmbedBuilder()
     .setTitle(`Ticket Log  •  #${ticketId.split("-").pop()}`)

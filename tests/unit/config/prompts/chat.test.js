@@ -93,7 +93,7 @@ describe('Chat Prompts Configuration', () => {
     it('should contain data understanding guidelines', () => {
       expect(criticalRules).toContain('Data Understanding');
       expect(criticalRules).toContain('Members vs Bots');
-      expect(criticalRules).toContain('guide users to Discord');
+      expect(criticalRules).toContain('Guide the user to use Discord\'s built-in Search');
     });
 
     it('should contain security guidelines', () => {

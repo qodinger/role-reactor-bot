@@ -522,7 +522,7 @@ export async function execute(message, client) {
             if (!messageDeleted) {
               try {
                 await message.reply(finalReplyText);
-              } catch (fallbackError) {
+              } catch (_fallbackError) {
                 // Ignore fallback errors
               }
             }

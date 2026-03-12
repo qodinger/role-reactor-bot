@@ -1025,11 +1025,12 @@ export async function apiGuildLeaderboard(req, res) {
         );
         return res.status(statusCode).json(response);
       }
-      
+
       // Check privacy setting (defaults to true if undefined)
       // Skip this check for dashboard requests (authenticated admin view)
       const isDashboard = req.query.source === "dashboard";
-      const isPublic = guildSettings?.experienceSystem?.publicLeaderboard !== false;
+      const isPublic =
+        guildSettings?.experienceSystem?.publicLeaderboard !== false;
       if (!isPublic && !isDashboard) {
         const { statusCode, response } = createErrorResponse(
           "This server's leaderboard is marked as private",
@@ -1049,13 +1050,13 @@ export async function apiGuildLeaderboard(req, res) {
     const { PremiumFeatures } = await import(
       "../../features/premium/config.js"
     );
-    
+
     const experienceManager = await getExperienceManager();
     const premiumManager = getPremiumManager();
-    
+
     const [leaderboard, isPremium] = await Promise.all([
       experienceManager.getLeaderboard(guildId, limit),
-      premiumManager.isFeatureActive(guildId, PremiumFeatures.PRO.id)
+      premiumManager.isFeatureActive(guildId, PremiumFeatures.PRO.id),
     ]);
 
     // Enrich with user data from Discord client
@@ -1163,7 +1164,7 @@ export async function apiGetPublicLeaderboards(req, res) {
 
     // First, find potential guilds from discord cache based on query or size
     let candidateGuilds = [];
-    
+
     if (query && query.length > 0) {
       // Search by name
       let count = 0;
@@ -1183,23 +1184,24 @@ export async function apiGetPublicLeaderboards(req, res) {
 
     // Now filter by database settings (XP enabled, public access)
     const publicGuilds = [];
-    
+
     // Process sequentially as it's mostly cached or fast
     for (const guild of candidateGuilds) {
       const guildSettings = await dbManager.guildSettings.getByGuild(guild.id);
-      
+
       const xpEnabled = guildSettings?.experienceSystem?.enabled;
-      const isPublic = guildSettings?.experienceSystem?.publicLeaderboard !== false; // Undefined = default true
-      
+      const isPublic =
+        guildSettings?.experienceSystem?.publicLeaderboard !== false; // Undefined = default true
+
       if (xpEnabled && isPublic) {
         publicGuilds.push({
           id: guild.id,
           name: guild.name,
           icon: guild.iconURL({ dynamic: true, size: 64 }),
-          memberCount: guild.memberCount
+          memberCount: guild.memberCount,
         });
       }
-      
+
       if (publicGuilds.length >= 24) break; // Maximum return set of 24 items
     }
 

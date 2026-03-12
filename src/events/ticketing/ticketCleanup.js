@@ -179,7 +179,7 @@ async function cleanupGuild(guildId, storageManager, client) {
 
         try {
           await channel.send({ embeds: [closeEmbed] });
-        } catch (e) {
+        } catch (_e) {
           logger.warn(`Could not send auto-close message in ${channel.id}`);
         }
 

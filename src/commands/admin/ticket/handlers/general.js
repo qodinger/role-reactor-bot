@@ -338,7 +338,7 @@ export async function handleTranscript(interaction) {
 
   // Determine content and filename
   let content = transcript.content;
-  let filename = `transcript-${formattedId}.${format}`;
+  const filename = `transcript-${formattedId}.${format}`;
 
   // Regenerate if content is missing OR a different format is requested
   if ((!content || format !== transcript.format) && transcript.messages) {

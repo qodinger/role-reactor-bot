@@ -17,7 +17,7 @@ const dataFetcher = {
       if (!member) {
         try {
           member = await guild.members.fetch(options.user_id);
-        } catch (e) {}
+        } catch (_e) {}
       }
     } else if (options.username) {
       member = guild.members.cache.find(
@@ -30,7 +30,7 @@ const dataFetcher = {
             limit: 1,
           });
           member = members.first();
-        } catch (e) {}
+        } catch (_e) {}
       }
     }
     if (!member) return `Member not found.`;
@@ -46,7 +46,7 @@ const dataFetcher = {
       if (!role) {
         try {
           role = await guild.roles.fetch(options.role_id);
-        } catch (e) {}
+        } catch (_e) {}
       }
     } else if (options.role_name) {
       role = guild.roles.cache.find(
@@ -58,7 +58,7 @@ const dataFetcher = {
           role = guild.roles.cache.find(
             r => r.name.toLowerCase() === options.role_name.toLowerCase(),
           );
-        } catch (e) {}
+        } catch (_e) {}
       }
     }
     if (!role) return `Role not found.`;
@@ -71,7 +71,7 @@ const dataFetcher = {
       if (!channel) {
         try {
           channel = await guild.channels.fetch(options.channel_id);
-        } catch (e) {}
+        } catch (_e) {}
       }
     } else if (options.channel_name) {
       channel = guild.channels.cache.find(
@@ -83,7 +83,7 @@ const dataFetcher = {
           channel = guild.channels.cache.find(
             c => c.name.toLowerCase() === options.channel_name.toLowerCase(),
           );
-        } catch (e) {}
+        } catch (_e) {}
       }
     }
     if (!channel) return `Channel not found.`;
@@ -96,7 +96,7 @@ const dataFetcher = {
       if (!role) {
         try {
           role = await guild.roles.fetch(options.role_id);
-        } catch (e) {}
+        } catch (_e) {}
       }
     } else if (options.role_name) {
       role = guild.roles.cache.find(

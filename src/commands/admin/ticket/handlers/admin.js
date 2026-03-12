@@ -4,7 +4,6 @@ import {
   ButtonStyle,
   RoleSelectMenuBuilder,
   ChannelSelectMenuBuilder,
-  ComponentType,
   EmbedBuilder,
 } from "discord.js";
 import { getTicketPanel } from "../../../../features/ticketing/TicketPanel.js";

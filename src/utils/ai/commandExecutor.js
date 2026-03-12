@@ -1,11 +1,11 @@
 import { getLogger } from "../logger.js";
 import { getCommandHandler } from "../core/commandHandler.js";
-import {
-  getGeneralCommands,
-  getAllowedCommands,
-} from "./commandExecutor/commandDiscovery.js";
+import { getAllowedCommands } from "./commandExecutor/commandDiscovery.js";
 import { createMockInteraction } from "./commandExecutor/mockInteraction.js";
-import { canExecuteCommand } from "./commandExecutor/commandValidator.js";
+import {
+  canExecuteCommand,
+  getExecutableCommands,
+} from "./commandExecutor/commandValidator.js";
 
 const logger = getLogger();
 

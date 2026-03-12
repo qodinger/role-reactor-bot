@@ -724,7 +724,7 @@ export class TicketTranscript {
 
     // Italic
     parsed = parsed
-      .replace(/\*([^\*]+)\*/g, "<em>$1</em>")
+      .replace(/\*([^*]+)\*/g, "<em>$1</em>")
       .replace(/_([^_]+)_/g, "<em>$1</em>");
 
     // Underline

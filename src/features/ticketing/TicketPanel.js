@@ -80,7 +80,6 @@ export class TicketPanel {
       }
 
       // Generate panel ID
-      const panels = await this.storage.getTicketPanelsByGuild(guildId);
       const panelNumber =
         await this.storage.dbManager.guildSettings.incrementCounter(
           guildId,

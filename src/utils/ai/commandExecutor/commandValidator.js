@@ -85,7 +85,7 @@ export async function canExecuteCommand(
           member.permissions.has("Administrator") ||
           member.permissions.has("ManageGuild");
       }
-    } catch (e) {}
+    } catch (_e) {}
   }
 
   // Validation based on roles
@@ -142,7 +142,7 @@ export async function getExecutableCommands(
           member.permissions.has("Administrator") ||
           member.permissions.has("ManageGuild");
       }
-    } catch (e) {}
+    } catch (_e) {}
   }
 
   const blocklist = getEffectiveBlocklist();

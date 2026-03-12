@@ -1,6 +1,5 @@
 import { getLogger } from "../logger.js";
 import {
-  DEFAULT_MAX_CONVERSATIONS,
   DEFAULT_USER_RATE_LIMIT,
   DEFAULT_USER_RATE_WINDOW,
 } from "./constants.js";

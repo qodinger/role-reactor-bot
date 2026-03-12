@@ -5,7 +5,7 @@ const responseValidator = {
   sanitizeData: data => {
     if (typeof data !== "string") return data;
     // Prevent @everyone/@here injection
-    let sanitized = data.replace(/@(everyone|here)/gi, "@ $1");
+    const sanitized = data.replace(/@(everyone|here)/gi, "@ $1");
     return sanitized.trim();
   },
   validateResponseData: (_response, _guild) => {
