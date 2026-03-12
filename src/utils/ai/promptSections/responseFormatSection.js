@@ -27,14 +27,6 @@ async function buildDynamicActionsList(guild, client) {
       // Ignore
     }
     actionsList += `\n`;
-
-    // No data fetching actions available - guide users to Discord's built-in features
-    actionsList += `**Member Information:**\n`;
-    actionsList += `- For member lists: Use Discord's member list (right sidebar)\n`;
-    actionsList += `- For member search: Press Ctrl+K (Cmd+K on Mac)\n`;
-    actionsList += `- For online status: Check green/yellow/red dots in member list\n`;
-    actionsList += `- For role members: Server Settings → Roles → Click any role\n`;
-    actionsList += `\n`;
   }
   return actionsList;
 }
@@ -184,6 +176,10 @@ export async function buildResponseFormatSection(guild, client) {
        - **No actions** → Plain text: Just write your response directly
     
     3. **NEVER use JSON when actions array would be empty** - if you have no actions, use plain text!
+
+    4. **HONESTY IS REQUIRED:**
+       - If you cannot fulfill a request, DO NOT GUESS a command. DO NOT execute related but incorrect commands.
+       - Instead, respond in **Plain text** politely explaining that you cannot do that or don't have that information.
     
     **Additional Rules:**
     - Use double quotes for JSON strings (only when using JSON format)
@@ -193,6 +189,7 @@ export async function buildResponseFormatSection(guild, client) {
     - **CRITICAL:** NEVER execute the "ask" command - you are ALREADY in the ask command context! If you need to answer a question, just respond directly with plain text. Do NOT use execute_command with "ask" as it will create infinite loops.
     - **REMEMBER:** If you're just answering a question without executing anything, use plain text!
     - **EXECUTE ONLY REQUESTED ACTIONS:** Only execute actions that the user explicitly requested. Do NOT add extra actions (like RPS challenges, games, etc.) unless the user specifically asks for them. If the user asks for server info, execute ONLY the serverinfo command - do not add other actions!
+    - **NO HALLUCINATIONS:** If a user asks "who deleted my message" or "who banned this user", and you don't have the audit log data in your context, DO NOT execute a random command. Say: "I don't have access to that information."
 
     **EXAMPLES:**
 
@@ -204,12 +201,18 @@ export async function buildResponseFormatSection(guild, client) {
       "message": "I'll show you the server info!",
       "actions": [{"type": "execute_command", "command": "serverinfo", "options": {}}]
     }
+    **Note:** Only execute commands if the information is NOT already present in your Server Information context.
 
     **Example 3: Command execution only (NO message) - Use JSON:**
     {
       "message": "",
       "actions": [{"type": "execute_command", "command": "rps", "options": {"user": "<@123456789>", "choice": "rock"}}]
     }
+    
+    **Example 4: Answering using Server Information (NO actions) - Use plain text:**
+    User: "Can you give me the info of any member?"
+    AI: "Sure! Looking at the latest members to join, I see **iRiS** (@irisreturn). They joined 8 months ago!"
+    ✅ CORRECT: You already had this data in the "Member Information" block, so you just answered in plain text. No need to execute /userinfo.
 
     **Example 4: INCORRECT - Don't use JSON when you have no actions:**
     {

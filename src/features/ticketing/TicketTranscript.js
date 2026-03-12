@@ -33,6 +33,13 @@ export class TicketTranscript {
     try {
       const { ticketId, guildId, channel, ticket, format = "html" } = options;
 
+      if (!channel) {
+        throw new Error("Discord channel is missing");
+      }
+      if (!ticketId || !guildId) {
+        throw new Error("Ticket ID and Guild ID are required");
+      }
+
       // Determine max messages based on tier
       const isPro = await this.premiumManager.isFeatureActive(
         guildId,
@@ -193,8 +200,9 @@ export class TicketTranscript {
       username: msg.author?.username || "Unknown",
       displayName: msg.member?.displayName || msg.author?.username || "Unknown",
       avatarUrl:
-        msg.author?.displayAvatarURL({ size: 64 }) ||
-        "https://cdn.discordapp.com/embed/avatars/0.png",
+        (typeof msg.author?.displayAvatarURL === "function"
+          ? msg.author.displayAvatarURL({ size: 64 })
+          : null) || "https://cdn.discordapp.com/embed/avatars/0.png",
       content: msg.cleanContent || msg.content || "",
       embeds:
         msg.embeds?.map(e => ({
@@ -636,6 +644,16 @@ export class TicketTranscript {
     }
 
     return md.trim();
+  }
+
+  /**
+   * Generate text transcript (alias for Markdown)
+   * @param {Array} messages - Formatted messages
+   * @param {Object} ticket - Ticket data
+   * @returns {string} Text content
+   */
+  generateText(messages, ticket) {
+    return this.generateMarkdown(messages, ticket);
   }
 
   /**

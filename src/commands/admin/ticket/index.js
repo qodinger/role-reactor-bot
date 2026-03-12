@@ -103,7 +103,7 @@ export const metadata = {
 
 export const data = new SlashCommandBuilder()
   .setName("ticket")
-  .setDescription("🎫 Manage the ticket support system")
+  .setDescription("Manage the ticket support system")
 
   // Admin commands
   .addSubcommand(sub =>

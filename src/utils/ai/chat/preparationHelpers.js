@@ -102,7 +102,8 @@ export async function detectActionRequest(userMessage, client = null) {
   }
 
   // Check for action-related keywords
-  const actionKeywords = [
+  const dataKeywords = ["members", "roles", "channels"];
+  const directActionKeywords = [
     "command",
     "action",
     "again",
@@ -121,13 +122,20 @@ export async function detectActionRequest(userMessage, client = null) {
     "leaderboard",
     "level",
     "xp",
-    "members",
-    "roles",
-    "channels",
   ];
-  const hasActionKeywords = actionKeywords.some(keyword =>
+
+  const hasDirectActionKeyword = directActionKeywords.some(keyword =>
     userMessageLower.includes(keyword),
   );
+
+  const hasDataKeyword = dataKeywords.some(keyword =>
+    userMessageLower.includes(keyword),
+  );
+
+  // For data keywords like "members", only trigger if it looks like a request (verb + keyword)
+  const isDataRequest =
+    hasDataKeyword &&
+    (startsWithAction || containsActionPattern || isImperative);
 
   // Return true if any indicator suggests an action
   return (
@@ -135,7 +143,8 @@ export async function detectActionRequest(userMessage, client = null) {
     containsActionPattern ||
     isImperative ||
     mentionsCommand ||
-    hasActionKeywords
+    hasDirectActionKeyword ||
+    isDataRequest
   );
 }
 
@@ -205,30 +214,4 @@ export async function prepareSystemContextAndLog(
   }
 
   return systemMessage;
-}
-
-/**
- * Smart member fetch - now guides users to Discord's built-in features instead
- * @param {import('discord.js').Guild} guild - Discord guild
- * @param {string} userMessage - User's message
- * @param {Function} onStatus - Optional status callback
- * @returns {Promise<Object>} Fetch result
- */
-export async function performSmartMemberFetch(
-  guild,
-  userMessage,
-  _onStatus = null,
-) {
-  if (!guild || !userMessage) {
-    return { fetched: false, reason: "No guild or message" };
-  }
-
-  // Member fetching has been removed - guide users to Discord's built-in features
-  logger.debug(
-    `[generateResponse] Member fetching disabled - guiding user to Discord features`,
-  );
-  return {
-    fetched: false,
-    reason: "Member fetching disabled - users guided to Discord's member list",
-  };
 }

@@ -116,6 +116,7 @@ export async function execute(message, client) {
       // Declare streaming variables outside try block for cleanup in catch
       let useStreaming = false;
       let updateTimer = null;
+      let messageDeleted = false;
 
       try {
         const locale = message.guild?.preferredLocale || "en-US";
@@ -192,10 +193,12 @@ export async function execute(message, client) {
               }
             }
           } catch (error) {
+            if (error.code === 10008) messageDeleted = true;
+
             // Ignore edit errors (e.g., message deleted)
             logger.debug(
               "[messageCreate] Failed to update status message:",
-              error,
+              error.code || error.message,
             );
           }
         };
@@ -203,9 +206,6 @@ export async function execute(message, client) {
         if (useStreaming) {
           // Send initial status message
           await updateStatusMessage(AI_STATUS_MESSAGES.THINKING_ABOUT_MESSAGE);
-
-          // Track if message was deleted to prevent further update attempts
-          let messageDeleted = false;
 
           // Throttle message updates to avoid Discord rate limits
           // Discord allows 5 message edits per 5 seconds per channel
@@ -471,21 +471,17 @@ export async function execute(message, client) {
             ? response.commandResponses
             : [];
 
-        // Delete status embed
+        // Unregister status message before finalizing response
         if (replyMessage) {
           try {
-            // Unregister status message before deleting (request is completing)
             const { concurrencyManager } = await import(
               "../utils/ai/concurrencyManager.js"
             );
             concurrencyManager.unregisterStatusMessage(replyMessage.id);
-
-            // Delete the status embed message
-            await replyMessage.delete();
           } catch (error) {
             // Ignore delete errors (message might already be deleted)
             logger.debug(
-              "[messageCreate] Failed to delete status message:",
+              "[messageCreate] Failed to unregister status message:",
               error,
             );
           }
@@ -506,10 +502,38 @@ export async function execute(message, client) {
           }
 
           try {
-            await message.reply(finalReplyText);
+            if (replyMessage && !messageDeleted) {
+              await replyMessage.edit({
+                content: finalReplyText,
+                embeds: [],
+                components: [], // Make sure no cancel buttons are left
+              });
+            } else {
+              await message.reply(finalReplyText);
+            }
           } catch (error) {
+            if (error.code === 10008) messageDeleted = true;
             logger.error(
-              "[messageCreate] Failed to send final response:",
+              "[messageCreate] Failed to send final response via edit:",
+              error,
+            );
+
+            // Fallback: If edit fails, try sending a new reply
+            if (!messageDeleted) {
+              try {
+                await message.reply(finalReplyText);
+              } catch (fallbackError) {
+                // Ignore fallback errors
+              }
+            }
+          }
+        } else if (replyMessage && !messageDeleted) {
+          // If there is no response text to show, delete the status message
+          try {
+            await replyMessage.delete();
+          } catch (error) {
+            logger.debug(
+              "[messageCreate] Failed to delete status message:",
               error,
             );
           }

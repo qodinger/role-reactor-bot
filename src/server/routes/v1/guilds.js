@@ -11,6 +11,7 @@ import {
   apiCancelPremiumFeature,
   apiGetPremiumStatus,
   apiGuildLeaderboard,
+  apiGetPublicLeaderboards,
   apiGetGuildRoleMappings,
   apiDeleteGuildRoleMapping,
   apiDeployRoleReactions,
@@ -46,6 +47,7 @@ router.post("/:guildId/premium/cancel", apiCancelPremiumFeature);
 router.get("/:guildId/premium/status", internalAuth, apiGetPremiumStatus);
 
 // Leaderboard
+router.get("/public-leaderboards", apiGetPublicLeaderboards);
 router.get("/:guildId/leaderboard", apiGuildLeaderboard);
 
 // Analytics

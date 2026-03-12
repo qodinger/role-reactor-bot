@@ -190,10 +190,8 @@ describe("AI System Integration", () => {
         content: "Persistent message",
       });
 
-      // Wait for async storage
-      await new Promise(resolve => {
-        setTimeout(resolve, 100);
-      });
+      // Flush debounced writes before checking storage
+      await conversationManager.flushPendingFileWrites();
 
       // Check storage
       const storedData = mockStorage.get("ai_conversations");
@@ -221,10 +219,8 @@ describe("AI System Integration", () => {
         content: "User message",
       });
 
-      // Wait for async storage
-      await new Promise(resolve => {
-        setTimeout(resolve, 100);
-      });
+      // Flush debounced writes before checking storage
+      await conversationManager.flushPendingFileWrites();
 
       // Check storage - should only have user message
       const storedData = mockStorage.get("ai_conversations");

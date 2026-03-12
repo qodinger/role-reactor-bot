@@ -22,6 +22,11 @@ export class ConversationManager {
     // Track cleanup interval for proper cleanup
     this.cleanupInterval = null;
 
+    // Debounced file writes to avoid rewriting the entire file on every message
+    this.WRITE_DEBOUNCE_MS = 3000; // Flush to disk after 3 seconds of inactivity
+    this.pendingFileWrite = null; // Timer handle for debounced write
+    this.pendingFileData = null; // Accumulated changes waiting to flush
+
     // Configuration from environment variables
     this.useLongTermMemory = process.env.AI_USE_LONG_TERM_MEMORY !== "false";
     // Storage type: "file" (default), "mongodb", or "memory" (no persistence)
@@ -504,14 +509,54 @@ export class ConversationManager {
         lastActivity,
       );
     } else if (this.storageType === "file" && this.storageManager) {
-      const conversationsData =
-        (await this.storageManager.read("ai_conversations")) || {};
+      // Debounced file write: accumulate changes in memory, flush after inactivity
       const conversationKey = this.getConversationKey(userId, guildId);
-      conversationsData[conversationKey] = {
+
+      // Initialize pending data from current file if first write in this batch
+      if (!this.pendingFileData) {
+        this.pendingFileData =
+          (await this.storageManager.read("ai_conversations")) || {};
+      }
+
+      // Update the pending data
+      this.pendingFileData[conversationKey] = {
         messages,
         lastActivity,
       };
-      await this.storageManager.write("ai_conversations", conversationsData);
+
+      // Clear existing debounce timer
+      if (this.pendingFileWrite) {
+        clearTimeout(this.pendingFileWrite);
+      }
+
+      // Schedule flush after debounce period
+      this.pendingFileWrite = setTimeout(() => {
+        this.flushPendingFileWrites().catch(error => {
+          logger.debug("Failed to flush pending file writes:", error);
+        });
+      }, this.WRITE_DEBOUNCE_MS);
+    }
+  }
+
+  /**
+   * Flush pending file writes to disk
+   * Called by debounce timer or on cleanup
+   */
+  async flushPendingFileWrites() {
+    if (!this.pendingFileData || !this.storageManager) {
+      return;
+    }
+
+    try {
+      await this.storageManager.write("ai_conversations", this.pendingFileData);
+      logger.debug(
+        `Flushed ${Object.keys(this.pendingFileData).length} conversation(s) to disk`,
+      );
+    } catch (error) {
+      logger.debug("Failed to flush conversations to disk:", error);
+    } finally {
+      this.pendingFileData = null;
+      this.pendingFileWrite = null;
     }
   }
 
@@ -666,6 +711,11 @@ export class ConversationManager {
     if (this.cleanupInterval) {
       clearInterval(this.cleanupInterval);
       this.cleanupInterval = null;
+    }
+    // Flush any pending file writes on shutdown
+    if (this.pendingFileWrite) {
+      clearTimeout(this.pendingFileWrite);
+      this.flushPendingFileWrites().catch(() => {});
     }
   }
 }

@@ -259,8 +259,7 @@ export async function getDeveloperCommands() {
 
 /**
  * Commands the AI is allowed to execute
- * AI can ONLY execute general commands for safety
- * This is dynamically built from commands in src/commands/general
+ * Dynamically built from general + admin commands (admin commands require permission)
  */
 let ALLOWED_COMMANDS_CACHE = null;
 
@@ -275,15 +274,17 @@ async function buildAllowedCommands(client = null) {
     return ALLOWED_COMMANDS_CACHE;
   }
 
-  // Get dynamically discovered general commands (cached after first call)
+  // Get dynamically discovered commands (cached after first call)
   const generalCommands = await getGeneralCommands();
+  const adminCommands = await getAdminCommands();
+  const allConsideredCommands = [...generalCommands, ...adminCommands];
   const allowedCommands = {};
 
   // Get all commands from client if available
   if (client?.commands) {
     // Process commands in parallel for better performance
     const commandConfigs = await Promise.all(
-      generalCommands.map(async commandName => {
+      allConsideredCommands.map(async commandName => {
         const command = client.commands.get(commandName);
         if (!command || !command.data) return null;
 
@@ -294,6 +295,8 @@ async function buildAllowedCommands(client = null) {
 
         const config = {
           allowed: true,
+          isGeneral: generalCommands.includes(commandName),
+          isAdmin: adminCommands.includes(commandName),
           description: cmdData.description || "No description available",
         };
 
@@ -332,10 +335,12 @@ async function buildAllowedCommands(client = null) {
     }
   } else {
     // Fallback: use discovered list if client not available
-    for (const commandName of generalCommands) {
+    for (const commandName of allConsideredCommands) {
       allowedCommands[commandName] = {
         allowed: true,
-        description: `General command: ${commandName}`,
+        isGeneral: generalCommands.includes(commandName),
+        isAdmin: adminCommands.includes(commandName),
+        description: `Command: ${commandName}`,
       };
     }
   }

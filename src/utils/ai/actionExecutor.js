@@ -4,38 +4,111 @@ import {
   actionRequiresGuild,
   validateActionOptions,
 } from "./actionRegistry.js";
+import { AI_AUDIT_LOGGING_ENABLED } from "./constants.js";
 
 const logger = getLogger();
 
 // Simple inline data fetcher (replaces deleted dataFetcher)
 const dataFetcher = {
   getMemberInfo: async (guild, options) => {
-    const member = options.user_id
-      ? guild.members.cache.get(options.user_id)
-      : guild.members.cache.find(m => m.user.username === options.username);
-    if (!member) return null;
-    return `${member.user.username} (${member.user.id}) - Joined: ${member.joinedAt?.toDateString() || "Unknown"}`;
+    let member = null;
+    if (options.user_id) {
+      member = guild.members.cache.get(options.user_id);
+      if (!member) {
+        try {
+          member = await guild.members.fetch(options.user_id);
+        } catch (e) {}
+      }
+    } else if (options.username) {
+      member = guild.members.cache.find(
+        m => m.user.username.toLowerCase() === options.username.toLowerCase(),
+      );
+      if (!member) {
+        try {
+          const members = await guild.members.fetch({
+            query: options.username,
+            limit: 1,
+          });
+          member = members.first();
+        } catch (e) {}
+      }
+    }
+    if (!member) return `Member not found.`;
+    const roles = member.roles.cache
+      .filter(r => r.name !== "@everyone")
+      .map(r => r.name);
+    return `User: ${member.user.username} (${member.user.id})\nJoined: ${member.joinedAt?.toDateString() || "Unknown"}\nRoles: ${roles.join(", ") || "None"}`;
   },
   getRoleInfo: async (guild, options) => {
-    const role = options.role_id
-      ? guild.roles.cache.get(options.role_id)
-      : guild.roles.cache.find(r => r.name === options.role_name);
-    if (!role) return null;
-    return `${role.name} (${role.id}) - Members: ${role.members.size}`;
+    let role = null;
+    if (options.role_id) {
+      role = guild.roles.cache.get(options.role_id);
+      if (!role) {
+        try {
+          role = await guild.roles.fetch(options.role_id);
+        } catch (e) {}
+      }
+    } else if (options.role_name) {
+      role = guild.roles.cache.find(
+        r => r.name.toLowerCase() === options.role_name.toLowerCase(),
+      );
+      if (!role) {
+        try {
+          await guild.roles.fetch();
+          role = guild.roles.cache.find(
+            r => r.name.toLowerCase() === options.role_name.toLowerCase(),
+          );
+        } catch (e) {}
+      }
+    }
+    if (!role) return `Role not found.`;
+    return `Role: ${role.name} (${role.id})\nColor: ${role.hexColor}\nMembers: ${role.members.size}\nPosition: ${role.position}\nMentionable: ${role.mentionable}\nHoisted: ${role.hoist}`;
   },
   getChannelInfo: async (guild, options) => {
-    const channel = options.channel_id
-      ? guild.channels.cache.get(options.channel_id)
-      : guild.channels.cache.find(c => c.name === options.channel_name);
-    if (!channel) return null;
-    return `${channel.name} (${channel.id}) - Type: ${channel.type}`;
+    let channel = null;
+    if (options.channel_id) {
+      channel = guild.channels.cache.get(options.channel_id);
+      if (!channel) {
+        try {
+          channel = await guild.channels.fetch(options.channel_id);
+        } catch (e) {}
+      }
+    } else if (options.channel_name) {
+      channel = guild.channels.cache.find(
+        c => c.name.toLowerCase() === options.channel_name.toLowerCase(),
+      );
+      if (!channel) {
+        try {
+          await guild.channels.fetch();
+          channel = guild.channels.cache.find(
+            c => c.name.toLowerCase() === options.channel_name.toLowerCase(),
+          );
+        } catch (e) {}
+      }
+    }
+    if (!channel) return `Channel not found.`;
+    return `Channel: #${channel.name} (${channel.id})\nType: ${channel.type}\nCategory: ${channel.parent?.name || "None"}\nPosition: ${channel.position}`;
   },
   searchMembersByRole: async (guild, options) => {
-    const role = options.role_id
-      ? guild.roles.cache.get(options.role_id)
-      : guild.roles.cache.find(r => r.name === options.role_name);
+    let role = null;
+    if (options.role_id) {
+      role = guild.roles.cache.get(options.role_id);
+      if (!role) {
+        try {
+          role = await guild.roles.fetch(options.role_id);
+        } catch (e) {}
+      }
+    } else if (options.role_name) {
+      role = guild.roles.cache.find(
+        r => r.name.toLowerCase() === options.role_name.toLowerCase(),
+      );
+    }
     if (!role) return [];
-    return role.members.map(m => m.user.username);
+    return role.members.map(m => ({
+      username: m.user.username,
+      id: m.user.id,
+      joinedAt: m.joinedAt?.toDateString() || "Unknown",
+    }));
   },
   handleDynamicDataFetching: async (actionType, guild, _client) => {
     // Simple implementation for dynamic data fetching
@@ -100,22 +173,9 @@ export class ActionExecutor {
     // Command not allowed
     if (
       errorLower.includes("not allowed") ||
-      errorLower.includes("only execute general")
+      errorLower.includes("do not have permission")
     ) {
-      // Dynamically discover general commands instead of hardcoding
-      try {
-        const { getGeneralCommands } = await import(
-          "./commandExecutor/commandDiscovery.js"
-        );
-        const generalCommands = await getGeneralCommands();
-        return `This command is not in the general commands list. AI can only execute commands from /src/commands/general. Available general commands: ${generalCommands.join(", ")}. If you need to use "${command}", it's likely an admin or developer command that must be run manually by a user.`;
-      } catch (error) {
-        logger.error(
-          "Failed to get general commands for error guidance:",
-          error,
-        );
-        return `This command is not in the general commands list. AI can only execute commands from /src/commands/general. Check the available commands using /help.`;
-      }
+      return `This command is not allowed for AI execution. It may be on the blocklist, or the requesting user lacks permission. Check the user's allowed commands list in the error message.`;
     }
 
     // Subcommand not allowed
@@ -146,6 +206,39 @@ export class ActionExecutor {
 
     // Generic guidance
     return `Review the command structure and options. Ensure all required options are provided with correct types and values.`;
+  }
+
+  /**
+   * Log an AI action for audit purposes
+   * @param {string} actionType - The type of action
+   * @param {Object} action - Full action object
+   * @param {import('discord.js').User} user - User who triggered the action
+   * @param {import('discord.js').Guild} guild - Guild context
+   * @param {string} result - Result description
+   * @param {boolean} success - Whether the action succeeded
+   */
+  static logAuditAction(actionType, action, user, guild, result, success) {
+    if (!AI_AUDIT_LOGGING_ENABLED) return;
+
+    const auditEntry = {
+      timestamp: new Date().toISOString(),
+      actionType,
+      command: action.command || null,
+      subcommand: action.subcommand || null,
+      options: action.options || null,
+      userId: user?.id || "unknown",
+      username: user?.username || "unknown",
+      guildId: guild?.id || "unknown",
+      guildName: guild?.name || "unknown",
+      result: result.substring(0, 200), // Truncate for log safety
+      success,
+    };
+
+    if (success) {
+      logger.info(`[AI_AUDIT] ${JSON.stringify(auditEntry)}`);
+    } else {
+      logger.warn(`[AI_AUDIT] ${JSON.stringify(auditEntry)}`);
+    }
   }
 
   /**
@@ -336,7 +429,10 @@ export class ActionExecutor {
               );
               if (members && members.length > 0) {
                 const memberList = members
-                  .map((name, idx) => `${idx + 1}. ${name}`)
+                  .map(
+                    (m, idx) =>
+                      `${idx + 1}. ${m.username} (${m.id}) - Joined: ${m.joinedAt}`,
+                  )
                   .join("\n");
                 results.push(
                   `Found: ${members.length} member(s) with that role:\n${memberList}`,
@@ -397,12 +493,20 @@ export class ActionExecutor {
                 });
                 if (result.success) {
                   // Command has already sent its response directly to the channel
-                  // We just need to mark it as executed for the AI context
                   logger.info(
                     `[executeStructuredActions] Command ${action.command} executed and sent response to channel`,
                   );
-                  results.push(
-                    `Command Result: Command ${action.command} executed successfully`,
+                  const resultMsg = `Command Result: /${commandName}${subcommand ? ` ${subcommand}` : ""} executed successfully`;
+                  results.push(resultMsg);
+
+                  // Audit log
+                  ActionExecutor.logAuditAction(
+                    action.type,
+                    action,
+                    user,
+                    guild,
+                    resultMsg,
+                    true,
                   );
                 } else {
                   // Include detailed error information for AI to learn from
@@ -411,8 +515,17 @@ export class ActionExecutor {
                     errorMsg,
                     action,
                   );
-                  results.push(
-                    `Command Error: Failed to execute command "${action.command}"${action.subcommand ? ` with subcommand "${action.subcommand}"` : ""}. Error: ${errorMsg}. ${guidance}`,
+                  const resultMsg = `Command Error: Failed to execute command "${action.command}"${action.subcommand ? ` with subcommand "${action.subcommand}"` : ""}. Error: ${errorMsg}. ${guidance}`;
+                  results.push(resultMsg);
+
+                  // Audit log
+                  ActionExecutor.logAuditAction(
+                    action.type,
+                    action,
+                    user,
+                    guild,
+                    resultMsg,
+                    false,
                   );
                 }
               } catch (error) {
@@ -422,18 +535,26 @@ export class ActionExecutor {
                   errorMsg,
                   action,
                 );
-                results.push(
-                  `Command Error: Error executing command "${action.command}"${action.subcommand ? ` with subcommand "${action.subcommand}"` : ""}. Error: ${errorMsg}. ${guidance}`,
+                const resultMsg = `Command Error: Error executing command "${action.command}"${action.subcommand ? ` with subcommand "${action.subcommand}"` : ""}. Error: ${errorMsg}. ${guidance}`;
+                results.push(resultMsg);
+
+                // Audit log
+                ActionExecutor.logAuditAction(
+                  action.type,
+                  action,
+                  user,
+                  guild,
+                  resultMsg,
+                  false,
                 );
               }
             }
             break;
 
-          // Note: Admin/moderation/guild management actions are not in the action registry
-          // These actions (send_message, add_role, remove_role, delete_message, pin_message,
-          // unpin_message, create_channel, delete_channel, modify_channel, kick_member,
-          // ban_member, timeout_member, warn_member) are not available because anyone can use the AI
-          // They must be performed manually by administrators using bot commands
+          // Note: Direct Discord API actions (send_message, add_role, kick_member, etc.)
+          // are NOT in the action registry. For safety, the AI executes server management
+          // through existing bot commands via admin-delegated permissions instead.
+          // Destructive commands (moderation) are blocked via AI_ADMIN_COMMAND_BLOCKLIST.
 
           default:
             // Check if this is a dynamic data fetching action

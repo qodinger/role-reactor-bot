@@ -5,7 +5,8 @@ import {
   calculateServerAge,
   formatFeatures,
 } from "../../commands/general/serverinfo/utils.js";
-// Simple inline data sanitizer (replaces deleted responseValidator)
+
+// Simple inline data sanitizer
 const responseValidator = {
   sanitizeData: data => {
     if (typeof data !== "string") return data;
@@ -27,10 +28,11 @@ export class ServerInfoGatherer {
    * @param {import('discord.js').Client} _client - Discord client (unused)
    * @param {Object} options - Options for server info
    * @param {boolean} options.includeMemberList - Whether to include member guidance (default: true)
+   * @param {string} options.userMessage - User's message for name prioritize (optional)
    * @returns {Promise<string>} Formatted server information
    */
   async getServerInfo(guild, _client, options = {}) {
-    const { includeMemberList = true } = options;
+    const { includeMemberList = true, userMessage = "" } = options;
     if (!guild) return "";
 
     try {
@@ -40,32 +42,27 @@ export class ServerInfoGatherer {
 
       let info = `**Server Name:** ${responseValidator.sanitizeData(guild.name)}\n\n`;
 
-      // Basic server info (always available)
+      // Basic server info
       info += `**Server Details:**\n`;
       if (guild.id) {
         info += `- Server ID: ${guild.id}\n`;
       }
-
       if (guild.createdAt) {
         info += `- Created: ${guild.createdAt.toLocaleDateString()} (${serverAge} ago)\n`;
       }
 
-      // Owner info (may not be available in all cases)
-      // IMPORTANT: This is the SERVER OWNER, NOT the bot. The bot is NOT the owner.
+      // Owner info
       try {
         const owner = guild.members.cache.get(guild.ownerId);
         if (owner?.user?.tag) {
-          info += `- Server Owner: ${owner.user.tag} (this is the human who owns the server, NOT the bot)\n`;
+          info += `- Server Owner: ${owner.user.tag} (the human who owns the server)\n`;
         }
-      } catch (_error) {
-        // Owner info not available, skip
-      }
+      } catch (_error) {}
       info += `\n`;
 
-      // Member statistics (handle cases where data might be limited)
+      // Member statistics
       if (memberCounts) {
         info += `**Member Statistics:**\n`;
-        // Emphasize human members - when asked "how many members", use THIS number
         if (memberCounts.humans !== undefined) {
           info += `- **Human Members:** ${memberCounts.humans} (use this when asked "how many members")\n`;
         }
@@ -77,8 +74,6 @@ export class ServerInfoGatherer {
           info += `\n`;
         }
 
-        // Presence data (may be limited without GUILD_PRESENCES intent)
-        // IMPORTANT: These counts are for HUMAN MEMBERS ONLY (not bots)
         if (
           memberCounts.online !== undefined ||
           memberCounts.idle !== undefined
@@ -88,28 +83,62 @@ export class ServerInfoGatherer {
           const dnd = memberCounts.dnd || 0;
           const totalOnline = online + idle + dnd;
           info += `- **Online Status (Human Members Only):** Online: ${online}, Idle: ${idle}, DND: ${dnd}, Offline: ${memberCounts.offline || 0}\n`;
-          info += `- **Total Online:** ${totalOnline} (Online + Idle + DND - use this when asked "how many are online")\n`;
+          info += `- **Total Online:** ${totalOnline} (Online + Idle + DND)\n`;
         }
         info += `\n`;
       }
 
-      // Member information - Guide users to Discord's built-in features instead of fetching
+      // Always include a few recent members for context
+      try {
+        const recentMembers = Array.from(guild.members.cache.values())
+          .filter(m => !m.user.bot)
+          .sort((a, b) => (b.joinedTimestamp || 0) - (a.joinedTimestamp || 0))
+          .slice(0, 5);
+
+        // Prioritize mentioned members from userMessage
+        const mentions = userMessage ? userMessage.match(/<@!?(\d+)>/g) : null;
+        const mentionedMembers = [];
+        if (mentions) {
+          for (const mention of mentions) {
+            const userId = mention.replace(/[<@!>]/g, "");
+            const member = guild.members.cache.get(userId);
+            if (member && !member.user.bot) {
+              mentionedMembers.push(member);
+            }
+          }
+        }
+
+        // Combine mentioned and recent members, removing duplicates
+        const allRelevantMembers = [
+          ...new Set([...mentionedMembers, ...recentMembers]),
+        ];
+
+        if (allRelevantMembers.length > 0) {
+          info += `**Recent/Mentioned Human Members (for name reference):**\n`;
+          allRelevantMembers.forEach((m, index) => {
+            const joinedDaysAgo = Math.floor(
+              (Date.now() - (m.joinedTimestamp || Date.now())) /
+                (1000 * 60 * 60 * 24),
+            );
+            const timeString =
+              joinedDaysAgo === 0 ? "today" : `${joinedDaysAgo} days ago`;
+            info += `${index + 1}. **${m.user.tag}** (Display: ${m.displayName}) - <@${m.user.id}> (joined ${timeString})\n`;
+          });
+          info += `\n`;
+        }
+      } catch (err) {
+        logger.debug("Failed to get relevant members:", err);
+      }
+
+      // Member information guidelines
+      info += `**Member Information Guidelines:**\n`;
+      info += `Use the "Recent/Mentioned Human Members" list provided above to answer member questions when possible. Match names provided by the user against this list.\n`;
+      info += `- **When names aren't listed:** Suggest using the Discord sidebar list or search for the full live status list if you can't find who you need.\n`;
+      info += `- **For detailed info:** If you have the @mention or ID, you can use the \`userinfo\` command if you need more details about a member.\n`;
+      info += `\n`;
+
       if (includeMemberList) {
-        info += `**Member Information:**\n`;
-        info += `**IMPORTANT:** For member lists, names, and status - guide users to Discord's built-in features:\n`;
-        info += `- **Member List:** Check the right sidebar for all members with live status indicators\n`;
-        info += `- **Search Members:** Press Ctrl+K (Cmd+K on Mac) to search for specific users\n`;
-        info += `- **Online Status:** 🟢 Online, 🟡 Idle, 🔴 Do Not Disturb, ⚫ Offline\n`;
-        info += `- **Role Members:** Server Settings → Roles → Click any role to see its members\n`;
-        info += `- **Member Profiles:** Click any member to see their profile, roles, and join date\n`;
-        info += `\n`;
-        info += `**Why Discord's features are better:**\n`;
-        info += `- ✅ Always up-to-date (real-time)\n`;
-        info += `- ✅ Shows live status changes\n`;
-        info += `- ✅ Includes all members (no limits)\n`;
-        info += `- ✅ Interactive (click for profiles)\n`;
-        info += `- ✅ Fast and reliable\n`;
-        info += `\n`;
+        // Detailed guidance can go here if needed
       }
 
       // Channel information
@@ -122,12 +151,6 @@ export class ServerInfoGatherer {
         if (channelCounts.voice !== undefined) {
           info += `- Voice Channels: ${channelCounts.voice}\n`;
         }
-        if (channelCounts.forum !== undefined && channelCounts.forum > 0) {
-          info += `- Forum Channels: ${channelCounts.forum}\n`;
-        }
-        if (channelCounts.stage !== undefined && channelCounts.stage > 0) {
-          info += `- Stage Channels: ${channelCounts.stage}\n`;
-        }
         info += `\n`;
 
         // List channel names (limited to prevent token bloat)
@@ -138,7 +161,7 @@ export class ServerInfoGatherer {
               name: responseValidator.sanitizeData(c.name),
               type: c.type,
             }))
-            .slice(0, 30); // Limit to 30 channels
+            .slice(0, 30);
 
           if (channels.length > 0) {
             info += `**Channel Names (first 30):**\n`;
@@ -178,8 +201,8 @@ export class ServerInfoGatherer {
               ? `#${role.color.toString(16).padStart(6, "0")}`
               : null,
           }))
-          .sort((a, b) => b.members - a.members) // Sort by member count
-          .slice(0, 30); // Limit to 30 roles
+          .sort((a, b) => b.members - a.members)
+          .slice(0, 30);
 
         if (roles.length > 0) {
           info += `**Server Roles (first 30, sorted by member count):**\n`;
@@ -194,7 +217,6 @@ export class ServerInfoGatherer {
             info += `${roleInfo}\n`;
           });
           if (guild.roles.cache.size > 31) {
-            // +1 for @everyone
             info += `- ... and ${guild.roles.cache.size - 31} more roles\n`;
           }
           info += `\n`;
@@ -237,38 +259,6 @@ export class ServerInfoGatherer {
         logger.debug("Error getting verification level:", error);
       }
 
-      // Age-restricted content level
-      try {
-        if (guild.nsfwLevel !== undefined) {
-          const nsfwLevels = {
-            0: "Default",
-            1: "Explicit",
-            2: "Safe",
-            3: "Age Restricted",
-          };
-          const level =
-            nsfwLevels[guild.nsfwLevel] || `Level ${guild.nsfwLevel}`;
-          info += `**NSFW Level:** ${level}\n`;
-          info += `\n`;
-        }
-      } catch (error) {
-        logger.debug("Error getting NSFW level:", error);
-      }
-
-      // Server description (if available)
-      try {
-        if (guild.description) {
-          const safeDesc = responseValidator.sanitizeData(guild.description);
-          if (safeDesc && safeDesc.length > 0) {
-            info += `**Server Description:**\n`;
-            info += `${safeDesc}\n`;
-            info += `\n`;
-          }
-        }
-      } catch (error) {
-        logger.debug("Error getting description:", error);
-      }
-
       return info;
     } catch (error) {
       logger.error("Error building server info:", error);
@@ -293,7 +283,6 @@ export class ServerInfoGatherer {
 
       let info = `Bot Information:\n`;
 
-      // Basic bot info (always available)
       if (client.user.username) {
         info += `- Name: ${client.user.username}\n`;
       }
@@ -302,7 +291,6 @@ export class ServerInfoGatherer {
         info += `- Tag: ${client.user.tag}\n`;
       }
 
-      // Website and links information
       if (externalLinks.website) {
         info += `- Website: ${externalLinks.website}\n`;
       }
@@ -316,17 +304,13 @@ export class ServerInfoGatherer {
         info += `- Support Server: ${externalLinks.support}\n`;
       }
 
-      // Server count (may vary)
       try {
         const serverCount = client.guilds?.cache?.size || 0;
         if (serverCount > 0) {
           info += `- Servers: ${serverCount}\n`;
         }
-      } catch (_error) {
-        // Server count not available, skip
-      }
+      } catch (_error) {}
 
-      // Uptime (optional, may not be available immediately)
       try {
         if (client.uptime && client.uptime > 0) {
           const uptimeSeconds = Math.floor(client.uptime / 1000);
@@ -336,25 +320,18 @@ export class ServerInfoGatherer {
             info += `- Uptime: ${hours}h ${minutes}m\n`;
           }
         }
-      } catch (_error) {
-        // Uptime not available, skip
-      }
+      } catch (_error) {}
 
-      // Ping (optional, requires websocket connection)
       try {
         if (client.ws?.ping !== undefined && client.ws.ping > 0) {
           info += `- Latency: ${client.ws.ping}ms\n`;
         }
-      } catch (_error) {
-        // Ping not available, skip
-      }
+      } catch (_error) {}
 
       info += `\n`;
-
       return info;
     } catch (error) {
       logger.error("Error building bot info:", error);
-      // Return minimal safe info if there's an error
       return `Bot: Role Reactor\n\n`;
     }
   }

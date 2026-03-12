@@ -2,28 +2,18 @@ import { actionExecutor } from "../actionExecutor.js";
 import { actionTriggersReQuery } from "../actionRegistry.js";
 import { systemPromptBuilder } from "../systemPromptBuilder.js";
 import { conversationManager } from "../conversationManager.js";
-import { FOLLOW_UP_QUERY_TIMEOUT } from "../constants.js";
+import {
+  FOLLOW_UP_QUERY_TIMEOUT,
+  MAX_ACTION_LOOP_DEPTH,
+} from "../constants.js";
 import { getLogger } from "../../logger.js";
-// Simple inline getPrompt function (replaces deleted prompts/index.js)
-const getPrompt = async (category, promptName, variables = {}) => {
-  if (category === "chat" && promptName === "followUpTemplate") {
-    // Simple follow-up template
-    let template =
-      "I understand you'd like to continue our conversation. How can I help you further?";
-    // Simple variable substitution
-    for (const [key, value] of Object.entries(variables)) {
-      template = template.replace(new RegExp(`{${key}}`, "g"), value);
-    }
-    return template;
-  }
-  return "How can I help you?";
-};
+import { followUpTemplate } from "../../../config/prompts/chat/responses.js";
 
 const logger = getLogger();
 
-// Follow-up prompt template (loaded dynamically with caching)
-async function getFollowUpPromptTemplate(variables = {}) {
-  return await getPrompt("chat", "followUpTemplate", variables);
+// Follow-up prompt template (from config/prompts system)
+async function getFollowUpPromptTemplate() {
+  return followUpTemplate;
 }
 
 /**
@@ -189,8 +179,16 @@ export async function executeReQuery(
     });
   }
 
-  // Add user message and AI's previous response
-  updatedMessages.push({ role: "user", content: userMessage });
+  // Add user message if not already present in history
+  const lastHistoryMessage = updatedHistory[updatedHistory.length - 1];
+  if (
+    lastHistoryMessage?.content !== userMessage ||
+    lastHistoryMessage?.role !== "user"
+  ) {
+    updatedMessages.push({ role: "user", content: userMessage });
+  }
+
+  // Add AI's previous response (containing the actions)
   updatedMessages.push({
     role: "assistant",
     content: finalResponse,
@@ -199,13 +197,34 @@ export async function executeReQuery(
   // Build follow-up prompt with action results
   let followUpPrompt = await getFollowUpPromptTemplate();
   if (actionResults && actionResults.length > 0) {
-    const errorResults = actionResults.filter(r => r.startsWith("Error:"));
-    const successResults = actionResults.filter(r => r.startsWith("Success:"));
+    const errorResults = actionResults.filter(
+      r =>
+        r.startsWith("Error:") ||
+        r.startsWith("Command Error:") ||
+        r.includes("Failed to execute") ||
+        r.includes("Cannot"),
+    );
+    const successResults = actionResults.filter(
+      r =>
+        r.startsWith("Success:") ||
+        r.startsWith("Command Result:") ||
+        (!errorResults.includes(r) && r.includes("successfully")),
+    );
+    const dataResults = actionResults.filter(
+      r =>
+        !errorResults.includes(r) &&
+        !successResults.includes(r) &&
+        (r.startsWith("Data:") || r.startsWith("Found:")),
+    );
 
     if (errorResults.length > 0) {
       followUpPrompt += `\n\n**IMPORTANT - Action Results (Errors Occurred):**\n${errorResults.map(r => `- ${r}`).join("\n")}\n\n**You MUST inform the user about these errors.** Explain what went wrong and what data is available (if any).`;
     } else if (successResults.length > 0) {
       followUpPrompt += `\n\n**Action Results (Success):**\n${successResults.map(r => `- ${r}`).join("\n")}\n\n**You can mention this success to the user if relevant.**`;
+    }
+
+    if (dataResults.length > 0) {
+      followUpPrompt += `\n\n**Data Retrieved:**\n${dataResults.map(r => `- ${r}`).join("\n")}\n\n**Incorporate this information cleanly into your answer.**`;
     }
   }
 
@@ -265,7 +284,7 @@ export async function executeReQuery(
 
     if (followUpReQueryActions.length > 0) {
       logger.warn(
-        `[generateResponse] ⚠️ Re-query response contains actions that would trigger another re-query (${followUpReQueryActions.map(a => a.type).join(", ")}). Ignoring to prevent infinite loops. Maximum 2 API calls per request.`,
+        `[generateResponse] ⚠️ Re-query response contains actions that would trigger another re-query (${followUpReQueryActions.map(a => a.type).join(", ")}). Ignoring to prevent infinite loops. Max depth: ${MAX_ACTION_LOOP_DEPTH}.`,
       );
     }
 

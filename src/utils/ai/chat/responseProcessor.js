@@ -10,11 +10,22 @@ const jsonParser = {
   },
 };
 
-// Simple inline response validator (replaces deleted responseValidator)
+// Response validator - sanitizes dangerous patterns while preserving Discord formatting
 const responseValidator = {
   sanitizeData: data => {
     if (typeof data !== "string") return data;
-    return data.replace(/[<>@#&]/g, "").trim();
+    // Only strip genuinely dangerous patterns:
+    // - @everyone/@here injection attempts
+    // - Raw HTML tags (not Discord mentions like <@123> or <#456>)
+    let sanitized = data;
+    // Prevent @everyone/@here mentions
+    sanitized = sanitized.replace(/@(everyone|here)/gi, "@ $1");
+    // Strip raw HTML tags but preserve Discord mention formatting (<@id>, <#id>, <@&id>, <:emoji:id>)
+    sanitized = sanitized.replace(
+      /<(?![@#:!][\d:a-zA-Z_])([a-zA-Z][^>]*?)>/g,
+      "",
+    );
+    return sanitized.trim();
   },
   validateResponseData: (_response, _guild) => {
     return { valid: true, warnings: [] };

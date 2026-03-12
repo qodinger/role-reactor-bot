@@ -1,10 +1,12 @@
 import dedent from "dedent";
 import { getLogger } from "../logger.js";
-// Simple inline response validator (replaces deleted responseValidator)
+// Response validator - sanitizes dangerous patterns while preserving Discord formatting
 const responseValidator = {
   sanitizeData: data => {
     if (typeof data !== "string") return data;
-    return data.replace(/[<>@#&]/g, "").trim();
+    // Prevent @everyone/@here injection
+    let sanitized = data.replace(/@(everyone|here)/gi, "@ $1");
+    return sanitized.trim();
   },
   validateResponseData: (_response, _guild) => {
     return { valid: true, warnings: [] };
@@ -105,7 +107,39 @@ export class SystemPromptBuilder {
     options = {},
   ) {
     const { forceIncludeMemberList = false } = options;
-    const cacheKey = guild ? `guild_${guild.id}` : `dm_global`;
+
+    // Determine user permissions for caching and prompt injection
+    let isAdminUser = false;
+    let isModeratorUser = false;
+
+    if (requester && guild) {
+      try {
+        const member = guild.members.cache.get(requester.id);
+        if (member) {
+          isAdminUser =
+            member.permissions.has("Administrator") ||
+            member.permissions.has("ManageGuild");
+          isModeratorUser =
+            member.permissions.has("ManageMessages") ||
+            member.permissions.has("KickMembers") ||
+            member.permissions.has("BanMembers");
+        }
+      } catch (e) {
+        logger.debug(
+          "[SystemPromptBuilder] Failed to check user permissions:",
+          e,
+        );
+      }
+    }
+
+    // Role-based cache key extension to separate prompts for different permission levels
+    let cacheRoleModifier = "";
+    if (isAdminUser) cacheRoleModifier = "_admin";
+    else if (isModeratorUser) cacheRoleModifier = "_mod";
+
+    const cacheKey = guild
+      ? `guild_${guild.id}${cacheRoleModifier}`
+      : `dm_global`;
     const cached = this.systemMessageCache.get(cacheKey);
 
     // Check cache (5 minutes timeout for command updates)
@@ -124,10 +158,14 @@ export class SystemPromptBuilder {
     const needsMemberList =
       forceIncludeMemberList ||
       (userMessage &&
-        (userMessage.toLowerCase().includes("member") ||
+        (/<@!?\d+>/.test(userMessage) ||
+          userMessage.toLowerCase().includes("member") ||
           userMessage.toLowerCase().includes("who") ||
           userMessage.toLowerCase().includes("list") ||
           userMessage.toLowerCase().includes("people") ||
+          userMessage.toLowerCase().includes("is ") ||
+          userMessage.toLowerCase().includes("was ") ||
+          userMessage.toLowerCase().includes("whose") ||
           userMessage.toLowerCase().includes("users") ||
           userMessage.toLowerCase().includes("offline") ||
           userMessage.toLowerCase().includes("online") ||
@@ -145,6 +183,7 @@ export class SystemPromptBuilder {
     const serverInfo = guild
       ? await serverInfoGatherer.getServerInfo(guild, client, {
           includeMemberList: needsMemberList,
+          userMessage: userMessage,
         })
       : dedent`
         ## DM Context
@@ -222,6 +261,39 @@ export class SystemPromptBuilder {
         - **Mention:** <@${requester.id}>
 
       `;
+
+      // Permission-aware context: adjust AI behavior for admins vs members
+      if (guild) {
+        if (isAdminUser) {
+          context += dedent`
+            ## Conversation Mode: Administrator
+            - This user is a **server administrator**
+            - Prioritize brevity, efficiency, and direct answers
+            - You may provide server statistics, configuration guidance, and moderation insights
+            - You may mention admin-level commands and explain their usage
+            - Keep a professional, concise tone
+
+          `;
+        } else if (isModeratorUser) {
+          context += dedent`
+            ## Conversation Mode: Moderator
+            - This user is a **server moderator**
+            - You may assist with moderation-related queries
+            - Provide guidance on moderation tools and commands
+            - Be helpful and informative about community management
+
+          `;
+        } else {
+          context += dedent`
+            ## Conversation Mode: Member
+            - This user is a **regular server member**
+            - Focus on community features, fun commands, and general help
+            - Do not expose admin-only server data or internal configurations
+            - Be friendly, engaging, and helpful
+
+          `;
+        }
+      }
     }
 
     if (guild) {
@@ -240,7 +312,7 @@ export class SystemPromptBuilder {
 
     // Available Commands (on-demand injection)
     // This includes ALL commands (general, admin, developer) for information purposes
-    // But AI can only EXECUTE general commands
+    // But AI can only EXECUTE commands based on the user's permission level
     // Always include ALL commands so AI has complete understanding
     const botCommands = commandDiscoverer.getBotCommands(client);
     if (userMessage && botCommands.length > 0) {
@@ -250,7 +322,7 @@ export class SystemPromptBuilder {
       );
       if (mentioned.length > 0) {
         context += `## Available Commands (Relevant to User's Question)\n`;
-        context += `**Note:** This list includes ALL commands for information purposes. You can only EXECUTE general commands (see restrictions below).\n`;
+        context += `**Note:** This list includes ALL commands for information purposes. You can only execute commands allowed for the current user's permission level (see restrictions below).\n`;
         context += `**IMPORTANT:** All options, subcommands, and details are shown below. Use this information to understand exactly how each command works.\n\n`;
         context += commandDiscoverer.getCommandDetails(
           mentioned,
@@ -261,28 +333,33 @@ export class SystemPromptBuilder {
         context += `\n`;
       }
 
-      // Phase 2: Command Suggestions
-      // Suggest relevant commands based on user message
-      try {
-        const suggestions = await commandSuggester.suggestCommands(
-          userMessage,
-          client,
-          3,
-        );
-        if (suggestions.length > 0) {
-          const suggestionText =
-            commandSuggester.formatSuggestions(suggestions);
-          context += dedent`
-            ## Command Suggestions
-            ${suggestionText}
-            
-            **Note:** These are suggestions based on the user's message. You can mention these commands if they seem relevant, but don't force them if the user's intent is clear.
-            
-          `;
+      // Command suggestions: only inject when message is actually about commands
+      // Skip for casual chat to save tokens
+      if (mentioned.length > 0 || needsCommandList) {
+        try {
+          const suggestions = await commandSuggester.suggestCommands(
+            userMessage,
+            client,
+            3,
+          );
+          if (suggestions.length > 0) {
+            const suggestionText =
+              commandSuggester.formatSuggestions(suggestions);
+            context += dedent`
+              ## Command Suggestions
+              ${suggestionText}
+              
+              **Note:** These are suggestions based on the user's message. You can mention these commands if they seem relevant, but don't force them if the user's intent is clear.
+              
+            `;
+          }
+        } catch (error) {
+          logger.debug(
+            "[SystemPromptBuilder] Command suggestion failed:",
+            error,
+          );
+          // Continue without suggestions
         }
-      } catch (error) {
-        logger.debug("[SystemPromptBuilder] Command suggestion failed:", error);
-        // Continue without suggestions
       }
     }
 
@@ -297,6 +374,7 @@ export class SystemPromptBuilder {
     // Load chat prompts once for reuse
     const chatPrompts = await getChatPrompts();
 
+    // We already computed isAdminUser earlier
     // Get lists of commands dynamically (discovered from directory structure)
     try {
       const { getGeneralCommands, getAdminCommands, getDeveloperCommands } =
@@ -307,30 +385,54 @@ export class SystemPromptBuilder {
           getAdminCommands(),
           getDeveloperCommands(),
         ]);
-      capabilitiesSection +=
-        chatPrompts.commandExecutionRestriction ||
-        dedent`
-        **Command Execution Restriction:**
-        - You can ONLY EXECUTE commands from the "general" category (safe, user-facing commands)
-        - Admin commands CANNOT be executed by AI (these are server management commands)
-        - Developer commands CANNOT be executed by AI (these are bot maintenance commands)
-        - This restriction prevents potential issues and keeps the bot safe
 
-        **📚 Providing Information About Commands:**
-        - You CAN provide information, help, and guidance about ALL commands (general, admin, developer)
-        - You CAN explain how to use admin/developer commands
-        - You CAN show command syntax, options, and examples
-        - You CANNOT execute admin/developer commands - users must run them manually
-        - When users ask about admin/developer commands, provide helpful information but remind them they need to run the command themselves
-      `;
-      if (generalCommandNames.length > 0) {
-        capabilitiesSection += `- **Executable general commands:** ${generalCommandNames.map(c => `/${c}`).join(", ")}\n`;
-      }
-      if (adminCommandNames.length > 0) {
-        capabilitiesSection += `- **Admin commands (information only, cannot execute):** ${adminCommandNames.map(c => `/${c}`).join(", ")}\n`;
-      }
-      if (developerCommandNames.length > 0) {
-        capabilitiesSection += `- **Developer commands (information only, cannot execute):** ${developerCommandNames.map(c => `/${c}`).join(", ")}\n`;
+      if (isAdminUser) {
+        capabilitiesSection += dedent`
+          **Command Execution Restriction (ADMIN MODE):**
+          - You are talking to a Server Administrator. You CAN EXECUTE BOTH "general" AND "admin" commands on their behalf.
+          - You act as their Co-Pilot to manage the server. Just run the admin commands they request!
+          - Developer commands CANNOT be executed by AI (these are bot maintenance commands).
+
+          **📚 Providing Information About Commands:**
+          - You CAN provide information, help, and guidance about ALL commands.
+        `;
+        capabilitiesSection += `\n\n`;
+        if (generalCommandNames.length > 0) {
+          capabilitiesSection += `- **Executable general commands:** ${generalCommandNames.map(c => `/${c}`).join(", ")}\n`;
+        }
+        if (adminCommandNames.length > 0) {
+          capabilitiesSection += `- **Executable admin commands:** ${adminCommandNames.map(c => `/${c}`).join(", ")}\n`;
+        }
+        if (developerCommandNames.length > 0) {
+          capabilitiesSection += `- **Developer commands (information only, cannot execute):** ${developerCommandNames.map(c => `/${c}`).join(", ")}\n`;
+        }
+      } else {
+        capabilitiesSection +=
+          chatPrompts.commandExecutionRestriction ||
+          dedent`
+          **Command Execution Restriction:**
+          - You can ONLY EXECUTE commands from the "general" category (safe, user-facing commands)
+          - Admin commands CANNOT be executed by AI (these are server management commands)
+          - Developer commands CANNOT be executed by AI (these are bot maintenance commands)
+          - This restriction prevents potential issues and keeps the bot safe
+  
+          **📚 Providing Information About Commands:**
+          - You CAN provide information, help, and guidance about ALL commands (general, admin, developer)
+          - You CAN explain how to use admin/developer commands
+          - You CAN show command syntax, options, and examples
+          - You CANNOT execute admin/developer commands - users must run them manually
+          - When users ask about admin/developer commands, provide helpful information but remind them they need to run the command themselves
+        `;
+        capabilitiesSection += `\n\n`;
+        if (generalCommandNames.length > 0) {
+          capabilitiesSection += `- **Executable general commands:** ${generalCommandNames.map(c => `/${c}`).join(", ")}\n`;
+        }
+        if (adminCommandNames.length > 0) {
+          capabilitiesSection += `- **Admin commands (information only, cannot execute):** ${adminCommandNames.map(c => `/${c}`).join(", ")}\n`;
+        }
+        if (developerCommandNames.length > 0) {
+          capabilitiesSection += `- **Developer commands (information only, cannot execute):** ${developerCommandNames.map(c => `/${c}`).join(", ")}\n`;
+        }
       }
       capabilitiesSection += `\n`;
     } catch (_error) {
@@ -357,7 +459,11 @@ export class SystemPromptBuilder {
         );
 
         const helpData = await getDynamicHelpData(client);
-        const executableCommands = await getExecutableCommands(client);
+        const executableCommands = await getExecutableCommands(
+          client,
+          requester,
+          guild,
+        );
         const executableNames = new Set(executableCommands.map(c => c.name));
         const botCommandsList = commandDiscoverer.getBotCommands(client);
 
@@ -474,7 +580,11 @@ export class SystemPromptBuilder {
           const { getExecutableCommands } = await import(
             "./commandExecutor.js"
           );
-          const executableCommands = await getExecutableCommands(client);
+          const executableCommands = await getExecutableCommands(
+            client,
+            requester,
+            guild,
+          );
           if (executableCommands.length > 0) {
             context += `**Available Commands You Can Execute:**\n`;
             executableCommands.forEach(cmd => {

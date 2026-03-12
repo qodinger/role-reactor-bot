@@ -88,16 +88,19 @@ export async function executeCommandProgrammatically({
     );
   }
 
-  // Check if command is allowed (only general commands)
+  // Check if command is allowed (general commands, or admin commands if user is admin)
   const isAllowed = await canExecuteCommand(
     parsedCommandName,
     parsedSubcommand,
     client,
+    user,
+    guild,
   );
   if (!isAllowed) {
-    const generalCommands = await getGeneralCommands();
+    const executableCommands = await getExecutableCommands(client, user, guild);
+    const validCommandsList = executableCommands.map(c => c.name).join(", ");
     throw new Error(
-      `Command "${commandName}" is not allowed. AI can only execute general commands for safety. Available general commands: ${generalCommands.join(", ")}. If you need to use "${commandName}", it's likely an admin or developer command that must be run manually by a user.`,
+      `Command "${commandName}" is not allowed or you do not have permission. Your allowed commands: ${validCommandsList}.`,
     );
   }
 
@@ -141,57 +144,77 @@ export async function executeCommandProgrammatically({
     let executorUser = user; // Default: requester executes the command
 
     for (const [key, value] of Object.entries(options)) {
-      // Check if this is a user option by checking command structure
-      // For RPS, "user" is a user option (no subcommands anymore)
-      if (key === "user" && parsedCommandName === "rps") {
+      // Check if this is a user option
+      const isUserOption = ["user", "target", "member"].includes(
+        key.toLowerCase(),
+      );
+
+      if (isUserOption) {
         if (value && typeof value === "string") {
           // Extract user ID from mention format: <@123456789> or <@!123456789>
           const mentionMatch = value.match(/<@!?(\d+)>/);
-          const userId = mentionMatch ? mentionMatch[1] : value;
+          let userId = mentionMatch ? mentionMatch[1] : value;
 
-          // Try cache first
-          let resolvedUser = client?.users.cache.get(userId);
-          if (!resolvedUser && guild) {
-            const member = guild.members.cache.get(userId);
-            if (member) {
-              resolvedUser = member.user;
+          let resolvedUser = null;
+
+          // If not a numeric ID, try to find by username or displayName
+          if (!/^\\d+$/.test(userId) && guild) {
+            const memberByUsername = guild.members.cache.find(
+              m =>
+                m.user.username.toLowerCase() === userId.toLowerCase() ||
+                m.displayName.toLowerCase() === userId.toLowerCase() ||
+                m.user.tag.toLowerCase() === userId.toLowerCase(),
+            );
+            if (memberByUsername) {
+              resolvedUser = memberByUsername.user;
+              userId = resolvedUser.id;
             }
           }
 
-          // If not in cache, try to fetch
-          if (!resolvedUser && client) {
-            try {
-              if (guild) {
-                const member = await guild.members.fetch(userId);
+          if (!resolvedUser) {
+            // Try cache first
+            resolvedUser = client?.users.cache.get(userId);
+            if (!resolvedUser && guild) {
+              const member = guild.members.cache.get(userId);
+              if (member) {
                 resolvedUser = member.user;
-              } else {
-                resolvedUser = await client.users.fetch(userId);
               }
-            } catch (error) {
-              logger.debug(
-                `Failed to fetch user ${userId} for RPS challenge:`,
-                error.message,
-              );
             }
-          }
 
-          if (resolvedUser) {
-            resolvedOptions[key] = resolvedUser;
+            // If not in cache, try to fetch (only if it's a valid ID format now)
+            if (!resolvedUser && client && /^\\d+$/.test(userId)) {
+              try {
+                if (guild) {
+                  const member = await guild.members.fetch(userId);
+                  resolvedUser = member.user;
+                } else {
+                  resolvedUser = await client.users.fetch(userId);
+                }
+              } catch (error) {
+                logger.debug(
+                  `Failed to fetch user ${userId} for RPS challenge:`,
+                  error.message,
+                );
+              }
+            }
 
-            // Special case: If RPS is challenging the requester, the bot should execute it
-            // This allows the bot to challenge the user who asked
-            if (resolvedUser.id === user.id && client?.user) {
-              executorUser = client.user; // Bot executes the command
-              logger.debug(
-                `[RPS] Bot challenging requester ${user.id} - using bot as executor`,
-              );
+            if (resolvedUser) {
+              resolvedOptions[key] = resolvedUser;
+
+              // Special case: If RPS is challenging the requester, the bot should execute it
+              // This allows the bot to challenge the user who asked
+              if (resolvedUser.id === user.id && client?.user) {
+                executorUser = client.user; // Bot executes the command
+                logger.debug(
+                  `[RPS] Bot challenging requester ${user.id} - using bot as executor`,
+                );
+              }
             }
           }
         }
       }
     }
 
-    // Create mock interaction
     const interaction = createMockInteraction({
       commandName: parsedCommandName,
       subcommand: parsedSubcommand,

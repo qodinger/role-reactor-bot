@@ -1,4 +1,9 @@
 import { getLogger } from "../logger.js";
+import {
+  DEFAULT_MAX_CONVERSATIONS,
+  DEFAULT_USER_RATE_LIMIT,
+  DEFAULT_USER_RATE_WINDOW,
+} from "./constants.js";
 
 const logger = getLogger();
 
@@ -17,8 +22,10 @@ export class AIConcurrencyManager {
 
     // User rate limiting
     this.userRequests = new Map();
-    this.userRateLimit = parseInt(process.env.AI_USER_RATE_LIMIT) || 10;
-    this.userRateWindow = parseInt(process.env.AI_USER_RATE_WINDOW) || 300000;
+    this.userRateLimit =
+      parseInt(process.env.AI_USER_RATE_LIMIT) || DEFAULT_USER_RATE_LIMIT;
+    this.userRateWindow =
+      parseInt(process.env.AI_USER_RATE_WINDOW) || DEFAULT_USER_RATE_WINDOW;
 
     // Simplified rate limiting - users with credits get slight priority
     this.creditUserMultiplier = 1.2; // 20% higher rate limit for users with credits
@@ -222,6 +229,20 @@ export class AIConcurrencyManager {
   }
 
   /**
+   * Decrement rate limit counter (used when a request fails before completion)
+   * @param {string} userId - User ID to decrement
+   */
+  decrementRateLimit(userId) {
+    if (!userId) return;
+    const userData = this.userRequests.get(userId);
+    if (userData && userData.count > 0) {
+      userData.count--;
+      this.userRequests.set(userId, userData);
+      logger.debug(`Decremented rate limit for user ${userId} due to failure`);
+    }
+  }
+
+  /**
    * Get rate limit statistics
    * @returns {Object} Statistics object
    */
@@ -291,25 +312,27 @@ export class AIConcurrencyManager {
    * @returns {Promise<any>} Task result
    */
   async queueRequest(requestId, task, options = {}) {
-    const { userId, coreUserData } = options;
+    const { userId, coreUserData, rateLimitReserved } = options;
 
-    // Check rate limits
-    if (this.isGloballyRateLimited()) {
-      throw new Error(
-        "System is currently under high load. Please try again later.",
-      );
+    // Check rate limits (skip if already checked and reserved by caller)
+    if (!rateLimitReserved) {
+      if (this.isGloballyRateLimited()) {
+        throw new Error(
+          "System is currently under high load. Please try again later.",
+        );
+      }
+
+      if (this.isUserRateLimited(userId, coreUserData)) {
+        const status = this.getRateLimitStatus(userId, coreUserData);
+        const minutes = Math.ceil((status.resetTime - Date.now()) / 60000);
+        throw new Error(
+          `Rate limit exceeded. Please try again in ${minutes} minutes.`,
+        );
+      }
+
+      // Reserve rate limit count
+      this.checkAndReserveRateLimit(userId, coreUserData);
     }
-
-    if (this.isUserRateLimited(userId, coreUserData)) {
-      const status = this.getRateLimitStatus(userId, coreUserData);
-      const minutes = Math.ceil((status.resetTime - Date.now()) / 60000);
-      throw new Error(
-        `Rate limit exceeded. Please try again in ${minutes} minutes.`,
-      );
-    }
-
-    // Reserve rate limit count
-    this.checkAndReserveRateLimit(userId, coreUserData);
 
     // Execute immediately (Queue logic removed in simplified version)
     if (options.onQueueStatus) {

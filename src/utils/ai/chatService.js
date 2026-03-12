@@ -28,7 +28,6 @@ import {
 import {
   detectActionRequest,
   prepareSystemContextAndLog,
-  performSmartMemberFetch,
 } from "./chat/preparationHelpers.js";
 import {
   generateAIResponseWithOptimization,
@@ -247,13 +246,6 @@ export class ChatService {
   }
 
   /**
-   * Perform smart member fetch - delegates to preparationHelpers module
-   */
-  async performSmartMemberFetch(guild, userMessage, onStatus = null) {
-    return performSmartMemberFetch(guild, userMessage, onStatus);
-  }
-
-  /**
    * Prepare conversation context - delegates to conversationBuilder module
    */
   async prepareConversationContext(
@@ -447,9 +439,6 @@ export class ChatService {
       },
     );
 
-    // Perform smart member fetching
-    await this.performSmartMemberFetch(guild, userMessage, onStatus);
-
     // Prepare conversation context
     const guildId = guild?.id || null;
     const { messages } = await this.prepareConversationContext(
@@ -526,6 +515,10 @@ export class ChatService {
             error: error.message,
           });
           logger.error("Chat generation failed:", error);
+          // Reverse rate limit on failure so user can retry
+          if (userId) {
+            concurrencyManager.decrementRateLimit(userId);
+          }
           throw error;
         }
       },
@@ -593,9 +586,6 @@ export class ChatService {
         onStatus,
       },
     );
-
-    // Perform smart member fetching
-    await this.performSmartMemberFetch(guild, userMessage, onStatus);
 
     // Prepare conversation context (use conversationManager for streaming, not memoryManager)
     const guildId = guild?.id || null;

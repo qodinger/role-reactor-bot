@@ -11,14 +11,20 @@ vi.mock("../../src/utils/storage/storageManager.js", () => ({
   getStorageManager: vi.fn(() => ({
     ticketTranscripts: {
       getExpiredTranscripts: vi.fn().mockResolvedValue([]),
-      getStorageUsage: vi.fn().mockResolvedValue({ totalTranscripts: 0, totalSizeBytes: 0, totalSizeMB: "0" }),
+      getStorageUsage: vi
+        .fn()
+        .mockResolvedValue({
+          totalTranscripts: 0,
+          totalSizeBytes: 0,
+          totalSizeMB: "0",
+        }),
       delete: vi.fn().mockResolvedValue({ deletedCount: 0 }),
     },
-    createTicketTranscript: vi.fn().mockResolvedValue({ 
+    createTicketTranscript: vi.fn().mockResolvedValue({
       transcriptId: "TRANS-test-00000",
       ticketId: "TIX-test-00000",
       format: "html",
-      content: "<html></html>"
+      content: "<html></html>",
     }),
     getTicketTranscriptByTicket: vi.fn().mockResolvedValue(null),
   })),
@@ -40,7 +46,7 @@ describe("TicketTranscript", () => {
         guildId: "test-guild",
         channel: null,
         ticket: { ticketId: "TIX-test-00000" },
-        format: "html"
+        format: "html",
       });
 
       expect(result.success).toBe(false);
@@ -49,8 +55,8 @@ describe("TicketTranscript", () => {
     it("should handle missing ticket ID", async () => {
       const mockChannel = {
         messages: {
-          fetch: vi.fn().mockResolvedValue(new Map())
-        }
+          fetch: vi.fn().mockResolvedValue(new Map()),
+        },
       };
 
       const result = await ticketTranscript.generateFromChannel({
@@ -58,7 +64,7 @@ describe("TicketTranscript", () => {
         guildId: "test-guild",
         channel: mockChannel,
         ticket: null,
-        format: "html"
+        format: "html",
       });
 
       expect(result.success).toBe(false);
@@ -67,8 +73,8 @@ describe("TicketTranscript", () => {
     it("should handle empty channel messages", async () => {
       const mockChannel = {
         messages: {
-          fetch: vi.fn().mockResolvedValue(new Map())
-        }
+          fetch: vi.fn().mockResolvedValue(new Map()),
+        },
       };
 
       const result = await ticketTranscript.generateFromChannel({
@@ -79,9 +85,9 @@ describe("TicketTranscript", () => {
           ticketId: "TIX-test-00000",
           openedAt: new Date().toISOString(),
           closedAt: null,
-          claimedBy: null
+          claimedBy: null,
         },
-        format: "html"
+        format: "html",
       });
 
       // Should handle gracefully (may fail due to storage mock)
@@ -92,8 +98,8 @@ describe("TicketTranscript", () => {
     it("should support HTML format", async () => {
       const mockChannel = {
         messages: {
-          fetch: vi.fn().mockResolvedValue(new Map())
-        }
+          fetch: vi.fn().mockResolvedValue(new Map()),
+        },
       };
 
       const result = await ticketTranscript.generateFromChannel({
@@ -101,7 +107,7 @@ describe("TicketTranscript", () => {
         guildId: "test-guild",
         channel: mockChannel,
         ticket: { ticketId: "TIX-test-00000" },
-        format: "html"
+        format: "html",
       });
 
       if (result.success) {
@@ -113,8 +119,8 @@ describe("TicketTranscript", () => {
     it("should support JSON format", async () => {
       const mockChannel = {
         messages: {
-          fetch: vi.fn().mockResolvedValue(new Map())
-        }
+          fetch: vi.fn().mockResolvedValue(new Map()),
+        },
       };
 
       const result = await ticketTranscript.generateFromChannel({
@@ -122,7 +128,7 @@ describe("TicketTranscript", () => {
         guildId: "test-guild",
         channel: mockChannel,
         ticket: { ticketId: "TIX-test-00000" },
-        format: "json"
+        format: "json",
       });
 
       if (result.success) {
@@ -135,8 +141,8 @@ describe("TicketTranscript", () => {
     it("should support text format", async () => {
       const mockChannel = {
         messages: {
-          fetch: vi.fn().mockResolvedValue(new Map())
-        }
+          fetch: vi.fn().mockResolvedValue(new Map()),
+        },
       };
 
       const result = await ticketTranscript.generateFromChannel({
@@ -144,7 +150,7 @@ describe("TicketTranscript", () => {
         guildId: "test-guild",
         channel: mockChannel,
         ticket: { ticketId: "TIX-test-00000" },
-        format: "text"
+        format: "text",
       });
 
       if (result.success) {
@@ -162,12 +168,12 @@ describe("TicketTranscript", () => {
             id: "user-1",
             username: "TestUser",
             discriminator: "1234",
-            bot: false
+            bot: false,
           },
           content: "Hello!",
           createdAt: new Date(),
-          attachments: { map: () => [] }
-        }
+          attachments: { map: () => [] },
+        },
       ];
 
       const formatted = ticketTranscript.formatMessages(mockMessages);
@@ -185,8 +191,8 @@ describe("TicketTranscript", () => {
           author: null,
           content: "System message",
           createdAt: new Date(),
-          attachments: { map: () => [] }
-        }
+          attachments: { map: () => [] },
+        },
       ];
 
       const formatted = ticketTranscript.formatMessages(mockMessages);
@@ -202,8 +208,8 @@ describe("TicketTranscript", () => {
           author: { id: "user-1", username: "User" },
           content: null,
           createdAt: new Date(),
-          attachments: { map: () => [] }
-        }
+          attachments: { map: () => [] },
+        },
       ];
 
       const formatted = ticketTranscript.formatMessages(mockMessages);
@@ -221,7 +227,7 @@ describe("TicketTranscript", () => {
       const html = ticketTranscript.generateHTML(messages, ticket);
 
       expect(html).toContain("<!DOCTYPE html>");
-      expect(html).toContain("<html>");
+      expect(html).toContain('<html lang="en">');
       expect(html).toContain("<head>");
       expect(html).toContain("<body>");
     });
@@ -231,7 +237,7 @@ describe("TicketTranscript", () => {
       const ticket = {
         ticketId: "TIX-test-00000",
         openedAt: new Date().toISOString(),
-        closedAt: null
+        closedAt: null,
       };
 
       const html = ticketTranscript.generateHTML(messages, ticket);
@@ -244,7 +250,9 @@ describe("TicketTranscript", () => {
       const text = '<script>alert("XSS")</script>';
       const escaped = ticketTranscript.escapeHtml(text);
 
-      expect(escaped).toBe('&lt;script&gt;alert(&quot;XSS&quot;)&lt;/script&gt;');
+      expect(escaped).toBe(
+        "&lt;script&gt;alert(&quot;XSS&quot;)&lt;/script&gt;",
+      );
     });
 
     it("should handle empty text", () => {
@@ -264,13 +272,13 @@ describe("TicketTranscript", () => {
         {
           username: "User1",
           timestamp: new Date().toISOString(),
-          content: "Hello!"
+          content: "Hello!",
         },
         {
           username: "User2",
           timestamp: new Date().toISOString(),
-          content: "Hi there!"
-        }
+          content: "Hi there!",
+        },
       ];
 
       const text = ticketTranscript.generateText(messages);
@@ -285,8 +293,8 @@ describe("TicketTranscript", () => {
         {
           username: "User",
           timestamp: new Date().toISOString(),
-          content: "Test"
-        }
+          content: "Test",
+        },
       ];
 
       const text = ticketTranscript.generateText(messages);
@@ -298,7 +306,9 @@ describe("TicketTranscript", () => {
 
   describe("Transcript Retrieval", () => {
     it("should return null for non-existent transcript", async () => {
-      const transcript = await ticketTranscript.getTranscriptByTicket("TIX-nonexistent-00000");
+      const transcript = await ticketTranscript.getTranscriptByTicket(
+        "TIX-nonexistent-00000",
+      );
 
       expect(transcript).toBeNull();
     });
@@ -336,7 +346,8 @@ describe("TicketTranscript", () => {
     });
 
     it("should handle non-existent guild", async () => {
-      const deleted = await ticketTranscript.cleanupExpired("nonexistent-guild");
+      const deleted =
+        await ticketTranscript.cleanupExpired("nonexistent-guild");
 
       expect(deleted).toBe(0);
     });

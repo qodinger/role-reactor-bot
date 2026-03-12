@@ -1009,7 +1009,7 @@ export async function apiGuildLeaderboard(req, res) {
   }
 
   try {
-    // Check if XP system is enabled
+    // Check if XP system is enabled and if leaderboard is public
     const { getDatabaseManager } = await import(
       "../../utils/storage/databaseManager.js"
     );
@@ -1025,13 +1025,38 @@ export async function apiGuildLeaderboard(req, res) {
         );
         return res.status(statusCode).json(response);
       }
+      
+      // Check privacy setting (defaults to true if undefined)
+      // Skip this check for dashboard requests (authenticated admin view)
+      const isDashboard = req.query.source === "dashboard";
+      const isPublic = guildSettings?.experienceSystem?.publicLeaderboard !== false;
+      if (!isPublic && !isDashboard) {
+        const { statusCode, response } = createErrorResponse(
+          "This server's leaderboard is marked as private",
+          403,
+          "PRIVATE",
+        );
+        return res.status(statusCode).json(response);
+      }
     }
 
     const { getExperienceManager } = await import(
       "../../features/experience/ExperienceManager.js"
     );
+    const { getPremiumManager } = await import(
+      "../../features/premium/PremiumManager.js"
+    );
+    const { PremiumFeatures } = await import(
+      "../../features/premium/config.js"
+    );
+    
     const experienceManager = await getExperienceManager();
-    const leaderboard = await experienceManager.getLeaderboard(guildId, limit);
+    const premiumManager = getPremiumManager();
+    
+    const [leaderboard, isPremium] = await Promise.all([
+      experienceManager.getLeaderboard(guildId, limit),
+      premiumManager.isFeatureActive(guildId, PremiumFeatures.PRO.id)
+    ]);
 
     // Enrich with user data from Discord client
     const client = getDiscordClient();
@@ -1089,12 +1114,104 @@ export async function apiGuildLeaderboard(req, res) {
         guildId,
         leaderboard: enrichedLeaderboard,
         total: enrichedLeaderboard.length,
+        isPremium,
       }),
     );
   } catch (error) {
     logger.error("❌ Error getting guild leaderboard:", error);
     const { statusCode, response } = createErrorResponse(
       "Failed to retrieve leaderboard",
+      500,
+      error.message,
+    );
+    res.status(statusCode).json(response);
+  }
+}
+
+/**
+ * Public endpoint to search or list public guild leaderboards
+ * @param {import('express').Request} req - Express request object
+ * @param {import('express').Response} res - Express response object
+ */
+export async function apiGetPublicLeaderboards(req, res) {
+  logRequest("Search public leaderboards", req);
+
+  const query = (req.query.q || "").toLowerCase().trim();
+
+  try {
+    const client = getDiscordClient();
+    if (!client) {
+      const { statusCode, response } = createErrorResponse(
+        "Bot client not available",
+        503,
+      );
+      return res.status(statusCode).json(response);
+    }
+
+    const { getDatabaseManager } = await import(
+      "../../utils/storage/databaseManager.js"
+    );
+    const dbManager = await getDatabaseManager();
+
+    if (!dbManager.guildSettings) {
+      const { statusCode, response } = createErrorResponse(
+        "GuildSettingsRepository not available",
+        503,
+      );
+      return res.status(statusCode).json(response);
+    }
+
+    // First, find potential guilds from discord cache based on query or size
+    let candidateGuilds = [];
+    
+    if (query && query.length > 0) {
+      // Search by name
+      let count = 0;
+      for (const guild of client.guilds.cache.values()) {
+        if (guild.name.toLowerCase().includes(query)) {
+          candidateGuilds.push(guild);
+          count++;
+          if (count > 100) break; // Limit initial search list width
+        }
+      }
+    } else {
+      // No query, get largest guilds (sort by membercount desc)
+      candidateGuilds = Array.from(client.guilds.cache.values())
+        .sort((a, b) => b.memberCount - a.memberCount)
+        .slice(0, 100);
+    }
+
+    // Now filter by database settings (XP enabled, public access)
+    const publicGuilds = [];
+    
+    // Process sequentially as it's mostly cached or fast
+    for (const guild of candidateGuilds) {
+      const guildSettings = await dbManager.guildSettings.getByGuild(guild.id);
+      
+      const xpEnabled = guildSettings?.experienceSystem?.enabled;
+      const isPublic = guildSettings?.experienceSystem?.publicLeaderboard !== false; // Undefined = default true
+      
+      if (xpEnabled && isPublic) {
+        publicGuilds.push({
+          id: guild.id,
+          name: guild.name,
+          icon: guild.iconURL({ dynamic: true, size: 64 }),
+          memberCount: guild.memberCount
+        });
+      }
+      
+      if (publicGuilds.length >= 24) break; // Maximum return set of 24 items
+    }
+
+    res.json(
+      createSuccessResponse({
+        guilds: publicGuilds,
+      }),
+    );
+  } catch (error) {
+    logger.error("❌ Error searching public leaderboards:", error);
+    const { statusCode, response } = createErrorResponse(
+      "Failed to search public leaderboards",
       500,
       error.message,
     );
