@@ -2,11 +2,13 @@ import express from "express";
 import {
   apiPaymentStats,
   apiPendingPayments,
+  apiGetAdminActionLogs,
+} from "../../controllers/PaymentAdminController.js";
+import {
   apiCreatePayment,
   apiCreatePayPalOrder,
   apiCapturePayPalOrder,
-  apiGetAdminActionLogs,
-} from "../../controllers/PaymentController.js";
+} from "../../controllers/PaymentProcessingController.js";
 
 import { internalAuth } from "../../middleware/internalAuth.js";
 

@@ -4,7 +4,7 @@ import {
   apiStats,
   apiCommandUsage,
 } from "../../controllers/StatsController.js";
-import { apiPricing } from "../../controllers/PaymentController.js";
+import { apiPricing } from "../../controllers/CorePricingController.js";
 
 const router = express.Router();
 

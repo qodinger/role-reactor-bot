@@ -2,7 +2,7 @@ import express from "express";
 import {
   apiUserBalance,
   apiUserPayments,
-} from "../../controllers/PaymentController.js";
+} from "../../controllers/CorePricingController.js";
 import {
   apiListUsers,
   apiUserInfo,

@@ -5,7 +5,7 @@ import {
   apiPricing,
   apiUserBalance,
   apiUserPayments,
-} from "../../controllers/PaymentController.js";
+} from "../../controllers/CorePricingController.js";
 
 const router = express.Router();
 
