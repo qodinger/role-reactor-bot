@@ -7,16 +7,22 @@ import {
   apiGetGuildEmojis,
   apiCheckGuilds,
   apiListGuilds,
+} from "../../controllers/GuildController.js";
+import {
   apiActivatePremiumFeature,
   apiCancelPremiumFeature,
   apiGetPremiumStatus,
+} from "../../controllers/GuildPremiumController.js";
+import {
   apiGuildLeaderboard,
   apiGetPublicLeaderboards,
+} from "../../controllers/GuildLeaderboardController.js";
+import {
   apiGetGuildRoleMappings,
   apiDeleteGuildRoleMapping,
   apiDeployRoleReactions,
   apiUpdateRoleReactions,
-} from "../../controllers/GuildController.js";
+} from "../../controllers/GuildRoleMappingController.js";
 import { apiGetGuildAnalytics } from "../../controllers/GuildAnalyticsController.js";
 import { internalAuth } from "../../middleware/internalAuth.js";
 
