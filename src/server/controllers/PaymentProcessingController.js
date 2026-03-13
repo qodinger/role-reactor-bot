@@ -1,5 +1,8 @@
 import { getLogger } from "../../utils/logger.js";
-import { createSuccessResponse, createErrorResponse } from "../utils/responseHelpers.js";
+import {
+  createSuccessResponse,
+  createErrorResponse,
+} from "../utils/responseHelpers.js";
 import { logRequest } from "../utils/apiShared.js";
 import { plisioPay } from "../../utils/payments/plisio.js";
 import * as paypal from "../../utils/payments/paypal.js";
@@ -15,30 +18,54 @@ export async function apiCreatePayment(req, res) {
 
   try {
     const sessionUser = req.session?.discordUser;
-    const { discordId, email, username, packageId, amount, currency } = req.body;
+    const { discordId, email, username, packageId, amount, currency } =
+      req.body;
     let userInfo = null;
 
     if (sessionUser) {
-      userInfo = { id: sessionUser.id, email: sessionUser.email, username: sessionUser.username };
+      userInfo = {
+        id: sessionUser.id,
+        email: sessionUser.email,
+        username: sessionUser.username,
+      };
     } else if (discordId) {
-      userInfo = { id: discordId, email: email || null, username: username || null };
+      userInfo = {
+        id: discordId,
+        email: email || null,
+        username: username || null,
+      };
     }
 
     if (!userInfo) {
-      const { statusCode, response } = createErrorResponse("Authentication required", 401, "Please login with Discord first");
+      const { statusCode, response } = createErrorResponse(
+        "Authentication required",
+        401,
+        "Please login with Discord first",
+      );
       return res.status(statusCode).json(response);
     }
 
     if (!amount || typeof amount !== "number" || amount < 1) {
-      const { statusCode, response } = createErrorResponse("Invalid amount", 400, "Amount must be a positive number (minimum $1)");
+      const { statusCode, response } = createErrorResponse(
+        "Invalid amount",
+        400,
+        "Amount must be a positive number (minimum $1)",
+      );
       return res.status(statusCode).json(response);
     }
 
     const isDev = config.isDeveloper(userInfo.id);
-    const minimumAmount = isDev && config.payments?.paypal?.testMode ? 0.5 : config.corePricing?.coreSystem?.minimumPayment || 1;
+    const minimumAmount =
+      isDev && config.payments?.paypal?.testMode
+        ? 0.5
+        : config.corePricing?.coreSystem?.minimumPayment || 1;
 
     if (amount < minimumAmount) {
-      const { statusCode, response } = createErrorResponse("Amount too low", 400, `Minimum payment amount is $${minimumAmount}`);
+      const { statusCode, response } = createErrorResponse(
+        "Amount too low",
+        400,
+        `Minimum payment amount is $${minimumAmount}`,
+      );
       return res.status(statusCode).json(response);
     }
 
@@ -62,17 +89,36 @@ export async function apiCreatePayment(req, res) {
       callbackUrl,
     });
 
-    logger.info(`CREATE_PAYMENT: User ${userInfo.id} (${userInfo.username || "unknown"}) created $${amount} payment via ${sessionUser ? "session" : "website"}`);
+    logger.info(
+      `CREATE_PAYMENT: User ${userInfo.id} (${userInfo.username || "unknown"}) created $${amount} payment via ${sessionUser ? "session" : "website"}`,
+    );
 
-    res.json(createSuccessResponse({
-      invoiceUrl, orderId: orderNumber, amount, currency, packageId: packageId || null,
-      user: { discordId: userInfo.id, username: userInfo.username, emailPrefilled: !!userInfo.email },
-      message: "Payment invoice created successfully. Redirect user to invoiceUrl.",
-    }));
+    res.json(
+      createSuccessResponse({
+        invoiceUrl,
+        orderId: orderNumber,
+        amount,
+        currency,
+        packageId: packageId || null,
+        user: {
+          discordId: userInfo.id,
+          username: userInfo.username,
+          emailPrefilled: !!userInfo.email,
+        },
+        message:
+          "Payment invoice created successfully. Redirect user to invoiceUrl.",
+      }),
+    );
   } catch (error) {
     logger.error("❌ Error creating payment:", error);
-    const errorMessage = error.message?.includes("PLISIO_SECRET_KEY") ? "Payment system is not configured" : "Failed to create payment invoice";
-    const { statusCode, response } = createErrorResponse(errorMessage, 500, error.message);
+    const errorMessage = error.message?.includes("PLISIO_SECRET_KEY")
+      ? "Payment system is not configured"
+      : "Failed to create payment invoice";
+    const { statusCode, response } = createErrorResponse(
+      errorMessage,
+      500,
+      error.message,
+    );
     res.status(statusCode).json(response);
   }
 }
@@ -89,12 +135,18 @@ export async function apiCreatePayPalOrder(req, res) {
     const userId = sessionUser?.id || discordId;
 
     if (!userId) {
-      const { statusCode, response } = createErrorResponse("Authentication required", 401);
+      const { statusCode, response } = createErrorResponse(
+        "Authentication required",
+        401,
+      );
       return res.status(statusCode).json(response);
     }
 
     if (!amount || isNaN(amount) || amount < 0.5) {
-      const { statusCode, response } = createErrorResponse("Invalid amount", 400);
+      const { statusCode, response } = createErrorResponse(
+        "Invalid amount",
+        400,
+      );
       return res.status(statusCode).json(response);
     }
 
@@ -108,7 +160,11 @@ export async function apiCreatePayPalOrder(req, res) {
     res.json(createSuccessResponse({ data: orderData }));
   } catch (error) {
     logger.error("❌ Error creating PayPal order:", error);
-    const { statusCode, response } = createErrorResponse("Failed to create PayPal order", 500, error.message);
+    const { statusCode, response } = createErrorResponse(
+      "Failed to create PayPal order",
+      500,
+      error.message,
+    );
     res.status(statusCode).json(response);
   }
 }
@@ -122,7 +178,10 @@ export async function apiCapturePayPalOrder(req, res) {
   try {
     const { orderID } = req.body;
     if (!orderID) {
-      const { statusCode, response } = createErrorResponse("Order ID is required", 400);
+      const { statusCode, response } = createErrorResponse(
+        "Order ID is required",
+        400,
+      );
       return res.status(statusCode).json(response);
     }
 
@@ -130,7 +189,11 @@ export async function apiCapturePayPalOrder(req, res) {
     res.json(createSuccessResponse({ data: captureData }));
   } catch (error) {
     logger.error("❌ Error capturing PayPal order:", error);
-    const { statusCode, response } = createErrorResponse("Failed to capture PayPal order", 500, error.message);
+    const { statusCode, response } = createErrorResponse(
+      "Failed to capture PayPal order",
+      500,
+      error.message,
+    );
     res.status(statusCode).json(response);
   }
 }

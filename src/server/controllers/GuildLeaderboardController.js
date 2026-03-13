@@ -1,12 +1,15 @@
 import { getLogger } from "../../utils/logger.js";
-import { createSuccessResponse, createErrorResponse } from "../utils/responseHelpers.js";
+import {
+  createSuccessResponse,
+  createErrorResponse,
+} from "../utils/responseHelpers.js";
 import { getDiscordClient, logRequest } from "../utils/apiShared.js";
 import { GuildHelper } from "../helpers/GuildHelper.js";
 
 const logger = getLogger();
 
 // Simple in-memory cache for public leaderboards
-let leaderboardCache = {
+const leaderboardCache = {
   guilds: [],
   lastUpdate: 0,
   ttl: 5 * 60 * 1000,
@@ -21,32 +24,52 @@ export async function apiGuildLeaderboard(req, res) {
   logRequest(`Guild leaderboard: ${guildId}`, req);
 
   if (!guildId) {
-    const { statusCode, response } = createErrorResponse("Guild ID is required", 400);
+    const { statusCode, response } = createErrorResponse(
+      "Guild ID is required",
+      400,
+    );
     return res.status(statusCode).json(response);
   }
 
   try {
-    const { getDatabaseManager } = await import("../../utils/storage/databaseManager.js");
+    const { getDatabaseManager } = await import(
+      "../../utils/storage/databaseManager.js"
+    );
     const dbManager = await getDatabaseManager();
 
     if (dbManager.guildSettings) {
       const guildSettings = await dbManager.guildSettings.getByGuild(guildId);
       if (!guildSettings?.experienceSystem?.enabled) {
-        const { statusCode, response } = createErrorResponse("XP system is disabled in this server", 403, "XP_DISABLED");
+        const { statusCode, response } = createErrorResponse(
+          "XP system is disabled in this server",
+          403,
+          "XP_DISABLED",
+        );
         return res.status(statusCode).json(response);
       }
 
       const isDashboard = req.query.source === "dashboard";
-      const isPublic = guildSettings?.experienceSystem?.publicLeaderboard !== false;
+      const isPublic =
+        guildSettings?.experienceSystem?.publicLeaderboard !== false;
       if (!isPublic && !isDashboard) {
-        const { statusCode, response } = createErrorResponse("This server's leaderboard is marked as private", 403, "PRIVATE");
+        const { statusCode, response } = createErrorResponse(
+          "This server's leaderboard is marked as private",
+          403,
+          "PRIVATE",
+        );
         return res.status(statusCode).json(response);
       }
     }
 
-    const { getExperienceManager } = await import("../../features/experience/ExperienceManager.js");
-    const { getPremiumManager } = await import("../../features/premium/PremiumManager.js");
-    const { PremiumFeatures } = await import("../../features/premium/config.js");
+    const { getExperienceManager } = await import(
+      "../../features/experience/ExperienceManager.js"
+    );
+    const { getPremiumManager } = await import(
+      "../../features/premium/PremiumManager.js"
+    );
+    const { PremiumFeatures } = await import(
+      "../../features/premium/config.js"
+    );
 
     const experienceManager = await getExperienceManager();
     const premiumManager = getPremiumManager();
@@ -57,7 +80,10 @@ export async function apiGuildLeaderboard(req, res) {
     ]);
 
     const client = getDiscordClient();
-    const enrichedLeaderboard = await GuildHelper.enrichLeaderboard(leaderboard, client);
+    const enrichedLeaderboard = await GuildHelper.enrichLeaderboard(
+      leaderboard,
+      client,
+    );
 
     let serverInfo = null;
     if (client) {
@@ -76,30 +102,48 @@ export async function apiGuildLeaderboard(req, res) {
       }
     }
 
-    const allRankedDocs = await experienceManager.storageManager.provider.dbManager.userExperience.collection
-      .find({ guildId, totalXP: { $gt: 0 } }).toArray();
+    const allRankedDocs =
+      await experienceManager.storageManager.provider.dbManager.userExperience.collection
+        .find({ guildId, totalXP: { $gt: 0 } })
+        .toArray();
 
     const humanRankedDocs = allRankedDocs.filter(doc => {
       const user = client?.users.cache.get(doc.userId);
       return user ? !user.bot : true;
     });
 
-    const totalXP = humanRankedDocs.reduce((sum, doc) => sum + (doc.totalXP || doc.xp || 0), 0);
-    const levels = humanRankedDocs.map(doc => doc.level || experienceManager.calculateLevel(doc.totalXP || doc.xp || 0));
+    const totalXP = humanRankedDocs.reduce(
+      (sum, doc) => sum + (doc.totalXP || doc.xp || 0),
+      0,
+    );
+    const levels = humanRankedDocs.map(
+      doc =>
+        doc.level ||
+        experienceManager.calculateLevel(doc.totalXP || doc.xp || 0),
+    );
     const highestLevel = levels.length > 0 ? Math.max(...levels) : 0;
-    const averageLevel = levels.length > 0 ? Math.round(levels.reduce((a, b) => a + b, 0) / levels.length) : 0;
+    const averageLevel =
+      levels.length > 0
+        ? Math.round(levels.reduce((a, b) => a + b, 0) / levels.length)
+        : 0;
 
-    res.json(createSuccessResponse({
-      guildId,
-      leaderboard: enrichedLeaderboard,
-      total: humanRankedDocs.length,
-      isPremium,
-      serverInfo,
-      stats: { totalXP, highestLevel, averageLevel },
-    }));
+    res.json(
+      createSuccessResponse({
+        guildId,
+        leaderboard: enrichedLeaderboard,
+        total: humanRankedDocs.length,
+        isPremium,
+        serverInfo,
+        stats: { totalXP, highestLevel, averageLevel },
+      }),
+    );
   } catch (error) {
     logger.error("❌ Error getting guild leaderboard:", error);
-    const { statusCode, response } = createErrorResponse("Failed to retrieve leaderboard", 500, error.message);
+    const { statusCode, response } = createErrorResponse(
+      "Failed to retrieve leaderboard",
+      500,
+      error.message,
+    );
     res.status(statusCode).json(response);
   }
 }
@@ -114,56 +158,84 @@ export async function apiGetPublicLeaderboards(req, res) {
 
   try {
     const now = Date.now();
-    if (!query && leaderboardCache.guilds.length > 0 && now - leaderboardCache.lastUpdate < leaderboardCache.ttl) {
-      return res.json(createSuccessResponse({
-        guilds: leaderboardCache.guilds.slice(0, 100),
-        cached: true,
-        nextUpdateIn: Math.round((leaderboardCache.ttl - (now - leaderboardCache.lastUpdate)) / 1000),
-      }));
+    if (
+      !query &&
+      leaderboardCache.guilds.length > 0 &&
+      now - leaderboardCache.lastUpdate < leaderboardCache.ttl
+    ) {
+      return res.json(
+        createSuccessResponse({
+          guilds: leaderboardCache.guilds.slice(0, 100),
+          cached: true,
+          nextUpdateIn: Math.round(
+            (leaderboardCache.ttl - (now - leaderboardCache.lastUpdate)) / 1000,
+          ),
+        }),
+      );
     }
 
     const client = getDiscordClient();
     if (!client) {
-      const { statusCode, response } = createErrorResponse("Bot client not available", 503);
+      const { statusCode, response } = createErrorResponse(
+        "Bot client not available",
+        503,
+      );
       return res.status(statusCode).json(response);
     }
 
-    const { getDatabaseManager } = await import("../../utils/storage/databaseManager.js");
+    const { getDatabaseManager } = await import(
+      "../../utils/storage/databaseManager.js"
+    );
     const dbManager = await getDatabaseManager();
-    const { getExperienceManager } = await import("../../features/experience/ExperienceManager.js");
+    const { getExperienceManager } = await import(
+      "../../features/experience/ExperienceManager.js"
+    );
     const experienceManager = await getExperienceManager();
 
     const publicSettings = await dbManager.guildSettings.collection
-      .find({ "experienceSystem.enabled": true, "experienceSystem.publicLeaderboard": { $ne: false } })
-      .project({ guildId: 1 }).toArray();
+      .find({
+        "experienceSystem.enabled": true,
+        "experienceSystem.publicLeaderboard": { $ne: false },
+      })
+      .project({ guildId: 1 })
+      .toArray();
 
     const publicGuildIds = publicSettings.map(s => s.guildId);
-    const activePublicGuilds = publicGuildIds.map(id => client.guilds.cache.get(id)).filter(Boolean);
+    const activePublicGuilds = publicGuildIds
+      .map(id => client.guilds.cache.get(id))
+      .filter(Boolean);
 
-    const publicGuildsResults = await Promise.all(activePublicGuilds.map(async guild => {
-      const leaderboard = await experienceManager.getLeaderboard(guild.id, 1);
-      if (leaderboard.length === 0) return null;
+    const publicGuildsResults = await Promise.all(
+      activePublicGuilds.map(async guild => {
+        const leaderboard = await experienceManager.getLeaderboard(guild.id, 1);
+        if (leaderboard.length === 0) return null;
 
-      const allRankedDocs = await experienceManager.storageManager.provider.dbManager.userExperience.collection
-        .find({ guildId: guild.id, totalXP: { $gt: 0 } }).toArray();
+        const allRankedDocs =
+          await experienceManager.storageManager.provider.dbManager.userExperience.collection
+            .find({ guildId: guild.id, totalXP: { $gt: 0 } })
+            .toArray();
 
-      const humanRankedDocs = allRankedDocs.filter(doc => {
-        const user = client.users.cache.get(doc.userId);
-        return user ? !user.bot : true;
-      });
+        const humanRankedDocs = allRankedDocs.filter(doc => {
+          const user = client.users.cache.get(doc.userId);
+          return user ? !user.bot : true;
+        });
 
-      const totalXP = humanRankedDocs.reduce((sum, doc) => sum + (doc.totalXP || doc.xp || 0), 0);
-      if (totalXP <= 0) return null;
+        const totalXP = humanRankedDocs.reduce(
+          (sum, doc) => sum + (doc.totalXP || doc.xp || 0),
+          0,
+        );
+        if (totalXP <= 0) return null;
 
-      return {
-        id: guild.id,
-        name: guild.name,
-        icon: guild.iconURL({ dynamic: true, size: 64 }),
-        memberCount: guild.memberCount,
-        totalXP,
-        rankedCount: humanRankedDocs.length,
-      };
-    }));
+        return {
+          id: guild.id,
+          name: guild.name,
+          icon: guild.iconURL({ dynamic: true, size: 64 }),
+          memberCount: guild.memberCount,
+          totalXP,
+          rankedCount: humanRankedDocs.length,
+        };
+      }),
+    );
 
     const allPublicGuilds = publicGuildsResults
       .filter(g => g !== null && g.totalXP > 0)
@@ -186,10 +258,19 @@ export async function apiGetPublicLeaderboards(req, res) {
       leaderboardCache.lastUpdate = Date.now();
     }
 
-    res.json(createSuccessResponse({ guilds: filteredGuilds.slice(0, 100), cached: false }));
+    res.json(
+      createSuccessResponse({
+        guilds: filteredGuilds.slice(0, 100),
+        cached: false,
+      }),
+    );
   } catch (error) {
     logger.error("❌ Error searching public leaderboards:", error);
-    const { statusCode, response } = createErrorResponse("Failed to search public leaderboards", 500, error.message);
+    const { statusCode, response } = createErrorResponse(
+      "Failed to search public leaderboards",
+      500,
+      error.message,
+    );
     res.status(statusCode).json(response);
   }
 }
