@@ -2,6 +2,7 @@ import { Collection } from "discord.js";
 import { getEventHandler } from "./eventHandler.js";
 import { getLogger } from "../logger.js";
 import { getExperienceManager } from "../../features/experience/ExperienceManager.js";
+import { getCommandRateLimiter } from "../rateLimit/commandRateLimiter.js";
 
 /**
  * Command Handler Class
@@ -297,10 +298,55 @@ class CommandHandler {
   async executeCommand(interaction, client) {
     const commandName = interaction.commandName;
     const command = this.getCommand(commandName);
+    const rateLimiter = getCommandRateLimiter();
 
     if (!command) {
       await this.handleUnknownCommand(interaction);
       return;
+    }
+
+    // Check rate limits (skip for developers)
+    const { config } = await import("../../config/config.js");
+    const isDeveloper = config.isDeveloper(interaction.user.id);
+
+    if (!isDeveloper) {
+      const rateLimitResult = await rateLimiter.checkLimit(
+        interaction.user.id,
+        commandName,
+        interaction.guildId || "dm",
+      );
+
+      if (!rateLimitResult.allowed) {
+        const retryAfterSeconds = Math.ceil(
+          (rateLimitResult.retryAfter || 1000) / 1000,
+        );
+
+        const rateLimitMessages = {
+          spam_ban: `⛔ **Rate Limit Exceeded**\n\nYou've been temporarily blocked from using commands due to spam. Please wait **${retryAfterSeconds}s** before trying again.`,
+          global_limit: `⏳ **Slow Down!**\n\nYou're using commands too quickly. Please wait **${retryAfterSeconds}s** before trying again.`,
+          command_cooldown: `⏱️ **Command Cooldown**\n\nThis command is on cooldown. Please wait **${retryAfterSeconds}s** before using it again.`,
+          guild_cooldown: `🐌 **Guild Cooldown**\n\nThis command is being used frequently in this server. Please wait **${retryAfterSeconds}s**.`,
+        };
+
+        await interaction.reply({
+          content:
+            rateLimitMessages[rateLimitResult.reason] ||
+            `⏱️ **Rate Limit**\n\nPlease wait **${retryAfterSeconds}s** before using this command again.`,
+          flags: 64, // Ephemeral
+        });
+
+        this.logger.debug(
+          `🚫 Rate limit: ${interaction.user.tag} (${interaction.user.id}) - ${commandName} - ${rateLimitResult.reason}`,
+        );
+        return;
+      }
+
+      // Record command usage
+      await rateLimiter.recordUsage(
+        interaction.user.id,
+        commandName,
+        interaction.guildId || "dm",
+      );
     }
 
     // Check if command is disabled in this guild

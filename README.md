@@ -43,6 +43,7 @@ A powerful Discord bot that helps you manage your server with role management, A
 - **📊 Poll System**: Create and manage native Discord polls with interactive forms
 - **🛡️ Moderation System**: Comprehensive moderation tools with timeout, warnings, bans, kicks, and history tracking
 - **🎙️ Voice Control**: Automatically manage users in voice channels based on roles (disconnect, mute, deafen, move)
+- **🎫 Ticket System**: Complete support ticket system with panels, transcripts, and lifecycle management
 - **👤 User Information**: Avatar display, level checking, and user statistics
 - **🛡️ Permission Controls**: Comprehensive permission checking
 - **🎨 Custom Emojis**: Support for Unicode and custom server emojis
@@ -373,7 +374,6 @@ Automatically manage users in voice channels based on roles:
 /ping
 /invite
 /support
-/sponsor
 ```
 
 ### Available Commands
@@ -413,21 +413,15 @@ Automatically manage users in voice channels based on roles:
 | `/voice-roles deafen add`     | Add role that deafens users in voice       | Administrator |
 | `/voice-roles move add`       | Add role that moves users to channel       | Administrator |
 | `/voice-roles list`           | List all voice control roles               | Administrator |
-
-#### Developer Commands
-
-| Command                                | Description                                      | Permissions |
-| -------------------------------------- | ------------------------------------------------ | ----------- |
-| `/health`                              | 🔒 [DEVELOPER ONLY] Check bot health status      | Developer   |
-| `/performance`                         | 🔒 [DEVELOPER ONLY] View performance metrics     | Developer   |
-| `/storage`                             | 🔒 [DEVELOPER ONLY] Show storage status          | Developer   |
-| `/core-management`                     | 🔒 [DEVELOPER ONLY] Manage user Core credits     | Developer   |
-| `/core-management add`                 | 🔒 [DEVELOPER ONLY] Add bonus Cores to user      | Developer   |
-| `/core-management remove`              | 🔒 [DEVELOPER ONLY] Remove bonus Cores from user | Developer   |
-| `/core-management set`                 | 🔒 [DEVELOPER ONLY] Set user Core balance        | Developer   |
-| `/core-management view`                | 🔒 [DEVELOPER ONLY] View user Core information   | Developer   |
-| `/core-management cancel-subscription` | 🔒 [DEVELOPER ONLY] Cancel Core subscription     | Developer   |
-| `/imagine`                             | 🔒 [DEVELOPER ONLY] Generate AI artwork          | Developer   |
+| `/ticket setup`               | Set up ticket support system               | Manage Server |
+| `/ticket info`                | View ticket system information             | Manage Server |
+| `/ticket panel`               | Manage ticket panels                       | Manage Server |
+| `/ticket list`                | List all tickets                           | Manage Server |
+| `/ticket view`                | View specific ticket details               | Manage Server |
+| `/ticket claim`               | Claim a ticket                             | Manage Server |
+| `/ticket close`               | Close a ticket                             | Manage Server |
+| `/ticket add`                 | Add user to ticket                         | Manage Server |
+| `/ticket remove`              | Remove user from ticket                    | Manage Server |
 
 #### General Commands
 
@@ -501,7 +495,7 @@ Required Discord bot permissions:
 ### Performance Issues
 
 - **Slow responses**: Check server resources and database connection
-- **Memory usage high**: Monitor with `/performance` command
+- **Memory usage high**: Check Docker/container resource limits and bot logs
 - **Rate limiting**: Bot automatically handles Discord rate limits
 
 ### Getting Help
@@ -526,18 +520,18 @@ pnpm run docker:logs
 
 For more options and troubleshooting, see the **[Deployment Guide](./docs/setup/deployment.md)**.
 
-### Developer Setup
+### Developer Configuration
 
-To use developer commands (`/health`, `/performance`, `/storage`), configure developers:
+To enable developer-only features (hidden commands and debug logging), configure developer IDs:
 
-1. **Find your Discord User ID** (enable Developer Mode, right-click username, Copy ID)
+1. **Find your Discord User ID** (enable Developer Mode in Discord, right-click your username, Copy ID)
 2. **Add to `.env` file:**
    ```env
    DISCORD_DEVELOPERS=123456789012345678
    ```
 3. **Restart the bot**
 
-**Note:** Developer commands are hidden from Discord UI but accessible to authorized developers via runtime permission checks.
+**Note:** Developer features are hidden from the Discord UI and only accessible to authorized users via runtime permission checks.
 
 ## 📊 Monitoring
 
@@ -551,16 +545,13 @@ The bot includes comprehensive health monitoring:
 - **Error rate** monitoring
 - **Uptime** tracking
 
-### Commands
-
-- `/health` - 🔒 [DEVELOPER ONLY] Check bot health status
-- `/performance` - 🔒 [DEVELOPER ONLY] View performance metrics
-- `/storage` - 🔒 [DEVELOPER ONLY] Show storage status
+**Note:** Bot health and performance monitoring is handled automatically. Developers can access detailed metrics through bot logs and the unified API server.
 
 ## 🎨 User Experience
 
 ### Recent Improvements
 
+- **🎫 Ticket System**: Complete support ticket system with panels, transcripts (HTML/JSON/Markdown), and lifecycle management
 - **🎨 AI Avatar Generation**: AI-powered avatar creation with multiple style options and content filtering
 - **💎 Core Credit System**: Credit-based economy for avatar generation with crypto payment integration
 - **📊 Poll System**: Native Discord poll creation and management with interactive forms

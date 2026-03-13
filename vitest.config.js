@@ -21,14 +21,25 @@ export default defineConfig({
 
     // Coverage configuration
     coverage: {
-      enabled: false, // Disabled for now, enable with --coverage flag
+      enabled: true,
       provider: "v8",
       reporter: ["text", "lcov", "html"],
+      reportsDirectory: "./coverage",
+      threshold: {
+        global: {
+          statements: 40,
+          branches: 30,
+          functions: 35,
+          lines: 40,
+        },
+      },
       exclude: [
         "node_modules/**",
         "tests/**",
         "src/index.js",
-        "src/config/**", // Exclude config files from coverage
+        "src/config/**",
+        "src/server/**",
+        "**/*.d.ts",
       ],
     },
 

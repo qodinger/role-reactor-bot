@@ -10,6 +10,12 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -31,13 +37,20 @@ jobs:
       - name: Lint code
         run: pnpm lint
 
-      - name: Run tests
-        run: pnpm test:ci
+      - name: Run tests with coverage
+        run: pnpm vitest run --coverage
         env:
           CLIENT_ID: "123456789012345678"
           DISCORD_TOKEN: "test_token_for_ci"
-          MONGODB_URI: ""
+          MONGODB_URI: "mongodb://localhost:27017"
           NODE_ENV: "test"
 
       - name: Check formatting
         run: pnpm format:check
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage/lcov.info
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
