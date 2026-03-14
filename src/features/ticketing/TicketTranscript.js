@@ -13,14 +13,17 @@ export class TicketTranscript {
   constructor() {
     this.storage = null;
     this.premiumManager = null;
+    this._initialized = false;
   }
 
   /**
    * Initialize transcript manager
    */
   async initialize() {
+    if (this._initialized) return;
     this.storage = await getStorageManager();
     this.premiumManager = getPremiumManager();
+    this._initialized = true;
     logger.info("🎫 TicketTranscript initialized");
   }
 
@@ -108,8 +111,8 @@ export class TicketTranscript {
           totalMessages: formattedMessages.length,
           isTruncated: !!isTruncated,
           duration: ticket?.openedAt
-            ? new Date(ticket.closedAt || Date.now()) -
-              new Date(ticket.openedAt)
+            ? new Date(ticket.closedAt || Date.now()).getTime() -
+              new Date(ticket.openedAt).getTime()
             : 0,
         },
         expiresAt,
@@ -137,11 +140,6 @@ export class TicketTranscript {
     }
   }
 
-  /**
-   * Fetch messages from channel
-   * @param {DiscordChannel} channel - Discord channel
-   * @returns {Promise<Array>} Array of messages
-   */
   /**
    * Fetch messages from a channel with a limit
    * @param {Object} channel - Discord channel
@@ -235,7 +233,7 @@ export class TicketTranscript {
           (!msg.userId && msg.displayName === prev?.displayName));
       const isGrouped =
         sameUser &&
-        new Date(msg.timestamp) - new Date(prev.timestamp) < 7 * 60 * 1000;
+        new Date(msg.timestamp).getTime() - new Date(prev.timestamp).getTime() < 7 * 60 * 1000;
       groupedMessages.push({ ...msg, isGrouped });
     }
 
@@ -604,7 +602,7 @@ export class TicketTranscript {
               (prev?.displayName || prev?.username)));
       const isGrouped =
         sameUser &&
-        new Date(msg.timestamp) - new Date(prev.timestamp) < 7 * 60 * 1000;
+        new Date(msg.timestamp).getTime() - new Date(prev.timestamp).getTime() < 7 * 60 * 1000;
 
       if (!isGrouped) {
         if (i > 0) md += "\n---\n\n";

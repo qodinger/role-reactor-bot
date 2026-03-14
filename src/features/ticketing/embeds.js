@@ -30,6 +30,14 @@ function ticketFooter(client) {
 /**
  * Create ticket panel embed (shown publicly in the server channel)
  * @param {Object} options
+ * @param {string} [options.title]
+ * @param {string} [options.description]
+ * @param {import('discord.js').ColorResolvable} [options.color]
+ * @param {string} [options.thumbnail]
+ * @param {string} [options.image]
+ * @param {number} [options.ticketCount]
+ * @param {string} [options.waitTime]
+ * @param {{ text: string, iconURL?: string }} [options.footer]
  * @param {import('discord.js').Client} [options.client]
  * @returns {EmbedBuilder}
  */
@@ -81,6 +89,13 @@ export function createPanelEmbed(options) {
 /**
  * Create ticket welcome embed (sent inside the ticket channel on creation)
  * @param {Object} options
+ * @param {string} options.ticketId 
+ * @param {string} options.ticketNumber
+ * @param {string} options.userName
+ * @param {Object} [options.category]
+ * @param {string} [options.category.label]
+ * @param {string} [options.category.description]
+ * @param {import('discord.js').ColorResolvable} [options.category.color]
  * @param {import('discord.js').Client} [options.client]
  * @returns {EmbedBuilder}
  */
@@ -139,6 +154,10 @@ export function createTicketClaimedEmbed(staffName, client) {
 /**
  * Create ticket closed embed
  * @param {Object} options
+ * @param {string} options.ticketNumber
+ * @param {string} options.closedBy
+ * @param {string} [options.reason]
+ * @param {string} [options.duration]
  * @param {import('discord.js').Client} [options.client]
  * @returns {EmbedBuilder}
  */
@@ -168,6 +187,13 @@ export function createTicketClosedEmbed(options) {
 /**
  * Create transcript log embed (sent to the logs channel)
  * @param {Object} options
+ * @param {string} options.ticketId
+ * @param {string} options.userName
+ * @param {string} options.userId
+ * @param {string} options.closedBy
+ * @param {string} [options.reason]
+ * @param {string} [options.duration]
+ * @param {any[]} [options.messages]
  * @param {import('discord.js').Client} [options.client]
  * @returns {EmbedBuilder}
  */
@@ -203,6 +229,34 @@ export function createTranscriptLogEmbed(options) {
   return embed;
 }
 
+/**
+ * Create staff alert embed (sent to staff-only channel)
+ * @param {Object} options
+ * @param {string} options.ticketId
+ * @param {string} options.ticketNumber
+ * @param {string} options.userName
+ * @param {string} options.userId
+ * @param {string} options.channelId
+ * @param {Object} [options.category]
+ * @param {import('discord.js').Client} [options.client]
+ * @returns {EmbedBuilder}
+ */
+export function createStaffAlertEmbed(options) {
+  const { ticketNumber, userName, userId, category, client } = options;
+  const categoryLabel = category?.label || "General Support";
+
+  return new EmbedBuilder()
+    .setTitle(`🎫 New Ticket: #${ticketNumber}`)
+    .setDescription(
+      `A new support ticket has been opened and is waiting for a staff member.\n\n` +
+        `**Member:** ${userName} (${userId})\n` +
+        `**Category:** \`${categoryLabel}\``,
+    )
+    .setColor(category?.color || THEME.PRIMARY)
+    .setFooter(ticketFooter(client))
+    .setTimestamp();
+}
+
 // ─────────────────────────────────────────────
 // Limit embeds
 // ─────────────────────────────────────────────
@@ -210,6 +264,10 @@ export function createTranscriptLogEmbed(options) {
 /**
  * Create limit reached embed
  * @param {Object} options
+ * @param {string} [options.type]
+ * @param {number} options.current
+ * @param {number} options.max
+ * @param {boolean} options.isPro
  * @param {import('discord.js').Client} [options.client]
  * @returns {EmbedBuilder}
  */
@@ -296,7 +354,7 @@ export function createInfoEmbed(title, description, client) {
 /**
  * Create ticket panel buttons
  * @param {Array} categories
- * @returns {ActionRowBuilder[]}
+ * @returns {ActionRowBuilder<ButtonBuilder>[]}
  */
 export function createPanelButtons(categories) {
   const buttons = categories.map((cat, index) =>
@@ -309,7 +367,10 @@ export function createPanelButtons(categories) {
 
   const rows = [];
   for (let i = 0; i < buttons.length; i += 5) {
-    rows.push(new ActionRowBuilder().addComponents(buttons.slice(i, i + 5)));
+    rows.push(
+      /** @type {ActionRowBuilder<ButtonBuilder>} */
+      (new ActionRowBuilder().addComponents(buttons.slice(i, i + 5)))
+    );
   }
   return rows;
 }
@@ -317,7 +378,7 @@ export function createPanelButtons(categories) {
 /**
  * Create ticket action buttons (inside ticket channel)
  * @param {Object} options
- * @returns {ActionRowBuilder[]}
+ * @returns {ActionRowBuilder<ButtonBuilder>[]}
  */
 export function createTicketActionButtons(options = {}) {
   const {
@@ -370,8 +431,34 @@ export function createTicketActionButtons(options = {}) {
   }
 
   return buttons.length > 0
-    ? [new ActionRowBuilder().addComponents(buttons)]
+    ? [
+        /** @type {ActionRowBuilder<ButtonBuilder>} */ (
+          new ActionRowBuilder().addComponents(buttons)
+        ),
+      ]
     : [];
+}
+
+/**
+ * Create staff alert buttons (sent to staff-only channel)
+ * @param {Object} options
+ * @param {string} options.ticketId
+ * @returns {ActionRowBuilder<ButtonBuilder>[]}
+ */
+export function createStaffAlertButtons(options) {
+  const { ticketId } = options;
+
+  return [
+    /** @type {ActionRowBuilder<ButtonBuilder>} */ (
+      new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`ticket_claim_external_${ticketId}`)
+          .setLabel("Claim Ticket")
+          .setEmoji("🎟️")
+          .setStyle(ButtonStyle.Primary),
+      )
+    ),
+  ];
 }
 
 /**
@@ -380,7 +467,7 @@ export function createTicketActionButtons(options = {}) {
  * @param {string} cancelId
  * @param {string} confirmLabel
  * @param {string} cancelLabel
- * @returns {ActionRowBuilder}
+ * @returns {ActionRowBuilder<ButtonBuilder>}
  */
 export function createConfirmationButtons(
   confirmId = "confirm",
@@ -388,14 +475,16 @@ export function createConfirmationButtons(
   confirmLabel = "Confirm",
   cancelLabel = "Cancel",
 ) {
-  return new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId(confirmId)
-      .setLabel(confirmLabel)
-      .setStyle(ButtonStyle.Success),
-    new ButtonBuilder()
-      .setCustomId(cancelId)
-      .setLabel(cancelLabel)
-      .setStyle(ButtonStyle.Secondary),
+  return /** @type {ActionRowBuilder<ButtonBuilder>} */ (
+    new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(confirmId)
+        .setLabel(confirmLabel)
+        .setStyle(ButtonStyle.Success),
+      new ButtonBuilder()
+        .setCustomId(cancelId)
+        .setLabel(cancelLabel)
+        .setStyle(ButtonStyle.Secondary)
+    )
   );
 }

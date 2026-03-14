@@ -19,14 +19,17 @@ export class TicketPanel {
   constructor() {
     this.storage = null;
     this.premiumManager = null;
+    this._initialized = false;
   }
 
   /**
    * Initialize panel manager
    */
   async initialize() {
+    if (this._initialized) return;
     this.storage = await getStorageManager();
     this.premiumManager = getPremiumManager();
+    this._initialized = true;
     logger.info("🎫 TicketPanel initialized");
   }
 

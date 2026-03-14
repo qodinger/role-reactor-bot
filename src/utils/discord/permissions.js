@@ -5,6 +5,7 @@ let DEVELOPER_IDS = [];
 (async () => {
   try {
     const configModule = await import("../../config/config.js");
+    /** @type {any} */
     const config =
       configModule?.config || configModule?.default || configModule || {};
     DEVELOPER_IDS =
@@ -44,6 +45,8 @@ export const BOT_PERMISSIONS = [
   PermissionFlagsBits.DeafenMembers, // For voice deafen feature
   // Ticketing permissions
   PermissionFlagsBits.ManageChannels, // For ticket channel creation and management
+  PermissionFlagsBits.ManageThreads, // For managing ticket threads
+  PermissionFlagsBits.CreatePrivateThreads, // For creating private ticket threads
 ];
 
 /**

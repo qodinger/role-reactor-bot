@@ -78,22 +78,6 @@ describe("TicketManager", () => {
     });
   });
 
-  describe("Panel Limit Check", () => {
-    it("should return correct limit structure", async () => {
-      const limit = await ticketManager.checkPanelLimit("test-guild-id");
-
-      expect(limit).toHaveProperty("hasReachedLimit");
-      expect(limit).toHaveProperty("current");
-      expect(limit).toHaveProperty("max");
-      expect(limit).toHaveProperty("isPro");
-    });
-
-    it("should default to free tier panel limit", async () => {
-      const limit = await ticketManager.checkPanelLimit("test-guild-id");
-
-      expect(limit.max).toBe(FREE_TIER.MAX_PANELS);
-    });
-  });
 
   describe("Category Limit Check", () => {
     it("should validate category count", async () => {

@@ -12,21 +12,24 @@ export class TicketManager {
   constructor() {
     this.storage = null;
     this.premiumManager = null;
+    this._initialized = false;
   }
 
   /**
    * Initialize ticket manager
    */
   async initialize() {
+    if (this._initialized) return;
     this.storage = await getStorageManager();
     this.premiumManager = getPremiumManager();
+    this._initialized = true;
     logger.info("🎫 TicketManager initialized");
   }
 
   /**
    * Check if guild has reached ticket limit
    * @param {string} guildId - Guild ID
-   * @returns {Promise<{hasReachedLimit: boolean, current: number, max: number}>}
+   * @returns {Promise<{hasReachedLimit: boolean, current: number, max: number, isPro: boolean}>}
    */
   async checkTicketLimit(guildId) {
     try {
@@ -57,38 +60,6 @@ export class TicketManager {
     }
   }
 
-  /**
-   * Check if guild has reached panel limit
-   * @param {string} guildId - Guild ID
-   * @returns {Promise<{hasReachedLimit: boolean, current: number, max: number}>}
-   */
-  async checkPanelLimit(guildId) {
-    try {
-      const isPro = await this.premiumManager.isFeatureActive(
-        guildId,
-        "pro_engine",
-      );
-      const maxPanels = isPro ? PRO_ENGINE.MAX_PANELS : FREE_TIER.MAX_PANELS;
-
-      const panels = await this.storage.getTicketPanelsByGuild(guildId);
-      const current = panels.length;
-
-      return {
-        hasReachedLimit: current >= maxPanels,
-        current,
-        max: maxPanels,
-        isPro,
-      };
-    } catch (error) {
-      logger.error("Failed to check panel limit:", error);
-      return {
-        hasReachedLimit: false,
-        current: 0,
-        max: FREE_TIER.MAX_PANELS,
-        isPro: false,
-      };
-    }
-  }
 
   /**
    * Create a new ticket
@@ -302,16 +273,6 @@ export class TicketManager {
     }
   }
 
-  /**
-   * Get user's tickets (alias for getUserTickets)
-   * @param {string} userId - User ID
-   * @param {string} guildId - Guild ID
-   * @param {string} status - Status filter
-   * @returns {Promise<Array>} Array of tickets
-   */
-  async listUserTickets(userId, guildId, status = "all") {
-    return this.getUserTickets(userId, guildId, status);
-  }
 
   /**
    * Get guild ticket statistics
@@ -347,7 +308,7 @@ export class TicketManager {
    * Check if category limit is exceeded
    * @param {Array} categories - Categories to check
    * @param {string} guildId - Guild ID
-   * @returns {Promise<{valid: boolean, max: number}>}
+   * @returns {Promise<{valid: boolean, max: number, isPro: boolean}>}
    */
   async checkCategoryLimit(categories, guildId) {
     try {
