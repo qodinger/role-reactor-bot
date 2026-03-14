@@ -1,4 +1,4 @@
-import { SlashCommandBuilder } from "discord.js";
+import { SlashCommandBuilder, PermissionFlagsBits } from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
 import { createErrorEmbed } from "../../../features/ticketing/embeds.js";
 import { getColorChoices } from "../role-reactions/utils.js";
@@ -61,6 +61,7 @@ export const metadata = {
       value: [
         "**setup** - Create a new ticket panel (Manage Server)",
         "**info** - View system information and stats (Manage Server)",
+        "**settings** - Interactive settings dashboard (Manage Server)",
 
         "**panel list** - List all ticket panels in the server (Manage Server)",
         "**panel delete** - Delete a ticket panel by ID (Manage Server)",
@@ -72,7 +73,8 @@ export const metadata = {
         "**remove** - Remove member from current ticket (Staff)",
         "**transfer** - Transfer ticket to another staff (Staff)",
         "**rename** - Rename the ticket channel (Staff)",
-        "**alert** - Ping the claimed staff or the ticket owner (Owner/Staff)",
+        "**alert** - Ping the staff or ticket owner (Owner/Staff)",
+        "**transcript** - Export chat history (Owner/Staff)",
       ].join("\n"),
       inline: false,
     },
@@ -81,8 +83,8 @@ export const metadata = {
       value: [
         "**Setup/Config** - Manage Server permission",
         "**Claim/Add/Remove/Transfer/Rename** - Staff role",
-        "**Close** - Ticket creator or staff",
-        "**List/View/Alert** - Members",
+        "**Close/Alert/Transcript** - Ticket creator or staff",
+        "**List/View** - Members",
       ].join("\n"),
       inline: false,
     },
@@ -399,6 +401,22 @@ export async function execute(interaction) {
   const subcommand = interaction.options.getSubcommand();
 
   try {
+    const adminCommands = ["setup", "info", "settings"];
+    if (subcommandGroup === "panel" || adminCommands.includes(subcommand)) {
+      if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
+        return interaction.reply({
+          embeds: [
+            createErrorEmbed(
+              "You need the **Manage Server** permission to use this command.",
+              "Permission Denied",
+              interaction.client,
+            ),
+          ],
+          ephemeral: true,
+        });
+      }
+    }
+
     if (subcommandGroup === "panel") {
       return await handlePanel(interaction);
     }
