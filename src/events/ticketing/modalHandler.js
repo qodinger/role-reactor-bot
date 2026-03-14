@@ -3,6 +3,13 @@ import {
   createSuccessEmbed,
   createErrorEmbed,
 } from "../../features/ticketing/embeds.js";
+import {
+  checkStaffRoleForMember,
+  getStaffRoleId,
+} from "../../features/ticketing/helpers.js";
+import { getLogger } from "../../utils/logger.js";
+
+const logger = getLogger();
 
 /**
  * Handle ticket modal submissions
@@ -112,15 +119,19 @@ async function handleAddUserModal(interaction) {
       });
     }
 
-    // Add user to channel permissions
+    // Add user to channel permissions or thread members
     try {
-      await interaction.channel.permissionOverwrites.edit(member, {
-        ViewChannel: true,
-        SendMessages: true,
-        ReadMessageHistory: true,
-      });
+      if (interaction.channel.isThread()) {
+        await interaction.channel.members.add(member.id);
+      } else {
+        await interaction.channel.permissionOverwrites.edit(member, {
+          ViewChannel: true,
+          SendMessages: true,
+          ReadMessageHistory: true,
+        });
+      }
     } catch (error) {
-      console.error("Failed to add user to channel permissions:", error);
+      logger.error("Failed to add user to channel/thread:", error);
     }
 
     // Notify everyone in the ticket
@@ -145,7 +156,7 @@ async function handleAddUserModal(interaction) {
       ],
     });
   } catch (_error) {
-    console.error("Add user modal error:", _error);
+    logger.error("Add user modal error:", _error);
     return interaction.editReply({
       embeds: [
         createErrorEmbed(
@@ -252,6 +263,21 @@ async function handleTransferModal(interaction) {
       });
     }
 
+    // Add user to channel permissions or thread members
+    try {
+      if (interaction.channel.isThread()) {
+        await interaction.channel.members.add(targetMember.id);
+      } else {
+        await interaction.channel.permissionOverwrites.edit(targetMember, {
+          ViewChannel: true,
+          SendMessages: true,
+          ReadMessageHistory: true,
+        });
+      }
+    } catch (error) {
+      logger.error("Failed to add staff member to channel/thread:", error);
+    }
+
     // Notify everyone in the ticket
     await interaction.channel.send({
       embeds: [
@@ -274,7 +300,7 @@ async function handleTransferModal(interaction) {
       ],
     });
   } catch (_error) {
-    console.error("Transfer modal error:", _error);
+    logger.error("Transfer modal error:", _error);
     return interaction.editReply({
       embeds: [
         createErrorEmbed(
@@ -312,45 +338,3 @@ function parseUserId(input) {
   return null;
 }
 
-/**
- * Get the configured staff role ID for a guild
- * @param {string} guildId
- * @returns {Promise<string|null>}
- */
-async function getStaffRoleId(guildId) {
-  try {
-    const ticketManager = getTicketManager();
-    await ticketManager.initialize();
-    const settings =
-      await ticketManager.storage.dbManager.guildSettings.getByGuild(guildId);
-    return settings?.ticketSettings?.staffRoleId || null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Check if member has staff role
- * @param {import('discord.js').GuildMember} member
- * @returns {Promise<boolean>}
- */
-async function checkStaffRoleForMember(member, guildId) {
-  const hasManagePerms =
-    member.permissions.has("ManageMessages") ||
-    member.permissions.has("ManageGuild");
-
-  if (hasManagePerms) return true;
-
-  try {
-    const ticketManager = getTicketManager();
-    await ticketManager.initialize();
-    const settings =
-      await ticketManager.storage.dbManager.guildSettings.getByGuild(guildId);
-    const staffRoleId = settings?.ticketSettings?.staffRoleId;
-    if (staffRoleId && member.roles.cache.has(staffRoleId)) {
-      return true;
-    }
-  } catch {}
-
-  return false;
-}

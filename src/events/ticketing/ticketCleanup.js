@@ -1,14 +1,16 @@
 import { getTicketTranscript } from "../../features/ticketing/TicketTranscript.js";
 import { getTicketManager } from "../../features/ticketing/TicketManager.js";
 import { createTicketClosedEmbed } from "../../features/ticketing/embeds.js";
+import { formatDuration } from "../../features/ticketing/helpers.js";
 import { getLogger } from "../../utils/logger.js";
 
 const logger = getLogger();
+let cleanupInterval = null;
 
 /**
  * Auto-cleanup cron job for expired transcripts and tickets
  * Runs every 6 hours
- * @param {DiscordClient} client - Discord client instance
+ * @param {import('discord.js').Client} client - Discord client instance
  */
 export function startTicketCleanup(client) {
   logger.info("🎫 Starting ticket cleanup cron job...");
@@ -16,7 +18,7 @@ export function startTicketCleanup(client) {
   // Run every 6 hours
   const CLEANUP_INTERVAL = 6 * 60 * 60 * 1000;
 
-  setInterval(async () => {
+  cleanupInterval = setInterval(async () => {
     try {
       await runCleanup(client);
     } catch (error) {
@@ -36,7 +38,7 @@ export function startTicketCleanup(client) {
 
 /**
  * Run cleanup for all guilds
- * @param {DiscordClient} client - Discord client instance
+ * @param {import('discord.js').Client} client - Discord client instance
  */
 async function runCleanup(client) {
   try {
@@ -97,7 +99,7 @@ async function runCleanup(client) {
  * Cleanup expired tickets and transcripts for a guild
  * @param {string} guildId - Guild ID
  * @param {Object} storageManager - Storage manager instance
- * @param {DiscordClient} client - Discord client instance
+ * @param {import('discord.js').Client} client - Discord client instance
  * @returns {Promise<Object>} Cleanup results
  */
 async function cleanupGuild(guildId, storageManager, client) {
@@ -170,10 +172,12 @@ async function cleanupGuild(guildId, storageManager, client) {
         });
 
         // Send a final notification embed
+        const duration = formatDuration(new Date(ticket.openedAt), new Date());
         const closeEmbed = createTicketClosedEmbed({
           ticketNumber: ticket.ticketId.split("-").pop(),
           closedBy: "System",
           reason: `Auto-closed: inactive for ${inactiveDays}+ days`,
+          duration,
           client: guild.client,
         });
 
@@ -190,19 +194,27 @@ async function cleanupGuild(guildId, storageManager, client) {
           `Auto-closed: inactive for ${inactiveDays}+ days`,
         );
 
-        // Delete channel after a short delay so the message is visible for a moment
+        // Delete channel or archive thread after a short delay so the message is visible for a moment
         setTimeout(async () => {
           try {
-            await channel.delete(
-              `Auto-closed: inactive for ${inactiveDays}+ days`,
-            );
+            if (channel.isThread()) {
+              await channel.edit({
+                locked: true,
+                archived: true,
+                reason: `Auto-closed: inactive for ${inactiveDays}+ days`
+              });
+            } else {
+              await channel.delete(
+                `Auto-closed: inactive for ${inactiveDays}+ days`,
+              );
+            }
           } catch (error) {
             logger.error(
-              "Failed to delete ticket channel during cleanup:",
+              "Failed to delete/archive ticket channel during cleanup:",
               error,
             );
           }
-        }, 5000);
+        }, 2000);
 
         ticketsDeleted++;
         logger.info(
@@ -227,6 +239,9 @@ async function cleanupGuild(guildId, storageManager, client) {
  * Stop the cleanup cron job
  */
 export function stopTicketCleanup() {
-  logger.info("🎫 Stopping ticket cleanup cron job...");
-  // Interval will be cleared automatically when process exits
+  if (cleanupInterval) {
+    clearInterval(cleanupInterval);
+    cleanupInterval = null;
+  }
+  logger.info("🎫 Ticket cleanup cron job stopped.");
 }
