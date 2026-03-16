@@ -9,9 +9,10 @@ import { EMOJIS } from "../../../config/theme.js";
 /**
  * Create goodbye settings components
  * @param {Object} settings - Goodbye settings
- * @returns {ActionRowBuilder[]}
+ * @returns {import('discord.js').ActionRowBuilder<import('discord.js').ButtonBuilder>[]}
  */
 export function createGoodbyeSettingsComponents(settings) {
+  /** @type {import('discord.js').ButtonBuilder[]} */
   const buttonComponents = [];
 
   // Toggle button - Primary style when disabled, Secondary when enabled
@@ -48,14 +49,18 @@ export function createGoodbyeSettingsComponents(settings) {
     );
   }
 
-  return [new ActionRowBuilder().addComponents(...buttonComponents)];
+  return [
+    /** @type {import('discord.js').ActionRowBuilder<import('discord.js').ButtonBuilder>} */ (
+      new ActionRowBuilder().addComponents(...buttonComponents)
+    ),
+  ];
 }
 
 /**
  * Create channel selection components
  * @param {import('discord.js').Guild} guild - The guild to get channels from
  * @param {string} currentChannelId - Currently selected channel ID
- * @returns {ActionRowBuilder[]}
+ * @returns {(import('discord.js').ActionRowBuilder<import('discord.js').StringSelectMenuBuilder> | import('discord.js').ActionRowBuilder<import('discord.js').ButtonBuilder>)[]}
  */
 export function createChannelSelectComponents(guild, currentChannelId = null) {
   // Get text channels that the bot can send messages to
@@ -65,12 +70,18 @@ export function createChannelSelectComponents(guild, currentChannelId = null) {
         channel.type === 0 && // Text channel
         channel.permissionsFor(guild.members.me)?.has("SendMessages"),
     )
-    .sort((a, b) => a.position - b.position)
+    .sort(
+      (a, b) =>
+        /** @type {import('discord.js').GuildChannel} */ (a).position -
+        /** @type {import('discord.js').GuildChannel} */ (b).position,
+    )
     .first(25); // Discord limit is 25 options
 
   const selectOptions = textChannels.map(channel => ({
     label: `#${channel.name}`,
-    description: channel.topic || `Channel ID: ${channel.id}`,
+    description:
+      /** @type {import('discord.js').TextChannel} */ (channel).topic ||
+      `Channel ID: ${channel.id}`,
     value: channel.id,
     emoji: EMOJIS.UI.CHANNELS,
   }));
@@ -84,7 +95,9 @@ export function createChannelSelectComponents(guild, currentChannelId = null) {
     if (currentChannel) {
       selectOptions.unshift({
         label: `#${currentChannel.name} (Current)`,
-        description: currentChannel.topic || `Channel ID: ${currentChannel.id}`,
+        description:
+          /** @type {import('discord.js').TextChannel} */ (currentChannel)
+            .topic || `Channel ID: ${currentChannel.id}`,
         value: currentChannelId,
         emoji: EMOJIS.UI.CHANNELS,
       });
@@ -102,21 +115,26 @@ export function createChannelSelectComponents(guild, currentChannelId = null) {
     .setStyle(ButtonStyle.Secondary);
 
   return [
-    new ActionRowBuilder().addComponents(selectMenu),
-    new ActionRowBuilder().addComponents(backButton),
+    /** @type {import('discord.js').ActionRowBuilder<import('discord.js').StringSelectMenuBuilder>} */ (
+      new ActionRowBuilder().addComponents(selectMenu)
+    ),
+    /** @type {import('discord.js').ActionRowBuilder<import('discord.js').ButtonBuilder>} */ (
+      new ActionRowBuilder().addComponents(backButton)
+    ),
   ];
 }
 
 /**
  * Create goodbye configuration page components
  * @param {import('discord.js').Guild} guild - The guild
- * @param {Object} currentSettings - Current goodbye settings
- * @returns {ActionRowBuilder[]}
+ * @param {Object} [_currentSettings] - Current goodbye settings
+ * @returns {import('discord.js').ActionRowBuilder<import('discord.js').ButtonBuilder>[]}
  */
 export function createGoodbyeConfigPageComponents(
   guild,
   _currentSettings = {},
 ) {
+  /** @type {import('discord.js').ButtonBuilder[]} */
   const buttonComponents = [];
 
   // Channel selection button
@@ -151,5 +169,9 @@ export function createGoodbyeConfigPageComponents(
       .setEmoji(EMOJIS.ACTIONS.BACK),
   );
 
-  return [new ActionRowBuilder().addComponents(...buttonComponents)];
+  return [
+    /** @type {import('discord.js').ActionRowBuilder<import('discord.js').ButtonBuilder>} */ (
+      new ActionRowBuilder().addComponents(...buttonComponents)
+    ),
+  ];
 }

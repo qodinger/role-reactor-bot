@@ -1,3 +1,4 @@
+import { PermissionFlagsBits } from "discord.js";
 import { getTicketManager } from "../../../../features/ticketing/TicketManager.js";
 import {
   createInfoEmbed,
@@ -42,12 +43,15 @@ export async function handleView(interaction) {
 
   const isOwner = ticket.userId === interaction.user.id;
   const isStaff = await checkStaffRole(interaction);
+  const isAdmin = interaction.memberPermissions?.has(
+    PermissionFlagsBits.ManageGuild,
+  );
 
-  if (!isOwner && !isStaff) {
+  if (!isOwner && !isStaff && !isAdmin) {
     return interaction.editReply({
       embeds: [
         createErrorEmbed(
-          "You can only view your own tickets.",
+          "You must be the ticket owner, a staff member, or an administrator to view this ticket.",
           "Permission Denied",
           interaction.client,
         ),

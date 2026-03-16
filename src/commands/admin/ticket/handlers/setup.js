@@ -41,22 +41,31 @@ export async function handleSetup(interaction) {
     });
   }
 
-  // Require a staff role before creating a panel
+  // Require all settings before creating a panel
   const ticketManager = getTicketManager();
   await ticketManager.initialize();
   const settings =
     await ticketManager.storage.dbManager.guildSettings.getByGuild(
       interaction.guildId,
     );
-  const staffRoleId = settings?.ticketSettings?.staffRoleId;
 
-  if (!staffRoleId) {
+  const staffRoleId = settings?.ticketSettings?.staffRoleId;
+  const logChannelId = settings?.ticketSettings?.transcriptChannelId;
+  const notifyChannelId = settings?.ticketSettings?.notificationChannelId;
+
+  const missing = [];
+  if (!staffRoleId) missing.push("• **Staff Role** — who can view and manage tickets");
+  if (!logChannelId) missing.push("• **Log Channel** — where transcripts are sent after closing");
+  if (!notifyChannelId) missing.push("• **Notify Channel** — where staff receive new ticket alerts");
+
+  if (missing.length > 0) {
     return interaction.editReply({
       embeds: [
         createErrorEmbed(
-          "You need to configure a Staff Role before creating a ticket panel. This ensures the bot knows who has permission to view and manage user tickets.\n\n" +
-            `Please run </ticket settings:${interaction.commandId}> to set it up.`,
-          "No Staff Role Configured",
+          "The following settings must be configured before creating a ticket panel:\n\n" +
+            missing.join("\n") +
+            `\n\nPlease run </ticket settings:${interaction.commandId}> to set them up.`,
+          "Setup Incomplete",
           interaction.client,
         ),
       ],

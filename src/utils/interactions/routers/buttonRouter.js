@@ -19,15 +19,15 @@ export async function routeButtonInteraction(interaction, _client) {
 
   try {
     logger.debug(
-      `Routing interaction: ${customId}, type: ${interaction.type}, isStringSelectMenu: ${interaction.isStringSelectMenu()}`,
+      `Routing interaction: ${customId}, type: ${interaction.type}, isButton: ${interaction.isButton()}`,
     );
 
-    // Handle select menu interactions
-    if (interaction.isStringSelectMenu()) {
-      // Select menu interactions are handled by the select menu router
+    // Ensure it's a button interaction
+    if (!interaction.isButton()) {
+      // Non-button interactions are handled by other routers
       // This should not happen as the interaction manager routes them separately
       logger.warn(
-        `Select menu interaction ${customId} routed to button handler - this should not happen`,
+        `Non-button interaction ${customId} routed to button handler - this should not happen`,
       );
       return;
     }
@@ -44,15 +44,6 @@ export async function routeButtonInteraction(interaction, _client) {
         "../../../commands/general/imagine/buttonHandler.js"
       );
       await handleImagineButton(interaction);
-      return;
-    }
-
-    // Handle AI Avatar buttons
-    if (customId.startsWith("ai_avatar_")) {
-      const { handleAIAvatarButton } = await import(
-        "../../../commands/general/avatar/handlers.js"
-      );
-      await handleAIAvatarButton(interaction);
       return;
     }
 
@@ -117,6 +108,7 @@ export async function routeButtonInteraction(interaction, _client) {
     // Handle ticket buttons
     if (
       customId.startsWith("ticket_create_") ||
+      customId.startsWith("ticket_claim_external_") ||
       customId === "ticket_claim" ||
       customId === "ticket_close" ||
       customId === "ticket_add_user" ||

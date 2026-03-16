@@ -39,7 +39,7 @@ export class TicketRepository extends BaseRepository {
    */
   async create(ticketData) {
     try {
-      const now = new Date().toISOString();
+      const now = new Date();
       const ticket = {
         ticketId: ticketData.ticketId,
         guildId: ticketData.guildId,
@@ -185,7 +185,7 @@ export class TicketRepository extends BaseRepository {
 
       const query = {
         guildId,
-        openedAt: { $gte: startOfMonth.toISOString() },
+        openedAt: { $gte: startOfMonth },
       };
 
       return await this.collection.countDocuments(query);
@@ -379,7 +379,7 @@ export class TicketRepository extends BaseRepository {
         {
           $match: {
             guildId,
-            openedAt: { $gte: startOfMonth.toISOString() },
+            openedAt: { $gte: startOfMonth },
           },
         },
         {

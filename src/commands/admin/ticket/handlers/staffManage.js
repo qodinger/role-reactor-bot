@@ -23,8 +23,9 @@ export async function handleTransfer(interaction) {
 
   const staffToTransfer = interaction.options.getUser("staff");
   const isStaff = await checkStaffRole(interaction);
+  const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild);
 
-  if (!isStaff) {
+  if (!isStaff && !isAdmin) {
     const staffRoleId = await getStaffRoleId(interaction.guildId);
     const roleText = staffRoleId
       ? `the <@&${staffRoleId}> role`
@@ -32,7 +33,7 @@ export async function handleTransfer(interaction) {
     return interaction.editReply({
       embeds: [
         createErrorEmbed(
-          `You need ${roleText} to transfer tickets.`,
+          `You need ${roleText} or administrator permissions to transfer tickets.`,
           "Permission Denied",
           interaction.client,
         ),
@@ -199,8 +200,9 @@ export async function handleRename(interaction) {
 
   const newName = interaction.options.getString("name");
   const isStaff = await checkStaffRole(interaction);
+  const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild);
 
-  if (!isStaff) {
+  if (!isStaff && !isAdmin) {
     const staffRoleId = await getStaffRoleId(interaction.guildId);
     const roleText = staffRoleId
       ? `the <@&${staffRoleId}> role`
@@ -208,7 +210,7 @@ export async function handleRename(interaction) {
     return interaction.editReply({
       embeds: [
         createErrorEmbed(
-          `You need ${roleText} to rename tickets.`,
+          `You need ${roleText} or administrator permissions to rename tickets.`,
           "Permission Denied",
           interaction.client,
         ),
@@ -315,6 +317,9 @@ export async function handleAlert(interaction) {
 
   const isOwner = ticket.userId === interaction.user.id;
   const isClaimedByMe = ticket.claimedBy === interaction.user.id;
+  const isAdmin = interaction.memberPermissions?.has(
+    PermissionFlagsBits.ManageGuild,
+  );
 
   if (isOwner) {
     if (!ticket.claimedBy) {
@@ -382,10 +387,41 @@ export async function handleAlert(interaction) {
     }
   }
 
+  // Admin bypass: can nudge whoever is in the ticket
+  if (isAdmin) {
+    try {
+      let content = `👋 <@${ticket.userId}> - An administrator is requesting an update.`;
+      if (ticket.claimedBy) {
+        content = `👋 <@${ticket.claimedBy}> and <@${ticket.userId}> - An administrator is requesting an update on this ticket.`;
+      }
+
+      await interaction.channel.send({ content });
+      return interaction.editReply({
+        embeds: [
+          createSuccessEmbed(
+            "The ticket participants have been alerted.",
+            "Admin Alert Sent",
+            interaction.client,
+          ),
+        ],
+      });
+    } catch {
+      return interaction.editReply({
+        embeds: [
+          createErrorEmbed(
+            "Failed to send alert.",
+            "Alert Failed",
+            interaction.client,
+          ),
+        ],
+      });
+    }
+  }
+
   return interaction.editReply({
     embeds: [
       createErrorEmbed(
-        "You must be the ticket creator or the claimed staff member to use this command.",
+        "You must be the ticket creator, a staff member, or an administrator to use this command.",
         "Permission Denied",
         interaction.client,
       ),

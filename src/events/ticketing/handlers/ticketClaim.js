@@ -4,6 +4,7 @@ import { getLogger } from "../../../utils/logger.js";
 import {
   checkStaffRole,
   getStaffRoleId,
+  getStaffNotificationChannel,
 } from "../../../features/ticketing/helpers.js";
 import {
   createTicketClaimedEmbed,
@@ -129,51 +130,99 @@ export async function handleTicketClaim(interaction, providedTicketId) {
       logger.error("Failed to update claim permissions/membership:", err);
     }
 
-    // 2. Announce claim in ticket channel
+    // 2. Announce claim in ticket channel with buttons
     const claimedEmbed = createTicketClaimedEmbed(
       `<@${interaction.user.id}>`,
       interaction.client,
     );
-    await ticketChannel.send({ embeds: [claimedEmbed] });
 
-    // 3. Update buttons in the ticket channel (find the first message from the bot)
+    const newButtons = createTicketActionButtons({
+      canClaim: false,
+      canClose: true,
+      canAddUser: true,
+      isClaimed: true,
+    });
+
+    // Send the claimed embed WITH the action buttons
+    await ticketChannel.send({
+      embeds: [claimedEmbed],
+      // @ts-ignore
+      components: newButtons,
+    });
+
+    // 3. Remove the claim button from the original welcome message
     try {
       const messages = await ticketChannel.messages.fetch({ limit: 10 });
       const welcomeMsg = messages.find(
         m => m.author.id === interaction.client.user.id && m.embeds.length > 0,
       );
       if (welcomeMsg) {
-        const newButtons = createTicketActionButtons({
-          canClaim: false,
-          canClose: true,
-          canAddUser: true,
-          isClaimed: true,
-        });
-        // @ts-ignore
-        await welcomeMsg.edit({ components: newButtons });
+        // Remove all components from the welcome message
+        await welcomeMsg.edit({ components: [] });
       }
     } catch (err) {
       logger.debug(`Failed to update welcome buttons: ${err.message}`);
     }
 
-    // 4. Update the staff alert message if this was an external claim
-    if (providedTicketId && interaction.channelId !== ticket.channelId) {
-      try {
+    // 4. Update the staff alert message
+    try {
+      if (providedTicketId && interaction.channelId !== ticket.channelId) {
+        // External claim (from the alert channel)
         const alertEmbed = EmbedBuilder.from(interaction.message.embeds[0])
           .setColor(0x3ba55c) // Green for claimed
-          .addFields({
-            name: "Status",
-            value: `✅ Claimed by <@${staffId}>`,
-            inline: false,
-          });
+          .setFields(
+            ...interaction.message.embeds[0].fields
+              .filter(f => f.name !== "Status")
+              .concat({
+                name: "Status",
+                value: `✅ Claimed by <@${staffId}>`,
+                inline: false,
+              }),
+          );
 
         await interaction.message.edit({
           embeds: [alertEmbed],
           components: [], // Remove the claim button
         });
-      } catch (err) {
-        logger.debug(`Failed to update staff alert message: ${err.message}`);
+      } else {
+        // Internal claim (find the alert message in staff channel)
+        const staffChannel = await getStaffNotificationChannel(
+          interaction.guild,
+        );
+        if (staffChannel) {
+          const ticketNum = ticket.ticketId.split("-").pop();
+          const messages = await staffChannel.messages.fetch({ limit: 50 });
+          const alertMsg = messages.find(
+            m =>
+              m.author.id === interaction.client.user.id &&
+              m.embeds.length > 0 &&
+              (m.embeds[0].title?.includes(`#${ticketNum}`) ||
+                m.embeds[0].description?.includes(`#${ticketNum}`)),
+          );
+
+          if (alertMsg) {
+            const oldEmbed = alertMsg.embeds[0];
+            const newEmbed = EmbedBuilder.from(oldEmbed)
+              .setColor(0x3ba55c)
+              .setFields(
+                ...oldEmbed.fields
+                  .filter(f => f.name !== "Status")
+                  .concat({
+                    name: "Status",
+                    value: `✅ Claimed by <@${staffId}>`,
+                    inline: false,
+                  }),
+              );
+
+            await alertMsg.edit({
+              embeds: [newEmbed],
+              components: [],
+            });
+          }
+        }
       }
+    } catch (err) {
+      logger.debug(`Failed to update staff alert message: ${err.message}`);
     }
 
     return interaction.editReply({

@@ -3,6 +3,7 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  PermissionFlagsBits,
 } from "discord.js";
 import { getTicketManager } from "../../../../features/ticketing/TicketManager.js";
 import { getTicketTranscript } from "../../../../features/ticketing/TicketTranscript.js";
@@ -57,12 +58,15 @@ export async function handleTranscript(interaction) {
   // Permission Check
   const isOwner = ticket.userId === interaction.user.id;
   const isStaff = await checkStaffRole(interaction);
+  const isAdmin = interaction.memberPermissions?.has(
+    PermissionFlagsBits.ManageGuild,
+  );
 
-  if (!isOwner && !isStaff) {
+  if (!isOwner && !isStaff && !isAdmin) {
     return interaction.editReply({
       embeds: [
         createErrorEmbed(
-          "You do not have permission to view this transcript.",
+          "You must be the ticket owner, a staff member, or an administrator to view this transcript.",
           "Permission Denied",
           interaction.client,
         ),

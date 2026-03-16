@@ -194,23 +194,15 @@ async function cleanupGuild(guildId, storageManager, client) {
           `Auto-closed: inactive for ${inactiveDays}+ days`,
         );
 
-        // Delete channel or archive thread after a short delay so the message is visible for a moment
+        // Delete channel or thread after a short delay so the message is visible for a moment
         setTimeout(async () => {
           try {
-            if (channel.isThread()) {
-              await channel.edit({
-                locked: true,
-                archived: true,
-                reason: `Auto-closed: inactive for ${inactiveDays}+ days`
-              });
-            } else {
-              await channel.delete(
-                `Auto-closed: inactive for ${inactiveDays}+ days`,
-              );
-            }
+            await channel.delete(
+              `Auto-closed: inactive for ${inactiveDays}+ days`,
+            );
           } catch (error) {
             logger.error(
-              "Failed to delete/archive ticket channel during cleanup:",
+              "Failed to delete ticket channel during cleanup:",
               error,
             );
           }

@@ -158,7 +158,7 @@ export async function handleSetup(interaction, _client) {
 
 /**
  * Handle the welcome settings logic
- * @param {import('discord.js').CommandInteraction} interaction
+ * @param {import('discord.js').CommandInteraction | import('discord.js').ButtonInteraction} interaction
  * @param {import('discord.js').Client} client
  */
 export async function handleSettings(interaction, _client) {

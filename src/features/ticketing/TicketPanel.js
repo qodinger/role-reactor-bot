@@ -150,6 +150,7 @@ export class TicketPanel {
         title: panel.title,
         description: panel.description,
         color: panel.styling?.color || 0x5865f2,
+        panelId: panel.panelId,
         footer: panel.styling?.footer
           ? { text: panel.styling.footer }
           : undefined,
@@ -402,6 +403,7 @@ export class TicketPanel {
         title: panel.title,
         description: panel.description,
         color: panel.styling?.color || 0x5865f2,
+        panelId: panel.panelId,
         footer: panel.styling?.footer ? { text: panel.styling.footer } : null,
       });
 

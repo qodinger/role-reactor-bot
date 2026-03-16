@@ -13,8 +13,8 @@ import { validateGoodbyeInputs, processGoodbyeSettings } from "./utils.js";
 
 /**
  * Handle the goodbye setup logic
- * @param {import('discord.js').CommandInteraction} interaction
- * @param {import('discord.js').Client} client
+ * @param {import('discord.js').ChatInputCommandInteraction} interaction
+ * @param {import('discord.js').Client} _client
  */
 export async function handleSetup(interaction, _client) {
   const logger = getLogger();
@@ -125,8 +125,8 @@ export async function handleSetup(interaction, _client) {
 
 /**
  * Handle the goodbye settings logic
- * @param {import('discord.js').CommandInteraction} interaction
- * @param {import('discord.js').Client} client
+ * @param {import('discord.js').ChatInputCommandInteraction | import('discord.js').ButtonInteraction} interaction
+ * @param {import('discord.js').Client} _client
  */
 export async function handleSettings(interaction, _client) {
   const logger = getLogger();

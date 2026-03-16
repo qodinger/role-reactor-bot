@@ -13,10 +13,7 @@ import {
   createErrorEmbed,
   createTranscriptLogEmbed,
 } from "../../../../features/ticketing/embeds.js";
-import {
-  checkStaffRole,
-  formatDuration,
-} from "../utils.js";
+import { checkStaffRole, formatDuration } from "../utils.js";
 import { getLogger } from "../../../../utils/logger.js";
 
 const logger = getLogger();
@@ -50,12 +47,15 @@ export async function handleClose(interaction) {
 
   const isOwner = ticket.userId === interaction.user.id;
   const isStaff = await checkStaffRole(interaction);
+  const isAdmin = interaction.memberPermissions?.has(
+    PermissionFlagsBits.ManageGuild,
+  );
 
-  if (!isOwner && !isStaff) {
+  if (!isOwner && !isStaff && !isAdmin) {
     return interaction.editReply({
       embeds: [
         createErrorEmbed(
-          "You can only close your own tickets.",
+          "You must be the ticket owner, a staff member, or an administrator to close this ticket.",
           "Permission Denied",
           interaction.client,
         ),
@@ -87,7 +87,7 @@ export async function handleClose(interaction) {
       embeds: [
         createErrorEmbed(
           `I don't have the **${isThread ? "Manage Threads" : "Manage Channels"}** permission in this server.\n\n` +
-            `I need this permission to ${isThread ? "archive" : "delete"} the ticket channel when closing.`,
+            `I need this permission to delete the ticket channel/thread when closing.`,
           "Missing Permissions",
           interaction.client,
         ),
@@ -139,9 +139,7 @@ export async function handleClose(interaction) {
   await interaction.editReply({
     embeds: [
       createSuccessEmbed(
-        isThread
-          ? "This ticket has been closed. Thread will be locked and archived shortly."
-          : "This ticket has been closed. Channel will be deleted shortly.",
+        "This ticket has been closed. It will be deleted shortly.",
         "Ticket Closed",
         interaction.client,
       ),
@@ -162,38 +160,62 @@ export async function handleClose(interaction) {
           .fetch(logChannelId)
           .catch(() => null);
         if (logChannel) {
-          const attachment = new AttachmentBuilder(
-            Buffer.from(transcriptResult.content),
-            {
-              name: `transcript-${ticket.ticketId.split("-").pop()}.html`,
-            },
-          );
+          const botMember = await interaction.guild.members.me;
+          const perms = logChannel.permissionsFor(botMember);
 
-          const logEmbed = createTranscriptLogEmbed({
-            ticketId: ticket.ticketId,
-            userName: ticket.userDisplayName || "Unknown",
-            userId: ticket.userId,
-            closedBy: interaction.user.tag,
-            reason: reason || "No reason provided",
-            duration: duration,
-            messages: transcriptResult.transcript.messages,
-            client: interaction.client,
-          });
+          if (
+            !perms.has(PermissionFlagsBits.SendMessages) ||
+            !perms.has(PermissionFlagsBits.ViewChannel)
+          ) {
+            logger.warn(
+              `Cannot send transcript to log channel ${logChannelId} due to missing Send/View permissions.`,
+            );
+            await interaction.channel.send(
+              "⚠️ **Warning:** Could not send the ticket transcript to the configured log channel because the bot is missing `Send Messages` or `View Channel` permissions there.",
+            );
+          } else {
+            const payload = {};
 
-          const logRow = new ActionRowBuilder().addComponents(
-            new ButtonBuilder()
-              .setLabel("View in Browser")
-              .setStyle(ButtonStyle.Link)
-              .setURL(
-                `${config.botInfo.apiUrl}/t/${transcriptResult.transcript.transcriptId}`,
-              ),
-          );
+            const logEmbed = createTranscriptLogEmbed({
+              ticketId: ticket.ticketId,
+              userName: ticket.userDisplayName || "Unknown",
+              userId: ticket.userId,
+              closedBy: interaction.user.tag,
+              reason: reason || "No reason provided",
+              duration: duration,
+              messages: transcriptResult.transcript.messages,
+              client: interaction.client,
+            });
 
-          await logChannel.send({
-            embeds: [logEmbed],
-            files: [attachment],
-            components: [logRow],
-          });
+            const logRow = new ActionRowBuilder().addComponents(
+              new ButtonBuilder()
+                .setLabel("View in Browser")
+                .setStyle(ButtonStyle.Link)
+                .setURL(
+                  `${config.botInfo.apiUrl}/t/${transcriptResult.transcript.transcriptId}`,
+                ),
+            );
+
+            payload.components = [logRow];
+
+            if (perms.has(PermissionFlagsBits.EmbedLinks)) {
+              payload.embeds = [logEmbed];
+            } else {
+              payload.content = `**Ticket Log • #${ticket.ticketId.split("-").pop()}**\nTicket Owner: <@${ticket.userId}>\nClosed By: ${interaction.user.tag}\nDuration: ${duration || "Unknown"}\nMessages: ${transcriptResult.transcript.messages?.length || "0"}`;
+            }
+
+            if (perms.has(PermissionFlagsBits.AttachFiles)) {
+              const attachment = new AttachmentBuilder(
+                Buffer.from(transcriptResult.content),
+                {
+                  name: `transcript-${ticket.ticketId.split("-").pop()}.html`,
+                },
+              );
+              payload.files = [attachment];
+            }
+
+            await logChannel.send(payload);
+          }
         }
       }
     } catch (err) {
@@ -203,17 +225,9 @@ export async function handleClose(interaction) {
 
   setTimeout(async () => {
     try {
-      if (interaction.channel.isThread()) {
-        await interaction.channel.edit({
-          locked: true,
-          archived: true,
-          reason: "Ticket closed",
-        });
-      } else {
-        await interaction.channel.delete("Ticket closed");
-      }
+      await interaction.channel.delete("Ticket closed");
     } catch (error) {
-      logger.error("Failed to close ticket channel/thread:", error);
+      logger.error("Failed to delete ticket channel/thread:", error);
     }
   }, 2000);
 }

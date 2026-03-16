@@ -1,3 +1,4 @@
+import { PermissionFlagsBits } from "discord.js";
 import { getTicketManager } from "../../../../features/ticketing/TicketManager.js";
 import {
   createSuccessEmbed,
@@ -19,7 +20,9 @@ export async function handleClaim(interaction) {
   await interaction.deferReply({ ephemeral: true });
 
   const isStaff = await checkStaffRole(interaction);
-  if (!isStaff) {
+  const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild);
+
+  if (!isStaff && !isAdmin) {
     const staffRoleId = await getStaffRoleId(interaction.guildId);
     const roleText = staffRoleId
       ? `the <@&${staffRoleId}> role`
@@ -27,7 +30,7 @@ export async function handleClaim(interaction) {
     return interaction.editReply({
       embeds: [
         createErrorEmbed(
-          `You need ${roleText} to claim tickets.`,
+          `You need ${roleText} or administrator permissions to claim tickets.`,
           "Permission Denied",
           interaction.client,
         ),

@@ -40,6 +40,23 @@ export async function handleTicketCreate(interaction, customId) {
     await ticketManager.initialize();
     await ticketPanel.initialize();
 
+    // Verify required settings are configured
+    const guildSettings =
+      await ticketManager.storage.dbManager.guildSettings.getByGuild(guildId);
+    const ts = guildSettings?.ticketSettings;
+
+    if (!ts?.staffRoleId || !ts?.transcriptChannelId || !ts?.notificationChannelId) {
+      return interaction.editReply({
+        embeds: [
+          createErrorEmbed(
+            "The ticketing system is not fully configured yet. An administrator needs to set up the **Staff Role**, **Log Channel**, and **Notify Channel** in `/ticket settings` before tickets can be created.",
+            "Setup Incomplete",
+            interaction.client,
+          ),
+        ],
+      });
+    }
+
     // Check ticket limit
     const limitCheck = await ticketManager.checkTicketLimit(guildId);
     if (limitCheck.hasReachedLimit) {
@@ -55,11 +72,30 @@ export async function handleTicketCreate(interaction, customId) {
     }
 
     // Check if user already has an open ticket
-    const openTickets = await ticketManager.getUserTickets(
+    let openTickets = await ticketManager.getUserTickets(
       userId,
       guildId,
       "open",
     );
+
+    // Clean up ghost tickets (DB says open, but channel is gone)
+    if (openTickets.length > 0) {
+      const activeTickets = [];
+      for (const t of openTickets) {
+        const exists = await guild.channels.fetch(t.channelId).catch(() => null);
+        if (!exists) {
+          logger.info(`Cleaning up ghost ticket: ${t.ticketId} (Channel missing)`);
+          await ticketManager.storage.closeTicket(t.ticketId, {
+            closedBy: "SYSTEM",
+            reason: "Thread missing/deleted",
+          });
+        } else {
+          activeTickets.push(t);
+        }
+      }
+      openTickets = activeTickets;
+    }
+
     if (openTickets.length > 0) {
       const existingTicket = openTickets[0];
       return interaction.editReply({
@@ -136,15 +172,24 @@ export async function handleTicketCreate(interaction, customId) {
         });
       }
 
-      // Create private thread
-      // @ts-ignore
+      // Create strictly private thread
       channel = await interaction.channel.threads.create({
         name: channelName,
         // @ts-ignore
-        type: ChannelType.PrivateThread,
+        type: ChannelType.GuildPrivateThread,
+        // @ts-ignore
+        invitable: false,
+        // @ts-ignore
         autoArchiveDuration: ThreadAutoArchiveDuration.OneWeek,
         reason: `Support ticket created by ${interaction.user.tag}`,
       });
+
+      // Verify thread type was created correctly
+      if (channel && channel.type !== ChannelType.GuildPrivateThread) {
+        logger.warn(`CRITICAL: Thread created as public or incorrect type (${channel.type}) instead of Private (12). Ticket ID: ${ticketNumber}`);
+      } else {
+        logger.debug(`Private thread created: ${channelName} (ID: ${channel.id})`);
+      }
 
       // Add user to the thread explicitly
       await channel.members.add(userId);
@@ -215,9 +260,9 @@ export async function handleTicketCreate(interaction, customId) {
     });
 
     const actionButtons = createTicketActionButtons({
-      canClaim: true,
+      canClaim: false,
       canClose: true,
-      canAddUser: true,
+      canAddUser: false,
       isClaimed: false,
     });
 
@@ -248,6 +293,8 @@ export async function handleTicketCreate(interaction, customId) {
         userName: interaction.user.tag,
         userId: interaction.user.id,
         channelId: channel.id,
+        channelName: channel.name,
+        guildId: interaction.guildId,
         category: selectedCategory,
         client: interaction.client,
       });
@@ -262,7 +309,6 @@ export async function handleTicketCreate(interaction, customId) {
           : "";
 
       await staffChannel.send({
-        content: staffMentionStr || undefined,
         embeds: [staffAlertEmbed],
         components: staffAlertButtons,
         allowedMentions: { roles: staffRoles.map(r => r.id) },

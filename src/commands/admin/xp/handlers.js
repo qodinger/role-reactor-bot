@@ -24,7 +24,7 @@ import { updateXpSettings } from "./utils.js";
 
 /**
  * Handle XP command (simplified single command)
- * @param {import('discord.js').CommandInteraction} interaction
+ * @param {import('discord.js').CommandInteraction | import('discord.js').ButtonInteraction} interaction
  * @param {import('discord.js').Client} client
  */
 export async function handleXpCommand(interaction, _client) {

@@ -33,7 +33,7 @@ export class TicketTranscriptRepository extends BaseRepository {
    */
   async create(transcriptData) {
     try {
-      const now = new Date().toISOString();
+      const now = new Date();
       const transcript = {
         transcriptId: transcriptData.transcriptId,
         ticketId: transcriptData.ticketId,
@@ -52,7 +52,7 @@ export class TicketTranscriptRepository extends BaseRepository {
           duration: transcriptData.metadata?.duration || 0,
         },
 
-        expiresAt: transcriptData.expiresAt || null,
+        expiresAt: transcriptData.expiresAt ? new Date(transcriptData.expiresAt) : null,
         downloadedAt: null,
 
         createdAt: now,
@@ -145,7 +145,7 @@ export class TicketTranscriptRepository extends BaseRepository {
       return await this.collection
         .find({
           guildId,
-          expiresAt: { $ne: null, $lt: now.toISOString() },
+          expiresAt: { $ne: null, $lt: now },
         })
         .toArray();
     } catch (error) {
@@ -264,7 +264,7 @@ export class TicketTranscriptRepository extends BaseRepository {
           $group: {
             _id: null,
             totalTranscripts: { $sum: 1 },
-            totalSize: { $sum: { $strLenCP: "$content" } },
+            totalSize: { $sum: { $bsonSize: "$$ROOT" } },
           },
         },
       ];
@@ -275,7 +275,7 @@ export class TicketTranscriptRepository extends BaseRepository {
         return {
           totalTranscripts: results[0].totalTranscripts,
           totalSizeBytes: results[0].totalSize,
-          totalSizeMB: (results[0].totalSize / 1024 / 1024).toFixed(2),
+          totalSizeMB: (results[0].totalSize / 1024 / 1024).toFixed(4),
         };
       }
 

@@ -138,22 +138,15 @@ export async function handleSettings(interaction) {
         .setCustomId("t_list_panels")
         .setLabel("View Panels")
         .setStyle(ButtonStyle.Secondary),
-    );
-
-    const row3 = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
-        .setCustomId("t_refresh")
-        .setLabel("Refresh Dashboard")
-        .setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder()
-        .setCustomId("t_purge_data")
-        .setLabel("Purge All Data")
+        .setCustomId("t_reset_tickets")
+        .setLabel("Reset Tickets")
         .setStyle(ButtonStyle.Danger),
     );
 
     const response = {
       embeds: [embed],
-      components: [row1, row2, row3],
+      components: [row1, row2],
     };
 
     if (inter.replied || inter.deferred) {
@@ -181,7 +174,7 @@ export async function handleSettings(interaction) {
     // Acknowledge immediately to prevent Discord's 3-second timeout
     await i.deferUpdate();
 
-    if (i.customId === "t_refresh") {
+    if (i.customId === "t_back") {
       return await renderDashboard(i);
     }
 
@@ -321,23 +314,23 @@ export async function handleSettings(interaction) {
       return await renderDashboard(i);
     }
 
-    if (i.customId === "t_purge_data") {
+    if (i.customId === "t_reset_tickets") {
       // Check for open tickets first
       const openCount = await ticketManager.storage.countOpenTickets(guildId);
 
       if (openCount > 0) {
         const backRow = new ActionRowBuilder().addComponents(
           new ButtonBuilder()
-            .setCustomId("t_refresh")
+            .setCustomId("t_back")
             .setLabel("Back to Settings")
             .setStyle(ButtonStyle.Secondary),
         );
 
         return await i.editReply({
           content:
-            `### ⚠️ Cannot Purge Data\n` +
+            `### ⚠️ Cannot Reset Tickets\n` +
             `There are still **${openCount}** open ticket(s).\n\n` +
-            `Please close all tickets before purging data to avoid orphaned threads with broken buttons.`,
+            `Please close all tickets before resetting to avoid orphaned threads with broken buttons.`,
           embeds: [],
           components: [backRow],
         });
@@ -345,23 +338,23 @@ export async function handleSettings(interaction) {
 
       const confirmRow = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
-          .setCustomId("t_confirm_purge")
-          .setLabel("Confirm Total Purge")
+          .setCustomId("t_confirm_reset")
+          .setLabel("Confirm Reset")
           .setStyle(ButtonStyle.Danger),
         new ButtonBuilder()
-          .setCustomId("t_refresh")
+          .setCustomId("t_back")
           .setLabel("Cancel")
           .setStyle(ButtonStyle.Secondary),
       );
 
       return await i.editReply({
-        content: `### 🚨 TOTAL PURGE\nThis will permanently delete:\n- **ALL** Active and Closed Tickets\n- **ALL** Saved Transcripts\n- **RESET** the counter to #0001\n\n**This action cannot be undone.**`,
+        content: `### ⚠️ Reset Tickets\nThis will permanently delete:\n- All closed tickets\n- All saved transcripts\n- Reset the counter to \`#0001\`\n\nYour **panels** and **settings** will not be affected.\n\n**This action cannot be undone.**`,
         embeds: [],
         components: [confirmRow],
       });
     }
 
-    if (i.customId === "t_confirm_purge") {
+    if (i.customId === "t_confirm_reset") {
       await ticketManager.purgeGuildData(guildId);
       return await renderDashboard(i);
     }

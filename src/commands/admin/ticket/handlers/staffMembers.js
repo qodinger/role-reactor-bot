@@ -1,3 +1,4 @@
+import { PermissionFlagsBits } from "discord.js";
 import { getTicketManager } from "../../../../features/ticketing/TicketManager.js";
 import {
   createSuccessEmbed,
@@ -20,8 +21,9 @@ export async function handleAdd(interaction) {
 
   const userToAdd = interaction.options.getUser("member");
   const isStaff = await checkStaffRole(interaction);
+  const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild);
 
-  if (!isStaff) {
+  if (!isStaff && !isAdmin) {
     const staffRoleId = await getStaffRoleId(interaction.guildId);
     const roleText = staffRoleId
       ? `the <@&${staffRoleId}> role`
@@ -29,7 +31,7 @@ export async function handleAdd(interaction) {
     return interaction.editReply({
       embeds: [
         createErrorEmbed(
-          `You need ${roleText} to add members.`,
+          `You need ${roleText} or administrator permissions to add members.`,
           "Permission Denied",
           interaction.client,
         ),
@@ -140,8 +142,9 @@ export async function handleRemove(interaction) {
 
   const userToRemove = interaction.options.getUser("member");
   const isStaff = await checkStaffRole(interaction);
+  const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild);
 
-  if (!isStaff) {
+  if (!isStaff && !isAdmin) {
     const staffRoleId = await getStaffRoleId(interaction.guildId);
     const roleText = staffRoleId
       ? `the <@&${staffRoleId}> role`
@@ -149,7 +152,7 @@ export async function handleRemove(interaction) {
     return interaction.editReply({
       embeds: [
         createErrorEmbed(
-          `You need ${roleText} to remove members.`,
+          `You need ${roleText} or administrator permissions to remove members.`,
           "Permission Denied",
           interaction.client,
         ),

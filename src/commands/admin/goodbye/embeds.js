@@ -3,9 +3,9 @@ import { THEME, EMOJIS } from "../../../config/theme.js";
 
 /**
  * Create goodbye settings embed
- * @param {import('discord.js').CommandInteraction} interaction
+ * @param {import('discord.js').ChatInputCommandInteraction | import('discord.js').ButtonInteraction} interaction
  * @param {Object} settings - Goodbye settings
- * @param {import('discord.js').TextChannel|null} goodbyeChannel - Goodbye channel
+ * @param {any} goodbyeChannel - Goodbye channel
  * @returns {EmbedBuilder}
  */
 export function createGoodbyeSettingsEmbed(

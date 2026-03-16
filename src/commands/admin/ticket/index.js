@@ -153,18 +153,7 @@ export const data = new SlashCommandBuilder()
   .addSubcommand(sub =>
     sub
       .setName("info")
-      .setDescription("View ticket system information and limits")
-      .addStringOption(opt =>
-        opt
-          .setName("action")
-          .setDescription("Action to perform")
-          .setRequired(false)
-          .addChoices(
-            { name: "View Settings", value: "view" },
-            { name: "View Statistics", value: "stats" },
-            { name: "View Storage", value: "storage" },
-          ),
-      ),
+      .setDescription("View ticket system information and limits"),
   )
   .addSubcommand(sub =>
     sub
@@ -403,11 +392,13 @@ export async function execute(interaction) {
   try {
     const adminCommands = ["setup", "info", "settings"];
     if (subcommandGroup === "panel" || adminCommands.includes(subcommand)) {
-      if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
+      if (
+        !interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)
+      ) {
         return interaction.reply({
           embeds: [
             createErrorEmbed(
-              "You need the **Manage Server** permission to use this command.",
+              "You need the **Manage Server** or administrator permission to use this command.",
               "Permission Denied",
               interaction.client,
             ),

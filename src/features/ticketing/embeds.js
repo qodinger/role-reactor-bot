@@ -16,9 +16,12 @@ import { THEME, EMOJIS, UI_COMPONENTS } from "../../config/theme.js";
  * @param {import('discord.js').Client} [client]
  * @returns {{ text: string, iconURL?: string }}
  */
-function ticketFooter(client) {
+function ticketFooter(client, panelId = null) {
+  const text = panelId
+    ? `Ticketing System • ID: ${panelId.split("-").pop()}`
+    : "Ticketing System";
   return UI_COMPONENTS.createFooter(
-    "Ticketing System",
+    text,
     client?.user?.displayAvatarURL() ?? undefined,
   );
 }
@@ -38,6 +41,7 @@ function ticketFooter(client) {
  * @param {number} [options.ticketCount]
  * @param {string} [options.waitTime]
  * @param {{ text: string, iconURL?: string }} [options.footer]
+ * @param {string} [options.panelId]
  * @param {import('discord.js').Client} [options.client]
  * @returns {EmbedBuilder}
  */
@@ -51,6 +55,7 @@ export function createPanelEmbed(options) {
     image,
     ticketCount,
     waitTime,
+    panelId,
     client,
   } = options;
 
@@ -58,7 +63,7 @@ export function createPanelEmbed(options) {
     .setTitle(title)
     .setDescription(description)
     .setColor(color)
-    .setFooter(footer ?? ticketFooter(client))
+    .setFooter(footer ?? ticketFooter(client, panelId))
     .setTimestamp();
 
   if (thumbnail) embed.setThumbnail(thumbnail);
@@ -89,7 +94,7 @@ export function createPanelEmbed(options) {
 /**
  * Create ticket welcome embed (sent inside the ticket channel on creation)
  * @param {Object} options
- * @param {string} options.ticketId 
+ * @param {string} options.ticketId
  * @param {string} options.ticketNumber
  * @param {string} options.userName
  * @param {Object} [options.category]
@@ -230,27 +235,43 @@ export function createTranscriptLogEmbed(options) {
 }
 
 /**
- * Create staff alert embed (sent to staff-only channel)
+ * Create staff alert embed (notification channel)
  * @param {Object} options
  * @param {string} options.ticketId
  * @param {string} options.ticketNumber
  * @param {string} options.userName
  * @param {string} options.userId
  * @param {string} options.channelId
+ * @param {string} [options.channelName]
+ * @param {string} [options.guildId]
  * @param {Object} [options.category]
  * @param {import('discord.js').Client} [options.client]
- * @returns {EmbedBuilder}
+ * @returns {import('discord.js').EmbedBuilder}
  */
 export function createStaffAlertEmbed(options) {
-  const { ticketNumber, userName, userId, category, client } = options;
+  const {
+    ticketNumber,
+    userName,
+    userId,
+    category,
+    client,
+    guildId,
+    channelName,
+  } = options;
   const categoryLabel = category?.label || "General Support";
+
+  // Use a direct link instead of a mention to avoid the "#unknown" issue for staff not in the thread
+  const threadDisplay = guildId
+    ? `[${channelName || `ticket-${ticketNumber}`}](https://discord.com/channels/${guildId}/${options.channelId})`
+    : `<#${options.channelId}>`;
 
   return new EmbedBuilder()
     .setTitle(`🎫 New Ticket: #${ticketNumber}`)
     .setDescription(
       `A new support ticket has been opened and is waiting for a staff member.\n\n` +
-        `**Member:** ${userName} (${userId})\n` +
-        `**Category:** \`${categoryLabel}\``,
+        `**Member:** <@${userId}> (${userName})\n` +
+        `**Category:** \`${categoryLabel}\`\n` +
+        `**Thread:** ${threadDisplay}`,
     )
     .setColor(category?.color || THEME.PRIMARY)
     .setFooter(ticketFooter(client))
@@ -369,7 +390,7 @@ export function createPanelButtons(categories) {
   for (let i = 0; i < buttons.length; i += 5) {
     rows.push(
       /** @type {ActionRowBuilder<ButtonBuilder>} */
-      (new ActionRowBuilder().addComponents(buttons.slice(i, i + 5)))
+      (new ActionRowBuilder().addComponents(buttons.slice(i, i + 5))),
     );
   }
   return rows;
@@ -484,7 +505,7 @@ export function createConfirmationButtons(
       new ButtonBuilder()
         .setCustomId(cancelId)
         .setLabel(cancelLabel)
-        .setStyle(ButtonStyle.Secondary)
+        .setStyle(ButtonStyle.Secondary),
     )
   );
 }
