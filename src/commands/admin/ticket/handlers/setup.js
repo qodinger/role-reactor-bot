@@ -1,6 +1,4 @@
-import {
-  PermissionFlagsBits,
-} from "discord.js";
+import { PermissionFlagsBits } from "discord.js";
 import { getTicketPanel } from "../../../../features/ticketing/TicketPanel.js";
 import { getTicketManager } from "../../../../features/ticketing/TicketManager.js";
 import {
@@ -54,9 +52,16 @@ export async function handleSetup(interaction) {
   const notifyChannelId = settings?.ticketSettings?.notificationChannelId;
 
   const missing = [];
-  if (!staffRoleId) missing.push("• **Staff Role** — who can view and manage tickets");
-  if (!logChannelId) missing.push("• **Log Channel** — where transcripts are sent after closing");
-  if (!notifyChannelId) missing.push("• **Notify Channel** — where staff receive new ticket alerts");
+  if (!staffRoleId)
+    missing.push("• **Staff Role** — who can view and manage tickets");
+  if (!logChannelId)
+    missing.push(
+      "• **Log Channel** — where transcripts are sent after closing",
+    );
+  if (!notifyChannelId)
+    missing.push(
+      "• **Notify Channel** — where staff receive new ticket alerts",
+    );
 
   if (missing.length > 0) {
     return interaction.editReply({

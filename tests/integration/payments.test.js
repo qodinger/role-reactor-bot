@@ -3,9 +3,10 @@
  * Tests crypto payment flow and Core credit management
  */
 
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { config } from "../../src/config/config.js";
 
-// Mock dependencies
+// Mock storage manager for integration tests
 vi.mock("../../src/utils/storage/storageManager.js", () => ({
   getStorageManager: vi.fn(() => ({
     users: {
@@ -23,60 +24,42 @@ vi.mock("../../src/utils/storage/storageManager.js", () => ({
 }));
 
 describe("Payment Integration", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   describe("Core Credit Calculation", () => {
-    it("should calculate Cores for $1 package", () => {
-      // $1 = 15 Cores (test package)
-      const amount = 1;
-      const expectedCores = 15;
-
-      // Simulate calculation logic from config
-      const rate = 15.0; // Cores per dollar for $1 package
-      const calculatedCores = Math.floor(amount * rate);
-
-      expect(calculatedCores).toBe(expectedCores);
+    it("should calculate Cores using config.calculateCores() for $1", () => {
+      const cores = config.calculateCores(1);
+      expect(cores).toBeGreaterThanOrEqual(15);
     });
 
-    it("should calculate Cores for $10 package with bonus", () => {
-      // $10 = 150 base + 15 bonus = 165 Cores
-      const baseCores = 150;
-      const bonusCores = 15;
-      const expectedTotal = baseCores + bonusCores;
-
-      expect(expectedTotal).toBe(165);
+    it("should calculate Cores using config.calculateCores() for $10", () => {
+      const cores = config.calculateCores(10);
+      expect(cores).toBeGreaterThanOrEqual(150); // Base + bonus
     });
 
-    it("should calculate Cores for $25 package with bonus", () => {
-      // $25 = 375 base + 60 bonus = 435 Cores
-      const baseCores = 375;
-      const bonusCores = 60;
-      const expectedTotal = baseCores + bonusCores;
-
-      expect(expectedTotal).toBe(435);
+    it("should calculate Cores using config.calculateCores() for $25", () => {
+      const cores = config.calculateCores(25);
+      expect(cores).toBeGreaterThanOrEqual(375); // Base + bonus
     });
 
-    it("should calculate Cores for $50 package with bonus", () => {
-      // $50 = 750 base + 150 bonus = 900 Cores
-      const baseCores = 750;
-      const bonusCores = 150;
-      const expectedTotal = baseCores + bonusCores;
-
-      expect(expectedTotal).toBe(900);
+    it("should calculate Cores using config.calculateCores() for $50", () => {
+      const cores = config.calculateCores(50);
+      expect(cores).toBeGreaterThanOrEqual(750); // Base + bonus
     });
 
     it("should provide better rates for higher packages", () => {
-      const packages = [
-        { price: 1, cores: 15 }, // 15 Cores/$
-        { price: 10, cores: 165 }, // 16.5 Cores/$
-        { price: 25, cores: 435 }, // 17.4 Cores/$
-        { price: 50, cores: 900 }, // 18 Cores/$
-      ];
+      const cores1 = config.calculateCores(1);
+      const cores10 = config.calculateCores(10);
+      const cores50 = config.calculateCores(50);
 
-      // Verify that higher packages have better rates
-      for (let i = 1; i < packages.length; i++) {
-        const prevRate = packages[i - 1].cores / packages[i - 1].price;
-        const currRate = packages[i].cores / packages[i].price;
-        expect(currRate).toBeGreaterThanOrEqual(prevRate);
-      }
+      const rate1 = cores1 / 1;
+      const rate10 = cores10 / 10;
+      const rate50 = cores50 / 50;
+
+      expect(rate10).toBeGreaterThanOrEqual(rate1);
+      expect(rate50).toBeGreaterThanOrEqual(rate10);
     });
   });
 

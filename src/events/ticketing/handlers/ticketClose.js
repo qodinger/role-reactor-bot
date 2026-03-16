@@ -155,17 +155,24 @@ export async function handleTicketClose(interaction) {
           const logChannel = await interaction.guild.channels
             .fetch(logChannelId)
             .catch(() => null);
-            
+
           if (logChannel) {
             const botMember = await interaction.guild.members.me;
             const perms = logChannel.permissionsFor(botMember);
 
-            if (!perms.has(PermissionFlagsBits.SendMessages) || !perms.has(PermissionFlagsBits.ViewChannel)) {
-              logger.warn(`Cannot send transcript to log channel ${logChannelId} due to missing Send/View permissions.`);
-              await interaction.channel.send("⚠️ **Warning:** Could not send the ticket transcript to the configured log channel because the bot is missing `Send Messages` or `View Channel` permissions there.");
+            if (
+              !perms.has(PermissionFlagsBits.SendMessages) ||
+              !perms.has(PermissionFlagsBits.ViewChannel)
+            ) {
+              logger.warn(
+                `Cannot send transcript to log channel ${logChannelId} due to missing Send/View permissions.`,
+              );
+              await interaction.channel.send(
+                "⚠️ **Warning:** Could not send the ticket transcript to the configured log channel because the bot is missing `Send Messages` or `View Channel` permissions there.",
+              );
             } else {
               const payload = {};
-              
+
               const logEmbed = createTranscriptLogEmbed({
                 ticketId: ticket.ticketId,
                 userName: ticket.userDisplayName || "Unknown",
@@ -185,15 +192,15 @@ export async function handleTicketClose(interaction) {
                     `${config.botInfo.apiUrl}/t/${transcriptResult.transcript.transcriptId}`,
                   ),
               );
-              
+
               payload.components = [logRow];
-              
+
               if (perms.has(PermissionFlagsBits.EmbedLinks)) {
                 payload.embeds = [logEmbed];
               } else {
                 payload.content = `**Ticket Log • #${ticket.ticketId.split("-").pop()}**\nTicket Owner: <@${ticket.userId}>\nClosed By: ${interaction.user.tag}\nDuration: ${duration || "Unknown"}\nMessages: ${transcriptResult.transcript.messages?.length || "0"}`;
               }
-              
+
               if (perms.has(PermissionFlagsBits.AttachFiles)) {
                 const attachment = new AttachmentBuilder(
                   Buffer.from(transcriptResult.content),

@@ -4,10 +4,7 @@ import {
   createSuccessEmbed,
   createErrorEmbed,
 } from "../../../../features/ticketing/embeds.js";
-import {
-  checkStaffRole,
-  getStaffRoleId,
-} from "../utils.js";
+import { checkStaffRole, getStaffRoleId } from "../utils.js";
 import { getLogger } from "../../../../utils/logger.js";
 
 const logger = getLogger();
@@ -21,7 +18,9 @@ export async function handleAdd(interaction) {
 
   const userToAdd = interaction.options.getUser("member");
   const isStaff = await checkStaffRole(interaction);
-  const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild);
+  const isAdmin = interaction.memberPermissions?.has(
+    PermissionFlagsBits.ManageGuild,
+  );
 
   if (!isStaff && !isAdmin) {
     const staffRoleId = await getStaffRoleId(interaction.guildId);
@@ -142,7 +141,9 @@ export async function handleRemove(interaction) {
 
   const userToRemove = interaction.options.getUser("member");
   const isStaff = await checkStaffRole(interaction);
-  const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild);
+  const isAdmin = interaction.memberPermissions?.has(
+    PermissionFlagsBits.ManageGuild,
+  );
 
   if (!isStaff && !isAdmin) {
     const staffRoleId = await getStaffRoleId(interaction.guildId);

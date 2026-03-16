@@ -1,7 +1,4 @@
-import {
-  ChannelType,
-  ThreadAutoArchiveDuration,
-} from "discord.js";
+import { ChannelType, ThreadAutoArchiveDuration } from "discord.js";
 import { getTicketManager } from "../../../features/ticketing/TicketManager.js";
 import { getTicketPanel } from "../../../features/ticketing/TicketPanel.js";
 import { getLogger } from "../../../utils/logger.js";
@@ -45,7 +42,11 @@ export async function handleTicketCreate(interaction, customId) {
       await ticketManager.storage.dbManager.guildSettings.getByGuild(guildId);
     const ts = guildSettings?.ticketSettings;
 
-    if (!ts?.staffRoleId || !ts?.transcriptChannelId || !ts?.notificationChannelId) {
+    if (
+      !ts?.staffRoleId ||
+      !ts?.transcriptChannelId ||
+      !ts?.notificationChannelId
+    ) {
       return interaction.editReply({
         embeds: [
           createErrorEmbed(
@@ -82,9 +83,13 @@ export async function handleTicketCreate(interaction, customId) {
     if (openTickets.length > 0) {
       const activeTickets = [];
       for (const t of openTickets) {
-        const exists = await guild.channels.fetch(t.channelId).catch(() => null);
+        const exists = await guild.channels
+          .fetch(t.channelId)
+          .catch(() => null);
         if (!exists) {
-          logger.info(`Cleaning up ghost ticket: ${t.ticketId} (Channel missing)`);
+          logger.info(
+            `Cleaning up ghost ticket: ${t.ticketId} (Channel missing)`,
+          );
           await ticketManager.storage.closeTicket(t.ticketId, {
             closedBy: "SYSTEM",
             reason: "Thread missing/deleted",
@@ -186,9 +191,13 @@ export async function handleTicketCreate(interaction, customId) {
 
       // Verify thread type was created correctly
       if (channel && channel.type !== ChannelType.GuildPrivateThread) {
-        logger.warn(`CRITICAL: Thread created as public or incorrect type (${channel.type}) instead of Private (12). Ticket ID: ${ticketNumber}`);
+        logger.warn(
+          `CRITICAL: Thread created as public or incorrect type (${channel.type}) instead of Private (12). Ticket ID: ${ticketNumber}`,
+        );
       } else {
-        logger.debug(`Private thread created: ${channelName} (ID: ${channel.id})`);
+        logger.debug(
+          `Private thread created: ${channelName} (ID: ${channel.id})`,
+        );
       }
 
       // Add user to the thread explicitly
@@ -302,11 +311,6 @@ export async function handleTicketCreate(interaction, customId) {
       const staffAlertButtons = createStaffAlertButtons({
         ticketId: ticket.ticketId,
       });
-
-      const staffMentionStr =
-        staffRoles.length > 0
-          ? staffRoles.map(role => `<@&${role.id}>`).join(" ")
-          : "";
 
       await staffChannel.send({
         embeds: [staffAlertEmbed],

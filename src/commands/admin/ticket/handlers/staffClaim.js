@@ -4,10 +4,7 @@ import {
   createSuccessEmbed,
   createErrorEmbed,
 } from "../../../../features/ticketing/embeds.js";
-import {
-  checkStaffRole,
-  getStaffRoleId,
-} from "../utils.js";
+import { checkStaffRole, getStaffRoleId } from "../utils.js";
 import { getLogger } from "../../../../utils/logger.js";
 
 const logger = getLogger();
@@ -20,7 +17,9 @@ export async function handleClaim(interaction) {
   await interaction.deferReply({ ephemeral: true });
 
   const isStaff = await checkStaffRole(interaction);
-  const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild);
+  const isAdmin = interaction.memberPermissions?.has(
+    PermissionFlagsBits.ManageGuild,
+  );
 
   if (!isStaff && !isAdmin) {
     const staffRoleId = await getStaffRoleId(interaction.guildId);
@@ -97,7 +96,9 @@ export async function handleClaim(interaction) {
       });
     }
   } catch (err) {
-    logger.debug(`Failed to update claim permissions/membership: ${err.message}`);
+    logger.debug(
+      `Failed to update claim permissions/membership: ${err.message}`,
+    );
   }
 
   // Notify everyone in the ticket

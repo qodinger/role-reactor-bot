@@ -337,4 +337,3 @@ function parseUserId(input) {
 
   return null;
 }
-

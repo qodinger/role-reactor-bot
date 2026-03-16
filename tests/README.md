@@ -116,15 +116,51 @@ pnpm test:coverage
 pnpm test:ci
 ```
 
-## 📊 Coverage Information
+## 📊 Current Test Coverage
 
-The project includes test coverage reporting:
+### ✅ Covered (41 test files, 744 tests)
 
-- **Current Status**: Tests are passing but coverage is low (0%) due to heavy mocking
-- **Coverage Types**: Branches, Functions, Lines, Statements
-- **Reports**: Console output and HTML report in `coverage/` directory
+**Unit Tests:**
+- ✅ Admin Commands: welcome, goodbye, moderation, role-reactions, temp-roles, schedule-role, voice-roles, xp, **ticket**
+- ✅ General Commands: help, level, leaderboard, poll, serverinfo, userinfo, rps, 8ball
+- ✅ Events: guildMemberUpdate, voiceStateUpdate, **eventHandlers (file structure)**
+- ✅ Utils: commandHandler, eventHandler, roleParser, **rateLimiter**
+- ✅ Features: databaseReconnection
 
-**Note**: Current tests focus on structure validation and error handling patterns rather than actual code execution, which is why coverage appears low.
+**Integration Tests:**
+- ✅ Discord API integration
+- ✅ Database operations
+- ✅ Setup roles command
+- ✅ Payment system
+
+**E2E Tests:**
+- ✅ Role management workflows
+
+### ❌ Missing Tests (Priority Order)
+
+**High Priority:**
+- ❌ **Event Handler Functionality** - Need functional tests for:
+  - guildMemberAdd (welcome messages)
+  - guildMemberRemove (goodbye messages)
+  - messageReactionAdd/Remove (role reactions)
+  - interactionCreate (command routing)
+  - messageCreate (XP tracking)
+
+**Medium Priority:**
+- ❌ **Feature Modules**
+  - features/experience/ (XP system core)
+  - features/premium/ (Pro Engine)
+  - features/scheduledRoles/
+  - features/temporaryRoles/
+  - features/analytics/
+
+**Low Priority:**
+- ❌ **Utility Modules**
+  - utils/ai/ (29 files, only 1 tested)
+  - utils/cache/
+  - utils/payments/
+  - utils/validation/
+
 
 ## 🛠️ Test Utilities
 

@@ -233,7 +233,8 @@ export class TicketTranscript {
           (!msg.userId && msg.displayName === prev?.displayName));
       const isGrouped =
         sameUser &&
-        new Date(msg.timestamp).getTime() - new Date(prev.timestamp).getTime() < 7 * 60 * 1000;
+        new Date(msg.timestamp).getTime() - new Date(prev.timestamp).getTime() <
+          7 * 60 * 1000;
       groupedMessages.push({ ...msg, isGrouped });
     }
 
@@ -602,7 +603,8 @@ export class TicketTranscript {
               (prev?.displayName || prev?.username)));
       const isGrouped =
         sameUser &&
-        new Date(msg.timestamp).getTime() - new Date(prev.timestamp).getTime() < 7 * 60 * 1000;
+        new Date(msg.timestamp).getTime() - new Date(prev.timestamp).getTime() <
+          7 * 60 * 1000;
 
       if (!isGrouped) {
         if (i > 0) md += "\n---\n\n";

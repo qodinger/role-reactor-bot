@@ -23,7 +23,9 @@ export async function handleTransfer(interaction) {
 
   const staffToTransfer = interaction.options.getUser("staff");
   const isStaff = await checkStaffRole(interaction);
-  const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild);
+  const isAdmin = interaction.memberPermissions?.has(
+    PermissionFlagsBits.ManageGuild,
+  );
 
   if (!isStaff && !isAdmin) {
     const staffRoleId = await getStaffRoleId(interaction.guildId);
@@ -133,7 +135,9 @@ export async function handleTransfer(interaction) {
       });
     }
   } catch (err) {
-    logger.debug(`Failed to update transfer permissions/membership: ${err.message}`);
+    logger.debug(
+      `Failed to update transfer permissions/membership: ${err.message}`,
+    );
   }
 
   const wasClaimed = !!ticket.claimedBy;
@@ -200,7 +204,9 @@ export async function handleRename(interaction) {
 
   const newName = interaction.options.getString("name");
   const isStaff = await checkStaffRole(interaction);
-  const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild);
+  const isAdmin = interaction.memberPermissions?.has(
+    PermissionFlagsBits.ManageGuild,
+  );
 
   if (!isStaff && !isAdmin) {
     const staffRoleId = await getStaffRoleId(interaction.guildId);

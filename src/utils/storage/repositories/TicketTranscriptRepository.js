@@ -52,7 +52,9 @@ export class TicketTranscriptRepository extends BaseRepository {
           duration: transcriptData.metadata?.duration || 0,
         },
 
-        expiresAt: transcriptData.expiresAt ? new Date(transcriptData.expiresAt) : null,
+        expiresAt: transcriptData.expiresAt
+          ? new Date(transcriptData.expiresAt)
+          : null,
         downloadedAt: null,
 
         createdAt: now,

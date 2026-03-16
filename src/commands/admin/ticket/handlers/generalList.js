@@ -1,7 +1,5 @@
 import { getTicketManager } from "../../../../features/ticketing/TicketManager.js";
-import {
-  createInfoEmbed,
-} from "../../../../features/ticketing/embeds.js";
+import { createInfoEmbed } from "../../../../features/ticketing/embeds.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // /ticket list

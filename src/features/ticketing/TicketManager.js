@@ -60,7 +60,6 @@ export class TicketManager {
     }
   }
 
-
   /**
    * Create a new ticket
    * @param {Object} options - Ticket options
@@ -272,7 +271,6 @@ export class TicketManager {
       return [];
     }
   }
-
 
   /**
    * Get guild ticket statistics

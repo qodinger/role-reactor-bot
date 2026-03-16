@@ -118,7 +118,9 @@ export async function getStaffNotificationChannel(guild) {
     // 1. Try configured notification channel (Quiet Claim channel)
     const notifyChannelId = settings?.ticketSettings?.notificationChannelId;
     if (notifyChannelId) {
-      const channel = await guild.channels.fetch(notifyChannelId).catch(() => null);
+      const channel = await guild.channels
+        .fetch(notifyChannelId)
+        .catch(() => null);
       if (channel && channel.type === ChannelType.GuildText) {
         return /** @type {import('discord.js').TextChannel} */ (channel);
       }
@@ -127,7 +129,9 @@ export async function getStaffNotificationChannel(guild) {
     // 2. Fallback to transcript channel
     const logChannelId = settings?.ticketSettings?.transcriptChannelId;
     if (logChannelId) {
-      const channel = await guild.channels.fetch(logChannelId).catch(() => null);
+      const channel = await guild.channels
+        .fetch(logChannelId)
+        .catch(() => null);
       if (channel && channel.type === ChannelType.GuildText) {
         return /** @type {import('discord.js').TextChannel} */ (channel);
       }
@@ -137,7 +141,9 @@ export async function getStaffNotificationChannel(guild) {
     const fallbackChannel = guild.channels.cache.find(
       c => c.name === "staff-pings" && c.type === ChannelType.GuildText,
     );
-    return /** @type {import('discord.js').TextChannel} */ (fallbackChannel) || null;
+    return (
+      /** @type {import('discord.js').TextChannel} */ (fallbackChannel) || null
+    );
   } catch {
     return null;
   }

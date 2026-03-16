@@ -20,8 +20,10 @@ export async function execute(thread) {
 
     // If it was still open, mark it as closed (or archived/deleted)
     if (ticket.status === "open" || ticket.status === "closed") {
-      logger.info(`Ticket thread deleted manually: ${ticket.ticketId}. Syncing database...`);
-      
+      logger.info(
+        `Ticket thread deleted manually: ${ticket.ticketId}. Syncing database...`,
+      );
+
       // We mark as 'archived' or 'closed' to allow user to open new tickets
       await ticketManager.storage.closeTicket(ticket.ticketId, {
         closedBy: "SYSTEM",

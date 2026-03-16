@@ -11,7 +11,6 @@ import { getTicketManager } from "../../../../features/ticketing/TicketManager.j
 import { getTicketTranscript } from "../../../../features/ticketing/TicketTranscript.js";
 import {
   createInfoEmbed,
-  createErrorEmbed,
 } from "../../../../features/ticketing/embeds.js";
 import { EMOJIS } from "../../../../config/theme.js";
 
