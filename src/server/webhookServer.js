@@ -155,9 +155,26 @@ function initializeRoutes() {
   app.post("/webhook/verify", webhookRateLimiter, verifyWebhookToken);
   app.post("/webhook/crypto", webhookRateLimiter, handleCryptoWebhook);
   app.post("/webhook/paypal", webhookRateLimiter, handlePayPalWebhook);
-  app.post("/webhook/topgg", webhookRateLimiter, (req, res) => {
-    handleTopggVote(req, res, null);
-  });
+  
+  // top.gg webhook needs raw body for signature verification
+  app.post("/webhook/topgg", 
+    webhookRateLimiter,
+    express.raw({ type: 'application/json' }),
+    (req, res, next) => {
+      // Store raw body for signature verification, then parse JSON
+      req.rawBody = req.body;
+      try {
+        req.body = JSON.parse(req.body.toString('utf8'));
+        next();
+      } catch (err) {
+        logger.warn('⚠️ top.gg webhook: Failed to parse JSON body');
+        res.status(400).json({ error: 'Invalid JSON' });
+      }
+    },
+    (req, res) => {
+      handleTopggVote(req, res, null);
+    }
+  );
 
   // Core API routes with rate limiting
   app.use(API_PREFIX, apiRateLimiter);
