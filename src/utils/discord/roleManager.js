@@ -385,6 +385,9 @@ export async function processRoles(interaction, rolesString) {
     guild.roles.cache.map(role => [role.name.toLowerCase(), role]),
   );
 
+  // Group roles by emoji for multi-role support
+  const emojiRoleGroups = new Map();
+
   for (const roleConfig of roles) {
     let role = null;
     if (roleConfig.roleId) {
@@ -435,18 +438,38 @@ export async function processRoles(interaction, rolesString) {
       continue;
     }
 
-    validRoles.push({
-      emoji: roleConfig.emoji,
+    // Group roles by emoji for multi-role support
+    if (!emojiRoleGroups.has(roleConfig.emoji)) {
+      emojiRoleGroups.set(roleConfig.emoji, []);
+    }
+    emojiRoleGroups.get(roleConfig.emoji).push({
       roleId: role.id,
       roleName: role.name,
       limit: roleConfig.limit || null,
     });
+  }
 
-    roleMapping[roleConfig.emoji] = {
-      emoji: roleConfig.emoji,
-      roleId: role.id,
-      roleName: role.name,
-      limit: roleConfig.limit || null,
+  // Build validRoles and roleMapping from grouped roles
+  for (const [emoji, roleGroup] of emojiRoleGroups) {
+    // For display purposes, use the first role's name
+    const firstRole = roleGroup[0];
+    
+    validRoles.push({
+      emoji,
+      roleId: firstRole.roleId,
+      roleName: firstRole.roleName,
+      limit: firstRole.limit,
+      roleIds: roleGroup.map(r => r.roleId), // Store all role IDs
+      roleNames: roleGroup.map(r => r.roleName), // Store all role names for display
+    });
+
+    roleMapping[emoji] = {
+      emoji,
+      roleId: firstRole.roleId,
+      roleName: firstRole.roleName,
+      limit: firstRole.limit,
+      roleIds: roleGroup.map(r => r.roleId), // Store all role IDs for assignment
+      roleNames: roleGroup.map(r => r.roleName), // Store all role names
     };
   }
 

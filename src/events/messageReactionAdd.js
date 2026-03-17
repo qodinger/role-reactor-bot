@@ -74,21 +74,29 @@ export async function execute(reaction, user, client) {
       return;
     }
 
-    // Use role ID directly if available (for test mocks)
-    let roleId;
-    if (typeof roleConfig === "string") {
-      roleId = roleConfig;
+    // Handle multiple roles per emoji (Phase 1 implementation)
+    let roleIds = [];
+    
+    // Check if this is a multi-role configuration
+    if (roleConfig.roleIds && Array.isArray(roleConfig.roleIds)) {
+      // Multiple roles stored as roleIds array
+      roleIds = roleConfig.roleIds;
     } else if (roleConfig.roleId) {
-      roleId = roleConfig.roleId;
+      // Single role (legacy format)
+      roleIds = [roleConfig.roleId];
+    } else if (typeof roleConfig === "string") {
+      // Simple string format (legacy)
+      roleIds = [roleConfig];
     } else {
       // Fallback to finding by name
-      const roleName =
-        roleConfig.roleName || roleConfig.role || roleConfig.name;
+      const roleName = roleConfig.roleName || roleConfig.role || roleConfig.name;
       const role = guild.roles.cache.find(r => r.name === roleName);
-      roleId = role ? role.id : undefined;
+      if (role) {
+        roleIds = [role.id];
+      }
     }
 
-    if (!roleId) {
+    if (roleIds.length === 0) {
       return;
     }
 
@@ -119,26 +127,30 @@ export async function execute(reaction, user, client) {
         // Skip the current emoji (the one they just reacted to)
         if (emojiKey === emoji) continue;
 
-        // Resolve role ID for this emoji
-        let otherRoleId;
-        if (typeof config === "string") {
-          otherRoleId = config;
+        // Resolve role IDs for this emoji (support multiple roles)
+        let otherRoleIds = [];
+        if (config.roleIds && Array.isArray(config.roleIds)) {
+          otherRoleIds = config.roleIds;
         } else if (config.roleId) {
-          otherRoleId = config.roleId;
+          otherRoleIds = [config.roleId];
+        } else if (typeof config === "string") {
+          otherRoleIds = [config];
         }
 
-        // Queue role removal if member has it
-        if (otherRoleId && member.roles.cache.has(otherRoleId)) {
-          removeOps.push(
-            member.roles
-              .remove(otherRoleId)
-              .catch(() => null)
-              .then(() => {
-                logger.info(
-                  `🔄 Unique mode: removed role ${otherRoleId} from ${user.tag}`,
-                );
-              }),
-          );
+        // Queue role removals for all roles in this emoji
+        for (const otherRoleId of otherRoleIds) {
+          if (otherRoleId && member.roles.cache.has(otherRoleId)) {
+            removeOps.push(
+              member.roles
+                .remove(otherRoleId)
+                .catch(() => null)
+                .then(() => {
+                  logger.info(
+                    `🔄 Unique mode: removed role ${otherRoleId} from ${user.tag}`,
+                  );
+                }),
+            );
+          }
         }
 
         // Queue reaction removal for the other emoji
@@ -154,38 +166,55 @@ export async function execute(reaction, user, client) {
         }
       }
 
-      // If user already has the new role and nothing to remove, bail early
-      if (member.roles.cache.has(roleId) && removeOps.length === 0) {
+      // Check if user already has all the new roles
+      const alreadyHasAllRoles = roleIds.every(id => member.roles.cache.has(id));
+      
+      if (alreadyHasAllRoles && removeOps.length === 0) {
         return;
       }
 
-      // Run all removals AND the new role grant simultaneously
+      // Run all removals AND the new role grants simultaneously
       await Promise.all([
         ...removeOps,
-        member.roles.cache.has(roleId)
-          ? Promise.resolve()
-          : member.roles.add(roleId).then(() => {
-              logger.info(`✅ Role assigned: ${roleId} to ${user.tag}`);
-
-              // Record daily role reaction (fire-and-forget)
-              import("../features/analytics/AnalyticsManager.js")
-                .then(({ getAnalyticsManager }) => getAnalyticsManager())
-                .then(am => am.recordRoleReaction(reaction.message.guild.id))
-                .catch(() => {});
-            }),
+        ...roleIds.map(roleId => 
+          member.roles.cache.has(roleId)
+            ? Promise.resolve()
+            : member.roles.add(roleId).then(() => {
+                logger.info(`✅ Role assigned: ${roleId} to ${user.tag}`);
+              })
+        ),
       ]);
+
+      logger.info(`✅ Assigned ${roleIds.length} role(s) to ${user.tag} for emoji ${emoji}`);
+
+      // Record daily role reaction (fire-and-forget)
+      import("../features/analytics/AnalyticsManager.js")
+        .then(({ getAnalyticsManager }) => getAnalyticsManager())
+        .then(am => am.recordRoleReaction(reaction.message.guild.id))
+        .catch(() => {});
 
       return;
     }
 
     // Standard toggle mode
-    // Check if user already has the role
-    if (member.roles.cache.has(roleId)) {
+    // Check if user already has all the roles
+    const alreadyHasAllRoles = roleIds.every(id => member.roles.cache.has(id));
+    if (alreadyHasAllRoles) {
       return;
     }
 
-    await member.roles.add(roleId);
-    logger.info(`✅ Role assigned: ${roleId} to ${user.tag}`);
+    // Assign all roles
+    await Promise.all(
+      roleIds.map(roleId =>
+        member.roles.cache.has(roleId)
+          ? Promise.resolve()
+          : member.roles.add(roleId).then(() => {
+              logger.info(`✅ Role assigned: ${roleId} to ${user.tag}`);
+            })
+      )
+    );
+
+    logger.info(`✅ Assigned ${roleIds.length} role(s) to ${user.tag} for emoji ${emoji}`);
 
     // Record daily role reaction (fire-and-forget)
     import("../features/analytics/AnalyticsManager.js")

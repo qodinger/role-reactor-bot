@@ -180,18 +180,20 @@ export function parseRoleString(roleString) {
       continue;
     }
 
-    // Check for duplicate emojis
+    // Check for duplicate emojis - ALLOW multiple roles per emoji
+    // Instead of error, we'll group roles by emoji
     const existingRole = roles.find(r => r.emoji === emoji);
     if (existingRole && emoji !== null) {
-      errors.push(
-        `Duplicate emoji ${emoji} found for roles: "${
-          existingRole.roleName || existingRole.roleId
-        }" and "${roleName || roleId}"`,
-      );
-      continue;
+      // Merge roles with same emoji - user will get all roles when reacting
+      existingRole.roleNames = existingRole.roleNames || [existingRole.roleName];
+      existingRole.roleNames.push(roleName);
+      existingRole.roleIds = existingRole.roleIds || [];
+      if (roleId) existingRole.roleIds.push(roleId);
+      if (limit !== null) existingRole.limit = limit;
+      continue; // Skip adding as new role, already merged
     }
 
-    roles.push({ emoji, roleName, roleId, limit });
+    roles.push({ emoji, roleName, roleId, limit, roleNames: null, roleIds: null });
   }
 
   // If there are any errors, return empty roles array
