@@ -91,15 +91,95 @@ export async function handleSetup(interaction, client) {
       return interaction.editReply(channelPermissionValidation.errorResponse);
     }
 
-    // Process role input
+    // Process role input - support both direct roles and bundles
     const rolesString = interaction.options.getString("roles");
-    const roleProcessingResult = await processRoleInput(
-      interaction,
-      rolesString,
-    );
-    if (!roleProcessingResult.success) {
+    const bundleName = interaction.options.getString("bundle");
+
+    // Validate that either roles OR bundle is provided, not both
+    if (!rolesString && !bundleName) {
       activeSetups.delete(interaction.id);
-      return interaction.editReply(roleProcessingResult.errorResponse);
+      return interaction.editReply({
+        embeds: [errorEmbed({
+          title: "Missing Roles or Bundle",
+          description: "You must provide either **roles** or a **bundle** parameter.",
+          solution: "Use `roles:🎮:@Gamer, 🎨:@Artist` OR `bundle:Gaming-Roles`"
+        })]
+      });
+    }
+
+    if (rolesString && bundleName) {
+      activeSetups.delete(interaction.id);
+      return interaction.editReply({
+        embeds: [errorEmbed({
+          title: "Invalid Parameters",
+          description: "You cannot use both **roles** and **bundle** parameters together.",
+          solution: "Use either `roles:🎮:@Gamer` OR `bundle:Gaming-Roles`, not both"
+        })]
+      });
+    }
+
+    let roleProcessingResult;
+
+    if (bundleName) {
+      // Load roles from bundle
+      const roleBundleManager = (await import('../../../features/rolebundles/RoleBundleManager.js')).default;
+      const bundle = await roleBundleManager.getByName(interaction.guild.id, bundleName);
+
+      if (!bundle) {
+        activeSetups.delete(interaction.id);
+        return interaction.editReply({
+          embeds: [errorEmbed({
+            title: "Bundle Not Found",
+            description: `Role bundle **${bundleName}** not found.`,
+            solution: "Use `/role-bundle list` to see available bundles"
+          })]
+        });
+      }
+
+      // Convert bundle roles to roleMapping format
+      const roleMapping = {};
+      const validRoles = [];
+
+      // Note: Bundles don't support emoji, so we need to get emoji from user input
+      // For now, we'll use a default emoji or require it in bundle name
+      // This is a limitation - bundles work best with single emoji
+      const defaultEmoji = '⭐'; // Default emoji for bundles
+
+      for (const roleData of bundle.roles) {
+        const role = interaction.guild.roles.cache.get(roleData.roleId);
+        if (role) {
+          validRoles.push({
+            emoji: defaultEmoji,
+            roleId: role.id,
+            roleName: role.name,
+            limit: null
+          });
+
+          roleMapping[defaultEmoji] = {
+            emoji: defaultEmoji,
+            roleId: role.id,
+            roleName: role.name,
+            limit: null,
+            roleIds: bundle.roles.map(r => r.roleId),
+            roleNames: bundle.roles.map(r => r.roleName)
+          };
+        }
+      }
+
+      roleProcessingResult = {
+        success: true,
+        data: { validRoles, roleMapping }
+      };
+    } else {
+      // Use direct roles
+      roleProcessingResult = await processRoleInput(
+        interaction,
+        rolesString,
+      );
+      if (!roleProcessingResult.success) {
+        activeSetups.delete(interaction.id);
+        return interaction.editReply(roleProcessingResult.errorResponse);
+      }
     }
 
     const { validRoles, roleMapping } = roleProcessingResult.data;
