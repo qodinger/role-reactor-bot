@@ -156,7 +156,7 @@ function initializeRoutes() {
   app.post("/webhook/crypto", webhookRateLimiter, handleCryptoWebhook);
   app.post("/webhook/paypal", webhookRateLimiter, handlePayPalWebhook);
   app.post("/webhook/topgg", webhookRateLimiter, (req, res) => {
-    handleTopggVote(req, res, global.discordClient);
+    handleTopggVote(req, res, null);
   });
 
   // Core API routes with rate limiting
