@@ -1,6 +1,7 @@
 import express from "express";
 import { handleCryptoWebhook } from "../webhooks/crypto.js";
 import { handlePayPalWebhook } from "../webhooks/paypal.js";
+import { handleTopggVote } from "../webhooks/topgg.js";
 import { getLogger } from "../utils/logger.js";
 
 // Import middleware
@@ -154,6 +155,9 @@ function initializeRoutes() {
   app.post("/webhook/verify", webhookRateLimiter, verifyWebhookToken);
   app.post("/webhook/crypto", webhookRateLimiter, handleCryptoWebhook);
   app.post("/webhook/paypal", webhookRateLimiter, handlePayPalWebhook);
+  app.post("/webhook/topgg", webhookRateLimiter, (req, res) => {
+    handleTopggVote(req, res, global.discordClient);
+  });
 
   // Core API routes with rate limiting
   app.use(API_PREFIX, apiRateLimiter);
