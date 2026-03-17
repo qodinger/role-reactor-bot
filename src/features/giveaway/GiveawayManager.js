@@ -18,10 +18,23 @@ class GiveawayManager extends EventEmitter {
     this.collection = null;
     this.settingsCollection = null;
     this.checkInterval = null;
-    this.CHECK_INTERVAL_MS = 10000; // Check every 10 seconds
+    this.CHECK_INTERVAL_MS = 30000; // Check every 30 seconds (optimized from 10s)
+    
+    // Caching for active giveaways
+    this.activeGiveawaysCache = new Map();
+    this.cacheTimestamp = null;
+    this.CACHE_TTL_MS = 60000; // Cache valid for 1 minute
     
     // Rate limiting cache: userId => { count, lastGiveaway }
     this.rateLimitCache = new Map();
+    
+    // Performance metrics
+    this.metrics = {
+      lastCheckTime: 0,
+      totalChecks: 0,
+      giveawaysEnded: 0,
+      averageCheckDuration: 0
+    };
   }
 
   /**
@@ -81,26 +94,79 @@ class GiveawayManager extends EventEmitter {
   }
 
   /**
-   * Check for giveaways that should end
+   * Check for giveaways that should end (OPTIMIZED with caching)
    */
   async checkEndingGiveaways() {
+    const startTime = Date.now();
+    
     try {
-      const now = new Date();
+      // Refresh cache if expired
+      await this.refreshActiveGiveawaysCache();
       
-      const endingGiveaways = await this.collection.find({
-        status: 'active',
-        endTime: { $lte: now }
-      }).toArray();
+      const now = new Date();
+      const endingGiveaways = [];
+      
+      // Use cached data instead of querying database every time
+      for (const [guildId, giveaways] of this.activeGiveawaysCache) {
+        for (const giveaway of giveaways) {
+          if (giveaway.endTime <= now) {
+            endingGiveaways.push(giveaway);
+          }
+        }
+      }
 
       for (const giveaway of endingGiveaways) {
         await this.endGiveaway(giveaway._id.toString());
       }
 
+      // Update metrics
+      this.metrics.totalChecks++;
+      this.metrics.giveawaysEnded += endingGiveaways.length;
+      const duration = Date.now() - startTime;
+      this.metrics.lastCheckTime = duration;
+      this.metrics.averageCheckDuration = 
+        (this.metrics.averageCheckDuration * (this.metrics.totalChecks - 1) + duration) / 
+        this.metrics.totalChecks;
+
       if (endingGiveaways.length > 0) {
-        logger.info(`🎉 Ended ${endingGiveaways.length} giveaway(s)`);
+        logger.info(`🎉 Ended ${endingGiveaways.length} giveaway(s) in ${duration}ms`);
       }
     } catch (error) {
       logger.error('❌ Error checking ending giveaways:', error);
+    }
+  }
+
+  /**
+   * Refresh active giveaways cache (OPTIMIZED)
+   */
+  async refreshActiveGiveawaysCache() {
+    const now = Date.now();
+    
+    // Only refresh if cache is expired
+    if (this.cacheTimestamp && (now - this.cacheTimestamp) < this.CACHE_TTL_MS) {
+      return; // Cache still valid
+    }
+
+    try {
+      const activeGiveaways = await this.collection.find({
+        status: 'active'
+      }).toArray();
+
+      // Group by guild for faster lookup
+      const grouped = new Map();
+      for (const giveaway of activeGiveaways) {
+        if (!grouped.has(giveaway.guildId)) {
+          grouped.set(giveaway.guildId, []);
+        }
+        grouped.get(giveaway.guildId).push(giveaway);
+      }
+
+      this.activeGiveawaysCache = grouped;
+      this.cacheTimestamp = now;
+      
+      logger.debug(`📦 Refreshed giveaway cache: ${activeGiveaways.length} active giveaways`);
+    } catch (error) {
+      logger.error('❌ Error refreshing giveaway cache:', error);
     }
   }
 
@@ -420,14 +486,17 @@ class GiveawayManager extends EventEmitter {
 
       await this.collection.insertOne(giveaway);
       logger.info(`🎉 Giveaway created: ${giveaway._id} - Prize: ${giveaway.prize}`);
-      
+
+      // Invalidate cache to include new giveaway
+      this.invalidateCache();
+
       // Log giveaway creation
       await this.logGiveawayEvent(options.guildId, 'giveaway_created', {
         giveawayId: giveaway._id.toString(),
         host: options.host,
         prize: options.prize
       });
-      
+
       return giveaway;
     } catch (error) {
       logger.error('❌ Error creating giveaway:', error);
@@ -689,17 +758,20 @@ class GiveawayManager extends EventEmitter {
       );
 
       logger.info(`🎉 Giveaway ended: ${giveawayId} - Winners: ${winners.length}`);
-      
+
+      // Invalidate cache since giveaway status changed
+      this.invalidateCache();
+
       // Log giveaway end
       await this.logGiveawayEvent(giveaway.guildId, 'giveaway_ended', {
         giveawayId,
         winners: winners.length,
         totalEntries: giveaway.entries.reduce((sum, e) => sum + e.count, 0)
       });
-      
+
       // Emit event for handler to announce winners
       this.emit('giveawayEnded', giveaway, winners);
-      
+
       return { success: true, winners };
     } catch (error) {
       logger.error('❌ Error ending giveaway:', error);
@@ -1004,19 +1076,46 @@ class GiveawayManager extends EventEmitter {
   async cleanup(daysOld = 30) {
     try {
       const cutoffDate = new Date(Date.now() - (daysOld * 24 * 60 * 60 * 1000));
-      
+
       const result = await this.collection.deleteMany({
         status: { $in: ['completed', 'cancelled'] },
         updatedAt: { $lt: cutoffDate }
       });
 
+      // Invalidate cache after cleanup
+      this.activeGiveawaysCache.clear();
+      this.cacheTimestamp = null;
+
       logger.info(`🧹 Cleaned up ${result.deletedCount} old giveaways`);
-      
+
       return result.deletedCount;
     } catch (error) {
       logger.error('❌ Error cleaning up giveaways:', error);
       throw error;
     }
+  }
+
+  /**
+   * Get performance metrics (OPTIMIZED)
+   * @returns {Object} Performance metrics
+   */
+  getMetrics() {
+    return {
+      ...this.metrics,
+      cacheSize: this.activeGiveawaysCache.size,
+      cacheAge: this.cacheTimestamp ? Date.now() - this.cacheTimestamp : 0,
+      checkInterval: this.CHECK_INTERVAL_MS,
+      cacheTTL: this.CACHE_TTL_MS
+    };
+  }
+
+  /**
+   * Invalidate cache (call when giveaways change)
+   */
+  invalidateCache() {
+    this.activeGiveawaysCache.clear();
+    this.cacheTimestamp = null;
+    logger.debug('🗑️ Giveaway cache invalidated');
   }
 
   /**
