@@ -19,7 +19,9 @@ class RoleBundleManager {
   async init() {
     try {
       const dbManager = await getDatabaseManager();
-      this.db = await dbManager.connect();
+      // Access the database from connectionManager after connect() is called
+      await dbManager.connect();
+      this.db = dbManager.connectionManager.db;
       this.collection = this.db.collection('role_bundles');
       
       // Create indexes for better query performance

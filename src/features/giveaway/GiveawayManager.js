@@ -43,7 +43,9 @@ class GiveawayManager extends EventEmitter {
   async init() {
     try {
       const dbManager = await getDatabaseManager();
-      this.db = await dbManager.connect();
+      // Access the database from connectionManager after connect() is called
+      await dbManager.connect();
+      this.db = dbManager.connectionManager.db;
       this.collection = this.db.collection('giveaways');
       this.settingsCollection = this.db.collection('giveaway_settings');
       
