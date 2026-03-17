@@ -249,9 +249,9 @@ export const command = {
   /**
    * Execute the giveaway command
    * @param {Object} interaction - Discord interaction
-   * @param {Object} client - Discord client
+   * @param {Object} _client - Discord client (unused)
    */
-  async execute(interaction, client) {
+  async execute(interaction, _client) {
     try {
       const subcommand = interaction.options.getSubcommand();
 

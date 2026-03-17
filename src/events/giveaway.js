@@ -30,9 +30,9 @@ const logger = getLogger();
 /**
  * Handle giveaway button interactions
  * @param {Object} interaction - Discord interaction
- * @param {Object} client - Discord client
+ * @param {Object} _client - Discord client (unused)
  */
-export async function handleGiveawayInteraction(interaction, client) {
+export async function handleGiveawayInteraction(interaction, _client) {
   const customId = interaction.customId;
 
   // Check if this is a giveaway button
@@ -44,19 +44,19 @@ export async function handleGiveawayInteraction(interaction, client) {
 
   switch (parsed.action) {
     case "giveaway_enter":
-      await handleEnterGiveaway(interaction, client);
+      await handleEnterGiveaway(interaction);
       break;
     case "giveaway_end":
-      await handleAdminEnd(interaction, client);
+      await handleAdminEnd(interaction);
       break;
     case "giveaway_reroll":
-      await handleAdminReroll(interaction, client);
+      await handleAdminReroll(interaction);
       break;
     case "giveaway_cancel":
-      await handleAdminCancel(interaction, client);
+      await handleAdminCancel(interaction);
       break;
     case "giveaway_complete":
-      await handleAdminComplete(interaction, client);
+      await handleAdminComplete(interaction);
       break;
     default:
       await interaction.reply({
@@ -71,9 +71,8 @@ export async function handleGiveawayInteraction(interaction, client) {
 /**
  * Handle user entering a giveaway
  * @param {Object} interaction - Discord interaction
- * @param {Object} client - Discord client
  */
-async function handleEnterGiveaway(interaction, client) {
+async function handleEnterGiveaway(interaction) {
   try {
     await interaction.deferReply({ ephemeral: true });
 
@@ -208,9 +207,8 @@ async function handleEnterGiveaway(interaction, client) {
 /**
  * Handle admin ending a giveaway via button
  * @param {Object} interaction - Discord interaction
- * @param {Object} client - Discord client
  */
-async function handleAdminEnd(interaction, client) {
+async function handleAdminEnd(interaction) {
   try {
     if (!canManageGiveaways(interaction.member)) {
       return interaction.reply({
@@ -259,7 +257,7 @@ async function handleAdminEnd(interaction, client) {
       interaction.channel,
       giveaway,
       result.winners,
-      client,
+      null,
     );
   } catch (error) {
     logger.error("❌ Error handling admin end:", error);
@@ -269,9 +267,8 @@ async function handleAdminEnd(interaction, client) {
 /**
  * Handle admin rerolling a giveaway via button
  * @param {Object} interaction - Discord interaction
- * @param {Object} client - Discord client
  */
-async function handleAdminReroll(interaction, client) {
+async function handleAdminReroll(interaction) {
   try {
     if (!canManageGiveaways(interaction.member)) {
       return interaction.reply({
@@ -322,7 +319,7 @@ async function handleAdminReroll(interaction, client) {
       interaction.channel,
       giveaway,
       result.winners,
-      client,
+      null,
       true,
     );
   } catch (error) {
@@ -333,9 +330,8 @@ async function handleAdminReroll(interaction, client) {
 /**
  * Handle admin cancelling a giveaway via button
  * @param {Object} interaction - Discord interaction
- * @param {Object} client - Discord client
  */
-async function handleAdminCancel(interaction, client) {
+async function handleAdminCancel(interaction) {
   try {
     if (!canManageGiveaways(interaction.member)) {
       return interaction.reply({
@@ -411,9 +407,8 @@ async function handleAdminCancel(interaction, client) {
 /**
  * Handle admin marking giveaway as complete
  * @param {Object} interaction - Discord interaction
- * @param {Object} client - Discord client
  */
-async function handleAdminComplete(interaction, client) {
+async function handleAdminComplete(interaction) {
   try {
     if (!canManageGiveaways(interaction.member)) {
       return interaction.reply({
@@ -518,34 +513,37 @@ async function announceWinners(
 
     // Update original giveaway message
     try {
-      const totalEntries = giveaway.entries.reduce(
-        (sum, e) => sum + e.count,
-        0,
-      );
-      const endedEmbed = createGiveawayEmbed(giveaway, totalEntries);
-      endedEmbed.setTitle("🏆 GIVEAWAY ENDED! 🏆");
-      endedEmbed.setColor(0x00ff00);
+      if (giveaway.messageId) {
+        const message = await channel.messages.fetch(giveaway.messageId);
+        const totalEntries = giveaway.entries.reduce(
+          (sum, e) => sum + e.count,
+          0,
+        );
+        const endedEmbed = createGiveawayEmbed(giveaway, totalEntries);
+        endedEmbed.setTitle("🏆 GIVEAWAY ENDED! 🏆");
+        endedEmbed.setColor(0x00ff00);
 
-      const winnerMentions = [];
-      for (const winner of winners) {
-        try {
-          const user = await client.users.fetch(winner.userId);
-          winnerMentions.push(`${user.tag}`);
-        } catch {
-          winnerMentions.push("Unknown User");
+        const winnerMentions = [];
+        for (const winner of winners) {
+          try {
+            const user = await client.users.fetch(winner.userId);
+            winnerMentions.push(`${user.tag}`);
+          } catch {
+            winnerMentions.push("Unknown User");
+          }
         }
+
+        endedEmbed.addFields({
+          name: "🎉 Winners",
+          value: winnerMentions.join("\n"),
+          inline: false,
+        });
+
+        await message.edit({
+          embeds: [endedEmbed],
+          components: [createEndedGiveawayActions(true)],
+        });
       }
-
-      endedEmbed.addFields({
-        name: "🎉 Winners",
-        value: winnerMentions.join("\n"),
-        inline: false,
-      });
-
-      await interaction.message.edit({
-        embeds: [endedEmbed],
-        components: [createEndedGiveawayActions(true)],
-      });
     } catch (err) {
       logger.warn("⚠️ Failed to update giveaway message:", err.message);
     }

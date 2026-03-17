@@ -78,7 +78,7 @@ export const metadata = {
       inline: false,
     },
   ],
-  autocomplete: async (interaction, client) => {
+  autocomplete: async (interaction, _client) => {
     const focusedOption = interaction.options.getFocused(true);
     if (focusedOption.name === "bundle") {
       await handleBundleAutocomplete(interaction);
