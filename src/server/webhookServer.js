@@ -73,14 +73,20 @@ async function initializeMiddleware() {
   app.set("trust proxy", 1);
 
   // Basic Express middleware
-  app.use(
-    express.json({
-      limit: "10mb",
-      verify: (req, res, buf) => {
-        req.rawBody = buf.toString();
-      },
-    }),
-  );
+  /**
+   * @type {import('express').RequestHandler}
+   */
+  const jsonMiddleware = express.json({
+    limit: "10mb",
+    verify: (req, res, buf) => {
+      /**
+       * @type {ExtendedRequest}
+       */
+      const extendedReq = /** @type {ExtendedRequest} */ (req);
+      extendedReq.rawBody = buf.toString();
+    },
+  });
+  app.use(jsonMiddleware);
   app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
   // Session middleware (for Discord OAuth)
@@ -124,6 +130,11 @@ async function initializeMiddleware() {
   app.use(corsMiddleware);
 
   // Request timeout middleware (30 seconds)
+  /**
+   * @param {ExtendedRequest} req
+   * @param {import('express').Response} res
+   * @param {import('express').NextFunction} next
+   */
   app.use((req, res, next) => {
     req.setTimeout(30000, () => {
       if (!res.headersSent) {
@@ -165,7 +176,7 @@ function initializeRoutes() {
   app.post("/webhook/paypal", webhookRateLimiter, handlePayPalWebhook);
   
   // top.gg webhook needs raw body for signature verification
-  app.post("/webhook/topgg", 
+  app.post("/webhook/topgg",
     webhookRateLimiter,
     express.raw({ type: 'application/json' }),
     /**
@@ -184,6 +195,10 @@ function initializeRoutes() {
         res.status(400).json({ error: 'Invalid JSON' });
       }
     },
+    /**
+     * @param {ExtendedRequest} req
+     * @param {import('express').Response} res
+     */
     (req, res) => {
       handleTopggVote(req, res, null);
     }
