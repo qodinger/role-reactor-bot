@@ -1,16 +1,16 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+// This file uses Express.js middleware that adds custom properties to req
+// Type checking is disabled to avoid excessive type casting
+
+/** @typedef {import('express').Request & { rawBody?: Buffer, requestId?: string }} ExtendedRequest */
+
 import express from "express";
 import { handleCryptoWebhook } from "../webhooks/crypto.js";
 import { handlePayPalWebhook } from "../webhooks/paypal.js";
 import { handleTopggVote } from "../webhooks/topgg.js";
 import { getLogger } from "../utils/logger.js";
-
-/**
- * @typedef {import('express').Request & { 
- *   rawBody?: Buffer,
- *   requestId?: string,
- *   route?: string
- * }} ExtendedRequest
- */
 
 // Import middleware
 import { corsMiddleware } from "./middleware/cors.js";
@@ -174,11 +174,12 @@ function initializeRoutes() {
   app.post("/webhook/verify", webhookRateLimiter, verifyWebhookToken);
   app.post("/webhook/crypto", webhookRateLimiter, handleCryptoWebhook);
   app.post("/webhook/paypal", webhookRateLimiter, handlePayPalWebhook);
-  
+
   // top.gg webhook needs raw body for signature verification
-  app.post("/webhook/topgg",
+  app.post(
+    "/webhook/topgg",
     webhookRateLimiter,
-    express.raw({ type: 'application/json' }),
+    express.raw({ type: "application/json" }),
     /**
      * @param {ExtendedRequest} req
      * @param {import('express').Response} res
@@ -188,11 +189,11 @@ function initializeRoutes() {
       // Store raw body for signature verification, then parse JSON
       req.rawBody = req.body;
       try {
-        req.body = JSON.parse(req.body.toString('utf8'));
+        req.body = JSON.parse(req.body.toString("utf8"));
         next();
       } catch (err) {
-        logger.warn('⚠️ top.gg webhook: Failed to parse JSON body');
-        res.status(400).json({ error: 'Invalid JSON' });
+        logger.warn("⚠️ top.gg webhook: Failed to parse JSON body");
+        res.status(400).json({ error: "Invalid JSON" });
       }
     },
     /**
@@ -201,7 +202,7 @@ function initializeRoutes() {
      */
     (req, res) => {
       handleTopggVote(req, res, null);
-    }
+    },
   );
 
   // Core API routes with rate limiting
