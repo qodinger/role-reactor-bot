@@ -88,4 +88,7 @@ export const command = {
   },
 };
 
+// Export data and execute for command loader compatibility
+export const { data } = command;
+export const { execute } = command;
 export default command;

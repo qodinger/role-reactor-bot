@@ -3,6 +3,11 @@
  * @module events/giveaway
  */
 
+// This file is manually imported in index.js for giveaway event setup
+// Export name and execute to satisfy event loader (but they're not used)
+export const name = "giveaway";
+export const execute = () => {};
+
 import { EmbedBuilder } from "discord.js";
 import giveawayManager from "../features/giveaway/GiveawayManager.js";
 import {
@@ -253,12 +258,7 @@ async function handleAdminEnd(interaction) {
     }
 
     // Announce winners
-    await announceWinners(
-      interaction.channel,
-      giveaway,
-      result.winners,
-      null,
-    );
+    await announceWinners(interaction.channel, giveaway, result.winners, null);
   } catch (error) {
     logger.error("❌ Error handling admin end:", error);
   }
