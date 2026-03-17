@@ -114,9 +114,7 @@ export const data = new SlashCommandBuilder()
       .addStringOption(opt =>
         opt
           .setName("roles")
-          .setDescription(
-            'Emoji:role pairs separated by commas. Format: emoji:role, emoji:@role, emoji:"Role Name". OR use bundle parameter',
-          )
+          .setDescription('Emoji:role pairs. Format: 🎮:@Gamer, 🎨:@Artist. Or use bundle')
           .setRequired(false),
       )
       .addStringOption(opt =>
