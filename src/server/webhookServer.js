@@ -376,7 +376,9 @@ export async function startWebhookServer() {
 
     // Handle server errors
     server.on("error", error => {
-      if (error.code === "EADDRINUSE") {
+      /** @type {NodeJS.ErrnoException} */
+      const sysError = /** @type {NodeJS.ErrnoException} */ (error);
+      if (sysError.code === "EADDRINUSE") {
         logger.error(
           `❌ Port ${serverConfig.port} is already in use. Server failed to start.`,
         );
