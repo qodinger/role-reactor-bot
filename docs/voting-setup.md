@@ -22,7 +22,7 @@ Users can vote for your bot on top.gg and receive **1 Core Credit** as a reward 
 Add this to your `.env` file:
 
 ```env
-TOPGG_TOKEN=your_topgg_authorization_token_here
+TOPGG_WEBHOOK_AUTH=your_topgg_authorization_token_here
 ```
 
 ---
@@ -79,7 +79,7 @@ You should see:
 ```bash
 # Send test vote to your webhook
 curl -X POST https://your-bot-url.com/webhook/topgg \
-  -H "Authorization: Bearer YOUR_TOPGG_TOKEN" \
+  -H "Authorization: Bearer YOUR_TOPGG_WEBHOOK_AUTH" \
   -H "Content-Type: application/json" \
   -d '{
     "user": "YOUR_DISCORD_USER_ID",
@@ -110,7 +110,7 @@ curl -X POST https://your-bot-url.com/webhook/topgg \
 ### **Webhook Not Receiving Votes**
 
 **Check:**
-1. Is `TOPGG_TOKEN` set in `.env`?
+1. Is `TOPGG_WEBHOOK_AUTH` set in `.env`?
 2. Is webhook URL correct in top.gg dashboard?
 3. Is your bot's server publicly accessible?
 4. Check bot logs for errors
@@ -122,7 +122,7 @@ curl -X POST https://your-bot-url.com/webhook/topgg
 
 # Should return 200 with valid token
 curl -X POST https://your-bot-url.com/webhook/topgg \
-  -H "Authorization: Bearer YOUR_TOPGG_TOKEN" \
+  -H "Authorization: Bearer YOUR_TOPGG_WEBHOOK_AUTH" \
   -H "Content-Type: application/json" \
   -d '{"user": "123456"}'
 ```
@@ -248,7 +248,7 @@ If you get 10,000+ votes/day, consider:
 
 ```env
 # Required for voting system
-TOPGG_TOKEN=your_topgg_authorization_token
+TOPGG_WEBHOOK_AUTH=your_topgg_authorization_token
 
 # Optional: Customize reward amount (default: 1)
 VOTE_REWARD_AMOUNT=1
@@ -272,7 +272,7 @@ Potential improvements:
 
 ## ✅ Checklist
 
-- [ ] Added `TOPGG_TOKEN` to `.env`
+- [ ] Added `TOPGG_WEBHOOK_AUTH` to `.env`
 - [ ] Configured webhook URL on top.gg
 - [ ] Deployed bot with `/vote` command
 - [ ] Tested webhook manually

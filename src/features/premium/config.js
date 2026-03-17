@@ -4,7 +4,7 @@ export const PremiumFeatures = {
     name: "Pro Engine",
     description:
       "Unlock all premium features, automated tools, and advanced customization",
-    cost: 15, // Cores (weekly cycle)
+    cost: 20, // Cores (weekly cycle)
     period: "week",
     periodDays: 7,
     includes: [

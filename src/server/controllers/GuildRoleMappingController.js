@@ -126,7 +126,9 @@ export async function apiDeleteGuildRoleMapping(req, res) {
       try {
         const guild = client.guilds.cache.get(guildId);
         const channel = guild?.channels.cache.get(mapping.channelId);
-        const msg = await channel?.messages.fetch(messageId).catch(() => null);
+        const msg = channel?.isTextBased()
+          ? await channel.messages.fetch(messageId).catch(() => null)
+          : null;
         if (msg) {
           await msg.delete();
           messageDeleted = true;
@@ -134,7 +136,7 @@ export async function apiDeleteGuildRoleMapping(req, res) {
       } catch {}
     }
 
-    await removeRoleMapping(messageId, guildId);
+    await removeRoleMapping(messageId);
     res.json(
       createSuccessResponse({
         message: "Role mapping deleted successfully",
@@ -195,7 +197,7 @@ export async function apiDeployRoleReactions(req, res) {
 
     const guild = client.guilds.cache.get(guildId);
     const channel = guild?.channels.cache.get(channelId);
-    if (!guild || !channel)
+    if (!guild || !channel || !channel.isTextBased())
       return res
         .status(404)
         .json(createErrorResponse("Guild or Channel not found", 404).response);
@@ -241,7 +243,10 @@ export async function apiDeployRoleReactions(req, res) {
       client,
       hideList || false,
     );
-    const message = await channel.send({ embeds: [embed] });
+    const textChannel = /** @type {import('discord.js').TextChannel} */ (
+      channel
+    );
+    const message = await textChannel.send({ embeds: [embed] });
 
     try {
       if (message.embeds.length > 0) {
@@ -331,7 +336,7 @@ export async function apiUpdateRoleReactions(req, res) {
 
     const guild = client.guilds.cache.get(guildId);
     const channel = guild?.channels.cache.get(existingMapping.channelId);
-    if (!guild || !channel)
+    if (!guild || !channel || !channel.isTextBased())
       return res
         .status(404)
         .json(createErrorResponse("Guild or Channel not found", 404).response);

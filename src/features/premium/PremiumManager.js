@@ -475,7 +475,10 @@ export class PremiumManager {
 
       const daysLeft = Math.max(
         0,
-        Math.ceil((graceDeadline - new Date()) / (1000 * 60 * 60 * 24)),
+        Math.ceil(
+          (graceDeadline.getTime() - new Date().getTime()) /
+            (1000 * 60 * 60 * 24),
+        ),
       );
 
       await user.send({
@@ -528,8 +531,8 @@ export class PremiumManager {
    * Disable a feature (usually when Cores run out or user cancels)
    * @param {string} guildId
    * @param {string} featureId
-   * @param {object} options
-   * @param {string} options.reason - "insufficient_balance" or "cancelled"
+   * @param {object} [options={}]
+   * @param {string} [options.reason="insufficient_balance"] - "insufficient_balance" or "cancelled"
    */
   async disableFeature(guildId, featureId, options = {}) {
     const { reason = "insufficient_balance" } = options;

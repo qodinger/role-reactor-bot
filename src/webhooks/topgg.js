@@ -11,8 +11,7 @@ import crypto from "crypto";
 const logger = getLogger();
 
 // Get webhook secret from environment
-const WEBHOOK_SECRET =
-  process.env.TOPGG_WEBHOOK_AUTH || process.env.TOPGG_TOKEN;
+const WEBHOOK_SECRET = process.env.TOPGG_WEBHOOK_AUTH;
 
 if (!WEBHOOK_SECRET) {
   logger.warn(
@@ -42,13 +41,18 @@ function verifyWebhookSignature({ secret, signature, body, rawBody }) {
 
   try {
     // Extract timestamp and signature from header
-    // Format: t=timestamp,s=signature
-    const parts = signature.split(",");
-    const timestamp = parts.find(p => p.startsWith("t=")).substring(2);
-    const expectedSignature = parts.find(p => p.startsWith("s=")).substring(2);
+    // Format: t={unix timestamp},v1={signature}
+    const parsedSignature = signature.split(",").map(part => part.split("="));
+    const sigObj = Object.fromEntries(parsedSignature);
+    const timestamp = sigObj["t"];
+    const expectedSignature = sigObj["v1"];
 
     if (!timestamp || !expectedSignature) {
-      logger.warn("⚠️ top.gg webhook: Invalid signature format");
+      logger.warn("⚠️ top.gg webhook: Invalid signature format", {
+        hasTimestamp: !!timestamp,
+        hasSignature: !!expectedSignature,
+        rawHeader: signature,
+      });
       return false;
     }
 
@@ -62,10 +66,16 @@ function verifyWebhookSignature({ secret, signature, body, rawBody }) {
     const computedSignature = hmac.update(payload).digest("hex");
 
     // Compare signatures using constant-time comparison
-    const isValid = crypto.timingSafeEqual(
-      Buffer.from(computedSignature, "hex"),
-      Buffer.from(expectedSignature, "hex"),
-    );
+    // Use Buffer.from with utf8 (not hex) to safely handle length mismatches
+    const sigBuffer = Buffer.from(expectedSignature, "utf8");
+    const compBuffer = Buffer.from(computedSignature, "utf8");
+
+    if (sigBuffer.length !== compBuffer.length) {
+      logger.warn("⚠️ top.gg webhook: Signature length mismatch");
+      return false;
+    }
+
+    const isValid = crypto.timingSafeEqual(sigBuffer, compBuffer);
 
     if (!isValid) {
       logger.warn("⚠️ top.gg webhook: Signature mismatch");
@@ -240,10 +250,13 @@ async function processVote(vote, client) {
   // Reward user with 1 Core Credit
   const REWARD_AMOUNT = 1;
 
+  // Use the repository's updateCredits to increment the `credits` field consistently
+  await dbManager.coreCredits.updateCredits(userId, REWARD_AMOUNT);
+
+  // Update vote metadata separately
   await dbManager.coreCredits.collection.updateOne(
     { userId },
     {
-      $inc: { balance: REWARD_AMOUNT },
       $set: {
         lastVote: Date.now(),
         totalVotes: (userCredits?.totalVotes || 0) + 1,

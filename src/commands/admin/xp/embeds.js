@@ -3,7 +3,7 @@ import { THEME, EMOJIS } from "../../../config/theme.js";
 
 /**
  * Create the main XP settings embed
- * @param {import('discord.js').CommandInteraction} interaction
+ * @param {import('discord.js').BaseInteraction} interaction
  * @param {Object} xpSettings
  * @param {import('discord.js').Channel} levelUpChannel
  * @returns {import('discord.js').EmbedBuilder}
@@ -84,7 +84,7 @@ export function createXpSettingsEmbed(interaction, xpSettings, levelUpChannel) {
 
 /**
  * Create XP source configuration embed
- * @param {import('discord.js').CommandInteraction} interaction
+ * @param {import('discord.js').BaseInteraction} interaction
  * @param {Object} xpSettings
  * @returns {import('discord.js').EmbedBuilder}
  */
@@ -138,7 +138,7 @@ export function createXpSourceEmbed(interaction, xpSettings) {
 
 /**
  * Create level-up configuration embed
- * @param {import('discord.js').CommandInteraction} interaction
+ * @param {import('discord.js').BaseInteraction} interaction
  * @param {Object} xpSettings
  * @param {import('discord.js').Channel} levelUpChannel
  * @returns {import('discord.js').EmbedBuilder}
@@ -175,7 +175,7 @@ export function createLevelUpEmbed(interaction, xpSettings, levelUpChannel) {
 
 /**
  * Create XP test embed
- * @param {import('discord.js').CommandInteraction} interaction
+ * @param {import('discord.js').BaseInteraction} interaction
  * @param {Object} xpSettings
  * @returns {import('discord.js').EmbedBuilder}
  */
@@ -218,9 +218,9 @@ export function createXpTestEmbed(interaction, xpSettings) {
 
 /**
  * Create XP configuration page embed
- * @param {import('discord.js').Interaction} interaction - The interaction
- * @param {Object} xpSettings - Current XP settings
- * @param {import('discord.js').Channel} levelUpChannel - Level-up channel
+ * @param {import('discord.js').BaseInteraction} interaction - The interaction
+ * @param {Object} _xpSettings - Current XP settings
+ * @param {import('discord.js').Channel} _levelUpChannel - Level-up channel
  * @returns {import('discord.js').EmbedBuilder}
  */
 export function createXpConfigPageEmbed(

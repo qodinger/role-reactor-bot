@@ -3,7 +3,7 @@ import { THEME, EMOJIS } from "../../../config/theme.js";
 
 /**
  * Create the welcome settings embed
- * @param {import('discord.js').CommandInteraction} interaction
+ * @param {import('discord.js').BaseInteraction} interaction
  * @param {Object} settings
  * @param {import('discord.js').Channel} welcomeChannel
  * @param {import('discord.js').Role} autoRole

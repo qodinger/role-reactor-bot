@@ -94,7 +94,8 @@ export const apiRateLimiter = rateLimit({
     }
 
     // Skip if internal API key is provided and matches
-    const apiKey = req.headers["authorization"] || req.headers["x-api-key"];
+    const rawApiKey = req.headers["authorization"] || req.headers["x-api-key"];
+    const apiKey = Array.isArray(rawApiKey) ? rawApiKey[0] : rawApiKey;
     const internalKey = process.env.INTERNAL_API_KEY;
 
     if (apiKey && internalKey) {

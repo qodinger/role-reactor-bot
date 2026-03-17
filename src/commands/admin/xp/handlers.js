@@ -25,7 +25,7 @@ import { updateXpSettings } from "./utils.js";
 /**
  * Handle XP command (simplified single command)
  * @param {import('discord.js').CommandInteraction | import('discord.js').ButtonInteraction} interaction
- * @param {import('discord.js').Client} client
+ * @param {import('discord.js').Client} _client
  */
 export async function handleXpCommand(interaction, _client) {
   const logger = getLogger();
@@ -95,7 +95,7 @@ export async function handleXpCommand(interaction, _client) {
 
     await interaction.editReply({
       embeds: [embed],
-      components,
+      components: components.map(c => c.toJSON()),
     });
 
     const duration = Date.now() - startTime;
@@ -147,7 +147,7 @@ export async function handleXpGeneralConfig(interaction) {
 
     await interaction.update({
       embeds: [embed],
-      components,
+      components: components.map(c => c.toJSON()),
     });
 
     logger.info(
@@ -264,7 +264,7 @@ export async function handleXpSourceConfig(interaction) {
 
     await interaction.update({
       embeds: [embed],
-      components,
+      components: components.map(c => c.toJSON()),
     });
 
     logger.info(
@@ -307,7 +307,7 @@ export async function handleLevelUpConfig(interaction) {
 
     await interaction.editReply({
       embeds: [embed],
-      components,
+      components: components.map(c => c.toJSON()),
     });
 
     logger.info(
@@ -344,7 +344,7 @@ export async function handleXpTest(interaction) {
 
     await interaction.update({
       embeds: [embed],
-      components,
+      components: components.map(c => c.toJSON()),
     });
 
     logger.info(
@@ -416,7 +416,7 @@ export async function handleXpChannelConfig(interaction) {
 
     await interaction.update({
       embeds: [embed],
-      components: [channelSelectMenu, backButton],
+      components: [channelSelectMenu.toJSON(), backButton.toJSON()],
     });
 
     logger.info(
@@ -575,7 +575,7 @@ export async function handleXpConfigModalSubmit(interaction) {
 
     await interaction.editReply({
       embeds: [embed],
-      components,
+      components: components.map(c => c.toJSON()),
     });
 
     logger.info(
@@ -688,7 +688,7 @@ export async function handleXpAdvancedConfigModalSubmit(interaction) {
 
     await interaction.editReply({
       embeds: [embed],
-      components,
+      components: components.map(c => c.toJSON()),
     });
 
     logger.info(
@@ -761,7 +761,7 @@ export async function handleXpChannelSelect(interaction) {
 
     await interaction.editReply({
       embeds: [embed],
-      components,
+      components: components.map(c => c.toJSON()),
     });
 
     logger.info(
@@ -828,9 +828,9 @@ export async function handleXpTestLevelUp(interaction) {
 
 /**
  * Handle /xp rewards subcommand group
- * @param {import('discord.js').CommandInteraction} interaction
+ * @param {import('discord.js').ChatInputCommandInteraction} interaction
  * @param {string} subcommand - add, remove, list, mode
- * @param {import('discord.js').Client} client
+ * @param {import('discord.js').Client} _client
  */
 export async function handleRewardsCommand(interaction, subcommand, _client) {
   const logger = getLogger();

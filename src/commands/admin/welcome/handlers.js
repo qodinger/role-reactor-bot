@@ -13,8 +13,8 @@ import { validateWelcomeInputs, processWelcomeSettings } from "./utils.js";
 
 /**
  * Handle the welcome setup logic
- * @param {import('discord.js').CommandInteraction} interaction
- * @param {import('discord.js').Client} client
+ * @param {import('discord.js').ChatInputCommandInteraction} interaction
+ * @param {import('discord.js').Client} _client
  */
 export async function handleSetup(interaction, _client) {
   const logger = getLogger();
@@ -55,9 +55,13 @@ export async function handleSetup(interaction, _client) {
     }
 
     // Get and validate inputs
-    const channel = interaction.options.getChannel("channel");
+    const channel = /** @type {import('discord.js').TextChannel} */ (
+      interaction.options.getChannel("channel")
+    );
     const message = interaction.options.getString("message");
-    const autoRole = interaction.options.getRole("auto-role");
+    const autoRole = /** @type {import('discord.js').Role} */ (
+      interaction.options.getRole("auto-role")
+    );
     const enabled = interaction.options.getBoolean("enabled");
     const embedEnabled = interaction.options.getBoolean("embed");
 
@@ -135,7 +139,7 @@ export async function handleSetup(interaction, _client) {
 
     await interaction.editReply({
       embeds: [embed],
-      components,
+      components: components.map(c => c.toJSON()),
     });
 
     logger.info(
@@ -158,8 +162,8 @@ export async function handleSetup(interaction, _client) {
 
 /**
  * Handle the welcome settings logic
- * @param {import('discord.js').CommandInteraction | import('discord.js').ButtonInteraction} interaction
- * @param {import('discord.js').Client} client
+ * @param {import('discord.js').ChatInputCommandInteraction | import('discord.js').ButtonInteraction} interaction
+ * @param {import('discord.js').Client} _client
  */
 export async function handleSettings(interaction, _client) {
   const logger = getLogger();
@@ -222,7 +226,7 @@ export async function handleSettings(interaction, _client) {
 
     await interaction.editReply({
       embeds: [embed],
-      components,
+      components: components.map(c => c.toJSON()),
     });
 
     logger.info(
