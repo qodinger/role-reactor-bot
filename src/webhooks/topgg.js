@@ -5,7 +5,7 @@
  */
 
 import { getLogger } from '../utils/logger.js';
-import db from '../utils/db.js';
+import { getDatabaseManager } from '../utils/storage/databaseManager.js';
 
 const logger = getLogger();
 
@@ -44,9 +44,12 @@ export async function handleTopggVote(req, res, client) {
     
     logger.info(`🗳️ top.gg: Vote received from ${username || userId}`);
     
-    // Check if user can vote (12 hour cooldown)
+    // Get database and check if user can vote (12 hour cooldown)
+    const dbManager = await getDatabaseManager();
+    const db = await dbManager.getDb();
+    
     const COOLDOWN_MS = 12 * 60 * 60 * 1000; // 12 hours
-    const userCredits = await db.credits.findOne({ userId });
+    const userCredits = await db.collection('core_credits').findOne({ userId });
     
     if (userCredits && userCredits.lastVote) {
       const timeSinceVote = Date.now() - userCredits.lastVote;
@@ -67,7 +70,7 @@ export async function handleTopggVote(req, res, client) {
     // Reward user with 1 Core Credit
     const REWARD_AMOUNT = 1;
     
-    await db.credits.updateOne(
+    await db.collection('core_credits').updateOne(
       { userId },
       { 
         $inc: { balance: REWARD_AMOUNT },
@@ -145,7 +148,9 @@ export async function getVoteStatus(userId) {
   try {
     const COOLDOWN_MS = 12 * 60 * 60 * 1000; // 12 hours
     
-    const userCredits = await db.credits.findOne({ userId });
+    const dbManager = await getDatabaseManager();
+    const db = await dbManager.getDb();
+    const userCredits = await db.collection('core_credits').findOne({ userId });
     
     if (!userCredits || !userCredits.lastVote) {
       return {
