@@ -4,7 +4,7 @@
 // This file uses Express.js middleware that adds custom properties to req
 // Type checking is disabled to avoid excessive type casting
 
-/** @typedef {import('express').Request & { rawBody?: Buffer, requestId?: string }} ExtendedRequest */
+/** @typedef {import('express').Request & { rawBody?: Buffer | string, requestId?: string }} ExtendedRequest */
 
 import express from "express";
 import { handleCryptoWebhook } from "../webhooks/crypto.js";
@@ -191,7 +191,7 @@ function initializeRoutes() {
       try {
         req.body = JSON.parse(req.body.toString("utf8"));
         next();
-      } catch (err) {
+      } catch (_err) {
         logger.warn("⚠️ top.gg webhook: Failed to parse JSON body");
         res.status(400).json({ error: "Invalid JSON" });
       }
