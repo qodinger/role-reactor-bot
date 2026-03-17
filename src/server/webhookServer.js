@@ -173,26 +173,18 @@ function initializeRoutes() {
   app.post("/webhook/crypto", webhookRateLimiter, handleCryptoWebhook);
   app.post("/webhook/paypal", webhookRateLimiter, handlePayPalWebhook);
 
-  // top.gg webhook needs raw body for signature verification
+  // top.gg webhook - body already parsed by global express.json() middleware
   app.post(
     "/webhook/topgg",
     webhookRateLimiter,
-    express.raw({ type: "application/json" }),
     /**
      * @param {ExtendedRequest} req
      * @param {import('express').Response} res
      * @param {import('express').NextFunction} next
      */
     (req, res, next) => {
-      // Store raw body for signature verification, then parse JSON
-      req.rawBody = req.body;
-      try {
-        req.body = JSON.parse(req.body.toString("utf8"));
-        next();
-      } catch (_err) {
-        logger.warn("⚠️ top.gg webhook: Failed to parse JSON body");
-        res.status(400).json({ error: "Invalid JSON" });
-      }
+      // Body is already parsed, just continue
+      next();
     },
     /**
      * @param {ExtendedRequest} req
