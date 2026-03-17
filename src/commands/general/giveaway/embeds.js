@@ -3,7 +3,7 @@
  * @module commands/general/giveaway/embeds
  */
 
-import { EmbedBuilder } from 'discord.js';
+import { EmbedBuilder } from "discord.js";
 
 /**
  * Create a giveaway embed
@@ -13,35 +13,33 @@ import { EmbedBuilder } from 'discord.js';
  */
 export function createGiveawayEmbed(giveaway, totalEntries = 0) {
   const embed = new EmbedBuilder()
-    .setTitle('🎉 GIVEAWAY! 🎉')
-    .setDescription(giveaway.description || 'Click the button below to enter!')
-    .setColor(giveaway.color || 0xFFD700)
+    .setTitle("🎉 GIVEAWAY! 🎉")
+    .setDescription(giveaway.description || "Click the button below to enter!")
+    .setColor(giveaway.color || 0xffd700)
     .addFields(
       {
-        name: '🎁 Prize',
+        name: "🎁 Prize",
         value: giveaway.prize,
-        inline: true
+        inline: true,
       },
       {
-        name: '🏆 Winners',
+        name: "🏆 Winners",
         value: `${giveaway.winners}`,
-        inline: true
+        inline: true,
       },
       {
-        name: '📊 Entries',
+        name: "📊 Entries",
         value: `${totalEntries.toLocaleString()}`,
-        inline: true
-      }
+        inline: true,
+      },
     )
-    .addFields(
-      {
-        name: '⏰ Ends',
-        value: `<t:${Math.floor(giveaway.endTime.getTime() / 1000)}:R>`,
-        inline: false
-      }
-    )
+    .addFields({
+      name: "⏰ Ends",
+      value: `<t:${Math.floor(giveaway.endTime.getTime() / 1000)}:R>`,
+      inline: false,
+    })
     .setFooter({
-      text: `Hosted by ${giveaway.hostUsername || 'Server Staff'} • Giveaway ID: ${giveaway._id.toString().slice(-6)}`
+      text: `Hosted by ${giveaway.hostUsername || "Server Staff"} • Giveaway ID: ${giveaway._id.toString().slice(-6)}`,
     })
     .setTimestamp(giveaway.startTime);
 
@@ -51,16 +49,16 @@ export function createGiveawayEmbed(giveaway, totalEntries = 0) {
 
   // Add requirements if any
   const requirements = [];
-  
+
   if (giveaway.requirements?.roles?.length > 0) {
-    requirements.push('• Specific roles required');
+    requirements.push("• Specific roles required");
   }
-  
+
   if (giveaway.requirements?.minAccountAge > 0) {
     const days = giveaway.requirements.minAccountAge / (1000 * 60 * 60 * 24);
     requirements.push(`• Account age: ${days}+ days`);
   }
-  
+
   if (giveaway.requirements?.minServerAge > 0) {
     const days = giveaway.requirements.minServerAge / (1000 * 60 * 60 * 24);
     requirements.push(`• Server member: ${days}+ days`);
@@ -68,9 +66,9 @@ export function createGiveawayEmbed(giveaway, totalEntries = 0) {
 
   if (requirements.length > 0) {
     embed.addFields({
-      name: '📋 Requirements',
-      value: requirements.join('\n'),
-      inline: false
+      name: "📋 Requirements",
+      value: requirements.join("\n"),
+      inline: false,
     });
   }
 
@@ -86,7 +84,7 @@ export function createGiveawayEmbed(giveaway, totalEntries = 0) {
  */
 export async function createWinnerEmbed(giveaway, winners, client) {
   const winnerMentions = [];
-  
+
   for (const winner of winners) {
     try {
       const user = await client.users.fetch(winner.userId);
@@ -97,34 +95,34 @@ export async function createWinnerEmbed(giveaway, winners, client) {
   }
 
   const embed = new EmbedBuilder()
-    .setTitle('🏆 GIVEAWAY WINNER! 🏆')
-    .setColor(0x00FF00)
+    .setTitle("🏆 GIVEAWAY WINNER! 🏆")
+    .setColor(0x00ff00)
     .addFields(
       {
-        name: '🎁 Prize',
+        name: "🎁 Prize",
         value: giveaway.prize,
-        inline: true
+        inline: true,
       },
       {
-        name: '🎉 Winners',
-        value: winnerMentions.join('\n'),
-        inline: false
+        name: "🎉 Winners",
+        value: winnerMentions.join("\n"),
+        inline: false,
       },
       {
-        name: '📊 Total Entries',
+        name: "📊 Total Entries",
         value: `${giveaway.entries.reduce((sum, e) => sum + e.count, 0).toLocaleString()}`,
-        inline: true
+        inline: true,
       },
       {
-        name: '👤 Host',
-        value: giveaway.host ? `<@${giveaway.host}>` : 'Server Staff',
-        inline: true
-      }
+        name: "👤 Host",
+        value: giveaway.host ? `<@${giveaway.host}>` : "Server Staff",
+        inline: true,
+      },
     )
     .setFooter({
-      text: giveaway.winnersData?.[0]?.claimed 
-        ? 'Prize claimed ✓' 
-        : 'Winners have 48 hours to claim their prize'
+      text: giveaway.winnersData?.[0]?.claimed
+        ? "Prize claimed ✓"
+        : "Winners have 48 hours to claim their prize",
     })
     .setTimestamp();
 
@@ -142,23 +140,23 @@ export async function createWinnerEmbed(giveaway, winners, client) {
  */
 export function createNoEntriesEmbed(giveaway) {
   const embed = new EmbedBuilder()
-    .setTitle('😔 GIVEAWAY ENDED')
-    .setDescription('No one entered this giveaway.')
-    .setColor(0xFF0000)
+    .setTitle("😔 GIVEAWAY ENDED")
+    .setDescription("No one entered this giveaway.")
+    .setColor(0xff0000)
     .addFields(
       {
-        name: '🎁 Prize',
+        name: "🎁 Prize",
         value: giveaway.prize,
-        inline: true
+        inline: true,
       },
       {
-        name: '👤 Host',
-        value: giveaway.host ? `<@${giveaway.host}>` : 'Server Staff',
-        inline: true
-      }
+        name: "👤 Host",
+        value: giveaway.host ? `<@${giveaway.host}>` : "Server Staff",
+        inline: true,
+      },
     )
     .setFooter({
-      text: 'Better luck next time!'
+      text: "Better luck next time!",
     })
     .setTimestamp();
 
@@ -172,32 +170,33 @@ export function createNoEntriesEmbed(giveaway) {
  */
 export function createGiveawayListEmbed(giveaways) {
   const embed = new EmbedBuilder()
-    .setTitle('🎉 Active Giveaways')
-    .setColor(0xFFD700)
-    .setDescription(giveaways.length === 0 
-      ? 'There are no active giveaways right now.'
-      : 'Click on a giveaway to enter!'
+    .setTitle("🎉 Active Giveaways")
+    .setColor(0xffd700)
+    .setDescription(
+      giveaways.length === 0
+        ? "There are no active giveaways right now."
+        : "Click on a giveaway to enter!",
     );
 
   if (giveaways.length > 0) {
     const fields = [];
-    
+
     for (let i = 0; i < Math.min(giveaways.length, 10); i++) {
       const gw = giveaways[i];
       const totalEntries = gw.entries.reduce((sum, e) => sum + e.count, 0);
-      
+
       fields.push({
         name: `${i + 1}. ${gw.prize}`,
         value: `🏆 ${gw.winners} winner(s) • 📊 ${totalEntries} entries\n⏰ Ends <t:${Math.floor(gw.endTime.getTime() / 1000)}:R>`,
-        inline: false
+        inline: false,
       });
     }
-    
+
     embed.addFields(fields);
   }
 
   embed.setFooter({
-    text: `Total: ${giveaways.length} active giveaway(s)`
+    text: `Total: ${giveaways.length} active giveaway(s)`,
   });
 
   return embed;
@@ -210,42 +209,42 @@ export function createGiveawayListEmbed(giveaways) {
  */
 export function createStatsEmbed(stats) {
   const embed = new EmbedBuilder()
-    .setTitle('📊 Giveaway Statistics')
-    .setColor(0xFFD700)
+    .setTitle("📊 Giveaway Statistics")
+    .setColor(0xffd700)
     .addFields(
       {
-        name: '📈 Total Giveaways',
+        name: "📈 Total Giveaways",
         value: `${stats.total || 0}`,
-        inline: true
+        inline: true,
       },
       {
-        name: '🎉 Active',
+        name: "🎉 Active",
         value: `${stats.active || 0}`,
-        inline: true
+        inline: true,
       },
       {
-        name: '✅ Completed',
+        name: "✅ Completed",
         value: `${stats.completed || 0}`,
-        inline: true
+        inline: true,
       },
       {
-        name: '🏁 Ended',
+        name: "🏁 Ended",
         value: `${stats.ended || 0}`,
-        inline: true
+        inline: true,
       },
       {
-        name: '🚫 Cancelled',
+        name: "🚫 Cancelled",
         value: `${stats.cancelled || 0}`,
-        inline: true
+        inline: true,
       },
       {
-        name: '📊 Total Entries',
+        name: "📊 Total Entries",
         value: `${(stats.totalEntries || 0).toLocaleString()}`,
-        inline: true
-      }
+        inline: true,
+      },
     )
     .setFooter({
-      text: 'Giveaway Statistics'
+      text: "Giveaway Statistics",
     })
     .setTimestamp();
 
@@ -259,19 +258,19 @@ export function createStatsEmbed(stats) {
  * @param {string} type - Type: 'success', 'error', 'warning', 'info'
  * @returns {EmbedBuilder}
  */
-export function createConfirmationEmbed(title, description, type = 'info') {
+export function createConfirmationEmbed(title, description, type = "info") {
   const colors = {
-    success: 0x00FF00,
-    error: 0xFF0000,
-    warning: 0xFFA500,
-    info: 0x3498DB
+    success: 0x00ff00,
+    error: 0xff0000,
+    warning: 0xffa500,
+    info: 0x3498db,
   };
 
   const icons = {
-    success: '✅',
-    error: '❌',
-    warning: '⚠️',
-    info: 'ℹ️'
+    success: "✅",
+    error: "❌",
+    warning: "⚠️",
+    info: "ℹ️",
   };
 
   const embed = new EmbedBuilder()
@@ -292,28 +291,28 @@ export function createConfirmationEmbed(title, description, type = 'info') {
  */
 export function createEntryConfirmEmbed(giveaway, userEntries, totalEntries) {
   const embed = new EmbedBuilder()
-    .setTitle('✅ Successfully Entered!')
+    .setTitle("✅ Successfully Entered!")
     .setDescription(`You've entered the giveaway for **${giveaway.prize}**.`)
-    .setColor(0x00FF00)
+    .setColor(0x00ff00)
     .addFields(
       {
-        name: '🎫 Your Entries',
+        name: "🎫 Your Entries",
         value: `${userEntries}`,
-        inline: true
+        inline: true,
       },
       {
-        name: '📊 Total Entries',
+        name: "📊 Total Entries",
         value: `${totalEntries.toLocaleString()}`,
-        inline: true
+        inline: true,
       },
       {
-        name: '⏰ Ends',
+        name: "⏰ Ends",
         value: `<t:${Math.floor(giveaway.endTime.getTime() / 1000)}:R>`,
-        inline: false
-      }
+        inline: false,
+      },
     )
     .setFooter({
-      text: 'Good luck! 🍀'
+      text: "Good luck! 🍀",
     })
     .setTimestamp();
 
@@ -328,25 +327,25 @@ export function createEntryConfirmEmbed(giveaway, userEntries, totalEntries) {
  */
 export function createWinnerDmEmbed(giveaway, guildName) {
   const embed = new EmbedBuilder()
-    .setTitle('🎉 Congratulations! You Won! 🎉')
-    .setColor(0xFFD700)
+    .setTitle("🎉 Congratulations! You Won! 🎉")
+    .setColor(0xffd700)
     .setDescription(
-      `You won the **${giveaway.prize}** giveaway in **${guildName}**!`
+      `You won the **${giveaway.prize}** giveaway in **${guildName}**!`,
     )
     .addFields(
       {
-        name: '📋 Next Steps',
-        value: 'Contact the giveaway host to claim your prize!',
-        inline: false
+        name: "📋 Next Steps",
+        value: "Contact the giveaway host to claim your prize!",
+        inline: false,
       },
       {
-        name: '⏰ Claim Period',
-        value: 'You have 48 hours to claim your prize.',
-        inline: false
-      }
+        name: "⏰ Claim Period",
+        value: "You have 48 hours to claim your prize.",
+        inline: false,
+      },
     )
     .setFooter({
-      text: 'Congratulations again!'
+      text: "Congratulations again!",
     })
     .setTimestamp();
 

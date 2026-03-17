@@ -99,22 +99,30 @@ export async function handleSetup(interaction, client) {
     if (!rolesString && !bundleName) {
       activeSetups.delete(interaction.id);
       return interaction.editReply({
-        embeds: [errorEmbed({
-          title: "Missing Roles or Bundle",
-          description: "You must provide either **roles** or a **bundle** parameter.",
-          solution: "Use `roles:🎮:@Gamer, 🎨:@Artist` OR `bundle:Gaming-Roles`"
-        })]
+        embeds: [
+          errorEmbed({
+            title: "Missing Roles or Bundle",
+            description:
+              "You must provide either **roles** or a **bundle** parameter.",
+            solution:
+              "Use `roles:🎮:@Gamer, 🎨:@Artist` OR `bundle:Gaming-Roles`",
+          }),
+        ],
       });
     }
 
     if (rolesString && bundleName) {
       activeSetups.delete(interaction.id);
       return interaction.editReply({
-        embeds: [errorEmbed({
-          title: "Invalid Parameters",
-          description: "You cannot use both **roles** and **bundle** parameters together.",
-          solution: "Use either `roles:🎮:@Gamer` OR `bundle:Gaming-Roles`, not both"
-        })]
+        embeds: [
+          errorEmbed({
+            title: "Invalid Parameters",
+            description:
+              "You cannot use both **roles** and **bundle** parameters together.",
+            solution:
+              "Use either `roles:🎮:@Gamer` OR `bundle:Gaming-Roles`, not both",
+          }),
+        ],
       });
     }
 
@@ -122,17 +130,24 @@ export async function handleSetup(interaction, client) {
 
     if (bundleName) {
       // Load roles from bundle
-      const roleBundleManager = (await import('../../../features/rolebundles/RoleBundleManager.js')).default;
-      const bundle = await roleBundleManager.getByName(interaction.guild.id, bundleName);
+      const roleBundleManager = (
+        await import("../../../features/rolebundles/RoleBundleManager.js")
+      ).default;
+      const bundle = await roleBundleManager.getByName(
+        interaction.guild.id,
+        bundleName,
+      );
 
       if (!bundle) {
         activeSetups.delete(interaction.id);
         return interaction.editReply({
-          embeds: [errorEmbed({
-            title: "Bundle Not Found",
-            description: `Role bundle **${bundleName}** not found.`,
-            solution: "Use `/role-bundle list` to see available bundles"
-          })]
+          embeds: [
+            errorEmbed({
+              title: "Bundle Not Found",
+              description: `Role bundle **${bundleName}** not found.`,
+              solution: "Use `/role-bundle list` to see available bundles",
+            }),
+          ],
         });
       }
 
@@ -143,7 +158,7 @@ export async function handleSetup(interaction, client) {
       // Note: Bundles don't support emoji, so we need to get emoji from user input
       // For now, we'll use a default emoji or require it in bundle name
       // This is a limitation - bundles work best with single emoji
-      const defaultEmoji = '⭐'; // Default emoji for bundles
+      const defaultEmoji = "⭐"; // Default emoji for bundles
 
       for (const roleData of bundle.roles) {
         const role = interaction.guild.roles.cache.get(roleData.roleId);
@@ -152,7 +167,7 @@ export async function handleSetup(interaction, client) {
             emoji: defaultEmoji,
             roleId: role.id,
             roleName: role.name,
-            limit: null
+            limit: null,
           });
 
           roleMapping[defaultEmoji] = {
@@ -161,21 +176,18 @@ export async function handleSetup(interaction, client) {
             roleName: role.name,
             limit: null,
             roleIds: bundle.roles.map(r => r.roleId),
-            roleNames: bundle.roles.map(r => r.roleName)
+            roleNames: bundle.roles.map(r => r.roleName),
           };
         }
       }
 
       roleProcessingResult = {
         success: true,
-        data: { validRoles, roleMapping }
+        data: { validRoles, roleMapping },
       };
     } else {
       // Use direct roles
-      roleProcessingResult = await processRoleInput(
-        interaction,
-        rolesString,
-      );
+      roleProcessingResult = await processRoleInput(interaction, rolesString);
       if (!roleProcessingResult.success) {
         activeSetups.delete(interaction.id);
         return interaction.editReply(roleProcessingResult.errorResponse);

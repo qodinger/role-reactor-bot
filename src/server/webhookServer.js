@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 // This file uses Express.js middleware that adds custom properties to req
 // Type checking is disabled to avoid excessive type casting
 
@@ -286,7 +283,10 @@ export async function startWebhookServer() {
 
       // Try to find an available port
       logger.info(`🔍 Searching for an available port...`);
-      const availablePort = await findAvailablePort(Number(serverConfig.port), 10);
+      const availablePort = await findAvailablePort(
+        Number(serverConfig.port),
+        10,
+      );
 
       if (availablePort) {
         logger.info(`✅ Found available port: ${availablePort}`);

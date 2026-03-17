@@ -3,7 +3,7 @@
  * @module commands/general/giveaway/components
  */
 
-import { ButtonBuilder, ButtonStyle, ActionRowBuilder } from 'discord.js';
+import { ButtonBuilder, ButtonStyle, ActionRowBuilder } from "discord.js";
 
 /**
  * Create the enter giveaway button
@@ -11,10 +11,10 @@ import { ButtonBuilder, ButtonStyle, ActionRowBuilder } from 'discord.js';
  */
 export function createEnterButton() {
   return new ButtonBuilder()
-    .setCustomId('giveaway_enter')
-    .setLabel('🎁 Enter Giveaway')
+    .setCustomId("giveaway_enter")
+    .setLabel("🎁 Enter Giveaway")
     .setStyle(ButtonStyle.Primary)
-    .setEmoji('🎁');
+    .setEmoji("🎁");
 }
 
 /**
@@ -23,10 +23,10 @@ export function createEnterButton() {
  */
 export function createEndButton() {
   return new ButtonBuilder()
-    .setCustomId('giveaway_end')
-    .setLabel('🏁 End Giveaway')
+    .setCustomId("giveaway_end")
+    .setLabel("🏁 End Giveaway")
     .setStyle(ButtonStyle.Danger)
-    .setEmoji('🏁');
+    .setEmoji("🏁");
 }
 
 /**
@@ -35,10 +35,10 @@ export function createEndButton() {
  */
 export function createRerollButton() {
   return new ButtonBuilder()
-    .setCustomId('giveaway_reroll')
-    .setLabel('🔄 Reroll')
+    .setCustomId("giveaway_reroll")
+    .setLabel("🔄 Reroll")
     .setStyle(ButtonStyle.Secondary)
-    .setEmoji('🔄');
+    .setEmoji("🔄");
 }
 
 /**
@@ -47,10 +47,10 @@ export function createRerollButton() {
  */
 export function createCancelButton() {
   return new ButtonBuilder()
-    .setCustomId('giveaway_cancel')
-    .setLabel('🚫 Cancel')
+    .setCustomId("giveaway_cancel")
+    .setLabel("🚫 Cancel")
     .setStyle(ButtonStyle.Danger)
-    .setEmoji('🚫');
+    .setEmoji("🚫");
 }
 
 /**
@@ -59,10 +59,10 @@ export function createCancelButton() {
  */
 export function createCompleteButton() {
   return new ButtonBuilder()
-    .setCustomId('giveaway_complete')
-    .setLabel('✅ Mark Complete')
+    .setCustomId("giveaway_complete")
+    .setLabel("✅ Mark Complete")
     .setStyle(ButtonStyle.Success)
-    .setEmoji('✅');
+    .setEmoji("✅");
 }
 
 /**
@@ -70,8 +70,7 @@ export function createCompleteButton() {
  * @returns {ActionRowBuilder}
  */
 export function createActiveGiveawayActions() {
-  return new ActionRowBuilder()
-    .addComponents(createEnterButton());
+  return new ActionRowBuilder().addComponents(createEnterButton());
 }
 
 /**
@@ -81,17 +80,17 @@ export function createActiveGiveawayActions() {
  */
 export function createEndedGiveawayActions(showAll = true) {
   const row = new ActionRowBuilder();
-  
+
   if (showAll) {
     row.addComponents(
       createRerollButton(),
       createCompleteButton(),
-      createCancelButton()
+      createCancelButton(),
     );
   } else {
     row.addComponents(createRerollButton());
   }
-  
+
   return row;
 }
 
@@ -100,11 +99,10 @@ export function createEndedGiveawayActions(showAll = true) {
  * @returns {ActionRowBuilder}
  */
 export function createManagementActions() {
-  return new ActionRowBuilder()
-    .addComponents(
-      createEndButton(),
-      createCancelButton()
-    );
+  return new ActionRowBuilder().addComponents(
+    createEndButton(),
+    createCancelButton(),
+  );
 }
 
 /**
@@ -113,16 +111,16 @@ export function createManagementActions() {
  * @returns {Object} Parsed data
  */
 export function parseButtonCustomId(customId) {
-  const parts = customId.split(':');
-  
+  const parts = customId.split(":");
+
   if (parts.length === 1) {
     return { action: parts[0] };
   }
-  
+
   return {
     action: parts[0],
     giveawayId: parts[1],
-    extra: parts[2] || null
+    extra: parts[2] || null,
   };
 }
 

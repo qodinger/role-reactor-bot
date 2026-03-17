@@ -704,11 +704,11 @@ async function main() {
         global.giveawayManager = giveawayManager; // Store globally for shutdown
         await giveawayManager.init();
         giveawayManager.client = client; // Set client reference
-        
+
         // Setup giveaway event listeners
         const { setupGiveawayEvents } = await import("./events/giveaway.js");
         setupGiveawayEvents(giveawayManager, client);
-        
+
         logger.info("✅ Giveaway Manager initialized");
       } catch (error) {
         logger.error("❌ Failed to initialize Giveaway Manager:", error);

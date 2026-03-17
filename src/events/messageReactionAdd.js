@@ -76,7 +76,7 @@ export async function execute(reaction, user, client) {
 
     // Handle multiple roles per emoji (Phase 1 implementation)
     let roleIds = [];
-    
+
     // Check if this is a multi-role configuration
     if (roleConfig.roleIds && Array.isArray(roleConfig.roleIds)) {
       // Multiple roles stored as roleIds array
@@ -89,7 +89,8 @@ export async function execute(reaction, user, client) {
       roleIds = [roleConfig];
     } else {
       // Fallback to finding by name
-      const roleName = roleConfig.roleName || roleConfig.role || roleConfig.name;
+      const roleName =
+        roleConfig.roleName || roleConfig.role || roleConfig.name;
       const role = guild.roles.cache.find(r => r.name === roleName);
       if (role) {
         roleIds = [role.id];
@@ -167,8 +168,10 @@ export async function execute(reaction, user, client) {
       }
 
       // Check if user already has all the new roles
-      const alreadyHasAllRoles = roleIds.every(id => member.roles.cache.has(id));
-      
+      const alreadyHasAllRoles = roleIds.every(id =>
+        member.roles.cache.has(id),
+      );
+
       if (alreadyHasAllRoles && removeOps.length === 0) {
         return;
       }
@@ -176,16 +179,18 @@ export async function execute(reaction, user, client) {
       // Run all removals AND the new role grants simultaneously
       await Promise.all([
         ...removeOps,
-        ...roleIds.map(roleId => 
+        ...roleIds.map(roleId =>
           member.roles.cache.has(roleId)
             ? Promise.resolve()
             : member.roles.add(roleId).then(() => {
                 logger.info(`✅ Role assigned: ${roleId} to ${user.tag}`);
-              })
+              }),
         ),
       ]);
 
-      logger.info(`✅ Assigned ${roleIds.length} role(s) to ${user.tag} for emoji ${emoji}`);
+      logger.info(
+        `✅ Assigned ${roleIds.length} role(s) to ${user.tag} for emoji ${emoji}`,
+      );
 
       // Record daily role reaction (fire-and-forget)
       import("../features/analytics/AnalyticsManager.js")
@@ -210,11 +215,13 @@ export async function execute(reaction, user, client) {
           ? Promise.resolve()
           : member.roles.add(roleId).then(() => {
               logger.info(`✅ Role assigned: ${roleId} to ${user.tag}`);
-            })
-      )
+            }),
+      ),
     );
 
-    logger.info(`✅ Assigned ${roleIds.length} role(s) to ${user.tag} for emoji ${emoji}`);
+    logger.info(
+      `✅ Assigned ${roleIds.length} role(s) to ${user.tag} for emoji ${emoji}`,
+    );
 
     // Record daily role reaction (fire-and-forget)
     import("../features/analytics/AnalyticsManager.js")

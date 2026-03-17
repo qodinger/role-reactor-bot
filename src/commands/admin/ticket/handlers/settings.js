@@ -9,9 +9,7 @@ import {
 import { getTicketPanel } from "../../../../features/ticketing/TicketPanel.js";
 import { getTicketManager } from "../../../../features/ticketing/TicketManager.js";
 import { getTicketTranscript } from "../../../../features/ticketing/TicketTranscript.js";
-import {
-  createInfoEmbed,
-} from "../../../../features/ticketing/embeds.js";
+import { createInfoEmbed } from "../../../../features/ticketing/embeds.js";
 import { EMOJIS } from "../../../../config/theme.js";
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -3,8 +3,8 @@
  * @module features/rolebundles/RoleBundleManager
  */
 
-import { getLogger } from '../../utils/logger.js';
-import { getDatabaseManager } from '../../utils/storage/databaseManager.js';
+import { getLogger } from "../../utils/logger.js";
+import { getDatabaseManager } from "../../utils/storage/databaseManager.js";
 
 class RoleBundleManager {
   constructor() {
@@ -22,14 +22,17 @@ class RoleBundleManager {
       // Access the database from connectionManager after connect() is called
       await dbManager.connect();
       this.db = dbManager.connectionManager.db;
-      this.collection = this.db.collection('role_bundles');
-      
+      this.collection = this.db.collection("role_bundles");
+
       // Create indexes for better query performance
-      await this.collection.createIndex({ guildId: 1, name: 1 }, { unique: true });
-      
-      this.logger.info('📦 RoleBundleManager initialized');
+      await this.collection.createIndex(
+        { guildId: 1, name: 1 },
+        { unique: true },
+      );
+
+      this.logger.info("📦 RoleBundleManager initialized");
     } catch (error) {
-      this.logger.error('❌ Failed to initialize RoleBundleManager:', error);
+      this.logger.error("❌ Failed to initialize RoleBundleManager:", error);
       throw error;
     }
   }
@@ -47,15 +50,17 @@ class RoleBundleManager {
         name: options.name,
         roles: options.roles, // Array of { roleId, roleName }
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
 
       await this.collection.insertOne(bundle);
-      this.logger.info(`📦 Role bundle created: ${options.name} in guild ${options.guildId}`);
-      
+      this.logger.info(
+        `📦 Role bundle created: ${options.name} in guild ${options.guildId}`,
+      );
+
       return bundle;
     } catch (error) {
-      this.logger.error('❌ Error creating role bundle:', error);
+      this.logger.error("❌ Error creating role bundle:", error);
       throw error;
     }
   }
@@ -70,7 +75,7 @@ class RoleBundleManager {
     try {
       return await this.collection.findOne({ guildId, name });
     } catch (error) {
-      this.logger.error('❌ Error getting bundle by name:', error);
+      this.logger.error("❌ Error getting bundle by name:", error);
       throw error;
     }
   }
@@ -84,7 +89,7 @@ class RoleBundleManager {
     try {
       return await this.collection.find({ guildId }).toArray();
     } catch (error) {
-      this.logger.error('❌ Error getting bundles for guild:', error);
+      this.logger.error("❌ Error getting bundles for guild:", error);
       throw error;
     }
   }
@@ -98,15 +103,15 @@ class RoleBundleManager {
   async deleteByName(guildId, name) {
     try {
       const result = await this.collection.deleteOne({ guildId, name });
-      
+
       if (result.deletedCount === 0) {
-        return { success: false, error: 'Bundle not found' };
+        return { success: false, error: "Bundle not found" };
       }
 
       this.logger.info(`🗑️ Role bundle deleted: ${name} in guild ${guildId}`);
       return { success: true };
     } catch (error) {
-      this.logger.error('❌ Error deleting bundle:', error);
+      this.logger.error("❌ Error deleting bundle:", error);
       throw error;
     }
   }
@@ -122,7 +127,7 @@ class RoleBundleManager {
       const bundle = await this.collection.findOne({ guildId, name });
       return bundle !== null;
     } catch (error) {
-      this.logger.error('❌ Error checking bundle existence:', error);
+      this.logger.error("❌ Error checking bundle existence:", error);
       throw error;
     }
   }
@@ -134,18 +139,22 @@ class RoleBundleManager {
    */
   validateName(name) {
     if (!name || name.trim().length === 0) {
-      return { valid: false, error: 'Bundle name is required' };
+      return { valid: false, error: "Bundle name is required" };
     }
 
     if (name.length > 50) {
-      return { valid: false, error: 'Bundle name must be less than 50 characters' };
+      return {
+        valid: false,
+        error: "Bundle name must be less than 50 characters",
+      };
     }
 
     // Allow letters, numbers, spaces, hyphens, underscores
     if (!/^[a-zA-Z0-9\s\-_]+$/.test(name)) {
-      return { 
-        valid: false, 
-        error: 'Bundle name can only contain letters, numbers, spaces, hyphens, and underscores' 
+      return {
+        valid: false,
+        error:
+          "Bundle name can only contain letters, numbers, spaces, hyphens, and underscores",
       };
     }
 

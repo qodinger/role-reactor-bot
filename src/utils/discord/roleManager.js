@@ -453,7 +453,7 @@ export async function processRoles(interaction, rolesString) {
   for (const [emoji, roleGroup] of emojiRoleGroups) {
     // For display purposes, use the first role's name
     const firstRole = roleGroup[0];
-    
+
     validRoles.push({
       emoji,
       roleId: firstRole.roleId,

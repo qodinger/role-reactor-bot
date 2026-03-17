@@ -3,27 +3,27 @@
  * @module events/giveaway
  */
 
-import { EmbedBuilder } from 'discord.js';
-import giveawayManager from '../features/giveaway/GiveawayManager.js';
+import { EmbedBuilder } from "discord.js";
+import giveawayManager from "../features/giveaway/GiveawayManager.js";
 import {
   createGiveawayEmbed,
   createWinnerEmbed,
   createNoEntriesEmbed,
   createEntryConfirmEmbed,
   createConfirmationEmbed,
-  createWinnerDmEmbed
-} from '../commands/general/giveaway/embeds.js';
+  createWinnerDmEmbed,
+} from "../commands/general/giveaway/embeds.js";
 import {
   createActiveGiveawayActions,
   createEndedGiveawayActions,
-  parseButtonCustomId
-} from '../commands/general/giveaway/components.js';
+  parseButtonCustomId,
+} from "../commands/general/giveaway/components.js";
 import {
   validateRequirements,
   calculateBonusEntries,
-  canManageGiveaways
-} from '../utils/giveaway/utils.js';
-import { getLogger } from '../utils/logger.js';
+  canManageGiveaways,
+} from "../utils/giveaway/utils.js";
+import { getLogger } from "../utils/logger.js";
 
 const logger = getLogger();
 
@@ -34,34 +34,34 @@ const logger = getLogger();
  */
 export async function handleGiveawayInteraction(interaction, client) {
   const customId = interaction.customId;
-  
+
   // Check if this is a giveaway button
-  if (!customId.startsWith('giveaway_')) {
+  if (!customId.startsWith("giveaway_")) {
     return false;
   }
 
   const parsed = parseButtonCustomId(customId);
-  
+
   switch (parsed.action) {
-    case 'giveaway_enter':
+    case "giveaway_enter":
       await handleEnterGiveaway(interaction, client);
       break;
-    case 'giveaway_end':
+    case "giveaway_end":
       await handleAdminEnd(interaction, client);
       break;
-    case 'giveaway_reroll':
+    case "giveaway_reroll":
       await handleAdminReroll(interaction, client);
       break;
-    case 'giveaway_cancel':
+    case "giveaway_cancel":
       await handleAdminCancel(interaction, client);
       break;
-    case 'giveaway_complete':
+    case "giveaway_complete":
       await handleAdminComplete(interaction, client);
       break;
     default:
       await interaction.reply({
-        content: 'Unknown action',
-        ephemeral: true
+        content: "Unknown action",
+        ephemeral: true,
       });
   }
 
@@ -77,38 +77,46 @@ async function handleEnterGiveaway(interaction, client) {
   try {
     await interaction.deferReply({ ephemeral: true });
 
-    const giveaway = await giveawayManager.getByMessageId(interaction.message.id);
+    const giveaway = await giveawayManager.getByMessageId(
+      interaction.message.id,
+    );
 
     if (!giveaway) {
       return interaction.editReply({
-        embeds: [createConfirmationEmbed(
-          'Error',
-          'This giveaway no longer exists.',
-          'error'
-        )]
+        embeds: [
+          createConfirmationEmbed(
+            "Error",
+            "This giveaway no longer exists.",
+            "error",
+          ),
+        ],
       });
     }
 
-    if (giveaway.status !== 'active') {
+    if (giveaway.status !== "active") {
       return interaction.editReply({
-        embeds: [createConfirmationEmbed(
-          'Giveaway Ended',
-          'This giveaway has already ended.',
-          'error'
-        )]
+        embeds: [
+          createConfirmationEmbed(
+            "Giveaway Ended",
+            "This giveaway has already ended.",
+            "error",
+          ),
+        ],
       });
     }
 
     // Validate requirements
     const validation = validateRequirements(giveaway, interaction.member);
-    
+
     if (!validation.valid) {
       return interaction.editReply({
-        embeds: [createConfirmationEmbed(
-          'Cannot Enter',
-          validation.errors.join('\n'),
-          'error'
-        )]
+        embeds: [
+          createConfirmationEmbed(
+            "Cannot Enter",
+            validation.errors.join("\n"),
+            "error",
+          ),
+        ],
       });
     }
 
@@ -121,66 +129,77 @@ async function handleEnterGiveaway(interaction, client) {
     const result = await giveawayManager.addEntry(
       giveaway._id.toString(),
       interaction.user.id,
-      totalEntriesToAdd
+      totalEntriesToAdd,
     );
 
     if (!result.success) {
       return interaction.editReply({
-        embeds: [createConfirmationEmbed(
-          'Error',
-          result.error || 'Failed to enter giveaway.',
-          'error'
-        )]
+        embeds: [
+          createConfirmationEmbed(
+            "Error",
+            result.error || "Failed to enter giveaway.",
+            "error",
+          ),
+        ],
       });
     }
 
     // Update the giveaway message with new entry count
     try {
-      const newTotal = await giveawayManager.getTotalEntries(giveaway._id.toString());
+      const newTotal = await giveawayManager.getTotalEntries(
+        giveaway._id.toString(),
+      );
       const updatedEmbed = createGiveawayEmbed(giveaway, newTotal);
-      
+
       await interaction.message.edit({
         embeds: [updatedEmbed],
-        components: [createActiveGiveawayActions()]
+        components: [createActiveGiveawayActions()],
       });
     } catch (err) {
-      logger.warn('⚠️ Failed to update giveaway message:', err.message);
+      logger.warn("⚠️ Failed to update giveaway message:", err.message);
     }
 
     // Send confirmation to user
-    const confirmEmbed = createEntryConfirmEmbed(giveaway, result.entries, result.totalEntries);
-    
+    const confirmEmbed = createEntryConfirmEmbed(
+      giveaway,
+      result.entries,
+      result.totalEntries,
+    );
+
     if (bonusEntries > 0) {
       confirmEmbed.addFields({
-        name: '🎁 Bonus Entries',
+        name: "🎁 Bonus Entries",
         value: `You received **+${bonusEntries}** bonus entries!`,
-        inline: false
+        inline: false,
       });
     }
 
     return interaction.editReply({
-      embeds: [confirmEmbed]
+      embeds: [confirmEmbed],
     });
-
   } catch (error) {
-    logger.error('❌ Error handling giveaway entry:', error);
-    
+    logger.error("❌ Error handling giveaway entry:", error);
+
     if (!interaction.replied && !interaction.deferred) {
       await interaction.reply({
-        embeds: [createConfirmationEmbed(
-          'Error',
-          'Failed to enter giveaway. Please try again.',
-          'error'
-        )],
-        ephemeral: true
+        embeds: [
+          createConfirmationEmbed(
+            "Error",
+            "Failed to enter giveaway. Please try again.",
+            "error",
+          ),
+        ],
+        ephemeral: true,
       });
     } else if (interaction.deferred) {
       await interaction.editReply({
-        embeds: [createConfirmationEmbed(
-          'Error',
-          'Failed to enter giveaway. Please try again.',
-          'error'
-        )]
+        embeds: [
+          createConfirmationEmbed(
+            "Error",
+            "Failed to enter giveaway. Please try again.",
+            "error",
+          ),
+        ],
       });
     }
   }
@@ -195,25 +214,27 @@ async function handleAdminEnd(interaction, client) {
   try {
     if (!canManageGiveaways(interaction.member)) {
       return interaction.reply({
-        embeds: [createConfirmationEmbed(
-          'Permission Denied',
-          'You need **Manage Server** or **Manage Roles** permission.',
-          'error'
-        )],
-        ephemeral: true
+        embeds: [
+          createConfirmationEmbed(
+            "Permission Denied",
+            "You need **Manage Server** or **Manage Roles** permission.",
+            "error",
+          ),
+        ],
+        ephemeral: true,
       });
     }
 
-    const giveaway = await giveawayManager.getByMessageId(interaction.message.id);
+    const giveaway = await giveawayManager.getByMessageId(
+      interaction.message.id,
+    );
 
     if (!giveaway) {
       return interaction.reply({
-        embeds: [createConfirmationEmbed(
-          'Error',
-          'Giveaway not found.',
-          'error'
-        )],
-        ephemeral: true
+        embeds: [
+          createConfirmationEmbed("Error", "Giveaway not found.", "error"),
+        ],
+        ephemeral: true,
       });
     }
 
@@ -223,19 +244,25 @@ async function handleAdminEnd(interaction, client) {
 
     if (!result.success) {
       return interaction.editReply({
-        embeds: [createConfirmationEmbed(
-          'Error',
-          result.error || 'Failed to end giveaway.',
-          'error'
-        )]
+        embeds: [
+          createConfirmationEmbed(
+            "Error",
+            result.error || "Failed to end giveaway.",
+            "error",
+          ),
+        ],
       });
     }
 
     // Announce winners
-    await announceWinners(interaction.channel, giveaway, result.winners, client);
-
+    await announceWinners(
+      interaction.channel,
+      giveaway,
+      result.winners,
+      client,
+    );
   } catch (error) {
-    logger.error('❌ Error handling admin end:', error);
+    logger.error("❌ Error handling admin end:", error);
   }
 }
 
@@ -248,47 +275,58 @@ async function handleAdminReroll(interaction, client) {
   try {
     if (!canManageGiveaways(interaction.member)) {
       return interaction.reply({
-        embeds: [createConfirmationEmbed(
-          'Permission Denied',
-          'You need **Manage Server** or **Manage Roles** permission.',
-          'error'
-        )],
-        ephemeral: true
+        embeds: [
+          createConfirmationEmbed(
+            "Permission Denied",
+            "You need **Manage Server** or **Manage Roles** permission.",
+            "error",
+          ),
+        ],
+        ephemeral: true,
       });
     }
 
-    const giveaway = await giveawayManager.getByMessageId(interaction.message.id);
+    const giveaway = await giveawayManager.getByMessageId(
+      interaction.message.id,
+    );
 
     if (!giveaway) {
       return interaction.reply({
-        embeds: [createConfirmationEmbed(
-          'Error',
-          'Giveaway not found.',
-          'error'
-        )],
-        ephemeral: true
+        embeds: [
+          createConfirmationEmbed("Error", "Giveaway not found.", "error"),
+        ],
+        ephemeral: true,
       });
     }
 
     await interaction.deferUpdate();
 
-    const result = await giveawayManager.rerollGiveaway(giveaway._id.toString());
+    const result = await giveawayManager.rerollGiveaway(
+      giveaway._id.toString(),
+    );
 
     if (!result.success) {
       return interaction.editReply({
-        embeds: [createConfirmationEmbed(
-          'Error',
-          result.error || 'Failed to reroll giveaway.',
-          'error'
-        )]
+        embeds: [
+          createConfirmationEmbed(
+            "Error",
+            result.error || "Failed to reroll giveaway.",
+            "error",
+          ),
+        ],
       });
     }
 
     // Announce new winners
-    await announceWinners(interaction.channel, giveaway, result.winners, client, true);
-
+    await announceWinners(
+      interaction.channel,
+      giveaway,
+      result.winners,
+      client,
+      true,
+    );
   } catch (error) {
-    logger.error('❌ Error handling admin reroll:', error);
+    logger.error("❌ Error handling admin reroll:", error);
   }
 }
 
@@ -301,67 +339,72 @@ async function handleAdminCancel(interaction, client) {
   try {
     if (!canManageGiveaways(interaction.member)) {
       return interaction.reply({
-        embeds: [createConfirmationEmbed(
-          'Permission Denied',
-          'You need **Manage Server** or **Manage Roles** permission.',
-          'error'
-        )],
-        ephemeral: true
+        embeds: [
+          createConfirmationEmbed(
+            "Permission Denied",
+            "You need **Manage Server** or **Manage Roles** permission.",
+            "error",
+          ),
+        ],
+        ephemeral: true,
       });
     }
 
-    const giveaway = await giveawayManager.getByMessageId(interaction.message.id);
+    const giveaway = await giveawayManager.getByMessageId(
+      interaction.message.id,
+    );
 
     if (!giveaway) {
       return interaction.reply({
-        embeds: [createConfirmationEmbed(
-          'Error',
-          'Giveaway not found.',
-          'error'
-        )],
-        ephemeral: true
+        embeds: [
+          createConfirmationEmbed("Error", "Giveaway not found.", "error"),
+        ],
+        ephemeral: true,
       });
     }
 
     await interaction.deferUpdate();
 
-    const result = await giveawayManager.cancelGiveaway(giveaway._id.toString());
+    const result = await giveawayManager.cancelGiveaway(
+      giveaway._id.toString(),
+    );
 
     if (!result.success) {
       return interaction.editReply({
-        embeds: [createConfirmationEmbed(
-          'Error',
-          result.error || 'Failed to cancel giveaway.',
-          'error'
-        )]
+        embeds: [
+          createConfirmationEmbed(
+            "Error",
+            result.error || "Failed to cancel giveaway.",
+            "error",
+          ),
+        ],
       });
     }
 
     // Update the message to show cancelled
     const cancelledEmbed = new EmbedBuilder()
-      .setTitle('🚫 Giveaway Cancelled')
-      .setDescription('This giveaway has been cancelled by an administrator.')
-      .setColor(0xFF0000)
+      .setTitle("🚫 Giveaway Cancelled")
+      .setDescription("This giveaway has been cancelled by an administrator.")
+      .setColor(0xff0000)
       .addFields(
         {
-          name: '🎁 Prize',
+          name: "🎁 Prize",
           value: giveaway.prize,
-          inline: true
+          inline: true,
         },
         {
-          name: '👤 Host',
-          value: giveaway.host ? `<@${giveaway.host}>` : 'Unknown',
-          inline: true
-        }
+          name: "👤 Host",
+          value: giveaway.host ? `<@${giveaway.host}>` : "Unknown",
+          inline: true,
+        },
       );
 
     await interaction.message.edit({
       embeds: [cancelledEmbed],
-      components: []
+      components: [],
     });
-
   } catch (error) {
-    logger.error('❌ Error handling admin cancel:', error);
+    logger.error("❌ Error handling admin cancel:", error);
   }
 }
 
@@ -374,25 +417,27 @@ async function handleAdminComplete(interaction, client) {
   try {
     if (!canManageGiveaways(interaction.member)) {
       return interaction.reply({
-        embeds: [createConfirmationEmbed(
-          'Permission Denied',
-          'You need **Manage Server** or **Manage Roles** permission.',
-          'error'
-        )],
-        ephemeral: true
+        embeds: [
+          createConfirmationEmbed(
+            "Permission Denied",
+            "You need **Manage Server** or **Manage Roles** permission.",
+            "error",
+          ),
+        ],
+        ephemeral: true,
       });
     }
 
-    const giveaway = await giveawayManager.getByMessageId(interaction.message.id);
+    const giveaway = await giveawayManager.getByMessageId(
+      interaction.message.id,
+    );
 
     if (!giveaway) {
       return interaction.reply({
-        embeds: [createConfirmationEmbed(
-          'Error',
-          'Giveaway not found.',
-          'error'
-        )],
-        ephemeral: true
+        embeds: [
+          createConfirmationEmbed("Error", "Giveaway not found.", "error"),
+        ],
+        ephemeral: true,
       });
     }
 
@@ -404,15 +449,16 @@ async function handleAdminComplete(interaction, client) {
     }
 
     await interaction.editReply({
-      embeds: [createConfirmationEmbed(
-        'Giveaway Complete',
-        'All winners have been marked as claimed.',
-        'success'
-      )]
+      embeds: [
+        createConfirmationEmbed(
+          "Giveaway Complete",
+          "All winners have been marked as claimed.",
+          "success",
+        ),
+      ],
     });
-
   } catch (error) {
-    logger.error('❌ Error handling admin complete:', error);
+    logger.error("❌ Error handling admin complete:", error);
   }
 }
 
@@ -424,30 +470,36 @@ async function handleAdminComplete(interaction, client) {
  * @param {Object} client - Discord client
  * @param {boolean} isReroll - Whether this is a reroll
  */
-async function announceWinners(channel, giveaway, winners, client, isReroll = false) {
+async function announceWinners(
+  channel,
+  giveaway,
+  winners,
+  client,
+  isReroll = false,
+) {
   try {
     if (winners.length === 0) {
       const noEntriesEmbed = createNoEntriesEmbed(giveaway);
       await channel.send({
         embeds: [noEntriesEmbed],
-        components: [createEndedGiveawayActions(false)]
+        components: [createEndedGiveawayActions(false)],
       });
       return;
     }
 
     // Create winner announcement
     const winnerEmbed = await createWinnerEmbed(giveaway, winners, client);
-    
+
     if (isReroll) {
-      winnerEmbed.setTitle('🔄 GIVEAWAY REROLL! 🔄');
+      winnerEmbed.setTitle("🔄 GIVEAWAY REROLL! 🔄");
       winnerEmbed.setFooter({
-        text: 'This is a reroll - new winner(s) selected!'
+        text: "This is a reroll - new winner(s) selected!",
       });
     }
 
     await channel.send({
       embeds: [winnerEmbed],
-      components: [createEndedGiveawayActions(true)]
+      components: [createEndedGiveawayActions(true)],
     });
 
     // DM winners
@@ -455,9 +507,9 @@ async function announceWinners(channel, giveaway, winners, client, isReroll = fa
       try {
         const user = await client.users.fetch(winner.userId);
         const dmEmbed = createWinnerDmEmbed(giveaway, channel.guild.name);
-        
+
         await user.send({
-          embeds: [dmEmbed]
+          embeds: [dmEmbed],
         });
       } catch (err) {
         logger.warn(`⚠️ Could not DM winner ${winner.userId}:`, err.message);
@@ -466,10 +518,13 @@ async function announceWinners(channel, giveaway, winners, client, isReroll = fa
 
     // Update original giveaway message
     try {
-      const totalEntries = giveaway.entries.reduce((sum, e) => sum + e.count, 0);
+      const totalEntries = giveaway.entries.reduce(
+        (sum, e) => sum + e.count,
+        0,
+      );
       const endedEmbed = createGiveawayEmbed(giveaway, totalEntries);
-      endedEmbed.setTitle('🏆 GIVEAWAY ENDED! 🏆');
-      endedEmbed.setColor(0x00FF00);
+      endedEmbed.setTitle("🏆 GIVEAWAY ENDED! 🏆");
+      endedEmbed.setColor(0x00ff00);
 
       const winnerMentions = [];
       for (const winner of winners) {
@@ -477,26 +532,25 @@ async function announceWinners(channel, giveaway, winners, client, isReroll = fa
           const user = await client.users.fetch(winner.userId);
           winnerMentions.push(`${user.tag}`);
         } catch {
-          winnerMentions.push('Unknown User');
+          winnerMentions.push("Unknown User");
         }
       }
 
       endedEmbed.addFields({
-        name: '🎉 Winners',
-        value: winnerMentions.join('\n'),
-        inline: false
+        name: "🎉 Winners",
+        value: winnerMentions.join("\n"),
+        inline: false,
       });
 
       await interaction.message.edit({
         embeds: [endedEmbed],
-        components: [createEndedGiveawayActions(true)]
+        components: [createEndedGiveawayActions(true)],
       });
     } catch (err) {
-      logger.warn('⚠️ Failed to update giveaway message:', err.message);
+      logger.warn("⚠️ Failed to update giveaway message:", err.message);
     }
-
   } catch (error) {
-    logger.error('❌ Error announcing winners:', error);
+    logger.error("❌ Error announcing winners:", error);
   }
 }
 
@@ -507,77 +561,86 @@ async function announceWinners(channel, giveaway, winners, client, isReroll = fa
  */
 export function setupGiveawayEvents(manager, client) {
   // Handle giveaway ended event
-  manager.on('giveawayEnded', async (giveaway, winners) => {
+  manager.on("giveawayEnded", async (giveaway, winners) => {
     try {
       const channel = await client.channels.fetch(giveaway.channelId);
-      
+
       if (!channel) {
-        logger.warn(`⚠️ Could not find channel ${giveaway.channelId} for giveaway`);
+        logger.warn(
+          `⚠️ Could not find channel ${giveaway.channelId} for giveaway`,
+        );
         return;
       }
 
       await announceWinners(channel, giveaway, winners, client);
     } catch (error) {
-      logger.error('❌ Error in giveawayEnded event:', error);
+      logger.error("❌ Error in giveawayEnded event:", error);
     }
   });
 
   // Handle giveaway rerolled event
-  manager.on('giveawayRerolled', async (giveaway, winners) => {
+  manager.on("giveawayRerolled", async (giveaway, winners) => {
     try {
       const channel = await client.channels.fetch(giveaway.channelId);
-      
+
       if (!channel) {
-        logger.warn(`⚠️ Could not find channel ${giveaway.channelId} for giveaway`);
+        logger.warn(
+          `⚠️ Could not find channel ${giveaway.channelId} for giveaway`,
+        );
         return;
       }
 
       await announceWinners(channel, giveaway, winners, client, true);
     } catch (error) {
-      logger.error('❌ Error in giveawayRerolled event:', error);
+      logger.error("❌ Error in giveawayRerolled event:", error);
     }
   });
 
   // Handle giveaway cancelled event
-  manager.on('giveawayCancelled', async (giveaway) => {
+  manager.on("giveawayCancelled", async giveaway => {
     try {
       const channel = await client.channels.fetch(giveaway.channelId);
-      
+
       if (!channel) {
-        logger.warn(`⚠️ Could not find channel ${giveaway.channelId} for giveaway`);
+        logger.warn(
+          `⚠️ Could not find channel ${giveaway.channelId} for giveaway`,
+        );
         return;
       }
 
       const cancelledEmbed = new EmbedBuilder()
-        .setTitle('🚫 Giveaway Cancelled')
-        .setDescription('This giveaway has been cancelled.')
-        .setColor(0xFF0000)
+        .setTitle("🚫 Giveaway Cancelled")
+        .setDescription("This giveaway has been cancelled.")
+        .setColor(0xff0000)
         .addFields(
           {
-            name: '🎁 Prize',
+            name: "🎁 Prize",
             value: giveaway.prize,
-            inline: true
+            inline: true,
           },
           {
-            name: '👤 Host',
-            value: giveaway.host ? `<@${giveaway.host}>` : 'Unknown',
-            inline: true
-          }
+            name: "👤 Host",
+            value: giveaway.host ? `<@${giveaway.host}>` : "Unknown",
+            inline: true,
+          },
         );
 
       try {
         const message = await channel.messages.fetch(giveaway.messageId);
         await message.edit({
           embeds: [cancelledEmbed],
-          components: []
+          components: [],
         });
       } catch (err) {
-        logger.warn('⚠️ Could not update cancelled giveaway message:', err.message);
+        logger.warn(
+          "⚠️ Could not update cancelled giveaway message:",
+          err.message,
+        );
       }
     } catch (error) {
-      logger.error('❌ Error in giveawayCancelled event:', error);
+      logger.error("❌ Error in giveawayCancelled event:", error);
     }
   });
 
-  logger.info('🎉 Giveaway event listeners setup complete');
+  logger.info("🎉 Giveaway event listeners setup complete");
 }

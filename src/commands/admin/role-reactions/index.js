@@ -80,7 +80,7 @@ export const metadata = {
   ],
   autocomplete: async (interaction, client) => {
     const focusedOption = interaction.options.getFocused(true);
-    if (focusedOption.name === 'bundle') {
+    if (focusedOption.name === "bundle") {
       await handleBundleAutocomplete(interaction);
     }
   },
@@ -114,13 +114,17 @@ export const data = new SlashCommandBuilder()
       .addStringOption(opt =>
         opt
           .setName("roles")
-          .setDescription('Emoji:role pairs. Format: 🎮:@Gamer, 🎨:@Artist. Or use bundle')
+          .setDescription(
+            "Emoji:role pairs. Format: 🎮:@Gamer, 🎨:@Artist. Or use bundle",
+          )
           .setRequired(false),
       )
       .addStringOption(opt =>
         opt
           .setName("bundle")
-          .setDescription('Use a role bundle instead of specifying roles directly')
+          .setDescription(
+            "Use a role bundle instead of specifying roles directly",
+          )
           .setRequired(false)
           .setAutocomplete(true),
       )
@@ -315,23 +319,27 @@ export async function handleButtonInteraction(interaction, client) {
 
 // Handle autocomplete for bundle selection
 export async function handleBundleAutocomplete(interaction) {
-  const focusedValue = interaction.options.getFocused()?.toLowerCase() || '';
-  
+  const focusedValue = interaction.options.getFocused()?.toLowerCase() || "";
+
   try {
-    const roleBundleManager = (await import('../../../features/rolebundles/RoleBundleManager.js')).default;
-    const bundles = await roleBundleManager.getAllForGuild(interaction.guild.id);
-    
+    const roleBundleManager = (
+      await import("../../../features/rolebundles/RoleBundleManager.js")
+    ).default;
+    const bundles = await roleBundleManager.getAllForGuild(
+      interaction.guild.id,
+    );
+
     const filtered = bundles
       .filter(b => b.name.toLowerCase().includes(focusedValue))
       .slice(0, 25)
       .map(b => ({
         name: `${b.name} (${b.roles?.length || 0} roles)`,
-        value: b.name
+        value: b.name,
       }));
-    
+
     return await interaction.respond(filtered);
   } catch (error) {
-    console.error('Bundle autocomplete error:', error);
+    console.error("Bundle autocomplete error:", error);
     return await interaction.respond([]);
   }
 }

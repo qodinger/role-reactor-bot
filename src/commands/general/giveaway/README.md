@@ -5,6 +5,7 @@ A complete giveaway management system for Discord servers with advanced security
 ## ✨ Features
 
 ### 🎁 Core Features
+
 - **Easy Giveaway Creation**: Simple slash command setup
 - **Automatic Timer**: Giveaways end automatically at specified time
 - **Fair Winner Selection**: Weighted random selection with bonus entries
@@ -13,6 +14,7 @@ A complete giveaway management system for Discord servers with advanced security
 - **Auto DM Winners**: Automatic winner notifications via DM
 
 ### 🔒 Security Features (Industry Standard)
+
 - **Permission-Based Creation**: Staff-only by default
 - **Custom Creator Roles**: Allow trusted members to create giveaways
 - **Rate Limiting**: Max active giveaways per user (default: 3)
@@ -23,6 +25,7 @@ A complete giveaway management system for Discord servers with advanced security
 - **Configurable Claim Period**: Set prize claim deadline (24h-7d)
 
 ### 🎯 Advanced Features
+
 - **Bonus Entries**: Extra entries for roles/server boosters
 - **Giveaway Editing**: Fix mistakes after creation
 - **Reroll System**: Select new winners if needed
@@ -38,11 +41,13 @@ A complete giveaway management system for Discord servers with advanced security
 ### `/giveaway` (All-in-One)
 
 **Public Subcommands** (Everyone can use):
+
 - `/giveaway list` - View all active giveaways
 - `/giveaway stats` - View giveaway statistics
 - `/giveaway info` - View specific giveaway details
 
 **Admin Subcommands** (Permission required):
+
 - `/giveaway create` - Create a new giveaway
 - `/giveaway edit` - Edit active giveaway
 - `/giveaway end` - End giveaway early
@@ -62,32 +67,33 @@ A complete giveaway management system for Discord servers with advanced security
 
 ### Who Can Use Commands?
 
-| Subcommand | Permission Required |
-|------------|---------------------|
-| **list, stats, info** | None (everyone) |
-| **create** | Manage Server/Roles OR Creator Role |
-| **edit, end, reroll, cancel** | Manage Server |
-| **set-creator-role, remove-creator-role** | Manage Server |
-| **creator-roles, settings** | None (everyone) |
-| **set-allowed-channel, remove-allowed-channel** | Manage Server |
-| **set-claim-period** | Manage Server |
+| Subcommand                                      | Permission Required                 |
+| ----------------------------------------------- | ----------------------------------- |
+| **list, stats, info**                           | None (everyone)                     |
+| **create**                                      | Manage Server/Roles OR Creator Role |
+| **edit, end, reroll, cancel**                   | Manage Server                       |
+| **set-creator-role, remove-creator-role**       | Manage Server                       |
+| **creator-roles, settings**                     | None (everyone)                     |
+| **set-allowed-channel, remove-allowed-channel** | Manage Server                       |
+| **set-claim-period**                            | Manage Server                       |
 
 ### Default Security Settings
 
-| Setting | Default | Description |
-|---------|---------|-------------|
-| **Min Account Age** | 7 days | Prevents alt account abuse |
-| **Min Server Age** | 1 day | Requires server membership |
-| **Exclude Bots** | Yes | Bots cannot enter |
-| **Max Active Per User** | 3 | Rate limit for creators |
-| **Claim Period** | 48 hours | Time to claim prize |
-| **Channel Restrictions** | None | All channels allowed |
+| Setting                  | Default  | Description                |
+| ------------------------ | -------- | -------------------------- |
+| **Min Account Age**      | 7 days   | Prevents alt account abuse |
+| **Min Server Age**       | 1 day    | Requires server membership |
+| **Exclude Bots**         | Yes      | Bots cannot enter          |
+| **Max Active Per User**  | 3        | Rate limit for creators    |
+| **Claim Period**         | 48 hours | Time to claim prize        |
+| **Channel Restrictions** | None     | All channels allowed       |
 
 ---
 
 ## 🎮 Usage Examples
 
 ### Create a Giveaway (Staff)
+
 ```
 /giveaway create
   prize: Discord Nitro
@@ -97,26 +103,31 @@ A complete giveaway management system for Discord servers with advanced security
 ```
 
 ### View Active Giveaways (Everyone)
+
 ```
 /giveaway list
 ```
 
 ### View Statistics (Everyone)
+
 ```
 /giveaway stats
 ```
 
 ### Allow Event Hosts to Create Giveaways (Admin)
+
 ```
 /giveaway set-creator-role role:@Event-Hosts
 ```
 
 ### Restrict Giveaways to Specific Channels (Admin)
+
 ```
 /giveaway set-allowed-channel channel:#giveaways
 ```
 
 ### Edit Active Giveaway (Admin)
+
 ```
 /giveaway edit
   giveaway-id: abc123
@@ -128,15 +139,16 @@ A complete giveaway management system for Discord servers with advanced security
 
 ## ⏱️ Duration Formats
 
-| Format | Example | Duration |
-|--------|---------|----------|
-| `s` | `30s` | 30 seconds |
-| `m` | `30m` | 30 minutes |
-| `h` | `2h` | 2 hours |
-| `d` | `7d` | 7 days |
-| `w` | `2w` | 2 weeks |
+| Format | Example | Duration   |
+| ------ | ------- | ---------- |
+| `s`    | `30s`   | 30 seconds |
+| `m`    | `30m`   | 30 minutes |
+| `h`    | `2h`    | 2 hours    |
+| `d`    | `7d`    | 7 days     |
+| `w`    | `2w`    | 2 weeks    |
 
 **Limits:**
+
 - Minimum: 1 minute
 - Maximum: 28 days
 
@@ -147,24 +159,31 @@ A complete giveaway management system for Discord servers with advanced security
 Giveaways can enforce these requirements:
 
 ### 1. Role Requirements
+
 Only users with specific roles can enter.
+
 ```
 /giveaway create ... required-role:@Members
 ```
 
 ### 2. Account Age
+
 Users' accounts must be older than X days (server-wide setting).
+
 ```
 /giveaway settings → Min Account Age: 7 days
 ```
 
 ### 3. Server Age
+
 Users must be members for X days (server-wide setting).
+
 ```
 /giveaway settings → Min Server Age: 1 day
 ```
 
 ### 4. Bot Exclusion
+
 Bot accounts are excluded by default (server-wide setting).
 
 ---
@@ -172,6 +191,7 @@ Bot accounts are excluded by default (server-wide setting).
 ## 🎫 Bonus Entries
 
 Users can receive bonus entries for:
+
 - **Specific Roles**: Server boosters, VIPs, etc.
 - **Server Boosters**: Automatic bonus for boosters
 
@@ -283,6 +303,7 @@ Winners are selected using **weighted random selection**:
 4. Same user can't win multiple times in same giveaway
 
 **Anti-Cheat Measures:**
+
 - Alt account detection (account age requirement)
 - Bot account exclusion
 - Server age verification
@@ -305,21 +326,25 @@ Track giveaway performance with `/giveaway stats`:
 ## ⚠️ Troubleshooting
 
 ### Giveaway Not Ending
+
 - Check bot has permissions in the channel
 - Verify bot is online
 - Check logs for errors
 
 ### Users Can't Enter
+
 - Check requirements are met (age, roles, etc.)
 - Verify bot has permission to read/send messages
 - Ensure button interactions are working
 
 ### User Can't Create Giveaway
+
 - Check user has proper permissions or creator role
 - Verify rate limit not exceeded (max 3 active)
 - Check channel is allowed for giveaways
 
 ### Permission Denied Error
+
 - Most management commands require **Manage Server** permission
 - Some commands allow **Creator Roles** (set by admins)
 - Public commands (list, stats, info) work for everyone
@@ -328,23 +353,23 @@ Track giveaway performance with `/giveaway stats`:
 
 ## 📊 Industry Standard Comparison
 
-| Feature | Our Bot | Industry Standard |
-|---------|---------|-------------------|
-| **Command Structure** | ✅ One command | ✅ One command |
-| **Permission System** | ✅ Runtime checks | ✅ Runtime checks |
-| **Custom Creator Roles** | ✅ Yes | ✅ Yes |
-| **Rate Limiting** | ✅ Yes | ✅ Yes |
-| **Channel Restrictions** | ✅ Yes | ✅ Yes |
-| **Entry Requirements** | ✅ Yes | ✅ Yes |
-| **Bot Exclusion** | ✅ Yes | ✅ Yes |
-| **Account Age Check** | ✅ Yes | ✅ Yes |
-| **Server Age Check** | ✅ Yes | ✅ Yes |
-| **Edit Giveaway** | ✅ Yes | ✅ Yes |
-| **Reroll** | ✅ Yes | ✅ Yes |
-| **Auto DM Winners** | ✅ Yes | ✅ Yes |
-| **Configurable Claim Period** | ✅ Yes | ✅ Yes |
-| **Giveaway Logging** | ✅ Yes | ✅ Yes |
-| **Bonus Entries** | ✅ Yes | ✅ Yes |
+| Feature                       | Our Bot           | Industry Standard |
+| ----------------------------- | ----------------- | ----------------- |
+| **Command Structure**         | ✅ One command    | ✅ One command    |
+| **Permission System**         | ✅ Runtime checks | ✅ Runtime checks |
+| **Custom Creator Roles**      | ✅ Yes            | ✅ Yes            |
+| **Rate Limiting**             | ✅ Yes            | ✅ Yes            |
+| **Channel Restrictions**      | ✅ Yes            | ✅ Yes            |
+| **Entry Requirements**        | ✅ Yes            | ✅ Yes            |
+| **Bot Exclusion**             | ✅ Yes            | ✅ Yes            |
+| **Account Age Check**         | ✅ Yes            | ✅ Yes            |
+| **Server Age Check**          | ✅ Yes            | ✅ Yes            |
+| **Edit Giveaway**             | ✅ Yes            | ✅ Yes            |
+| **Reroll**                    | ✅ Yes            | ✅ Yes            |
+| **Auto DM Winners**           | ✅ Yes            | ✅ Yes            |
+| **Configurable Claim Period** | ✅ Yes            | ✅ Yes            |
+| **Giveaway Logging**          | ✅ Yes            | ✅ Yes            |
+| **Bonus Entries**             | ✅ Yes            | ✅ Yes            |
 
 **Score: 15/15** - Matches or exceeds industry standards! ✅
 
@@ -353,6 +378,7 @@ Track giveaway performance with `/giveaway stats`:
 ## 💡 Best Practices
 
 ### For Server Owners
+
 1. Set up a dedicated `#giveaways` channel
 2. Add `@Event-Hosts` as creator role for trusted members
 3. Enable account age requirement (7+ days)
@@ -360,6 +386,7 @@ Track giveaway performance with `/giveaway stats`:
 5. Enable giveaway logging
 
 ### For Giveaway Creators
+
 1. Be clear about prize details
 2. Set reasonable duration (1-7 days recommended)
 3. Use role requirements for targeted giveaways
@@ -367,6 +394,7 @@ Track giveaway performance with `/giveaway stats`:
 5. Follow up with winners promptly
 
 ### For Participants
+
 1. Check requirements before entering
 2. Keep DMs open for winner notifications
 3. Respond within claim period if you win

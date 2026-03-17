@@ -11,10 +11,13 @@ import crypto from "crypto";
 const logger = getLogger();
 
 // Get webhook secret from environment
-const WEBHOOK_SECRET = process.env.TOPGG_WEBHOOK_AUTH || process.env.TOPGG_TOKEN;
+const WEBHOOK_SECRET =
+  process.env.TOPGG_WEBHOOK_AUTH || process.env.TOPGG_TOKEN;
 
 if (!WEBHOOK_SECRET) {
-  logger.warn("⚠️ top.gg webhook: No WEBHOOK_SECRET configured. Set TOPGG_WEBHOOK_AUTH in .env");
+  logger.warn(
+    "⚠️ top.gg webhook: No WEBHOOK_SECRET configured. Set TOPGG_WEBHOOK_AUTH in .env",
+  );
 }
 
 /**
@@ -28,49 +31,49 @@ if (!WEBHOOK_SECRET) {
  */
 function verifyWebhookSignature({ secret, signature, body, rawBody }) {
   if (!signature) {
-    logger.warn('⚠️ top.gg webhook: Missing signature header');
+    logger.warn("⚠️ top.gg webhook: Missing signature header");
     return false;
   }
 
   if (!secret) {
-    logger.warn('⚠️ top.gg webhook: No secret configured');
+    logger.warn("⚠️ top.gg webhook: No secret configured");
     return false;
   }
 
   try {
     // Extract timestamp and signature from header
     // Format: t=timestamp,s=signature
-    const parts = signature.split(',');
-    const timestamp = parts.find(p => p.startsWith('t=')).substring(2);
-    const expectedSignature = parts.find(p => p.startsWith('s=')).substring(2);
+    const parts = signature.split(",");
+    const timestamp = parts.find(p => p.startsWith("t=")).substring(2);
+    const expectedSignature = parts.find(p => p.startsWith("s=")).substring(2);
 
     if (!timestamp || !expectedSignature) {
-      logger.warn('⚠️ top.gg webhook: Invalid signature format');
+      logger.warn("⚠️ top.gg webhook: Invalid signature format");
       return false;
     }
 
     // Create the signature payload
     // Use rawBody if available, otherwise stringify the parsed body
-    const bodyStr = rawBody ? rawBody.toString('utf8') : JSON.stringify(body);
+    const bodyStr = rawBody ? rawBody.toString("utf8") : JSON.stringify(body);
     const payload = `${timestamp}.${bodyStr}`;
 
     // Generate HMAC SHA-256 hash
-    const hmac = crypto.createHmac('sha256', secret);
-    const computedSignature = hmac.update(payload).digest('hex');
+    const hmac = crypto.createHmac("sha256", secret);
+    const computedSignature = hmac.update(payload).digest("hex");
 
     // Compare signatures using constant-time comparison
     const isValid = crypto.timingSafeEqual(
-      Buffer.from(computedSignature, 'hex'),
-      Buffer.from(expectedSignature, 'hex')
+      Buffer.from(computedSignature, "hex"),
+      Buffer.from(expectedSignature, "hex"),
     );
 
     if (!isValid) {
-      logger.warn('⚠️ top.gg webhook: Signature mismatch');
+      logger.warn("⚠️ top.gg webhook: Signature mismatch");
     }
 
     return isValid;
   } catch (error) {
-    logger.error('❌ top.gg webhook: Signature verification failed:', error);
+    logger.error("❌ top.gg webhook: Signature verification failed:", error);
     return false;
   }
 }
@@ -84,58 +87,66 @@ function verifyWebhookSignature({ secret, signature, body, rawBody }) {
 export async function handleTopggVote(req, res, client) {
   try {
     // Get signature from header
-    const signature = req.headers['x-topgg-signature'];
-    
+    const signature = req.headers["x-topgg-signature"];
+
     // Get raw body if available (captured by express.raw middleware)
     const rawBody = req.rawBody;
-    
+
     // Parse vote data from request body
     const webhookData = req.body;
-    
+
     // Verify signature if secret is configured
     if (WEBHOOK_SECRET) {
       const isValid = verifyWebhookSignature({
         secret: WEBHOOK_SECRET,
         signature: signature,
         body: webhookData,
-        rawBody: rawBody
+        rawBody: rawBody,
       });
 
       if (!isValid) {
-        logger.warn('⚠️ top.gg webhook: Invalid signature - rejecting request');
+        logger.warn("⚠️ top.gg webhook: Invalid signature - rejecting request");
         return res.status(401).json({
           success: false,
-          message: 'Unauthorized - Invalid signature'
+          message: "Unauthorized - Invalid signature",
         });
       }
-      
-      logger.debug('✅ top.gg webhook: Signature verified successfully');
+
+      logger.debug("✅ top.gg webhook: Signature verified successfully");
     } else {
-      logger.warn('⚠️ top.gg webhook: Skipping signature verification (no secret configured)');
+      logger.warn(
+        "⚠️ top.gg webhook: Skipping signature verification (no secret configured)",
+      );
     }
-    
+
     // Handle different top.gg webhook formats
     const parsedVote = parseVoteData(webhookData);
-    
+
     if (!parsedVote.userId) {
-      logger.warn('⚠️ top.gg webhook: Could not parse user ID', { body: webhookData });
+      logger.warn("⚠️ top.gg webhook: Could not parse user ID", {
+        body: webhookData,
+      });
       return res.status(400).json({
         success: false,
-        message: 'Missing user ID'
+        message: "Missing user ID",
       });
     }
 
-    logger.info(`🗳️ top.gg: Vote received from ${parsedVote.username || parsedVote.userId} (${parsedVote.userId})`);
+    logger.info(
+      `🗳️ top.gg: Vote received from ${parsedVote.username || parsedVote.userId} (${parsedVote.userId})`,
+    );
 
     // Process the vote
-    await processVote({ user: parsedVote.userId, username: parsedVote.username }, client);
+    await processVote(
+      { user: parsedVote.userId, username: parsedVote.username },
+      client,
+    );
     return res.status(200).json({ success: true });
-    
   } catch (error) {
-    logger.error('❌ top.gg webhook error:', error);
+    logger.error("❌ top.gg webhook error:", error);
     return res.status(500).json({
       success: false,
-      message: 'Internal server error'
+      message: "Internal server error",
     });
   }
 }
@@ -147,41 +158,41 @@ export async function handleTopggVote(req, res, client) {
  */
 function parseVoteData(webhookData) {
   // New nested format (top.gg API v2)
-  if (webhookData.type === 'vote.create' && webhookData.data) {
+  if (webhookData.type === "vote.create" && webhookData.data) {
     return {
       userId: webhookData.data.user?.platform_id,
-      username: webhookData.data.user?.name
+      username: webhookData.data.user?.name,
     };
   }
-  
+
   // Test webhook format
-  if (webhookData.type === 'webhook.test' && webhookData.data) {
+  if (webhookData.type === "webhook.test" && webhookData.data) {
     return {
       userId: webhookData.data.user?.platform_id,
-      username: webhookData.data.user?.name
+      username: webhookData.data.user?.name,
     };
   }
-  
+
   // SDK format (flat)
-  if (webhookData.user && typeof webhookData.user === 'string') {
+  if (webhookData.user && typeof webhookData.user === "string") {
     return {
       userId: webhookData.user,
-      username: webhookData.username
+      username: webhookData.username,
     };
   }
-  
+
   // Nested object format
-  if (webhookData.user && typeof webhookData.user === 'object') {
+  if (webhookData.user && typeof webhookData.user === "object") {
     return {
       userId: webhookData.user.platform_id || webhookData.user.id,
-      username: webhookData.user.name
+      username: webhookData.user.name,
     };
   }
-  
+
   // Old flat format
   return {
     userId: webhookData.user,
-    username: webhookData.username
+    username: webhookData.username,
   };
 }
 
@@ -193,83 +204,92 @@ function parseVoteData(webhookData) {
 async function processVote(vote, client) {
   const userId = vote.user;
   const username = vote.username;
-  
-  logger.info(`🗳️ top.gg: Processing vote from ${username || userId} (${userId})`);
-  
+
+  logger.info(
+    `🗳️ top.gg: Processing vote from ${username || userId} (${userId})`,
+  );
+
   // Get database manager and check if user can vote (12 hour cooldown)
   const dbManager = await getDatabaseManager();
-  
+
   // Check if database is initialized
   if (!dbManager || !dbManager.coreCredits) {
-    logger.error('❌ top.gg: Database not initialized');
-    throw new Error('Database not ready');
+    logger.error("❌ top.gg: Database not initialized");
+    throw new Error("Database not ready");
   }
-  
+
   const COOLDOWN_MS = 12 * 60 * 60 * 1000; // 12 hours
-  const userCredits = await dbManager.coreCredits.collection.findOne({ userId });
-  
+  const userCredits = await dbManager.coreCredits.collection.findOne({
+    userId,
+  });
+
   if (userCredits && userCredits.lastVote) {
     const timeSinceVote = Date.now() - userCredits.lastVote;
     if (timeSinceVote < COOLDOWN_MS) {
       const remaining = COOLDOWN_MS - timeSinceVote;
       const hours = Math.floor(remaining / (60 * 60 * 1000));
       const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
-      
-      logger.info(`⏰ top.gg: User ${userId} voted too soon (${hours}h ${minutes}m remaining)`);
+
+      logger.info(
+        `⏰ top.gg: User ${userId} voted too soon (${hours}h ${minutes}m remaining)`,
+      );
       return; // Cooldown active, don't reward
     }
   }
-  
+
   // Reward user with 1 Core Credit
   const REWARD_AMOUNT = 1;
-  
+
   await dbManager.coreCredits.collection.updateOne(
     { userId },
-    { 
+    {
       $inc: { balance: REWARD_AMOUNT },
-      $set: { 
+      $set: {
         lastVote: Date.now(),
-        totalVotes: (userCredits?.totalVotes || 0) + 1
-      }
+        totalVotes: (userCredits?.totalVotes || 0) + 1,
+      },
     },
-    { upsert: true }
+    { upsert: true },
   );
-  
-  logger.info(`✅ top.gg: Rewarded ${userId} with ${REWARD_AMOUNT} Core (Total votes: ${(userCredits?.totalVotes || 0) + 1})`);
-  
+
+  logger.info(
+    `✅ top.gg: Rewarded ${userId} with ${REWARD_AMOUNT} Core (Total votes: ${(userCredits?.totalVotes || 0) + 1})`,
+  );
+
   // Send thank you DM (if possible)
   try {
     const discordClient = client || global.discordClient;
     if (discordClient && userId) {
       const discordUser = await discordClient.users.fetch(userId);
-      
-      const { EmbedBuilder } = await import('discord.js');
+
+      const { EmbedBuilder } = await import("discord.js");
       const thankYouEmbed = new EmbedBuilder()
-        .setTitle('🎉 Thanks for Voting!')
+        .setTitle("🎉 Thanks for Voting!")
         .setColor(0xff6b6b)
         .setDescription(
-          `Thank you **${username || 'voter'}** for voting for Role Reactor on top.gg!`
+          `Thank you **${username || "voter"}** for voting for Role Reactor on top.gg!`,
         )
         .addFields(
           {
-            name: '🎁 Reward',
+            name: "🎁 Reward",
             value: `✅ **${REWARD_AMOUNT} Core Credit** added to your balance!`,
             inline: false,
           },
           {
-            name: '⏰ Next Vote',
-            value: 'You can vote again in **12 hours**!',
+            name: "⏰ Next Vote",
+            value: "You can vote again in **12 hours**!",
             inline: false,
           },
           {
-            name: '💡 Use Your Core',
-            value: 'Use `/core` to check your balance and see what you can do with Core Credits!',
+            name: "💡 Use Your Core",
+            value:
+              "Use `/core` to check your balance and see what you can do with Core Credits!",
             inline: false,
           },
         )
-        .setFooter({ text: 'Your support means everything! ❤️' })
+        .setFooter({ text: "Your support means everything! ❤️" })
         .setTimestamp();
-      
+
       await discordUser.send({ embeds: [thankYouEmbed] });
       logger.info(`📩 top.gg: Sent thank you DM to ${userId}`);
     }
@@ -289,37 +309,41 @@ async function processVote(vote, client) {
 export async function getVoteStatus(userId) {
   try {
     const COOLDOWN_MS = 12 * 60 * 60 * 1000; // 12 hours
-    
+
     const dbManager = await getDatabaseManager();
-    const userCredits = await dbManager.coreCredits?.collection.findOne({ userId });
-    
+    const userCredits = await dbManager.coreCredits?.collection.findOne({
+      userId,
+    });
+
     if (!userCredits || !userCredits.lastVote) {
       return {
         hasVoted: false,
         canVote: true,
         lastVote: null,
         nextVote: null,
-        totalVotes: 0
+        totalVotes: 0,
       };
     }
-    
+
     const timeSinceVote = Date.now() - userCredits.lastVote;
     const canVote = timeSinceVote >= COOLDOWN_MS;
-    const nextVote = canVote ? null : new Date(userCredits.lastVote + COOLDOWN_MS);
-    
+    const nextVote = canVote
+      ? null
+      : new Date(userCredits.lastVote + COOLDOWN_MS);
+
     return {
       hasVoted: true,
       canVote,
       lastVote: new Date(userCredits.lastVote),
       nextVote,
-      totalVotes: userCredits.totalVotes || 0
+      totalVotes: userCredits.totalVotes || 0,
     };
   } catch (error) {
-    logger.error('Error getting vote status:', error);
+    logger.error("Error getting vote status:", error);
     return {
       hasVoted: false,
       canVote: false,
-      error: 'Failed to get vote status'
+      error: "Failed to get vote status",
     };
   }
 }

@@ -185,7 +185,9 @@ export function parseRoleString(roleString) {
     const existingRole = roles.find(r => r.emoji === emoji);
     if (existingRole && emoji !== null) {
       // Merge roles with same emoji - user will get all roles when reacting
-      existingRole.roleNames = existingRole.roleNames || [existingRole.roleName];
+      existingRole.roleNames = existingRole.roleNames || [
+        existingRole.roleName,
+      ];
       existingRole.roleNames.push(roleName);
       existingRole.roleIds = existingRole.roleIds || [];
       if (roleId) existingRole.roleIds.push(roleId);
@@ -193,7 +195,14 @@ export function parseRoleString(roleString) {
       continue; // Skip adding as new role, already merged
     }
 
-    roles.push({ emoji, roleName, roleId, limit, roleNames: null, roleIds: null });
+    roles.push({
+      emoji,
+      roleName,
+      roleId,
+      limit,
+      roleNames: null,
+      roleIds: null,
+    });
   }
 
   // If there are any errors, return empty roles array

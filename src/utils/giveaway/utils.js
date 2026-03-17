@@ -3,7 +3,7 @@
  * @module utils/giveaway/utils
  */
 
-import { PermissionFlagsBits } from 'discord.js';
+import { PermissionFlagsBits } from "discord.js";
 
 /**
  * Parse duration string to milliseconds
@@ -12,9 +12,9 @@ import { PermissionFlagsBits } from 'discord.js';
  */
 export function parseDuration(duration) {
   if (!duration) return null;
-  
+
   const match = duration.match(/^(\d+)(s|m|h|d|w)$/i);
-  
+
   if (!match) {
     return null;
   }
@@ -27,7 +27,7 @@ export function parseDuration(duration) {
     m: 1000 * 60,
     h: 1000 * 60 * 60,
     d: 1000 * 60 * 60 * 24,
-    w: 1000 * 60 * 60 * 24 * 7
+    w: 1000 * 60 * 60 * 24 * 7,
   };
 
   if (!units[unit]) {
@@ -43,8 +43,8 @@ export function parseDuration(duration) {
  * @returns {string} Formatted duration
  */
 export function formatDuration(ms) {
-  if (ms < 0) return 'Invalid duration';
-  
+  if (ms < 0) return "Invalid duration";
+
   const seconds = Math.floor(ms / 1000);
   const minutes = Math.floor(seconds / 60);
   const hours = Math.floor(minutes / 60);
@@ -73,10 +73,12 @@ export function formatDuration(ms) {
  */
 export function canManageGiveaways(member) {
   if (!member) return false;
-  
+
   // Check for Manage Server permission or specific role
-  return member.permissions.has(PermissionFlagsBits.ManageGuild) ||
-         member.permissions.has(PermissionFlagsBits.ManageRoles);
+  return (
+    member.permissions.has(PermissionFlagsBits.ManageGuild) ||
+    member.permissions.has(PermissionFlagsBits.ManageRoles)
+  );
 }
 
 /**
@@ -88,28 +90,32 @@ export function canManageGiveaways(member) {
 export function validateRequirements(giveaway, member) {
   const result = {
     valid: true,
-    errors: []
+    errors: [],
   };
 
   // Check role requirements
   if (giveaway.requirements?.roles?.length > 0) {
-    const hasRequiredRole = giveaway.requirements.roles.some(roleId => 
-      member.roles.cache.has(roleId)
+    const hasRequiredRole = giveaway.requirements.roles.some(roleId =>
+      member.roles.cache.has(roleId),
     );
-    
+
     if (!hasRequiredRole) {
       result.valid = false;
-      result.errors.push('You do not have the required role to enter this giveaway.');
+      result.errors.push(
+        "You do not have the required role to enter this giveaway.",
+      );
     }
   }
 
   // Check account age
   if (giveaway.requirements?.minAccountAge > 0) {
     const accountAge = Date.now() - member.user.createdAt.getTime();
-    
+
     if (accountAge < giveaway.requirements.minAccountAge) {
       result.valid = false;
-      const days = Math.ceil(giveaway.requirements.minAccountAge / (1000 * 60 * 60 * 24));
+      const days = Math.ceil(
+        giveaway.requirements.minAccountAge / (1000 * 60 * 60 * 24),
+      );
       result.errors.push(`Your account must be at least ${days} days old.`);
     }
   }
@@ -117,18 +123,22 @@ export function validateRequirements(giveaway, member) {
   // Check server age
   if (giveaway.requirements?.minServerAge > 0) {
     const serverAge = Date.now() - member.joinedAt.getTime();
-    
+
     if (serverAge < giveaway.requirements.minServerAge) {
       result.valid = false;
-      const days = Math.ceil(giveaway.requirements.minServerAge / (1000 * 60 * 60 * 24));
-      result.errors.push(`You must be a member of this server for at least ${days} days.`);
+      const days = Math.ceil(
+        giveaway.requirements.minServerAge / (1000 * 60 * 60 * 24),
+      );
+      result.errors.push(
+        `You must be a member of this server for at least ${days} days.`,
+      );
     }
   }
 
   // Check if bot entries are allowed
   if (member.user.bot && !giveaway.allowBotEntries) {
     result.valid = false;
-    result.errors.push('Bots cannot enter this giveaway.');
+    result.errors.push("Bots cannot enter this giveaway.");
   }
 
   return result;
@@ -145,11 +155,14 @@ export function calculateBonusEntries(giveaway, member) {
 
   if (giveaway.bonusEntries?.length > 0) {
     for (const bonusEntry of giveaway.bonusEntries) {
-      if (bonusEntry.type === 'role' && member.roles.cache.has(bonusEntry.roleId)) {
+      if (
+        bonusEntry.type === "role" &&
+        member.roles.cache.has(bonusEntry.roleId)
+      ) {
         bonus += bonusEntry.entries || 1;
       }
-      
-      if (bonusEntry.type === 'booster' && member.premiumSince) {
+
+      if (bonusEntry.type === "booster" && member.premiumSince) {
         bonus += bonusEntry.entries || 2;
       }
     }
@@ -166,37 +179,37 @@ export function calculateBonusEntries(giveaway, member) {
 export function validateGiveawayCreation(options) {
   const result = {
     valid: true,
-    errors: []
+    errors: [],
   };
 
   // Validate prize
   if (!options.prize || options.prize.trim().length === 0) {
     result.valid = false;
-    result.errors.push('Prize is required.');
+    result.errors.push("Prize is required.");
   }
 
   if (options.prize && options.prize.length > 100) {
     result.valid = false;
-    result.errors.push('Prize must be less than 100 characters.');
+    result.errors.push("Prize must be less than 100 characters.");
   }
 
   // Validate winner count
   if (!options.winners || options.winners < 1) {
     result.valid = false;
-    result.errors.push('At least 1 winner is required.');
+    result.errors.push("At least 1 winner is required.");
   }
 
   if (options.winners && options.winners > 10) {
     result.valid = false;
-    result.errors.push('Maximum 10 winners allowed.');
+    result.errors.push("Maximum 10 winners allowed.");
   }
 
   // Validate duration
   const duration = parseDuration(options.duration);
-  
+
   if (!duration) {
     result.valid = false;
-    result.errors.push('Invalid duration format. Use: 30m, 1h, 1d, 1w');
+    result.errors.push("Invalid duration format. Use: 30m, 1h, 1d, 1w");
   }
 
   const minDuration = 1000 * 60; // 1 minute
@@ -204,18 +217,18 @@ export function validateGiveawayCreation(options) {
 
   if (duration && duration < minDuration) {
     result.valid = false;
-    result.errors.push('Duration must be at least 1 minute.');
+    result.errors.push("Duration must be at least 1 minute.");
   }
 
   if (duration && duration > maxDuration) {
     result.valid = false;
-    result.errors.push('Duration cannot exceed 28 days.');
+    result.errors.push("Duration cannot exceed 28 days.");
   }
 
   // Validate description
   if (options.description && options.description.length > 1000) {
     result.valid = false;
-    result.errors.push('Description must be less than 1000 characters.');
+    result.errors.push("Description must be less than 1000 characters.");
   }
 
   return result;
@@ -228,13 +241,13 @@ export function validateGiveawayCreation(options) {
  */
 export function getStatusLabel(status) {
   const labels = {
-    active: '🟢 Active',
-    ended: '🔴 Ended',
-    completed: '✅ Completed',
-    cancelled: '🚫 Cancelled'
+    active: "🟢 Active",
+    ended: "🔴 Ended",
+    completed: "✅ Completed",
+    cancelled: "🚫 Cancelled",
   };
 
-  return labels[status] || '❓ Unknown';
+  return labels[status] || "❓ Unknown";
 }
 
 /**
@@ -243,7 +256,7 @@ export function getStatusLabel(status) {
  * @returns {boolean}
  */
 export function canEditGiveaway(giveaway) {
-  return giveaway.status === 'active';
+  return giveaway.status === "active";
 }
 
 /**
@@ -252,7 +265,7 @@ export function canEditGiveaway(giveaway) {
  * @returns {boolean}
  */
 export function canEndGiveaway(giveaway) {
-  return giveaway.status === 'active';
+  return giveaway.status === "active";
 }
 
 /**
@@ -261,8 +274,10 @@ export function canEndGiveaway(giveaway) {
  * @returns {boolean}
  */
 export function canRerollGiveaway(giveaway) {
-  return ['ended', 'completed'].includes(giveaway.status) && 
-         giveaway.entries.length > 0;
+  return (
+    ["ended", "completed"].includes(giveaway.status) &&
+    giveaway.entries.length > 0
+  );
 }
 
 /**
@@ -271,10 +286,8 @@ export function canRerollGiveaway(giveaway) {
  * @returns {string} Sanitized text
  */
 export function sanitizeText(text) {
-  if (!text) return '';
-  
+  if (!text) return "";
+
   // Remove @everyone and @here mentions
-  return text
-    .replace(/@(everyone|here)/g, '$1')
-    .trim();
+  return text.replace(/@(everyone|here)/g, "$1").trim();
 }
