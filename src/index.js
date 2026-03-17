@@ -271,6 +271,11 @@ async function gracefulShutdown(client) {
       clearInterval(global.pollCleanupInterval);
     }
 
+    // Stop giveaway manager
+    if (global.giveawayManager) {
+      global.giveawayManager.destroy();
+    }
+
     // Stop ComfyUI recovery system
     if (global.stopComfyUIRecovery) {
       global.stopComfyUIRecovery();
@@ -689,6 +694,24 @@ async function main() {
         logger.info("✅ Ticketing system cleanup started");
       } catch (error) {
         logger.error("❌ Failed to start ticket cleanup:", error);
+      }
+
+      // Initialize Giveaway Manager
+      try {
+        const giveawayManager = (
+          await import("./features/giveaway/GiveawayManager.js")
+        ).default;
+        global.giveawayManager = giveawayManager; // Store globally for shutdown
+        await giveawayManager.init();
+        giveawayManager.client = client; // Set client reference
+        
+        // Setup giveaway event listeners
+        const { setupGiveawayEvents } = await import("./events/giveaway.js");
+        setupGiveawayEvents(giveawayManager, client);
+        
+        logger.info("✅ Giveaway Manager initialized");
+      } catch (error) {
+        logger.error("❌ Failed to initialize Giveaway Manager:", error);
       }
 
       // Start Premium Feature scheduler (handles Cores consumption for features)

@@ -105,6 +105,15 @@ export async function routeButtonInteraction(interaction, _client) {
       return;
     }
 
+    // Handle giveaway buttons
+    if (customId.startsWith("giveaway_")) {
+      const { handleGiveawayInteraction } = await import(
+        "../../../events/giveaway.js"
+      );
+      await handleGiveawayInteraction(interaction, _client);
+      return;
+    }
+
     // Handle ticket buttons
     if (
       customId.startsWith("ticket_create_") ||
