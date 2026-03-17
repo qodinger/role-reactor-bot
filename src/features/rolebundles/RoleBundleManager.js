@@ -18,7 +18,7 @@ class RoleBundleManager {
    */
   async init() {
     try {
-      const dbManager = getDatabaseManager();
+      const dbManager = await getDatabaseManager();
       this.db = await dbManager.connect();
       this.collection = this.db.collection('role_bundles');
       
