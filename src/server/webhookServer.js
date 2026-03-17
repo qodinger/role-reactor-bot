@@ -277,7 +277,7 @@ export async function startWebhookServer() {
     logger.info(
       `🔍 Checking port availability for port ${serverConfig.port}...`,
     );
-    const portCheck = await checkPortAvailability(serverConfig.port);
+    const portCheck = await checkPortAvailability(Number(serverConfig.port));
 
     if (!portCheck.available) {
       logger.warn(portCheck.message);
@@ -285,7 +285,7 @@ export async function startWebhookServer() {
 
       // Try to find an available port
       logger.info(`🔍 Searching for an available port...`);
-      const availablePort = await findAvailablePort(serverConfig.port, 10);
+      const availablePort = await findAvailablePort(Number(serverConfig.port), 10);
 
       if (availablePort) {
         logger.info(`✅ Found available port: ${availablePort}`);
