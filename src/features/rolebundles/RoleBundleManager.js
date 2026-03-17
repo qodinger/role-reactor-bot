@@ -4,11 +4,12 @@
  */
 
 import { getLogger } from '../../utils/logger.js';
-import db from '../../utils/db.js';
+import { getDatabaseManager } from '../../utils/storage/databaseManager.js';
 
 class RoleBundleManager {
   constructor() {
     this.logger = getLogger();
+    this.db = null;
     this.collection = null;
   }
 
@@ -17,8 +18,9 @@ class RoleBundleManager {
    */
   async init() {
     try {
-      const database = await db.getDb();
-      this.collection = database.collection('role_bundles');
+      const dbManager = getDatabaseManager();
+      this.db = await dbManager.getDb();
+      this.collection = this.db.collection('role_bundles');
       
       // Create indexes for better query performance
       await this.collection.createIndex({ guildId: 1, name: 1 }, { unique: true });
