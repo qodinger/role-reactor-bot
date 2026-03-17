@@ -107,7 +107,7 @@ class GiveawayManager extends EventEmitter {
       const endingGiveaways = [];
       
       // Use cached data instead of querying database every time
-      for (const [guildId, giveaways] of this.activeGiveawaysCache) {
+      for (const [, giveaways] of this.activeGiveawaysCache) {
         for (const giveaway of giveaways) {
           if (giveaway.endTime <= now) {
             endingGiveaways.push(giveaway);
