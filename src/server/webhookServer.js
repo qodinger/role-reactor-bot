@@ -5,7 +5,11 @@ import { handleTopggVote } from "../webhooks/topgg.js";
 import { getLogger } from "../utils/logger.js";
 
 /**
- * @typedef {import('express').Request & { rawBody?: Buffer }} ExtendedRequest
+ * @typedef {import('express').Request & { 
+ *   rawBody?: Buffer,
+ *   requestId?: string,
+ *   route?: string
+ * }} ExtendedRequest
  */
 
 // Import middleware
