@@ -141,6 +141,7 @@ async function initializeMiddleware() {
         res.status(408).json({
           status: "error",
           message: "Request timeout",
+          // @ts-ignore - requestId added by requestIdMiddleware
           requestId: req.requestId || "unknown",
           timestamp: new Date().toISOString(),
         });
