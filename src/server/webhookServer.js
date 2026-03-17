@@ -308,7 +308,7 @@ export async function startWebhookServer() {
     initializeErrorHandling();
 
     // Start server - bind to 0.0.0.0 to allow external connections (required for webhooks)
-    const server = app.listen(serverConfig.port, "0.0.0.0", () => {
+    const server = app.listen(Number(serverConfig.port), "0.0.0.0", () => {
       const startupInfo = getStartupInfo();
 
       logger.info(`🚀 Unified API server started successfully`);
