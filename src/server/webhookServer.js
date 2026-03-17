@@ -4,6 +4,10 @@ import { handlePayPalWebhook } from "../webhooks/paypal.js";
 import { handleTopggVote } from "../webhooks/topgg.js";
 import { getLogger } from "../utils/logger.js";
 
+/**
+ * @typedef {import('express').Request & { rawBody?: Buffer }} ExtendedRequest
+ */
+
 // Import middleware
 import { corsMiddleware } from "./middleware/cors.js";
 import { requestIdMiddleware } from "./middleware/requestId.js";
@@ -160,6 +164,11 @@ function initializeRoutes() {
   app.post("/webhook/topgg", 
     webhookRateLimiter,
     express.raw({ type: 'application/json' }),
+    /**
+     * @param {ExtendedRequest} req
+     * @param {import('express').Response} res
+     * @param {import('express').NextFunction} next
+     */
     (req, res, next) => {
       // Store raw body for signature verification, then parse JSON
       req.rawBody = req.body;
