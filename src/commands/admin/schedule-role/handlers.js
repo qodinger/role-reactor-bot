@@ -24,6 +24,8 @@ import {
 } from "./utils.js";
 import { getDatabaseManager } from "../../../utils/storage/databaseManager.js";
 import { getUserData } from "../../../commands/general/core/utils.js";
+import { FREE_TIER, PRO_TIER } from "../../../features/premium/config.js";
+import { getPremiumManager } from "../../../features/premium/PremiumManager.js";
 
 /**
  * Handle the create schedule logic
@@ -55,12 +57,69 @@ export async function handleCreate(interaction, client, deferred = false) {
 
     // Get command options
     const action = interaction.options.getString("action"); // "assign" or "remove"
-    const role = interaction.options.getRole("role");
+    const role = /** @type {import('discord.js').Role} */ (interaction.options.getRole("role"));
     const usersString = interaction.options.getString("users");
     const scheduleType = interaction.options.getString("schedule-type");
     const scheduleInput = interaction.options.getString("schedule");
     const reason =
       interaction.options.getString("reason") || "No reason provided";
+
+    const premiumManager = getPremiumManager();
+    const isPro = await premiumManager.isFeatureActive(
+      interaction.guild.id,
+      "pro_engine",
+    );
+
+    const dbManager = await getDatabaseManager();
+    if (!dbManager) {
+      const response = errorEmbed({
+        title: "Database Error",
+        description: "Failed to connect to the database.",
+        solution: "Please try again or contact support if the issue persists.",
+      });
+
+      if (deferred) {
+        return interaction.editReply(response);
+      } else {
+        return interaction.reply(response);
+      }
+    }
+
+    // VPS Protection: Check active schedule slots
+    const activeOneTimeCount = await dbManager.scheduledRoles.collection.countDocuments({
+      guildId: interaction.guild.id,
+      executed: false,
+      cancelled: false,
+    });
+    const activeRecurringCount = await dbManager.recurringSchedules.collection.countDocuments({
+      guildId: interaction.guild.id,
+      active: true,
+      cancelled: false,
+    });
+    const activeTempCount = await dbManager.temporaryRoles.collection.countDocuments({
+      guildId: interaction.guild.id,
+    });
+    const totalActive = activeOneTimeCount + activeRecurringCount + activeTempCount;
+
+    const maxActiveSchedules = isPro
+      ? PRO_TIER.SCHEDULE_MAX_ACTIVE
+      : FREE_TIER.SCHEDULE_MAX_ACTIVE;
+
+    if (totalActive >= maxActiveSchedules) {
+      const response = errorEmbed({
+        title: "Schedule Limit Reached",
+        description: `This server has reached the maximum of **${maxActiveSchedules} active schedules**.`,
+        solution: isPro
+          ? "Please cancel or complete existing schedules before creating new ones."
+          : "Upgrade to **Pro Engine ✨** for up to 500 active schedules!",
+      });
+
+      if (deferred) {
+        return interaction.editReply(response);
+      } else {
+        return interaction.reply(response);
+      }
+    }
 
     // Validate role
     const roleValidation = validateRole(role, interaction.guild);
@@ -147,21 +206,10 @@ export async function handleCreate(interaction, client, deferred = false) {
           }
         }
 
-        // Apply member limit for combined result (Core members get higher limits)
-        // Base limit: 500 matches RoleExecutor chunk size for optimal processing
-        const BASE_MAX_ALL_MEMBERS = 500;
-        let MAX_ALL_MEMBERS = BASE_MAX_ALL_MEMBERS;
-
-        try {
-          const userData = await getUserData(interaction.user.id);
-          // Simple credit-based system: users with credits get enhanced limits
-          if (userData.credits > 0) {
-            MAX_ALL_MEMBERS = Math.floor(BASE_MAX_ALL_MEMBERS * 2); // 2x limit for Core users
-          }
-        } catch (error) {
-          // If lookup fails, use default limit
-          logger.debug("Failed to check Core status for bulk limit:", error);
-        }
+        // Apply member limit for combined result
+        const MAX_ALL_MEMBERS = isPro
+          ? PRO_TIER.BULK_ACTION_MAX_MEMBERS
+          : FREE_TIER.BULK_ACTION_MAX_MEMBERS;
 
         if (userIds.length > MAX_ALL_MEMBERS) {
           const response = errorEmbed({
@@ -271,21 +319,10 @@ export async function handleCreate(interaction, client, deferred = false) {
           }
         }
 
-        // Apply member limit (Core members get higher limits)
-        // Base limit: 500 matches RoleExecutor chunk size for optimal processing
-        const BASE_MAX_ALL_MEMBERS = 500;
-        let MAX_ALL_MEMBERS = BASE_MAX_ALL_MEMBERS;
-
-        try {
-          const userData = await getUserData(interaction.user.id);
-          // Simple credit-based system: users with credits get enhanced limits
-          if (userData.credits > 0) {
-            MAX_ALL_MEMBERS = Math.floor(BASE_MAX_ALL_MEMBERS * 2); // 2x limit for Core users
-          }
-        } catch (error) {
-          // If lookup fails, use default limit
-          logger.debug("Failed to check Core status for bulk limit:", error);
-        }
+        // Apply member limit
+        const MAX_ALL_MEMBERS = isPro
+          ? PRO_TIER.BULK_ACTION_MAX_MEMBERS
+          : FREE_TIER.BULK_ACTION_MAX_MEMBERS;
 
         if (userIds.length > MAX_ALL_MEMBERS) {
           const response = errorEmbed({
@@ -391,21 +428,10 @@ export async function handleCreate(interaction, client, deferred = false) {
           }
         }
 
-        // Hard limit for "@everyone" operations (Core members get higher limits)
-        // Base limit: 500 matches RoleExecutor chunk size for optimal processing
-        const BASE_MAX_ALL_MEMBERS = 500;
-        let MAX_ALL_MEMBERS = BASE_MAX_ALL_MEMBERS;
-
-        try {
-          const userData = await getUserData(interaction.user.id);
-          // Simple credit-based system: users with credits get enhanced limits
-          if (userData.credits > 0) {
-            MAX_ALL_MEMBERS = Math.floor(BASE_MAX_ALL_MEMBERS * 2); // 2x limit for Core users
-          }
-        } catch (error) {
-          // If lookup fails, use default limit
-          logger.debug("Failed to check Core status for bulk limit:", error);
-        }
+        // Hard limit for "@everyone" operations
+        const MAX_ALL_MEMBERS = isPro
+          ? PRO_TIER.BULK_ACTION_MAX_MEMBERS
+          : FREE_TIER.BULK_ACTION_MAX_MEMBERS;
 
         if (userIds.length > MAX_ALL_MEMBERS) {
           const response = errorEmbed({
@@ -496,20 +522,10 @@ export async function handleCreate(interaction, client, deferred = false) {
 
       const { validUsers } = userValidation;
 
-      // Check maximum user limit for specific users (Core members get higher limits)
-      const BASE_MAX_USERS = 10;
-      let MAX_USERS = BASE_MAX_USERS;
-
-      try {
-        const userData = await getUserData(interaction.user.id);
-        // Simple credit-based system: users with credits get enhanced limits
-        if (userData.credits > 0) {
-          MAX_USERS = Math.floor(BASE_MAX_USERS * 2); // 2x limit for Core users
-        }
-      } catch (error) {
-        // If lookup fails, use default limit
-        logger.debug("Failed to check Core status for user limit:", error);
-      }
+      // Check maximum user limit for specific users
+      const MAX_USERS = isPro
+        ? PRO_TIER.BULK_ACTION_MAX_MEMBERS
+        : FREE_TIER.BULK_ACTION_MAX_MEMBERS;
 
       if (validUsers.length > MAX_USERS) {
         const response = errorEmbed({
@@ -557,21 +573,6 @@ export async function handleCreate(interaction, client, deferred = false) {
         title: "Invalid Schedule",
         description: scheduleValidation.error,
         solution: scheduleValidation.solution,
-      });
-
-      if (deferred) {
-        return interaction.editReply(response);
-      } else {
-        return interaction.reply(response);
-      }
-    }
-
-    const dbManager = await getDatabaseManager();
-    if (!dbManager) {
-      const response = errorEmbed({
-        title: "Database Error",
-        description: "Failed to connect to the database.",
-        solution: "Please try again or contact support if the issue persists.",
       });
 
       if (deferred) {
@@ -834,9 +835,9 @@ export async function handleList(interaction, client, deferred = false) {
 
     // Sort by creation date (newest first)
     allSchedules.sort((a, b) => {
-      const aDate = new Date(a.createdAt);
-      const bDate = new Date(b.createdAt);
-      return bDate - aDate;
+      const aTime = new Date(a.createdAt).getTime();
+      const bTime = new Date(b.createdAt).getTime();
+      return bTime - aTime;
     });
 
     // Paginate

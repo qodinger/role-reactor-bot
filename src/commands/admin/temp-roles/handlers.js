@@ -15,7 +15,11 @@ import {
   createTempRoleEmbed,
   createTempRolesListEmbed,
   createTempRoleRemovedEmbed,
+  createTempRoleRemovalEmbed,
 } from "./embeds.js";
+import { FREE_TIER, PRO_TIER } from "../../../features/premium/config.js";
+import { getPremiumManager } from "../../../features/premium/PremiumManager.js";
+import { getDatabaseManager } from "../../../utils/storage/databaseManager.js";
 import {
   addTemporaryRolesForMultipleUsers,
   getTemporaryRoles,
@@ -34,13 +38,62 @@ export async function handleAssign(interaction, client, deferred) {
 
   try {
     const usersString = interaction.options.getString("users", true);
-    const role = interaction.options.getRole("role", true);
+    const role = /** @type {import('discord.js').Role} */ (interaction.options.getRole("role", true));
     const duration = interaction.options.getString("duration", true);
     const reason =
       interaction.options.getString("reason") || "No reason provided";
     const notify = interaction.options.getBoolean("notify") || false;
     const notifyExpiry =
       interaction.options.getBoolean("notify-expiry") || false;
+
+    const premiumManager = getPremiumManager();
+    const isPro = await premiumManager.isFeatureActive(
+      interaction.guild.id,
+      "pro_engine",
+    );
+
+    const dbManager = await getDatabaseManager();
+    if (!dbManager) {
+      throw new Error("Database not initialized");
+    }
+
+    // VPS Protection: Check active slots (counting both temp roles and scheduled roles)
+    const activeTempCount =
+      await dbManager.temporaryRoles.collection.countDocuments({
+        guildId: interaction.guild.id,
+      });
+    const activeOneTimeCount =
+      await dbManager.scheduledRoles.collection.countDocuments({
+        guildId: interaction.guild.id,
+        executed: false,
+        cancelled: false,
+      });
+    const activeRecurringCount =
+      await dbManager.recurringSchedules.collection.countDocuments({
+        guildId: interaction.guild.id,
+        active: true,
+        cancelled: false,
+      });
+    const totalActive =
+      activeTempCount + activeOneTimeCount + activeRecurringCount;
+
+    const maxActiveSchedules = isPro
+      ? PRO_TIER.SCHEDULE_MAX_ACTIVE
+      : FREE_TIER.SCHEDULE_MAX_ACTIVE;
+
+    if (totalActive >= maxActiveSchedules) {
+      const response = errorEmbed({
+        title: "Slot Limit Reached",
+        description: `This server has reached the maximum of **${maxActiveSchedules} active temporary/scheduled roles**.`,
+        solution: isPro
+          ? "Please wait for existing roles to expire or cancel them before assigning new ones."
+          : "Upgrade to **Pro Engine ✨** for up to 500 active slots!",
+      });
+
+      return deferred
+        ? interaction.editReply(response)
+        : interaction.reply({ ...response, flags: MessageFlags.Ephemeral });
+    }
 
     // 1. Validate role
     const roleValidation = validateRole(role, interaction.guild);
@@ -83,6 +136,25 @@ export async function handleAssign(interaction, client, deferred) {
 
     const validUsers = userProcessing.validUsers;
     const userIds = validUsers.map(u => u.id);
+
+    // VPS Protection: Bulk Limit
+    const maxBulk = isPro
+      ? PRO_TIER.BULK_ACTION_MAX_MEMBERS
+      : FREE_TIER.BULK_ACTION_MAX_MEMBERS;
+
+    if (userIds.length > maxBulk) {
+      const response = errorEmbed({
+        title: "Too Many Users",
+        description: `You are trying to assign roles to **${userIds.length} users**, but the limit is **${maxBulk} users** per action.`,
+        solution: isPro
+          ? "Try splitting the assignment into smaller groups."
+          : "Upgrade to **Pro Engine ✨** for 10x higher bulk capacity (250 users)!",
+      });
+
+      return deferred
+        ? interaction.editReply(response)
+        : interaction.reply({ ...response, flags: MessageFlags.Ephemeral });
+    }
 
     // 4. Calculate expiration date
     const { parseDuration } = await import(
@@ -168,7 +240,6 @@ export async function handleList(interaction, client, deferred) {
     const processedRoles = await processTempRoles(
       tempRoles,
       interaction.guild,
-      client,
     );
 
     // Log listing
@@ -176,6 +247,7 @@ export async function handleList(interaction, client, deferred) {
       interaction.user,
       targetUser,
       processedRoles.length,
+      interaction.guild,
       Date.now() - startTime,
     );
 
@@ -214,7 +286,7 @@ export async function handleRemove(interaction, client, deferred) {
 
   try {
     const usersString = interaction.options.getString("users", true);
-    const role = interaction.options.getRole("role", true);
+    const role = /** @type {import('discord.js').Role} */ (interaction.options.getRole("role", true));
     const reason =
       interaction.options.getString("reason") ||
       "Manually removed by administrator";
@@ -251,9 +323,12 @@ export async function handleRemove(interaction, client, deferred) {
         try {
           const { createTempRoleRemovedEmbed } = await import("./embeds.js");
           const dmEmbed = createTempRoleRemovedEmbed(
+            user,
             role,
-            interaction.guild,
             reason,
+            interaction.user,
+            result.tempRole,
+            client,
           );
           await user.send({ embeds: [dmEmbed] }).catch(() => {
             logger.debug(`Could not send removal DM to ${user.tag}`);
@@ -277,11 +352,12 @@ export async function handleRemove(interaction, client, deferred) {
     );
 
     // 4. Send response
-    const embed = createTempRoleRemovedEmbed(
+    const embed = createTempRoleRemovalEmbed(
       role,
       validUsers,
       reason,
       results,
+      interaction.user,
       client,
     );
 

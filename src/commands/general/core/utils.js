@@ -297,7 +297,7 @@ export function logPriorityDistribution(
   const coreCount = itemsWithPriority.filter(item => item.priority > 0).length;
   if (coreCount > 0) {
     const proCount = itemsWithPriority.filter(
-      item => item.tier === "Pro Engine",
+      item => item.tier === CORE_STATUS.PRO.label,
     ).length;
 
     logger.info(

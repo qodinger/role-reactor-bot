@@ -88,7 +88,7 @@ export function formatDuration(durationStr) {
 export function formatRemainingTime(expiresAt) {
   const now = new Date();
   const expiry = new Date(expiresAt);
-  const diff = expiry - now;
+  const diff = expiry.getTime() - now.getTime();
 
   if (diff <= 0) return "Expired";
 

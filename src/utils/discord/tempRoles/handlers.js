@@ -3,6 +3,8 @@ import { getDatabaseManager } from "../../storage/databaseManager.js";
 import { getLogger } from "../../logger.js";
 import { getCachedMember, bulkAddRoles } from "../roleManager.js";
 import { sendAssignmentNotification } from "./embeds.js";
+import { FREE_TIER, PRO_TIER } from "../../../features/premium/config.js";
+import { getPremiumManager } from "../../../features/premium/PremiumManager.js";
 
 // Constants
 const MAX_USERS_PER_ASSIGNMENT = 10;
@@ -128,7 +130,7 @@ export async function addTemporaryRole(
  * @param {Object} client - Discord client instance
  * @param {boolean} notify - Whether to send immediate DM notification
  * @param {boolean} notifyExpiry - Whether to notify on expiry
- * @returns {Promise<{success: number, failed: number, results: Array}>}
+ * @returns {Promise<{success: number, failed: number, results: Array, error?: string}>}
  */
 export async function addTemporaryRolesForMultipleUsers(
   guildId,
@@ -141,13 +143,19 @@ export async function addTemporaryRolesForMultipleUsers(
 ) {
   const logger = getLogger();
   const results = [];
+  const premiumManager = getPremiumManager();
+  const isPro = await premiumManager.isFeatureActive(guildId, "pro_engine");
+  const maxUsers = isPro
+    ? PRO_TIER.BULK_ACTION_MAX_MEMBERS
+    : FREE_TIER.BULK_ACTION_MAX_MEMBERS;
 
   try {
     // Validate user count
-    if (userIds.length > MAX_USERS_PER_ASSIGNMENT) {
+    if (userIds.length > maxUsers) {
       logger.warn(
-        `Too many users requested: ${userIds.length} (max: ${MAX_USERS_PER_ASSIGNMENT})`,
+        `Too many users requested: ${userIds.length} (max: ${maxUsers})`,
       );
+      const errorMsg = `Too many users. Maximum allowed: ${maxUsers}, requested: ${userIds.length}. ${isPro ? "" : "Upgrade to Pro Engine ✨ for higher limits!"}`;
       return {
         success: 0,
         failed: userIds.length,
@@ -155,10 +163,10 @@ export async function addTemporaryRolesForMultipleUsers(
           {
             userId: "system",
             success: false,
-            error: `Too many users. Maximum allowed: ${MAX_USERS_PER_ASSIGNMENT}, requested: ${userIds.length}`,
+            error: errorMsg,
           },
         ],
-        error: `Too many users. Maximum allowed: ${MAX_USERS_PER_ASSIGNMENT}, requested: ${userIds.length}`,
+        error: errorMsg,
       };
     }
 

@@ -1,10 +1,11 @@
-import {
-  EmbedBuilder,
-  ActionRowBuilder,
-  ButtonBuilder,
-} from "discord.js";
+import { EmbedBuilder, ActionRowBuilder, ButtonBuilder } from "discord.js";
 import { PRO_ENGINE } from "./config.js";
-import { THEME, EMOJIS, UI_COMPONENTS, BUTTON_STYLES } from "../../config/theme.js";
+import {
+  THEME,
+  EMOJIS,
+  UI_COMPONENTS,
+  BUTTON_STYLES,
+} from "../../config/theme.js";
 
 // ─────────────────────────────────────────────
 // Helpers

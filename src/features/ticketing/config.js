@@ -12,10 +12,9 @@ export const FREE_TIER = {
   EXPORT_FORMATS: ["md"], // Available export formats
   ANALYTICS: "basic", // Analytics level: 'basic' | 'advanced'
   AUTOMATION: false, // Auto-close, auto-assign rules
-  CUSTOM_BRANDING: false, // Custom colors, footer, etc.
+  CUSTOM_COLORS: true, // Custom colors are available for everyone
   STAFF_PERFORMANCE_TRACKING: false, // Staff statistics
   PRIORITY_NOTIFICATIONS: false, // Priority staff pings
-  BOT_BRANDING_FOOTER: true, // Show "Powered by" footer
   MAX_ACTIVE_TICKETS: 10, // Maximum simultaneously open tickets
   DAILY_TICKET_LIMIT: 5, // Maximum tickets per day
   MAX_MESSAGES_PER_TRANSCRIPT: 1000, // Message limit
@@ -30,10 +29,8 @@ export const PRO_ENGINE = {
   EXPORT_FORMATS: ["html", "json", "md"], // All formats
   ANALYTICS: "advanced", // Full analytics dashboard
   AUTOMATION: true, // Automation rules enabled
-  CUSTOM_BRANDING: true, // Remove bot branding
   STAFF_PERFORMANCE_TRACKING: true, // Staff performance stats
   PRIORITY_NOTIFICATIONS: true, // Priority pings
-  BOT_BRANDING_FOOTER: false, // No "Powered by" footer
   MAX_ACTIVE_TICKETS: 50, // More simultaneous tickets
   DAILY_TICKET_LIMIT: 50, // Higher daily limit
   TEMPLATES: true, // Save/load panel templates

@@ -7,6 +7,8 @@ import { EventEmitter } from "events";
 import { ObjectId } from "mongodb";
 import { getLogger } from "../../utils/logger.js";
 import { getDatabaseManager } from "../../utils/storage/databaseManager.js";
+import { FREE_TIER, PRO_TIER } from "../premium/config.js";
+import { getPremiumManager } from "../premium/PremiumManager.js";
 
 const logger = getLogger();
 
@@ -19,6 +21,7 @@ class GiveawayManager extends EventEmitter {
     this.settingsCollection = null;
     this.checkInterval = null;
     this.CHECK_INTERVAL_MS = 30000; // Check every 30 seconds (optimized from 10s)
+    this.premiumManager = getPremiumManager();
 
     // Caching for active giveaways
     this.activeGiveawaysCache = new Map();
@@ -649,6 +652,23 @@ class GiveawayManager extends EventEmitter {
 
       if (giveaway.status !== "active") {
         return { success: false, error: "Giveaway is not active" };
+      }
+
+      // VPS Protection: Check total entries limit
+      const currentTotal = giveaway.entries.reduce((sum, e) => sum + e.count, 0);
+      const isPro = await this.premiumManager.isFeatureActive(
+        giveaway.guildId,
+        "pro_engine",
+      );
+      const maxEntries = isPro
+        ? PRO_TIER.GIVEAWAY_MAX_ENTRIES
+        : FREE_TIER.GIVEAWAY_MAX_ENTRIES;
+
+      if (currentTotal + entries > maxEntries) {
+        return {
+          success: false,
+          error: `This giveaway has reached the maximum entry limit of ${maxEntries.toLocaleString()}. ${isPro ? "" : "Upgrade to Pro Engine ✨ for unlimited entries!"}`,
+        };
       }
 
       // Check if user already has entries

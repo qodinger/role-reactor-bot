@@ -14,15 +14,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Scalable Transcripts**: High-performance transcript system supporting rich layouts for Pro servers and Markdown for everyone, with user accessibility to download their own logs
 - **Ticket Analytics**: Live tracking of open, closed, and active tickets with the `/ticket list` and `/ticket view` commands
 - **Guild Data Purge**: Administrative tool to securely wipe all ticket history and reset the global counter from a simplified dashboard
-- **Giveaway System**: Complete real-time giveaway system added with industry-standard features
-- **Voting Rewards**: Users can now earn Core credits by voting for the bot on top.gg (includes strict webhook verification for security)
-- **Role Bundle Management**: Implemented Phase 2 of the role bundle management system for advanced server management
 - **Advanced Role Reactions**: Allow granting multiple roles per emoji (Phase 1)
-- **Role Mappings API**: Natively exposed selection mode and timestamps to frontend dashboards
+- **VPS Protection Tiered Limits**: Centralized and implemented strict resource-based limits for heavy features including giveaways, scheduled roles, and bulk actions to ensure bot stability and cost-efficiency.
+- **Active Slot Management**: Shared 25-slot active limit for free servers across temporary and scheduled roles to optimize background processing.
 
 ### Changed
 
-- **Pro Engine Benefits**: Increased message limits (5,000+), advanced exports, and priority processing for high-volume servers
+- **Pro Engine Benefits**: Unlock 10x monthly ticket capacity, HTML transcripts/exports, unlimited retention, and staff performance analytics
+- **Advanced Role Management**: 20x scheduled role capacity (500 active slots) and 10x bulk action targeting (250 members) for Pro servers
 - **Role-Reaction Descriptions**: Support added for literal newlines (`\n`) directly in role-reaction setups for deeper customization options
 
 ### Fixed

@@ -358,10 +358,9 @@ export async function getRoleInfo(guild, roleId) {
  * Process temporary roles and filter out expired ones
  * @param {Array} tempRoles
  * @param {import('discord.js').Guild} guild
- * @param {import('discord.js').Client} client
  * @returns {Promise<Array>}
  */
-export async function processTempRoles(tempRoles, guild, _client) {
+export async function processTempRoles(tempRoles, guild) {
   const processedRoles = [];
   const now = new Date();
 
@@ -500,36 +499,38 @@ export function logTempRoleAssignment(
  * @param {import('discord.js').User} targetUser
  * @param {number} count
  * @param {import('discord.js').Guild} guild
+ * @param {number} executionTime
  */
-export function logTempRolesListing(user, targetUser, count, guild) {
+export function logTempRolesListing(user, targetUser, count, guild, executionTime) {
   const logger = getLogger();
   const action = targetUser
     ? `for user ${targetUser.tag} (${targetUser.id})`
     : "for all users";
   logger.info(
-    `Temporary roles listed ${action} - Guild: ${guild.name} (${guild.id}), Requested by: ${user.tag} (${user.id}), Found: ${count}`,
+    `Temporary roles listed ${action} - Guild: ${guild.name} (${guild.id}), Requested by: ${user.tag} (${user.id}), Found: ${count}, Execution time: ${executionTime}ms`,
   );
 }
 
 /**
- * Log temporary role removal
+ * Log temporary role removal (Bulk)
  * @param {import('discord.js').User} removedBy
- * @param {import('discord.js').User} targetUser
  * @param {import('discord.js').Role} role
+ * @param {Array} users
  * @param {string} reason
- * @param {Object} tempRole
+ * @param {Array} results
  * @param {number} executionTime
  */
 export function logTempRoleRemoval(
   removedBy,
-  targetUser,
   role,
+  users,
   reason,
-  tempRole,
+  results,
   executionTime,
 ) {
   const logger = getLogger();
+  const successCount = results.filter(r => r.success).length;
   logger.info(
-    `Temporary role removed - Role: ${role.name} (${role.id}), User: ${targetUser.tag} (${targetUser.id}), Removed by: ${removedBy.tag} (${removedBy.id}), Execution time: ${executionTime}ms, Reason: ${reason}`,
+    `Temporary role removed - Role: ${role.name} (${role.id}), Users: ${users.length}, Success: ${successCount}, Removed by: ${removedBy.tag} (${removedBy.id}), Execution time: ${executionTime}ms, Reason: ${reason}`,
   );
 }
