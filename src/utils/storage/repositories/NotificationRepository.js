@@ -1,4 +1,5 @@
 import { BaseRepository } from "./BaseRepository.js";
+import { ObjectId } from "mongodb";
 
 /**
  * Repository for user notifications
@@ -31,7 +32,7 @@ export class NotificationRepository extends BaseRepository {
    * Create a new notification
    * @param {Object} data
    * @param {string} data.userId - Discord user ID
-   * @param {string} data.type - Notification type: "vote_reward", "balance_added", "pro_activated", "pro_deactivated", "pro_renewed", "low_balance", "admin_adjustment"
+   * @param {string} data.type - Notification type: "vote_reward", "balance_added", "pro_activated", "pro_deactivated", "pro_renewed", "low_balance", "grace_period", "admin_adjustment"
    * @param {string} data.title - Notification title
    * @param {string} data.message - Notification message body
    * @param {string} [data.icon] - Icon identifier: "vote", "core", "pro", "warning", "admin", "gift"
@@ -55,7 +56,6 @@ export class NotificationRepository extends BaseRepository {
 
       if (result.acknowledged) {
         notification._id = result.insertedId;
-        this.cache.clear();
         return notification;
       }
       return null;
@@ -121,12 +121,10 @@ export class NotificationRepository extends BaseRepository {
    */
   async markAsRead(notificationId, userId) {
     try {
-      const { ObjectId } = await import("mongodb");
       const result = await this.collection.updateOne(
         { _id: new ObjectId(notificationId), userId },
         { $set: { read: true } },
       );
-      this.cache.clear();
       return result.modifiedCount > 0;
     } catch (error) {
       this.logger.error(
@@ -148,7 +146,6 @@ export class NotificationRepository extends BaseRepository {
         { userId, read: false },
         { $set: { read: true } },
       );
-      this.cache.clear();
       return result.modifiedCount;
     } catch (error) {
       this.logger.error(

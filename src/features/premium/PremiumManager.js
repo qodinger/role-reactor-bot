@@ -804,7 +804,7 @@ export class PremiumManager {
 
   /**
    * Get the database manager instance (shorthand)
-   * @returns {Promise<import('../../utils/storage/databaseManager.js').DatabaseManager|null>}
+   * @returns {Promise<Awaited<ReturnType<import('../../utils/storage/databaseManager.js').getDatabaseManager>>|null>}
    */
   async _db() {
     const storage = await getStorageManager();
