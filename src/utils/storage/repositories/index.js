@@ -21,3 +21,4 @@ export { ModerationLogRepository } from "./ModerationLogRepository.js";
 export { TicketRepository } from "./TicketRepository.js";
 export { TicketPanelRepository } from "./TicketPanelRepository.js";
 export { TicketTranscriptRepository } from "./TicketTranscriptRepository.js";
+export { NotificationRepository } from "./NotificationRepository.js";

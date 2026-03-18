@@ -41,7 +41,7 @@ Following the modular pattern established by other general commands:
 
 - Comprehensive help information and guidance
 - Clear instructions for reporting bugs and requesting features
-- Interactive buttons for Discord support server and GitHub repository
+- Interactive button for the Discord support server
 - Simple and official design with clean, professional presentation
 - User attribution and timestamp
 

@@ -32,7 +32,7 @@ export const metadata = {
     {
       name: `What You'll See`,
       value:
-        "Support information including how to get help, report issues, suggest features, and interactive buttons for Discord support server and GitHub repository!",
+        "Support information including how to get help, report issues, suggest features, and an interactive button for the Discord support server!",
       inline: false,
     },
   ],

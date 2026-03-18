@@ -741,6 +741,20 @@ async function processPayPalPayment(paymentData) {
       `✅ Added ${coresToAdd} Cores to user ${userId} from PayPal payment of ${amount} ${currency}`,
     );
 
+    // Create in-app notification
+    if (dbManager?.notifications) {
+      try {
+        await dbManager.notifications.create({
+          userId,
+          type: "balance_added",
+          title: "Balance Replenished!",
+          message: `+${coresToAdd} Cores from your $${amount} PayPal purchase`,
+          icon: "core",
+          metadata: { coresGranted: coresToAdd, amount, provider: "paypal" },
+        });
+      } catch (_e) { /* non-critical */ }
+    }
+
     return {
       success: true,
       message: `Successfully processed PayPal payment: ${amount} ${currency} = ${coresToAdd} Cores`,

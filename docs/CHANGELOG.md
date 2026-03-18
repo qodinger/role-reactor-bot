@@ -9,15 +9,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Ticketing System**: Complete support ticket system with `/ticket setup` and `/ticket info` commands for comprehensive server support.
-- **Ticket Management**: Full lifecycle management with `/ticket claim`, `/ticket close`, `/ticket add`, and `/ticket remove` commands.
-- **Ticket Panels**: Multiple custom panels with customizable titles, branding, and categorizations.
-- **Scalable Transcripts**: High-performance transcript system supporting **HTML/JSON** for Pro servers and **Markdown** for everyone, rendered on-the-fly to ensure maximum server performance.
-- **Guild Data Purge**: Administrative tool to securely wipe all ticket history and reset the global counter to #0001 from a simplified, secure dashboard.
-- **Pro Engine Benefits**: Increased message limits (5,000+), advanced exports, and priority processing for high-volume servers.
-- **User Accessibility**: Members can now download their own transcripts (if enabled by admins) through a clean, reliable interface.
-- **Ticket Analytics**: Live tracking of open, closed, and active tickets with the `/ticket list` and `/ticket view` commands.
+- **Ticketing System**: Complete support ticket system with `/ticket setup`, `/ticket info`, `/ticket claim`, `/ticket close`, `/ticket add`, and `/ticket remove` commands
+- **Ticket Panels**: Multiple custom panels with customizable titles, branding, and categorizations
+- **Scalable Transcripts**: High-performance transcript system supporting rich layouts for Pro servers and Markdown for everyone, with user accessibility to download their own logs
+- **Ticket Analytics**: Live tracking of open, closed, and active tickets with the `/ticket list` and `/ticket view` commands
+- **Guild Data Purge**: Administrative tool to securely wipe all ticket history and reset the global counter from a simplified dashboard
+- **Giveaway System**: Complete real-time giveaway system added with industry-standard features
+- **Voting Rewards**: Users can now earn Core credits by voting for the bot on top.gg (includes strict webhook verification for security)
+- **Role Bundle Management**: Implemented Phase 2 of the role bundle management system for advanced server management
+- **Advanced Role Reactions**: Allow granting multiple roles per emoji (Phase 1)
+- **Role Mappings API**: Natively exposed selection mode and timestamps to frontend dashboards
 
+### Changed
+
+- **Pro Engine Benefits**: Increased message limits (5,000+), advanced exports, and priority processing for high-volume servers
+- **Role-Reaction Descriptions**: Support added for literal newlines (`\n`) directly in role-reaction setups for deeper customization options
+
+### Fixed
+
+- **Message Spying**: Prevented the bot from accidentally tracking `@everyone` and `@here` mentions in general chat logs
+- **Role Name Lengths**: Shortened command descriptions for role-reactions to safely sit below the Discord global command limit
+
+### Performance
+
+- **Goodbye System**: General performance improvements and code duplication removal in goodbye message processing
 
 ## [1.6.3] - 2026-02-17
 

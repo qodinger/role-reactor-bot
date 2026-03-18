@@ -152,6 +152,20 @@ export class PremiumManager {
         `✨ Premium feature ${featureId} activated for guild ${guildId} by user ${userId}`,
       );
 
+      // Create in-app notification
+      if (storage.dbManager.notifications) {
+        try {
+          await storage.dbManager.notifications.create({
+            userId,
+            type: "pro_activated",
+            title: `${feature.name} Activated!`,
+            message: `${feature.name} is now active. -${feature.cost} Cores deducted. Next renewal: ${nextDate.toLocaleDateString()}.`,
+            icon: "pro",
+            metadata: { guildId, featureId, cost: feature.cost },
+          });
+        } catch (_e) { /* non-critical */ }
+      }
+
       return {
         success: true,
         message: `Feature ${feature.name} activated successfully until ${nextDate.toLocaleDateString()}`,
@@ -336,6 +350,20 @@ export class PremiumManager {
               logger.info(
                 `✅ Renewed feature ${featureId} for guild ${guildId}`,
               );
+
+              // Create in-app notification for renewal
+              if (storage.dbManager.notifications) {
+                try {
+                  await storage.dbManager.notifications.create({
+                    userId: sub.payerUserId,
+                    type: "pro_renewed",
+                    title: `${feature.name} Renewed`,
+                    message: `-${feature.cost} Cores deducted for renewal. Next renewal: ${nextDate.toLocaleDateString()}.`,
+                    icon: "pro",
+                    metadata: { guildId, featureId, cost: feature.cost },
+                  });
+                } catch (_e) { /* non-critical */ }
+              }
             } else {
               // Grace period check
               const graceDeadline = new Date(sub.nextDeductionDate);
@@ -432,6 +460,21 @@ export class PremiumManager {
               });
               logger.info(`📧 Sent low balance DM to user ${userId}`);
               this.sentWarnings.add(warningKey);
+
+              // Also create in-app notification
+              if (storage.dbManager.notifications) {
+                try {
+                  await storage.dbManager.notifications.create({
+                    userId,
+                    type: "low_balance",
+                    title: "Low Core Balance",
+                    message: `${feature.name} renewal needs ${feature.cost} Cores but you only have ${balance}. Top up to avoid losing the feature.`,
+                    icon: "warning",
+                    metadata: { guildId, featureId: feature.id, required: feature.cost, balance },
+                  });
+                } catch (_e) { /* non-critical */ }
+              }
+
               return true;
             }
           } catch (dmError) {
@@ -518,6 +561,21 @@ export class PremiumManager {
 
       logger.info(`🚨 Sent grace period warning DM to user ${userId}`);
       this.sentWarnings.add(warningKey);
+
+      // Also create in-app notification
+      const storage2 = await getStorageManager();
+      if (storage2.dbManager?.notifications) {
+        try {
+          await storage2.dbManager.notifications.create({
+            userId,
+            type: "grace_period",
+            title: "Grace Period — Action Required",
+            message: `${feature.name} expired. ${daysLeft} day${daysLeft !== 1 ? "s" : ""} left before it's disabled. Top up ${feature.cost} Cores now.`,
+            icon: "warning",
+            metadata: { guildId, featureId: feature.id, daysLeft, balance },
+          });
+        } catch (_e) { /* non-critical */ }
+      }
     } catch (dmError) {
       logger.warn(
         `Could not send grace period DM to user ${userId}:`,
@@ -585,6 +643,23 @@ export class PremiumManager {
           payerUserId,
           reason,
         );
+
+        // Create in-app notification for deactivation
+        if (storage.dbManager.notifications) {
+          try {
+            const reasonText = reason === "cancelled"
+              ? "Subscription was cancelled."
+              : "Insufficient Core balance after grace period.";
+            await storage.dbManager.notifications.create({
+              userId: payerUserId,
+              type: "pro_deactivated",
+              title: `${feature?.name || featureId} Deactivated`,
+              message: reasonText,
+              icon: "warning",
+              metadata: { guildId, featureId, reason },
+            });
+          } catch (_e) { /* non-critical */ }
+        }
       }
     } catch (error) {
       logger.error(

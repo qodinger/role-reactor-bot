@@ -150,6 +150,24 @@ async function processCryptoPayment(
       `✅ Added ${coresToAdd} Cores to user ${userId} via Crypto ($${paymentAmount})`,
     );
 
+    // Create in-app notification
+    try {
+      const { getDatabaseManager } = await import(
+        "../utils/storage/databaseManager.js"
+      );
+      const dbManager = await getDatabaseManager();
+      if (dbManager?.notifications) {
+        await dbManager.notifications.create({
+          userId,
+          type: "balance_added",
+          title: "Balance Replenished!",
+          message: `+${coresToAdd} Cores from your $${paymentAmount} crypto purchase`,
+          icon: "core",
+          metadata: { coresGranted: coresToAdd, amount: paymentAmount, provider: "plisio" },
+        });
+      }
+    } catch (_e) { /* non-critical */ }
+
     return { success: true, message: "Credited", credits: coresToAdd };
   });
 }

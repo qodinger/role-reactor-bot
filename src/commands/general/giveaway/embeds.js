@@ -4,6 +4,7 @@
  */
 
 import { EmbedBuilder } from "discord.js";
+import { THEME, UI_COMPONENTS } from "../../../config/theme.js";
 
 /**
  * Create a giveaway embed
@@ -15,7 +16,7 @@ export function createGiveawayEmbed(giveaway, totalEntries = 0) {
   const embed = new EmbedBuilder()
     .setTitle("🎉 GIVEAWAY! 🎉")
     .setDescription(giveaway.description || "Click the button below to enter!")
-    .setColor(giveaway.color || 0xffd700)
+    .setColor(giveaway.color || THEME.PRIMARY)
     .addFields(
       {
         name: "🎁 Prize",
@@ -38,9 +39,11 @@ export function createGiveawayEmbed(giveaway, totalEntries = 0) {
       value: `<t:${Math.floor(giveaway.endTime.getTime() / 1000)}:R>`,
       inline: false,
     })
-    .setFooter({
-      text: `Hosted by ${giveaway.hostUsername || "Server Staff"} • Giveaway ID: ${giveaway._id.toString().slice(-6)}`,
-    })
+    .setFooter(
+      UI_COMPONENTS.createFooter(
+        `Hosted by ${giveaway.hostUsername || "Server Staff"} • ID: ${giveaway._id.toString().slice(-6)}`
+      )
+    )
     .setTimestamp(giveaway.startTime);
 
   if (giveaway.thumbnail) {
@@ -96,7 +99,7 @@ export async function createWinnerEmbed(giveaway, winners, client) {
 
   const embed = new EmbedBuilder()
     .setTitle("🏆 GIVEAWAY WINNER! 🏆")
-    .setColor(0x00ff00)
+    .setColor(THEME.SUCCESS)
     .addFields(
       {
         name: "🎁 Prize",
@@ -119,11 +122,13 @@ export async function createWinnerEmbed(giveaway, winners, client) {
         inline: true,
       },
     )
-    .setFooter({
-      text: giveaway.winnersData?.[0]?.claimed
-        ? "Prize claimed ✓"
-        : "Winners have 48 hours to claim their prize",
-    })
+    .setFooter(
+      UI_COMPONENTS.createFooter(
+        giveaway.winnersData?.[0]?.claimed
+          ? "Prize claimed ✓"
+          : "Winners have 48 hours to claim their prize"
+      )
+    )
     .setTimestamp();
 
   if (giveaway.thumbnail) {
@@ -142,7 +147,7 @@ export function createNoEntriesEmbed(giveaway) {
   const embed = new EmbedBuilder()
     .setTitle("😔 GIVEAWAY ENDED")
     .setDescription("No one entered this giveaway.")
-    .setColor(0xff0000)
+    .setColor(THEME.ERROR)
     .addFields(
       {
         name: "🎁 Prize",
@@ -155,9 +160,7 @@ export function createNoEntriesEmbed(giveaway) {
         inline: true,
       },
     )
-    .setFooter({
-      text: "Better luck next time!",
-    })
+    .setFooter(UI_COMPONENTS.createFooter("Better luck next time!"))
     .setTimestamp();
 
   return embed;
@@ -171,7 +174,7 @@ export function createNoEntriesEmbed(giveaway) {
 export function createGiveawayListEmbed(giveaways) {
   const embed = new EmbedBuilder()
     .setTitle("🎉 Active Giveaways")
-    .setColor(0xffd700)
+    .setColor(THEME.PRIMARY)
     .setDescription(
       giveaways.length === 0
         ? "There are no active giveaways right now."
@@ -195,9 +198,9 @@ export function createGiveawayListEmbed(giveaways) {
     embed.addFields(fields);
   }
 
-  embed.setFooter({
-    text: `Total: ${giveaways.length} active giveaway(s)`,
-  });
+  embed.setFooter(
+    UI_COMPONENTS.createFooter(`Total: ${giveaways.length} active giveaway(s)`)
+  );
 
   return embed;
 }
@@ -210,7 +213,7 @@ export function createGiveawayListEmbed(giveaways) {
 export function createStatsEmbed(stats) {
   const embed = new EmbedBuilder()
     .setTitle("📊 Giveaway Statistics")
-    .setColor(0xffd700)
+    .setColor(THEME.PRIMARY)
     .addFields(
       {
         name: "📈 Total Giveaways",
@@ -243,9 +246,7 @@ export function createStatsEmbed(stats) {
         inline: true,
       },
     )
-    .setFooter({
-      text: "Giveaway Statistics",
-    })
+    .setFooter(UI_COMPONENTS.createFooter("Giveaway Statistics"))
     .setTimestamp();
 
   return embed;
@@ -260,10 +261,10 @@ export function createStatsEmbed(stats) {
  */
 export function createConfirmationEmbed(title, description, type = "info") {
   const colors = {
-    success: 0x00ff00,
-    error: 0xff0000,
-    warning: 0xffa500,
-    info: 0x3498db,
+    success: THEME.SUCCESS,
+    error: THEME.ERROR,
+    warning: THEME.WARNING,
+    info: THEME.INFO,
   };
 
   const icons = {
@@ -293,7 +294,7 @@ export function createEntryConfirmEmbed(giveaway, userEntries, totalEntries) {
   const embed = new EmbedBuilder()
     .setTitle("✅ Successfully Entered!")
     .setDescription(`You've entered the giveaway for **${giveaway.prize}**.`)
-    .setColor(0x00ff00)
+    .setColor(THEME.SUCCESS)
     .addFields(
       {
         name: "🎫 Your Entries",
@@ -311,9 +312,7 @@ export function createEntryConfirmEmbed(giveaway, userEntries, totalEntries) {
         inline: false,
       },
     )
-    .setFooter({
-      text: "Good luck! 🍀",
-    })
+    .setFooter(UI_COMPONENTS.createFooter("Good luck! 🍀"))
     .setTimestamp();
 
   return embed;
@@ -328,7 +327,7 @@ export function createEntryConfirmEmbed(giveaway, userEntries, totalEntries) {
 export function createWinnerDmEmbed(giveaway, guildName) {
   const embed = new EmbedBuilder()
     .setTitle("🎉 Congratulations! You Won! 🎉")
-    .setColor(0xffd700)
+    .setColor(THEME.PRIMARY)
     .setDescription(
       `You won the **${giveaway.prize}** giveaway in **${guildName}**!`,
     )
@@ -344,9 +343,7 @@ export function createWinnerDmEmbed(giveaway, guildName) {
         inline: false,
       },
     )
-    .setFooter({
-      text: "Congratulations again!",
-    })
+    .setFooter(UI_COMPONENTS.createFooter("Congratulations again!"))
     .setTimestamp();
 
   return embed;

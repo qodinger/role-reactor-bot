@@ -265,9 +265,55 @@ async function processVote(vote, client) {
     { upsert: true },
   );
 
+  // Log transaction in payments collection for dashboard history
+  if (dbManager.payments) {
+    try {
+      await dbManager.payments.create({
+        paymentId: `vote_topgg_${userId}_${Date.now()}`,
+        discordId: userId,
+        provider: "top.gg",
+        type: "vote",
+        status: "completed",
+        amount: 0,
+        currency: "CORES",
+        coresGranted: REWARD_AMOUNT,
+        tier: "vote_reward",
+        metadata: {
+          username: username || null,
+          totalVotes: (userCredits?.totalVotes || 0) + 1,
+        },
+      });
+    } catch (txError) {
+      logger.warn(
+        `⚠️ top.gg: Failed to log vote transaction for ${userId}: ${txError.message}`,
+      );
+    }
+  }
+
   logger.info(
     `✅ top.gg: Rewarded ${userId} with ${REWARD_AMOUNT} Core (Total votes: ${(userCredits?.totalVotes || 0) + 1})`,
   );
+
+  // Create in-app notification
+  if (dbManager.notifications) {
+    try {
+      await dbManager.notifications.create({
+        userId,
+        type: "vote_reward",
+        title: "Vote Reward Received!",
+        message: `+${REWARD_AMOUNT} Core credited for voting on top.gg`,
+        icon: "vote",
+        metadata: {
+          coresGranted: REWARD_AMOUNT,
+          totalVotes: (userCredits?.totalVotes || 0) + 1,
+        },
+      });
+    } catch (notifError) {
+      logger.warn(
+        `⚠️ top.gg: Failed to create notification for ${userId}: ${notifError.message}`,
+      );
+    }
+  }
 
   // Send thank you DM (if possible)
   try {

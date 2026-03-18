@@ -391,6 +391,20 @@ export async function apiManageUserCores(req, res) {
           `Failed to send DM to ${userId} regarding core update: ${dmError.message}`,
         );
       }
+
+      // Create in-app notification
+      try {
+        if (dbManager.notifications) {
+          await dbManager.notifications.create({
+            userId,
+            type: "admin_adjustment",
+            title: change > 0 ? "Cores Received!" : "Cores Deducted",
+            message: `${change > 0 ? "+" : ""}${change} Cores. ${reason || "Admin adjustment"}. New balance: ${newBalance} Cores.`,
+            icon: "admin",
+            metadata: { change, newBalance, reason },
+          });
+        }
+      } catch (_e) { /* non-critical */ }
     }
 
     return res.json(

@@ -2,10 +2,9 @@ import {
   EmbedBuilder,
   ActionRowBuilder,
   ButtonBuilder,
-  ButtonStyle,
 } from "discord.js";
 import { PRO_ENGINE } from "./config.js";
-import { THEME, EMOJIS, UI_COMPONENTS } from "../../config/theme.js";
+import { THEME, EMOJIS, UI_COMPONENTS, BUTTON_STYLES } from "../../config/theme.js";
 
 // ─────────────────────────────────────────────
 // Helpers
@@ -383,7 +382,7 @@ export function createPanelButtons(categories) {
       .setCustomId(`ticket_create_${cat.id || index}`)
       .setLabel(cat.label || "Support")
       .setEmoji(cat.emoji || "📧")
-      .setStyle(ButtonStyle.Primary),
+      .setStyle(BUTTON_STYLES.PRIMARY),
   );
 
   const rows = [];
@@ -417,7 +416,7 @@ export function createTicketActionButtons(options = {}) {
         .setCustomId("ticket_claim")
         .setLabel("Claim")
         .setEmoji("✋")
-        .setStyle(ButtonStyle.Success),
+        .setStyle(BUTTON_STYLES.SUCCESS),
     );
   }
 
@@ -427,7 +426,7 @@ export function createTicketActionButtons(options = {}) {
         .setCustomId("ticket_close")
         .setLabel("Close Ticket")
         .setEmoji("🔒")
-        .setStyle(ButtonStyle.Danger),
+        .setStyle(BUTTON_STYLES.DANGER),
     );
   }
 
@@ -437,7 +436,7 @@ export function createTicketActionButtons(options = {}) {
         .setCustomId("ticket_add_user")
         .setLabel("Add User")
         .setEmoji("👥")
-        .setStyle(ButtonStyle.Secondary),
+        .setStyle(BUTTON_STYLES.SECONDARY),
     );
   }
 
@@ -447,7 +446,7 @@ export function createTicketActionButtons(options = {}) {
         .setCustomId("ticket_transfer")
         .setLabel("Transfer")
         .setEmoji("🔄")
-        .setStyle(ButtonStyle.Secondary),
+        .setStyle(BUTTON_STYLES.SECONDARY),
     );
   }
 
@@ -476,7 +475,7 @@ export function createStaffAlertButtons(options) {
           .setCustomId(`ticket_claim_external_${ticketId}`)
           .setLabel("Claim Ticket")
           .setEmoji("🎟️")
-          .setStyle(ButtonStyle.Primary),
+          .setStyle(BUTTON_STYLES.PRIMARY),
       )
     ),
   ];
@@ -501,11 +500,11 @@ export function createConfirmationButtons(
       new ButtonBuilder()
         .setCustomId(confirmId)
         .setLabel(confirmLabel)
-        .setStyle(ButtonStyle.Success),
+        .setStyle(BUTTON_STYLES.SUCCESS),
       new ButtonBuilder()
         .setCustomId(cancelId)
         .setLabel(cancelLabel)
-        .setStyle(ButtonStyle.Secondary),
+        .setStyle(BUTTON_STYLES.SECONDARY),
     )
   );
 }
