@@ -634,6 +634,9 @@ export class PremiumManager {
           const commandHandler = getCommandHandler();
           // Empty array means no commands are disabled
           await commandHandler.syncGuildCommands(guildId, []);
+
+          // Proactively handle downgrade of premium resources
+          await this._handleProDowngrade(guildId, storage);
         }
 
         // Send deactivation DM to the payer
@@ -664,6 +667,129 @@ export class PremiumManager {
     } catch (error) {
       logger.error(
         `Error disabling feature ${featureId} for guild ${guildId}:`,
+        error,
+      );
+    }
+  }
+  /**
+   * Handle proactive cleanup when a guild loses Pro Engine status.
+   * Ensures VPS resources are not wasted by excess premium configurations.
+   *
+   * Actions:
+   * 1. Pause excess scheduled roles beyond the free limit (25)
+   * 2. Disable extra ticket panels beyond the free limit (1)
+   * 3. Reset level reward mode to "stack" if it was "replace"
+   *
+   * @param {string} guildId
+   * @param {Object} storage - StorageManager instance
+   */
+  async _handleProDowngrade(guildId, storage) {
+    const { FREE_TIER } = await import("./config.js");
+    const summary = { scheduledPaused: 0, panelsDisabled: 0, modeReset: false };
+
+    try {
+      // ── 1. Pause excess scheduled roles ──────────────────────────
+      if (storage.dbManager?.scheduledRoles) {
+        const allSchedules =
+          await storage.dbManager.scheduledRoles.getByGuild(guildId);
+        // allSchedules is { id: doc, ... } — filter active (not executed, not cancelled)
+        const activeSchedules = Object.values(allSchedules).filter(
+          (s) => !s.executed && !s.cancelled,
+        );
+
+        if (activeSchedules.length > FREE_TIER.SCHEDULE_MAX_ACTIVE) {
+          // Sort by creation date (oldest first) and keep only the free limit
+          const sorted = activeSchedules.sort(
+            (a, b) =>
+              new Date(a.createdAt).getTime() -
+              new Date(b.createdAt).getTime(),
+          );
+          const toCancel = sorted.slice(FREE_TIER.SCHEDULE_MAX_ACTIVE);
+
+          for (const schedule of toCancel) {
+            await storage.dbManager.scheduledRoles.update(schedule.id, {
+              cancelled: true,
+              cancelledAt: new Date(),
+              cancelReason: "pro_downgrade",
+            });
+            summary.scheduledPaused++;
+          }
+
+          logger.info(
+            `📋 Pro downgrade: Paused ${summary.scheduledPaused} excess scheduled roles for guild ${guildId} (kept ${FREE_TIER.SCHEDULE_MAX_ACTIVE})`,
+          );
+        }
+      }
+
+      // ── 2. Disable extra ticket panels ───────────────────────────
+      if (storage.dbManager?.ticketPanels) {
+        const { FREE_TIER: TICKET_FREE } = await import(
+          "../ticketing/config.js"
+        );
+        const panels = await storage.getTicketPanelsByGuild(guildId);
+        const enabledPanels = panels.filter(
+          (p) => p.settings?.enabled !== false,
+        );
+
+        if (enabledPanels.length > TICKET_FREE.MAX_PANELS) {
+          // Keep the oldest panel(s) active, disable the rest
+          const sorted = enabledPanels.sort(
+            (a, b) =>
+              new Date(a.createdAt).getTime() -
+              new Date(b.createdAt).getTime(),
+          );
+          const toDisable = sorted.slice(TICKET_FREE.MAX_PANELS);
+
+          for (const panel of toDisable) {
+            await storage.updateTicketPanel(panel.panelId, {
+              "settings.enabled": false,
+              "settings.disabledReason": "pro_downgrade",
+              "settings.disabledAt": new Date(),
+            });
+            summary.panelsDisabled++;
+          }
+
+          logger.info(
+            `🎫 Pro downgrade: Disabled ${summary.panelsDisabled} excess ticket panels for guild ${guildId} (kept ${TICKET_FREE.MAX_PANELS})`,
+          );
+        }
+      }
+
+      // ── 3. Reset level reward mode to "stack" ────────────────────
+      const settings =
+        await storage.dbManager.guildSettings.getByGuild(guildId);
+      if (settings?.levelRewardMode === "replace") {
+        await storage.dbManager.guildSettings.set(guildId, {
+          ...settings,
+          levelRewardMode: "stack",
+        });
+        summary.modeReset = true;
+        logger.info(
+          `⚙️ Pro downgrade: Reset level reward mode to "stack" for guild ${guildId}`,
+        );
+      }
+
+      // ── Summary log ──────────────────────────────────────────────
+      const actions = [];
+      if (summary.scheduledPaused > 0)
+        actions.push(`${summary.scheduledPaused} schedules paused`);
+      if (summary.panelsDisabled > 0)
+        actions.push(`${summary.panelsDisabled} panels disabled`);
+      if (summary.modeReset) actions.push("reward mode reset to stack");
+
+      if (actions.length > 0) {
+        logger.info(
+          `🔽 Pro downgrade complete for guild ${guildId}: ${actions.join(", ")}`,
+        );
+      } else {
+        logger.info(
+          `🔽 Pro downgrade for guild ${guildId}: no excess resources to clean up`,
+        );
+      }
+    } catch (error) {
+      // Non-fatal — the feature is already disabled, this is best-effort cleanup
+      logger.error(
+        `Error during Pro downgrade cleanup for guild ${guildId}:`,
         error,
       );
     }
@@ -701,7 +827,11 @@ export class PremiumManager {
               {
                 name: "What happens now?",
                 value:
-                  "Premium features are no longer available for this server. You can re-activate at any time from the dashboard.",
+                  "Your server has been downgraded to Free tier limits:\n" +
+                  "• Excess scheduled roles have been paused\n" +
+                  "• Extra ticket panels have been disabled\n" +
+                  "• Level reward mode reset to **Stack**\n" +
+                  "• Your data is **not deleted** — re-activate Pro to restore everything.",
                 inline: false,
               },
             ],
