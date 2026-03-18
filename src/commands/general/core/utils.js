@@ -1,5 +1,6 @@
 import { getStorageManager } from "../../../utils/storage/storageManager.js";
 import { getLogger } from "../../../utils/logger.js";
+import { CORE_STATUS } from "../../../config/index.js";
 
 const logger = getLogger();
 
@@ -45,14 +46,13 @@ export async function getUserData(userId) {
 export function formatTierDisplay(userData) {
   const credits = userData.credits || 0;
 
-  // Thresholds based on package totalCores in config.js
-  if (credits >= 900) return "Ultimate Member 💎";
-  if (credits >= 435) return "Pro Member ✨";
-  if (credits >= 165) return "Basic Member ⚡";
-  if (credits >= 75) return "Starter Member 🌱";
-  if (credits > 0) return "Core Member";
+  if (credits > 0) {
+    const status = CORE_STATUS.PRO;
+    return status.emoji ? `${status.label} ${status.emoji}` : status.label;
+  }
 
-  return "Regular";
+  const status = CORE_STATUS.REGULAR;
+  return status.emoji ? `${status.label} ${status.emoji}` : status.label;
 }
 
 /**
@@ -86,7 +86,9 @@ export async function getCorePricing() {
 
   // Ensure feature credits come from config
   if (!featureCosts) {
-    const { getAIFeatureCosts: getCosts } = await import("../../config/ai.js");
+    const { getAIFeatureCosts: getCosts } = await import(
+      "../../../config/ai.js"
+    );
     featureCosts = getCosts();
   }
   const aiChatCost = featureCosts?.aiChat;
@@ -113,89 +115,69 @@ export async function getCorePricing() {
  * Get priority score for Core tier
  * Higher score = higher priority
  * Elite: 3, Premium: 2, Basic: 1, None: 0
- * @param {string|null} tier - Core tier name
- * @returns {number} Priority score (0-3)
+ * @param {number} statusCode - Core status code from CORE_STATUS
+ * @returns {number} Priority score (0 or 1)
  */
-export function getCoreTierPriority(tier) {
-  if (!tier) return 0;
-  const tierPriorities = {
-    "Core Elite": 3,
-    "Core Premium": 2,
-    "Core Basic": 1,
-  };
-  return tierPriorities[tier] || 0;
+export function getCoreTierPriority(statusCode) {
+  if (statusCode === CORE_STATUS.PRO.id) return 1;
+  return 0;
 }
 
 /**
  * Get rate limit multiplier for Core tier
- * @param {string|null} tier - Core tier name
- * @returns {number} Multiplier (1.0 for regular, 1.5 for Basic, 2.0 for Premium, 3.0 for Elite)
+ * @param {number} statusCode - Core status code from CORE_STATUS
+ * @returns {number} Multiplier (1.0 for regular, 2.0 for Pro)
  */
-export function getCoreRateLimitMultiplier(tier) {
-  if (!tier) return 1.0;
-  const tierMultipliers = {
-    "Core Elite": 3.0,
-    "Core Premium": 2.0,
-    "Core Basic": 1.5,
-  };
-  return tierMultipliers[tier] || 1.0;
+export function getCoreRateLimitMultiplier(statusCode) {
+  if (statusCode === CORE_STATUS.PRO.id) return 2.0;
+  return 1.0;
 }
 
 /**
  * Get user limit for Core tier (e.g., MAX_USERS for commands)
- * @param {string|null} tier - Core tier name
+ * @param {number} statusCode - Core status code from CORE_STATUS
  * @param {number} baseLimit - Base limit for regular users
  * @returns {number} User limit for Core members
  */
-export function getCoreUserLimit(tier, baseLimit) {
-  if (!tier) return baseLimit;
-  const tierMultipliers = {
-    "Core Elite": 5.0, // 50 users for Elite (10 * 5)
-    "Core Premium": 2.5, // 25 users for Premium (10 * 2.5)
-    "Core Basic": 1.5, // 15 users for Basic (10 * 1.5)
-  };
-  const multiplier = tierMultipliers[tier] || 1.0;
-  return Math.floor(baseLimit * multiplier);
+export function getCoreUserLimit(statusCode, baseLimit) {
+  if (statusCode === CORE_STATUS.PRO.id) return baseLimit * 3;
+  return baseLimit;
 }
 
 /**
  * Get bulk member limit for Core tier (e.g., MAX_ALL_MEMBERS)
- * @param {string|null} tier - Core tier name
+ * @param {number} statusCode - Core status code from CORE_STATUS
  * @param {number} baseLimit - Base limit for regular users
  * @returns {number} Bulk member limit for Core members
  */
-export function getCoreBulkMemberLimit(tier, baseLimit) {
-  if (!tier) return baseLimit;
-  const tierMultipliers = {
-    "Core Elite": 5.0, // 2,500 members for Elite (500 * 5)
-    "Core Premium": 2.5, // 1,250 members for Premium (500 * 2.5)
-    "Core Basic": 1.5, // 750 members for Basic (500 * 1.5)
-  };
-  const multiplier = tierMultipliers[tier] || 1.0;
-  return Math.floor(baseLimit * multiplier);
+export function getCoreBulkMemberLimit(statusCode, baseLimit) {
+  if (statusCode === CORE_STATUS.PRO.id) return baseLimit * 3;
+  return baseLimit;
 }
 
 /**
  * Get Core priority for a single user
  * @param {string} userId - User ID to check
  * @param {Object} logger - Logger instance (optional)
- * @returns {Promise<{hasCore: boolean, tier: string|null, priority: number}>}
+ * @returns {Promise<{hasCore: boolean, tier: string|null, priority: number, statusCode: number}>}
  */
 export async function getUserCorePriority(userId, logger = null) {
   try {
     if (!userId) {
-      return { hasCore: false, tier: null, priority: 0 };
+      return { hasCore: false, tier: null, priority: 0, statusCode: CORE_STATUS.REGULAR.id };
     }
 
     const userData = await getUserData(userId);
     // Since we simplified to Core packages only, all users are "Regular"
     // Priority is now based on credit balance instead of tiers
     const hasCredits = userData.credits > 0;
+    const statusCode = hasCredits ? CORE_STATUS.PRO.id : CORE_STATUS.REGULAR.id;
 
     return {
       hasCore: hasCredits,
       tier: hasCredits ? formatTierDisplay(userData) : null,
-      priority: hasCredits ? 1 : 0, // Simple: 1 if has credits, 0 if not
+      priority: statusCode,
+      statusCode,
     };
   } catch (error) {
     if (logger) {
@@ -204,24 +186,24 @@ export async function getUserCorePriority(userId, logger = null) {
         error.message,
       );
     }
-    return { hasCore: false, tier: null, priority: 0 };
+    return { hasCore: false, tier: null, priority: 0, statusCode: CORE_STATUS.REGULAR.id };
   }
 }
 
 /**
  * Get Core priority for multiple users (returns highest priority)
  * @param {Array<string>} userIds - Array of user IDs to check
- * @param {Object} options - Options
- * @param {number} options.maxUsers - Maximum number of users to check (default: 10)
- * @param {Object} options.logger - Logger instance (optional)
- * @returns {Promise<{hasCore: boolean, maxTier: string|null, priority: number}>}
+ * @param {Object} [options={}] - Options
+ * @param {number} [options.maxUsers=10] - Maximum number of users to check (default: 10)
+ * @param {Object|null} [options.logger=null] - Logger instance (optional)
+ * @returns {Promise<{hasCore: boolean, maxTier: string|null, priority: number, statusCode: number}>}
  */
 export async function getUsersCorePriority(userIds, options = {}) {
   const { maxUsers = 10, logger = null } = options;
 
   try {
     if (!userIds || userIds.length === 0) {
-      return { hasCore: false, maxTier: null, priority: 0 };
+      return { hasCore: false, maxTier: null, priority: 0, statusCode: CORE_STATUS.REGULAR.id };
     }
 
     const usersToCheck = userIds.slice(0, maxUsers);
@@ -249,12 +231,13 @@ export async function getUsersCorePriority(userIds, options = {}) {
       hasCore: maxPriority > 0,
       maxTier,
       priority: maxPriority,
+      statusCode: maxPriority > 0 ? CORE_STATUS.PRO.id : CORE_STATUS.REGULAR.id,
     };
   } catch (error) {
     if (logger) {
       logger.error("Error checking Core priority for users:", error);
     }
-    return { hasCore: false, maxTier: null, priority: 0 };
+    return { hasCore: false, maxTier: null, priority: 0, statusCode: CORE_STATUS.REGULAR.id };
   }
 }
 
@@ -313,18 +296,12 @@ export function logPriorityDistribution(
 ) {
   const coreCount = itemsWithPriority.filter(item => item.priority > 0).length;
   if (coreCount > 0) {
-    const eliteCount = itemsWithPriority.filter(
-      item => item.tier === "Core Elite",
-    ).length;
-    const premiumCount = itemsWithPriority.filter(
-      item => item.tier === "Core Premium",
-    ).length;
-    const basicCount = itemsWithPriority.filter(
-      item => item.tier === "Core Basic",
+    const proCount = itemsWithPriority.filter(
+      item => item.tier === "Pro Engine",
     ).length;
 
     logger.info(
-      `🎯 Prioritized ${coreCount}/${totalItems} ${itemType} with Core members (Elite: ${eliteCount}, Premium: ${premiumCount}, Basic: ${basicCount})`,
+      `🎯 Prioritized ${coreCount}/${totalItems} ${itemType} with Pro Engine users`,
     );
   }
 }

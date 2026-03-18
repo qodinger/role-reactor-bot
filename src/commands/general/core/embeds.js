@@ -1,5 +1,6 @@
 import { EMOJIS, THEME } from "../../../config/theme.js";
 import { emojiConfig } from "../../../config/emojis.js";
+import { formatTierDisplay } from "./utils.js";
 
 // Get custom emojis object
 const { customEmojis } = emojiConfig;
@@ -13,11 +14,17 @@ const { customEmojis } = emojiConfig;
  */
 export function createBalanceEmbed(userData, username, avatarURL) {
   const totalCredits = userData.credits || 0;
+  const tier = formatTierDisplay(userData);
 
   const fields = [
     {
       name: `Total Balance`,
       value: `${customEmojis.core} ${totalCredits}`,
+      inline: true,
+    },
+    {
+      name: `Status`,
+      value: `${tier}`,
       inline: true,
     },
   ];

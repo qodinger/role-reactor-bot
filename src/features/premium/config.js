@@ -1,3 +1,17 @@
+// Global core status constants
+export const CORE_STATUS = {
+  REGULAR: {
+    id: 0,
+    label: "Regular",
+    emoji: null,
+  },
+  PRO: {
+    id: 1,
+    label: "Pro Engine",
+    emoji: "✨",
+  },
+};
+
 export const PremiumFeatures = {
   PRO: {
     id: "pro_engine",
@@ -8,11 +22,11 @@ export const PremiumFeatures = {
     period: "week",
     periodDays: 7,
     includes: [
-      "Unlimited Level Rewards (free tier: 5)",
-      "Replace reward mode (highest role only)",
-      "Command toggling",
-      "Advanced analytics",
-      "Priority support",
+      "10x Ticketing System Capacity & 10 Panels",
+      "Ticket Automation & Unlimited Transcripts",
+      "Unlimited Level Up Rewards (Free: 5)",
+      "Replace Role Level Reward Mode",
+      "Server Command Toggling (Web Dashboard)",
     ],
   },
 };

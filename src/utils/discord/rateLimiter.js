@@ -3,6 +3,7 @@ import {
   getCoreRateLimitMultiplier,
   getUserCorePriority,
 } from "../../commands/general/core/utils.js";
+import { CORE_STATUS } from "../../config/index.js";
 
 class RateLimit {
   constructor(limit, windowMs) {
@@ -113,12 +114,16 @@ export async function isRateLimited(userId, commandName, coreUserData = null) {
   // Get Core tier multiplier if not provided
   let multiplier = 1.0;
   if (coreUserData) {
-    multiplier = getCoreRateLimitMultiplier(coreUserData.coreTier || null);
+    // Check if new statusCode exists, otherwise fallback to old string checking
+    const code = coreUserData.coreStatusCode !== undefined 
+      ? coreUserData.coreStatusCode
+      : (coreUserData.coreTier === "Pro Engine" ? CORE_STATUS.PRO : CORE_STATUS.REGULAR);
+    multiplier = getCoreRateLimitMultiplier(code);
   } else {
     try {
       const userPriority = await getUserCorePriority(userId);
       if (userPriority.hasCore) {
-        multiplier = getCoreRateLimitMultiplier(userPriority.tier);
+        multiplier = getCoreRateLimitMultiplier(userPriority.statusCode);
       }
     } catch {
       // If lookup fails, use default multiplier (1.0)
@@ -154,12 +159,15 @@ export async function isInteractionRateLimited(userId, coreUserData = null) {
   // Get Core tier multiplier if not provided
   let multiplier = 1.0;
   if (coreUserData) {
-    multiplier = getCoreRateLimitMultiplier(coreUserData.coreTier || null);
+    const code = coreUserData.coreStatusCode !== undefined 
+      ? coreUserData.coreStatusCode
+      : (coreUserData.coreTier === "Pro Engine" ? CORE_STATUS.PRO : CORE_STATUS.REGULAR);
+    multiplier = getCoreRateLimitMultiplier(code);
   } else {
     try {
       const userPriority = await getUserCorePriority(userId);
       if (userPriority.hasCore) {
-        multiplier = getCoreRateLimitMultiplier(userPriority.tier);
+        multiplier = getCoreRateLimitMultiplier(userPriority.statusCode);
       }
     } catch {
       // If lookup fails, use default multiplier (1.0)

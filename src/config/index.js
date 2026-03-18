@@ -8,6 +8,7 @@
 
 // Main configuration (Discord, database, Core pricing, etc.)
 export { config } from "./config.js";
+export { CORE_STATUS } from "../features/premium/config.js";
 export { default as configDefault } from "./config.js";
 
 // AI configuration (models, feature credits, content filters)

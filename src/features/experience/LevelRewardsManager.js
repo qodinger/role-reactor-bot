@@ -1,7 +1,7 @@
 import { getLogger } from "../../utils/logger.js";
 import { getDatabaseManager } from "../../utils/storage/databaseManager.js";
 import { getPremiumManager } from "../premium/PremiumManager.js";
-import { PremiumFeatures } from "../premium/config.js";
+import { PremiumFeatures, FREE_TIER } from "../premium/config.js";
 
 const logger = getLogger();
 
@@ -9,8 +9,6 @@ const logger = getLogger();
  * Free tier limits for level rewards
  */
 export const LEVEL_REWARDS_CONFIG = {
-  /** Max rewards allowed on the free tier */
-  FREE_LIMIT: 5,
   /** Reward mode options */
   MODES: {
     /** Users keep all earned roles (default, free) */
@@ -45,7 +43,7 @@ export class LevelRewardsManager {
    * @param {string} guildId
    * @param {number} level
    * @param {string} roleId
-   * @returns {Promise<{success: boolean, message: string}>}
+   * @returns {Promise<{success: boolean, message: string, remaining?: string|number, premiumRequired?: boolean}>}
    */
   async addReward(guildId, level, roleId) {
     await this.initialize();
@@ -66,10 +64,10 @@ export class LevelRewardsManager {
 
     // Check free tier limit
     const isPro = await this._isProActive(guildId);
-    if (!isPro && rewards.length >= LEVEL_REWARDS_CONFIG.FREE_LIMIT) {
+    if (!isPro && rewards.length >= FREE_TIER.LEVEL_REWARDS_MAX) {
       return {
         success: false,
-        message: `You've reached the free limit of ${LEVEL_REWARDS_CONFIG.FREE_LIMIT} level rewards. Enable **Pro Engine** to add unlimited rewards.`,
+        message: `You've reached the free limit of ${FREE_TIER.LEVEL_REWARDS_MAX} level rewards. Enable **Pro Engine** to add unlimited rewards.`,
         premiumRequired: true,
       };
     }
@@ -93,7 +91,7 @@ export class LevelRewardsManager {
       message: `Level reward added! Users reaching level **${level}** will receive the role.`,
       remaining: isPro
         ? "unlimited"
-        : LEVEL_REWARDS_CONFIG.FREE_LIMIT - rewards.length,
+        : FREE_TIER.LEVEL_REWARDS_MAX - rewards.length,
     };
   }
 
@@ -163,7 +161,7 @@ export class LevelRewardsManager {
    * Set the reward mode for a guild (premium only for "replace")
    * @param {string} guildId
    * @param {string} mode
-   * @returns {Promise<{success: boolean, message: string}>}
+   * @returns {Promise<{success: boolean, message: string, premiumRequired?: boolean}>}
    */
   async setRewardMode(guildId, mode) {
     await this.initialize();
@@ -224,8 +222,8 @@ export class LevelRewardsManager {
     // 🔒 Enforce Free Tier Limits (Strict Mode)
     // If not premium, only use the first N rewards and force STACK mode
     if (!isPro) {
-      if (rewards.length > LEVEL_REWARDS_CONFIG.FREE_LIMIT) {
-        rewards = rewards.slice(0, LEVEL_REWARDS_CONFIG.FREE_LIMIT);
+      if (rewards.length > FREE_TIER.LEVEL_REWARDS_MAX) {
+        rewards = rewards.slice(0, FREE_TIER.LEVEL_REWARDS_MAX);
       }
       if (mode === LEVEL_REWARDS_CONFIG.MODES.REPLACE) {
         mode = LEVEL_REWARDS_CONFIG.MODES.STACK; // Fallback to free mode
@@ -364,8 +362,8 @@ export class LevelRewardsManager {
 
     // 🔒 Enforce Free Tier Limits
     if (!isPro) {
-      if (rewards.length > LEVEL_REWARDS_CONFIG.FREE_LIMIT) {
-        rewards = rewards.slice(0, LEVEL_REWARDS_CONFIG.FREE_LIMIT);
+      if (rewards.length > FREE_TIER.LEVEL_REWARDS_MAX) {
+        rewards = rewards.slice(0, FREE_TIER.LEVEL_REWARDS_MAX);
       }
       if (mode === LEVEL_REWARDS_CONFIG.MODES.REPLACE) {
         mode = LEVEL_REWARDS_CONFIG.MODES.STACK; // Fallback to free mode

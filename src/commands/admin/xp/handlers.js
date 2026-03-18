@@ -841,6 +841,7 @@ export async function handleRewardsCommand(interaction, subcommand, _client) {
     const { getLevelRewardsManager, LEVEL_REWARDS_CONFIG } = await import(
       "../../../features/experience/LevelRewardsManager.js"
     );
+    const { FREE_TIER } = await import("../../../features/premium/config.js");
     const rewardsManager = await getLevelRewardsManager();
     const { EmbedBuilder } = await import("discord.js");
 
@@ -905,7 +906,7 @@ export async function handleRewardsCommand(interaction, subcommand, _client) {
             },
             {
               name: "Slots Remaining",
-              value: `${result.remaining === "unlimited" ? "♾️ Unlimited (Pro)" : `${result.remaining} / ${LEVEL_REWARDS_CONFIG.FREE_LIMIT}`}`,
+              value: `${result.remaining === "unlimited" ? "♾️ Unlimited (Pro)" : `${result.remaining} / ${FREE_TIER.LEVEL_REWARDS_MAX}`}`,
               inline: true,
             },
           )
@@ -972,7 +973,7 @@ export async function handleRewardsCommand(interaction, subcommand, _client) {
                 )
                 .setColor(0x555555)
                 .setFooter({
-                  text: `Mode: ${mode === "stack" ? "Stack (keep all roles)" : "Replace (highest only)"} • ${isPro ? "Pro Engine Active" : `Free tier: ${LEVEL_REWARDS_CONFIG.FREE_LIMIT} rewards max`}`,
+                  text: `Mode: ${mode === "stack" ? "Stack (keep all roles)" : "Replace (highest only)"} • ${isPro ? "Pro Engine Active" : `Free tier: ${FREE_TIER.LEVEL_REWARDS_MAX} rewards max`}`,
                 }),
             ],
           });
@@ -983,7 +984,7 @@ export async function handleRewardsCommand(interaction, subcommand, _client) {
           const roleName = role ? `<@&${r.roleId}>` : `*Deleted Role*`;
 
           // Check if this reward is active (within free limit)
-          const isInactive = !isPro && i >= LEVEL_REWARDS_CONFIG.FREE_LIMIT;
+          const isInactive = !isPro && i >= FREE_TIER.LEVEL_REWARDS_MAX;
 
           if (isInactive) {
             return `**${i + 1}.** Level \`${r.level}\` → ${roleName} ${EMOJIS.lock || "🔒"} *(Premium Only)*`;
@@ -1007,7 +1008,7 @@ export async function handleRewardsCommand(interaction, subcommand, _client) {
               name: "Slots Used",
               value: isPro
                 ? `${rewards.length} / ♾️`
-                : `${rewards.length} / ${LEVEL_REWARDS_CONFIG.FREE_LIMIT}${rewards.length > LEVEL_REWARDS_CONFIG.FREE_LIMIT ? " ⚠️" : ""}`,
+                : `${rewards.length} / ${FREE_TIER.LEVEL_REWARDS_MAX}${rewards.length > FREE_TIER.LEVEL_REWARDS_MAX ? " ⚠️" : ""}`,
               inline: true,
             },
           )
@@ -1016,7 +1017,7 @@ export async function handleRewardsCommand(interaction, subcommand, _client) {
           .setFooter({
             text: isPro
               ? "Pro Engine — Unlimited rewards & all modes"
-              : `Free tier: Only first ${LEVEL_REWARDS_CONFIG.FREE_LIMIT} rewards active`,
+              : `Free tier: Only first ${FREE_TIER.LEVEL_REWARDS_MAX} rewards active`,
           });
 
         await interaction.editReply({ embeds: [embed] });
