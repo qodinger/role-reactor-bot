@@ -1,48 +1,46 @@
 /**
  * Giveaway Embeds - Create and format giveaway embeds
- * @module commands/general/giveaway/embeds
+ * @module commands/admin/giveaway/embeds
  */
 
 import { EmbedBuilder } from "discord.js";
 import { THEME, UI_COMPONENTS } from "../../../config/theme.js";
 
+import { getMentionableCommand } from "../../../utils/commandUtils.js";
+
 /**
  * Create a giveaway embed
  * @param {Object} giveaway - Giveaway data
  * @param {number} totalEntries - Total entry count
+ * @param {Object} client - Discord client instance
  * @returns {EmbedBuilder}
  */
-export function createGiveawayEmbed(giveaway, totalEntries = 0) {
+export function createGiveawayEmbed(giveaway, totalEntries = 0, client = null) {
   const embed = new EmbedBuilder()
-    .setTitle("🎉 GIVEAWAY! 🎉")
+    .setTitle(`🎉  ${giveaway.prize}`)
     .setDescription(giveaway.description || "Click the button below to enter!")
     .setColor(giveaway.color || THEME.PRIMARY)
     .addFields(
       {
-        name: "🎁 Prize",
-        value: giveaway.prize,
+        name: "Winners",
+        value: `**${giveaway.winners}**`,
         inline: true,
       },
       {
-        name: "🏆 Winners",
-        value: `${giveaway.winners}`,
+        name: "Entries",
+        value: `**${totalEntries.toLocaleString()}**`,
         inline: true,
       },
       {
-        name: "📊 Entries",
-        value: `${totalEntries.toLocaleString()}`,
+        name: "Ends",
+        value: `<t:${Math.floor(giveaway.endTime.getTime() / 1000)}:R>`,
         inline: true,
       },
     )
-    .addFields({
-      name: "⏰ Ends",
-      value: `<t:${Math.floor(giveaway.endTime.getTime() / 1000)}:R>`,
-      inline: false,
-    })
     .setFooter(
       UI_COMPONENTS.createFooter(
-        `Hosted by ${giveaway.hostUsername || "Server Staff"} • ID: ${giveaway._id.toString().slice(-6)}`
-      )
+        `Hosted by ${giveaway.hostUsername || "Server Staff"} • ID: ${giveaway.shortId || giveaway._id.toString().slice(-6)}`,
+      ),
     )
     .setTimestamp(giveaway.startTime);
 
@@ -54,23 +52,33 @@ export function createGiveawayEmbed(giveaway, totalEntries = 0) {
   const requirements = [];
 
   if (giveaway.requirements?.roles?.length > 0) {
-    requirements.push("• Specific roles required");
+    requirements.push("Specific roles required");
   }
 
   if (giveaway.requirements?.minAccountAge > 0) {
     const days = giveaway.requirements.minAccountAge / (1000 * 60 * 60 * 24);
-    requirements.push(`• Account age: ${days}+ days`);
+    requirements.push(`Account age: ${days}+ days`);
   }
 
   if (giveaway.requirements?.minServerAge > 0) {
     const days = giveaway.requirements.minServerAge / (1000 * 60 * 60 * 24);
-    requirements.push(`• Server member: ${days}+ days`);
+    requirements.push(`Server member: ${days}+ days`);
+  }
+
+  if (giveaway.requirements?.minLevel > 0) {
+    requirements.push(`Minimum Level: **${giveaway.requirements.minLevel}**`);
+  }
+
+  if (giveaway.requirements?.requireVote) {
+    requirements.push(
+      `Must have voted via ${getMentionableCommand(client, "vote")} in the last 12h`,
+    );
   }
 
   if (requirements.length > 0) {
     embed.addFields({
-      name: "📋 Requirements",
-      value: requirements.join("\n"),
+      name: "Requirements",
+      value: requirements.map(r => `${r}`).join("\n"),
       inline: false,
     });
   }
@@ -126,8 +134,8 @@ export async function createWinnerEmbed(giveaway, winners, client) {
       UI_COMPONENTS.createFooter(
         giveaway.winnersData?.[0]?.claimed
           ? "Prize claimed ✓"
-          : "Winners have 48 hours to claim their prize"
-      )
+          : "Winners have 48 hours to claim their prize",
+      ),
     )
     .setTimestamp();
 
@@ -171,83 +179,87 @@ export function createNoEntriesEmbed(giveaway) {
  * @param {Array} giveaways - Array of active giveaways
  * @returns {EmbedBuilder}
  */
-export function createGiveawayListEmbed(giveaways) {
-  const embed = new EmbedBuilder()
-    .setTitle("🎉 Active Giveaways")
-    .setColor(THEME.PRIMARY)
-    .setDescription(
-      giveaways.length === 0
-        ? "There are no active giveaways right now."
-        : "Click on a giveaway to enter!",
-    );
-
-  if (giveaways.length > 0) {
-    const fields = [];
-
-    for (let i = 0; i < Math.min(giveaways.length, 10); i++) {
-      const gw = giveaways[i];
-      const totalEntries = gw.entries.reduce((sum, e) => sum + e.count, 0);
-
-      fields.push({
-        name: `${i + 1}. ${gw.prize}`,
-        value: `🏆 ${gw.winners} winner(s) • 📊 ${totalEntries} entries\n⏰ Ends <t:${Math.floor(gw.endTime.getTime() / 1000)}:R>`,
-        inline: false,
-      });
-    }
-
-    embed.addFields(fields);
-  }
-
-  embed.setFooter(
-    UI_COMPONENTS.createFooter(`Total: ${giveaways.length} active giveaway(s)`)
-  );
-
-  return embed;
-}
-
 /**
- * Create a giveaway stats embed
- * @param {Object} stats - Giveaway statistics
+ * Create a giveaway list embed matching the schedule list design
+ * @param {Array} giveaways - Array of giveaways to display
+ * @param {Object} guild - Discord guild object
+ * @param {number} currentPage - Current page number
+ * @param {number} totalPages - Total number of pages
+ * @param {number} totalGiveaways - Total totalGiveaways count
+ * @param {Object} client - Discord client
+ * @param {boolean} showAll - Whether to show all including ended/cancelled
  * @returns {EmbedBuilder}
  */
-export function createStatsEmbed(stats) {
+export function createGiveawayListEmbed(
+  giveaways,
+  guild,
+  currentPage,
+  totalPages,
+  totalGiveaways,
+  client,
+  showAll = false,
+) {
   const embed = new EmbedBuilder()
-    .setTitle("📊 Giveaway Statistics")
-    .setColor(THEME.PRIMARY)
-    .addFields(
-      {
-        name: "📈 Total Giveaways",
-        value: `${stats.total || 0}`,
-        inline: true,
-      },
-      {
-        name: "🎉 Active",
-        value: `${stats.active || 0}`,
-        inline: true,
-      },
-      {
-        name: "✅ Completed",
-        value: `${stats.completed || 0}`,
-        inline: true,
-      },
-      {
-        name: "🏁 Ended",
-        value: `${stats.ended || 0}`,
-        inline: true,
-      },
-      {
-        name: "🚫 Cancelled",
-        value: `${stats.cancelled || 0}`,
-        inline: true,
-      },
-      {
-        name: "📊 Total Entries",
-        value: `${(stats.totalEntries || 0).toLocaleString()}`,
-        inline: true,
-      },
+    .setTitle("Giveaways")
+    .setDescription(
+      showAll
+        ? `Showing **${totalGiveaways}** giveaway${totalGiveaways !== 1 ? "s" : ""} (including ended, completed, and cancelled)`
+        : `Showing **${totalGiveaways}** active giveaway${totalGiveaways !== 1 ? "s" : ""}`,
     )
-    .setFooter(UI_COMPONENTS.createFooter("Giveaway Statistics"))
-    .setTimestamp();
+    .setColor(THEME.PRIMARY)
+    .setTimestamp()
+    .setFooter({
+      text: `${guild.name} • Page ${currentPage} of ${totalPages || 1}`,
+      iconURL: client.user.displayAvatarURL(),
+    });
+
+  if (giveaways.length === 0) {
+    embed.addFields({
+      name: "No Giveaways Found",
+      value: `No giveaways found. Use ${getMentionableCommand(client, "giveaway create")} to create a new giveaway.`,
+      inline: false,
+    });
+    return embed;
+  }
+
+  for (const gw of giveaways) {
+    const totalEntries = gw.entries.reduce((sum, e) => sum + e.count, 0);
+
+    let statusText = "";
+    let statusColor = "";
+    switch (gw.status) {
+      case "active":
+        statusText = "Active";
+        statusColor = "🟢";
+        break;
+      case "ended":
+        statusText = "Ended";
+        statusColor = "🔴";
+        break;
+      case "completed":
+        statusText = "Completed";
+        statusColor = "✅";
+        break;
+      case "cancelled":
+        statusText = "Cancelled";
+        statusColor = "❌";
+        break;
+      default:
+        statusText = "Unknown";
+        statusColor = "❓";
+    }
+
+    const timeString =
+      gw.status === "active"
+        ? `**Ends:** <t:${Math.floor(new Date(gw.endTime).getTime() / 1000)}:R>`
+        : `**Ended:** <t:${Math.floor(new Date(gw.endTime).getTime() / 1000)}:R>`;
+
+    embed.addFields({
+      name: `${statusColor} ${gw.prize}`,
+      value: `**ID:** \`${gw.shortId || gw.messageId || gw._id.toString()}\`\n**Status:** ${statusText}\n**Winners:** ${gw.winners}\n**Entries:** ${totalEntries}\n${timeString}`,
+      inline: false,
+    });
+  }
 
   return embed;
 }

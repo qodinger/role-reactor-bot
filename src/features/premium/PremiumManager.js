@@ -220,9 +220,7 @@ export class PremiumManager {
         amount: 0,
       });
 
-      const expiresAt = new Date(
-        sub.nextDeductionDate,
-      ).toLocaleDateString();
+      const expiresAt = new Date(sub.nextDeductionDate).toLocaleDateString();
 
       logger.info(
         `🚫 Feature ${featureId} cancelled for guild ${guildId} by ${userId}. Active until ${expiresAt}.`,
@@ -598,9 +596,7 @@ export class PremiumManager {
 
     const daysLeft = Math.max(
       0,
-      Math.ceil(
-        (graceDeadline.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
-      ),
+      Math.ceil((graceDeadline.getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
     );
 
     const guildName = await this._fetchGuildName(guildId);
@@ -703,14 +699,13 @@ export class PremiumManager {
         const allSchedules =
           await storage.dbManager.scheduledRoles.getByGuild(guildId);
         const activeSchedules = Object.values(allSchedules).filter(
-          (s) => !s.executed && !s.cancelled,
+          s => !s.executed && !s.cancelled,
         );
 
         if (activeSchedules.length > FREE_TIER.SCHEDULE_MAX_ACTIVE) {
           const sorted = activeSchedules.sort(
             (a, b) =>
-              new Date(a.createdAt).getTime() -
-              new Date(b.createdAt).getTime(),
+              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
           );
           const toCancel = sorted.slice(FREE_TIER.SCHEDULE_MAX_ACTIVE);
 
@@ -735,15 +730,12 @@ export class PremiumManager {
           "../ticketing/config.js"
         );
         const panels = await storage.getTicketPanelsByGuild(guildId);
-        const enabledPanels = panels.filter(
-          (p) => p.settings?.enabled !== false,
-        );
+        const enabledPanels = panels.filter(p => p.settings?.enabled !== false);
 
         if (enabledPanels.length > TICKET_FREE.MAX_PANELS) {
           const sorted = enabledPanels.sort(
             (a, b) =>
-              new Date(a.createdAt).getTime() -
-              new Date(b.createdAt).getTime(),
+              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
           );
           const toDisable = sorted.slice(TICKET_FREE.MAX_PANELS);
 
@@ -817,7 +809,7 @@ export class PremiumManager {
    * @returns {Object|undefined}
    */
   _resolveFeature(featureId) {
-    return Object.values(PremiumFeatures).find((f) => f.id === featureId);
+    return Object.values(PremiumFeatures).find(f => f.id === featureId);
   }
 
   /**

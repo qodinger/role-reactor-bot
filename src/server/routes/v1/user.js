@@ -28,9 +28,17 @@ router.get("/:userId/payments", internalAuth, apiUserPayments);
 
 // Notification routes
 router.get("/:userId/notifications", internalAuth, apiGetNotifications);
-router.get("/:userId/notifications/unread-count", internalAuth, apiGetUnreadCount);
+router.get(
+  "/:userId/notifications/unread-count",
+  internalAuth,
+  apiGetUnreadCount,
+);
 router.patch("/:userId/notifications/read-all", internalAuth, apiMarkAllAsRead);
-router.patch("/:userId/notifications/:notificationId/read", internalAuth, apiMarkAsRead);
+router.patch(
+  "/:userId/notifications/:notificationId/read",
+  internalAuth,
+  apiMarkAsRead,
+);
 
 // Admin accessible (via internalAuth from website)
 router.get("/", internalAuth, apiListUsers);
@@ -39,4 +47,3 @@ router.patch("/:userId/role", internalAuth, apiSetUserRole);
 router.post("/:userId/cores/manage", internalAuth, apiManageUserCores);
 
 export default router;
-

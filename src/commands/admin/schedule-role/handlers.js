@@ -23,7 +23,6 @@ import {
   generateScheduleId,
 } from "./utils.js";
 import { getDatabaseManager } from "../../../utils/storage/databaseManager.js";
-import { getUserData } from "../../../commands/general/core/utils.js";
 import { FREE_TIER, PRO_TIER } from "../../../features/premium/config.js";
 import { getPremiumManager } from "../../../features/premium/PremiumManager.js";
 
@@ -57,7 +56,9 @@ export async function handleCreate(interaction, client, deferred = false) {
 
     // Get command options
     const action = interaction.options.getString("action"); // "assign" or "remove"
-    const role = /** @type {import('discord.js').Role} */ (interaction.options.getRole("role"));
+    const role = /** @type {import('discord.js').Role} */ (
+      interaction.options.getRole("role")
+    );
     const usersString = interaction.options.getString("users");
     const scheduleType = interaction.options.getString("schedule-type");
     const scheduleInput = interaction.options.getString("schedule");
@@ -86,20 +87,24 @@ export async function handleCreate(interaction, client, deferred = false) {
     }
 
     // VPS Protection: Check active schedule slots
-    const activeOneTimeCount = await dbManager.scheduledRoles.collection.countDocuments({
-      guildId: interaction.guild.id,
-      executed: false,
-      cancelled: false,
-    });
-    const activeRecurringCount = await dbManager.recurringSchedules.collection.countDocuments({
-      guildId: interaction.guild.id,
-      active: true,
-      cancelled: false,
-    });
-    const activeTempCount = await dbManager.temporaryRoles.collection.countDocuments({
-      guildId: interaction.guild.id,
-    });
-    const totalActive = activeOneTimeCount + activeRecurringCount + activeTempCount;
+    const activeOneTimeCount =
+      await dbManager.scheduledRoles.collection.countDocuments({
+        guildId: interaction.guild.id,
+        executed: false,
+        cancelled: false,
+      });
+    const activeRecurringCount =
+      await dbManager.recurringSchedules.collection.countDocuments({
+        guildId: interaction.guild.id,
+        active: true,
+        cancelled: false,
+      });
+    const activeTempCount =
+      await dbManager.temporaryRoles.collection.countDocuments({
+        guildId: interaction.guild.id,
+      });
+    const totalActive =
+      activeOneTimeCount + activeRecurringCount + activeTempCount;
 
     const maxActiveSchedules = isPro
       ? PRO_TIER.SCHEDULE_MAX_ACTIVE

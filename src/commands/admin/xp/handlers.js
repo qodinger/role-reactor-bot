@@ -838,7 +838,7 @@ export async function handleRewardsCommand(interaction, subcommand, _client) {
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   try {
-    const { getLevelRewardsManager, LEVEL_REWARDS_CONFIG } = await import(
+    const { getLevelRewardsManager } = await import(
       "../../../features/experience/LevelRewardsManager.js"
     );
     const { FREE_TIER } = await import("../../../features/premium/config.js");

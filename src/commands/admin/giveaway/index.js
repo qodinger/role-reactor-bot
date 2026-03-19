@@ -1,25 +1,17 @@
 /**
  * Giveaway Command - Main entry point
- * @module commands/general/giveaway/index
+ * @module commands/admin/giveaway/index
  */
 
-import { SlashCommandBuilder } from "discord.js";
+import { SlashCommandBuilder, PermissionFlagsBits } from "discord.js";
 import {
   handleCreate,
   handleList,
-  handleStats,
   handleEnd,
   handleReroll,
   handleCancel,
-  handleInfo,
   handleEdit,
-  handleSetCreatorRole,
-  handleRemoveCreatorRole,
-  handleCreatorRoles,
-  handleSetAllowedChannel,
-  handleRemoveAllowedChannel,
-  handleSettings,
-  handleSetClaimPeriod,
+  handleDelete,
 } from "./handlers.js";
 
 /**
@@ -30,9 +22,11 @@ export const command = {
   description: "Manage server giveaways",
   data: new SlashCommandBuilder()
     .setName("giveaway")
-    .setDescription("Manage server giveaways")
+    .setDescription("Create and manage server giveaways")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+    .setDMPermission(false)
 
-    // User commands
+    // Giveaway Management Subcommands
     .addSubcommand(subcommand =>
       subcommand
         .setName("create")
@@ -48,10 +42,10 @@ export const command = {
         .addIntegerOption(option =>
           option
             .setName("winners")
-            .setDescription("Number of winners")
+            .setDescription("Number of winners (1-20, default: 1)")
             .setRequired(true)
             .setMinValue(1)
-            .setMaxValue(10),
+            .setMaxValue(20),
         )
         .addStringOption(option =>
           option
@@ -77,27 +71,65 @@ export const command = {
             .setName("required-role")
             .setDescription("Role required to enter (optional)")
             .setRequired(false),
+        )
+        .addIntegerOption(option =>
+          option
+            .setName("min-level")
+            .setDescription("Minimum XP level required to enter (optional)")
+            .setRequired(false)
+            .setMinValue(1),
+        )
+        .addBooleanOption(option =>
+          option
+            .setName("require-vote")
+            .setDescription(
+              "Require users to have voted on top.gg in the last 12h (optional)",
+            )
+            .setRequired(false),
+        )
+        .addIntegerOption(option =>
+          option
+            .setName("claim-period")
+            .setDescription("Hours winners have to claim prizes (default: 48)")
+            .setRequired(false)
+            .setMinValue(1)
+            .setMaxValue(168),
+        )
+        .addIntegerOption(option =>
+          option
+            .setName("min-account-age")
+            .setDescription("Minimum Discord account age in days (optional)")
+            .setRequired(false)
+            .setMinValue(1)
+            .setMaxValue(365),
+        )
+        .addIntegerOption(option =>
+          option
+            .setName("min-server-age")
+            .setDescription("Minimum server membership in days (optional)")
+            .setRequired(false)
+            .setMinValue(1)
+            .setMaxValue(365),
         ),
-    )
-    .addSubcommand(subcommand =>
-      subcommand.setName("list").setDescription("List all active giveaways"),
-    )
-    .addSubcommand(subcommand =>
-      subcommand.setName("stats").setDescription("View giveaway statistics"),
     )
     .addSubcommand(subcommand =>
       subcommand
-        .setName("info")
-        .setDescription("View information about a specific giveaway")
-        .addStringOption(option =>
-          option
-            .setName("giveaway-id")
-            .setDescription("The giveaway ID")
-            .setRequired(true),
+        .setName("list")
+        .setDescription("List active giveaways")
+        .addIntegerOption(opt =>
+          opt
+            .setName("page")
+            .setDescription("Page number (default: 1)")
+            .setRequired(false)
+            .setMinValue(1),
+        )
+        .addBooleanOption(opt =>
+          opt
+            .setName("show-all")
+            .setDescription("Show all giveaways including ended and cancelled")
+            .setRequired(false),
         ),
     )
-
-    // Admin management commands
     .addSubcommand(subcommand =>
       subcommand
         .setName("end")
@@ -125,13 +157,24 @@ export const command = {
             .setDescription("Number of winners (default: original count)")
             .setRequired(false)
             .setMinValue(1)
-            .setMaxValue(10),
+            .setMaxValue(20),
         ),
     )
     .addSubcommand(subcommand =>
       subcommand
         .setName("cancel")
         .setDescription("Cancel a giveaway without selecting winners")
+        .addStringOption(option =>
+          option
+            .setName("giveaway-id")
+            .setDescription("The giveaway ID")
+            .setRequired(true),
+        ),
+    )
+    .addSubcommand(subcommand =>
+      subcommand
+        .setName("delete")
+        .setDescription("Permanently delete a giveaway from the database")
         .addStringOption(option =>
           option
             .setName("giveaway-id")
@@ -162,7 +205,7 @@ export const command = {
             .setDescription("New number of winners")
             .setRequired(false)
             .setMinValue(1)
-            .setMaxValue(10),
+            .setMaxValue(20),
         )
         .addStringOption(option =>
           option
@@ -170,79 +213,6 @@ export const command = {
             .setDescription("New giveaway description")
             .setRequired(false)
             .setMaxLength(1000),
-        ),
-    )
-
-    // Creator role management
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName("set-creator-role")
-        .setDescription("Allow a role to create giveaways")
-        .addRoleOption(option =>
-          option
-            .setName("role")
-            .setDescription("Role to grant giveaway creation permissions")
-            .setRequired(true),
-        ),
-    )
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName("remove-creator-role")
-        .setDescription("Remove giveaway creation permissions from a role")
-        .addRoleOption(option =>
-          option
-            .setName("role")
-            .setDescription("Role to remove giveaway creation permissions")
-            .setRequired(true),
-        ),
-    )
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName("creator-roles")
-        .setDescription("List all roles that can create giveaways"),
-    )
-
-    // Channel restrictions
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName("set-allowed-channel")
-        .setDescription("Allow giveaways in a specific channel")
-        .addChannelOption(option =>
-          option
-            .setName("channel")
-            .setDescription("Channel to allow giveaways in")
-            .setRequired(true),
-        ),
-    )
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName("remove-allowed-channel")
-        .setDescription("Remove giveaway permissions from a channel")
-        .addChannelOption(option =>
-          option
-            .setName("channel")
-            .setDescription("Channel to remove giveaway permissions from")
-            .setRequired(true),
-        ),
-    )
-
-    // Settings
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName("settings")
-        .setDescription("View current giveaway settings"),
-    )
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName("set-claim-period")
-        .setDescription("Set how long winners have to claim prizes")
-        .addIntegerOption(option =>
-          option
-            .setName("hours")
-            .setDescription("Hours to claim prize (1-168)")
-            .setRequired(true)
-            .setMinValue(1)
-            .setMaxValue(168),
         ),
     ),
 
@@ -256,21 +226,12 @@ export const command = {
       const subcommand = interaction.options.getSubcommand();
 
       switch (subcommand) {
-        // Public commands (everyone can use)
         case "create":
           await handleCreate(interaction);
           break;
         case "list":
           await handleList(interaction);
           break;
-        case "stats":
-          await handleStats(interaction);
-          break;
-        case "info":
-          await handleInfo(interaction);
-          break;
-
-        // Admin management commands (permission required)
         case "end":
           await handleEnd(interaction);
           break;
@@ -280,37 +241,12 @@ export const command = {
         case "cancel":
           await handleCancel(interaction);
           break;
+        case "delete":
+          await handleDelete(interaction);
+          break;
         case "edit":
           await handleEdit(interaction);
           break;
-
-        // Creator role management
-        case "set-creator-role":
-          await handleSetCreatorRole(interaction);
-          break;
-        case "remove-creator-role":
-          await handleRemoveCreatorRole(interaction);
-          break;
-        case "creator-roles":
-          await handleCreatorRoles(interaction);
-          break;
-
-        // Channel restrictions
-        case "set-allowed-channel":
-          await handleSetAllowedChannel(interaction);
-          break;
-        case "remove-allowed-channel":
-          await handleRemoveAllowedChannel(interaction);
-          break;
-
-        // Settings
-        case "settings":
-          await handleSettings(interaction);
-          break;
-        case "set-claim-period":
-          await handleSetClaimPeriod(interaction);
-          break;
-
         default:
           await interaction.reply({
             content: "Unknown subcommand",

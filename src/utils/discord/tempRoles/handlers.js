@@ -7,7 +7,6 @@ import { FREE_TIER, PRO_TIER } from "../../../features/premium/config.js";
 import { getPremiumManager } from "../../../features/premium/PremiumManager.js";
 
 // Constants
-const MAX_USERS_PER_ASSIGNMENT = 10;
 
 /**
  * Adds a temporary role to a user.

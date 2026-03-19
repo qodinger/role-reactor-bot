@@ -34,8 +34,6 @@ export async function createSupportButtons() {
     );
   }
 
-
-
   // Add buttons to row if any exist
   if (buttons.length > 0) {
     row.addComponents(...buttons);

@@ -1,4 +1,5 @@
 import { getLogger } from "../../../utils/logger.js";
+import { getMentionableCommand } from "../../../utils/commandUtils.js";
 import {
   parseDuration,
   removeTemporaryRole,
@@ -252,7 +253,7 @@ export async function validateTemporaryRole(userId, roleId, guildId) {
       return {
         valid: false,
         error: "This role is not assigned as a temporary role to the user.",
-        solution: "Use `/temp-roles list` to see active temporary roles.",
+        solution: `Use ${getMentionableCommand(null, "temp-roles list")} to see active temporary roles.`,
       };
     }
 
@@ -501,7 +502,13 @@ export function logTempRoleAssignment(
  * @param {import('discord.js').Guild} guild
  * @param {number} executionTime
  */
-export function logTempRolesListing(user, targetUser, count, guild, executionTime) {
+export function logTempRolesListing(
+  user,
+  targetUser,
+  count,
+  guild,
+  executionTime,
+) {
   const logger = getLogger();
   const action = targetUser
     ? `for user ${targetUser.tag} (${targetUser.id})`

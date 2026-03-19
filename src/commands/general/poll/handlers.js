@@ -11,6 +11,7 @@ import { getStorageManager as defaultGetStorageManager } from "../../../utils/st
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 import { THEME, EMOJIS } from "../../../config/theme.js";
 import { parsePollOptions } from "./utils.js";
+import { getMentionableCommand } from "../../../utils/commandUtils.js";
 import {
   createPollCreationModal,
   createPollCreationMenu,
@@ -25,7 +26,7 @@ const logger = getLogger();
  * @param {import('discord.js').Client} client - The Discord client
  * @param {boolean} _deferred - Whether the interaction was deferred
  * @param {Object} options - Optional dependencies for testing
- * @param {Function} options.getStorageManager - Optional storage manager getter
+ * @param {Function} [options.getStorageManager] - Optional storage manager getter
  */
 export async function handlePollEnd(
   interaction,
@@ -49,7 +50,7 @@ export async function handlePollEnd(
         errorEmbed({
           title: "Poll Not Found",
           description: `No poll found with ID: \`${pollId}\``,
-          solution: "Use `/poll list` to see available polls and their IDs.",
+          solution: `Use ${getMentionableCommand(interaction.client, "poll list")} to see available polls and their IDs.`,
         }),
       );
     }
@@ -58,8 +59,8 @@ export async function handlePollEnd(
     if (
       poll.creatorId !== interaction.user.id &&
       (!interaction.member ||
-        !interaction.member.permissions ||
-        !interaction.member.permissions.has("Administrator"))
+        typeof interaction.member.permissions === "string" ||
+        !interaction.member.permissions.has(PermissionFlagsBits.Administrator))
     ) {
       return await interaction.editReply(
         errorEmbed({
@@ -83,7 +84,9 @@ export async function handlePollEnd(
     }
 
     // Get the poll message and end it using Discord's native API
-    const channel = await client.channels.fetch(poll.channelId);
+    const channel = /** @type {import('discord.js').TextChannel} */ (
+      await client.channels.fetch(poll.channelId)
+    );
     const message = await channel.messages.fetch(poll.messageId);
 
     if (!message.poll) {
@@ -134,7 +137,7 @@ const POLL_CONSTANTS = {
 
 /**
  * Create poll from validated data (reusable function)
- * @param {import("discord.js").Interaction} interaction - The interaction object
+ * @param {import("discord.js").ChatInputCommandInteraction | import("discord.js").ModalSubmitInteraction} interaction - The interaction object
  * @param {Object} pollData - Poll data object
  */
 async function createPollFromData(interaction, pollData) {
@@ -173,7 +176,6 @@ async function createPollFromData(interaction, pollData) {
     // Send confirmation to the user who created the poll
     await interaction.editReply({
       content: `**Poll Created Successfully!**\nThe poll has been posted in this channel for everyone to vote.`,
-      flags: MessageFlags.Ephemeral,
     });
 
     logger.info(`Native Discord poll created successfully: ${pollMessage.id}`);
@@ -256,7 +258,6 @@ export async function handlePollCreateModal(
             solution:
               "Please try again or contact support if the issue persists.",
           }),
-          { flags: MessageFlags.Ephemeral },
         );
       } catch (replyError) {
         logger.error("Failed to send error reply", replyError);
@@ -338,7 +339,6 @@ export async function handlePollCreationSelect(interaction, client) {
             solution:
               "Please try again or contact support if the issue persists.",
           }),
-          { flags: MessageFlags.Ephemeral },
         );
       } catch (replyError) {
         logger.error("Failed to send error reply", replyError);
@@ -368,7 +368,6 @@ export async function handlePollCreationButton(interaction, _client) {
               "Please select both duration and vote type before continuing.",
             solution: "Use the dropdowns above to make your selections first.",
           }),
-          { flags: MessageFlags.Ephemeral },
         );
       }
 
@@ -395,7 +394,6 @@ export async function handlePollCreationButton(interaction, _client) {
             solution:
               "Please try again or contact support if the issue persists.",
           }),
-          { flags: MessageFlags.Ephemeral },
         );
       } catch (replyError) {
         logger.error("Failed to send error reply", replyError);
@@ -406,7 +404,7 @@ export async function handlePollCreationButton(interaction, _client) {
 
 /**
  * Update poll creation menu with selections
- * @param {import("discord.js").Interaction} interaction - The interaction
+ * @param {import("discord.js").MessageComponentInteraction} interaction - The interaction
  * @param {Object} selections - Current selections
  * @param {import("discord.js").Client} client - The Discord client
  */
@@ -558,7 +556,7 @@ export async function handlePollCreateFromModal(interaction, _client) {
     );
 
     // Create the poll using the reusable function
-    await createPollFromData(interaction, {
+    await createPollFromData(/** @type {any} */ (interaction), {
       question,
       options,
       duration,
@@ -583,7 +581,7 @@ export async function handlePollCreateFromModal(interaction, _client) {
 
 /**
  * Create a poll card for display in the poll list
- * @param {import("discord.js").CommandInteraction} interaction - The interaction object
+ * @param {import("discord.js").ChatInputCommandInteraction | import("discord.js").ButtonInteraction} interaction - The interaction object
  * @param {Object} poll - The poll object
  * @param {number} pollNumber - The poll number for display
  * @returns {Promise<string>} The formatted poll card
@@ -660,11 +658,11 @@ async function createPollCard(interaction, poll, pollNumber) {
 
 /**
  * Handle poll listing with beautiful embed design
- * @param {import("discord.js").CommandInteraction} interaction - The interaction object
+ * @param {import("discord.js").ChatInputCommandInteraction} interaction - The interaction object
  * @param {import("discord.js").Client} _client - The Discord client
  * @param {boolean} _deferred - Whether the interaction was deferred
  * @param {Object} options - Optional dependencies for testing
- * @param {Function} options.getStorageManager - Optional storage manager getter
+ * @param {Function} [options.getStorageManager] - Optional storage manager getter
  */
 export async function handlePollList(
   interaction,
@@ -685,8 +683,7 @@ export async function handlePollList(
         `[PollList] Already slow at start (${initialTime}ms), sending quick response`,
       );
       return await interaction.editReply({
-        content: `**No Polls Found**\n\nThere are currently no polls in this server.\nCreate a new poll using \`/poll create\` to get started!`,
-        flags: MessageFlags.Ephemeral,
+        content: `**No Polls Found**\n\nThere are currently no polls in this server.\nCreate a new poll using ${getMentionableCommand(interaction.client, "poll create")} to get started!`,
       });
     }
 
@@ -753,8 +750,8 @@ export async function handlePollList(
     if (pollsToShow.length === 0) {
       const title = showEnded ? `Polls` : `Active Polls`;
       const description = showEnded
-        ? `**No polls found in this server.**\n\nCreate your first poll using \`/poll create\` to get started!`
-        : `**No active polls found.**\n\nCreate a new poll using \`/poll create\` to get started!`;
+        ? `**No polls found in this server.**\n\nCreate your first poll using ${getMentionableCommand(interaction.client, "poll create")} to get started!`
+        : `**No active polls found.**\n\nCreate a new poll using ${getMentionableCommand(interaction.client, "poll create")} to get started!`;
 
       const emptyEmbed = new EmbedBuilder()
         .setTitle(title)
@@ -762,13 +759,12 @@ export async function handlePollList(
         .setColor(THEME.TEXT_MUTED)
         .addFields({
           name: `Quick Start`,
-          value:
-            "• Use `/poll create` to create a new poll\n• Set duration from 1 hour to 7 days\n• Choose single or multiple choice voting\n• Add emojis to make polls more engaging",
+          value: `• Use ${getMentionableCommand(interaction.client, "poll create")} to create a new poll\n• Set duration from 1 hour to 7 days\n• Choose single or multiple choice voting\n• Add emojis to make polls more engaging`,
           inline: false,
         })
         .setFooter({
           text: `${interaction.guild.name} • Poll System`,
-          iconURL: interaction.guild.iconURL({ dynamic: true }),
+          iconURL: interaction.guild.iconURL(),
         })
         .setTimestamp();
 
@@ -780,8 +776,7 @@ export async function handlePollList(
         );
         try {
           const result = await interaction.editReply({
-            content: `**No Active Polls Found**\n\nThere are currently no active polls in this server.\nCreate a new poll using \`/poll create\` to get started!`,
-            flags: MessageFlags.Ephemeral,
+            content: `**No Active Polls Found**\n\nThere are currently no active polls in this server.\nCreate a new poll using ${getMentionableCommand(interaction.client, "poll create")} to get started!`,
           });
           return result;
         } catch (error) {
@@ -793,7 +788,6 @@ export async function handlePollList(
       try {
         const result = await interaction.editReply({
           embeds: [emptyEmbed],
-          flags: MessageFlags.Ephemeral,
         });
         return result;
       } catch (error) {
@@ -803,8 +797,7 @@ export async function handlePollList(
         );
         // Fallback to simple text reply
         return await interaction.editReply({
-          content: `**No Active Polls Found**\n\nThere are currently no active polls in this server.\nCreate a new poll using \`/poll create\` to get started!`,
-          flags: MessageFlags.Ephemeral,
+          content: `**No Active Polls Found**\n\nThere are currently no active polls in this server.\nCreate a new poll using ${getMentionableCommand(interaction.client, "poll create")} to get started!`,
         });
       }
     }
@@ -832,7 +825,7 @@ export async function handlePollList(
       .setColor(showEnded ? THEME.TEXT_MUTED : THEME.PRIMARY)
       .setFooter({
         text: `${interaction.guild.name} • Poll System`,
-        iconURL: interaction.guild.iconURL({ dynamic: true }),
+        iconURL: interaction.guild.iconURL(),
       })
       .setTimestamp();
 
@@ -847,12 +840,20 @@ export async function handlePollList(
 
       // Process left poll
       const leftPollCard = leftPoll
-        ? await createPollCard(interaction, leftPoll, leftPollNumber)
+        ? await createPollCard(
+            /** @type {any} */ (interaction),
+            leftPoll,
+            leftPollNumber,
+          )
         : null;
 
       // Process right poll
       const rightPollCard = rightPoll
-        ? await createPollCard(interaction, rightPoll, rightPollNumber)
+        ? await createPollCard(
+            /** @type {any} */ (interaction),
+            rightPoll,
+            rightPollNumber,
+          )
         : null;
 
       // Add fields for 2-column layout
@@ -910,7 +911,7 @@ export async function handlePollList(
         );
       }
 
-      components.push(paginationRow);
+      components.push(paginationRow.toJSON());
     }
 
     // No action buttons needed - users can use /poll create command directly
@@ -924,7 +925,6 @@ export async function handlePollList(
     return await interaction.editReply({
       embeds: [mainEmbed],
       components,
-      flags: MessageFlags.Ephemeral,
     });
   } catch (error) {
     logger.error("Error listing polls", error);
@@ -941,7 +941,7 @@ export async function handlePollList(
 
 /**
  * Handle poll deletion
- * @param {import("discord.js").CommandInteraction} interaction - The interaction object
+ * @param {import("discord.js").ChatInputCommandInteraction} interaction - The interaction object
  * @param {import("discord.js").Client} _client - The Discord client
  */
 export async function handlePollDelete(
@@ -969,10 +969,14 @@ export async function handlePollDelete(
 
     // Check if user can delete this poll
     const isCreator = poll.creatorId === interaction.user.id;
+    const member = /** @type {import("discord.js").GuildMember} */ (
+      interaction.member
+    );
     const isAdmin =
-      interaction.member &&
-      interaction.member.permissions &&
-      interaction.member.permissions.has(PermissionFlagsBits.ManageMessages);
+      member &&
+      member.permissions &&
+      typeof member.permissions !== "string" &&
+      member.permissions.has(PermissionFlagsBits.ManageMessages);
 
     if (!isCreator && !isAdmin) {
       return await interaction.editReply(
@@ -989,7 +993,9 @@ export async function handlePollDelete(
     // Try to delete the poll message from Discord channel
     let messageDeleted = false;
     try {
-      const channel = await interaction.guild.channels.fetch(poll.channelId);
+      const channel = /** @type {import("discord.js").TextChannel} */ (
+        await interaction.guild.channels.fetch(poll.channelId)
+      );
       const message = await channel.messages.fetch(poll.messageId);
       await message.delete();
       messageDeleted = true;
@@ -1022,7 +1028,6 @@ export async function handlePollDelete(
 
     return await interaction.editReply({
       content: responseMessage,
-      flags: MessageFlags.Ephemeral,
     });
   } catch (error) {
     logger.error("Error deleting poll", error);
@@ -1115,8 +1120,8 @@ export async function handlePollListButton(interaction, _client) {
           ? `${EMOJIS.UI.PROGRESS} Polls`
           : `${EMOJIS.UI.PROGRESS} Active Polls`;
         const description = showEnded
-          ? `**No polls found in this server.**\n\nCreate your first poll using \`/poll create\` to get started!`
-          : `**No active polls found.**\n\nCreate a new poll using \`/poll create\` to get started!`;
+          ? `**No polls found in this server.**\n\nCreate your first poll using ${getMentionableCommand(interaction.client, "poll create")} to get started!`
+          : `**No active polls found.**\n\nCreate a new poll using ${getMentionableCommand(interaction.client, "poll create")} to get started!`;
 
         const emptyEmbed = new EmbedBuilder()
           .setTitle(title)
@@ -1124,13 +1129,12 @@ export async function handlePollListButton(interaction, _client) {
           .setColor(THEME.TEXT_MUTED)
           .addFields({
             name: `Quick Start`,
-            value:
-              "• Use `/poll create` to create a new poll\n• Set duration from 1 hour to 7 days\n• Choose single or multiple choice voting\n• Add emojis to make polls more engaging",
+            value: `• Use ${getMentionableCommand(interaction.client, "poll create")} to create a new poll\n• Set duration from 1 hour to 7 days\n• Choose single or multiple choice voting\n• Add emojis to make polls more engaging`,
             inline: false,
           })
           .setFooter({
             text: `${interaction.guild.name} • Poll System`,
-            iconURL: interaction.guild.iconURL({ dynamic: true }),
+            iconURL: interaction.guild.iconURL(),
           })
           .setTimestamp();
 
@@ -1163,7 +1167,7 @@ export async function handlePollListButton(interaction, _client) {
         .setColor(showEnded ? THEME.TEXT_MUTED : THEME.PRIMARY)
         .setFooter({
           text: `${interaction.guild.name} • Poll System`,
-          iconURL: interaction.guild.iconURL({ dynamic: true }),
+          iconURL: interaction.guild.iconURL(),
         })
         .setTimestamp();
 
@@ -1178,12 +1182,20 @@ export async function handlePollListButton(interaction, _client) {
 
         // Process left poll
         const leftPollCard = leftPoll
-          ? await createPollCard(interaction, leftPoll, leftPollNumber)
+          ? await createPollCard(
+              /** @type {any} */ (interaction),
+              leftPoll,
+              leftPollNumber,
+            )
           : null;
 
         // Process right poll
         const rightPollCard = rightPoll
-          ? await createPollCard(interaction, rightPoll, rightPollNumber)
+          ? await createPollCard(
+              /** @type {any} */ (interaction),
+              rightPoll,
+              rightPollNumber,
+            )
           : null;
 
         // Add fields for 2-column layout
@@ -1241,7 +1253,7 @@ export async function handlePollListButton(interaction, _client) {
           );
         }
 
-        components.push(paginationRow);
+        components.push(paginationRow.toJSON());
       }
 
       await interaction.editReply({
@@ -1260,7 +1272,6 @@ export async function handlePollListButton(interaction, _client) {
         description: "An error occurred while processing the button.",
         solution: "Please try again or contact support if the issue persists.",
       }),
-      { flags: MessageFlags.Ephemeral },
     );
   }
 }

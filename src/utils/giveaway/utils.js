@@ -4,6 +4,8 @@
  */
 
 import { PermissionFlagsBits } from "discord.js";
+import { getExperienceManager } from "../../features/experience/ExperienceManager.js";
+import { getDatabaseManager } from "../storage/databaseManager.js";
 
 /**
  * Parse duration string to milliseconds
@@ -85,9 +87,9 @@ export function canManageGiveaways(member) {
  * Validate giveaway requirements for a user
  * @param {Object} giveaway - Giveaway data
  * @param {Object} member - Guild member
- * @returns {Object} Validation result
+ * @returns {Promise<Object>} Validation result
  */
-export function validateRequirements(giveaway, member) {
+export async function validateRequirements(giveaway, member) {
   const result = {
     valid: true,
     errors: [],
@@ -139,6 +141,41 @@ export function validateRequirements(giveaway, member) {
   if (member.user.bot && !giveaway.allowBotEntries) {
     result.valid = false;
     result.errors.push("Bots cannot enter this giveaway.");
+  }
+
+  // Next-Gen Ecosystem Checks
+  if (giveaway.requirements?.minLevel > 0) {
+    const experienceManager = await getExperienceManager();
+    const userData = await experienceManager.getUserData(
+      member.guild.id,
+      member.user.id,
+    );
+    const userLevel = experienceManager.calculateLevel(userData.totalXP);
+
+    if (userLevel < giveaway.requirements.minLevel) {
+      result.valid = false;
+      result.errors.push(
+        `You must be at least **Level ${giveaway.requirements.minLevel}** to enter this giveaway.`,
+      );
+    }
+  }
+
+  if (giveaway.requirements?.requireVote) {
+    const dbManager = await getDatabaseManager();
+    const userCredits = await dbManager.connectionManager.db
+      .collection("credits")
+      .findOne({ userId: member.user.id });
+
+    if (
+      !userCredits ||
+      !userCredits.lastVote ||
+      Date.now() - userCredits.lastVote > 12 * 60 * 60 * 1000
+    ) {
+      result.valid = false;
+      result.errors.push(
+        "You must have voted recently to enter this giveaway. Use the </vote:1483332825137680384> command to vote now!",
+      );
+    }
   }
 
   return result;
@@ -199,9 +236,9 @@ export function validateGiveawayCreation(options) {
     result.errors.push("At least 1 winner is required.");
   }
 
-  if (options.winners && options.winners > 10) {
+  if (options.winners && options.winners > 20) {
     result.valid = false;
-    result.errors.push("Maximum 10 winners allowed.");
+    result.errors.push("Maximum 20 winners allowed.");
   }
 
   // Validate duration

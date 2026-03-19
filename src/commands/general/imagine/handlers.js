@@ -267,7 +267,7 @@ export async function handleImagineCommand(interaction, _client) {
     const errorEmbed = createImagineErrorEmbed({
       interaction,
       prompt: originalPrompt,
-      error: `Insufficient credits. You need **${creditsNeeded} Core** to generate images. Your balance: **${userData.credits || 0} Core**.`,
+      error: `Insufficient energy. You need **${creditsNeeded} Core** to generate images. Your balance: **${userData.credits || 0} Core**.`,
     });
     await interaction.editReply({ embeds: [errorEmbed] });
     return;

@@ -408,12 +408,15 @@ export class ChatService {
    * @param {import('discord.js').Guild} guild - Discord guild (optional)
    * @param {import('discord.js').Client} client - Discord client
    * @param {Object} options - Additional options
-   * @param {string} options.userId - User ID for rate limiting
-   * @param {Object} options.coreUserData - Core user data for priority
-   * @param {import('discord.js').User} options.user - User object (required for command execution)
-   * @param {import('discord.js').Channel} options.channel - Channel object (required for command execution)
-   * @param {string} options.locale - User's locale (e.g., "en-US", "en-GB") for date/time formatting
-   * @returns {Promise<string>} AI response text
+   * @param {string} [options.userId] - User ID for rate limiting
+   * @param {Object} [options.coreUserData] - Core user data for priority
+   * @param {import('discord.js').User} [options.user] - User object (required for command execution)
+   * @param {import('discord.js').Channel} [options.channel] - Channel object (required for command execution)
+   * @param {string} [options.locale] - User's locale (e.g., "en-US", "en-GB")
+   * @param {Function} [options.onStatus] - Callback for status updates
+   * @param {Function} [options.onQueueStatus] - Callback for queue status updates
+   * @param {boolean} [options.rateLimitReserved] - Whether rate limit is already reserved
+   * @returns {Promise<any>} AI response (string or object)
    */
   async generateResponse(userMessage, guild, client, options = {}) {
     // Track performance - start timer
@@ -537,7 +540,14 @@ export class ChatService {
    * @param {import('discord.js').Guild} guild - Discord guild
    * @param {import('discord.js').Client} client - Discord client
    * @param {Object} options - Additional options
-   * @param {Function} options.onChunk - Callback for each chunk (fullText: string) => void
+   * @param {Function} [options.onChunk] - Callback for each chunk (fullText: string) => void
+   * @param {string} [options.userId] - User ID for rate limiting
+   * @param {Object} [options.coreUserData] - Core user data for priority
+   * @param {import('discord.js').User} [options.user] - User object (required for command execution)
+   * @param {import('discord.js').Channel} [options.channel] - Channel object (required for command execution)
+   * @param {string} [options.locale] - User's locale (e.g., "en-US", "en-GB")
+   * @param {Function} [options.onStatus] - Callback for status updates
+   * @param {boolean} [options.rateLimitReserved] - Whether rate limit is already reserved
    * @returns {Promise<Object>} Response with text and commandResponses
    */
   async generateResponseStreaming(userMessage, guild, client, options = {}) {

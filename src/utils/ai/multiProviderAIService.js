@@ -160,7 +160,7 @@ export class MultiProviderAIService {
   /**
    * Get a specific provider instance
    * @param {string} providerName - Name of the provider (comfyui, stability, etc.)
-   * @returns {Object|null} Provider instance or null if not found
+   * @returns {Promise<Object|null>} Provider instance or null if not found
    */
   async getProvider(providerName) {
     // Ensure config is loaded
@@ -191,7 +191,8 @@ export class MultiProviderAIService {
    * @param {string} options.type - Type of generation (image, text)
    * @param {string} options.prompt - Input prompt
    * @param {Object} options.config - Additional configuration
-   * @param {string} options.provider - Force specific provider (optional)
+   * @param {string} [options.provider] - Force specific provider (optional)
+   * @param {Function} [options.progressCallback] - Optional callback for progress updates
    * @returns {Promise<Object>} Generated content
    */
   async generate(options) {

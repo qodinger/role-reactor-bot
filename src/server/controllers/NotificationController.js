@@ -47,7 +47,7 @@ export async function apiGetNotifications(req, res) {
 
     res.json(
       createSuccessResponse({
-        notifications: notifications.map((n) => ({
+        notifications: notifications.map(n => ({
           id: n._id.toString(),
           type: n.type,
           title: n.title,
@@ -140,7 +140,12 @@ export async function apiMarkAsRead(req, res) {
       userId,
     );
 
-    res.json(createSuccessResponse({ success, message: "Notification marked as read" }));
+    res.json(
+      createSuccessResponse({
+        success,
+        message: "Notification marked as read",
+      }),
+    );
   } catch (error) {
     logger.error("❌ Error marking notification as read:", error);
     const { statusCode, response } = createErrorResponse(

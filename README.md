@@ -40,6 +40,8 @@ A powerful Discord bot that helps you manage your server with role management, A
 - **📊 XP System**: Configurable experience system with level progression and leaderboards
 - **🎨 AI Avatar Generation**: AI-powered avatar generation with multiple style options
 - **💎 Core Credit System**: Credit-based economy for avatar generation with crypto payment integration
+- **🗳️ Voting Rewards**: Earn Core Credits automatically by voting for the bot on top.gg
+- **🔔 Notification System**: Web dashboard notifications for balance, purchases, and Pro Engine context
 - **📊 Poll System**: Create and manage native Discord polls with interactive forms
 - **🛡️ Moderation System**: Comprehensive moderation tools with timeout, warnings, bans, kicks, and history tracking
 - **🎙️ Voice Control**: Automatically manage users in voice channels based on roles (disconnect, mute, deafen, move)
@@ -343,6 +345,12 @@ Automatically manage users in voice channels based on roles:
 /core pricing
 ```
 
+**Voting Rewards:**
+
+```
+/vote
+```
+
 **Poll System:**
 
 ```
@@ -435,6 +443,7 @@ Automatically manage users in voice channels based on roles:
 | `/avatar`       | Generate AI-powered avatars with custom prompts | None        |
 | `/core balance` | Check your current Core balance and tier status | None        |
 | `/core pricing` | View Core pricing and membership benefits       | None        |
+| `/vote`         | Vote for the bot on top.gg to earn Core Credits | None        |
 | `/poll create`  | Create a new poll using interactive form        | None        |
 | `/poll list`    | List all polls in the server                    | None        |
 | `/poll end`     | End an active poll early                        | None        |
@@ -554,6 +563,8 @@ The bot includes comprehensive health monitoring:
 - **🎫 Ticket System**: Complete support ticket system with panels, transcripts (HTML/JSON/Markdown), and lifecycle management
 - **🎨 AI Avatar Generation**: AI-powered avatar creation with multiple style options and content filtering
 - **💎 Core Credit System**: Credit-based economy for avatar generation with crypto payment integration
+- **🔔 Notification System**: Comprehensive in-app web notifications for account updates, purchases, and rewards
+- **🗳️ Voting Rewards**: Receive 1 Core Credit every 12 hours seamlessly synced to your account
 - **📊 Poll System**: Native Discord poll creation and management with interactive forms
 - **🛡️ Moderation System**: Comprehensive moderation tools with bulk operations and history tracking
 - **🎙️ Voice Control**: Automatic voice channel management based on roles

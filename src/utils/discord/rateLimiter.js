@@ -115,9 +115,12 @@ export async function isRateLimited(userId, commandName, coreUserData = null) {
   let multiplier = 1.0;
   if (coreUserData) {
     // Check if new statusCode exists, otherwise fallback to old string checking
-    const code = coreUserData.coreStatusCode !== undefined 
-      ? coreUserData.coreStatusCode
-      : (coreUserData.coreTier === "Pro Engine" ? CORE_STATUS.PRO : CORE_STATUS.REGULAR);
+    const code =
+      coreUserData.coreStatusCode !== undefined
+        ? coreUserData.coreStatusCode
+        : coreUserData.coreTier === "Pro Engine"
+          ? CORE_STATUS.PRO
+          : CORE_STATUS.REGULAR;
     multiplier = getCoreRateLimitMultiplier(code);
   } else {
     try {
@@ -159,9 +162,12 @@ export async function isInteractionRateLimited(userId, coreUserData = null) {
   // Get Core tier multiplier if not provided
   let multiplier = 1.0;
   if (coreUserData) {
-    const code = coreUserData.coreStatusCode !== undefined 
-      ? coreUserData.coreStatusCode
-      : (coreUserData.coreTier === "Pro Engine" ? CORE_STATUS.PRO : CORE_STATUS.REGULAR);
+    const code =
+      coreUserData.coreStatusCode !== undefined
+        ? coreUserData.coreStatusCode
+        : coreUserData.coreTier === "Pro Engine"
+          ? CORE_STATUS.PRO
+          : CORE_STATUS.REGULAR;
     multiplier = getCoreRateLimitMultiplier(code);
   } else {
     try {

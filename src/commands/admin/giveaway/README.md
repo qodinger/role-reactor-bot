@@ -10,7 +10,7 @@ A complete giveaway management system for Discord servers with advanced security
 - **Automatic Timer**: Giveaways end automatically at specified time
 - **Fair Winner Selection**: Weighted random selection with bonus entries
 - **One-Click Entry**: Users enter with a single button click
-- **Multiple Winners**: Support for 1-10 winners per giveaway
+- **Multiple Winners**: Support for 1-5 winners (up to 20 with Pro Engine)
 - **Auto DM Winners**: Automatic winner notifications via DM
 
 ### 🔒 Security Features (Industry Standard)
@@ -38,21 +38,19 @@ A complete giveaway management system for Discord servers with advanced security
 
 ## 📋 Commands
 
-### `/giveaway` (All-in-One)
+### `/giveaway` (All-in-One Management)
 
-**Public Subcommands** (Everyone can use):
-
-- `/giveaway list` - View all active giveaways
-- `/giveaway stats` - View giveaway statistics
-- `/giveaway info` - View specific giveaway details
-
-**Admin Subcommands** (Permission required):
+**Staff-Only Subcommands** (Admin permissions required):
 
 - `/giveaway create` - Create a new giveaway
-- `/giveaway edit` - Edit active giveaway
-- `/giveaway end` - End giveaway early
-- `/giveaway reroll` - Reroll for new winners
-- `/giveaway cancel` - Cancel giveaway
+- `/giveaway edit` - Edit an active giveaway
+- `/giveaway end` - End a giveaway early
+- `/giveaway reroll` - Reroll for new winner(s)
+- `/giveaway list` - View active/ended giveaways
+- `/giveaway stats` - View giveaway statistics
+- `/giveaway info` - View specific giveaway details
+- `/giveaway cancel` - Cancel a giveaway
+- `/giveaway delete` - Permanently delete a giveaway
 - `/giveaway set-creator-role` - Allow role to create giveaways
 - `/giveaway remove-creator-role` - Remove creator role
 - `/giveaway creator-roles` - List creator roles
@@ -67,15 +65,15 @@ A complete giveaway management system for Discord servers with advanced security
 
 ### Who Can Use Commands?
 
-| Subcommand                                      | Permission Required                 |
-| ----------------------------------------------- | ----------------------------------- |
-| **list, stats, info**                           | None (everyone)                     |
-| **create**                                      | Manage Server/Roles OR Creator Role |
-| **edit, end, reroll, cancel**                   | Manage Server                       |
-| **set-creator-role, remove-creator-role**       | Manage Server                       |
-| **creator-roles, settings**                     | None (everyone)                     |
-| **set-allowed-channel, remove-allowed-channel** | Manage Server                       |
-| **set-claim-period**                            | Manage Server                       |
+| Subcommand                    | Permission Required   |
+| ----------------------------- | --------------------- |
+| **All Commands**              | Manage Server (Staff) |
+| **create, edit, end, reroll** | Manage Server         |
+| **list, stats, info, cancel** | Manage Server         |
+| **delete**                    | Manage Server         |
+
+> [!NOTE]
+> The top-level `/giveaway` command is restricted at the Discord level. It will not appear in the menu for regular members.
 
 ### Default Security Settings
 
@@ -102,13 +100,13 @@ A complete giveaway management system for Discord servers with advanced security
   description: Good luck everyone!
 ```
 
-### View Active Giveaways (Everyone)
+### View Active Giveaways (Staff)
 
 ```
 /giveaway list
 ```
 
-### View Statistics (Everyone)
+### View Statistics (Staff)
 
 ```
 /giveaway stats
@@ -277,9 +275,9 @@ Configure in giveaway creation or server settings.
 
 ```
 src/
-├── commands/general/giveaway/
-│   ├── index.js              # Command definition (14 subcommands)
-│   ├── handlers.js           # Command handlers
+├── commands/admin/giveaway/
+│   ├── index.js              # Command definition (Admin-only)
+│   ├── handlers.js           # Command handlers (Staff-level)
 │   ├── embeds.js             # Embed builders
 │   ├── components.js         # Button components
 │   └── README.md             # This documentation

@@ -10,6 +10,8 @@ import { getTicketPanel } from "../../../../features/ticketing/TicketPanel.js";
 import { getTicketManager } from "../../../../features/ticketing/TicketManager.js";
 import { getTicketTranscript } from "../../../../features/ticketing/TicketTranscript.js";
 import { createInfoEmbed } from "../../../../features/ticketing/embeds.js";
+
+import { getMentionableCommand } from "../../../../utils/commandUtils.js";
 import { EMOJIS } from "../../../../config/theme.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -237,7 +239,7 @@ export async function handleSettings(interaction) {
           embeds: [
             createInfoEmbed(
               "Ticket Panels",
-              "No ticket panels have been set up yet.\nUse `/ticket setup` to create one.",
+              `No ticket panels have been set up yet.\nUse ${getMentionableCommand(interaction.client, "ticket setup")} to create one.`,
               i.client,
             ),
           ],

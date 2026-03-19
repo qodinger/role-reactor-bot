@@ -105,10 +105,7 @@ export class NotificationRepository extends BaseRepository {
     try {
       return await this.collection.countDocuments({ userId, read: false });
     } catch (error) {
-      this.logger.error(
-        `Failed to get unread count for user ${userId}`,
-        error,
-      );
+      this.logger.error(`Failed to get unread count for user ${userId}`, error);
       return 0;
     }
   }

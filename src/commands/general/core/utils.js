@@ -164,7 +164,12 @@ export function getCoreBulkMemberLimit(statusCode, baseLimit) {
 export async function getUserCorePriority(userId, logger = null) {
   try {
     if (!userId) {
-      return { hasCore: false, tier: null, priority: 0, statusCode: CORE_STATUS.REGULAR.id };
+      return {
+        hasCore: false,
+        tier: null,
+        priority: 0,
+        statusCode: CORE_STATUS.REGULAR.id,
+      };
     }
 
     const userData = await getUserData(userId);
@@ -186,7 +191,12 @@ export async function getUserCorePriority(userId, logger = null) {
         error.message,
       );
     }
-    return { hasCore: false, tier: null, priority: 0, statusCode: CORE_STATUS.REGULAR.id };
+    return {
+      hasCore: false,
+      tier: null,
+      priority: 0,
+      statusCode: CORE_STATUS.REGULAR.id,
+    };
   }
 }
 
@@ -203,7 +213,12 @@ export async function getUsersCorePriority(userIds, options = {}) {
 
   try {
     if (!userIds || userIds.length === 0) {
-      return { hasCore: false, maxTier: null, priority: 0, statusCode: CORE_STATUS.REGULAR.id };
+      return {
+        hasCore: false,
+        maxTier: null,
+        priority: 0,
+        statusCode: CORE_STATUS.REGULAR.id,
+      };
     }
 
     const usersToCheck = userIds.slice(0, maxUsers);
@@ -237,7 +252,12 @@ export async function getUsersCorePriority(userIds, options = {}) {
     if (logger) {
       logger.error("Error checking Core priority for users:", error);
     }
-    return { hasCore: false, maxTier: null, priority: 0, statusCode: CORE_STATUS.REGULAR.id };
+    return {
+      hasCore: false,
+      maxTier: null,
+      priority: 0,
+      statusCode: CORE_STATUS.REGULAR.id,
+    };
   }
 }
 
@@ -296,10 +316,6 @@ export function logPriorityDistribution(
 ) {
   const coreCount = itemsWithPriority.filter(item => item.priority > 0).length;
   if (coreCount > 0) {
-    const proCount = itemsWithPriority.filter(
-      item => item.tier === CORE_STATUS.PRO.label,
-    ).length;
-
     logger.info(
       `🎯 Prioritized ${coreCount}/${totalItems} ${itemType} with Pro Engine users`,
     );

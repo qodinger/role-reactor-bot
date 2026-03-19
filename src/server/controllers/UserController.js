@@ -404,7 +404,9 @@ export async function apiManageUserCores(req, res) {
             metadata: { change, newBalance, reason },
           });
         }
-      } catch (_e) { /* non-critical */ }
+      } catch (_e) {
+        /* non-critical */
+      }
     }
 
     return res.json(

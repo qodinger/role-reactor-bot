@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Web Dashboard Notifications**: Added a new notification bell to your web dashboard to seamlessly track changes to your Core balance, recent purchases, and Pro Engine status.
+- **Voting Rewards**: You can now support the bot by voting on top.gg using the `/vote` command to earn 1 free Core Credit every 12 hours.
 - **Ticketing System**: Complete support ticket system with `/ticket setup`, `/ticket info`, `/ticket claim`, `/ticket close`, `/ticket add`, and `/ticket remove` commands
 - **Ticket Panels**: Multiple custom panels with customizable titles, branding, and categorizations
 - **Scalable Transcripts**: High-performance transcript system supporting rich layouts for Pro servers and Markdown for everyone, with user accessibility to download their own logs
@@ -26,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **AI Chat Actions**: Fixed error when executing structured actions from AI responses by correctly calling the `ActionExecutor` as a static member.
 - **Message Spying**: Prevented the bot from accidentally tracking `@everyone` and `@here` mentions in general chat logs
 - **Role Name Lengths**: Shortened command descriptions for role-reactions to safely sit below the Discord global command limit
 

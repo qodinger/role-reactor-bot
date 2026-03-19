@@ -67,7 +67,7 @@ export async function handleImagineButton(interaction) {
     const errorEmbed = createImagineErrorEmbed({
       interaction,
       prompt: originalPrompt,
-      error: `Insufficient credits. You need **${creditsNeeded} Core** to regenerate. Your balance: **${userData.credits || 0} Core**.`,
+      error: `Insufficient energy. You need **${creditsNeeded} Core** to regenerate. Your balance: **${userData.credits || 0} Core**.`,
     });
     await interaction.editReply({ embeds: [errorEmbed] });
     return;

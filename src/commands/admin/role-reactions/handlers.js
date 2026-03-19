@@ -10,7 +10,8 @@ import {
   createUpdatedRolesEmbed,
   createPaginationButtons,
 } from "./embeds.js";
-import { THEME_COLOR } from "../../../config/theme.js";
+
+import { getMentionableCommand } from "../../../utils/commandUtils.js";
 
 // Import refactored utility modules
 import { validateInteraction, validateBotMember } from "./validation.js";
@@ -27,6 +28,7 @@ import {
   handleReactionFailures,
   saveRoleMapping,
 } from "./messageOperations.js";
+import { THEME_COLOR } from "../../../config/theme.js";
 
 // Track active setups to prevent duplicates
 const activeSetups = new Set();
@@ -145,7 +147,7 @@ export async function handleSetup(interaction, client) {
             errorEmbed({
               title: "Bundle Not Found",
               description: `Role bundle **${bundleName}** not found.`,
-              solution: "Use `/role-bundle list` to see available bundles",
+              solution: `Use ${getMentionableCommand(interaction.client, "role-bundle list")} to see available bundles`,
             }),
           ],
         });
@@ -490,7 +492,7 @@ export async function handleDelete(interaction) {
     const { removeRoleMapping } = await import(
       "../../../utils/discord/roleMappingManager.js"
     );
-    await removeRoleMapping(messageId, interaction.guild.id);
+    await removeRoleMapping(messageId);
 
     // Delete the message if found
     if (msg) {
@@ -505,7 +507,6 @@ export async function handleDelete(interaction) {
       roleDeletedEmbed({
         messageId,
         rolesRemoved: Object.keys(mapping.roles || {}).length,
-        messageDeleted: !!msg,
       }),
     );
 
@@ -639,7 +640,6 @@ export async function handleUpdate(interaction) {
     );
     await interaction.editReply(
       roleUpdatedEmbed({
-        messageId,
         updates: Object.keys(updates).join(", "),
         changeCount: Object.keys(updates).length,
         messageUrl: message.url,

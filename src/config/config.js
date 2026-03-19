@@ -238,6 +238,8 @@ class Config {
       github: "https://github.com/qodinger/role-reactor-bot",
       support: "https://discord.gg/D8tYkU75Ry",
       sponsor: "https://rolereactor.app/sponsor",
+      vote:
+        process.env.VOTE_URL || "https://top.gg/bot/1392714201558159431/vote",
       invite: null, // Will be generated dynamically by the bot
     };
   }

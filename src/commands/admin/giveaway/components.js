@@ -1,6 +1,6 @@
 /**
  * Giveaway Components - Buttons and select menus
- * @module commands/general/giveaway/components
+ * @module commands/admin/giveaway/components
  */
 
 import { ButtonBuilder, ActionRowBuilder } from "discord.js";
@@ -13,7 +13,7 @@ import { BUTTON_STYLES } from "../../../config/theme.js";
 export function createEnterButton() {
   return new ButtonBuilder()
     .setCustomId("giveaway_enter")
-    .setLabel("🎁 Enter Giveaway")
+    .setLabel("Enter Giveaway")
     .setStyle(BUTTON_STYLES.PRIMARY)
     .setEmoji("🎁");
 }
@@ -25,7 +25,7 @@ export function createEnterButton() {
 export function createEndButton() {
   return new ButtonBuilder()
     .setCustomId("giveaway_end")
-    .setLabel("🏁 End Giveaway")
+    .setLabel("End Giveaway")
     .setStyle(BUTTON_STYLES.DANGER)
     .setEmoji("🏁");
 }
@@ -37,7 +37,7 @@ export function createEndButton() {
 export function createRerollButton() {
   return new ButtonBuilder()
     .setCustomId("giveaway_reroll")
-    .setLabel("🔄 Reroll")
+    .setLabel("Reroll")
     .setStyle(BUTTON_STYLES.SECONDARY)
     .setEmoji("🔄");
 }
@@ -49,7 +49,7 @@ export function createRerollButton() {
 export function createCancelButton() {
   return new ButtonBuilder()
     .setCustomId("giveaway_cancel")
-    .setLabel("🚫 Cancel")
+    .setLabel("Cancel")
     .setStyle(BUTTON_STYLES.DANGER)
     .setEmoji("🚫");
 }
@@ -61,7 +61,7 @@ export function createCancelButton() {
 export function createCompleteButton() {
   return new ButtonBuilder()
     .setCustomId("giveaway_complete")
-    .setLabel("✅ Mark Complete")
+    .setLabel("Mark Complete")
     .setStyle(BUTTON_STYLES.SUCCESS)
     .setEmoji("✅");
 }

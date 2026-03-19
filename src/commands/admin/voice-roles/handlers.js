@@ -1,5 +1,6 @@
 import { MessageFlags, PermissionFlagsBits } from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
+import { getMentionableCommand } from "../../../utils/commandUtils.js";
 import { getStorageManager } from "../../../utils/storage/storageManager.js";
 import {
   errorEmbed,
@@ -128,7 +129,7 @@ async function applyToExistingVoiceMembers(
                   const targetChannel =
                     guild.channels.cache.get(targetChannelId);
                   if (
-                    targetChannel &&
+                    targetChannel?.isVoiceBased() &&
                     member.voice.channelId !== targetChannelId
                   ) {
                     const botPermissions =
@@ -138,7 +139,7 @@ async function applyToExistingVoiceMembers(
                       botPermissions?.has("MoveMembers")
                     ) {
                       await member.voice.setChannel(
-                        targetChannel,
+                        targetChannelId,
                         "Voice roles role was configured",
                       );
                       affectedCount++;
@@ -180,7 +181,7 @@ async function applyToExistingVoiceMembers(
 
 /**
  * Handle adding a role to the disconnect list
- * @param {import('discord.js').CommandInteraction} interaction
+ * @param {import('discord.js').ChatInputCommandInteraction} interaction
  */
 export async function handleDisconnectAdd(interaction) {
   const logger = getLogger();
@@ -213,7 +214,7 @@ export async function handleDisconnectAdd(interaction) {
         errorEmbed({
           title: "Role Already Added",
           description: `The role ${role.toString()} is already configured to disconnect users from voice channels.`,
-          solution: "Use `/voice-roles list` to see all configured roles.",
+          solution: `Use ${getMentionableCommand(interaction.client, "voice-roles list")} to see all configured roles.`,
         }),
       );
     }
@@ -294,7 +295,7 @@ export async function handleDisconnectAdd(interaction) {
 
 /**
  * Handle removing a role from the disconnect list
- * @param {import('discord.js').CommandInteraction} interaction
+ * @param {import('discord.js').ChatInputCommandInteraction} interaction
  */
 export async function handleDisconnectRemove(interaction) {
   const logger = getLogger();
@@ -315,7 +316,7 @@ export async function handleDisconnectRemove(interaction) {
         errorEmbed({
           title: "Role Not Found",
           description: `The role ${role.toString()} is not configured to disconnect users from voice channels.`,
-          solution: "Use `/voice-roles list` to see all configured roles.",
+          solution: `Use ${getMentionableCommand(interaction.client, "voice-roles list")} to see all configured roles.`,
         }),
       );
     }
@@ -350,7 +351,7 @@ export async function handleDisconnectRemove(interaction) {
 
 /**
  * Handle adding a role to the mute list
- * @param {import('discord.js').CommandInteraction} interaction
+ * @param {import('discord.js').ChatInputCommandInteraction} interaction
  */
 export async function handleMuteAdd(interaction) {
   const logger = getLogger();
@@ -383,7 +384,7 @@ export async function handleMuteAdd(interaction) {
         errorEmbed({
           title: "Role Already Added",
           description: `The role ${role.toString()} is already configured to mute users in voice channels.`,
-          solution: "Use `/voice-roles list` to see all configured roles.",
+          solution: `Use ${getMentionableCommand(interaction.client, "voice-roles list")} to see all configured roles.`,
         }),
       );
     }
@@ -464,7 +465,7 @@ export async function handleMuteAdd(interaction) {
 
 /**
  * Handle removing a role from the mute list
- * @param {import('discord.js').CommandInteraction} interaction
+ * @param {import('discord.js').ChatInputCommandInteraction} interaction
  */
 export async function handleMuteRemove(interaction) {
   const logger = getLogger();
@@ -485,7 +486,7 @@ export async function handleMuteRemove(interaction) {
         errorEmbed({
           title: "Role Not Found",
           description: `The role ${role.toString()} is not configured to mute users in voice channels.`,
-          solution: "Use `/voice-roles list` to see all configured roles.",
+          solution: `Use ${getMentionableCommand(interaction.client, "voice-roles list")} to see all configured roles.`,
         }),
       );
     }
@@ -517,7 +518,7 @@ export async function handleMuteRemove(interaction) {
 
 /**
  * Handle adding a role to the deafen list
- * @param {import('discord.js').CommandInteraction} interaction
+ * @param {import('discord.js').ChatInputCommandInteraction} interaction
  */
 export async function handleDeafenAdd(interaction) {
   const logger = getLogger();
@@ -550,7 +551,7 @@ export async function handleDeafenAdd(interaction) {
         errorEmbed({
           title: "Role Already Added",
           description: `The role ${role.toString()} is already configured to deafen users in voice channels.`,
-          solution: "Use `/voice-roles list` to see all configured roles.",
+          solution: `Use ${getMentionableCommand(interaction.client, "voice-roles list")} to see all configured roles.`,
         }),
       );
     }
@@ -631,7 +632,7 @@ export async function handleDeafenAdd(interaction) {
 
 /**
  * Handle removing a role from the deafen list
- * @param {import('discord.js').CommandInteraction} interaction
+ * @param {import('discord.js').ChatInputCommandInteraction} interaction
  */
 export async function handleDeafenRemove(interaction) {
   const logger = getLogger();
@@ -652,7 +653,7 @@ export async function handleDeafenRemove(interaction) {
         errorEmbed({
           title: "Role Not Found",
           description: `The role ${role.toString()} is not configured to deafen users in voice channels.`,
-          solution: "Use `/voice-roles list` to see all configured roles.",
+          solution: `Use ${getMentionableCommand(interaction.client, "voice-roles list")} to see all configured roles.`,
         }),
       );
     }
@@ -684,7 +685,7 @@ export async function handleDeafenRemove(interaction) {
 
 /**
  * Handle adding a role to the move list
- * @param {import('discord.js').CommandInteraction} interaction
+ * @param {import('discord.js').ChatInputCommandInteraction} interaction
  */
 export async function handleMoveAdd(interaction) {
   const logger = getLogger();
@@ -693,10 +694,13 @@ export async function handleMoveAdd(interaction) {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const role = interaction.options.getRole("role");
-    const channel = interaction.options.getChannel("channel");
+    /** @type {import('discord.js').VoiceBasedChannel} */
+    const channel = /** @type {any} */ (
+      interaction.options.getChannel("channel")
+    );
 
     // Validate channel type
-    if (!channel.isVoiceBased()) {
+    if (!channel.isVoiceBased?.()) {
       return interaction.editReply(
         errorEmbed({
           title: "Invalid Channel",
@@ -757,8 +761,7 @@ export async function handleMoveAdd(interaction) {
           errorEmbed({
             title: "Role Already Added",
             description: `The role ${role.toString()} is already configured to move users to ${existingChannel.toString()}.`,
-            solution:
-              "Use `/voice-roles move remove` first, or use `/voice-roles list` to see all configured roles.",
+            solution: `Use ${getMentionableCommand(interaction.client, "voice-roles move remove")} first, or use ${getMentionableCommand(interaction.client, "voice-roles list")} to see all configured roles.`,
           }),
         );
       }
@@ -845,7 +848,7 @@ export async function handleMoveAdd(interaction) {
 
 /**
  * Handle removing a role from the move list
- * @param {import('discord.js').CommandInteraction} interaction
+ * @param {import('discord.js').ChatInputCommandInteraction} interaction
  */
 export async function handleMoveRemove(interaction) {
   const logger = getLogger();
@@ -866,7 +869,7 @@ export async function handleMoveRemove(interaction) {
         errorEmbed({
           title: "Role Not Found",
           description: `The role ${role.toString()} is not configured to move users to a voice channel.`,
-          solution: "Use `/voice-roles list` to see all configured roles.",
+          solution: `Use ${getMentionableCommand(interaction.client, "voice-roles list")} to see all configured roles.`,
         }),
       );
     }
@@ -898,7 +901,7 @@ export async function handleMoveRemove(interaction) {
 
 /**
  * Handle listing all voice roles roles
- * @param {import('discord.js').CommandInteraction} interaction
+ * @param {import('discord.js').ChatInputCommandInteraction} interaction
  */
 export async function handleList(interaction) {
   const logger = getLogger();

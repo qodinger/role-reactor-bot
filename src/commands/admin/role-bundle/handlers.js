@@ -5,6 +5,8 @@
 
 import { EmbedBuilder, PermissionsBitField } from "discord.js";
 import roleBundleManager from "../../../features/rolebundles/RoleBundleManager.js";
+
+import { getMentionableCommand } from "../../../utils/commandUtils.js";
 import { getLogger } from "../../../utils/logger.js";
 
 const logger = getLogger();
@@ -190,7 +192,7 @@ export async function handleList(interaction) {
         embeds: [
           createInfoEmbed(
             "No Bundles",
-            "There are no role bundles in this server yet.\n\nUse `/role-bundle create` to create one!",
+            `There are no role bundles in this server yet.\n\nUse ${getMentionableCommand(interaction.client, "role-bundle create")} to create one!`,
           ),
         ],
       });

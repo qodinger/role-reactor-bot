@@ -752,7 +752,9 @@ async function processPayPalPayment(paymentData) {
           icon: "core",
           metadata: { coresGranted: coresToAdd, amount, provider: "paypal" },
         });
-      } catch (_e) { /* non-critical */ }
+      } catch (_e) {
+        /* non-critical */
+      }
     }
 
     return {

@@ -1,10 +1,6 @@
-/**
- * GiveawayManager - Manages giveaway lifecycle, entries, and winner selection
- * @module features/giveaway/GiveawayManager
- */
-
 import { EventEmitter } from "events";
 import { ObjectId } from "mongodb";
+import { randomBytes } from "crypto";
 import { getLogger } from "../../utils/logger.js";
 import { getDatabaseManager } from "../../utils/storage/databaseManager.js";
 import { FREE_TIER, PRO_TIER } from "../premium/config.js";
@@ -50,19 +46,15 @@ class GiveawayManager extends EventEmitter {
       await dbManager.connect();
       this.db = dbManager.connectionManager.db;
       this.collection = this.db.collection("giveaways");
-      this.settingsCollection = this.db.collection("giveaway_settings");
-
       // Create indexes for better query performance
       await this.collection.createIndex({ guildId: 1, status: 1 });
       await this.collection.createIndex({ endTime: 1, status: 1 });
       await this.collection.createIndex({ messageId: 1 });
       await this.collection.createIndex({ host: 1, status: 1 });
       await this.collection.createIndex({ guildId: 1, host: 1, status: 1 });
-
-      // Settings collection indexes
-      await this.settingsCollection.createIndex(
-        { guildId: 1 },
-        { unique: true },
+      await this.collection.createIndex(
+        { shortId: 1 },
+        { unique: true, sparse: true },
       );
 
       logger.info("🎉 GiveawayManager initialized");
@@ -185,283 +177,18 @@ class GiveawayManager extends EventEmitter {
     }
   }
 
-  // ==================== SETTINGS MANAGEMENT ====================
-
   /**
-   * Get guild giveaway settings
-   * @param {string} guildId - Guild ID
-   * @returns {Promise<Object>} Guild settings
+   * Generates a unique 8-character short ID for a giveaway.
+   * Combines a timestamp component and a random component.
+   * @returns {string} An 8-character alphanumeric string.
    */
-  async getGuildSettings(guildId) {
-    try {
-      const settings = await this.settingsCollection.findOne({ guildId });
-
-      // Return default settings if none exist
-      return (
-        settings || {
-          guildId,
-          creatorRoles: [], // Roles that can create giveaways
-          allowedChannels: [], // Channels where giveaways are allowed
-          claimPeriod: 48, // Hours to claim prize
-          logChannel: null, // Channel for giveaway logs
-          requireAccountAge: 7, // Minimum account age in days (0 = disabled)
-          requireServerAge: 1, // Minimum server age in days (0 = disabled)
-          excludeBots: true, // Exclude bot accounts
-          maxActivePerUser: 3, // Max active giveaways per user
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        }
-      );
-    } catch (error) {
-      logger.error("❌ Error getting guild settings:", error);
-      throw error;
-    }
+  generateShortId() {
+    const timestampComponent = (Date.now() % 1000000)
+      .toString(36)
+      .padStart(4, "0"); // 4 chars from timestamp
+    const randomComponent = randomBytes(3).toString("hex").slice(0, 4); // 4 chars from random bytes
+    return (timestampComponent + randomComponent).slice(0, 8).toLowerCase();
   }
-
-  /**
-   * Update guild settings
-   * @param {string} guildId - Guild ID
-   * @param {Object} updates - Settings to update
-   * @returns {Promise<Object>} Updated settings
-   */
-  async updateGuildSettings(guildId, updates) {
-    try {
-      const result = await this.settingsCollection.findOneAndUpdate(
-        { guildId },
-        {
-          $set: {
-            ...updates,
-            updatedAt: new Date(),
-          },
-        },
-        { upsert: true, returnDocument: "after" },
-      );
-
-      logger.info(`⚙️ Updated giveaway settings for guild ${guildId}`);
-      return result;
-    } catch (error) {
-      logger.error("❌ Error updating guild settings:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Add a creator role
-   * @param {string} guildId - Guild ID
-   * @param {string} roleId - Role ID to add
-   * @returns {Promise<Object>} Updated settings
-   */
-  async addCreatorRole(guildId, roleId) {
-    try {
-      const result = await this.settingsCollection.findOneAndUpdate(
-        { guildId },
-        {
-          $addToSet: { creatorRoles: roleId },
-          $set: { updatedAt: new Date() },
-        },
-        { upsert: true, returnDocument: "after" },
-      );
-
-      logger.info(`➕ Added creator role ${roleId} to guild ${guildId}`);
-      return result;
-    } catch (error) {
-      logger.error("❌ Error adding creator role:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Remove a creator role
-   * @param {string} guildId - Guild ID
-   * @param {string} roleId - Role ID to remove
-   * @returns {Promise<Object>} Updated settings
-   */
-  async removeCreatorRole(guildId, roleId) {
-    try {
-      const result = await this.settingsCollection.findOneAndUpdate(
-        { guildId },
-        {
-          $pull: { creatorRoles: roleId },
-          $set: { updatedAt: new Date() },
-        },
-        { returnDocument: "after" },
-      );
-
-      logger.info(`➖ Removed creator role ${roleId} from guild ${guildId}`);
-      return result;
-    } catch (error) {
-      logger.error("❌ Error removing creator role:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Add an allowed channel
-   * @param {string} guildId - Guild ID
-   * @param {string} channelId - Channel ID to add
-   * @returns {Promise<Object>} Updated settings
-   */
-  async addAllowedChannel(guildId, channelId) {
-    try {
-      const result = await this.settingsCollection.findOneAndUpdate(
-        { guildId },
-        {
-          $addToSet: { allowedChannels: channelId },
-          $set: { updatedAt: new Date() },
-        },
-        { upsert: true, returnDocument: "after" },
-      );
-
-      logger.info(`➕ Added allowed channel ${channelId} to guild ${guildId}`);
-      return result;
-    } catch (error) {
-      logger.error("❌ Error adding allowed channel:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Remove an allowed channel
-   * @param {string} guildId - Guild ID
-   * @param {string} channelId - Channel ID to remove
-   * @returns {Promise<Object>} Updated settings
-   */
-  async removeAllowedChannel(guildId, channelId) {
-    try {
-      const result = await this.settingsCollection.findOneAndUpdate(
-        { guildId },
-        {
-          $pull: { allowedChannels: channelId },
-          $set: { updatedAt: new Date() },
-        },
-        { returnDocument: "after" },
-      );
-
-      logger.info(
-        `➖ Removed allowed channel ${channelId} from guild ${guildId}`,
-      );
-      return result;
-    } catch (error) {
-      logger.error("❌ Error removing allowed channel:", error);
-      throw error;
-    }
-  }
-
-  // ==================== PERMISSION CHECKS ====================
-
-  /**
-   * Check if user can create giveaways
-   * @param {Object} member - Guild member
-   * @param {string} guildId - Guild ID
-   * @returns {Promise<Object>} Permission check result
-   */
-  async canUserCreateGiveaway(member, guildId) {
-    try {
-      if (!member) {
-        return { allowed: false, reason: "Member not found" };
-      }
-
-      const settings = await this.getGuildSettings(guildId);
-
-      // Check for admin permissions (always allowed)
-      const isAdmin =
-        member.permissions.has("ManageGuild") ||
-        member.permissions.has("Administrator");
-
-      if (isAdmin) {
-        return { allowed: true, reason: "Admin permission" };
-      }
-
-      // Check for Manage Roles permission (always allowed)
-      if (member.permissions.has("ManageRoles")) {
-        return { allowed: true, reason: "Manage Roles permission" };
-      }
-
-      // Check for custom creator roles
-      if (settings.creatorRoles?.length > 0) {
-        const hasCreatorRole = settings.creatorRoles.some(roleId =>
-          member.roles.cache.has(roleId),
-        );
-
-        if (hasCreatorRole) {
-          return { allowed: true, reason: "Creator role" };
-        }
-      }
-
-      return { allowed: false, reason: "Insufficient permissions" };
-    } catch (error) {
-      logger.error("❌ Error checking user permissions:", error);
-      return { allowed: false, reason: "Error checking permissions" };
-    }
-  }
-
-  /**
-   * Check if channel allows giveaways
-   * @param {string} guildId - Guild ID
-   * @param {string} channelId - Channel ID
-   * @returns {Promise<Object>} Channel check result
-   */
-  async canUseChannel(guildId, channelId) {
-    try {
-      const settings = await this.getGuildSettings(guildId);
-
-      // If no allowed channels set, all channels are allowed
-      if (!settings.allowedChannels || settings.allowedChannels.length === 0) {
-        return { allowed: true, reason: "No channel restrictions" };
-      }
-
-      // Check if channel is in allowed list
-      if (settings.allowedChannels.includes(channelId)) {
-        return { allowed: true, reason: "Channel allowed" };
-      }
-
-      return { allowed: false, reason: "Channel not allowed for giveaways" };
-    } catch (error) {
-      logger.error("❌ Error checking channel permissions:", error);
-      return { allowed: false, reason: "Error checking channel" };
-    }
-  }
-
-  /**
-   * Check rate limit for user
-   * @param {string} userId - User ID
-   * @param {string} guildId - Guild ID
-   * @returns {Promise<Object>} Rate limit check result
-   */
-  async checkRateLimit(userId, guildId) {
-    try {
-      const settings = await this.getGuildSettings(guildId);
-      const maxActive = settings.maxActivePerUser || 3;
-
-      // Count active giveaways for user
-      const activeCount = await this.collection.countDocuments({
-        guildId,
-        host: userId,
-        status: "active",
-      });
-
-      if (activeCount >= maxActive) {
-        return {
-          allowed: false,
-          reason: `You can only have ${maxActive} active giveaway(s)`,
-          current: activeCount,
-          max: maxActive,
-        };
-      }
-
-      return {
-        allowed: true,
-        reason: "Within rate limit",
-        current: activeCount,
-        max: maxActive,
-      };
-    } catch (error) {
-      logger.error("❌ Error checking rate limit:", error);
-      return { allowed: false, reason: "Error checking rate limit" };
-    }
-  }
-
-  // ==================== GIVEAWAY CRUD ====================
 
   /**
    * Create a new giveaway
@@ -470,8 +197,11 @@ class GiveawayManager extends EventEmitter {
    */
   async create(options) {
     try {
-      // Get guild settings for defaults
-      const settings = await this.getGuildSettings(options.guildId);
+      let shortId = this.generateShortId();
+      // Ensure shortId is unique (unlikely to collide, but good practice)
+      while (await this.collection.findOne({ shortId })) {
+        shortId = this.generateShortId();
+      }
 
       const giveaway = {
         _id: new ObjectId(),
@@ -484,13 +214,15 @@ class GiveawayManager extends EventEmitter {
         entries: [],
         requirements: {
           roles: options.requiredRoles || [],
-          minAccountAge:
-            options.minAccountAge ??
-            settings.requireAccountAge * 24 * 60 * 60 * 1000,
-          minServerAge:
-            options.minServerAge ??
-            settings.requireServerAge * 24 * 60 * 60 * 1000,
-          excludeBots: options.excludeBots ?? settings.excludeBots,
+          minAccountAge: options.minAccountAge
+            ? options.minAccountAge * 24 * 60 * 60 * 1000
+            : 0,
+          minServerAge: options.minServerAge
+            ? options.minServerAge * 24 * 60 * 60 * 1000
+            : 0,
+          excludeBots: true,
+          minLevel: options.minLevel || 0,
+          requireVote: options.requireVote || false,
         },
         bonusEntries: options.bonusEntries || [],
         startTime: new Date(),
@@ -498,30 +230,24 @@ class GiveawayManager extends EventEmitter {
         duration: options.duration,
         status: "active",
         winnersData: [],
+        shortId: shortId,
         description: options.description || "",
         thumbnail: options.thumbnail || null,
-        color: options.color || 0xffd700,
+        color: options.color || null,
         reactionEmoji: options.reactionEmoji || "🎁",
-        allowBotEntries: options.allowBotEntries ?? !settings.excludeBots,
-        claimPeriod: options.claimPeriod ?? settings.claimPeriod, // Hours
+        allowBotEntries: false,
+        claimPeriod: options.claimPeriod ?? 48, // Default 48 Hours
         createdAt: new Date(),
         updatedAt: new Date(),
       };
 
       await this.collection.insertOne(giveaway);
       logger.info(
-        `🎉 Giveaway created: ${giveaway._id} - Prize: ${giveaway.prize}`,
+        `🎉 Giveaway created: ${giveaway._id} - Prize: ${giveaway.prize} (Short ID: ${giveaway.shortId})`,
       );
 
       // Invalidate cache to include new giveaway
       this.invalidateCache();
-
-      // Log giveaway creation
-      await this.logGiveawayEvent(options.guildId, "giveaway_created", {
-        giveawayId: giveaway._id.toString(),
-        host: options.host,
-        prize: options.prize,
-      });
 
       return giveaway;
     } catch (error) {
@@ -531,13 +257,30 @@ class GiveawayManager extends EventEmitter {
   }
 
   /**
-   * Get a giveaway by ID
-   * @param {string} id - Giveaway ID
+   * Get a giveaway by ID or Message ID
+   * @param {string} id - Giveaway ID or Message ID
    * @returns {Promise<Object|null>}
    */
   async getById(id) {
     try {
-      return await this.collection.findOne({ _id: new ObjectId(id) });
+      if (!id) return null;
+
+      // If it's a valid ObjectId (24 hex chars)
+      if (/^[0-9a-fA-F]{24}$/.test(id)) {
+        const giveaway = await this.collection.findOne({
+          _id: new ObjectId(id),
+        });
+        if (giveaway) return giveaway;
+      }
+
+      // If it's a shortId (8 chars)
+      if (id.length === 8) {
+        const giveaway = await this.collection.findOne({ shortId: id });
+        if (giveaway) return giveaway;
+      }
+
+      // Treat as messageId
+      return await this.collection.findOne({ messageId: id });
     } catch (error) {
       logger.error("❌ Error getting giveaway by ID:", error);
       throw error;
@@ -578,6 +321,20 @@ class GiveawayManager extends EventEmitter {
   }
 
   /**
+   * Get all giveaways for a guild (including ended/cancelled)
+   * @param {string} guildId - Guild ID
+   * @returns {Promise<Array>}
+   */
+  async getAllForGuild(guildId) {
+    try {
+      return await this.collection.find({ guildId }).toArray();
+    } catch (error) {
+      logger.error("❌ Error getting all giveaways:", error);
+      throw error;
+    }
+  }
+
+  /**
    * Edit a giveaway
    * @param {string} giveawayId - Giveaway ID
    * @param {Object} updates - Fields to update
@@ -603,6 +360,8 @@ class GiveawayManager extends EventEmitter {
         "duration",
         "thumbnail",
         "color",
+        "requirements",
+        "claimPeriod",
       ];
       const updateData = {};
 
@@ -615,7 +374,7 @@ class GiveawayManager extends EventEmitter {
       updateData.updatedAt = new Date();
 
       const result = await this.collection.findOneAndUpdate(
-        { _id: new ObjectId(giveawayId) },
+        { _id: giveaway._id },
         { $set: updateData },
         { returnDocument: "after" },
       );
@@ -627,6 +386,9 @@ class GiveawayManager extends EventEmitter {
         giveawayId,
         updates: Object.keys(updateData).filter(k => k !== "updatedAt"),
       });
+
+      // Emit event so the Discord message embed gets updated live
+      this.emit("giveawayEdited", result);
 
       return result;
     } catch (error) {
@@ -655,7 +417,10 @@ class GiveawayManager extends EventEmitter {
       }
 
       // VPS Protection: Check total entries limit
-      const currentTotal = giveaway.entries.reduce((sum, e) => sum + e.count, 0);
+      const currentTotal = giveaway.entries.reduce(
+        (sum, e) => sum + e.count,
+        0,
+      );
       const isPro = await this.premiumManager.isFeatureActive(
         giveaway.guildId,
         "pro_engine",
@@ -686,7 +451,7 @@ class GiveawayManager extends EventEmitter {
       }
 
       await this.collection.updateOne(
-        { _id: new ObjectId(giveawayId) },
+        { _id: giveaway._id },
         {
           $set: { entries: giveaway.entries, updatedAt: new Date() },
         },
@@ -802,7 +567,7 @@ class GiveawayManager extends EventEmitter {
 
       // Update giveaway status
       await this.collection.updateOne(
-        { _id: new ObjectId(giveawayId) },
+        { _id: giveaway._id },
         {
           $set: {
             status: "ended",
@@ -989,8 +754,9 @@ class GiveawayManager extends EventEmitter {
         return { success: false, error: "User is not a winner" };
       }
 
+      // Update individually to not overwrite other winners who might have claimed
       await this.collection.updateOne(
-        { _id: new ObjectId(giveawayId) },
+        { _id: giveaway._id, "winnersData.userId": userId },
         {
           $set: {
             "winnersData.$.claimed": true,
@@ -1115,16 +881,41 @@ class GiveawayManager extends EventEmitter {
    */
   async logGiveawayEvent(guildId, eventType, data) {
     try {
-      const settings = await this.getGuildSettings(guildId);
-
-      if (!settings.logChannel) {
-        return; // No logging configured
-      }
-
-      // Emit event for handler to send to log channel
       this.emit("giveawayLog", guildId, eventType, data);
     } catch (error) {
       logger.error("❌ Error logging giveaway event:", error);
+    }
+  }
+  /**
+   * Delete a giveaway permanently from the database
+   * @param {string} giveawayId - Giveaway ID
+   * @returns {Promise<Object>} Result with success status
+   */
+  async deleteGiveaway(giveawayId) {
+    try {
+      const giveaway = await this.getById(giveawayId);
+
+      if (!giveaway) {
+        return { success: false, error: "Giveaway not found" };
+      }
+
+      await this.collection.deleteOne({ _id: giveaway._id });
+
+      logger.info(`🗑️ Giveaway permanently deleted: ${giveawayId}`);
+
+      // Invalidate cache
+      this.invalidateCache();
+
+      // Log giveaway delete
+      await this.logGiveawayEvent(giveaway.guildId, "giveaway_cancelled", {
+        giveawayId,
+        reason: "Permanently deleted by admin",
+      });
+
+      return { success: true, giveaway };
+    } catch (error) {
+      logger.error("❌ Error deleting giveaway:", error);
+      throw error;
     }
   }
 

@@ -30,9 +30,16 @@ class PerformanceMonitor {
    * @param {string} metric.provider - Provider used
    * @param {number} metric.responseTime - Response time in ms
    * @param {boolean} metric.success - Whether request succeeded
-   * @param {string} metric.error - Error message if failed
+   * @param {string} [metric.error] - Error message if failed
+   * @param {string} [metric.type] - Request type (e.g., "ai-chat-streaming")
    */
-  recordRequest({ provider, responseTime, success, error = null }) {
+  recordRequest({
+    provider,
+    responseTime,
+    success,
+    error = null,
+    type = null,
+  }) {
     if (!this.enabled) return;
 
     const metric = {
@@ -40,6 +47,7 @@ class PerformanceMonitor {
       responseTime,
       success,
       error,
+      type,
       timestamp: Date.now(),
     };
 

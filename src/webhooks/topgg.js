@@ -331,7 +331,7 @@ async function processVote(vote, client) {
         .addFields(
           {
             name: "🎁 Reward",
-            value: `✅ **${REWARD_AMOUNT} Core Credit** added to your balance!`,
+            value: `✅ **${REWARD_AMOUNT} Core Energy** added to your balance!`,
             inline: false,
           },
           {
@@ -342,7 +342,7 @@ async function processVote(vote, client) {
           {
             name: "💡 Use Your Core",
             value:
-              "Use `/core` to check your balance and see what you can do with Core Credits!",
+              "Use `/core` to check your balance and see what you can do with Core Energy!",
             inline: false,
           },
         )

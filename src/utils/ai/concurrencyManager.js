@@ -31,6 +31,10 @@ export class AIConcurrencyManager {
 
     this.maxQueueSize = parseInt(process.env.AI_MAX_QUEUE_SIZE) || 1000;
     this.queueTimeout = parseInt(process.env.AI_QUEUE_TIMEOUT) || 600000;
+
+    // Status message tracking for cancellation
+    // Map<messageId, { requestId, userId, timestamp }>
+    this.statusMessages = new Map();
   }
 
   /**
@@ -301,6 +305,69 @@ export class AIConcurrencyManager {
     logger.debug(
       `Cleaned up rate limit data. Active users: ${this.userRequests.size}`,
     );
+  }
+
+  /**
+   * Register a status message for a request
+   * Allows users to cancel requests by deleting the status message
+   * @param {string} messageId - Discord message ID
+   * @param {string} requestId - AI request ID
+   * @param {string} userId - User ID
+   */
+  registerStatusMessage(messageId, requestId, userId) {
+    if (!messageId || !requestId) return;
+
+    this.statusMessages.set(messageId, {
+      requestId,
+      userId,
+      timestamp: Date.now(),
+    });
+
+    // Cleanup old status messages (older than 10 minutes)
+    const tenMinutesAgo = Date.now() - 600000;
+    if (this.statusMessages.size > 100) {
+      for (const [id, data] of this.statusMessages.entries()) {
+        if (data.timestamp < tenMinutesAgo) {
+          this.statusMessages.delete(id);
+        }
+      }
+    }
+  }
+
+  /**
+   * Unregister a status message (request completed)
+   * @param {string} messageId - Discord message ID
+   */
+  unregisterStatusMessage(messageId) {
+    if (!messageId) return;
+    this.statusMessages.delete(messageId);
+  }
+
+  /**
+   * Cancel a request by its status message ID
+   * @param {string} messageId - Discord message ID
+   * @returns {boolean} True if a request was found and cancelled
+   */
+  cancelRequestByMessageId(messageId) {
+    if (!messageId) return false;
+
+    const data = this.statusMessages.get(messageId);
+    if (!data) return false;
+
+    const { requestId, userId } = data;
+    this.statusMessages.delete(messageId);
+
+    // In this simplified version, we just decrement the rate limit
+    // so the user can try again, and log the cancellation.
+    // Real cancellation would require AbortController support in chatService.
+    if (userId) {
+      this.decrementRateLimit(userId);
+    }
+
+    logger.info(
+      `AI request ${requestId} cancelled for user ${userId} via message deletion`,
+    );
+    return true;
   }
   /**
    * Queue a request for execution

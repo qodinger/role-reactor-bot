@@ -16,7 +16,7 @@ const { customEmojis } = emojiConfig;
 
 /**
  * Handle ask command execution
- * @param {import('discord.js').CommandInteraction} interaction
+ * @param {import('discord.js').ChatInputCommandInteraction} interaction
  * @param {import('discord.js').Client} client
  */
 export async function execute(interaction, client) {
@@ -44,7 +44,7 @@ export async function execute(interaction, client) {
       const chatCost = creditCheck.creditsNeeded; // Use creditsNeeded from check (already has fallback in aiCreditManager)
       const requestsPerCore = Math.floor(1 / chatCost);
       const errorResponse = errorEmbed({
-        title: "Insufficient Credits",
+        title: "Insufficient Energy",
         description: `You need **${chatCost} ${customEmojis.core}** to use AI chat!\n\n**Your Balance:** ${creditInfo.credits.toFixed(2)} ${customEmojis.core}\n**Cost:** ${chatCost} ${customEmojis.core} per request (1 ${customEmojis.core} = ${requestsPerCore} requests)\n**Requests Available:** ${creditInfo.requestsRemaining}\n\nGet Cores: Visit [rolereactor.app/sponsor](https://rolereactor.app/sponsor)`,
       });
       await interaction.reply(errorResponse);
@@ -316,9 +316,8 @@ export async function execute(interaction, client) {
         const { ActionExecutor } = await import(
           "../../../utils/ai/actionExecutor.js"
         );
-        const actionExecutor = new ActionExecutor();
         // Execute actions - commands send their responses directly to the channel
-        await actionExecutor.executeStructuredActions(
+        await ActionExecutor.executeStructuredActions(
           responseActions,
           interaction.guild,
           client,

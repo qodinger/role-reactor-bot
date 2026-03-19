@@ -14,7 +14,6 @@ import {
 import {
   createTempRoleEmbed,
   createTempRolesListEmbed,
-  createTempRoleRemovedEmbed,
   createTempRoleRemovalEmbed,
 } from "./embeds.js";
 import { FREE_TIER, PRO_TIER } from "../../../features/premium/config.js";
@@ -38,7 +37,9 @@ export async function handleAssign(interaction, client, deferred) {
 
   try {
     const usersString = interaction.options.getString("users", true);
-    const role = /** @type {import('discord.js').Role} */ (interaction.options.getRole("role", true));
+    const role = /** @type {import('discord.js').Role} */ (
+      interaction.options.getRole("role", true)
+    );
     const duration = interaction.options.getString("duration", true);
     const reason =
       interaction.options.getString("reason") || "No reason provided";
@@ -237,10 +238,7 @@ export async function handleList(interaction, client, deferred) {
     }
 
     // Process roles to add info and filter expired
-    const processedRoles = await processTempRoles(
-      tempRoles,
-      interaction.guild,
-    );
+    const processedRoles = await processTempRoles(tempRoles, interaction.guild);
 
     // Log listing
     logTempRolesListing(
@@ -286,7 +284,9 @@ export async function handleRemove(interaction, client, deferred) {
 
   try {
     const usersString = interaction.options.getString("users", true);
-    const role = /** @type {import('discord.js').Role} */ (interaction.options.getRole("role", true));
+    const role = /** @type {import('discord.js').Role} */ (
+      interaction.options.getRole("role", true)
+    );
     const reason =
       interaction.options.getString("reason") ||
       "Manually removed by administrator";

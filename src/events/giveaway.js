@@ -9,6 +9,7 @@ export const name = "giveaway";
 export const execute = () => {};
 
 import { EmbedBuilder } from "discord.js";
+import { THEME } from "../config/theme.js";
 import giveawayManager from "../features/giveaway/GiveawayManager.js";
 import {
   createGiveawayEmbed,
@@ -17,12 +18,12 @@ import {
   createEntryConfirmEmbed,
   createConfirmationEmbed,
   createWinnerDmEmbed,
-} from "../commands/general/giveaway/embeds.js";
+} from "../commands/admin/giveaway/embeds.js";
 import {
   createActiveGiveawayActions,
   createEndedGiveawayActions,
   parseButtonCustomId,
-} from "../commands/general/giveaway/components.js";
+} from "../commands/admin/giveaway/components.js";
 import {
   validateRequirements,
   calculateBonusEntries,
@@ -110,7 +111,7 @@ async function handleEnterGiveaway(interaction) {
     }
 
     // Validate requirements
-    const validation = validateRequirements(giveaway, interaction.member);
+    const validation = await validateRequirements(giveaway, interaction.member);
 
     if (!validation.valid) {
       return interaction.editReply({
@@ -153,7 +154,11 @@ async function handleEnterGiveaway(interaction) {
       const newTotal = await giveawayManager.getTotalEntries(
         giveaway._id.toString(),
       );
-      const updatedEmbed = createGiveawayEmbed(giveaway, newTotal);
+      const updatedEmbed = createGiveawayEmbed(
+        giveaway,
+        newTotal,
+        interaction.client,
+      );
 
       await interaction.message.edit({
         embeds: [updatedEmbed],
@@ -381,7 +386,7 @@ async function handleAdminCancel(interaction) {
     const cancelledEmbed = new EmbedBuilder()
       .setTitle("🚫 Giveaway Cancelled")
       .setDescription("This giveaway has been cancelled by an administrator.")
-      .setColor(0xff0000)
+      .setColor(THEME.ERROR)
       .addFields(
         {
           name: "🎁 Prize",
@@ -519,9 +524,9 @@ async function announceWinners(
           (sum, e) => sum + e.count,
           0,
         );
-        const endedEmbed = createGiveawayEmbed(giveaway, totalEntries);
+        const endedEmbed = createGiveawayEmbed(giveaway, totalEntries, client);
         endedEmbed.setTitle("🏆 GIVEAWAY ENDED! 🏆");
-        endedEmbed.setColor(0x00ff00);
+        endedEmbed.setColor(THEME.SUCCESS);
 
         const winnerMentions = [];
         for (const winner of winners) {
@@ -609,7 +614,7 @@ export function setupGiveawayEvents(manager, client) {
       const cancelledEmbed = new EmbedBuilder()
         .setTitle("🚫 Giveaway Cancelled")
         .setDescription("This giveaway has been cancelled.")
-        .setColor(0xff0000)
+        .setColor(THEME.ERROR)
         .addFields(
           {
             name: "🎁 Prize",
@@ -640,5 +645,49 @@ export function setupGiveawayEvents(manager, client) {
     }
   });
 
+  // Handle giveaway edited event
+  manager.on("giveawayEdited", async giveaway => {
+    try {
+      const channel = await client.channels.fetch(giveaway.channelId);
+
+      if (!channel) return;
+
+      try {
+        const message = await channel.messages.fetch(giveaway.messageId);
+        const totalEntries = giveaway.entries.reduce(
+          (sum, e) => sum + e.count,
+          0,
+        );
+
+        const updatedEmbed = createGiveawayEmbed(
+          giveaway,
+          totalEntries,
+          client,
+        );
+        updatedEmbed.setFooter({
+          text: `Hosted by ${giveaway.hostUsername || "Server Staff"} • ID: ${giveaway.shortId || giveaway._id.toString().slice(-6)}`,
+        });
+
+        // Use the existing components logic to ensure the button is refreshed
+        const components = createActiveGiveawayActions();
+
+        await message.edit({
+          embeds: [updatedEmbed],
+          components: [components],
+        });
+
+        logger.info(
+          `🔄 Live giveaway message updated on Discord: ${giveaway._id.toString()}`,
+        );
+      } catch (err) {
+        logger.warn(
+          "⚠️ Could not update edited giveaway message:",
+          err.message,
+        );
+      }
+    } catch (error) {
+      logger.error("❌ Error in giveawayEdited event:", error);
+    }
+  });
   logger.info("🎉 Giveaway event listeners setup complete");
 }

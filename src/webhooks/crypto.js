@@ -163,10 +163,16 @@ async function processCryptoPayment(
           title: "Balance Replenished!",
           message: `+${coresToAdd} Cores from your $${paymentAmount} crypto purchase`,
           icon: "core",
-          metadata: { coresGranted: coresToAdd, amount: paymentAmount, provider: "plisio" },
+          metadata: {
+            coresGranted: coresToAdd,
+            amount: paymentAmount,
+            provider: "plisio",
+          },
         });
       }
-    } catch (_e) { /* non-critical */ }
+    } catch (_e) {
+      /* non-critical */
+    }
 
     return { success: true, message: "Credited", credits: coresToAdd };
   });
