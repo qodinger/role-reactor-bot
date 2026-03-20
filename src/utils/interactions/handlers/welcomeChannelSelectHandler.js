@@ -111,7 +111,7 @@ export async function handleWelcomeChannelSelect(interaction) {
             "An error occurred while processing the channel selection.",
         }),
       ],
-      ephemeral: true,
+      flags: [MessageFlags.Ephemeral],
     });
   }
 }

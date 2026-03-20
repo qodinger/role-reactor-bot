@@ -159,7 +159,7 @@ class CommandRegistry {
   /**
    * Load metadata from command file
    * @private
-   * @returns {Object} Metadata object with description and any custom metadata
+   * @returns {Promise<Object>} Metadata object with description and any custom metadata
    */
   async loadCommandMetadataFromFile(commandName, category, client) {
     const metadata = {};

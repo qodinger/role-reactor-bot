@@ -490,7 +490,7 @@ class GiveawayManager extends EventEmitter {
       const newEntries = giveaway.entries.filter(e => e.userId !== userId);
 
       await this.collection.updateOne(
-        { _id: new ObjectId(giveawayId) },
+        { _id: giveaway._id },
         {
           $set: { entries: newEntries, updatedAt: new Date() },
         },
@@ -664,7 +664,7 @@ class GiveawayManager extends EventEmitter {
       const winners = this.selectWinners(giveaway.entries, winnerCount);
 
       await this.collection.updateOne(
-        { _id: new ObjectId(giveawayId) },
+        { _id: giveaway._id },
         {
           $set: {
             winnersData: winners,
@@ -707,7 +707,7 @@ class GiveawayManager extends EventEmitter {
       }
 
       await this.collection.updateOne(
-        { _id: new ObjectId(giveawayId) },
+        { _id: giveaway._id },
         {
           $set: {
             status: "cancelled",
@@ -771,7 +771,7 @@ class GiveawayManager extends EventEmitter {
 
       if (allClaimed) {
         await this.collection.updateOne(
-          { _id: new ObjectId(giveawayId) },
+          { _id: giveaway._id },
           {
             $set: {
               status: "completed",
@@ -804,8 +804,14 @@ class GiveawayManager extends EventEmitter {
    */
   async updateMessageId(giveawayId, messageId) {
     try {
+      const giveaway = await this.getById(giveawayId);
+
+      if (!giveaway) {
+        return { success: false, error: "Giveaway not found" };
+      }
+
       await this.collection.updateOne(
-        { _id: new ObjectId(giveawayId) },
+        { _id: giveaway._id },
         {
           $set: {
             messageId,

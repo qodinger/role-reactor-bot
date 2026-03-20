@@ -105,8 +105,10 @@ export function getMemberCounts(guild) {
   // Presence data - separate counts for humans and bots
   // When asked "how many are online", use human online count
   // Convert Collection to array for filtering
-  const humanMembersArray = Array.from(members.filter(m => !m.user.bot));
-  const botMembersArray = Array.from(members.filter(m => m.user.bot));
+  const humanMembersArray = Array.from(
+    members.filter(m => !m.user.bot).values(),
+  );
+  const botMembersArray = Array.from(members.filter(m => m.user.bot).values());
 
   // Human member status counts (what users care about)
   const online = humanMembersArray.filter(
@@ -158,7 +160,7 @@ export function calculateServerAge(createdAt) {
   if (!createdAt) return "Unknown";
 
   const now = new Date();
-  const diff = now - createdAt;
+  const diff = now.getTime() - createdAt.getTime();
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
   const months = Math.floor(days / 30);
   const years = Math.floor(days / 365);
@@ -174,7 +176,7 @@ export function calculateServerAge(createdAt) {
 
 /**
  * Format features list
- * @param {import('discord.js').GuildFeature[]} features - Guild features
+ * @param {string[]} features - Guild features
  * @returns {string} Formatted features string
  */
 export function formatFeatures(features) {

@@ -1,6 +1,10 @@
 import { getLogger } from "../logger.js";
 
 /**
+ * @typedef {Error & { code?: string | number; status?: number; retry_after?: number }} ExtendedError
+ */
+
+/**
  * Centralized Error Handler Class
  *
  * Handles all types of errors that can occur in a Discord bot application,
@@ -31,7 +35,7 @@ class ErrorHandler {
    * and provides detailed logging for debugging. Common error codes
    * include permission issues, rate limiting, and missing resources.
    *
-   * @param {Error} error - The Discord API error object
+   * @param {ExtendedError} error - The Discord API error object
    * @param {string} context - Context where the error occurred (e.g., 'command execution')
    * @param {Object} additionalData - Additional data for logging (optional)
    * @example
@@ -48,8 +52,8 @@ class ErrorHandler {
     const errorInfo = {
       name: error.name,
       message: error.message,
-      code: error.code,
-      status: error.status,
+      code: "code" in error ? error.code : undefined,
+      status: "status" in error ? error.status : undefined,
       context,
       ...additionalData,
     };
@@ -58,7 +62,8 @@ class ErrorHandler {
     this.logger.error(`Discord API Error in ${context}`, errorInfo);
 
     // Handle specific Discord error codes
-    switch (error.code) {
+    const errorCode = "code" in error ? error.code : undefined;
+    switch (errorCode) {
       case 50001: // Missing Access
         this.logger.warn("Bot lacks required permissions", errorInfo);
         break;
@@ -98,7 +103,7 @@ class ErrorHandler {
    * issues, timeouts, and duplicate key errors. Useful for debugging
    * database problems and ensuring data integrity.
    *
-   * @param {Error} error - The database error object
+   * @param {ExtendedError} error - The database error object
    * @param {string} operation - Database operation that failed (e.g., 'insert user')
    * @param {Object} additionalData - Additional data for logging (optional)
    * @example
@@ -126,7 +131,7 @@ class ErrorHandler {
       this.logger.error("Database connection failed", errorInfo);
     } else if (error.name === "MongoTimeoutError") {
       this.logger.error("Database operation timed out", errorInfo);
-    } else if (error.code === 11000) {
+    } else if ("code" in error && error.code === 11000) {
       this.logger.warn("Duplicate key error", errorInfo);
     }
   }
@@ -269,16 +274,17 @@ class ErrorHandler {
    * messages that can be displayed to Discord users without exposing
    * internal system details.
    *
-   * @param {Error} error - The error object
+   * @param {ExtendedError} error - The error object
    * @param {string} context - Context where the error occurred (e.g., 'role assignment')
    * @returns {string} User-friendly error message
    * @example
    * const userMessage = errorHandler.createUserFriendlyMessage(error, 'role assignment');
-   * await interaction.reply({ content: userMessage, ephemeral: true });
+   * await interaction.reply({ content: userMessage, flags: [MessageFlags.Ephemeral] });
    */
   createUserFriendlyMessage(error, context = "operation") {
-    if (error.code) {
-      switch (error.code) {
+    const errorCode = "code" in error ? error.code : undefined;
+    if (errorCode) {
+      switch (errorCode) {
         case 50001:
         case 50013:
           return "I don't have the required permissions to perform this action.";
@@ -306,7 +312,7 @@ class ErrorHandler {
    * Checks if an error is transient and can be safely retried,
    * such as network timeouts or temporary Discord API issues.
    *
-   * @param {Error} error - The error object to check
+   * @param {ExtendedError} error - The error object to check
    * @returns {boolean} True if the error is retryable, false otherwise
    * @example
    * if (errorHandler.isRetryableError(error)) {
@@ -327,7 +333,8 @@ class ErrorHandler {
       "ETIMEDOUT",
     ];
 
-    if (error.code && retryableCodes.includes(error.code)) {
+    const errorCode = "code" in error ? error.code : undefined;
+    if (errorCode && retryableCodes.includes(Number(errorCode))) {
       return true;
     }
 
@@ -344,7 +351,7 @@ class ErrorHandler {
    * Determines how long to wait before retrying an operation based
    * on the error type and Discord API rate limiting information.
    *
-   * @param {Error} error - The error object
+   * @param {ExtendedError} error - The error object
    * @returns {number} Retry delay in milliseconds
    * @example
    * const delay = errorHandler.getRetryDelay(error);
@@ -352,14 +359,16 @@ class ErrorHandler {
    * return await retryOperation();
    */
   getRetryDelay(error) {
+    const errorCode = "code" in error ? Number(error.code) : undefined;
+
     // Discord rate limit retry delay
-    if (error.code === 40002 && error.retry_after) {
-      return error.retry_after * 1000;
+    if (errorCode === 40002 && "retry_after" in error) {
+      return (error.retry_after || 0) * 1000;
     }
 
     // Default retry delays based on error type
-    if (error.code === 500) return 5000; // Server error
-    if (error.code === 502 || error.code === 503 || error.code === 504)
+    if (errorCode === 500) return 5000; // Server error
+    if (errorCode === 502 || errorCode === 503 || errorCode === 504)
       return 3000; // Gateway errors
 
     // Database connection errors

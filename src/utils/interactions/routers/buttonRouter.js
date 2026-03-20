@@ -1,3 +1,4 @@
+import { MessageFlags } from "discord.js";
 import { getLogger } from "../../logger.js";
 
 /**
@@ -138,7 +139,7 @@ export async function routeButtonInteraction(interaction, _client) {
       if (!interaction.replied && !interaction.deferred) {
         await interaction.reply({
           content: "❌ Feedback system has been removed.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
       return;

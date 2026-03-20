@@ -26,9 +26,9 @@ export class ServerInfoGatherer {
    * Works universally for any Discord server
    * @param {import('discord.js').Guild} guild - Discord guild
    * @param {import('discord.js').Client} _client - Discord client (unused)
-   * @param {Object} options - Options for server info
-   * @param {boolean} options.includeMemberList - Whether to include member guidance (default: true)
-   * @param {string} options.userMessage - User's message for name prioritize (optional)
+   * @param {Object} [options={}] - Options for server info
+   * @param {boolean} [options.includeMemberList=true] - Whether to include member guidance (default: true)
+   * @param {string} [options.userMessage=""] - User's message for name prioritize (optional)
    * @returns {Promise<string>} Formatted server information
    */
   async getServerInfo(guild, _client, options = {}) {

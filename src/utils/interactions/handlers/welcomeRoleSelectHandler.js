@@ -44,7 +44,7 @@ export async function handleWelcomeRoleSelect(interaction) {
     }
 
     // Defer the reply since we'll be editing it
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
     // Check if bot can assign this role
     const botMember = interaction.guild.members.me;

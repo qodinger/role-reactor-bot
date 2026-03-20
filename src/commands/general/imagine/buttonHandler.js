@@ -1,4 +1,4 @@
-import { AttachmentBuilder, EmbedBuilder } from "discord.js";
+import { AttachmentBuilder, EmbedBuilder, MessageFlags } from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
 import { concurrencyManager } from "../../../utils/ai/concurrencyManager.js";
 import { multiProviderAIService } from "../../../utils/ai/multiProviderAIService.js";
@@ -185,6 +185,6 @@ async function handleUpscaleRequest(interaction) {
 
   return interaction.reply({
     embeds: [embed],
-    ephemeral: true,
+    flags: [MessageFlags.Ephemeral],
   });
 }

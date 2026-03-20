@@ -1,3 +1,4 @@
+import { MessageFlags } from "discord.js";
 import { getDefaultInviteLink } from "../../../utils/discord/invite.js";
 import { createInviteEmbed } from "./embeds.js";
 import { createInviteButtons } from "./components.js";
@@ -5,7 +6,7 @@ import { createInviteButtons } from "./components.js";
 export async function execute(interaction, client) {
   try {
     // Defer immediately to prevent timeout
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
     // Generate invite link dynamically
     let inviteLink = client.inviteLink;

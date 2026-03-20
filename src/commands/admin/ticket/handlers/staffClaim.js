@@ -1,4 +1,4 @@
-import { PermissionFlagsBits } from "discord.js";
+import { PermissionFlagsBits, MessageFlags } from "discord.js";
 import { getTicketManager } from "../../../../features/ticketing/TicketManager.js";
 import {
   createSuccessEmbed,
@@ -14,7 +14,7 @@ const logger = getLogger();
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function handleClaim(interaction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
   const isStaff = await checkStaffRole(interaction);
   const isAdmin = interaction.memberPermissions?.has(

@@ -30,8 +30,21 @@ const logger = getLogger();
 // Load chat prompts directly
 import { CHAT_PROMPTS } from "../../config/prompts/chat/index.js";
 
+/**
+ * @typedef {Object} ChatPrompts
+ * @property {string} [commandExecutionRestriction]
+ * @property {string} [capabilitiesBase]
+ * @property {string} [criticalRules]
+ * @property {string} [generalGuidelinesBase]
+ * @property {string} [followUpTemplate]
+ */
+
+/**
+ * Gets the chat prompts
+ * @returns {Promise<ChatPrompts>}
+ */
 async function getChatPrompts() {
-  return CHAT_PROMPTS || {};
+  return CHAT_PROMPTS || /** @type {ChatPrompts} */ ({});
 }
 
 /**
@@ -78,7 +91,7 @@ export class SystemPromptBuilder {
    * Build response format section of system prompt
    * @param {import('discord.js').Guild} guild - Discord guild
    * @param {import('discord.js').Client} client - Discord client
-   * @param {Function} generateCommandExample - Function to generate command example (deprecated, kept for compatibility)
+   * @param {Function} [_generateCommandExample=null] - Function to generate command example (deprecated, kept for compatibility)
    * @returns {Promise<string>} Response format section
    */
   async buildResponseFormatSection(
@@ -96,6 +109,8 @@ export class SystemPromptBuilder {
    * @param {string} userMessage - User's message (for on-demand command injection)
    * @param {string} locale - User's locale for date/time formatting
    * @param {import('discord.js').User} requester - User who asked the question (optional)
+   * @param {Object} [options={}] - Additional options
+   * @param {boolean} [options.forceIncludeMemberList] - Whether to force include the member list (default: false)
    * @returns {Promise<string>} System message with context
    */
   async buildSystemContext(

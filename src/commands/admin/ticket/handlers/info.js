@@ -1,3 +1,4 @@
+import { MessageFlags } from "discord.js";
 import { getTicketPanel } from "../../../../features/ticketing/TicketPanel.js";
 import { getTicketManager } from "../../../../features/ticketing/TicketManager.js";
 import { getTicketTranscript } from "../../../../features/ticketing/TicketTranscript.js";
@@ -13,7 +14,7 @@ import {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function handleInfo(interaction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
   const guildId = interaction.guildId;
 

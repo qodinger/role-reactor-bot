@@ -1,3 +1,4 @@
+import { MessageFlags } from "discord.js";
 import { getTicketPanel } from "../../../../features/ticketing/TicketPanel.js";
 import { getTicketManager } from "../../../../features/ticketing/TicketManager.js";
 import { getLogger } from "../../../../utils/logger.js";
@@ -37,12 +38,12 @@ export async function handlePanel(interaction) {
         interaction.client,
       ),
     ],
-    ephemeral: true,
+    flags: [MessageFlags.Ephemeral],
   });
 }
 
 async function handlePanelCategoryAdd(interaction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
   const panelInput = interaction.options
     .getString("panel-id")
@@ -142,7 +143,7 @@ async function handlePanelCategoryAdd(interaction) {
 }
 
 async function handlePanelCategoryRemove(interaction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
   const panelInput = interaction.options
     .getString("panel-id")
@@ -217,7 +218,7 @@ async function handlePanelCategoryRemove(interaction) {
 }
 
 async function handlePanelCategoryList(interaction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
   const panelInput = interaction.options
     .getString("panel-id")
@@ -257,7 +258,7 @@ async function handlePanelCategoryList(interaction) {
 }
 
 async function handlePanelList(interaction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
   const guildId = interaction.guildId;
   const ticketPanel = getTicketPanel();
@@ -300,7 +301,7 @@ async function handlePanelList(interaction) {
 }
 
 async function handlePanelDelete(interaction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
   const panelInput = interaction.options
     .getString("panel-id")

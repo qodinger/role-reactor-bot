@@ -3,7 +3,11 @@
  * @module commands/admin/giveaway/index
  */
 
-import { SlashCommandBuilder, PermissionFlagsBits } from "discord.js";
+import {
+  SlashCommandBuilder,
+  PermissionFlagsBits,
+  MessageFlags,
+} from "discord.js";
 import {
   handleCreate,
   handleList,
@@ -250,7 +254,7 @@ export const command = {
         default:
           await interaction.reply({
             content: "Unknown subcommand",
-            ephemeral: true,
+            flags: [MessageFlags.Ephemeral],
           });
       }
     } catch (error) {
@@ -259,7 +263,7 @@ export const command = {
       if (!interaction.replied && !interaction.deferred) {
         await interaction.reply({
           content: "An error occurred while processing this command.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
     }

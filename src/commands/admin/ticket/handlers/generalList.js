@@ -1,3 +1,4 @@
+import { MessageFlags } from "discord.js";
 import { getTicketManager } from "../../../../features/ticketing/TicketManager.js";
 import { createInfoEmbed } from "../../../../features/ticketing/embeds.js";
 
@@ -6,7 +7,7 @@ import { createInfoEmbed } from "../../../../features/ticketing/embeds.js";
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function handleList(interaction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
   const status = interaction.options.getString("status") || "open";
   const userId = interaction.user.id;

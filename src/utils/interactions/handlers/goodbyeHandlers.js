@@ -289,11 +289,11 @@ export async function handleGoodbyeReset(interaction) {
             "You need Manage Server permissions to reset the goodbye system.",
           solution: "Contact a server administrator for assistance.",
         }),
-        { ephemeral: true },
+        { flags: [MessageFlags.Ephemeral] },
       );
     }
 
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
     const dbManager = await getDatabaseManager();
 
@@ -370,7 +370,7 @@ export async function handleGoodbyeToggle(interaction) {
             "You need Manage Server permissions to toggle the goodbye system.",
           solution: "Contact a server administrator for assistance.",
         }),
-        { ephemeral: true },
+        { flags: [MessageFlags.Ephemeral] },
       );
     }
 
@@ -446,7 +446,7 @@ export async function handleGoodbyeFormat(interaction) {
             "You need Manage Server permissions to change the goodbye format.",
           solution: "Contact a server administrator for assistance.",
         }),
-        { ephemeral: true },
+        { flags: [MessageFlags.Ephemeral] },
       );
     }
 
@@ -522,11 +522,11 @@ export async function handleGoodbyeTest(interaction) {
             "You need Manage Server permissions to test the goodbye system.",
           solution: "Contact a server administrator for assistance.",
         }),
-        { ephemeral: true },
+        { flags: [MessageFlags.Ephemeral] },
       );
     }
 
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
     const dbManager = await getDatabaseManager();
     const settings = await dbManager.goodbyeSettings.getByGuild(
@@ -669,11 +669,11 @@ export async function handleGoodbyeEdit(interaction) {
             "You need Manage Server permissions to edit goodbye settings.",
           solution: "Contact a server administrator for assistance.",
         }),
-        { ephemeral: true },
+        { flags: [MessageFlags.Ephemeral] },
       );
     }
 
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
     // Get database manager
     const dbManager = await getDatabaseManager();

@@ -8,7 +8,7 @@
 export const name = "giveaway";
 export const execute = () => {};
 
-import { EmbedBuilder } from "discord.js";
+import { EmbedBuilder, MessageFlags } from "discord.js";
 import { THEME } from "../config/theme.js";
 import giveawayManager from "../features/giveaway/GiveawayManager.js";
 import {
@@ -50,24 +50,24 @@ export async function handleGiveawayInteraction(interaction, _client) {
 
   switch (parsed.action) {
     case "giveaway_enter":
-      await handleEnterGiveaway(interaction);
+      await handleEnterGiveaway(interaction, parsed);
       break;
     case "giveaway_end":
-      await handleAdminEnd(interaction);
+      await handleAdminEnd(interaction, parsed);
       break;
     case "giveaway_reroll":
-      await handleAdminReroll(interaction);
+      await handleAdminReroll(interaction, parsed);
       break;
     case "giveaway_cancel":
-      await handleAdminCancel(interaction);
+      await handleAdminCancel(interaction, parsed);
       break;
     case "giveaway_complete":
-      await handleAdminComplete(interaction);
+      await handleAdminComplete(interaction, parsed);
       break;
     default:
       await interaction.reply({
         content: "Unknown action",
-        ephemeral: true,
+        flags: [MessageFlags.Ephemeral],
       });
   }
 
@@ -77,14 +77,18 @@ export async function handleGiveawayInteraction(interaction, _client) {
 /**
  * Handle user entering a giveaway
  * @param {Object} interaction - Discord interaction
+ * @param {Object} parsed - Parsed custom ID data
  */
-async function handleEnterGiveaway(interaction) {
+async function handleEnterGiveaway(interaction, parsed) {
   try {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
-    const giveaway = await giveawayManager.getByMessageId(
-      interaction.message.id,
-    );
+    let giveaway = null;
+    if (parsed.giveawayId) {
+      giveaway = await giveawayManager.getById(parsed.giveawayId);
+    } else {
+      giveaway = await giveawayManager.getByMessageId(interaction.message.id);
+    }
 
     if (!giveaway) {
       return interaction.editReply({
@@ -162,7 +166,7 @@ async function handleEnterGiveaway(interaction) {
 
       await interaction.message.edit({
         embeds: [updatedEmbed],
-        components: [createActiveGiveawayActions()],
+        components: [createActiveGiveawayActions(giveaway._id.toString())],
       });
     } catch (err) {
       logger.warn("⚠️ Failed to update giveaway message:", err.message);
@@ -198,7 +202,7 @@ async function handleEnterGiveaway(interaction) {
             "error",
           ),
         ],
-        ephemeral: true,
+        flags: [MessageFlags.Ephemeral],
       });
     } else if (interaction.deferred) {
       await interaction.editReply({
@@ -217,8 +221,9 @@ async function handleEnterGiveaway(interaction) {
 /**
  * Handle admin ending a giveaway via button
  * @param {Object} interaction - Discord interaction
+ * @param {Object} parsed - Parsed custom ID data
  */
-async function handleAdminEnd(interaction) {
+async function handleAdminEnd(interaction, parsed) {
   try {
     if (!canManageGiveaways(interaction.member)) {
       return interaction.reply({
@@ -229,20 +234,23 @@ async function handleAdminEnd(interaction) {
             "error",
           ),
         ],
-        ephemeral: true,
+        flags: [MessageFlags.Ephemeral],
       });
     }
 
-    const giveaway = await giveawayManager.getByMessageId(
-      interaction.message.id,
-    );
+    let giveaway = null;
+    if (parsed.giveawayId) {
+      giveaway = await giveawayManager.getById(parsed.giveawayId);
+    } else {
+      giveaway = await giveawayManager.getByMessageId(interaction.message.id);
+    }
 
     if (!giveaway) {
       return interaction.reply({
         embeds: [
           createConfirmationEmbed("Error", "Giveaway not found.", "error"),
         ],
-        ephemeral: true,
+        flags: [MessageFlags.Ephemeral],
       });
     }
 
@@ -272,8 +280,9 @@ async function handleAdminEnd(interaction) {
 /**
  * Handle admin rerolling a giveaway via button
  * @param {Object} interaction - Discord interaction
+ * @param {Object} parsed - Parsed custom ID data
  */
-async function handleAdminReroll(interaction) {
+async function handleAdminReroll(interaction, parsed) {
   try {
     if (!canManageGiveaways(interaction.member)) {
       return interaction.reply({
@@ -284,20 +293,23 @@ async function handleAdminReroll(interaction) {
             "error",
           ),
         ],
-        ephemeral: true,
+        flags: [MessageFlags.Ephemeral],
       });
     }
 
-    const giveaway = await giveawayManager.getByMessageId(
-      interaction.message.id,
-    );
+    let giveaway = null;
+    if (parsed.giveawayId) {
+      giveaway = await giveawayManager.getById(parsed.giveawayId);
+    } else {
+      giveaway = await giveawayManager.getByMessageId(interaction.message.id);
+    }
 
     if (!giveaway) {
       return interaction.reply({
         embeds: [
           createConfirmationEmbed("Error", "Giveaway not found.", "error"),
         ],
-        ephemeral: true,
+        flags: [MessageFlags.Ephemeral],
       });
     }
 
@@ -335,8 +347,9 @@ async function handleAdminReroll(interaction) {
 /**
  * Handle admin cancelling a giveaway via button
  * @param {Object} interaction - Discord interaction
+ * @param {Object} parsed - Parsed custom ID data
  */
-async function handleAdminCancel(interaction) {
+async function handleAdminCancel(interaction, parsed) {
   try {
     if (!canManageGiveaways(interaction.member)) {
       return interaction.reply({
@@ -347,20 +360,23 @@ async function handleAdminCancel(interaction) {
             "error",
           ),
         ],
-        ephemeral: true,
+        flags: [MessageFlags.Ephemeral],
       });
     }
 
-    const giveaway = await giveawayManager.getByMessageId(
-      interaction.message.id,
-    );
+    let giveaway = null;
+    if (parsed.giveawayId) {
+      giveaway = await giveawayManager.getById(parsed.giveawayId);
+    } else {
+      giveaway = await giveawayManager.getByMessageId(interaction.message.id);
+    }
 
     if (!giveaway) {
       return interaction.reply({
         embeds: [
           createConfirmationEmbed("Error", "Giveaway not found.", "error"),
         ],
-        ephemeral: true,
+        flags: [MessageFlags.Ephemeral],
       });
     }
 
@@ -412,8 +428,9 @@ async function handleAdminCancel(interaction) {
 /**
  * Handle admin marking giveaway as complete
  * @param {Object} interaction - Discord interaction
+ * @param {Object} parsed - Parsed custom ID data
  */
-async function handleAdminComplete(interaction) {
+async function handleAdminComplete(interaction, parsed) {
   try {
     if (!canManageGiveaways(interaction.member)) {
       return interaction.reply({
@@ -424,20 +441,23 @@ async function handleAdminComplete(interaction) {
             "error",
           ),
         ],
-        ephemeral: true,
+        flags: [MessageFlags.Ephemeral],
       });
     }
 
-    const giveaway = await giveawayManager.getByMessageId(
-      interaction.message.id,
-    );
+    let giveaway = null;
+    if (parsed.giveawayId) {
+      giveaway = await giveawayManager.getById(parsed.giveawayId);
+    } else {
+      giveaway = await giveawayManager.getByMessageId(interaction.message.id);
+    }
 
     if (!giveaway) {
       return interaction.reply({
         embeds: [
           createConfirmationEmbed("Error", "Giveaway not found.", "error"),
         ],
-        ephemeral: true,
+        flags: [MessageFlags.Ephemeral],
       });
     }
 
@@ -482,7 +502,9 @@ async function announceWinners(
       const noEntriesEmbed = createNoEntriesEmbed(giveaway);
       await channel.send({
         embeds: [noEntriesEmbed],
-        components: [createEndedGiveawayActions(false)],
+        components: [
+          createEndedGiveawayActions(giveaway._id.toString(), false),
+        ],
       });
       return;
     }
@@ -499,7 +521,7 @@ async function announceWinners(
 
     await channel.send({
       embeds: [winnerEmbed],
-      components: [createEndedGiveawayActions(true)],
+      components: [createEndedGiveawayActions(giveaway._id.toString(), true)],
     });
 
     // DM winners
@@ -546,7 +568,9 @@ async function announceWinners(
 
         await message.edit({
           embeds: [endedEmbed],
-          components: [createEndedGiveawayActions(true)],
+          components: [
+            createEndedGiveawayActions(giveaway._id.toString(), true),
+          ],
         });
       }
     } catch (err) {
@@ -669,7 +693,7 @@ export function setupGiveawayEvents(manager, client) {
         });
 
         // Use the existing components logic to ensure the button is refreshed
-        const components = createActiveGiveawayActions();
+        const components = createActiveGiveawayActions(giveaway._id.toString());
 
         await message.edit({
           embeds: [updatedEmbed],

@@ -25,7 +25,7 @@ export class AvatarService {
   /**
    * Test cache key generation for different style combinations
    * @param {string} prompt - Test prompt
-   * @returns {Object} Cache key test results
+   * @returns {Promise<Array<Object>>} Cache key test results
    */
   async testCacheKeys(prompt = "test character") {
     const testCombinations = [
@@ -77,10 +77,10 @@ export class AvatarService {
    * @param {string} prompt - User's prompt
    * @param {boolean} showDebugPrompt - Show debug information
    * @param {string} userId - User ID for concurrency tracking
-   * @param {Object} styleOptions - Optional style overrides
-   * @param {string} styleOptions.colorStyle - Color style override
-   * @param {string} styleOptions.mood - Mood style override
-   * @param {string} styleOptions.artStyle - Art style override
+   * @param {Object} [styleOptions={}] - Optional style overrides
+   * @param {string} [styleOptions.colorStyle] - Color style override
+   * @param {string} [styleOptions.mood] - Mood style override
+   * @param {string} [styleOptions.artStyle] - Art style override
    * @param {Function} progressCallback - Optional progress callback function
    * @returns {Promise<Object>} Generated avatar data
    */

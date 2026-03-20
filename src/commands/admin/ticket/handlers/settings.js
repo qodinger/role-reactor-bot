@@ -5,6 +5,7 @@ import {
   RoleSelectMenuBuilder,
   ChannelSelectMenuBuilder,
   EmbedBuilder,
+  MessageFlags,
 } from "discord.js";
 import { getTicketPanel } from "../../../../features/ticketing/TicketPanel.js";
 import { getTicketManager } from "../../../../features/ticketing/TicketManager.js";
@@ -19,7 +20,7 @@ import { EMOJIS } from "../../../../config/theme.js";
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function handleSettings(interaction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
   const guildId = interaction.guildId;
   const ticketManager = getTicketManager();
@@ -166,7 +167,7 @@ export async function handleSettings(interaction) {
     if (i.user.id !== interaction.user.id) {
       return i.reply({
         content: "This menu is not for you.",
-        ephemeral: true,
+        flags: [MessageFlags.Ephemeral],
       });
     }
 
@@ -243,7 +244,7 @@ export async function handleSettings(interaction) {
               i.client,
             ),
           ],
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
         return;
       }
@@ -268,7 +269,7 @@ export async function handleSettings(interaction) {
             i.client,
           ),
         ],
-        ephemeral: true,
+        flags: [MessageFlags.Ephemeral],
       });
       return;
     }

@@ -1,3 +1,4 @@
+import { MessageFlags } from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
 import { createSupportEmbed, createErrorEmbed } from "./embeds.js";
 import { createSupportButtons } from "./components.js";
@@ -7,7 +8,7 @@ export async function execute(interaction, _client) {
 
   try {
     // Defer immediately to prevent timeout
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
     const embed = createSupportEmbed(interaction.user);
     const components = await createSupportButtons();

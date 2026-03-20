@@ -28,7 +28,7 @@ export async function handleWelcomeConfigModal(interaction) {
       });
     }
 
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
     const messageInput =
       interaction.fields.getTextInputValue("welcome_message");
@@ -90,7 +90,7 @@ export async function handleWelcomeConfigModal(interaction) {
             "An error occurred while configuring the welcome system.",
         }),
       ],
-      ephemeral: true,
+      flags: [MessageFlags.Ephemeral],
     });
   }
 }

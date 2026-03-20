@@ -1,4 +1,4 @@
-import { PermissionFlagsBits } from "discord.js";
+import { PermissionFlagsBits, MessageFlags } from "discord.js";
 import { getTicketManager } from "../../../../features/ticketing/TicketManager.js";
 import {
   createInfoEmbed,
@@ -11,7 +11,7 @@ import { checkStaffRole } from "../utils.js";
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function handleView(interaction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
   const ticketNumber = interaction.options
     .getString("ticket-id")

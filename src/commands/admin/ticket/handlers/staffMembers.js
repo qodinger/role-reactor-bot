@@ -1,4 +1,4 @@
-import { PermissionFlagsBits } from "discord.js";
+import { PermissionFlagsBits, MessageFlags } from "discord.js";
 import { getTicketManager } from "../../../../features/ticketing/TicketManager.js";
 import {
   createSuccessEmbed,
@@ -14,7 +14,7 @@ const logger = getLogger();
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function handleAdd(interaction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
   const userToAdd = interaction.options.getUser("member");
   const isStaff = await checkStaffRole(interaction);
@@ -137,7 +137,7 @@ export async function handleAdd(interaction) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function handleRemove(interaction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
   const userToRemove = interaction.options.getUser("member");
   const isStaff = await checkStaffRole(interaction);

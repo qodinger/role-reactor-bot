@@ -1,4 +1,4 @@
-import { EmbedBuilder } from "discord.js";
+import { EmbedBuilder, MessageFlags } from "discord.js";
 import { getTicketManager } from "../../../features/ticketing/TicketManager.js";
 import { getLogger } from "../../../utils/logger.js";
 import {
@@ -22,7 +22,7 @@ const logger = getLogger();
  */
 export async function handleTicketClaim(interaction, providedTicketId) {
   try {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
     const staffId = interaction.user.id;
     const channelId = interaction.channelId;

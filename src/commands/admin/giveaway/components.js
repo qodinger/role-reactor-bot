@@ -8,11 +8,12 @@ import { BUTTON_STYLES } from "../../../config/theme.js";
 
 /**
  * Create the enter giveaway button
+ * @param {string} giveawayId - Giveaway ID
  * @returns {ButtonBuilder}
  */
-export function createEnterButton() {
+export function createEnterButton(giveawayId) {
   return new ButtonBuilder()
-    .setCustomId("giveaway_enter")
+    .setCustomId(createCustomId("giveaway_enter", giveawayId))
     .setLabel("Enter Giveaway")
     .setStyle(BUTTON_STYLES.PRIMARY)
     .setEmoji("🎁");
@@ -20,11 +21,12 @@ export function createEnterButton() {
 
 /**
  * Create the end giveaway button (admin only)
+ * @param {string} giveawayId - Giveaway ID
  * @returns {ButtonBuilder}
  */
-export function createEndButton() {
+export function createEndButton(giveawayId) {
   return new ButtonBuilder()
-    .setCustomId("giveaway_end")
+    .setCustomId(createCustomId("giveaway_end", giveawayId))
     .setLabel("End Giveaway")
     .setStyle(BUTTON_STYLES.DANGER)
     .setEmoji("🏁");
@@ -32,11 +34,12 @@ export function createEndButton() {
 
 /**
  * Create the reroll button (admin only)
+ * @param {string} giveawayId - Giveaway ID
  * @returns {ButtonBuilder}
  */
-export function createRerollButton() {
+export function createRerollButton(giveawayId) {
   return new ButtonBuilder()
-    .setCustomId("giveaway_reroll")
+    .setCustomId(createCustomId("giveaway_reroll", giveawayId))
     .setLabel("Reroll")
     .setStyle(BUTTON_STYLES.SECONDARY)
     .setEmoji("🔄");
@@ -44,11 +47,12 @@ export function createRerollButton() {
 
 /**
  * Create the cancel button (admin only)
+ * @param {string} giveawayId - Giveaway ID
  * @returns {ButtonBuilder}
  */
-export function createCancelButton() {
+export function createCancelButton(giveawayId) {
   return new ButtonBuilder()
-    .setCustomId("giveaway_cancel")
+    .setCustomId(createCustomId("giveaway_cancel", giveawayId))
     .setLabel("Cancel")
     .setStyle(BUTTON_STYLES.DANGER)
     .setEmoji("🚫");
@@ -56,11 +60,12 @@ export function createCancelButton() {
 
 /**
  * Create the mark complete button (admin only)
+ * @param {string} giveawayId - Giveaway ID
  * @returns {ButtonBuilder}
  */
-export function createCompleteButton() {
+export function createCompleteButton(giveawayId) {
   return new ButtonBuilder()
-    .setCustomId("giveaway_complete")
+    .setCustomId(createCustomId("giveaway_complete", giveawayId))
     .setLabel("Mark Complete")
     .setStyle(BUTTON_STYLES.SUCCESS)
     .setEmoji("✅");
@@ -68,28 +73,30 @@ export function createCompleteButton() {
 
 /**
  * Create action row for active giveaway
+ * @param {string} giveawayId - Giveaway ID
  * @returns {ActionRowBuilder}
  */
-export function createActiveGiveawayActions() {
-  return new ActionRowBuilder().addComponents(createEnterButton());
+export function createActiveGiveawayActions(giveawayId) {
+  return new ActionRowBuilder().addComponents(createEnterButton(giveawayId));
 }
 
 /**
  * Create action row for ended giveaway (admin actions)
+ * @param {string} giveawayId - Giveaway ID
  * @param {boolean} showAll - Show all admin buttons
  * @returns {ActionRowBuilder}
  */
-export function createEndedGiveawayActions(showAll = true) {
+export function createEndedGiveawayActions(giveawayId, showAll = true) {
   const row = new ActionRowBuilder();
 
   if (showAll) {
     row.addComponents(
-      createRerollButton(),
-      createCompleteButton(),
-      createCancelButton(),
+      createRerollButton(giveawayId),
+      createCompleteButton(giveawayId),
+      createCancelButton(giveawayId),
     );
   } else {
-    row.addComponents(createRerollButton());
+    row.addComponents(createRerollButton(giveawayId));
   }
 
   return row;
@@ -97,12 +104,13 @@ export function createEndedGiveawayActions(showAll = true) {
 
 /**
  * Create action row for giveaway management
+ * @param {string} giveawayId - Giveaway ID
  * @returns {ActionRowBuilder}
  */
-export function createManagementActions() {
+export function createManagementActions(giveawayId) {
   return new ActionRowBuilder().addComponents(
-    createEndButton(),
-    createCancelButton(),
+    createEndButton(giveawayId),
+    createCancelButton(giveawayId),
   );
 }
 

@@ -3,7 +3,7 @@
  * @module commands/admin/role-bundle/handlers
  */
 
-import { EmbedBuilder, PermissionsBitField } from "discord.js";
+import { EmbedBuilder, PermissionsBitField, MessageFlags } from "discord.js";
 import roleBundleManager from "../../../features/rolebundles/RoleBundleManager.js";
 
 import { getMentionableCommand } from "../../../utils/commandUtils.js";
@@ -17,7 +17,7 @@ const logger = getLogger();
  */
 export async function handleCreate(interaction) {
   try {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
     const name = interaction.options.getString("name");
     const rolesString = interaction.options.getString("roles");
@@ -109,7 +109,7 @@ export async function handleCreate(interaction) {
  */
 export async function handleDelete(interaction) {
   try {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
     const name = interaction.options.getString("name");
 
@@ -181,7 +181,7 @@ export async function handleDelete(interaction) {
  */
 export async function handleList(interaction) {
   try {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
     const bundles = await roleBundleManager.getAllForGuild(
       interaction.guild.id,

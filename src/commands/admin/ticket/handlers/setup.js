@@ -1,4 +1,4 @@
-import { PermissionFlagsBits } from "discord.js";
+import { PermissionFlagsBits, MessageFlags } from "discord.js";
 import { getTicketPanel } from "../../../../features/ticketing/TicketPanel.js";
 import { getTicketManager } from "../../../../features/ticketing/TicketManager.js";
 import {
@@ -12,7 +12,7 @@ import { DEFAULT_CATEGORY } from "../../../../features/ticketing/config.js";
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function handleSetup(interaction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
   const channel = interaction.options.getChannel("channel");
   const title = interaction.options.getString("title") || "Support Tickets";

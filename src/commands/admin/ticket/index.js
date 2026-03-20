@@ -1,4 +1,8 @@
-import { SlashCommandBuilder, PermissionFlagsBits } from "discord.js";
+import {
+  SlashCommandBuilder,
+  PermissionFlagsBits,
+  MessageFlags,
+} from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
 import { createErrorEmbed } from "../../../features/ticketing/embeds.js";
 import { getColorChoices } from "../role-reactions/utils.js";
@@ -403,7 +407,7 @@ export async function execute(interaction) {
               interaction.client,
             ),
           ],
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
     }
@@ -448,7 +452,7 @@ export async function execute(interaction) {
               interaction.client,
             ),
           ],
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
     }
   } catch (error) {
@@ -463,7 +467,7 @@ export async function execute(interaction) {
             interaction.client,
           ),
         ],
-        ephemeral: true,
+        flags: [MessageFlags.Ephemeral],
       });
     }
 

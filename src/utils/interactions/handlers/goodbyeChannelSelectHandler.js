@@ -86,7 +86,7 @@ export async function handleGoodbyeChannelSelect(interaction) {
         description: "Failed to process channel selection.",
         solution: "Please try again or contact support if the issue persists.",
       }),
-      { ephemeral: true },
+      { flags: [MessageFlags.Ephemeral] },
     );
   }
 }

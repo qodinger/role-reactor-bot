@@ -1,4 +1,8 @@
-import { ChannelType, ThreadAutoArchiveDuration } from "discord.js";
+import {
+  ChannelType,
+  ThreadAutoArchiveDuration,
+  MessageFlags,
+} from "discord.js";
 import { getTicketManager } from "../../../features/ticketing/TicketManager.js";
 import { getTicketPanel } from "../../../features/ticketing/TicketPanel.js";
 import { getLogger } from "../../../utils/logger.js";
@@ -24,7 +28,7 @@ const logger = getLogger();
  */
 export async function handleTicketCreate(interaction, customId) {
   try {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
     const categoryId = customId.replace("ticket_create_", "");
     const userId = interaction.user.id;

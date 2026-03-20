@@ -3,6 +3,7 @@ import {
   ActionRowBuilder,
   TextInputBuilder,
   TextInputStyle,
+  MessageFlags,
 } from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
 import {
@@ -34,7 +35,7 @@ export async function handleTicketAddUser(interaction) {
             interaction.client,
           ),
         ],
-        ephemeral: true,
+        flags: [MessageFlags.Ephemeral],
       });
     }
 
@@ -67,7 +68,7 @@ export async function handleTicketAddUser(interaction) {
           interaction.client,
         ),
       ],
-      ephemeral: true,
+      flags: [MessageFlags.Ephemeral],
     });
   }
 }
@@ -93,7 +94,7 @@ export async function handleTicketTransfer(interaction) {
             interaction.client,
           ),
         ],
-        ephemeral: true,
+        flags: [MessageFlags.Ephemeral],
       });
     }
 
@@ -126,7 +127,7 @@ export async function handleTicketTransfer(interaction) {
           interaction.client,
         ),
       ],
-      ephemeral: true,
+      flags: [MessageFlags.Ephemeral],
     });
   }
 }

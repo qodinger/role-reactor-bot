@@ -237,7 +237,7 @@ export async function handleWelcomeToggle(interaction) {
       });
     }
 
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
     const dbManager = await getDatabaseManager();
     const currentSettings = await dbManager.welcomeSettings.getByGuild(
@@ -297,7 +297,7 @@ export async function handleWelcomeToggle(interaction) {
           description: "An error occurred while toggling the welcome system.",
         }),
       ],
-      ephemeral: true,
+      flags: [MessageFlags.Ephemeral],
     });
   }
 }
@@ -323,7 +323,7 @@ export async function handleWelcomeReset(interaction) {
       });
     }
 
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
     const dbManager = await getDatabaseManager();
 
@@ -370,7 +370,7 @@ export async function handleWelcomeReset(interaction) {
           description: "An error occurred while resetting the welcome system.",
         }),
       ],
-      ephemeral: true,
+      flags: [MessageFlags.Ephemeral],
     });
   }
 }
@@ -396,7 +396,7 @@ export async function handleWelcomeTest(interaction) {
       });
     }
 
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
     const dbManager = await getDatabaseManager();
     const settings = await dbManager.welcomeSettings.getByGuild(
@@ -551,7 +551,7 @@ export async function handleWelcomeTest(interaction) {
           timestamp: new Date().toISOString(),
         },
       ],
-      ephemeral: true,
+      flags: [MessageFlags.Ephemeral],
     });
 
     logger.info(
@@ -566,7 +566,7 @@ export async function handleWelcomeTest(interaction) {
           description: "An error occurred while testing the welcome system.",
         }),
       ],
-      ephemeral: true,
+      flags: [MessageFlags.Ephemeral],
     });
   }
 }
@@ -592,7 +592,7 @@ export async function handleWelcomeEdit(interaction) {
       });
     }
 
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
     const dbManager = await getDatabaseManager();
     if (!dbManager.welcomeSettings) {
@@ -643,7 +643,7 @@ export async function handleWelcomeEdit(interaction) {
           description: "An error occurred while retrieving welcome settings.",
         }),
       ],
-      ephemeral: true,
+      flags: [MessageFlags.Ephemeral],
     });
   }
 }
@@ -665,7 +665,7 @@ export async function handleWelcomeFormat(interaction) {
             "You need Manage Server permissions to change the welcome format.",
           solution: "Contact a server administrator for assistance.",
         }),
-        { ephemeral: true },
+        { flags: [MessageFlags.Ephemeral] },
       );
     }
 
@@ -723,7 +723,7 @@ export async function handleWelcomeFormat(interaction) {
           description: "An error occurred while changing the welcome format.",
         }),
       ],
-      ephemeral: true,
+      flags: [MessageFlags.Ephemeral],
     });
   }
 }
@@ -749,7 +749,7 @@ export async function handleWelcomeClearRole(interaction) {
         flags: MessageFlags.Ephemeral,
       });
     }
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
     const dbManager = await getDatabaseManager();
     const currentSettings = await dbManager.welcomeSettings.getByGuild(
@@ -799,7 +799,7 @@ export async function handleWelcomeClearRole(interaction) {
             "An error occurred while clearing the welcome auto-role.",
         }),
       ],
-      ephemeral: true,
+      flags: [MessageFlags.Ephemeral],
     });
   }
 }
@@ -834,7 +834,7 @@ export async function handleWelcomeConfigureRole(interaction) {
     }
 
     logger.debug(`Deferring reply for welcome configure role`);
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
     const dbManager = await getDatabaseManager();
     const currentSettings = await dbManager.welcomeSettings.getByGuild(
@@ -864,7 +864,7 @@ export async function handleWelcomeConfigureRole(interaction) {
     await interaction.editReply({
       embeds: [embed],
       components,
-      ephemeral: true,
+      flags: [MessageFlags.Ephemeral],
     });
 
     logger.info(
@@ -883,7 +883,7 @@ export async function handleWelcomeConfigureRole(interaction) {
             "An error occurred while opening the role configuration.",
         }),
       ],
-      ephemeral: true,
+      flags: [MessageFlags.Ephemeral],
     });
   }
 }

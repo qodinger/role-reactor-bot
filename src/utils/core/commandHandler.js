@@ -1,8 +1,13 @@
-import { Collection } from "discord.js";
+import { Collection, MessageFlags } from "discord.js";
 import { getEventHandler } from "./eventHandler.js";
 import { getLogger } from "../logger.js";
 import { getExperienceManager } from "../../features/experience/ExperienceManager.js";
 import { getCommandRateLimiter } from "../rateLimit/commandRateLimiter.js";
+
+/**
+ * @typedef {import('discord.js').Client & { commands?: Collection<string, any> }} ExtendedClient
+ * @typedef {import('discord.js').CommandInteraction<any> & { _handled?: boolean }} ExtendedInteraction
+ */
 
 /**
  * Command Handler Class
@@ -24,7 +29,7 @@ class CommandHandler {
    * and command statistics. Sets up cache timeout for performance.
    *
    * @constructor
-   * @param {Client} client - Discord.js client instance (optional)
+   * @param {ExtendedClient} client - Discord.js client instance (optional)
    */
   constructor(client = null) {
     this.logger = getLogger();
@@ -38,7 +43,7 @@ class CommandHandler {
   /**
    * Sets the Discord client reference
    *
-   * @param {Client} client - Discord.js client instance
+   * @param {ExtendedClient} client - Discord.js client instance
    */
   setClient(client) {
     this.client = client;
@@ -110,8 +115,8 @@ class CommandHandler {
    * Caches permission checks for 5 minutes to reduce API calls
    * and improve response times for repeated permission checks.
    *
-   * @param {GuildMember} member - Discord guild member to check
-   * @param {string} permission - Permission to check (e.g., 'ManageRoles')
+   * @param {import('discord.js').GuildMember} member - Discord guild member to check
+   * @param {import('discord.js').PermissionResolvable} permission - Permission to check (e.g., 'ManageRoles')
    * @returns {Promise<boolean>} True if member has permission
    * @example
    * const hasPermission = await handler.checkPermissionWithCache(member, 'ManageRoles');
@@ -288,8 +293,8 @@ class CommandHandler {
    * Main command execution method that handles interaction validation,
    * command lookup, execution, error handling, and statistics tracking.
    *
-   * @param {CommandInteraction} interaction - Discord interaction object
-   * @param {Client} client - Discord.js client instance
+   * @param {ExtendedInteraction} interaction - Discord interaction object
+   * @param {ExtendedClient} client - Discord.js client instance
    * @returns {Promise<void>}
    * @example
    * await handler.executeCommand(interaction, client);
@@ -332,7 +337,7 @@ class CommandHandler {
           content:
             rateLimitMessages[rateLimitResult.reason] ||
             `⏱️ **Rate Limit**\n\nPlease wait **${retryAfterSeconds}s** before using this command again.`,
-          flags: 64, // Ephemeral
+          flags: [MessageFlags.Ephemeral],
         });
 
         this.logger.debug(
@@ -363,7 +368,7 @@ class CommandHandler {
           if (settings?.disabledCommands?.includes(commandName)) {
             await interaction.reply({
               content: `❌ The \`/${commandName}\` command has been disabled by an administrator in this server.`,
-              flags: 64,
+              flags: [MessageFlags.Ephemeral],
             });
             return;
           }
@@ -502,7 +507,7 @@ class CommandHandler {
    * Sends a user-friendly error message when a command is not found
    * or is invalid. Ensures the interaction is properly responded to.
    *
-   * @param {CommandInteraction} interaction - Discord interaction object
+   * @param {ExtendedInteraction} interaction - Discord interaction object
    * @returns {Promise<void>}
    * @example
    * await handler.handleUnknownCommand(interaction);
@@ -513,7 +518,7 @@ class CommandHandler {
       if (!interaction.replied && !interaction.deferred) {
         await interaction.reply({
           content: "❌ Unknown command.",
-          flags: 64,
+          flags: [MessageFlags.Ephemeral],
         });
       }
     } catch (error) {
@@ -527,9 +532,9 @@ class CommandHandler {
    * Provides user-friendly error messages for common Discord API errors
    * and logs detailed error information for debugging.
    *
-   * @param {CommandInteraction} interaction - Discord interaction object
-   * @param {Error} error - The error that occurred
-   * @param {number} duration - Command execution duration
+   * @param {ExtendedInteraction} interaction - Discord interaction object
+   * @param {Error & { code?: number | string }} error - The error that occurred
+   * @param {number} _duration - Command execution duration
    * @returns {Promise<void>}
    * @example
    * await handler.handleCommandError(interaction, error, 150);
@@ -540,9 +545,11 @@ class CommandHandler {
       let errorMessage = "❌ An error occurred while executing the command.";
 
       // Provide specific error messages for common issues
-      if (error.code === 10062) {
+      const errorCode = "code" in error ? error.code : undefined;
+
+      if (errorCode === 10062) {
         errorMessage = "❌ Command timed out. Please try again.";
-      } else if (error.code === 40060) {
+      } else if (errorCode === 40060) {
         errorMessage = "❌ Interaction already processed.";
       } else if (error.message.includes("permission")) {
         errorMessage = "❌ You don't have permission to use this command.";
@@ -571,12 +578,11 @@ class CommandHandler {
       ) {
         await interaction.reply({
           content: errorMessage,
-          flags: 64,
+          flags: [MessageFlags.Ephemeral],
         });
       } else if (interaction.deferred) {
         await interaction.editReply({
           content: errorMessage,
-          flags: 64,
         });
       } else {
         this.logger.warn(
@@ -721,6 +727,10 @@ class CommandHandler {
     }
   }
 
+  /**
+   * Gets performance metrics for the command handler
+   * @returns {Promise<Object>} Performance metrics object
+   */
   async getPerformanceMetrics() {
     return {
       totalCommands: this.commands.size,

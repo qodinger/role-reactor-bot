@@ -4,6 +4,7 @@ import {
   ButtonBuilder,
   ButtonStyle,
   PermissionFlagsBits,
+  MessageFlags,
 } from "discord.js";
 import { getTicketManager } from "../../../../features/ticketing/TicketManager.js";
 import { getTicketTranscript } from "../../../../features/ticketing/TicketTranscript.js";
@@ -23,7 +24,7 @@ import config from "../../../../config/config.js";
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function handleTranscript(interaction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
   const ticketNumber = interaction.options
     .getString("ticket-id")

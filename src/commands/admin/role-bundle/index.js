@@ -3,7 +3,7 @@
  * @module commands/admin/role-bundle/index
  */
 
-import { SlashCommandBuilder } from "discord.js";
+import { SlashCommandBuilder, MessageFlags } from "discord.js";
 import { handleCreate, handleDelete, handleList } from "./handlers.js";
 
 /**
@@ -76,7 +76,7 @@ export const command = {
         default:
           await interaction.reply({
             content: "Unknown subcommand",
-            ephemeral: true,
+            flags: [MessageFlags.Ephemeral],
           });
       }
     } catch (error) {
@@ -85,7 +85,7 @@ export const command = {
       if (!interaction.replied && !interaction.deferred) {
         await interaction.reply({
           content: "An error occurred while processing this command.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
     }

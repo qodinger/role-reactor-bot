@@ -1,4 +1,4 @@
-import { PermissionFlagsBits } from "discord.js";
+import { PermissionFlagsBits, MessageFlags } from "discord.js";
 import { getTicketManager } from "../../../../features/ticketing/TicketManager.js";
 import {
   createSuccessEmbed,
@@ -19,7 +19,7 @@ const logger = getLogger();
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function handleTransfer(interaction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
   const staffToTransfer = interaction.options.getUser("staff");
   const isStaff = await checkStaffRole(interaction);
@@ -200,7 +200,7 @@ export async function handleTransfer(interaction) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function handleRename(interaction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
   const newName = interaction.options.getString("name");
   const isStaff = await checkStaffRole(interaction);
@@ -290,7 +290,7 @@ export async function handleRename(interaction) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function handleAlert(interaction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
   const ticketManager = getTicketManager();
   await ticketManager.initialize();

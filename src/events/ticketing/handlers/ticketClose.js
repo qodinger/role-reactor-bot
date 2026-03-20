@@ -5,6 +5,7 @@ import {
   ButtonStyle,
   PermissionFlagsBits,
   EmbedBuilder,
+  MessageFlags,
 } from "discord.js";
 import config from "../../../config/config.js";
 import { getTicketManager } from "../../../features/ticketing/TicketManager.js";
@@ -30,7 +31,7 @@ const logger = getLogger();
  */
 export async function handleTicketClose(interaction) {
   try {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
     const userId = interaction.user.id;
     const channelId = interaction.channelId;

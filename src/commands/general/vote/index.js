@@ -9,6 +9,7 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  MessageFlags,
 } from "discord.js";
 import { getVoteStatus } from "../../../webhooks/topgg.js";
 import config from "../../../config/config.js";
@@ -116,7 +117,7 @@ export const command = {
       if (!interaction.replied && !interaction.deferred) {
         await interaction.reply({
           content: "❌ Failed to show vote information. Please try again.",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
     }

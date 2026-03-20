@@ -3,7 +3,7 @@
  * @module commands/admin/giveaway/handlers
  */
 
-import { PermissionsBitField } from "discord.js";
+import { PermissionFlagsBits, MessageFlags } from "discord.js";
 import giveawayManager from "../../../features/giveaway/GiveawayManager.js";
 import {
   createGiveawayEmbed,
@@ -28,7 +28,7 @@ const logger = getLogger();
  */
 export async function handleCreate(interaction) {
   try {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
     const prize = interaction.options.getString("prize");
     const winners = interaction.options.getInteger("winners");
@@ -71,7 +71,7 @@ export async function handleCreate(interaction) {
       interaction.client.user,
     );
 
-    if (!botPermissions.has(PermissionsBitField.Flags.SendMessages)) {
+    if (!botPermissions.has(PermissionFlagsBits.SendMessages)) {
       return interaction.editReply({
         embeds: [
           createConfirmationEmbed(
@@ -83,7 +83,7 @@ export async function handleCreate(interaction) {
       });
     }
 
-    if (!botPermissions.has(PermissionsBitField.Flags.EmbedLinks)) {
+    if (!botPermissions.has(PermissionFlagsBits.EmbedLinks)) {
       return interaction.editReply({
         embeds: [
           createConfirmationEmbed(
@@ -143,7 +143,7 @@ export async function handleCreate(interaction) {
       totalEntries,
       interaction.client,
     );
-    const components = createActiveGiveawayActions();
+    const components = createActiveGiveawayActions(giveaway._id.toString());
 
     const message = await targetChannel.send({
       embeds: [embed],
@@ -193,7 +193,7 @@ export async function handleCreate(interaction) {
             "error",
           ),
         ],
-        ephemeral: true,
+        flags: [MessageFlags.Ephemeral],
       });
     }
 
@@ -215,7 +215,7 @@ export async function handleCreate(interaction) {
  */
 export async function handleList(interaction) {
   try {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
     const page = interaction.options.getInteger("page") || 1;
     const showAll = interaction.options.getBoolean("show-all") || false;
@@ -253,7 +253,7 @@ export async function handleList(interaction) {
 
     return interaction.editReply({
       embeds: [embed],
-      ephemeral: true,
+      flags: [MessageFlags.Ephemeral],
     });
   } catch (error) {
     logger.error("❌ Error listing giveaways:", error);
@@ -266,7 +266,7 @@ export async function handleList(interaction) {
           "error",
         ),
       ],
-      ephemeral: true,
+      flags: [MessageFlags.Ephemeral],
     });
   }
 }
@@ -277,7 +277,7 @@ export async function handleList(interaction) {
  */
 export async function handleEnd(interaction) {
   try {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
     const giveawayId = interaction.options.getString("giveaway-id");
 
@@ -343,7 +343,7 @@ export async function handleEnd(interaction) {
           "error",
         ),
       ],
-      ephemeral: true,
+      flags: [MessageFlags.Ephemeral],
     });
   }
 }
@@ -354,7 +354,7 @@ export async function handleEnd(interaction) {
  */
 export async function handleReroll(interaction) {
   try {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
     const giveawayId = interaction.options.getString("giveaway-id");
     const winners = interaction.options.getInteger("winners");
@@ -423,7 +423,7 @@ export async function handleReroll(interaction) {
           "error",
         ),
       ],
-      ephemeral: true,
+      flags: [MessageFlags.Ephemeral],
     });
   }
 }
@@ -434,7 +434,7 @@ export async function handleReroll(interaction) {
  */
 export async function handleCancel(interaction) {
   try {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
     const giveawayId = interaction.options.getString("giveaway-id");
 
@@ -502,7 +502,7 @@ export async function handleCancel(interaction) {
           "error",
         ),
       ],
-      ephemeral: true,
+      flags: [MessageFlags.Ephemeral],
     });
   }
 }
@@ -513,7 +513,7 @@ export async function handleCancel(interaction) {
  */
 export async function handleDelete(interaction) {
   try {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
     const giveawayId = interaction.options.getString("giveaway-id");
 
@@ -581,7 +581,7 @@ export async function handleDelete(interaction) {
           "error",
         ),
       ],
-      ephemeral: true,
+      flags: [MessageFlags.Ephemeral],
     });
   }
 }
@@ -592,7 +592,7 @@ export async function handleDelete(interaction) {
  */
 export async function handleEdit(interaction) {
   try {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
     const giveawayId = interaction.options.getString("giveaway-id");
     const prize = interaction.options.getString("prize");
@@ -689,7 +689,7 @@ export async function handleEdit(interaction) {
           "error",
         ),
       ],
-      ephemeral: true,
+      flags: [MessageFlags.Ephemeral],
     });
   }
 }
