@@ -8,7 +8,7 @@ export const CORE_STATUS = {
   PRO: {
     id: 1,
     label: "Pro Engine",
-    emoji: "✨",
+    emoji: "<:pro_engine:1484831093818527804>",
   },
 };
 

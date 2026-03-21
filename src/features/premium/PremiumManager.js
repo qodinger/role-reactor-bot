@@ -468,6 +468,7 @@ export class PremiumManager {
 
       sub.lastDeductionDate = now;
       sub.nextDeductionDate = nextDate;
+      sub.cost = feature.cost; // Sync with latest config cost
       await db.guildSettings.set(guildId, settings);
 
       await this._logTransaction(db, {
@@ -892,6 +893,9 @@ export class PremiumManager {
         tier: transaction.featureId,
         metadata: {
           guildId: transaction.guildId,
+          guildName:
+            this.client?.guilds.cache.get(transaction.guildId)?.name ||
+            "Unknown Server",
           featureName: transaction.featureName,
           reason: transaction.reason || null,
         },
