@@ -1,5 +1,6 @@
 import { EmbedBuilder } from "discord.js";
-import { THEME, UI_COMPONENTS } from "../../../config/theme.js";
+import { THEME, UI_COMPONENTS, EMOJIS } from "../../../config/theme.js";
+import { CORE_STATUS } from "../../../features/premium/config.js";
 import { formatNumber, getChannelCounts, getMemberCounts } from "./utils.js";
 
 /**
@@ -7,42 +8,38 @@ import { formatNumber, getChannelCounts, getMemberCounts } from "./utils.js";
  * @param {import('discord.js').Guild} guild - Guild instance
  * @param {import('discord.js').Client} client - Discord client
  * @param {boolean} membersFetched - Whether all members were successfully fetched
+ * @param {Object} proEngine - Pro Engine status information
  * @returns {EmbedBuilder}
  */
-export function createServerInfoEmbed(guild, client, membersFetched = false) {
-  // Build description with server name and optional description
-  // Discord embed description limit is 4096, but we'll truncate at 2000 for readability
-  let description = `**${guild.name}**`;
-  if (guild.description) {
-    const maxDescLength = 2000 - description.length - 2; // Reserve space for name + newlines
-    const truncatedDesc =
-      guild.description.length > maxDescLength
-        ? `${guild.description.substring(0, maxDescLength - 3)}...`
-        : guild.description;
-    description += `\n\n${truncatedDesc}`;
-  }
+export function createServerInfoEmbed(
+  guild,
+  client,
+  membersFetched = false,
+  proEngine = { active: false },
+) {
+  const memberCounts = getMemberCounts(guild);
+  const channelCounts = getChannelCounts(guild);
 
   const embed = new EmbedBuilder()
     .setColor(THEME.PRIMARY)
+    .setAuthor(
+      UI_COMPONENTS.createAuthor(guild.name, guild.iconURL({ size: 128 })),
+    )
     .setTitle("Server Information")
-    .setDescription(description)
-    .setThumbnail(guild.iconURL({ dynamic: true, size: 256 }))
     .setTimestamp();
 
-  const fields = [];
+  // Guild description
+  if (guild.description) {
+    embed.setDescription(
+      `> ${guild.description.length > 500 ? guild.description.substring(0, 497) + "..." : guild.description}`,
+    );
+  }
 
-  // Basic Information - Row 1
-  fields.push(
+  // Row 1: General Info
+  embed.addFields(
     {
       name: "Owner",
-      value: guild.members.cache.get(guild.ownerId)?.user.tag || "Unknown",
-      inline: true,
-    },
-    {
-      name: "Created",
-      value: guild.createdAt
-        ? `<t:${Math.floor(guild.createdAt.getTime() / 1000)}:R>`
-        : "Unknown",
+      value: `**${guild.members.cache.get(guild.ownerId)?.user.tag || "Unknown"}**\nCreated <t:${Math.floor(guild.createdAt.getTime() / 1000)}:R>`,
       inline: true,
     },
     {
@@ -50,92 +47,78 @@ export function createServerInfoEmbed(guild, client, membersFetched = false) {
       value: `\`${guild.id}\``,
       inline: true,
     },
+    {
+      name: "Engine Tier",
+      value: proEngine.active
+        ? `${CORE_STATUS.PRO.label} ${CORE_STATUS.PRO.emoji}`
+        : `${CORE_STATUS.REGULAR.label}`,
+      inline: true,
+    },
   );
 
-  // Member Statistics - Clear text labels
-  const memberCounts = getMemberCounts(guild);
-  const memberInfo = [
-    `**Online:** ${formatNumber(memberCounts.online)}`,
-    `**Idle:** ${formatNumber(memberCounts.idle)}`,
-    `**DND:** ${formatNumber(memberCounts.dnd)}`,
-    `**Offline:** ${formatNumber(memberCounts.offline)}`,
-  ];
-
-  memberInfo.push(
-    `\n**Humans:** ${formatNumber(memberCounts.humans)}`,
-    `**Bots:** ${formatNumber(memberCounts.bots)}`,
+  // Row 2: Members & Channels
+  embed.addFields(
+    {
+      name: `Members (${formatNumber(memberCounts.total)})`,
+      value: `Humans: ${formatNumber(memberCounts.humans)}\nBots: ${formatNumber(memberCounts.bots)}${memberCounts.uncached > 0 && !membersFetched ? `\n\n*Cached data for ${formatNumber(memberCounts.cached)} members*` : ""}`,
+      inline: true,
+    },
+    {
+      name: `Channels (${formatNumber(channelCounts.text + channelCounts.voice + channelCounts.forum + channelCounts.stage + channelCounts.category)})`,
+      value: [
+        `Text: ${formatNumber(channelCounts.text)}`,
+        `Voice: ${formatNumber(channelCounts.voice)}`,
+        channelCounts.forum > 0
+          ? `Forum: ${formatNumber(channelCounts.forum)}`
+          : null,
+        channelCounts.stage > 0
+          ? `Stage: ${formatNumber(channelCounts.stage)}`
+          : null,
+        `Categories: ${formatNumber(channelCounts.category)}`,
+      ]
+        .filter(Boolean)
+        .join("\n"),
+      inline: true,
+    },
   );
 
-  if (memberCounts.uncached > 0 && !membersFetched) {
-    memberInfo.push(
-      `\n*Presence data for ${formatNumber(memberCounts.cached)}/${formatNumber(memberCounts.total)} members*`,
-    );
-  }
-
-  fields.push({
-    name: `Members [${formatNumber(memberCounts.total)}]`,
-    value: memberInfo.join("\n"),
+  // Row 3: Meta Information
+  embed.addFields({
+    name: "Assets",
+    value: [
+      `Roles: ${formatNumber(guild.roles.cache.size)}`,
+      guild.emojis.cache.size > 0
+        ? `Emojis: ${formatNumber(guild.emojis.cache.size)}`
+        : null,
+      guild.stickers.cache.size > 0
+        ? `Stickers: ${formatNumber(guild.stickers.cache.size)}`
+        : null,
+    ]
+      .filter(Boolean)
+      .join("\n"),
     inline: true,
   });
 
-  // Channel Statistics - Clear labels
-  const channelCounts = getChannelCounts(guild);
-  const channelInfo = [
-    `**Text:** ${formatNumber(channelCounts.text)}`,
-    `**Voice:** ${formatNumber(channelCounts.voice)}`,
-    `**Forum:** ${formatNumber(channelCounts.forum)}`,
-    `**Stage:** ${formatNumber(channelCounts.stage)}`,
-    `**Categories:** ${formatNumber(channelCounts.category)}`,
-    `**Threads:** ${formatNumber(channelCounts.threads)}`,
-  ];
-
-  fields.push({
-    name: `Channels [${formatNumber(channelCounts.total)}]`,
-    value: channelInfo.join("\n"),
-    inline: true,
-  });
-
-  // Server Statistics - Row 3
-  fields.push(
-    {
-      name: "Roles",
-      value: formatNumber(guild.roles.cache.size),
-      inline: true,
-    },
-    {
-      name: "Emojis",
-      value: formatNumber(guild.emojis.cache.size),
-      inline: true,
-    },
-    {
-      name: "Stickers",
-      value: formatNumber(guild.stickers.cache.size),
-      inline: true,
-    },
-  );
-
-  // Boost Level (if applicable)
+  // Boost Level
   if (guild.premiumSubscriptionCount > 0) {
-    fields.push({
+    embed.addFields({
       name: "Server Boost",
-      value: `Level ${guild.premiumTier} • ${guild.premiumSubscriptionCount} boost${guild.premiumSubscriptionCount !== 1 ? "s" : ""}`,
+      value: `Level ${guild.premiumTier} • ${guild.premiumSubscriptionCount} Boosts`,
       inline: false,
     });
   }
 
-  // Server banner
+  // Banner
   if (guild.bannerURL()) {
     embed.setImage(guild.bannerURL({ size: 1024 }));
   }
 
-  embed
-    .addFields(fields)
-    .setFooter(
-      UI_COMPONENTS.createFooter(
-        `Server ID: ${guild.id}`,
-        client.user.displayAvatarURL(),
-      ),
-    );
+  embed.setFooter(
+    UI_COMPONENTS.createFooter(
+      `Intelligence Data Generated`,
+      client.user.displayAvatarURL(),
+    ),
+  );
 
   return embed;
 }
