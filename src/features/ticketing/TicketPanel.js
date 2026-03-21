@@ -77,7 +77,7 @@ export class TicketPanel {
         return {
           success: false,
           error: createErrorEmbed(
-            `Maximum ${maxCategories} categories allowed.${!isPro ? " Upgrade to Pro for more!" : ""}`,
+            `Maximum ${maxCategories} categories allowed.${!isPro ? " Upgrade to **Pro Engine ✨** for more! Enable it on our **[website](https://rolereactor.app)** using Cores." : ""}`,
           ),
         };
       }

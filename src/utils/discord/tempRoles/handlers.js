@@ -154,7 +154,7 @@ export async function addTemporaryRolesForMultipleUsers(
       logger.warn(
         `Too many users requested: ${userIds.length} (max: ${maxUsers})`,
       );
-      const errorMsg = `Too many users. Maximum allowed: ${maxUsers}, requested: ${userIds.length}. ${isPro ? "" : "Upgrade to Pro Engine ✨ for higher limits!"}`;
+      const errorMsg = `Too many users. Maximum allowed: ${maxUsers}, requested: ${userIds.length}. ${isPro ? "" : "Upgrade to **Pro Engine ✨** for higher limits! Enable it on our **[website](https://rolereactor.app)** using Cores. You can purchase Cores on the site or earn them for free with /vote."}`;
       return {
         success: 0,
         failed: userIds.length,

@@ -1,6 +1,7 @@
-import { MessageFlags } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";
+import { config } from "../../../config/config.js";
 import {
   createBalanceEmbed,
   createErrorEmbed,
@@ -163,10 +164,11 @@ async function handleBalance(interaction) {
   }
 }
 
+
 /**
  * Handles command errors with centralized error response
  * @param {import("discord.js").ChatInputCommandInteraction} interaction - The interaction object
- * @param {Error} error - The error that occurred
+ * @param {Error} _error - The error that occurred
  */
 async function handleCommandError(interaction, _error) {
   try {
@@ -177,12 +179,9 @@ async function handleCommandError(interaction, _error) {
     });
 
     if (interaction.deferred) {
-      await interaction.editReply({ embeds: [errorResponse] });
+      await interaction.editReply(errorResponse);
     } else {
-      await interaction.reply({
-        embeds: [errorResponse],
-        flags: MessageFlags.Ephemeral,
-      });
+      await interaction.reply(errorResponse);
     }
   } catch (replyError) {
     logger.error("Failed to send error response:", replyError);

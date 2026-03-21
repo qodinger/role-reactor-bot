@@ -4,7 +4,7 @@ import { THEME_COLOR } from "../../config/theme.js";
 /**
  * Process welcome message with placeholders
  * @param {string} message - The message template
- * @param {GuildMember} member - The guild member
+ * @param {import('discord.js').GuildMember} member - The guild member
  * @returns {string} - Processed message
  */
 export function processWelcomeMessage(message, member) {
@@ -18,14 +18,14 @@ export function processWelcomeMessage(message, member) {
     .replace(/{user.id}/g, member.user.id)
     .replace(/{server}/g, member.guild.name)
     .replace(/{server.id}/g, member.guild.id)
-    .replace(/{memberCount}/g, humanCount)
+    .replace(/{memberCount}/g, String(humanCount))
     .replace(/{memberCount.ordinal}/g, getOrdinal(humanCount));
 }
 
 /**
  * Create welcome embed
  * @param {Object} settings - Welcome settings
- * @param {GuildMember} member - The guild member
+ * @param {import('discord.js').GuildMember} member - The guild member
  * @returns {EmbedBuilder} - Welcome embed
  */
 export function createWelcomeEmbed(settings, member) {
@@ -33,7 +33,7 @@ export function createWelcomeEmbed(settings, member) {
     .setColor(settings.embedColor || THEME_COLOR)
     .setAuthor({
       name: `${member.user.username} joined the server`,
-      iconURL: member.user.displayAvatarURL({ dynamic: true, size: 64 }),
+      iconURL: member.user.displayAvatarURL({ size: 64 }),
     })
     .setDescription(
       processWelcomeMessage(
@@ -56,7 +56,7 @@ export function createWelcomeEmbed(settings, member) {
       value: `<t:${Math.floor(Date.now() / 1000)}:F>`,
       inline: true,
     })
-    .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 256 }))
+    .setThumbnail(member.user.displayAvatarURL({ size: 256 }))
     .setTimestamp()
     .setFooter({
       text: `${member.guild.name} • Welcome System`,
@@ -68,9 +68,9 @@ export function createWelcomeEmbed(settings, member) {
 
 /**
  * Assign auto-role to member
- * @param {GuildMember} member - The guild member
+ * @param {import('discord.js').GuildMember} member - The guild member
  * @param {string} roleId - The role ID to assign
- * @param {Logger} logger - Logger instance
+ * @param {import('../logger.js').Logger} logger - Logger instance
  * @returns {Promise<boolean>} - Success status
  */
 export async function assignAutoRole(member, roleId, logger) {
@@ -133,7 +133,7 @@ export function getOrdinal(num) {
 /**
  * Validate welcome settings
  * @param {Object} settings - Welcome settings
- * @param {Guild} guild - The guild
+ * @param {import('discord.js').Guild} guild - The guild
  * @returns {Object} - Validation result
  */
 export function validateWelcomeSettings(settings, guild) {
@@ -168,9 +168,9 @@ export function validateWelcomeSettings(settings, guild) {
 /**
  * Test the welcome system by sending a sample message
  * @param {Object} settings - Welcome settings
- * @param {GuildMember} member - Discord member object for testing
+ * @param {import('discord.js').GuildMember} member - Discord member object for testing
  * @param {Object} welcomeChannel - Discord channel to send the test message
- * @param {Logger} logger - Logger instance
+ * @param {import('../logger.js').Logger} logger - Logger instance
  * @returns {Promise<Object>} - Test results with success status and details
  */
 export async function testWelcomeSystem(

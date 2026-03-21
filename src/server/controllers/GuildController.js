@@ -70,7 +70,7 @@ export async function apiListGuilds(req, res) {
           return {
             id: guild.id,
             name: guild.name,
-            icon: guild.iconURL({ dynamic: true, size: 128 }),
+            icon: guild.iconURL({ size: 128 }),
             memberCount: guild.memberCount,
             joinedAt: guild.joinedAt,
             ownerId: guild.ownerId,
@@ -81,7 +81,7 @@ export async function apiListGuilds(req, res) {
           return {
             id: guild.id,
             name: guild.name,
-            icon: guild.iconURL({ dynamic: true, size: 128 }),
+            icon: guild.iconURL({ size: 128 }),
             memberCount: guild.memberCount,
             error: err.message,
           };

@@ -4,7 +4,7 @@ import { THEME_COLOR } from "../../config/theme.js";
 /**
  * Process goodbye message with placeholders
  * @param {string} message - The message template
- * @param {GuildMember} member - The guild member who left
+ * @param {import('discord.js').GuildMember} member - The guild member who left
  * @returns {string} - Processed message
  */
 export function processGoodbyeMessage(message, member) {
@@ -18,14 +18,14 @@ export function processGoodbyeMessage(message, member) {
     .replace(/{user.id}/g, member.user.id)
     .replace(/{server}/g, member.guild.name)
     .replace(/{server.id}/g, member.guild.id)
-    .replace(/{memberCount}/g, humanCount)
+    .replace(/{memberCount}/g, String(humanCount))
     .replace(/{memberCount.ordinal}/g, getOrdinal(humanCount));
 }
 
 /**
  * Create goodbye embed
  * @param {Object} settings - Goodbye settings
- * @param {GuildMember} member - The guild member who left
+ * @param {import('discord.js').GuildMember} member - The guild member who left
  * @returns {EmbedBuilder} - Goodbye embed
  */
 export function createGoodbyeEmbed(settings, member) {
@@ -33,7 +33,7 @@ export function createGoodbyeEmbed(settings, member) {
     .setColor(settings.embedColor || THEME_COLOR)
     .setAuthor({
       name: `${member.user.username} left the server`,
-      iconURL: member.user.displayAvatarURL({ dynamic: true, size: 64 }),
+      iconURL: member.user.displayAvatarURL({ size: 64 }),
     })
     .setDescription(
       processGoodbyeMessage(
@@ -57,7 +57,7 @@ export function createGoodbyeEmbed(settings, member) {
       value: `<t:${Math.floor(Date.now() / 1000)}:F>`,
       inline: true,
     })
-    .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 256 }))
+    .setThumbnail(member.user.displayAvatarURL({ size: 256 }))
     .setTimestamp()
     .setFooter({
       text: `${member.guild.name} • Goodbye System`,

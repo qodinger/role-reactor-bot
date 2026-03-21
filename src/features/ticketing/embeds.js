@@ -301,7 +301,7 @@ export function createLimitReachedEmbed(options) {
 
   const description = isPro
     ? `You have reached the maximum of **${max} ${itemType}**.`
-    : `You have reached the maximum of **${max} ${itemType}** on the Free Tier.\n\n**Upgrade to Pro Engine** for up to ${PRO_ENGINE.MAX_TICKETS_PER_MONTH} ${itemType}/month!`;
+    : `You have reached the maximum of **${max} ${itemType}** on the Free Tier.\n\nUpgrade to **Pro Engine ✨** for more! Enable it on our **[website](https://rolereactor.app)** using Cores.`;
 
   return new EmbedBuilder()
     .setTitle(title)

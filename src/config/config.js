@@ -231,13 +231,14 @@ class Config {
    * @returns {Object} External links object
    */
   get externalLinks() {
+    const website = process.env.BOT_WEBSITE_URL || "https://rolereactor.app";
     return {
-      name: "Role Reactor Bot",
-      website: "https://rolereactor.app",
-      guide: "https://rolereactor.app/docs",
+      name: process.env.BOT_NAME || "Role Reactor Bot",
+      website,
+      guide: `${website}/docs`,
       github: "https://github.com/qodinger/role-reactor-bot",
       support: "https://discord.gg/D8tYkU75Ry",
-      sponsor: "https://rolereactor.app/sponsor",
+      sponsor: `${website}/sponsor`,
       vote:
         process.env.VOTE_URL || "https://top.gg/bot/1392714201558159431/vote",
       invite: null, // Will be generated dynamically by the bot
@@ -449,13 +450,13 @@ class Config {
    */
   get botInfo() {
     return {
-      name: process.env.BOT_NAME || "Role Reactor Bot",
+      name: this.externalLinks.name,
       apiUrl:
         process.env.BOT_API_URL ||
         process.env.PUBLIC_URL ||
         process.env.BOT_URL ||
         "https://api.rolereactor.app",
-      website: process.env.BOT_WEBSITE_URL || "https://rolereactor.app",
+      website: this.externalLinks.website,
     };
   }
 

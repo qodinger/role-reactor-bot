@@ -88,7 +88,7 @@ export async function handleAssign(interaction, client, deferred) {
         description: `This server has reached the maximum of **${maxActiveSchedules} active temporary/scheduled roles**.`,
         solution: isPro
           ? "Please wait for existing roles to expire or cancel them before assigning new ones."
-          : "Upgrade to **Pro Engine ✨** for up to 500 active slots!",
+          : "Upgrade to **Pro Engine ✨** for up to 500 active slots! Enable it on our **[website](https://rolereactor.app)** using Cores. You can purchase Cores on the site or earn them for free with /vote.",
       });
 
       return deferred
@@ -149,7 +149,7 @@ export async function handleAssign(interaction, client, deferred) {
         description: `You are trying to assign roles to **${userIds.length} users**, but the limit is **${maxBulk} users** per action.`,
         solution: isPro
           ? "Try splitting the assignment into smaller groups."
-          : "Upgrade to **Pro Engine ✨** for 10x higher bulk capacity (250 users)!",
+          : "Upgrade to **Pro Engine ✨** for 10x higher bulk capacity (250 users)! Enable it on our **[website](https://rolereactor.app)** using Cores. You can purchase Cores on the site or earn them for free with /vote.",
       });
 
       return deferred

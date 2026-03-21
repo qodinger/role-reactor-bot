@@ -22,7 +22,7 @@ export function createUserInfoEmbed(user, memberData, guild, warnCount = null) {
     .setDescription(
       `**${user.displayName || user.username}**${user.bot ? " [BOT]" : ""}`,
     )
-    .setThumbnail(user.displayAvatarURL({ dynamic: true, size: 256 }))
+    .setThumbnail(user.displayAvatarURL({ size: 256 }))
     .setTimestamp();
 
   const fields = [];

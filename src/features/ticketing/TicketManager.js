@@ -77,7 +77,7 @@ export class TicketManager {
       const limitCheck = await this.checkTicketLimit(guildId);
       if (limitCheck.hasReachedLimit) {
         throw new Error(
-          `Ticket limit reached (${limitCheck.current}/${limitCheck.max}). Upgrade to Pro for more tickets.`,
+          `Ticket limit reached (${limitCheck.current}/${limitCheck.max}). Upgrade to **Pro Engine ✨** for more! Enable it on our **[website](https://rolereactor.app)** using Cores.`,
         );
       }
 

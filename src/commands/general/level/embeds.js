@@ -38,7 +38,7 @@ export function createLevelEmbed(
     .setColor(rank.color)
     .setAuthor({
       name: `${user.username} • Level ${progress.currentLevel}`,
-      iconURL: user.displayAvatarURL({ dynamic: true }),
+      iconURL: user.displayAvatarURL(),
     })
     .setTitle(`${rank.emoji} ${rank.title}`)
     // Removed large thumbnail for cleaner width

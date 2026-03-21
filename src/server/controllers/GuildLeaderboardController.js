@@ -229,7 +229,7 @@ export async function apiGetPublicLeaderboards(req, res) {
         return {
           id: guild.id,
           name: guild.name,
-          icon: guild.iconURL({ dynamic: true, size: 64 }),
+          icon: guild.iconURL({ size: 64 }),
           memberCount: guild.memberCount,
           totalXP,
           rankedCount: humanRankedDocs.length,

@@ -89,7 +89,7 @@ async function handlePanelCategoryAdd(interaction) {
     return interaction.editReply({
       embeds: [
         createErrorEmbed(
-          `Maximum ${maxCategories} categories allowed for this panel.${!ticketLimit.isPro ? " Upgrade to Pro for more!" : ""}`,
+          `Maximum ${maxCategories} categories allowed for this panel.${!ticketLimit.isPro ? " Upgrade to **Pro Engine ✨** for more! Enable it on our **[website](https://rolereactor.app)** using Cores." : ""}`,
           "Limit Reached",
           interaction.client,
         ),

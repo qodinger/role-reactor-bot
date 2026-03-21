@@ -116,7 +116,7 @@ export async function handleCreate(interaction, client, deferred = false) {
         description: `This server has reached the maximum of **${maxActiveSchedules} active schedules**.`,
         solution: isPro
           ? "Please cancel or complete existing schedules before creating new ones."
-          : "Upgrade to **Pro Engine ✨** for up to 500 active schedules!",
+          : "Upgrade to **Pro Engine ✨** for up to 500 active schedules! Enable it on our **[website](https://rolereactor.app)** using Cores. You can purchase Cores on the site or earn them for free with /vote.",
       });
 
       if (deferred) {

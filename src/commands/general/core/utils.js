@@ -1,6 +1,7 @@
 import { getStorageManager } from "../../../utils/storage/storageManager.js";
 import { getLogger } from "../../../utils/logger.js";
 import { CORE_STATUS } from "../../../config/index.js";
+export { getPremiumManager } from "../../../features/premium/PremiumManager.js";
 
 const logger = getLogger();
 

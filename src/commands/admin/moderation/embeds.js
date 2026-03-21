@@ -220,13 +220,13 @@ export function createHistoryEmbed(
   if (isServerHistory) {
     embed
       .setTitle(`Server Moderation History`)
-      .setThumbnail(guild?.iconURL({ dynamic: true }) || null)
+      .setThumbnail(guild?.iconURL() || null)
       .setFooter({ text: "Moderation" })
       .setTimestamp();
   } else {
     embed
       .setTitle(`Moderation History: ${targetUser.tag}`)
-      .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
+      .setThumbnail(targetUser.displayAvatarURL())
       .setFooter({ text: "Moderation" })
       .setTimestamp();
   }

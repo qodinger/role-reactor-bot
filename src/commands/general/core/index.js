@@ -14,7 +14,7 @@ import { execute } from "./handlers.js";
 export const metadata = {
   name: "core",
   category: "general",
-  description: "Check your Core balance",
+  description: "Check your current Core balance and tier status",
   keywords: ["core", "balance", "credits", "energy", "currency"],
   emoji: "⚡",
   helpFields: [
@@ -35,8 +35,7 @@ export const metadata = {
     },
     {
       name: `What You'll See`,
-      value:
-        "Your Core balance and tier information. Core credits are used for AI avatar generation and can be purchased or transferred between users!",
+      value: "Your current Core balance and subscription tier information.",
       inline: false,
     },
   ],

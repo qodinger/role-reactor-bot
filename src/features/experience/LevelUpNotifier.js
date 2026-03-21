@@ -270,10 +270,10 @@ class LevelUpNotifier {
           inline: false,
         },
       ])
-      .setThumbnail(user.displayAvatarURL({ dynamic: true }))
+      .setThumbnail(user.displayAvatarURL())
       .setFooter({
         text: `Keep chatting to earn more XP!`,
-        iconURL: user.displayAvatarURL({ dynamic: true }),
+        iconURL: user.displayAvatarURL(),
       })
       .setTimestamp();
 

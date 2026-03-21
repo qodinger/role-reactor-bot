@@ -16,7 +16,7 @@ const LOG_LEVELS = {
 /**
  * A structured logger for the application.
  */
-class Logger {
+export class Logger {
   constructor() {
     // Initialize with environment variables or defaults
     const logLevel = process.env.LOG_LEVEL || "INFO";

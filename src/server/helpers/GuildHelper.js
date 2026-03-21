@@ -68,7 +68,6 @@ export class GuildHelper {
               userId: l.userId,
               username: member?.user.username || "Unknown User",
               avatar: member?.user.displayAvatarURL({
-                dynamic: true,
                 size: 64,
               }),
               xp: l.totalXP || l.xp || 0,
@@ -223,7 +222,7 @@ export class GuildHelper {
           userDetails = {
             username: user.username,
             discriminator: user.discriminator,
-            avatar: user.displayAvatarURL({ dynamic: true, size: 64 }),
+            avatar: user.displayAvatarURL({ size: 64 }),
             bot: user.bot,
           };
         }

@@ -432,7 +432,7 @@ class GiveawayManager extends EventEmitter {
       if (currentTotal + entries > maxEntries) {
         return {
           success: false,
-          error: `This giveaway has reached the maximum entry limit of ${maxEntries.toLocaleString()}. ${isPro ? "" : "Upgrade to Pro Engine ✨ for unlimited entries!"}`,
+          error: `This giveaway has reached the maximum entry limit of ${maxEntries.toLocaleString()}. ${isPro ? "" : "Upgrade to **Pro Engine ✨** for unlimited entries! Enable it on our **[website](https://rolereactor.app)** using Cores."}`,
         };
       }
 

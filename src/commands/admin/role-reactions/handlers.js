@@ -100,32 +100,27 @@ export async function handleSetup(interaction, client) {
     // Validate that either roles OR bundle is provided, not both
     if (!rolesString && !bundleName) {
       activeSetups.delete(interaction.id);
-      return interaction.editReply({
-        embeds: [
-          errorEmbed({
-            title: "Missing Roles or Bundle",
-            description:
-              "You must provide either **roles** or a **bundle** parameter.",
-            solution:
-              "Use `roles:🎮:@Gamer, 🎨:@Artist` OR `bundle:Gaming-Roles`",
-          }),
-        ],
-      });
+      return interaction.editReply(
+        errorEmbed({
+          title: "Missing Roles or Bundle",
+          description:
+            "You must provide either **roles** or a **bundle** parameter.",
+          solution: "Use `roles:🎮:@Gamer, 🎨:@Artist` OR `bundle:Gaming-Roles`",
+        }),
+      );
     }
 
     if (rolesString && bundleName) {
       activeSetups.delete(interaction.id);
-      return interaction.editReply({
-        embeds: [
-          errorEmbed({
-            title: "Invalid Parameters",
-            description:
-              "You cannot use both **roles** and **bundle** parameters together.",
-            solution:
-              "Use either `roles:🎮:@Gamer` OR `bundle:Gaming-Roles`, not both",
-          }),
-        ],
-      });
+      return interaction.editReply(
+        errorEmbed({
+          title: "Invalid Parameters",
+          description:
+            "You cannot use both **roles** and **bundle** parameters together.",
+          solution:
+            "Use either `roles:🎮:@Gamer` OR `bundle:Gaming-Roles`, not both",
+        }),
+      );
     }
 
     let roleProcessingResult;
@@ -142,15 +137,13 @@ export async function handleSetup(interaction, client) {
 
       if (!bundle) {
         activeSetups.delete(interaction.id);
-        return interaction.editReply({
-          embeds: [
-            errorEmbed({
-              title: "Bundle Not Found",
-              description: `Role bundle **${bundleName}** not found.`,
-              solution: `Use ${getMentionableCommand(interaction.client, "role-bundle list")} to see available bundles`,
-            }),
-          ],
-        });
+        return interaction.editReply(
+          errorEmbed({
+            title: "Bundle Not Found",
+            description: `Role bundle **${bundleName}** not found.`,
+            solution: `Use ${getMentionableCommand(interaction.client, "role-bundle list")} to see available bundles`,
+          }),
+        );
       }
 
       // Convert bundle roles to roleMapping format

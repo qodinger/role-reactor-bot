@@ -109,7 +109,7 @@ export async function handleCreate(interaction) {
         embeds: [
           createConfirmationEmbed(
             "Winner Limit Exceeded",
-            `You can have a maximum of **${maxWinners} winners** on your current plan.${!isPro ? "\n\nUpgrade to **Pro Engine ✨** for up to **20 winners**!\nEarn Cores with </vote:1483332825137680384> or purchase them on the website." : ""}`,
+            `You can have a maximum of **${maxWinners} winners** on your current plan.${!isPro ? `\n\nUpgrade to **Pro Engine ✨** for up to **20 winners**!\nEnable it on our **[website](https://rolereactor.app)** using Cores. You can purchase Cores on the site or earn them for free with ${getMentionableCommand(interaction.client, "vote")}.` : ""}`,
             "error",
           ),
         ],
@@ -654,7 +654,7 @@ export async function handleEdit(interaction) {
           embeds: [
             createConfirmationEmbed(
               "Winner Limit Exceeded",
-              `You can have a maximum of **${maxWinners} winners** on your current plan.${!isPro ? `\n\nUpgrade to **Pro Engine ✨** for up to **20 winners**!\nEarn Cores with ${getMentionableCommand(interaction.client, "vote")} or purchase them on the website.` : ""}`,
+              `You can have a maximum of **${maxWinners} winners** on your current plan.${!isPro ? `\n\nUpgrade to **Pro Engine ✨** for up to **20 winners**!\nEnable it on our **[website](https://rolereactor.app)** using Cores. You can purchase Cores on the site or earn them for free with ${getMentionableCommand(interaction.client, "vote")}.` : ""}`,
               "error",
             ),
           ],
