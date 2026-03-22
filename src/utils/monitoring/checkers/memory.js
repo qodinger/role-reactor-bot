@@ -10,11 +10,11 @@ export function checkMemory() {
   try {
     const usage = process.memoryUsage();
     const heapStats = v8.getHeapStatistics();
-    
+
     const heapUsedMB = usage.heapUsed / 1024 / 1024;
     const heapTotalMB = usage.heapTotal / 1024 / 1024;
     const heapLimitMB = heapStats.heap_size_limit / 1024 / 1024;
-    
+
     // Use heap limit for usage percentage as it shows the actual capacity
     const memoryUsagePercent = (heapUsedMB / heapLimitMB) * 100;
 

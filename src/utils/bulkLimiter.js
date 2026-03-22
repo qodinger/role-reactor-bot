@@ -79,7 +79,7 @@ export function acquireBulkSlot(guildId, options = {}) {
     }, config.timeoutMs);
 
     // Override resolve to clear the timer
-    entry.resolve = (releaseFunc) => {
+    entry.resolve = releaseFunc => {
       clearTimeout(timer);
       resolve(releaseFunc);
     };

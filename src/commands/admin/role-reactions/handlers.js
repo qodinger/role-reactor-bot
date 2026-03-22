@@ -105,7 +105,8 @@ export async function handleSetup(interaction, client) {
           title: "Missing Roles or Bundle",
           description:
             "You must provide either **roles** or a **bundle** parameter.",
-          solution: "Use `roles:🎮:@Gamer, 🎨:@Artist` OR `bundle:Gaming-Roles`",
+          solution:
+            "Use `roles:🎮:@Gamer, 🎨:@Artist` OR `bundle:Gaming-Roles`",
         }),
       );
     }

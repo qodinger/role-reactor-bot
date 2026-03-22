@@ -1,4 +1,3 @@
-
 import { getLogger } from "../../logger.js";
 import { getDatabaseManager } from "../../storage/databaseManager.js";
 import { errorEmbed } from "../../discord/responseMessages.js";

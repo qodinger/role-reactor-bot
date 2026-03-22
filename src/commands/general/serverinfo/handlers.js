@@ -80,10 +80,17 @@ export async function execute(interaction, client) {
     const storage = await getStorageManager();
     const db = storage.dbManager;
     const settings = db ? await db.guildSettings.getByGuild(guild.id) : null;
-    const proEngine = settings?.premiumFeatures?.pro_engine || { active: false };
+    const proEngine = settings?.premiumFeatures?.pro_engine || {
+      active: false,
+    };
 
     // Create embed with server information
-    const embed = createServerInfoEmbed(guild, client, membersFetched, proEngine);
+    const embed = createServerInfoEmbed(
+      guild,
+      client,
+      membersFetched,
+      proEngine,
+    );
 
     logger.debug(`Serverinfo command executed by ${interaction.user.tag}`, {
       userId: interaction.user.id,

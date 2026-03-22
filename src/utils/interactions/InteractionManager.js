@@ -6,7 +6,6 @@ import { EMOJIS } from "../../config/theme.js";
  * @typedef {import('discord.js').Client & { commands?: import('discord.js').Collection<string, any> }} ExtendedClient
  */
 
-
 /**
  * Centralized interaction manager for handling all Discord interactions
  * Provides a clean, organized way to route and handle different interaction types
@@ -66,7 +65,10 @@ export class InteractionManager {
       let interactionIdentifier = `TYPE_${interaction.type}`;
       if (interaction.isCommand() || interaction.isAutocomplete()) {
         interactionIdentifier = interaction.commandName;
-      } else if (interaction.isMessageComponent() || interaction.isModalSubmit()) {
+      } else if (
+        interaction.isMessageComponent() ||
+        interaction.isModalSubmit()
+      ) {
         interactionIdentifier = interaction.customId;
       }
 
@@ -101,7 +103,10 @@ export class InteractionManager {
    */
   async ensureInteractionResponse(interaction, _error = null) {
     // Skip if already responded to
-    if (interaction.isRepliable() && (interaction.replied || interaction.deferred)) {
+    if (
+      interaction.isRepliable() &&
+      (interaction.replied || interaction.deferred)
+    ) {
       return;
     }
 

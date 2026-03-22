@@ -177,83 +177,87 @@ export async function handleCreate(interaction, client, deferred = false) {
     }
 
     try {
+      // Handle mixed targeting (users + roles)
+      if (isMixed && targetRoles.length > 0) {
+        try {
+          // First, get users from user mentions (pass Pro-aware limit)
+          const maxBulk = isPro
+            ? PRO_TIER.BULK_ACTION_MAX_MEMBERS
+            : FREE_TIER.BULK_ACTION_MAX_MEMBERS;
+          const userValidation = await processUserList(
+            usersString,
+            interaction,
+            {
+              maxUsers: maxBulk,
+            },
+          );
+          const userMentionIds = userValidation.valid
+            ? userValidation.validUsers.map(user => user.id)
+            : [];
 
-    // Handle mixed targeting (users + roles)
-    if (isMixed && targetRoles.length > 0) {
-      try {
-        // First, get users from user mentions (pass Pro-aware limit)
-        const maxBulk = isPro
-          ? PRO_TIER.BULK_ACTION_MAX_MEMBERS
-          : FREE_TIER.BULK_ACTION_MAX_MEMBERS;
-        const userValidation = await processUserList(usersString, interaction, {
-          maxUsers: maxBulk,
-        });
-        const userMentionIds = userValidation.valid
-          ? userValidation.validUsers.map(user => user.id)
-          : [];
+          // Then, get members from role mentions
+          const roleNames = targetRoles.map(r => r.name).join(", ");
+          logger.info(
+            `Fetching members with roles ${roleNames} and processing user mentions for schedule in guild ${interaction.guild.name}`,
+          );
 
-        // Then, get members from role mentions
-        const roleNames = targetRoles.map(r => r.name).join(", ");
-        logger.info(
-          `Fetching members with roles ${roleNames} and processing user mentions for schedule in guild ${interaction.guild.name}`,
-        );
-
-        if (deferred && interaction.guild.memberCount > 5000) {
-          try {
-            await interaction.editReply({
-              content: `⏳ Fetching members with roles ${roleNames} and processing user mentions... This may take a moment for large servers.`,
-            });
-          } catch (error) {
-            logger.debug("Failed to update interaction with progress", error);
+          if (deferred && interaction.guild.memberCount > 5000) {
+            try {
+              await interaction.editReply({
+                content: `⏳ Fetching members with roles ${roleNames} and processing user mentions... This may take a moment for large servers.`,
+              });
+            } catch (error) {
+              logger.debug("Failed to update interaction with progress", error);
+            }
           }
-        }
 
-        // Optimized: Fetch ONLY members who have these specific roles
-        // This is much lighter than fetching every single member of the guild
-        const roleIds = targetRoles.map(r => r.id);
-        const roleMembers = await interaction.guild.members.fetch({
-          roles: roleIds,
-        });
-
-        const roleMemberIds = roleMembers
-          .filter(
-            member =>
-              !member.user.bot || member.user.id === interaction.client.user.id,
-          )
-          .map(member => member.id);
-
-        // Combine user mentions and role-based members, remove duplicates
-        userIds = [...new Set([...userMentionIds, ...roleMemberIds])];
-
-        logger.info(
-          `Found ${userMentionIds.length} user mentions and ${roleMemberIds.length} members with roles ${roleNames}, total unique: ${userIds.length} in guild ${interaction.guild.name}`,
-        );
-
-        if (userIds.length === 0) {
-          const response = errorEmbed({
-            title: "No Members Found",
-            description: `No valid users or members with any of the roles: **${roleNames}** found to schedule the role for.`,
-            solution:
-              "Make sure the users are valid and the roles exist and have members assigned to them.",
+          // Optimized: Fetch ONLY members who have these specific roles
+          // This is much lighter than fetching every single member of the guild
+          const roleIds = targetRoles.map(r => r.id);
+          const roleMembers = await interaction.guild.members.fetch({
+            roles: roleIds,
           });
 
-          if (deferred) {
-            return interaction.editReply(response);
-          } else {
-            return interaction.reply(response);
+          const roleMemberIds = roleMembers
+            .filter(
+              member =>
+                !member.user.bot ||
+                member.user.id === interaction.client.user.id,
+            )
+            .map(member => member.id);
+
+          // Combine user mentions and role-based members, remove duplicates
+          userIds = [...new Set([...userMentionIds, ...roleMemberIds])];
+
+          logger.info(
+            `Found ${userMentionIds.length} user mentions and ${roleMemberIds.length} members with roles ${roleNames}, total unique: ${userIds.length} in guild ${interaction.guild.name}`,
+          );
+
+          if (userIds.length === 0) {
+            const response = errorEmbed({
+              title: "No Members Found",
+              description: `No valid users or members with any of the roles: **${roleNames}** found to schedule the role for.`,
+              solution:
+                "Make sure the users are valid and the roles exist and have members assigned to them.",
+            });
+
+            if (deferred) {
+              return interaction.editReply(response);
+            } else {
+              return interaction.reply(response);
+            }
           }
-        }
 
-        // Apply member limit for combined result
-        const MAX_ALL_MEMBERS = isPro
-          ? PRO_TIER.BULK_ACTION_MAX_MEMBERS
-          : FREE_TIER.BULK_ACTION_MAX_MEMBERS;
+          // Apply member limit for combined result
+          const MAX_ALL_MEMBERS = isPro
+            ? PRO_TIER.BULK_ACTION_MAX_MEMBERS
+            : FREE_TIER.BULK_ACTION_MAX_MEMBERS;
 
-        if (userIds.length > MAX_ALL_MEMBERS) {
-          const response = errorEmbed({
-            title: "Too Many Members",
-            description: `The combined total of **${userIds.length.toLocaleString()} members** (from user mentions and roles ${roleNames}) exceeds the maximum limit of **${MAX_ALL_MEMBERS.toLocaleString()} members**.`,
-            solution: dedent`
+          if (userIds.length > MAX_ALL_MEMBERS) {
+            const response = errorEmbed({
+              title: "Too Many Members",
+              description: `The combined total of **${userIds.length.toLocaleString()} members** (from user mentions and roles ${roleNames}) exceeds the maximum limit of **${MAX_ALL_MEMBERS.toLocaleString()} members**.`,
+              solution: dedent`
               For operations with more than ${MAX_ALL_MEMBERS.toLocaleString()} total members, please use one of these alternatives:
             
               **Recommended Solutions:**
@@ -263,91 +267,38 @@ export async function handleCreate(interaction, client, deferred = false) {
 
               **Why this limit?** Operations on ${userIds.length.toLocaleString()} members would take ${Math.ceil(userIds.length / 500)}-${Math.ceil(userIds.length / 500) * 2} minutes to complete and have higher reliability risks.
             `,
-          });
-
-          logger.warn(
-            `Attempted to schedule roles for ${userIds.length} members (mixed: ${userMentionIds.length} users + roles ${roleNames}) (exceeds ${MAX_ALL_MEMBERS} limit)`,
-          );
-
-          if (deferred) {
-            return interaction.editReply(response);
-          } else {
-            return interaction.reply(response);
-          }
-        }
-
-        // Warn for large operations
-        if (userIds.length > 1000) {
-          logger.warn(
-            `Large operation detected: ${userIds.length} members (mixed: ${userMentionIds.length} users + roles ${roleNames}) for schedule. This may take a long time.`,
-          );
-        }
-      } catch (error) {
-        logger.error("Error fetching members by mixed targeting:", error);
-
-        // Add specific troubleshooting for 100+ server bots
-        const isLargeBot = interaction.client.guilds.cache.size >= 100;
-        const response = errorEmbed({
-          title: "Failed to Fetch Members",
-          description: isLargeBot
-            ? "Could not fetch members with the specified roles. Since this bot is in 100+ servers, Discord requires manual approval for the **Server Members Intent**."
-            : "Could not fetch members with the specified roles or process user mentions. This requires the GUILD_MEMBERS privileged intent.",
-          solution: isLargeBot
-            ? "The bot owner must ensure the intent is **Verified and Approved** in the Discord Developer Portal. Approval can take several days."
-            : "Make sure the bot has the GUILD_MEMBERS intent enabled in the Discord Developer Portal.",
-        });
-
-        if (deferred) {
-          return interaction.editReply(response);
-        } else {
-          return interaction.reply(response);
-        }
-      }
-    } else if (targeting.type === "role" && targetRoles.length > 0) {
-      // Handle role-based member targeting (supports multiple roles)
-      try {
-        const roleNames = targetRoles.map(r => r.name).join(", ");
-        logger.info(
-          `Fetching members with roles ${roleNames} for schedule in guild ${interaction.guild.name}`,
-        );
-
-        // Fetch all guild members to check roles (requires GUILD_MEMBERS intent)
-        if (deferred && interaction.guild.memberCount > 5000) {
-          try {
-            await interaction.editReply({
-              content: `⏳ Fetching members with roles ${roleNames}... This may take a moment for large servers.`,
             });
-          } catch (error) {
-            logger.debug("Failed to update interaction with progress", error);
+
+            logger.warn(
+              `Attempted to schedule roles for ${userIds.length} members (mixed: ${userMentionIds.length} users + roles ${roleNames}) (exceeds ${MAX_ALL_MEMBERS} limit)`,
+            );
+
+            if (deferred) {
+              return interaction.editReply(response);
+            } else {
+              return interaction.reply(response);
+            }
           }
-        }
 
-        // Optimized: Fetch ONLY members who have these specific roles
-        const roleIds = targetRoles.map(r => r.id);
-        const roleMembers = await interaction.guild.members.fetch({
-          roles: roleIds,
-        });
+          // Warn for large operations
+          if (userIds.length > 1000) {
+            logger.warn(
+              `Large operation detected: ${userIds.length} members (mixed: ${userMentionIds.length} users + roles ${roleNames}) for schedule. This may take a long time.`,
+            );
+          }
+        } catch (error) {
+          logger.error("Error fetching members by mixed targeting:", error);
 
-        userIds = roleMembers
-          .filter(
-            member =>
-              !member.user.bot || member.user.id === interaction.client.user.id,
-          )
-          .map(member => member.id);
-
-        // Remove duplicates (in case a member has multiple of the mentioned roles)
-        userIds = [...new Set(userIds)];
-
-        logger.info(
-          `Found ${userIds.length} members with roles ${roleNames} in guild ${interaction.guild.name}`,
-        );
-
-        if (userIds.length === 0) {
+          // Add specific troubleshooting for 100+ server bots
+          const isLargeBot = interaction.client.guilds.cache.size >= 100;
           const response = errorEmbed({
-            title: "No Members Found",
-            description: `No members found with any of the roles: **${roleNames}** to schedule the role for.`,
-            solution:
-              "Make sure the roles exist and have members assigned to them.",
+            title: "Failed to Fetch Members",
+            description: isLargeBot
+              ? "Could not fetch members with the specified roles. Since this bot is in 100+ servers, Discord requires manual approval for the **Server Members Intent**."
+              : "Could not fetch members with the specified roles or process user mentions. This requires the GUILD_MEMBERS privileged intent.",
+            solution: isLargeBot
+              ? "The bot owner must ensure the intent is **Verified and Approved** in the Discord Developer Portal. Approval can take several days."
+              : "Make sure the bot has the GUILD_MEMBERS intent enabled in the Discord Developer Portal.",
           });
 
           if (deferred) {
@@ -356,17 +307,71 @@ export async function handleCreate(interaction, client, deferred = false) {
             return interaction.reply(response);
           }
         }
+      } else if (targeting.type === "role" && targetRoles.length > 0) {
+        // Handle role-based member targeting (supports multiple roles)
+        try {
+          const roleNames = targetRoles.map(r => r.name).join(", ");
+          logger.info(
+            `Fetching members with roles ${roleNames} for schedule in guild ${interaction.guild.name}`,
+          );
 
-        // Apply member limit
-        const MAX_ALL_MEMBERS = isPro
-          ? PRO_TIER.BULK_ACTION_MAX_MEMBERS
-          : FREE_TIER.BULK_ACTION_MAX_MEMBERS;
+          // Fetch all guild members to check roles (requires GUILD_MEMBERS intent)
+          if (deferred && interaction.guild.memberCount > 5000) {
+            try {
+              await interaction.editReply({
+                content: `⏳ Fetching members with roles ${roleNames}... This may take a moment for large servers.`,
+              });
+            } catch (error) {
+              logger.debug("Failed to update interaction with progress", error);
+            }
+          }
 
-        if (userIds.length > MAX_ALL_MEMBERS) {
-          const response = errorEmbed({
-            title: "Too Many Members",
-            description: `The roles **${roleNames}** have a combined total of **${userIds.length.toLocaleString()} members**, which exceeds the maximum limit of **${MAX_ALL_MEMBERS.toLocaleString()} members** for role-based operations.`,
-            solution: dedent`
+          // Optimized: Fetch ONLY members who have these specific roles
+          const roleIds = targetRoles.map(r => r.id);
+          const roleMembers = await interaction.guild.members.fetch({
+            roles: roleIds,
+          });
+
+          userIds = roleMembers
+            .filter(
+              member =>
+                !member.user.bot ||
+                member.user.id === interaction.client.user.id,
+            )
+            .map(member => member.id);
+
+          // Remove duplicates (in case a member has multiple of the mentioned roles)
+          userIds = [...new Set(userIds)];
+
+          logger.info(
+            `Found ${userIds.length} members with roles ${roleNames} in guild ${interaction.guild.name}`,
+          );
+
+          if (userIds.length === 0) {
+            const response = errorEmbed({
+              title: "No Members Found",
+              description: `No members found with any of the roles: **${roleNames}** to schedule the role for.`,
+              solution:
+                "Make sure the roles exist and have members assigned to them.",
+            });
+
+            if (deferred) {
+              return interaction.editReply(response);
+            } else {
+              return interaction.reply(response);
+            }
+          }
+
+          // Apply member limit
+          const MAX_ALL_MEMBERS = isPro
+            ? PRO_TIER.BULK_ACTION_MAX_MEMBERS
+            : FREE_TIER.BULK_ACTION_MAX_MEMBERS;
+
+          if (userIds.length > MAX_ALL_MEMBERS) {
+            const response = errorEmbed({
+              title: "Too Many Members",
+              description: `The roles **${roleNames}** have a combined total of **${userIds.length.toLocaleString()} members**, which exceeds the maximum limit of **${MAX_ALL_MEMBERS.toLocaleString()} members** for role-based operations.`,
+              solution: dedent`
               For roles with more than ${MAX_ALL_MEMBERS.toLocaleString()} total members, please use one of these alternatives:
             
               **Recommended Solutions:**
@@ -376,106 +381,107 @@ export async function handleCreate(interaction, client, deferred = false) {
 
               **Why this limit?** Operations on ${userIds.length.toLocaleString()} members would take ${Math.ceil(userIds.length / 500)}-${Math.ceil(userIds.length / 500) * 2} minutes to complete and have higher reliability risks.
             `,
+            });
+
+            logger.warn(
+              `Attempted to schedule roles for ${userIds.length} members with roles ${roleNames} (exceeds ${MAX_ALL_MEMBERS} limit)`,
+            );
+
+            if (deferred) {
+              return interaction.editReply(response);
+            } else {
+              return interaction.reply(response);
+            }
+          }
+        } catch (error) {
+          logger.error("Error fetching members by role:", error);
+
+          // Add specific troubleshooting for 100+ server bots
+          const isLargeBot = interaction.client.guilds.cache.size >= 100;
+          const response = errorEmbed({
+            title: "Failed to Fetch Members",
+            description: isLargeBot
+              ? "Could not fetch members with the specified role. Since this bot is in 100+ servers, Discord requires manual approval for the **Server Members Intent**."
+              : "Could not fetch members with the specified role. This requires the GUILD_MEMBERS privileged intent.",
+            solution: isLargeBot
+              ? "The bot owner must ensure the intent is **Verified and Approved** in the Discord Developer Portal. Approval can take several days."
+              : "Make sure the bot has the GUILD_MEMBERS intent enabled in the Discord Developer Portal.",
           });
 
-          logger.warn(
-            `Attempted to schedule roles for ${userIds.length} members with roles ${roleNames} (exceeds ${MAX_ALL_MEMBERS} limit)`,
+          if (deferred) {
+            return interaction.editReply(response);
+          } else {
+            return interaction.reply(response);
+          }
+        }
+      } else if (targeting.type === "everyone") {
+        // Fetch all guild members
+        try {
+          logger.info(
+            `Fetching all members for schedule in guild ${interaction.guild.name} (${interaction.guild.id})`,
           );
 
-          if (deferred) {
-            return interaction.editReply(response);
-          } else {
-            return interaction.reply(response);
+          // Fetch all members (requires GUILD_MEMBERS intent)
+          // Use efficient fetching - pass empty options to fetch all members
+          logger.info("Fetching all guild members...");
+
+          // For very large servers, provide user feedback
+          if (deferred && interaction.guild.memberCount > 5000) {
+            try {
+              await interaction.editReply({
+                content: `⏳ Fetching ${interaction.guild.memberCount.toLocaleString()} members... This may take 30-60 seconds for large servers.`,
+              });
+            } catch (error) {
+              logger.debug("Failed to update interaction with progress", error);
+            }
           }
-        }
-      } catch (error) {
-        logger.error("Error fetching members by role:", error);
 
-        // Add specific troubleshooting for 100+ server bots
-        const isLargeBot = interaction.client.guilds.cache.size >= 100;
-        const response = errorEmbed({
-          title: "Failed to Fetch Members",
-          description: isLargeBot
-            ? "Could not fetch members with the specified role. Since this bot is in 100+ servers, Discord requires manual approval for the **Server Members Intent**."
-            : "Could not fetch members with the specified role. This requires the GUILD_MEMBERS privileged intent.",
-          solution: isLargeBot
-            ? "The bot owner must ensure the intent is **Verified and Approved** in the Discord Developer Portal. Approval can take several days."
-            : "Make sure the bot has the GUILD_MEMBERS intent enabled in the Discord Developer Portal.",
-        });
+          // Fetch all members (Discord.js handles pagination automatically)
+          // This may take time on very large servers (5000+ members)
+          await interaction.guild.members.fetch(); // Fetch all members (paginated automatically)
 
-        if (deferred) {
-          return interaction.editReply(response);
-        } else {
-          return interaction.reply(response);
-        }
-      }
-    } else if (targeting.type === "everyone") {
-      // Fetch all guild members
-      try {
-        logger.info(
-          `Fetching all members for schedule in guild ${interaction.guild.name} (${interaction.guild.id})`,
-        );
+          const allMembersCollection = interaction.guild.members.cache;
 
-        // Fetch all members (requires GUILD_MEMBERS intent)
-        // Use efficient fetching - pass empty options to fetch all members
-        logger.info("Fetching all guild members...");
+          // Filter out bots (you might want to keep them, adjust as needed)
+          // For now, we'll exclude bots except the bot itself
+          userIds = Array.from(allMembersCollection.values())
+            .filter(
+              member =>
+                !member.user.bot ||
+                member.user.id === interaction.client.user.id,
+            )
+            .map(member => member.id);
 
-        // For very large servers, provide user feedback
-        if (deferred && interaction.guild.memberCount > 5000) {
-          try {
-            await interaction.editReply({
-              content: `⏳ Fetching ${interaction.guild.memberCount.toLocaleString()} members... This may take 30-60 seconds for large servers.`,
+          logger.info(
+            `Found ${userIds.length} members in guild ${interaction.guild.name} (excluding bots)`,
+          );
+
+          if (userIds.length === 0) {
+            const response = errorEmbed({
+              title: "No Members Found",
+              description:
+                "No members found in this server to schedule the role for.",
+              solution:
+                "Make sure the bot has access to view server members (GUILD_MEMBERS intent).",
             });
-          } catch (error) {
-            logger.debug("Failed to update interaction with progress", error);
+
+            if (deferred) {
+              return interaction.editReply(response);
+            } else {
+              return interaction.reply(response);
+            }
           }
-        }
 
-        // Fetch all members (Discord.js handles pagination automatically)
-        // This may take time on very large servers (5000+ members)
-        await interaction.guild.members.fetch(); // Fetch all members (paginated automatically)
+          // Hard limit for "@everyone" operations
+          const MAX_ALL_MEMBERS = isPro
+            ? PRO_TIER.BULK_ACTION_MAX_MEMBERS
+            : FREE_TIER.BULK_ACTION_MAX_MEMBERS;
 
-        const allMembersCollection = interaction.guild.members.cache;
-
-        // Filter out bots (you might want to keep them, adjust as needed)
-        // For now, we'll exclude bots except the bot itself
-        userIds = Array.from(allMembersCollection.values())
-          .filter(
-            member =>
-              !member.user.bot || member.user.id === interaction.client.user.id,
-          )
-          .map(member => member.id);
-
-        logger.info(
-          `Found ${userIds.length} members in guild ${interaction.guild.name} (excluding bots)`,
-        );
-
-        if (userIds.length === 0) {
-          const response = errorEmbed({
-            title: "No Members Found",
-            description:
-              "No members found in this server to schedule the role for.",
-            solution:
-              "Make sure the bot has access to view server members (GUILD_MEMBERS intent).",
-          });
-
-          if (deferred) {
-            return interaction.editReply(response);
-          } else {
-            return interaction.reply(response);
-          }
-        }
-
-        // Hard limit for "@everyone" operations
-        const MAX_ALL_MEMBERS = isPro
-          ? PRO_TIER.BULK_ACTION_MAX_MEMBERS
-          : FREE_TIER.BULK_ACTION_MAX_MEMBERS;
-
-        if (userIds.length > MAX_ALL_MEMBERS) {
-          const response = errorEmbed({
-            title: "Too Many Members",
-            description: `This server has **${userIds.length.toLocaleString()} members**, which exceeds the maximum limit of **${MAX_ALL_MEMBERS.toLocaleString()} members** for "@everyone" operations.`,
-            solution: dedent`
+          if (userIds.length > MAX_ALL_MEMBERS) {
+            const response = errorEmbed({
+              title: "Too Many Members",
+              description: `This server has **${userIds.length.toLocaleString()} members**, which exceeds the maximum limit of **${MAX_ALL_MEMBERS.toLocaleString()} members** for "@everyone" operations.`,
+              solution: dedent`
               For servers with more than ${MAX_ALL_MEMBERS.toLocaleString()} members, please use one of these alternatives:
             
               **Recommended Solutions:**
@@ -485,11 +491,80 @@ export async function handleCreate(interaction, client, deferred = false) {
 
               **Why this limit?** Operations on ${userIds.length.toLocaleString()} members would take ${Math.ceil(userIds.length / 500)}-${Math.ceil(userIds.length / 500) * 2} minutes to complete and have higher reliability risks.
             `,
+            });
+
+            logger.warn(
+              `Attempted to schedule roles for ${userIds.length} members (exceeds ${MAX_ALL_MEMBERS} limit)`,
+            );
+
+            if (deferred) {
+              return interaction.editReply(response);
+            } else {
+              return interaction.reply(response);
+            }
+          }
+
+          // Warn for large servers (but still allow)
+          if (userIds.length > 500) {
+            logger.warn(
+              `Large server detected: ${userIds.length} members for schedule. This may take a long time and could hit rate limits.`,
+            );
+
+            // Show estimated time for large operations
+            if (userIds.length > 500 && deferred) {
+              try {
+                const estimatedMinutes = Math.ceil(userIds.length / 500);
+                const maxMinutes = estimatedMinutes * 2;
+
+                await interaction.editReply({
+                  content: `⏳ Large operation detected (${userIds.length.toLocaleString()} members). Estimated execution time: ${estimatedMinutes}-${maxMinutes} minutes. Processing...`,
+                });
+              } catch (error) {
+                logger.debug(
+                  "Failed to update interaction with progress",
+                  error,
+                );
+              }
+            }
+          }
+        } catch (error) {
+          logger.error("Error fetching all members:", error);
+
+          // Add specific troubleshooting for 100+ server bots
+          const isLargeBot = interaction.client.guilds.cache.size >= 100;
+          const response = errorEmbed({
+            title: "Failed to Fetch Members",
+            description: isLargeBot
+              ? "Could not fetch server members. Since this bot is in 100+ servers, Discord requires manual approval for the **Server Members Intent**."
+              : "Could not fetch all server members. This requires the GUILD_MEMBERS privileged intent.",
+            solution: isLargeBot
+              ? "The bot owner must ensure the intent is **Verified and Approved** in the Discord Developer Portal. Approval can take several days."
+              : "Make sure the bot has the GUILD_MEMBERS intent enabled in the Discord Developer Portal.",
           });
 
-          logger.warn(
-            `Attempted to schedule roles for ${userIds.length} members (exceeds ${MAX_ALL_MEMBERS} limit)`,
-          );
+          if (deferred) {
+            return interaction.editReply(response);
+          } else {
+            return interaction.reply(response);
+          }
+        }
+      } else if (targeting.type === "users") {
+        // Process specific user list (no roles, only user mentions)
+        const MAX_USERS = isPro
+          ? PRO_TIER.BULK_ACTION_MAX_MEMBERS
+          : FREE_TIER.BULK_ACTION_MAX_MEMBERS;
+        const userValidation = await processUserList(usersString, interaction, {
+          maxUsers: MAX_USERS,
+        });
+        if (!userValidation.valid) {
+          const response = errorEmbed({
+            title: "Invalid Users",
+            description:
+              userValidation.error || "Invalid user format provided.",
+            solution:
+              userValidation.solution ||
+              "Please provide valid user mentions or IDs.",
+          });
 
           if (deferred) {
             return interaction.editReply(response);
@@ -498,84 +573,37 @@ export async function handleCreate(interaction, client, deferred = false) {
           }
         }
 
-        // Warn for large servers (but still allow)
-        if (userIds.length > 500) {
-          logger.warn(
-            `Large server detected: ${userIds.length} members for schedule. This may take a long time and could hit rate limits.`,
-          );
+        const { validUsers } = userValidation;
 
-          // Show estimated time for large operations
-          if (userIds.length > 500 && deferred) {
-            try {
-              const estimatedMinutes = Math.ceil(userIds.length / 500);
-              const maxMinutes = estimatedMinutes * 2;
-
-              await interaction.editReply({
-                content: `⏳ Large operation detected (${userIds.length.toLocaleString()} members). Estimated execution time: ${estimatedMinutes}-${maxMinutes} minutes. Processing...`,
-              });
-            } catch (error) {
-              logger.debug("Failed to update interaction with progress", error);
-            }
-          }
-        }
-      } catch (error) {
-        logger.error("Error fetching all members:", error);
-
-        // Add specific troubleshooting for 100+ server bots
-        const isLargeBot = interaction.client.guilds.cache.size >= 100;
-        const response = errorEmbed({
-          title: "Failed to Fetch Members",
-          description: isLargeBot
-            ? "Could not fetch server members. Since this bot is in 100+ servers, Discord requires manual approval for the **Server Members Intent**."
-            : "Could not fetch all server members. This requires the GUILD_MEMBERS privileged intent.",
-          solution: isLargeBot
-            ? "The bot owner must ensure the intent is **Verified and Approved** in the Discord Developer Portal. Approval can take several days."
-            : "Make sure the bot has the GUILD_MEMBERS intent enabled in the Discord Developer Portal.",
-        });
-
-        if (deferred) {
-          return interaction.editReply(response);
-        } else {
-          return interaction.reply(response);
-        }
-      }
-    } else if (targeting.type === "users") {
-      // Process specific user list (no roles, only user mentions)
-      const MAX_USERS = isPro
-        ? PRO_TIER.BULK_ACTION_MAX_MEMBERS
-        : FREE_TIER.BULK_ACTION_MAX_MEMBERS;
-      const userValidation = await processUserList(usersString, interaction, {
-        maxUsers: MAX_USERS,
-      });
-      if (!userValidation.valid) {
-        const response = errorEmbed({
-          title: "Invalid Users",
-          description: userValidation.error || "Invalid user format provided.",
-          solution:
-            userValidation.solution ||
-            "Please provide valid user mentions or IDs.",
-        });
-
-        if (deferred) {
-          return interaction.editReply(response);
-        } else {
-          return interaction.reply(response);
-        }
-      }
-
-      const { validUsers } = userValidation;
-
-      // Safety net: double-check user limit (parser should already enforce this)
-      if (validUsers.length > MAX_USERS) {
-        const response = errorEmbed({
-          title: "Too Many Users",
-          description: `You can only schedule roles for a maximum of **${MAX_USERS} users** at once when specifying individual users.`,
-          solution: dedent`
+        // Safety net: double-check user limit (parser should already enforce this)
+        if (validUsers.length > MAX_USERS) {
+          const response = errorEmbed({
+            title: "Too Many Users",
+            description: `You can only schedule roles for a maximum of **${MAX_USERS} users** at once when specifying individual users.`,
+            solution: dedent`
             For bulk operations, you can:
             - Use \`users:@everyone\` to target all members
             - Mention roles (e.g., \`users:@RoleName\`) to target members with those roles
             - Mix users and roles (e.g., \`users:@user1,@user2,@RoleName\`) to combine both
           `,
+          });
+
+          if (deferred) {
+            return interaction.editReply(response);
+          } else {
+            return interaction.reply(response);
+          }
+        }
+
+        userIds = validUsers.map(user => user.id);
+      } else {
+        // Unknown targeting type - should not happen, but handle gracefully
+        const response = errorEmbed({
+          title: "Invalid Targeting",
+          description:
+            "Could not determine what to target from the users field.",
+          solution:
+            "Use user mentions, role mentions (e.g., @RoleName), or @everyone for all members.",
         });
 
         if (deferred) {
@@ -585,215 +613,202 @@ export async function handleCreate(interaction, client, deferred = false) {
         }
       }
 
-      userIds = validUsers.map(user => user.id);
-    } else {
-      // Unknown targeting type - should not happen, but handle gracefully
-      const response = errorEmbed({
-        title: "Invalid Targeting",
-        description: "Could not determine what to target from the users field.",
-        solution:
-          "Use user mentions, role mentions (e.g., @RoleName), or @everyone for all members.",
-      });
-
-      if (deferred) {
-        return interaction.editReply(response);
-      } else {
-        return interaction.reply(response);
-      }
-    }
-
-    // Parse and validate schedule
-    const scheduleValidation = await validateSchedule(
-      scheduleType,
-      scheduleInput,
-    );
-    if (!scheduleValidation.valid) {
-      const response = errorEmbed({
-        title: "Invalid Schedule",
-        description: scheduleValidation.error,
-        solution: scheduleValidation.solution,
-      });
-
-      if (deferred) {
-        return interaction.editReply(response);
-      } else {
-        return interaction.reply(response);
-      }
-    }
-
-    const scheduleId = generateScheduleId();
-
-    // Create schedule data
-    let scheduleData;
-    if (scheduleType === "one-time") {
-      const scheduledAt = scheduleValidation.scheduledAt;
-
-      scheduleData = {
-        id: scheduleId,
-        guildId: interaction.guild.id,
-        action, // "assign" or "remove"
-        roleId: role.id,
-        userIds,
-        scheduledAt,
-        executed: false,
-        cancelled: false,
-        reason,
-        createdBy: interaction.user.id,
-        scheduleType: "one-time",
-      };
-
-      // Save to scheduled_roles collection
-      const created = await dbManager.scheduledRoles.create(scheduleData);
-      if (!created) {
-        throw new Error("Failed to create scheduled role in database");
-      }
-    } else {
-      // Recurring schedule
-      const scheduleConfig = scheduleValidation.scheduleConfig;
-
-      scheduleData = {
-        id: scheduleId,
-        guildId: interaction.guild.id,
-        action,
-        roleId: role.id,
-        userIds,
+      // Parse and validate schedule
+      const scheduleValidation = await validateSchedule(
         scheduleType,
-        scheduleConfig,
-        active: true,
-        cancelled: false,
-        reason,
-        createdBy: interaction.user.id,
-        lastExecutedAt: null,
-      };
-
-      // Save to recurring_schedules collection
-      const created = await dbManager.recurringSchedules.create(scheduleData);
-      if (!created) {
-        throw new Error("Failed to create recurring schedule in database");
-      }
-    }
-
-    // Create user array for embed (limited to first 10 for display)
-    const displayUsers = isAllMembers
-      ? [] // Empty array - we'll show "all members" in embed
-      : userIds.slice(0, 10).map(userId => {
-          const member = interaction.guild.members.cache.get(userId);
-          return member?.user || { id: userId };
+        scheduleInput,
+      );
+      if (!scheduleValidation.valid) {
+        const response = errorEmbed({
+          title: "Invalid Schedule",
+          description: scheduleValidation.error,
+          solution: scheduleValidation.solution,
         });
 
-    // Create success embed
-    // Track if we have user mentions in mixed mode
-    const hasUserMentions = isMixed && targeting.hasUsers;
-
-    const embed = createScheduleEmbed(
-      scheduleData,
-      role,
-      displayUsers,
-      scheduleType,
-      scheduleInput,
-      client,
-      isAllMembers,
-      userIds.length,
-      targetRoles.length > 0 ? targetRoles[0] : null, // For backward compatibility
-      targetRoles, // Pass all roles
-      hasUserMentions, // Pass mixed flag
-    );
-
-    // Immediately check embed after creation
-    logger.info("Embed created, checking description", {
-      embedType: embed.constructor.name,
-      hasDescription: !!embed.data?.description,
-      descriptionValue: embed.data?.description?.substring(0, 50) || "MISSING",
-    });
-
-    // Validate embed before sending - ensure description is always present
-    const embedJson = embed.toJSON();
-
-    logger.info("Embed JSON before validation", {
-      hasDescription: !!embedJson.description,
-      descriptionLength: embedJson.description?.length || 0,
-      descriptionValue: embedJson.description?.substring(0, 100) || "MISSING",
-      embedKeys: Object.keys(embedJson),
-    });
-
-    // Force description to exist - Discord requires this field
-    if (
-      !embedJson.description ||
-      typeof embedJson.description !== "string" ||
-      embedJson.description.trim().length === 0
-    ) {
-      logger.error("Embed missing description, setting fallback", {
-        embedData: embed.data,
-        embedJson: JSON.stringify(embedJson),
-        hasDescription: !!embedJson.description,
-        descriptionType: typeof embedJson.description,
-      });
-      embed.setDescription("Schedule created successfully");
-      // Re-validate after setting
-      const newJson = embed.toJSON();
-      if (!newJson.description) {
-        throw new Error(
-          "Failed to set embed description - embed may be corrupted",
-        );
+        if (deferred) {
+          return interaction.editReply(response);
+        } else {
+          return interaction.reply(response);
+        }
       }
-    }
 
-    // Final validation before sending
-    const finalEmbedJson = embed.toJSON();
-    logger.info("Sending schedule embed", {
-      hasDescription: !!finalEmbedJson.description,
-      descriptionLength: finalEmbedJson.description?.length || 0,
-      descriptionValue:
-        finalEmbedJson.description?.substring(0, 100) || "MISSING",
-      hasTitle: !!finalEmbedJson.title,
-      embedKeys: Object.keys(finalEmbedJson),
-    });
+      const scheduleId = generateScheduleId();
 
-    // Ensure embed has description before sending
-    if (
-      !finalEmbedJson.description ||
-      finalEmbedJson.description.trim().length === 0
-    ) {
-      logger.error(
-        "CRITICAL: Embed still missing description after validation",
-        {
-          embedJson: finalEmbedJson,
-        },
+      // Create schedule data
+      let scheduleData;
+      if (scheduleType === "one-time") {
+        const scheduledAt = scheduleValidation.scheduledAt;
+
+        scheduleData = {
+          id: scheduleId,
+          guildId: interaction.guild.id,
+          action, // "assign" or "remove"
+          roleId: role.id,
+          userIds,
+          scheduledAt,
+          executed: false,
+          cancelled: false,
+          reason,
+          createdBy: interaction.user.id,
+          scheduleType: "one-time",
+        };
+
+        // Save to scheduled_roles collection
+        const created = await dbManager.scheduledRoles.create(scheduleData);
+        if (!created) {
+          throw new Error("Failed to create scheduled role in database");
+        }
+      } else {
+        // Recurring schedule
+        const scheduleConfig = scheduleValidation.scheduleConfig;
+
+        scheduleData = {
+          id: scheduleId,
+          guildId: interaction.guild.id,
+          action,
+          roleId: role.id,
+          userIds,
+          scheduleType,
+          scheduleConfig,
+          active: true,
+          cancelled: false,
+          reason,
+          createdBy: interaction.user.id,
+          lastExecutedAt: null,
+        };
+
+        // Save to recurring_schedules collection
+        const created = await dbManager.recurringSchedules.create(scheduleData);
+        if (!created) {
+          throw new Error("Failed to create recurring schedule in database");
+        }
+      }
+
+      // Create user array for embed (limited to first 10 for display)
+      const displayUsers = isAllMembers
+        ? [] // Empty array - we'll show "all members" in embed
+        : userIds.slice(0, 10).map(userId => {
+            const member = interaction.guild.members.cache.get(userId);
+            return member?.user || { id: userId };
+          });
+
+      // Create success embed
+      // Track if we have user mentions in mixed mode
+      const hasUserMentions = isMixed && targeting.hasUsers;
+
+      const embed = createScheduleEmbed(
+        scheduleData,
+        role,
+        displayUsers,
+        scheduleType,
+        scheduleInput,
+        client,
+        isAllMembers,
+        userIds.length,
+        targetRoles.length > 0 ? targetRoles[0] : null, // For backward compatibility
+        targetRoles, // Pass all roles
+        hasUserMentions, // Pass mixed flag
       );
-      throw new Error("Embed description is required but missing");
-    }
 
-    // Final check - verify the embed object itself
-    const finalCheck = embed.toJSON();
-    if (!finalCheck.description || finalCheck.description.trim().length === 0) {
-      logger.error("CRITICAL: Embed description missing in final check", {
-        embedData: embed.data,
-        embedJson: finalCheck,
+      // Immediately check embed after creation
+      logger.info("Embed created, checking description", {
+        embedType: embed.constructor.name,
+        hasDescription: !!embed.data?.description,
+        descriptionValue:
+          embed.data?.description?.substring(0, 50) || "MISSING",
       });
-      // Force set description one more time
-      embed.setDescription("Schedule created successfully");
-    }
 
-    // Log the actual payload being sent
-    const sendPayload = { embeds: [embed] };
-    const sendPayloadJson = { embeds: [embed.toJSON()] };
-    logger.info("Payload being sent to Discord", {
-      embedsCount: sendPayloadJson.embeds.length,
-      firstEmbedDescription:
-        sendPayloadJson.embeds[0]?.description || "MISSING",
-      firstEmbedDescriptionLength:
-        sendPayloadJson.embeds[0]?.description?.length || 0,
-    });
+      // Validate embed before sending - ensure description is always present
+      const embedJson = embed.toJSON();
 
-    if (deferred) {
-      await interaction.editReply(sendPayload);
-    } else {
-      await interaction.reply({ ...sendPayload, flags: 64 });
-    }
+      logger.info("Embed JSON before validation", {
+        hasDescription: !!embedJson.description,
+        descriptionLength: embedJson.description?.length || 0,
+        descriptionValue: embedJson.description?.substring(0, 100) || "MISSING",
+        embedKeys: Object.keys(embedJson),
+      });
 
-    logger.info(
-      `Scheduled role ${action} created by ${interaction.user.tag} in ${interaction.guild.name}: Schedule ID ${scheduleId}, Users: ${userIds.length}${isAllMembers ? " (all members)" : ""}`,
-    );
+      // Force description to exist - Discord requires this field
+      if (
+        !embedJson.description ||
+        typeof embedJson.description !== "string" ||
+        embedJson.description.trim().length === 0
+      ) {
+        logger.error("Embed missing description, setting fallback", {
+          embedData: embed.data,
+          embedJson: JSON.stringify(embedJson),
+          hasDescription: !!embedJson.description,
+          descriptionType: typeof embedJson.description,
+        });
+        embed.setDescription("Schedule created successfully");
+        // Re-validate after setting
+        const newJson = embed.toJSON();
+        if (!newJson.description) {
+          throw new Error(
+            "Failed to set embed description - embed may be corrupted",
+          );
+        }
+      }
+
+      // Final validation before sending
+      const finalEmbedJson = embed.toJSON();
+      logger.info("Sending schedule embed", {
+        hasDescription: !!finalEmbedJson.description,
+        descriptionLength: finalEmbedJson.description?.length || 0,
+        descriptionValue:
+          finalEmbedJson.description?.substring(0, 100) || "MISSING",
+        hasTitle: !!finalEmbedJson.title,
+        embedKeys: Object.keys(finalEmbedJson),
+      });
+
+      // Ensure embed has description before sending
+      if (
+        !finalEmbedJson.description ||
+        finalEmbedJson.description.trim().length === 0
+      ) {
+        logger.error(
+          "CRITICAL: Embed still missing description after validation",
+          {
+            embedJson: finalEmbedJson,
+          },
+        );
+        throw new Error("Embed description is required but missing");
+      }
+
+      // Final check - verify the embed object itself
+      const finalCheck = embed.toJSON();
+      if (
+        !finalCheck.description ||
+        finalCheck.description.trim().length === 0
+      ) {
+        logger.error("CRITICAL: Embed description missing in final check", {
+          embedData: embed.data,
+          embedJson: finalCheck,
+        });
+        // Force set description one more time
+        embed.setDescription("Schedule created successfully");
+      }
+
+      // Log the actual payload being sent
+      const sendPayload = { embeds: [embed] };
+      const sendPayloadJson = { embeds: [embed.toJSON()] };
+      logger.info("Payload being sent to Discord", {
+        embedsCount: sendPayloadJson.embeds.length,
+        firstEmbedDescription:
+          sendPayloadJson.embeds[0]?.description || "MISSING",
+        firstEmbedDescriptionLength:
+          sendPayloadJson.embeds[0]?.description?.length || 0,
+      });
+
+      if (deferred) {
+        await interaction.editReply(sendPayload);
+      } else {
+        await interaction.reply({ ...sendPayload, flags: 64 });
+      }
+
+      logger.info(
+        `Scheduled role ${action} created by ${interaction.user.tag} in ${interaction.guild.name}: Schedule ID ${scheduleId}, Users: ${userIds.length}${isAllMembers ? " (all members)" : ""}`,
+      );
     } finally {
       // Always release the bulk slot
       release();

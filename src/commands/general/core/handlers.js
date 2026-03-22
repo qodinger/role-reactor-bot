@@ -164,9 +164,11 @@ async function handleBalance(interaction) {
         .setEmoji("🚀"),
     );
 
+    const /** @type {any} */ buttonRow = buttons;
+
     await interaction.editReply({
       embeds: [balanceEmbed],
-      components: [/** @type {any} */(buttons)],
+      components: [buttonRow],
     });
 
     logOperationDuration(

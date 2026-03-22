@@ -332,7 +332,12 @@ export async function removeWarning(guildId, userId, caseId) {
  * @param {number} [options.maxUsers=15] - Maximum users to process (stops fetching early)
  * @returns {Promise<Object>} {valid: boolean, validUsers?: Array<{user, member}>, error?: string, solution?: string, invalidUsers?: Array}
  */
-export async function parseMultipleUsers(usersString, guild, client, options = {}) {
+export async function parseMultipleUsers(
+  usersString,
+  guild,
+  client,
+  options = {},
+) {
   if (!usersString || !guild || !client) {
     return {
       valid: false,
