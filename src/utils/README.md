@@ -63,6 +63,9 @@ src/utils/
 │   ├── InteractionManager.js
 │   ├── README.md
 │   └── routers/
+├── bulkLimiter.js
+├── commandUtils.js
+├── delay.js
 ├── logger.js
 ├── monitoring/
 │   ├── checkers/
@@ -132,10 +135,16 @@ The utils directory follows a modular architecture where each module has a speci
 
 - **validation/** - Input validation utilities for commands and user data.
 
+### **VPS Protection**
+
+- **bulkLimiter.js** - Global concurrency limiter for heavy bulk operations (role assignments, member fetching). Uses separate pools for Free (3 slots) and Pro (2 reserved slots) servers, ensuring Pro servers never queue behind free servers. Includes FIFO queuing with 30-second timeout.
+
 ### **Generic Utilities**
 
 - **logger.js** - A comprehensive, structured logger for the entire application.
 - **terminal.js** - A collection of simple utilities for styling terminal output.
+- **delay.js** - Simple async delay utility for rate-limit compliance in bulk operations.
+- **commandUtils.js** - Shared command utility functions.
 - **scheduleParser.js** - Parses various schedule formats for role assignments (one-time, recurring, natural language).
 
 ## 🔧 Module Dependencies

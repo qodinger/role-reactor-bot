@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Giveaway System**: Complete `/giveaway` command with create, list, end, reroll, cancel, delete, and edit subcommands. Includes automatic timer-based ending, weighted random winner selection, bonus entries for roles/boosters, claim periods, account/server age requirements, and rate limiting.
+- **Role Bundles**: Create reusable groups of roles with `/role-bundle create`, `/role-bundle delete`, and `/role-bundle list`. Use bundles directly in `/role-reactions setup` with the `bundle:` parameter and autocomplete support.
 - **Web Dashboard Notifications**: Added a notification bell to the web dashboard for tracking Core balance changes, recent purchases, and Pro Engine status.
 - **Voting Rewards**: Support the bot by voting on top.gg using the `/vote` command to earn 1 free Core Credit every 12 hours.
 - **Ticketing System**: Complete support ticket system with `/ticket setup`, `/ticket info`, `/ticket claim`, `/ticket close`, `/ticket add`, and `/ticket remove` commands.
@@ -17,20 +19,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Ticket Analytics**: Live tracking of open, closed, and active tickets with the `/ticket list` and `/ticket view` commands.
 - **Guild Data Purge**: Administrative tool to securely wipe all ticket history and reset the global counter from a simplified dashboard.
 - **Multi-Role Reactions**: A single emoji can now grant multiple roles at once in role-reaction setups.
-- **VPS Protection Tiered Limits**: Centralized resource-based limits for heavy features including giveaways, scheduled roles, and bulk actions to ensure bot stability.
-- **Active Slot Management**: Shared 25-slot active limit for free servers across temporary and scheduled roles to optimize background processing.
+- **Interactive Help Menu**: All command names in the `/help` menu are now clickable slash command mentions, allowing you to directly trigger commands from the help guide.
 
 ### Changed
 
 - **Pro Engine Benefits**: Unlock 10x monthly ticket capacity, HTML transcripts/exports, unlimited retention, and staff performance analytics.
 - **Advanced Role Management**: 20x scheduled role capacity (500 active slots) and 10x bulk action targeting (250 members) for Pro servers.
-- **Role-Reaction Descriptions**: Support added for literal newlines (`\n`) directly in role-reaction setups for deeper customization options.
-- **Goodbye System**: General performance improvements and code duplication removal in goodbye message processing.
+- **Serverinfo Redesign**: `/serverinfo` command has been redesigned with a fresh look, including Pro Engine status display.
+- **Goodbye System**: General performance improvements in goodbye message processing.
+- **Core Balance Display**: `/core balance` now shows vote statistics, next vote countdown with Discord dynamic timestamps, server Pro Engine status, and quick-action buttons for "Vote & Earn" and "Upgrade Center."
+- **Bulk Action Limits**: `/temp-roles` and `/schedule-role` now correctly support up to **250 users** per action on Pro Engine servers and **25 users** on Free servers (previously capped at 20 for all servers).
+- **Faster Moderation**: `/mod` bulk operations (timeout, warn, ban, kick) are now significantly faster and more responsive when processing user lists.
 
 ### Fixed
 
-- **Message Spying**: Prevented the bot from accidentally tracking `@everyone` and `@here` mentions in general chat logs.
 - **Role Name Lengths**: Shortened command descriptions for role-reactions to safely sit below the Discord global command limit.
+- **Bulk Action on Pro Servers**: Fixed an issue where `/temp-roles assign` and `/schedule-role create` would not process more than 20 users, even on Pro Engine servers entitled to 250 users.
 
 ## [1.6.3] - 2026-03-04
 
@@ -41,10 +45,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Flexible Pro Subscription**: The Pro Engine has moved to a simpler weekly billing cycle (15 Cores per week), making it easier to manage premium features.
+- **Flexible Pro Subscription**: The Pro Engine has moved to a simpler weekly billing cycle (20 Cores per week), making it easier to manage premium features.
 - **Modern Leaderboards**: Level and leaderboard messages have been redesigned with a fresh look and better readability.
 - **Improved Dashboard Reliability**: Web settings and balance tracking are now faster and more accurate.
 - **Enhanced Configuration Sync**: Bot settings now update more reliably across all server management commands.
+- **Role-Reaction Descriptions**: Support added for literal newlines (`\n`) directly in role-reaction setups for deeper customization options.
+
+### Fixed
+
+- **Message Spying**: Prevented the bot from accidentally tracking `@everyone` and `@here` mentions in general chat logs.
 
 ## [1.6.2] - 2026-02-12
 

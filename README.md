@@ -32,29 +32,23 @@ A powerful Discord bot that helps you manage your server with role management, A
 ## ✨ Features
 
 - **🎯 Self-Assignable Roles**: Users can assign/remove roles by reacting to messages
+- **📦 Role Bundles**: Create reusable groups of roles and use them in role-reaction setups
 - **⏰ Temporary Roles**: Auto-expire roles after a set time with smart notifications
 - **📅 Schedule Roles**: Schedule automatic role assignments and removals with one-time or recurring schedules
+- **🎁 Giveaway System**: Full-featured giveaways with bonus entries, claim periods, requirements, and rerolling
 - **🎉 Welcome System**: Auto-welcome new members with customizable messages and auto-role assignment
 - **👋 Goodbye System**: Auto-goodbye messages when members leave with customizable placeholders
-- **🧠 Smart 8ball**: Intelligent question analysis with sentiment detection and context-aware responses
-- **📊 XP System**: Configurable experience system with level progression and leaderboards
-- **🎨 AI Avatar Generation**: AI-powered avatar generation with multiple style options
-- **💎 Core Credit System**: Credit-based economy for avatar generation with crypto payment integration
-- **🗳️ Voting Rewards**: Earn Core Credits automatically by voting for the bot on top.gg
-- **🔔 Notification System**: Web dashboard notifications for balance, purchases, and Pro Engine context
-- **📊 Poll System**: Create and manage native Discord polls with interactive forms
-- **🛡️ Moderation System**: Comprehensive moderation tools with timeout, warnings, bans, kicks, and history tracking
-- **🎙️ Voice Control**: Automatically manage users in voice channels based on roles (disconnect, mute, deafen, move)
+- **🛡️ Moderation System**: Bulk timeout, warn, ban, kick, purge, and history tracking (up to 15 users at once)
 - **🎫 Ticket System**: Complete support ticket system with panels, transcripts, and lifecycle management
-- **👤 User Information**: Avatar display, level checking, and user statistics
-- **🛡️ Permission Controls**: Comprehensive permission checking
-- **🎨 Custom Emojis**: Support for Unicode and custom server emojis
-- **📊 Role Categories**: Organize roles into logical groups
-- **🔧 Easy Setup**: Simple slash commands for configuration
+- **🎙️ Voice Control**: Automatically manage users in voice channels based on roles (disconnect, mute, deafen, move)
+- **📊 XP System**: Configurable experience system with level progression and leaderboards
+- **📊 Poll System**: Create and manage native Discord polls with interactive forms
+- **💎 Core Credit System**: Credit-based economy with crypto payment integration and Pro Engine upgrades
+- **🗳️ Voting Rewards**: Earn Core Credits automatically by voting for the bot on top.gg
+- **🎨 AI Avatar Generation**: AI-powered avatar generation with multiple style options
+- **🔔 Notification System**: Web dashboard notifications for balance, purchases, and Pro Engine status
 - **📈 Health Monitoring**: Built-in health checks and performance metrics
 - **📝 Structured Logging**: Enterprise-grade logging with file output
-- **🎨 User-Friendly UI**: Clean, concise, and helpful messaging with interactive buttons
-- **🔗 Centralized Links**: Consistent external links and invite generation
 
 ## 🚀 Quick Start
 
@@ -329,129 +323,130 @@ Automatically manage users in voice channels based on roles:
 - Actions are applied when users join voice channels or when roles are assigned
 - Actions are automatically applied to users already in voice channels when roles are first configured
 
+### Giveaways
+
+Create and manage server giveaways with requirements and bonus entries:
+
+```
+/giveaway create prize:Nitro winners:1 duration:24h
+/giveaway create prize:VIP Role winners:3 duration:1w required-role:@Member min-level:5
+/giveaway list
+/giveaway end giveaway-id:abc123
+/giveaway reroll giveaway-id:abc123
+/giveaway cancel giveaway-id:abc123
+/giveaway edit giveaway-id:abc123 prize:New Prize
+/giveaway delete giveaway-id:abc123
+```
+
+### Role Bundles
+
+Create reusable groups of roles for role-reaction setups:
+
+```
+/role-bundle create name:Starter Roles roles:@Member @Newcomer @Access
+/role-bundle list
+/role-bundle delete name:Starter Roles
+```
+
+Use bundles in role-reaction setup with the `bundle:` parameter.
+
 ### General Commands
 
-**AI Avatar Generation:**
-
 ```
-/avatar prompt:cyberpunk hacker with neon hair art_style:manga
-/avatar prompt:cute girl with pink hair art_style:chibi
-```
-
-**Core Credit System:**
-
-```
-/core balance
-/core pricing
-```
-
-**Voting Rewards:**
-
-```
-/vote
-```
-
-**Poll System:**
-
-```
-/poll create
-/poll list
-/poll end poll-id:1234567890
-/poll delete poll-id:1234567890
-```
-
-**Smart 8ball with intelligent responses:**
-
-```
-/8ball question:Will I succeed in my career?
-```
-
-**User information and statistics:**
-
-```
-/userinfo user:@username
-/serverinfo
-/level user:@username
-/leaderboard
-```
-
-**Bot information and support:**
-
-```
-/help
-/ping
-/invite
-/support
+/help                  # Interactive help with clickable command mentions
+/ping                  # Check bot latency
+/invite                # Get bot invite link
+/support               # Support server and GitHub links
+/vote                  # Vote on top.gg to earn Core Credits
+/core balance          # Check Core balance and Pro Engine status
+/core pricing          # View Core pricing
+/poll create           # Create a Discord poll
+/8ball question:...    # Ask the magic 8ball
+/avatar prompt:...     # Generate AI avatar
+/userinfo user:@user   # View user details
+/serverinfo            # View server details
+/level user:@user      # Check XP level
+/leaderboard           # View XP leaderboard
 ```
 
 ### Available Commands
 
 #### Server Management Commands
 
-| Command                         | Description                                | Permissions   |
-| ------------------------------- | ------------------------------------------ | ------------- |
-| `/role-reactions setup`         | Create a role-reaction message             | Manage Roles  |
-| `/role-reactions list`          | List all role-reaction messages            | Manage Roles  |
-| `/role-reactions update`        | Update an existing role-reaction message   | Manage Roles  |
-| `/role-reactions delete`        | Delete a role-reaction message             | Manage Roles  |
-| `/temp-roles assign`            | Assign temporary roles (supports bulk)     | Manage Roles  |
-| `/temp-roles list`              | List temporary roles                       | Manage Roles  |
-| `/temp-roles remove`            | Remove temporary roles (supports bulk)     | Manage Roles  |
-| `/schedule-role create`         | Schedule role assignments/removals         | Manage Roles  |
-| `/schedule-role list`           | List active schedules                      | Manage Roles  |
-| `/schedule-role view`           | View schedule details                      | Manage Roles  |
-| `/schedule-role cancel`         | Cancel a schedule                          | Manage Roles  |
-| `/schedule-role delete`         | Permanently delete a schedule              | Manage Roles  |
-| `/welcome setup`                | Configure welcome system                   | Manage Server |
-| `/welcome settings`             | View welcome system settings               | Manage Server |
-| `/goodbye setup`                | Configure goodbye system                   | Manage Server |
-| `/goodbye settings`             | View goodbye system settings               | Manage Server |
-| `/xp settings`                  | View and manage XP system settings         | Manage Server |
-| `/moderation timeout`           | Timeout users (supports bulk up to 15)     | Administrator |
-| `/moderation warn`              | Warn users (supports bulk up to 15)        | Administrator |
-| `/moderation ban`               | Ban users (supports bulk up to 15)         | Administrator |
-| `/moderation kick`              | Kick users (supports bulk up to 15)        | Administrator |
-| `/moderation unban`             | Unban users (supports bulk up to 15)       | Administrator |
-| `/moderation purge`             | Delete multiple messages from channel      | Administrator |
-| `/moderation history`           | View moderation history                    | Administrator |
-| `/moderation remove-warn`       | Remove a warning by case ID                | Administrator |
-| `/moderation list-bans`         | List all banned users                      | Administrator |
-| `/voice-roles disconnect add` | Add role that disconnects users from voice | Administrator |
-| `/voice-roles mute add`       | Add role that mutes users in voice         | Administrator |
-| `/voice-roles deafen add`     | Add role that deafens users in voice       | Administrator |
-| `/voice-roles move add`       | Add role that moves users to channel       | Administrator |
-| `/voice-roles list`           | List all voice control roles               | Administrator |
-| `/ticket setup`               | Set up ticket support system               | Manage Server |
-| `/ticket info`                | View ticket system information             | Manage Server |
-| `/ticket panel`               | Manage ticket panels                       | Manage Server |
-| `/ticket list`                | List all tickets                           | Manage Server |
-| `/ticket view`                | View specific ticket details               | Manage Server |
-| `/ticket claim`               | Claim a ticket                             | Manage Server |
-| `/ticket close`               | Close a ticket                             | Manage Server |
-| `/ticket add`                 | Add user to ticket                         | Manage Server |
-| `/ticket remove`              | Remove user from ticket                    | Manage Server |
+| Command                       | Description                              | Permissions   |
+| ----------------------------- | ---------------------------------------- | ------------- |
+| `/role-reactions setup`       | Create a role-reaction message           | Manage Roles  |
+| `/role-reactions list`        | List all role-reaction messages          | Manage Roles  |
+| `/role-reactions update`      | Update an existing role-reaction message | Manage Roles  |
+| `/role-reactions delete`      | Delete a role-reaction message           | Manage Roles  |
+| `/role-bundle create`         | Create a reusable role bundle            | Manage Roles  |
+| `/role-bundle list`           | List all role bundles                    | Manage Roles  |
+| `/role-bundle delete`         | Delete a role bundle                     | Manage Roles  |
+| `/temp-roles assign`          | Assign temporary roles (supports bulk)   | Manage Roles  |
+| `/temp-roles list`            | List temporary roles                     | Manage Roles  |
+| `/temp-roles remove`          | Remove temporary roles (supports bulk)   | Manage Roles  |
+| `/schedule-role create`       | Schedule role assignments/removals       | Manage Roles  |
+| `/schedule-role list`         | List active schedules                    | Manage Roles  |
+| `/schedule-role view`         | View schedule details                    | Manage Roles  |
+| `/schedule-role cancel`       | Cancel a schedule                        | Manage Roles  |
+| `/schedule-role delete`       | Permanently delete a schedule            | Manage Roles  |
+| `/giveaway create`            | Create a new giveaway                    | Manage Server |
+| `/giveaway list`              | List active giveaways                    | Manage Server |
+| `/giveaway end`               | End a giveaway early                     | Manage Server |
+| `/giveaway reroll`            | Reroll giveaway winners                  | Manage Server |
+| `/giveaway cancel`            | Cancel a giveaway                        | Manage Server |
+| `/giveaway edit`              | Edit an active giveaway                  | Manage Server |
+| `/giveaway delete`            | Delete a giveaway permanently            | Manage Server |
+| `/welcome setup`              | Configure welcome system                 | Manage Server |
+| `/welcome settings`           | View welcome system settings             | Manage Server |
+| `/goodbye setup`              | Configure goodbye system                 | Manage Server |
+| `/goodbye settings`           | View goodbye system settings             | Manage Server |
+| `/xp settings`                | View and manage XP system settings       | Manage Server |
+| `/moderation timeout`         | Timeout users (supports bulk up to 15)   | Administrator |
+| `/moderation warn`            | Warn users (supports bulk up to 15)      | Administrator |
+| `/moderation ban`             | Ban users (supports bulk up to 15)       | Administrator |
+| `/moderation kick`            | Kick users (supports bulk up to 15)      | Administrator |
+| `/moderation unban`           | Unban users (supports bulk up to 15)     | Administrator |
+| `/moderation purge`           | Delete multiple messages from channel    | Administrator |
+| `/moderation history`         | View moderation history                  | Administrator |
+| `/moderation remove-warn`     | Remove a warning by case ID              | Administrator |
+| `/moderation list-bans`       | List all banned users                    | Administrator |
+| `/voice-roles disconnect add` | Add role that disconnects from voice     | Administrator |
+| `/voice-roles mute add`       | Add role that mutes in voice             | Administrator |
+| `/voice-roles deafen add`     | Add role that deafens in voice           | Administrator |
+| `/voice-roles move add`       | Add role that moves to a channel         | Administrator |
+| `/voice-roles list`           | List all voice control roles             | Administrator |
+| `/ticket setup`               | Set up ticket support system             | Manage Server |
+| `/ticket info`                | View ticket system information           | Manage Server |
+| `/ticket panel`               | Manage ticket panels                     | Manage Server |
+| `/ticket list`                | List all tickets                         | Manage Server |
+| `/ticket view`                | View specific ticket details             | Manage Server |
+| `/ticket claim`               | Claim a ticket                           | Manage Server |
+| `/ticket close`               | Close a ticket                           | Manage Server |
+| `/ticket add`                 | Add user to ticket                       | Manage Server |
+| `/ticket remove`              | Remove user from ticket                  | Manage Server |
 
 #### General Commands
 
-| Command         | Description                                     | Permissions |
-| --------------- | ----------------------------------------------- | ----------- |
-| `/help`         | Display comprehensive bot help and information  | None        |
-| `/ping`         | Check bot latency and status                    | None        |
-| `/invite`       | Get bot invite link with proper permissions     | None        |
-| `/support`      | Get support server and GitHub links             | None        |
-| `/8ball`        | Ask the magic 8ball with intelligent responses  | None        |
-| `/avatar`       | Generate AI-powered avatars with custom prompts | None        |
-| `/core balance` | Check your current Core balance and tier status | None        |
-| `/core pricing` | View Core pricing and membership benefits       | None        |
-| `/vote`         | Vote for the bot on top.gg to earn Core Credits | None        |
-| `/poll create`  | Create a new poll using interactive form        | None        |
-| `/poll list`    | List all polls in the server                    | None        |
-| `/poll end`     | End an active poll early                        | None        |
-| `/poll delete`  | Delete a poll permanently                       | None        |
-| `/level`        | Check user XP level and statistics              | None        |
-| `/leaderboard`  | View server XP leaderboard                      | None        |
-| `/userinfo`     | Display detailed user information               | None        |
-| `/serverinfo`   | Display detailed server information             | None        |
+| Command         | Description                                      | Permissions |
+| --------------- | ------------------------------------------------ | ----------- |
+| `/help`         | Interactive help with clickable command mentions | None        |
+| `/ping`         | Check bot latency and status                     | None        |
+| `/invite`       | Get bot invite link with proper permissions      | None        |
+| `/support`      | Get support server and GitHub links              | None        |
+| `/8ball`        | Ask the magic 8ball with intelligent responses   | None        |
+| `/avatar`       | Generate AI-powered avatars with custom prompts  | None        |
+| `/core balance` | Check Core balance and Pro Engine status         | None        |
+| `/core pricing` | View Core pricing and membership benefits        | None        |
+| `/vote`         | Vote for the bot on top.gg to earn Core Credits  | None        |
+| `/poll create`  | Create a new poll using interactive form         | None        |
+| `/poll list`    | List all polls in the server                     | None        |
+| `/poll end`     | End an active poll early                         | None        |
+| `/poll delete`  | Delete a poll permanently                        | None        |
+| `/level`        | Check user XP level and statistics               | None        |
+| `/leaderboard`  | View server XP leaderboard                       | None        |
+| `/userinfo`     | Display detailed user information                | None        |
+| `/serverinfo`   | Display detailed server information              | None        |
 
 ## 🔧 Configuration
 
@@ -556,51 +551,37 @@ The bot includes comprehensive health monitoring:
 
 **Note:** Bot health and performance monitoring is handled automatically. Developers can access detailed metrics through bot logs and the unified API server.
 
-## 🎨 User Experience
+## 💎 Pro Engine
 
-### Recent Improvements
+Upgrade your server with the **Pro Engine** for enhanced limits and features:
 
-- **🎫 Ticket System**: Complete support ticket system with panels, transcripts (HTML/JSON/Markdown), and lifecycle management
-- **🎨 AI Avatar Generation**: AI-powered avatar creation with multiple style options and content filtering
-- **💎 Core Credit System**: Credit-based economy for avatar generation with crypto payment integration
-- **🔔 Notification System**: Comprehensive in-app web notifications for account updates, purchases, and rewards
-- **🗳️ Voting Rewards**: Receive 1 Core Credit every 12 hours seamlessly synced to your account
-- **📊 Poll System**: Native Discord poll creation and management with interactive forms
-- **🛡️ Moderation System**: Comprehensive moderation tools with bulk operations and history tracking
-- **🎙️ Voice Control**: Automatic voice channel management based on roles
-- **🔄 Bulk Operations**: Multi-user support for temporary role assignments, removals, and moderation
-- **🎨 Modern UI**: Redesigned embeds with interactive buttons and better visual hierarchy
-- **📝 Enhanced Help**: Comprehensive help system with autocomplete and interactive navigation
-- **🔗 Interactive Buttons**: Direct links to support server, GitHub, and sponsor pages
-- **⚡ Real-time Updates**: XP settings and other interfaces update in place instead of sending new messages
-- **🛡️ Better Error Handling**: Clear, actionable error messages with troubleshooting tips
-- **📱 Mobile-Friendly**: Optimized for both desktop and mobile Discord clients
+| Feature            | Free Tier  | Pro Engine ✨   |
+| :----------------- | :--------- | :-------------- |
+| Giveaway Entries   | 2,500      | **50,000**      |
+| Giveaway Winners   | 5          | **20**          |
+| Scheduled Roles    | 25 active  | **500 active**  |
+| Ticket Capacity    | 50 monthly | **500 monthly** |
+| Transcript Storage | 7 Days     | **Unlimited**   |
+| Bulk Actions       | 25 users   | **250 users**   |
+| Level Rewards      | 5 (Stack)  | **Unlimited**   |
 
-### Command Features
-
-- **Interactive Help**: Dropdown menus, buttons, and autocomplete for easy navigation
-- **Smart Responses**: Context-aware 8ball responses based on question analysis
-- **Bulk Management**: Multi-user operations for efficient role management
-- **AI Avatar Generation**: Custom avatar creation with multiple style options
-- **Poll Management**: Interactive poll creation and management with native Discord polls
-- **Core Credit System**: Credit-based economy with crypto payment integration
-- **Permission Checks**: Automatic permission validation with helpful feedback
-- **Error Recovery**: Graceful error handling with retry mechanisms
-- **Performance Tips**: Contextual advice based on connection status
+See [Core Energy Guide](./docs/CORE_ENERGY.md) for details on activation and pricing.
 
 ## 📖 Documentation
 
 - **[🚀 Deployment Guide](./docs/setup/deployment.md)** - Production deployment instructions
-- **[🤝 Contributing Guidelines](./docs/contributing.md)** - How to contribute to the project
+- **[💎 Core Energy & Pro Engine](./docs/CORE_ENERGY.md)** - Credits, voting, and Pro Engine guide
+- **[🗳️ top.gg Voting Setup](./docs/integrations/topgg.md)** - Voting rewards webhook integration
+- **[🤝 Contributing Guidelines](./docs/CONTRIBUTING.md)** - How to contribute to the project
 - **[🌿 Git Workflow Guide](./docs/development/workflow.md)** - Branch strategy and workflow patterns
 
 ## 📝 Changelog
 
-See [changelog.md](./docs/changelog.md) for detailed version history and updates.
+See [CHANGELOG.md](./docs/CHANGELOG.md) for detailed version history and updates.
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guidelines](./docs/contributing.md) for detailed information.
+We welcome contributions! Please see our [Contributing Guidelines](./docs/CONTRIBUTING.md) for detailed information.
 
 ### Quick Development Setup
 

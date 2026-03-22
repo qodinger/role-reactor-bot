@@ -23,6 +23,7 @@ Welcome to the comprehensive documentation for Role Reactor Bot - a powerful Dis
 
 ### 💳 Integrations
 
+- **[top.gg Voting Setup](./integrations/topgg.md)** - Voting rewards webhook integration
 - **[PayPal Setup](./integrations/paypal.md)** - PayPal payment webhook integration
 - **[ComfyUI (AI) Integration](./integrations/comfyui/README.md)** - AI image generation documentation
 - **[Docker Troubleshooting](./integrations/docker/troubleshooting.md)** - Solutions for common Docker issues
@@ -45,7 +46,7 @@ Welcome to the comprehensive documentation for Role Reactor Bot - a powerful Dis
 ### For Administrators
 
 - **Deployment issues?** See [Docker Troubleshooting](./integrations/docker/troubleshooting.md)
-- **Version updates?** Check the [Changelog](./changelog.md)
+- **Version updates?** Check the [Changelog](./CHANGELOG.md)
 - **Upcoming features?** View the [Development Roadmap](./ROADMAP.md)
 
 ## 🏗️ Project Structure
@@ -53,9 +54,10 @@ Welcome to the comprehensive documentation for Role Reactor Bot - a powerful Dis
 ```
 docs/
 ├── README.md                       # Documentation index
-├── changelog.md                    # version history
+├── CHANGELOG.md                    # Version history
+├── CORE_ENERGY.md                  # Core Energy & Pro Engine guide
 ├── ROADMAP.md                      # Development roadmap & future ideas
-├── contributing.md                 # Contribution guidelines
+├── CONTRIBUTING.md                 # Contribution guidelines
 ├── setup/
 │   ├── README.md                   # Installation & initial setup
 │   └── deployment.md               # Production deployment guide
@@ -66,6 +68,7 @@ docs/
 │   ├── reference.md                # Core API documentation
 │   └── auth.md                     # Website Discord login guide
 └── integrations/
+    ├── topgg.md                    # top.gg voting rewards setup
     ├── paypal.md                   # PayPal payment setup
     ├── docker/
     │   ├── README.md               # Docker guide
@@ -92,4 +95,4 @@ docs/
 
 ---
 
-_Last Updated: January 15, 2026_
+_Last Updated: March 22, 2026_
