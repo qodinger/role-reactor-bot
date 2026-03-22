@@ -151,7 +151,6 @@ export async function executeReQuery(
     locale || "en-US",
     user || null,
     {
-      userId,
       forceIncludeMemberList: fetchActions.some(a => a.type === "fetch_all"),
     },
   );

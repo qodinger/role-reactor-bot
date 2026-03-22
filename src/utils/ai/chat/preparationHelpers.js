@@ -5,10 +5,14 @@ import { getLogger } from "../../logger.js";
 const logger = getLogger();
 
 /**
+ * @typedef {import('discord.js').Client & { commands?: import('discord.js').Collection<string, any> }} ExtendedClient
+ */
+
+/**
  * Detect if user message suggests an action should be performed
  * This is a general detection that works for ALL actions, not just specific ones
  * @param {string} userMessage - User's message
- * @param {import('discord.js').Client} client - Discord client (optional, for command name checking)
+ * @param {ExtendedClient} client - Discord client (optional, for command name checking)
  * @returns {Promise<boolean>} True if message suggests an action should be performed
  */
 export async function detectActionRequest(userMessage, client = null) {
@@ -153,7 +157,7 @@ export async function detectActionRequest(userMessage, client = null) {
  * @param {import('discord.js').Guild} guild - Discord guild
  * @param {import('discord.js').Client} client - Discord client
  * @param {string} userMessage - User's message
- * @param {Object} options - Options with userId, locale, user, onStatus
+ * @param {Object} options - Options with userId, locale, user, onStatus, forceIncludeMemberList
  * @returns {Promise<string>} System message
  */
 export async function prepareSystemContextAndLog(
@@ -162,7 +166,7 @@ export async function prepareSystemContextAndLog(
   userMessage,
   options = {},
 ) {
-  const { userId, locale, user, onStatus } = options;
+  const { userId, locale, user, onStatus, forceIncludeMemberList } = options;
 
   if (onStatus) await onStatus(AI_STATUS_MESSAGES.PREPARING);
   const systemMessage = await systemPromptBuilder.buildSystemContext(
@@ -171,7 +175,7 @@ export async function prepareSystemContextAndLog(
     userMessage,
     locale || "en-US",
     user || null,
-    { userId },
+    { forceIncludeMemberList },
   );
 
   // Log system context summary (debug level)

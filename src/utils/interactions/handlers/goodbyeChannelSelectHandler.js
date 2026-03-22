@@ -6,14 +6,14 @@ import { hasAdminPermissions } from "../../discord/permissions.js";
 
 /**
  * Handle goodbye channel selection
- * @param {import('discord.js').StringSelectMenuInteraction} interaction
+ * @param {import('discord.js').AnySelectMenuInteraction} interaction
  */
 export async function handleGoodbyeChannelSelect(interaction) {
   const logger = getLogger();
 
   try {
     // Check permissions
-    if (!hasAdminPermissions(interaction.member)) {
+    if (!hasAdminPermissions(/** @type {import('discord.js').GuildMember} */ (interaction.member))) {
       return interaction.reply(
         errorEmbed({
           title: "Permission Denied",
@@ -21,7 +21,6 @@ export async function handleGoodbyeChannelSelect(interaction) {
             "You need Manage Server permissions to configure the goodbye system.",
           solution: "Contact a server administrator for assistance.",
         }),
-        { flags: MessageFlags.Ephemeral },
       );
     }
 
@@ -86,7 +85,6 @@ export async function handleGoodbyeChannelSelect(interaction) {
         description: "Failed to process channel selection.",
         solution: "Please try again or contact support if the issue persists.",
       }),
-      { flags: [MessageFlags.Ephemeral] },
     );
   }
 }

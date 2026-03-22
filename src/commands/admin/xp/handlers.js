@@ -711,7 +711,7 @@ export async function handleXpAdvancedConfigModalSubmit(interaction) {
 
 /**
  * Handle XP channel selection
- * @param {import('discord.js').StringSelectMenuInteraction} interaction
+ * @param {import('discord.js').AnySelectMenuInteraction} interaction
  */
 export async function handleXpChannelSelect(interaction) {
   const logger = getLogger();

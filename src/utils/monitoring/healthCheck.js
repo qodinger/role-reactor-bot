@@ -10,7 +10,12 @@ class HealthCheckRunner {
     this.checks = new Map();
     this.lastCheck = null;
     this.checkInterval = 5 * 60 * 1000;
+    this.client = null;
     this.startMonitoring();
+  }
+
+  setClient(client) {
+    this.client = client;
   }
 
   registerCheck(name, checkFunction, timeout = 5000) {
@@ -18,6 +23,11 @@ class HealthCheckRunner {
   }
 
   async run(client) {
+    // Update stored client if one is provided
+    if (client) {
+      this.client = client;
+    }
+
     const startTime = Date.now();
     const results = {};
 
@@ -27,7 +37,17 @@ class HealthCheckRunner {
           setTimeout(() => reject(new Error("Health check timeout")), timeout);
         });
 
-        const checkPromise = checkFunction(client);
+        // Skip discord_api check if client is not available yet
+        if (name === "discord_api" && !this.client) {
+          results[name] = {
+            status: "pending",
+            message: "Waiting for client connection...",
+            timestamp: new Date().toISOString(),
+          };
+          continue;
+        }
+
+        const checkPromise = checkFunction(this.client);
         results[name] = await Promise.race([checkPromise, timeoutPromise]);
       } catch (error) {
         results[name] = {

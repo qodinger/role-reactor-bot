@@ -322,6 +322,12 @@ async function processVote(vote, client) {
       const discordUser = await discordClient.users.fetch(userId);
 
       const { EmbedBuilder } = await import("discord.js");
+      const { emojiConfig } = await import("../config/emojis.js");
+      const { getMentionableCommand } = await import(
+        "../utils/commandUtils.js"
+      );
+      const { customEmojis } = emojiConfig;
+
       const thankYouEmbed = new EmbedBuilder()
         .setTitle("🎉 Thanks for Voting!")
         .setColor(0xff6b6b)
@@ -331,7 +337,7 @@ async function processVote(vote, client) {
         .addFields(
           {
             name: "🎁 Reward",
-            value: `✅ **${REWARD_AMOUNT} Core Energy** added to your balance!`,
+            value: `✅ **${customEmojis.core} ${REWARD_AMOUNT}** added to your balance!`,
             inline: false,
           },
           {
@@ -341,8 +347,7 @@ async function processVote(vote, client) {
           },
           {
             name: "💡 Use Your Core",
-            value:
-              "Use `/core` to check your balance and see what you can do with Core Energy!",
+            value: `Use ${getMentionableCommand(discordClient, "core")} to check your balance and see what you can do with your ${customEmojis.core}!`,
             inline: false,
           },
         )

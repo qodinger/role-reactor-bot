@@ -6,6 +6,7 @@
 import { PermissionFlagsBits } from "discord.js";
 import { getExperienceManager } from "../../features/experience/ExperienceManager.js";
 import { getDatabaseManager } from "../storage/databaseManager.js";
+import { getMentionableCommand } from "../commandUtils.js";
 
 /**
  * Parse duration string to milliseconds
@@ -172,8 +173,9 @@ export async function validateRequirements(giveaway, member) {
       Date.now() - userCredits.lastVote > 12 * 60 * 60 * 1000
     ) {
       result.valid = false;
+      const voteCmd = getMentionableCommand(member.client, "vote");
       result.errors.push(
-        "You must have voted recently to enter this giveaway. Use the </vote:1483332825137680384> command to vote now!",
+        `You must have voted recently to enter this giveaway. Use the ${voteCmd} command to vote now!`,
       );
     }
   }

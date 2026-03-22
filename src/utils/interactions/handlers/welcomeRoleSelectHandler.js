@@ -8,23 +8,24 @@ import { getDatabaseManager } from "../../storage/databaseManager.js";
 
 /**
  * Handle welcome role select interaction
- * @param {import('discord.js').StringSelectMenuInteraction} interaction
+ * @param {import('discord.js').AnySelectMenuInteraction} interaction
  */
 export async function handleWelcomeRoleSelect(interaction) {
   const logger = getLogger();
 
   try {
     // Check permissions
-    if (!hasAdminPermissions(interaction.member)) {
+    if (
+      !hasAdminPermissions(
+        /** @type {import('discord.js').GuildMember} */ (interaction.member),
+      )
+    ) {
       return interaction.reply({
-        embeds: [
-          errorEmbed({
-            title: "Permission Denied",
-            description:
-              "You need administrator permissions to configure the welcome auto-role.",
-          }),
-        ],
-        flags: MessageFlags.Ephemeral,
+        ...errorEmbed({
+          title: "Permission Denied",
+          description:
+            "You need administrator permissions to configure the welcome auto-role.",
+        }),
       });
     }
 
@@ -33,13 +34,10 @@ export async function handleWelcomeRoleSelect(interaction) {
 
     if (!selectedRole) {
       return interaction.reply({
-        embeds: [
-          errorEmbed({
-            title: "Role Not Found",
-            description: "The selected role could not be found.",
-          }),
-        ],
-        flags: MessageFlags.Ephemeral,
+        ...errorEmbed({
+          title: "Role Not Found",
+          description: "The selected role could not be found.",
+        }),
       });
     }
 
@@ -50,14 +48,12 @@ export async function handleWelcomeRoleSelect(interaction) {
     const botMember = interaction.guild.members.me;
     if (selectedRole.position >= botMember.roles.highest.position) {
       return interaction.editReply({
-        embeds: [
-          errorEmbed({
-            title: "Permission Error",
-            description: `I cannot assign the role ${selectedRole.toString()} because it's higher than or equal to my highest role.`,
-            solution:
-              "Please move my role above the selected role in the role hierarchy.",
-          }),
-        ],
+        ...errorEmbed({
+          title: "Permission Error",
+          description: `I cannot assign the role ${selectedRole.toString()} because it's higher than or equal to my highest role.`,
+          solution:
+            "Please move my role above the selected role in the role hierarchy.",
+        }),
       });
     }
 
@@ -104,7 +100,7 @@ export async function handleWelcomeRoleSelect(interaction) {
 
     await interaction.editReply({
       embeds: [embed],
-      components,
+      components: components.map(c => c.toJSON()),
     });
 
     logger.info(
@@ -113,12 +109,10 @@ export async function handleWelcomeRoleSelect(interaction) {
   } catch (error) {
     logger.error(`Error in handleWelcomeRoleSelect: ${error.message}`, error);
     await interaction.editReply({
-      embeds: [
-        errorEmbed({
-          title: "Selection Error",
-          description: "An error occurred while processing the role selection.",
-        }),
-      ],
+      ...errorEmbed({
+        title: "Selection Error",
+        description: "An error occurred while processing the role selection.",
+      }),
     });
   }
 }

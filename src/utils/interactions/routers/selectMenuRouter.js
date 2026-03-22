@@ -7,7 +7,7 @@ import { getLogger } from "../../logger.js";
 
 /**
  * Route select menu interaction to appropriate handler
- * @param {import('discord.js').StringSelectMenuInteraction} interaction - The select menu interaction
+ * @param {import('discord.js').AnySelectMenuInteraction} interaction - The select menu interaction
  * @param {import('discord.js').Client} _client - The Discord client (unused but kept for consistency)
  */
 export async function routeSelectMenuInteraction(interaction, _client) {

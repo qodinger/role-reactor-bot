@@ -1,6 +1,9 @@
 /**
  * Discovers and formats bot commands for AI system prompts
+ *
+ * @typedef {import('discord.js').Client & { commands?: import('discord.js').Collection<string, any> }} ExtendedClient
  */
+
 export class CommandDiscoverer {
   /**
    * Format command option for display
@@ -95,7 +98,7 @@ export class CommandDiscoverer {
 
   /**
    * Get bot commands with full structure (subcommands, options) - completely dynamic
-   * @param {import('discord.js').Client} client - Discord client
+   * @param {ExtendedClient} client - Discord client
    * @returns {Array} Array of command objects with full structure
    */
   getBotCommands(client) {
@@ -339,8 +342,8 @@ export class CommandDiscoverer {
   getCommandDetails(
     commandNames,
     allCommands,
-    _requester = null,
-    _client = null,
+    requester = null,
+    client = null,
   ) {
     if (commandNames.length === 0) return "";
 
@@ -450,14 +453,14 @@ export class CommandDiscoverer {
           // When user wants to play, the BOT should challenge the requester
           // The bot executes the command, targeting the requester as the challenged user
           // This creates a challenge with buttons for the requester to respond
-          if (_requester) {
+          if (requester) {
             // Show ALL three choices in examples to demonstrate variety
             formatted += `\n  Examples (MUST vary - show all three choices):`;
-            formatted += `\n    /${cmd.name} user:<@${_requester.id}> choice:rock`;
-            formatted += `\n    /${cmd.name} user:<@${_requester.id}> choice:paper`;
-            formatted += `\n    /${cmd.name} user:<@${_requester.id}> choice:scissors`;
+            formatted += `\n    /${cmd.name} user:<@${requester.id}> choice:rock`;
+            formatted += `\n    /${cmd.name} user:<@${requester.id}> choice:paper`;
+            formatted += `\n    /${cmd.name} user:<@${requester.id}> choice:scissors`;
             formatted += `\n  **REQUIRED:** You MUST provide both "user" and "choice" options.`;
-            formatted += `\n  - When user wants to play, the BOT challenges the requester (<@${_requester.id}> or @${_requester.username})`;
+            formatted += `\n  - When user wants to play, the BOT challenges the requester (<@${requester.id}> or @${requester.username})`;
             formatted += `\n  - The "user" option should target the requester (the person who asked)`;
             formatted += `\n  - **CRITICAL FOR CHOICE:** You MUST randomly select between rock, paper, or scissors EACH TIME`;
             formatted += `\n  - **DO NOT** always pick "rock" - you MUST vary it randomly each request`;

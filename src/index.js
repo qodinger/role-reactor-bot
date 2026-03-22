@@ -13,6 +13,11 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { getStorageManager } from "./utils/storage/storageManager.js";
 import { getPerformanceMonitor } from "./utils/monitoring/performanceMonitor.js";
+
+/**
+ * @typedef {import('discord.js').Client & { commands?: Collection<string, any> }} ExtendedClient
+ */
+
 import { getLogger } from "./utils/logger.js";
 import { getScheduler as getRoleExpirationScheduler } from "./features/temporaryRoles/RoleExpirationScheduler.js";
 import { getHealthCheckRunner } from "./utils/monitoring/healthCheck.js";
@@ -100,6 +105,10 @@ async function validateEnvironment() {
   }
 }
 
+/**
+ * Creates the Discord client with optimized settings
+ * @returns {Promise<ExtendedClient>}
+ */
 async function createClient() {
   // Load config dynamically with fallbacks
   const configModule = await import("./config/config.js").catch(() => null);
@@ -182,41 +191,24 @@ async function createClient() {
     const logger = getLogger();
     // Use nullish coalescing and explicit fallbacks to ensure values are never undefined
     const method = rateLimitInfo?.method ?? "UNKNOWN";
-    const path =
-      rateLimitInfo?.path ??
-      rateLimitInfo?.route ??
-      rateLimitInfo?.url ??
-      "unknown";
-    const timeout =
-      rateLimitInfo?.timeout ??
-      rateLimitInfo?.resetAfter ??
-      rateLimitInfo?.retryAfter ??
-      0;
+    const route =
+      rateLimitInfo?.route ?? rateLimitInfo?.majorParameter ?? "unknown";
+    const retryAfter =
+      rateLimitInfo?.retryAfter ?? rateLimitInfo?.timeToReset ?? 0;
 
     logger.warn(
-      `🚫 Rate limited: ${method} ${path} - Retry after ${timeout}ms`,
+      `🚫 Rate limited: ${method} ${route} - Retry after ${retryAfter}ms`,
     );
 
     // Log rate limit statistics for monitoring
     logger.debug(`Rate limit details:`, {
       method: rateLimitInfo?.method ?? "UNKNOWN",
-      path:
-        rateLimitInfo?.path ??
-        rateLimitInfo?.route ??
-        rateLimitInfo?.url ??
-        "unknown",
-      timeout:
-        rateLimitInfo?.timeout ??
-        rateLimitInfo?.resetAfter ??
-        rateLimitInfo?.retryAfter ??
-        0,
+      route,
+      retryAfter,
       limit: rateLimitInfo?.limit ?? "unknown",
-      remaining: rateLimitInfo?.remaining ?? "unknown",
-      resetAfter:
-        rateLimitInfo?.resetAfter ??
-        rateLimitInfo?.timeout ??
-        rateLimitInfo?.retryAfter ??
-        0,
+      global: rateLimitInfo?.global ?? false,
+      hash: rateLimitInfo?.hash ?? "unknown",
+      majorParameter: rateLimitInfo?.majorParameter ?? "unknown",
     });
   });
 
@@ -249,6 +241,10 @@ async function createClient() {
   return client;
 }
 
+/**
+ * Performs a graceful shutdown of the bot
+ * @param {ExtendedClient} client
+ */
 async function gracefulShutdown(client) {
   const logger = getLogger();
   logger.info("🔄 Initiating graceful shutdown...");
@@ -319,6 +315,11 @@ async function gracefulShutdown(client) {
   }
 }
 
+/**
+ * Loads commands from the specified path
+ * @param {ExtendedClient} client
+ * @param {string} commandsPath
+ */
 async function loadCommands(client, commandsPath) {
   const logger = getLogger();
   const commandHandler = getCommandHandler();
@@ -477,6 +478,11 @@ async function loadCommands(client, commandsPath) {
   }
 }
 
+/**
+ * Loads events from the specified path
+ * @param {ExtendedClient} client
+ * @param {string} eventsPath
+ */
 async function loadEvents(client, eventsPath) {
   const logger = getLogger();
   const eventHandler = getEventHandler();
@@ -523,6 +529,7 @@ async function loadEvents(client, eventsPath) {
 
 async function main() {
   const logger = getLogger();
+  /** @type {ExtendedClient|null} */
   let client = null;
   try {
     // Wait for Docker environment to stabilize
@@ -655,6 +662,30 @@ async function main() {
 
     client.once("clientReady", async () => {
       logger.success(`✅ ${client.user.tag} v${getVersion()} is ready!`);
+
+      // Fetch application commands for mentionable commands </command:id>
+      try {
+        await client.application.commands.fetch();
+
+        // In Development, also fetch guild commands for all guilds
+        if (process.env.NODE_ENV !== "production") {
+          for (const guild of client.guilds.cache.values()) {
+            await guild.commands.fetch().catch(err => {
+              logger.debug(
+                `⚠️ Failed to fetch commands for guild ${guild.name}: ${err.message}`,
+              );
+            });
+          }
+          logger.debug("✅ All guild commands fetched for clickable mentions");
+        }
+
+        logger.debug("✅ Application commands fetched for clickable mentions");
+      } catch (error) {
+        logger.warn(
+          "⚠️ Failed to fetch application commands for clickable mentions:",
+          error.message,
+        );
+      }
 
       // Start webhook server for crypto payment integration
       try {

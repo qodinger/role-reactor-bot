@@ -3,6 +3,11 @@ import { getLogger } from "../logger.js";
 import { EMOJIS } from "../../config/theme.js";
 
 /**
+ * @typedef {import('discord.js').Client & { commands?: import('discord.js').Collection<string, any> }} ExtendedClient
+ */
+
+
+/**
  * Centralized interaction manager for handling all Discord interactions
  * Provides a clean, organized way to route and handle different interaction types
  */
@@ -34,7 +39,7 @@ export class InteractionManager {
   /**
    * Main entry point for handling interactions
    * @param {import('discord.js').Interaction} interaction - The Discord interaction
-   * @param {import('discord.js').Client} client - The Discord client
+   * @param {ExtendedClient} client - The Discord client
    */
   async handleInteraction(interaction, client) {
     const interactionId = `${interaction.id}_${interaction.type}`;
@@ -56,8 +61,17 @@ export class InteractionManager {
       const created =
         interaction.createdTimestamp || interaction.createdAt?.getTime() || now;
       const age = now - created;
+
+      // Safely determine interaction name for logging
+      let interactionIdentifier = `TYPE_${interaction.type}`;
+      if (interaction.isCommand() || interaction.isAutocomplete()) {
+        interactionIdentifier = interaction.commandName;
+      } else if (interaction.isMessageComponent() || interaction.isModalSubmit()) {
+        interactionIdentifier = interaction.customId;
+      }
+
       this.logger.debug(
-        `[InteractionCreate] Received interaction: ${interaction.commandName || interaction.type} | Age: ${age}ms`,
+        `[InteractionCreate] Received interaction: ${interactionIdentifier} | Age: ${age}ms`,
       );
 
       // Validate inputs
@@ -87,7 +101,7 @@ export class InteractionManager {
    */
   async ensureInteractionResponse(interaction, _error = null) {
     // Skip if already responded to
-    if (interaction.replied || interaction.deferred) {
+    if (interaction.isRepliable() && (interaction.replied || interaction.deferred)) {
       return;
     }
 
@@ -137,7 +151,7 @@ export class InteractionManager {
   /**
    * Route interaction to appropriate handler based on type
    * @param {import('discord.js').Interaction} interaction - The Discord interaction
-   * @param {import('discord.js').Client} client - The Discord client
+   * @param {ExtendedClient} client - The Discord client
    */
   async routeInteraction(interaction, client) {
     switch (interaction.type) {
@@ -166,15 +180,18 @@ export class InteractionManager {
         break;
       default:
         // Unknown interaction type, ignore
-        this.logger.debug(`Unknown interaction type: ${interaction.type}`);
+        // Cast to any to avoid "never" type error in exhaustive switches
+        this.logger.debug(
+          `Unknown interaction type: ${/** @type {any} */ (interaction).type}`,
+        );
         break;
     }
   }
 
   /**
    * Handle command interactions
-   * @param {import('discord.js').CommandInteraction} interaction - The command interaction
-   * @param {import('discord.js').Client} client - The Discord client
+   * @param {import('discord.js').ChatInputCommandInteraction | import('discord.js').MessageContextMenuCommandInteraction | import('discord.js').UserContextMenuCommandInteraction | import('discord.js').PrimaryEntryPointCommandInteraction} interaction - The command interaction
+   * @param {ExtendedClient} client - The Discord client
    */
   async handleCommandInteraction(interaction, client) {
     try {
@@ -210,7 +227,7 @@ export class InteractionManager {
   /**
    * Handle autocomplete interactions
    * @param {import('discord.js').AutocompleteInteraction} interaction - The autocomplete interaction
-   * @param {import('discord.js').Client} client - The Discord client
+   * @param {ExtendedClient} client - The Discord client
    */
   async handleAutocompleteInteraction(interaction, client) {
     const command = client.commands.get(interaction.commandName);
@@ -232,8 +249,8 @@ export class InteractionManager {
 
   /**
    * Handle select menu interactions
-   * @param {import('discord.js').StringSelectMenuInteraction} interaction - The select menu interaction
-   * @param {import('discord.js').Client} client - The Discord client
+   * @param {import('discord.js').AnySelectMenuInteraction} interaction - The select menu interaction
+   * @param {ExtendedClient} client - The Discord client
    */
   async handleSelectMenuInteraction(interaction, client) {
     try {
@@ -262,7 +279,7 @@ export class InteractionManager {
   /**
    * Handle button interactions
    * @param {import('discord.js').ButtonInteraction} interaction - The button interaction
-   * @param {import('discord.js').Client} client - The Discord client
+   * @param {ExtendedClient} client - The Discord client
    */
   async handleButtonInteraction(interaction, client) {
     try {
@@ -292,7 +309,7 @@ export class InteractionManager {
   /**
    * Handle modal interactions
    * @param {import('discord.js').ModalSubmitInteraction} interaction - The modal interaction
-   * @param {import('discord.js').Client} client - The Discord client
+   * @param {ExtendedClient} client - The Discord client
    */
   async handleModalInteraction(interaction, client) {
     try {

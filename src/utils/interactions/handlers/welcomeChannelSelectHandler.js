@@ -6,22 +6,23 @@ import { getDatabaseManager } from "../../storage/databaseManager.js";
 
 /**
  * Handle welcome channel select interaction
- * @param {import('discord.js').StringSelectMenuInteraction} interaction
+ * @param {import('discord.js').AnySelectMenuInteraction} interaction - The select menu interaction
  */
 export async function handleWelcomeChannelSelect(interaction) {
   const logger = getLogger();
 
   try {
-    if (!hasAdminPermissions(interaction.member)) {
+    if (
+      !hasAdminPermissions(
+        /** @type {import('discord.js').GuildMember} */ (interaction.member),
+      )
+    ) {
       return interaction.reply({
-        embeds: [
-          errorEmbed({
-            title: "Permission Denied",
-            description:
-              "You need administrator permissions to configure the welcome system.",
-          }),
-        ],
-        flags: MessageFlags.Ephemeral,
+        ...errorEmbed({
+          title: "Permission Denied",
+          description:
+            "You need administrator permissions to configure the welcome system.",
+        }),
       });
     }
 
@@ -31,13 +32,10 @@ export async function handleWelcomeChannelSelect(interaction) {
 
     if (!selectedChannel) {
       return interaction.reply({
-        embeds: [
-          errorEmbed({
-            title: "Channel Not Found",
-            description: "The selected channel could not be found.",
-          }),
-        ],
-        flags: MessageFlags.Ephemeral,
+        ...errorEmbed({
+          title: "Channel Not Found",
+          description: "The selected channel could not be found.",
+        }),
       });
     }
 
@@ -48,15 +46,12 @@ export async function handleWelcomeChannelSelect(interaction) {
         .has("SendMessages")
     ) {
       return interaction.reply({
-        embeds: [
-          errorEmbed({
-            title: "Permission Error",
-            description: `I don't have permission to send messages in ${selectedChannel.toString()}`,
-            solution:
-              "Please grant me Send Messages permission in the selected channel.",
-          }),
-        ],
-        flags: MessageFlags.Ephemeral,
+        ...errorEmbed({
+          title: "Permission Error",
+          description: `I don't have permission to send messages in ${selectedChannel.toString()}`,
+          solution:
+            "Please grant me Send Messages permission in the selected channel.",
+        }),
       });
     }
 
@@ -91,7 +86,7 @@ export async function handleWelcomeChannelSelect(interaction) {
 
     await interaction.reply({
       embeds: [embed],
-      components,
+      components: components.map(c => c.toJSON()),
       flags: MessageFlags.Ephemeral,
     });
 
@@ -104,14 +99,11 @@ export async function handleWelcomeChannelSelect(interaction) {
       error,
     );
     await interaction.reply({
-      embeds: [
-        errorEmbed({
-          title: "Selection Error",
-          description:
-            "An error occurred while processing the channel selection.",
-        }),
-      ],
-      flags: [MessageFlags.Ephemeral],
+      ...errorEmbed({
+        title: "Selection Error",
+        description:
+          "An error occurred while processing the channel selection.",
+      }),
     });
   }
 }
