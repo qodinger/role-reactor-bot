@@ -17,7 +17,6 @@ import {
   handleCoreError,
   logOperationDuration,
   createPerformanceContext,
-  getPremiumManager,
 } from "./utils.js";
 import {
   validateCoreCommandInputs,
@@ -167,7 +166,7 @@ async function handleBalance(interaction) {
 
     await interaction.editReply({
       embeds: [balanceEmbed],
-      components: [/** @type {any} */ (buttons)],
+      components: [/** @type {any} */(buttons)],
     });
 
     logOperationDuration(

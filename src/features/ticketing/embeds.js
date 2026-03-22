@@ -1,5 +1,5 @@
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder } from "discord.js";
-import { PRO_ENGINE } from "./config.js";
+
 import {
   THEME,
   EMOJIS,

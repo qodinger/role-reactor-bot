@@ -1,5 +1,5 @@
 import { EmbedBuilder } from "discord.js";
-import { THEME, UI_COMPONENTS, EMOJIS } from "../../../config/theme.js";
+import { THEME, UI_COMPONENTS } from "../../../config/theme.js";
 import { CORE_STATUS } from "../../../features/premium/config.js";
 import { formatNumber, getChannelCounts, getMemberCounts } from "./utils.js";
 

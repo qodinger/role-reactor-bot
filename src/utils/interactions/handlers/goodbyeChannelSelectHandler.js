@@ -1,4 +1,4 @@
-import { MessageFlags } from "discord.js";
+
 import { getLogger } from "../../logger.js";
 import { getDatabaseManager } from "../../storage/databaseManager.js";
 import { errorEmbed } from "../../discord/responseMessages.js";
@@ -13,7 +13,11 @@ export async function handleGoodbyeChannelSelect(interaction) {
 
   try {
     // Check permissions
-    if (!hasAdminPermissions(/** @type {import('discord.js').GuildMember} */ (interaction.member))) {
+    if (
+      !hasAdminPermissions(
+        /** @type {import('discord.js').GuildMember} */ (interaction.member),
+      )
+    ) {
       return interaction.reply(
         errorEmbed({
           title: "Permission Denied",

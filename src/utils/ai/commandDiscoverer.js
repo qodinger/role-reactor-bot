@@ -336,14 +336,14 @@ export class CommandDiscoverer {
    * @param {Array} commandNames - Command names to get details for
    * @param {Array} allCommands - All available commands
    * @param {import('discord.js').User} requester - User who asked the question (optional)
-   * @param {import('discord.js').Client} client - Discord client (optional, for bot info)
+   * @param {import('discord.js').Client} _client - Discord client (optional, for bot info)
    * @returns {string} Formatted command details
    */
   getCommandDetails(
     commandNames,
     allCommands,
     requester = null,
-    client = null,
+    _client = null,
   ) {
     if (commandNames.length === 0) return "";
 
