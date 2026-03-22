@@ -24,6 +24,10 @@ import {
   getTemporaryRoles,
   getUserTemporaryRoles,
 } from "../../../utils/discord/tempRoles.js";
+import {
+  acquireBulkSlot,
+  BulkQueueTimeoutError,
+} from "../../../utils/bulkLimiter.js";
 
 /**
  * Handle assign subcommand
@@ -122,84 +126,112 @@ export async function handleAssign(interaction, client, deferred) {
         : interaction.reply({ ...response, flags: MessageFlags.Ephemeral });
     }
 
-    // 3. Process user list
-    const userProcessing = await processUserList(usersString, interaction);
-    if (!userProcessing.valid) {
-      const response = errorEmbed({
-        title: "Invalid Users",
-        description: userProcessing.error,
-        solution: userProcessing.solution,
-      });
-      return deferred
-        ? interaction.editReply(response)
-        : interaction.reply({ ...response, flags: MessageFlags.Ephemeral });
-    }
-
-    const validUsers = userProcessing.validUsers;
-    const userIds = validUsers.map(u => u.id);
-
-    // VPS Protection: Bulk Limit
+    // VPS Protection: Calculate bulk limit early so the parser respects it
     const maxBulk = isPro
       ? PRO_TIER.BULK_ACTION_MAX_MEMBERS
       : FREE_TIER.BULK_ACTION_MAX_MEMBERS;
 
-    if (userIds.length > maxBulk) {
-      const response = errorEmbed({
-        title: "Too Many Users",
-        description: `You are trying to assign roles to **${userIds.length} users**, but the limit is **${maxBulk} users** per action.`,
-        solution: isPro
-          ? "Try splitting the assignment into smaller groups."
-          : "Upgrade to **Pro Engine ✨** for 10x higher bulk capacity (250 users)! Enable it on our **[website](https://rolereactor.app)** using Cores. You can purchase Cores on the site or earn them for free with /vote.",
-      });
-
-      return deferred
-        ? interaction.editReply(response)
-        : interaction.reply({ ...response, flags: MessageFlags.Ephemeral });
+    // 3. Acquire a global bulk operation slot (limits concurrent heavy operations)
+    let release;
+    try {
+      release = await acquireBulkSlot(interaction.guild.id, { isPro });
+    } catch (err) {
+      if (err instanceof BulkQueueTimeoutError) {
+        const response = errorEmbed({
+          title: "Server Busy",
+          description:
+            "The bot is currently processing bulk operations for other servers. Please try again in a moment.",
+          solution:
+            "This usually clears within 30 seconds. Try running the command again shortly.",
+        });
+        return deferred
+          ? interaction.editReply(response)
+          : interaction.reply({ ...response, flags: MessageFlags.Ephemeral });
+      }
+      throw err;
     }
 
-    // 4. Calculate expiration date
-    const { parseDuration } = await import(
-      "../../../utils/discord/tempRoles/utils.js"
-    );
-    const durationMs = parseDuration(duration);
-    const expiresAt = new Date(Date.now() + durationMs);
+    try {
+      // 4. Process user list (pass Pro-aware limit to avoid silent truncation)
+      const userProcessing = await processUserList(usersString, interaction, {
+        maxUsers: maxBulk,
+      });
+      if (!userProcessing.valid) {
+        const response = errorEmbed({
+          title: "Invalid Users",
+          description: userProcessing.error,
+          solution: userProcessing.solution,
+        });
+        return deferred
+          ? interaction.editReply(response)
+          : interaction.reply({ ...response, flags: MessageFlags.Ephemeral });
+      }
 
-    // 5. Assign temporary roles (using bulk handler)
-    const result = await addTemporaryRolesForMultipleUsers(
-      interaction.guild.id,
-      userIds,
-      role.id,
-      expiresAt,
-      client,
-      notify,
-      notifyExpiry,
-    );
+      const validUsers = userProcessing.validUsers;
+      const userIds = validUsers.map(u => u.id);
 
-    // 6. Log the action
-    const executionTime = Date.now() - startTime;
-    logTempRoleAssignment(
-      interaction.user,
-      role,
-      validUsers,
-      duration,
-      reason,
-      result.results,
-      executionTime,
-    );
+      // Safety net: double-check bulk limit (parser should already enforce this)
+      if (userIds.length > maxBulk) {
+        const response = errorEmbed({
+          title: "Too Many Users",
+          description: `You are trying to assign roles to **${userIds.length} users**, but the limit is **${maxBulk} users** per action.`,
+          solution: isPro
+            ? "Try splitting the assignment into smaller groups."
+            : "Upgrade to **Pro Engine ✨** for 10x higher bulk capacity (250 users)! Enable it on our **[website](https://rolereactor.app)** using Cores. You can purchase Cores on the site or earn them for free with /vote.",
+        });
 
-    // 7. Create and send response
-    const embed = createTempRoleEmbed(
-      role,
-      validUsers,
-      duration,
-      reason,
-      result.results,
-      client,
-    );
+        return deferred
+          ? interaction.editReply(response)
+          : interaction.reply({ ...response, flags: MessageFlags.Ephemeral });
+      }
 
-    return deferred
-      ? interaction.editReply({ embeds: [embed] })
-      : interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+      // 5. Calculate expiration date
+      const { parseDuration } = await import(
+        "../../../utils/discord/tempRoles/utils.js"
+      );
+      const durationMs = parseDuration(duration);
+      const expiresAt = new Date(Date.now() + durationMs);
+
+      // 6. Assign temporary roles (using bulk handler)
+      const result = await addTemporaryRolesForMultipleUsers(
+        interaction.guild.id,
+        userIds,
+        role.id,
+        expiresAt,
+        client,
+        notify,
+        notifyExpiry,
+      );
+
+      // 7. Log the action
+      const executionTime = Date.now() - startTime;
+      logTempRoleAssignment(
+        interaction.user,
+        role,
+        validUsers,
+        duration,
+        reason,
+        result.results,
+        executionTime,
+      );
+
+      // 8. Create and send response
+      const embed = createTempRoleEmbed(
+        role,
+        validUsers,
+        duration,
+        reason,
+        result.results,
+        client,
+      );
+
+      return deferred
+        ? interaction.editReply({ embeds: [embed] })
+        : interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+    } finally {
+      // Always release the bulk slot
+      release();
+    }
   } catch (error) {
     logger.error("Error in handleAssign:", error);
     const response = errorEmbed({

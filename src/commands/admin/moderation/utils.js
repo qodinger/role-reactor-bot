@@ -328,9 +328,11 @@ export async function removeWarning(guildId, userId, caseId) {
  * @param {string} usersString - String containing user mentions or IDs
  * @param {import('discord.js').Guild} guild - The guild to fetch members from
  * @param {import('discord.js').Client} client - Discord client
+ * @param {Object} [options] - Processing options
+ * @param {number} [options.maxUsers=15] - Maximum users to process (stops fetching early)
  * @returns {Promise<Object>} {valid: boolean, validUsers?: Array<{user, member}>, error?: string, solution?: string, invalidUsers?: Array}
  */
-export async function parseMultipleUsers(usersString, guild, client) {
+export async function parseMultipleUsers(usersString, guild, client, options = {}) {
   if (!usersString || !guild || !client) {
     return {
       valid: false,
@@ -339,6 +341,8 @@ export async function parseMultipleUsers(usersString, guild, client) {
         "Provide user IDs or mentions separated by commas, semicolons, or spaces.",
     };
   }
+
+  const maxUsers = options.maxUsers || 15;
 
   // Split by comma, semicolon, or spaces, and also handle mentions without spaces
   let userList = usersString
@@ -366,11 +370,28 @@ export async function parseMultipleUsers(usersString, guild, client) {
 
   userList = expandedUserList;
 
+  // Early exit: if the raw input list exceeds the limit, warn before fetching
+  if (userList.length > maxUsers * 2) {
+    return {
+      valid: false,
+      error: `Too many users provided (${userList.length} entries). The maximum is **${maxUsers} users** per moderation action.`,
+      solution: `Please split the operation into smaller batches of ${maxUsers} or fewer.`,
+    };
+  }
+
   const validUsers = [];
   const invalidUsers = [];
   const seenUserIds = new Set();
 
   for (const userStr of userList) {
+    // Stop fetching once we hit the limit
+    if (validUsers.length >= maxUsers) {
+      logger.warn(
+        `parseMultipleUsers: Hit max limit of ${maxUsers}, skipping remaining ${userList.length - userList.indexOf(userStr)} entries`,
+      );
+      break;
+    }
+
     let userId = null;
 
     // Check if it's a mention (<@123456789> or <@!123456789>)

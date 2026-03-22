@@ -186,9 +186,12 @@ export function validateRole(role, guild) {
 
 /**
  * Process user list (reuse from temp-roles)
+ * @param {string} usersString
+ * @param {import('discord.js').CommandInteraction} interaction
+ * @param {Object} [options] - Processing options (passed to base implementation)
  */
-export async function processUserList(usersString, interaction) {
-  return baseProcessUserList(usersString, interaction);
+export async function processUserList(usersString, interaction, options = {}) {
+  return baseProcessUserList(usersString, interaction, options);
 }
 
 /**

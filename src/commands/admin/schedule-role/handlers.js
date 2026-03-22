@@ -25,6 +25,10 @@ import {
 import { getDatabaseManager } from "../../../utils/storage/databaseManager.js";
 import { FREE_TIER, PRO_TIER } from "../../../features/premium/config.js";
 import { getPremiumManager } from "../../../features/premium/PremiumManager.js";
+import {
+  acquireBulkSlot,
+  BulkQueueTimeoutError,
+} from "../../../utils/bulkLimiter.js";
 
 /**
  * Handle the create schedule logic
@@ -150,11 +154,40 @@ export async function handleCreate(interaction, client, deferred = false) {
 
     let userIds = [];
 
+    // Acquire a global bulk operation slot (limits concurrent heavy operations)
+    let release;
+    try {
+      release = await acquireBulkSlot(interaction.guild.id, { isPro });
+    } catch (err) {
+      if (err instanceof BulkQueueTimeoutError) {
+        const response = errorEmbed({
+          title: "Server Busy",
+          description:
+            "The bot is currently processing bulk operations for other servers. Please try again in a moment.",
+          solution:
+            "This usually clears within 30 seconds. Try running the command again shortly.",
+        });
+        if (deferred) {
+          return interaction.editReply(response);
+        } else {
+          return interaction.reply(response);
+        }
+      }
+      throw err;
+    }
+
+    try {
+
     // Handle mixed targeting (users + roles)
     if (isMixed && targetRoles.length > 0) {
       try {
-        // First, get users from user mentions
-        const userValidation = await processUserList(usersString, interaction);
+        // First, get users from user mentions (pass Pro-aware limit)
+        const maxBulk = isPro
+          ? PRO_TIER.BULK_ACTION_MAX_MEMBERS
+          : FREE_TIER.BULK_ACTION_MAX_MEMBERS;
+        const userValidation = await processUserList(usersString, interaction, {
+          maxUsers: maxBulk,
+        });
         const userMentionIds = userValidation.valid
           ? userValidation.validUsers.map(user => user.id)
           : [];
@@ -508,7 +541,12 @@ export async function handleCreate(interaction, client, deferred = false) {
       }
     } else if (targeting.type === "users") {
       // Process specific user list (no roles, only user mentions)
-      const userValidation = await processUserList(usersString, interaction);
+      const MAX_USERS = isPro
+        ? PRO_TIER.BULK_ACTION_MAX_MEMBERS
+        : FREE_TIER.BULK_ACTION_MAX_MEMBERS;
+      const userValidation = await processUserList(usersString, interaction, {
+        maxUsers: MAX_USERS,
+      });
       if (!userValidation.valid) {
         const response = errorEmbed({
           title: "Invalid Users",
@@ -527,11 +565,7 @@ export async function handleCreate(interaction, client, deferred = false) {
 
       const { validUsers } = userValidation;
 
-      // Check maximum user limit for specific users
-      const MAX_USERS = isPro
-        ? PRO_TIER.BULK_ACTION_MAX_MEMBERS
-        : FREE_TIER.BULK_ACTION_MAX_MEMBERS;
-
+      // Safety net: double-check user limit (parser should already enforce this)
       if (validUsers.length > MAX_USERS) {
         const response = errorEmbed({
           title: "Too Many Users",
@@ -760,6 +794,10 @@ export async function handleCreate(interaction, client, deferred = false) {
     logger.info(
       `Scheduled role ${action} created by ${interaction.user.tag} in ${interaction.guild.name}: Schedule ID ${scheduleId}, Users: ${userIds.length}${isAllMembers ? " (all members)" : ""}`,
     );
+    } finally {
+      // Always release the bulk slot
+      release();
+    }
   } catch (error) {
     logger.error("Error in handleCreate:", error);
 

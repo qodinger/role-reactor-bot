@@ -101,9 +101,11 @@ export function validateDuration(durationStr) {
  * Process user list string into array of valid users
  * @param {string} usersString
  * @param {import('discord.js').CommandInteraction} interaction
- * @returns {Promise<Object>} {valid: boolean, validUsers?: Array, error?: string, solution?: string}
+ * @param {Object} [options] - Processing options
+ * @param {number} [options.maxUsers] - Maximum users to process (defaults to FREE_TIER.BULK_ACTION_MAX_MEMBERS)
+ * @returns {Promise<Object>} {valid: boolean, validUsers?: Array, error?: string, solution?: string, truncated?: boolean}
  */
-export async function processUserList(usersString, interaction) {
+export async function processUserList(usersString, interaction, options = {}) {
   if (!usersString) {
     return {
       valid: false,
@@ -124,7 +126,12 @@ export async function processUserList(usersString, interaction) {
 
   const validUsers = new Map(); // Use Map to avoid duplicates by ID
   const invalidItems = [];
-  const MAX_USERS = 20; // Increased limit for admin convenience but kept safe
+
+  // Use caller-provided limit (Pro-aware) or fall back to free tier default
+  const { FREE_TIER: freeTier } = await import(
+    "../../../features/premium/config.js"
+  );
+  const maxUsers = options.maxUsers || freeTier.BULK_ACTION_MAX_MEMBERS;
 
   // Check for @everyone or everyone
   const hasEveryone = userList.some(item =>
@@ -135,20 +142,18 @@ export async function processUserList(usersString, interaction) {
     logger.info("Processing @everyone for temp role");
     try {
       const members = await guild.members.fetch();
-      // Filter out bots and people who already have the level of access if possible,
-      // but here we just get all human members up to the limit
       const humanMembers = members.filter(m => !m.user.bot);
 
       let count = 0;
       for (const [, member] of humanMembers) {
-        if (count >= MAX_USERS) break;
+        if (count >= maxUsers) break;
         validUsers.set(member.id, member.user);
         count++;
       }
 
-      if (humanMembers.size > MAX_USERS) {
+      if (humanMembers.size > maxUsers) {
         logger.warn(
-          `@everyone matched ${humanMembers.size} users, limited to ${MAX_USERS}`,
+          `@everyone matched ${humanMembers.size} users, limited to ${maxUsers}`,
         );
       }
     } catch (error) {
@@ -162,7 +167,7 @@ export async function processUserList(usersString, interaction) {
   } else {
     // Process individual items (mentions, IDs, role mentions)
     for (const item of userList) {
-      if (validUsers.size >= MAX_USERS) break;
+      if (validUsers.size >= maxUsers) break;
 
       // 1. Role Mention (<@&ID>)
       const roleMentionMatch = item.match(/<@&(\d+)>/);
@@ -176,7 +181,7 @@ export async function processUserList(usersString, interaction) {
             const membersWithRole = role.members.filter(m => !m.user.bot);
 
             for (const [, member] of membersWithRole) {
-              if (validUsers.size >= MAX_USERS) break;
+              if (validUsers.size >= maxUsers) break;
               validUsers.set(member.id, member.user);
             }
           } else {
@@ -232,6 +237,7 @@ export async function processUserList(usersString, interaction) {
     valid: true,
     validUsers: Array.from(validUsers.values()),
     invalidUsers: invalidItems.length > 0 ? invalidItems : undefined,
+    truncated: validUsers.size >= maxUsers,
   };
 }
 
