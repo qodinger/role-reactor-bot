@@ -19,7 +19,7 @@ import {
   createLevelUpComponents,
   createChannelSelectMenu,
 } from "./components.js";
-import { EMOJIS } from "../../../config/theme.js";
+import { EMOJIS, THEME } from "../../../config/theme.js";
 import { updateXpSettings } from "./utils.js";
 
 /**
@@ -875,7 +875,7 @@ export async function handleRewardsCommand(interaction, subcommand, _client) {
                 new EmbedBuilder()
                   .setTitle(`${EMOJIS.lock || "🔒"} Premium Required`)
                   .setDescription(result.message)
-                  .setColor(0xffcc00)
+                  .setColor(THEME.WARNING)
                   .setFooter({
                     text: "Enable Pro Engine from the dashboard to unlock unlimited rewards.",
                   }),
@@ -910,7 +910,7 @@ export async function handleRewardsCommand(interaction, subcommand, _client) {
               inline: true,
             },
           )
-          .setColor(0x00ff88)
+          .setColor(THEME.SUCCESS)
           .setTimestamp();
 
         await interaction.editReply({ embeds: [embed] });
@@ -951,7 +951,7 @@ export async function handleRewardsCommand(interaction, subcommand, _client) {
               inline: true,
             },
           )
-          .setColor(0xff4444)
+          .setColor(THEME.ERROR)
           .setTimestamp();
 
         await interaction.editReply({ embeds: [embed] });
@@ -971,7 +971,7 @@ export async function handleRewardsCommand(interaction, subcommand, _client) {
                 .setDescription(
                   "No level rewards configured yet.\n\nUse `/xp rewards add` to get started!",
                 )
-                .setColor(0x555555)
+                .setColor(THEME.DISABLED)
                 .setFooter({
                   text: `Mode: ${mode === "stack" ? "Stack (keep all roles)" : "Replace (highest only)"} • ${isPro ? "Pro Engine Active" : `Free tier: ${FREE_TIER.LEVEL_REWARDS_MAX} rewards max`}`,
                 }),
@@ -1012,7 +1012,7 @@ export async function handleRewardsCommand(interaction, subcommand, _client) {
               inline: true,
             },
           )
-          .setColor(0x7c3aed)
+          .setColor(THEME.PRIMARY)
           .setTimestamp()
           .setFooter({
             text: isPro
@@ -1039,7 +1039,7 @@ export async function handleRewardsCommand(interaction, subcommand, _client) {
                 new EmbedBuilder()
                   .setTitle(`${EMOJIS.lock || "🔒"} Premium Required`)
                   .setDescription(result.message)
-                  .setColor(0xffcc00)
+                  .setColor(THEME.WARNING)
                   .setFooter({
                     text: "Enable Pro Engine from the dashboard to use Replace mode.",
                   }),
@@ -1067,7 +1067,7 @@ export async function handleRewardsCommand(interaction, subcommand, _client) {
             name: "How It Works",
             value: modeDesc,
           })
-          .setColor(0x7c3aed)
+          .setColor(THEME.PRIMARY)
           .setTimestamp();
 
         await interaction.editReply({ embeds: [embed] });

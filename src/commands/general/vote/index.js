@@ -14,6 +14,7 @@ import {
 import { getVoteStatus } from "../../../webhooks/topgg.js";
 import config from "../../../config/config.js";
 import { emojiConfig } from "../../../config/emojis.js";
+import { THEME } from "../../../config/theme.js";
 
 /**
  * Vote command definition
@@ -88,7 +89,7 @@ export const command = {
 
       const embed = new EmbedBuilder()
         .setTitle("🗳️ Vote for Role Reactor!")
-        .setColor(0xff6b6b)
+        .setColor(THEME.PRIMARY)
         .setDescription(
           `Support the bot by voting on top.gg! Every vote helps us grow and directly rewards you.`,
         )

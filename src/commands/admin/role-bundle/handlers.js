@@ -4,6 +4,7 @@
  */
 
 import { EmbedBuilder, PermissionsBitField, MessageFlags } from "discord.js";
+import { THEME } from "../../../config/theme.js";
 import roleBundleManager from "../../../features/rolebundles/RoleBundleManager.js";
 
 import { getMentionableCommand } from "../../../utils/commandUtils.js";
@@ -85,7 +86,7 @@ export async function handleCreate(interaction) {
       embeds: [
         createSuccessEmbed(
           "Bundle Created!",
-          `Role bundle **${name}** has been created with **${roles.length}** role(s):\n\n${roles.map(r => `• ${r.roleName}`).join("\n")}`,
+          `Role bundle **${name}** has been created with **${roles.length}** role(s):\n\n${roles.map(r => `• <@&${r.roleId}>`).join("\n")}`,
         ),
       ],
     });
@@ -200,7 +201,7 @@ export async function handleList(interaction) {
 
     const embed = new EmbedBuilder()
       .setTitle("📦 Role Bundles")
-      .setColor(0x5865f2)
+      .setColor(THEME.PRIMARY)
       .setDescription(
         `There are **${bundles.length}** role bundle(s) in this server.`,
       );
@@ -280,7 +281,7 @@ function createErrorEmbed(title, description) {
   return new EmbedBuilder()
     .setTitle("❌ " + title)
     .setDescription(description)
-    .setColor(0xff0000)
+    .setColor(THEME.ERROR)
     .setTimestamp();
 }
 
@@ -294,7 +295,7 @@ function createSuccessEmbed(title, description) {
   return new EmbedBuilder()
     .setTitle("✅ " + title)
     .setDescription(description)
-    .setColor(0x00ff00)
+    .setColor(THEME.SUCCESS)
     .setTimestamp();
 }
 
@@ -308,6 +309,6 @@ function createInfoEmbed(title, description) {
   return new EmbedBuilder()
     .setTitle("ℹ️ " + title)
     .setDescription(description)
-    .setColor(0x3498db)
+    .setColor(THEME.INFO)
     .setTimestamp();
 }

@@ -24,7 +24,6 @@ import {
   validateInteractionState,
   validateCommandPermissions,
 } from "./validation.js";
-import { getVoteStatus } from "../../../webhooks/topgg.js";
 
 const logger = getLogger();
 
@@ -133,34 +132,23 @@ async function handleBalance(interaction) {
       return;
     }
 
-    // Get all required data in parallel to save time
-    const [userData, voteStatus] = await Promise.all([
-      getUserData(perfContext.userId),
-      getVoteStatus(perfContext.userId),
-    ]);
+    // Get required data
+    const userData = await getUserData(perfContext.userId);
 
     // Create and send balance embed with enhanced data
     const balanceEmbed = createBalanceEmbed(
       userData,
       perfContext.username,
       interaction.user.displayAvatarURL(),
-      {
-        voteStatus,
-        client: interaction.client,
-      },
+      { client: interaction.client },
     );
 
     // Add quick action buttons
     const buttons = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
-        .setLabel("Vote & Earn")
+        .setLabel("Get Cores")
         .setStyle(ButtonStyle.Link)
-        .setURL(config.externalLinks.vote)
-        .setEmoji("🗳️"),
-      new ButtonBuilder()
-        .setLabel("Upgrade Center")
-        .setStyle(ButtonStyle.Link)
-        .setURL(config.externalLinks.website + "/upgrade")
+        .setURL(config.externalLinks.website)
         .setEmoji("🚀"),
     );
 

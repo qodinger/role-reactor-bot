@@ -13,7 +13,7 @@ import { getTicketTranscript } from "../../../../features/ticketing/TicketTransc
 import { createInfoEmbed } from "../../../../features/ticketing/embeds.js";
 
 import { getMentionableCommand } from "../../../../utils/commandUtils.js";
-import { EMOJIS } from "../../../../config/theme.js";
+import { EMOJIS, THEME } from "../../../../config/theme.js";
 import { CORE_STATUS } from "../../../../features/premium/config.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -67,7 +67,7 @@ export async function handleSettings(interaction) {
     const embed = new EmbedBuilder()
       .setTitle("Ticketing System")
       .setDescription("Configure support tickets for your server")
-      .setColor(0x5865f2)
+      .setColor(THEME.PRIMARY)
       .setTimestamp()
       .setFooter({
         text: "Role Reactor • Ticketing System",

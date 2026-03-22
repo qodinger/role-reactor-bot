@@ -745,6 +745,16 @@ async function main() {
         logger.error("❌ Failed to initialize Giveaway Manager:", error);
       }
 
+      // Initialize Role Bundle Manager
+      try {
+        const roleBundleManager = (
+          await import("./features/rolebundles/RoleBundleManager.js")
+        ).default;
+        await roleBundleManager.init();
+      } catch (error) {
+        logger.error("❌ Failed to initialize Role Bundle Manager:", error);
+      }
+
       // Start Premium Feature scheduler (handles Cores consumption for features)
       try {
         const { getPremiumFeatureScheduler } = await import(

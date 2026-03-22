@@ -1,6 +1,5 @@
 import { EMOJIS, THEME } from "../../../config/theme.js";
 import { emojiConfig } from "../../../config/emojis.js";
-
 // Get custom emojis object
 const { customEmojis } = emojiConfig;
 
@@ -21,42 +20,24 @@ export function createBalanceEmbed(
   avatarURL,
   options = {},
 ) {
-  const { voteStatus = null, client = null } = options;
+  const { client = null } = options;
 
   const totalCredits = userData.credits || 0;
-  const isPro = totalCredits > 0;
 
   const fields = [
     {
-      name: `Total Balance`,
-      value: `${customEmojis.core} **${totalCredits.toLocaleString()}**`,
+      name: `Core Balance`,
+      value: `${customEmojis.core} **${Number(totalCredits.toFixed(2)).toLocaleString()}**`,
       inline: true,
     },
   ];
 
-  // Add vote stats if available
-  if (voteStatus) {
-    let nextVoteText = "✅ **Ready!**";
-    if (!voteStatus.canVote && voteStatus.nextVote) {
-      nextVoteText = `<t:${Math.floor(voteStatus.nextVote.getTime() / 1000)}:R>`;
-    }
-
-    fields.push({
-      name: "Vote Stats",
-      value: `Total: **${voteStatus.totalVotes || 0}**\nNext: ${nextVoteText}`,
-      inline: false,
-    });
-  }
-
   return {
-    color: isPro ? THEME.PRIMARY : 0x808080,
+    color: THEME.PRIMARY,
     author: {
       name: `${username}'s Core Profile`,
       icon_url: avatarURL,
     },
-    description: isPro
-      ? "You have active Core Energy! You can use it for AI generations and other premium features."
-      : "You currently have no Core Energy. Vote or visit our website to get some!",
     fields,
     footer: {
       text: "Core Energy • Your Universal Currency",
