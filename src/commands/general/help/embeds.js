@@ -3,6 +3,7 @@ import { THEME_COLOR, UI_COMPONENTS } from "../../../config/theme.js";
 import { getDynamicHelpData } from "./data.js";
 import { getLogger } from "../../../utils/logger.js";
 import { ComponentBuilder } from "./components.js";
+import { getMentionableCommand } from "../../../utils/commandUtils.js";
 
 /**
  * Builder class for creating help embeds
@@ -72,13 +73,17 @@ export class HelpEmbedBuilder {
 
     // Quick start section
     try {
+      const rrSetup = getMentionableCommand(client, "role-reactions setup");
+      const tempAssign = getMentionableCommand(client, "temp-roles assign");
+      const tempList = getMentionableCommand(client, "temp-roles list");
+
       embed.addFields({
         name: `Quick Start`,
         value: [
-          `1. Use \`/role-reactions setup\` to create role selections`,
+          `1. Use ${rrSetup} to create role selections`,
           `2. Members click reactions to get roles instantly`,
-          `3. Use \`/temp-roles assign\` for time-limited access`,
-          `4. Track everything with \`/temp-roles list\``,
+          `3. Use ${tempAssign} for time-limited access`,
+          `4. Track everything with ${tempList}`,
         ].join("\n"),
         inline: false,
       });
@@ -156,7 +161,8 @@ export class HelpEmbedBuilder {
         const value = chunk
           .map(([cmdName, meta]) => {
             const lineMeta = meta || {};
-            return `\`/${cmdName}\` — ${lineMeta?.shortDesc || "No description available"}`;
+            const mention = getMentionableCommand(client, cmdName);
+            return `${mention} — ${lineMeta?.shortDesc || "No description available"}`;
           })
           .join("\n\n");
         embed.addFields({ name: `Commands ${label}`, value, inline: false });
@@ -228,8 +234,9 @@ export class HelpEmbedBuilder {
       category.commands.forEach(cmdName => {
         const meta = COMMAND_METADATA[cmdName];
         if (meta) {
+          const mention = getMentionableCommand(client, cmdName);
           embed.addFields({
-            name: `\`/${cmdName}\``,
+            name: mention,
             value: meta.shortDesc,
             inline: false,
           });
@@ -248,7 +255,7 @@ export class HelpEmbedBuilder {
    * Create detailed command embed
    * @param {Object} command
    * @param {import('discord.js').Client} client
-   * @returns {import('discord.js').EmbedBuilder}
+   * @returns {Promise<import('discord.js').EmbedBuilder>}
    */
   static async createCommandDetailEmbed(command, client) {
     try {

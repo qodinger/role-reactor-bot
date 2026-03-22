@@ -1,4 +1,9 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } from "discord.js";
+import {
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  MessageFlags,
+} from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 import { config } from "../../../config/config.js";
@@ -12,6 +17,7 @@ import {
   handleCoreError,
   logOperationDuration,
   createPerformanceContext,
+  getPremiumManager,
 } from "./utils.js";
 import {
   validateCoreCommandInputs,
@@ -19,6 +25,7 @@ import {
   validateInteractionState,
   validateCommandPermissions,
 } from "./validation.js";
+import { getVoteStatus } from "../../../webhooks/topgg.js";
 
 const logger = getLogger();
 
@@ -127,17 +134,41 @@ async function handleBalance(interaction) {
       return;
     }
 
-    // Get user data
-    const userData = await getUserData(perfContext.userId);
+    // Get all required data in parallel to save time
+    const [userData, voteStatus] = await Promise.all([
+      getUserData(perfContext.userId),
+      getVoteStatus(perfContext.userId),
+    ]);
 
-    // Create and send balance embed
+    // Create and send balance embed with enhanced data
     const balanceEmbed = createBalanceEmbed(
       userData,
       perfContext.username,
       interaction.user.displayAvatarURL(),
+      {
+        voteStatus,
+        client: interaction.client,
+      },
     );
 
-    await interaction.editReply({ embeds: [balanceEmbed] });
+    // Add quick action buttons
+    const buttons = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setLabel("Vote & Earn")
+        .setStyle(ButtonStyle.Link)
+        .setURL(config.externalLinks.vote)
+        .setEmoji("🗳️"),
+      new ButtonBuilder()
+        .setLabel("Upgrade Center")
+        .setStyle(ButtonStyle.Link)
+        .setURL(config.externalLinks.website + "/upgrade")
+        .setEmoji("🚀"),
+    );
+
+    await interaction.editReply({
+      embeds: [balanceEmbed],
+      components: [/** @type {any} */ (buttons)],
+    });
 
     logOperationDuration(
       perfContext.startTime,
@@ -163,7 +194,6 @@ async function handleBalance(interaction) {
     await interaction.editReply({ embeds: [errorEmbed] });
   }
 }
-
 
 /**
  * Handles command errors with centralized error response

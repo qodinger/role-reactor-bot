@@ -13,6 +13,7 @@ import {
 } from "discord.js";
 import { getVoteStatus } from "../../../webhooks/topgg.js";
 import config from "../../../config/config.js";
+import { emojiConfig } from "../../../config/emojis.js";
 
 /**
  * Vote command definition
@@ -37,6 +38,7 @@ export const command = {
   async execute(interaction) {
     try {
       const isPublic = interaction.options.getBoolean("public") || false;
+      const { customEmojis } = emojiConfig;
 
       // Bot's top.gg page from config
       const voteLink = config.externalLinks.vote;
@@ -54,7 +56,7 @@ export const command = {
       const fields = [
         {
           name: "🎁 Vote Reward",
-          value: "**1 Core Energy** per vote",
+          value: `**${customEmojis.core} 1** per vote`,
           inline: true,
         },
         {
@@ -79,7 +81,7 @@ export const command = {
           "1. Click the button below to visit top.gg\n" +
           "2. Log in with your Discord account\n" +
           "3. Click the shiny **Vote** button\n" +
-          "4. You'll automatically receive **1 Core Energy**!\n" +
+          `4. You'll automatically receive **1** ${customEmojis.core}\n` +
           "5. Come back in 12 hours to do it again!",
         inline: false,
       });

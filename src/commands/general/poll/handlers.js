@@ -282,7 +282,7 @@ export async function handlePollCreateModal(
 
 /**
  * Handle poll creation selection menu interactions
- * @param {import("discord.js").StringSelectMenuInteraction} interaction - The select menu interaction
+ * @param {import("discord.js").AnySelectMenuInteraction} interaction - The select menu interaction
  * @param {import("discord.js").Client} client - The Discord client
  */
 export async function handlePollCreationSelect(interaction, client) {
