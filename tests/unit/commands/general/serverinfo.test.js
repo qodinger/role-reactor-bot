@@ -10,6 +10,20 @@ vi.mock("src/utils/logger.js", () => ({
   })),
 }));
 
+// Mock storageManager to prevent real DB calls (which cause timeout)
+const { mockDbManager } = vi.hoisted(() => ({
+  mockDbManager: {
+    guildSettings: {
+      getByGuild: vi.fn().mockResolvedValue({}),
+    },
+  },
+}));
+vi.mock("../../../../src/utils/storage/storageManager.js", () => ({
+  getStorageManager: vi.fn().mockResolvedValue({
+    dbManager: mockDbManager,
+  }),
+}));
+
 // Mock theme/config dependencies first
 vi.mock("src/config/theme.js", () => ({
   THEME: {
@@ -94,6 +108,7 @@ describe("Serverinfo Command", () => {
               const filtered = Array.from(membersMap.values()).filter(callback);
               return {
                 size: filtered.length,
+                values: () => filtered[Symbol.iterator](),
               };
             }),
           };
@@ -274,7 +289,7 @@ describe("Serverinfo Command", () => {
     it("should handle empty members cache", () => {
       mockGuild.members.cache = {
         size: 0,
-        filter: vi.fn().mockReturnValue({ size: 0 }),
+        filter: vi.fn().mockReturnValue({ size: 0, values: () => [][Symbol.iterator]() }),
       };
       const counts = getMemberCounts(mockGuild);
       expect(counts.total).toBe(100);

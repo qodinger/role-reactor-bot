@@ -82,7 +82,7 @@ describe("Invite Command", () => {
       await execute(mockInteraction, mockClient);
 
       expect(mockInteraction.deferReply).toHaveBeenCalledWith({
-        ephemeral: true,
+        flags: [64],
       });
       expect(mockInteraction.editReply).toHaveBeenCalled();
     });
@@ -132,7 +132,7 @@ describe("Invite Command", () => {
       await execute(mockInteraction, mockClient);
 
       expect(mockInteraction.deferReply).toHaveBeenCalledWith({
-        ephemeral: true,
+        flags: [64],
       });
     });
 

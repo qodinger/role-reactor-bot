@@ -98,6 +98,7 @@ describe("PremiumManager", () => {
     pm = new PremiumManager();
     pm.setClient({
       guilds: {
+        cache: new Map([["g1", { name: "Test Guild" }]]),
         fetch: vi.fn().mockResolvedValue({ name: "Test Guild" }),
       },
       users: {
