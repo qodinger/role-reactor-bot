@@ -8,6 +8,7 @@ import {
   FREE_TIER,
   PRO_ENGINE,
 } from "../../../../features/ticketing/config.js";
+import { CORE_STATUS } from "../../../../features/premium/config.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // /ticket info
@@ -94,7 +95,9 @@ async function handleInfoView(
     },
     {
       name: "Tier",
-      value: ticketLimit.isPro ? "Pro Engine" : "Free Tier",
+      value: ticketLimit.isPro
+        ? CORE_STATUS.PRO.label
+        : CORE_STATUS.REGULAR.label,
       inline: true,
     },
     {

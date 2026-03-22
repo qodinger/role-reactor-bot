@@ -118,7 +118,7 @@ export async function isRateLimited(userId, commandName, coreUserData = null) {
     const code =
       coreUserData.coreStatusCode !== undefined
         ? coreUserData.coreStatusCode
-        : coreUserData.coreTier === "Pro Engine"
+        : coreUserData.coreTier === CORE_STATUS.PRO.label
           ? CORE_STATUS.PRO
           : CORE_STATUS.REGULAR;
     multiplier = getCoreRateLimitMultiplier(code);
@@ -165,7 +165,7 @@ export async function isInteractionRateLimited(userId, coreUserData = null) {
     const code =
       coreUserData.coreStatusCode !== undefined
         ? coreUserData.coreStatusCode
-        : coreUserData.coreTier === "Pro Engine"
+        : coreUserData.coreTier === CORE_STATUS.PRO.label
           ? CORE_STATUS.PRO
           : CORE_STATUS.REGULAR;
     multiplier = getCoreRateLimitMultiplier(code);

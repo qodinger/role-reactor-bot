@@ -14,6 +14,7 @@ import { createInfoEmbed } from "../../../../features/ticketing/embeds.js";
 
 import { getMentionableCommand } from "../../../../utils/commandUtils.js";
 import { EMOJIS } from "../../../../config/theme.js";
+import { CORE_STATUS } from "../../../../features/premium/config.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // /ticket settings — Interactive Dashboard
@@ -60,8 +61,8 @@ export async function handleSettings(interaction) {
       : `⚫ Disabled`;
 
     const tierDisplay = ticketLimit.isPro
-      ? `${EMOJIS.FEATURES.PREMIUM} Pro Engine`
-      : `${EMOJIS.ACTIONS.FREE} Free Tier`;
+      ? `${CORE_STATUS.PRO.emoji} ${CORE_STATUS.PRO.label}`
+      : `${EMOJIS.ACTIONS.FREE} ${CORE_STATUS.REGULAR.label}`;
 
     const embed = new EmbedBuilder()
       .setTitle("Ticketing System")

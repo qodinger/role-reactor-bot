@@ -1,4 +1,6 @@
 // Global core status constants
+const isProduction = process.env.NODE_ENV === "production";
+
 export const CORE_STATUS = {
   REGULAR: {
     id: 0,
@@ -8,7 +10,9 @@ export const CORE_STATUS = {
   PRO: {
     id: 1,
     label: "Pro Engine",
-    emoji: "<:pro_engine:1484831093818527804>",
+    emoji: isProduction
+      ? "<:pro_engine:1485227111558938704>"
+      : "<:pro_engine:1484831093818527804>",
   },
 };
 
@@ -22,7 +26,8 @@ export const PremiumFeatures = {
     period: "week",
     periodDays: 7,
     includes: [
-      "10x Monthly Ticket Capacity (500 tickets)",
+      "10x Ticket Capacity (500/month, 50 active, 10 panels)",
+      "20 Ticket Categories per Panel & Priority Notifications",
       "Advanced Ticket Automation & HTML Transcripts",
       "Unlimited Transcript Storage (Free: 7 days)",
       "Detailed Analytics & Staff Performance Stats",
@@ -33,12 +38,6 @@ export const PremiumFeatures = {
       "Advanced Data Exports (JSON, Markdown, HTML)",
     ],
   },
-};
-
-export const PERIOD_DAYS = {
-  week: 7,
-  month: 30,
-  year: 365,
 };
 
 /**
