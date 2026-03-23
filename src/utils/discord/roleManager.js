@@ -1,6 +1,12 @@
 import { PermissionFlagsBits } from "discord.js";
 import { getLogger } from "../logger.js";
 import { parseRoleString, isValidReactionEmoji } from "./roleParser.js";
+import { getPremiumManager } from "../../features/premium/PremiumManager.js";
+import {
+  PremiumFeatures,
+  FREE_TIER,
+  PRO_TIER,
+} from "../../features/premium/config.js";
 
 // Member cache for reducing API calls
 class MemberCache {
@@ -367,7 +373,16 @@ export function isRoleManageable(role, botMember) {
  * @returns {Promise<{success: boolean, validRoles: Array<object>, roleMapping: object, errors: Array<string>}>} The result of the processing.
  */
 export async function processRoles(interaction, rolesString) {
-  const { roles, errors: parseErrors } = parseRoleString(rolesString);
+  const premiumManager = getPremiumManager();
+  const isPro = await premiumManager.isFeatureActive(
+    interaction.guild.id,
+    PremiumFeatures.PRO.id,
+  );
+  const maxRoles = isPro
+    ? PRO_TIER.ROLE_BUNDLE_MAX_ROLES
+    : FREE_TIER.ROLE_BUNDLE_MAX_ROLES;
+
+  const { roles, errors: parseErrors } = parseRoleString(rolesString, maxRoles);
   const validationErrors = [...parseErrors];
   const validRoles = [];
   const roleMapping = {};
@@ -376,6 +391,8 @@ export async function processRoles(interaction, rolesString) {
     return {
       success: false,
       errors: ["No roles were provided in the string."],
+      validRoles: [],
+      roleMapping: {},
     };
   }
 
@@ -385,38 +402,92 @@ export async function processRoles(interaction, rolesString) {
     guild.roles.cache.map(role => [role.name.toLowerCase(), role]),
   );
 
+  const roleBundleManager = (
+    await import("../../features/rolebundles/RoleBundleManager.js")
+  ).default;
+
   // Group roles by emoji for multi-role support
   const emojiRoleGroups = new Map();
 
   for (const roleConfig of roles) {
-    let role = null;
-    if (roleConfig.roleId) {
-      role = guild.roles.cache.get(roleConfig.roleId);
-    } else {
-      const cleanName = roleConfig.roleName.toLowerCase();
-      role = roleNameMap.get(cleanName);
+    let cleanName = (roleConfig.roleName || "").trim().toLowerCase();
+    const matchedRoles = [];
+    let isExplicitBundle = false;
 
-      // If not found by cleaned name, and we extracted an emoji,
-      // try to find by re-combining emoji + name (e.g. "♂ Male")
-      if (!role && roleConfig.emoji) {
-        const emoji = roleConfig.emoji;
-        // Try "Emoji Name"
-        role = roleNameMap.get(`${emoji} ${cleanName}`.toLowerCase());
-        // Try "EmojiName"
-        if (!role) {
-          role = roleNameMap.get(`${emoji}${cleanName}`.toLowerCase());
-        }
+    // Check for bundle brackets
+    if (cleanName.startsWith("[") && cleanName.endsWith("]")) {
+      isExplicitBundle = true;
+      cleanName = cleanName.substring(1, cleanName.length - 1).trim(); // Remove brackets and trim
+    }
+
+    // First, check if it's a bundle (if explicitly requested or as fallback)
+    let bundle = null;
+    if (isExplicitBundle || !roleConfig.roleId) {
+      try {
+        const bundles = await roleBundleManager.getAllForGuild(guild.id);
+        bundle = bundles.find(b => b.name.toLowerCase() === cleanName);
+      } catch (err) {
+        getLogger().error("Error fetching bundle:", err);
       }
     }
 
-    if (!role) {
-      validationErrors.push(`Role "${roleConfig.roleName}" not found`);
+    if (isExplicitBundle && !bundle) {
+      validationErrors.push(
+        `Bundle "${roleConfig.roleName.substring(1, roleConfig.roleName.length - 1).trim()}" not found.`,
+      );
       continue;
     }
 
-    if (!isRoleManageable(role, botMember)) {
+    if (bundle) {
+      for (const bRole of bundle.roles) {
+        const role = guild.roles.cache.get(bRole.roleId);
+        if (role) {
+          if (!isRoleManageable(role, botMember)) {
+            validationErrors.push(
+              `Cannot manage role "${role.name}" from bundle "${bundle.name}".`,
+            );
+            continue;
+          }
+          matchedRoles.push(role);
+        }
+      }
+    } else if (!isExplicitBundle) {
+      let role = null;
+      if (roleConfig.roleId) {
+        role = guild.roles.cache.get(roleConfig.roleId);
+      } else {
+        role = roleNameMap.get(cleanName);
+
+        if (!role && roleConfig.emoji) {
+          const emoji = roleConfig.emoji;
+          role = roleNameMap.get(`${emoji} ${cleanName}`.toLowerCase());
+          if (!role) {
+            role = roleNameMap.get(`${emoji}${cleanName}`.toLowerCase());
+          }
+        }
+      }
+
+      if (!role) {
+        validationErrors.push(
+          `Role "${roleConfig.roleName}" not found. To use a bundle, wrap it in brackets (e.g., [${roleConfig.roleName}])`,
+        );
+        continue;
+      }
+
+      if (!isRoleManageable(role, botMember)) {
+        validationErrors.push(
+          `Cannot manage role "${role.name}" - it's higher than my highest role or I lack permissions.`,
+        );
+        continue;
+      }
+
+      matchedRoles.push(role);
+    }
+
+    // Since we matched roles (either from bundle or direct role)
+    if (matchedRoles.length === 0) {
       validationErrors.push(
-        `Cannot manage role "${role.name}" - it's higher than my highest role or I lack permissions.`,
+        `No valid roles found for "${roleConfig.roleName}"`,
       );
       continue;
     }
@@ -424,7 +495,7 @@ export async function processRoles(interaction, rolesString) {
     // Emoji is REQUIRED - must be explicitly provided in the command
     if (!roleConfig.emoji) {
       validationErrors.push(
-        `Missing emoji for role "${role.name}". Please provide an emoji before the role, e.g.: 🎮 @${role.name}`,
+        `Missing emoji for "${roleConfig.roleName}". Please provide an emoji before the role/bundle, e.g.: 🎮 @${roleConfig.roleName}`,
       );
       continue;
     }
@@ -433,7 +504,7 @@ export async function processRoles(interaction, rolesString) {
     const emojiValidation = isValidReactionEmoji(roleConfig.emoji);
     if (!emojiValidation.valid) {
       validationErrors.push(
-        `Invalid emoji for role "${role.name}": ${emojiValidation.reason}`,
+        `Invalid emoji for "${roleConfig.roleName}": ${emojiValidation.reason}`,
       );
       continue;
     }
@@ -442,11 +513,14 @@ export async function processRoles(interaction, rolesString) {
     if (!emojiRoleGroups.has(roleConfig.emoji)) {
       emojiRoleGroups.set(roleConfig.emoji, []);
     }
-    emojiRoleGroups.get(roleConfig.emoji).push({
-      roleId: role.id,
-      roleName: role.name,
-      limit: roleConfig.limit || null,
-    });
+
+    for (const matchedRole of matchedRoles) {
+      emojiRoleGroups.get(roleConfig.emoji).push({
+        roleId: matchedRole.id,
+        roleName: matchedRole.name,
+        limit: roleConfig.limit || null,
+      });
+    }
   }
 
   // Build validRoles and roleMapping from grouped roles
@@ -474,7 +548,12 @@ export async function processRoles(interaction, rolesString) {
   }
 
   if (validationErrors.length > 0) {
-    return { success: false, errors: validationErrors };
+    return {
+      success: false,
+      errors: validationErrors,
+      validRoles: [],
+      roleMapping: {},
+    };
   }
 
   return { success: true, validRoles, roleMapping, errors: [] };

@@ -9,6 +9,12 @@ import roleBundleManager from "../../../features/rolebundles/RoleBundleManager.j
 
 import { getMentionableCommand } from "../../../utils/commandUtils.js";
 import { getLogger } from "../../../utils/logger.js";
+import { getPremiumManager } from "../../../features/premium/PremiumManager.js";
+import {
+  PremiumFeatures,
+  FREE_TIER,
+  PRO_TIER,
+} from "../../../features/premium/config.js";
 
 const logger = getLogger();
 
@@ -67,6 +73,29 @@ export async function handleCreate(interaction) {
           createErrorEmbed(
             "No Valid Roles",
             "No valid roles were found. Please mention roles using @RoleName format.",
+          ),
+        ],
+      });
+    }
+
+    const premiumManager = getPremiumManager();
+    const isPro = await premiumManager.isFeatureActive(
+      interaction.guild.id,
+      PremiumFeatures.PRO.id,
+    );
+    const maxRoles = isPro
+      ? PRO_TIER.ROLE_BUNDLE_MAX_ROLES
+      : FREE_TIER.ROLE_BUNDLE_MAX_ROLES;
+
+    if (roles.length > maxRoles) {
+      const upgradeMsg = isPro
+        ? ""
+        : "\n\n🚀 Upgrade to **Pro Engine** to bundle up to 15 roles!";
+      return interaction.editReply({
+        embeds: [
+          createErrorEmbed(
+            "Too Many Roles",
+            `A bundle can contain a maximum of **${maxRoles}** roles on your current tier. You provided **${roles.length}**.${upgradeMsg}`,
           ),
         ],
       });
@@ -230,6 +259,64 @@ export async function handleList(interaction) {
         createErrorEmbed(
           "Error",
           "Failed to list role bundles. Please try again.",
+        ),
+      ],
+    });
+  }
+}
+
+/**
+ * Handle /role-bundle view command
+ * @param {Object} interaction - Discord interaction
+ */
+export async function handleView(interaction) {
+  try {
+    await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
+
+    const name = interaction.options.getString("name");
+
+    const bundle = await roleBundleManager.getByName(
+      interaction.guild.id,
+      name,
+    );
+
+    if (!bundle) {
+      return interaction.editReply({
+        embeds: [
+          createErrorEmbed("Not Found", `Bundle **${name}** not found.`),
+        ],
+      });
+    }
+
+    const embed = new EmbedBuilder()
+      .setTitle(`📦 Role Bundle: ${bundle.name}`)
+      .setColor(THEME.PRIMARY)
+      .setDescription(
+        `This bundle contains **${bundle.roles?.length || 0}** role(s):`,
+      )
+      .addFields({
+        name: "Roles",
+        value:
+          bundle.roles?.length > 0
+            ? bundle.roles.map(r => `• <@&${r.roleId}>`).join("\n")
+            : "No roles in this bundle.",
+      })
+      .setFooter({
+        text: `Use /role-bundle delete name:${bundle.name} to delete this bundle`,
+      })
+      .setTimestamp(bundle.createdAt);
+
+    return interaction.editReply({
+      embeds: [embed],
+    });
+  } catch (error) {
+    logger.error("❌ Error viewing role bundle:", error);
+
+    return interaction.editReply({
+      embeds: [
+        createErrorEmbed(
+          "Error",
+          "Failed to view role bundle. Please try again.",
         ),
       ],
     });

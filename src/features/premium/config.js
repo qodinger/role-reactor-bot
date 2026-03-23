@@ -50,6 +50,9 @@ export const FREE_TIER = {
   GIVEAWAY_MAX_WINNERS: 5,
   SCHEDULE_MAX_ACTIVE: 25,
   BULK_ACTION_MAX_MEMBERS: 25,
+  ROLE_BUNDLE_MAX_ROLES: 5,
+  ROLE_REACTION_MAX_EMOJIS: 10,
+  ROLE_REACTION_MAX_MESSAGES: 3,
 };
 
 /**
@@ -61,4 +64,7 @@ export const PRO_TIER = {
   GIVEAWAY_MAX_WINNERS: 20, // 4x free tier
   SCHEDULE_MAX_ACTIVE: 500, // 20x free tier
   BULK_ACTION_MAX_MEMBERS: 250, // 10x free tier
+  ROLE_BUNDLE_MAX_ROLES: 15, // 3x free tier
+  ROLE_REACTION_MAX_EMOJIS: 20, // Discord's hard limit
+  ROLE_REACTION_MAX_MESSAGES: 20, // Enough for huge communities
 };

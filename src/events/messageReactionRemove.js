@@ -69,31 +69,44 @@ export async function execute(reaction, user, client) {
       return;
     }
 
-    // Use role ID directly if available (for test mocks)
-    let roleId;
-    if (typeof roleConfig === "string") {
-      roleId = roleConfig;
+    // Handle multiple roles per emoji
+    let roleIds = [];
+
+    // Check if this is a multi-role configuration
+    if (roleConfig.roleIds && Array.isArray(roleConfig.roleIds)) {
+      roleIds = roleConfig.roleIds;
     } else if (roleConfig.roleId) {
-      roleId = roleConfig.roleId;
+      // Single role (legacy format)
+      roleIds = [roleConfig.roleId];
+    } else if (typeof roleConfig === "string") {
+      // Simple string format (legacy)
+      roleIds = [roleConfig];
     } else {
       // Fallback to finding by name
       const roleName =
         roleConfig.roleName || roleConfig.role || roleConfig.name;
       const role = guild.roles.cache.find(r => r.name === roleName);
-      roleId = role ? role.id : undefined;
+      if (role) {
+        roleIds = [role.id];
+      }
     }
 
-    if (!roleId) {
+    if (roleIds.length === 0) {
       return;
     }
 
-    // Check if user has the role
-    if (!member.roles.cache.has(roleId)) {
+    // Determine which roles actually need to be removed
+    const rolesToRemove = roleIds.filter(id => member.roles.cache.has(id));
+
+    if (rolesToRemove.length === 0) {
       return;
     }
 
-    await member.roles.remove(roleId);
-    logger.info(`✅ Role removed: ${roleId} from ${user.tag}`);
+    // Remove roles via a single API call to prevent rate limits
+    await member.roles.remove(rolesToRemove);
+    for (const id of rolesToRemove) {
+      logger.info(`✅ Role removed: ${id} from ${user.tag}`);
+    }
   } catch (error) {
     logger.error("Error processing reaction removal", error);
   }

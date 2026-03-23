@@ -138,20 +138,28 @@ export async function execute(reaction, user, client) {
           otherRoleIds = [config];
         }
 
-        // Queue role removals for all roles in this emoji
+        // Collect roles to remove in a single API call for this member
+        const rolesToRemoveFromMember = [];
+
         for (const otherRoleId of otherRoleIds) {
           if (otherRoleId && member.roles.cache.has(otherRoleId)) {
-            removeOps.push(
-              member.roles
-                .remove(otherRoleId)
-                .catch(() => null)
-                .then(() => {
-                  logger.info(
-                    `🔄 Unique mode: removed role ${otherRoleId} from ${user.tag}`,
-                  );
-                }),
-            );
+            rolesToRemoveFromMember.push(otherRoleId);
           }
+        }
+
+        if (rolesToRemoveFromMember.length > 0) {
+          removeOps.push(
+            member.roles
+              .remove(rolesToRemoveFromMember)
+              .catch(() => null)
+              .then(() => {
+                for (const removedRole of rolesToRemoveFromMember) {
+                  logger.info(
+                    `🔄 Unique mode: removed role ${removedRole} from ${user.tag}`,
+                  );
+                }
+              }),
+          );
         }
 
         // Queue reaction removal for the other emoji
@@ -167,26 +175,26 @@ export async function execute(reaction, user, client) {
         }
       }
 
-      // Check if user already has all the new roles
-      const alreadyHasAllRoles = roleIds.every(id =>
-        member.roles.cache.has(id),
-      );
+      // Find which new roles the member doesn't have yet
+      const rolesToAdd = roleIds.filter(id => !member.roles.cache.has(id));
 
-      if (alreadyHasAllRoles && removeOps.length === 0) {
+      if (rolesToAdd.length === 0 && removeOps.length === 0) {
         return;
       }
 
+      const operations = [...removeOps];
+      if (rolesToAdd.length > 0) {
+        operations.push(
+          member.roles.add(rolesToAdd).then(() => {
+            for (const newRole of rolesToAdd) {
+              logger.info(`✅ Role assigned: ${newRole} to ${user.tag}`);
+            }
+          }),
+        );
+      }
+
       // Run all removals AND the new role grants simultaneously
-      await Promise.all([
-        ...removeOps,
-        ...roleIds.map(roleId =>
-          member.roles.cache.has(roleId)
-            ? Promise.resolve()
-            : member.roles.add(roleId).then(() => {
-                logger.info(`✅ Role assigned: ${roleId} to ${user.tag}`);
-              }),
-        ),
-      ]);
+      await Promise.all(operations);
 
       logger.info(
         `✅ Assigned ${roleIds.length} role(s) to ${user.tag} for emoji ${emoji}`,
@@ -202,22 +210,18 @@ export async function execute(reaction, user, client) {
     }
 
     // Standard toggle mode
-    // Check if user already has all the roles
-    const alreadyHasAllRoles = roleIds.every(id => member.roles.cache.has(id));
-    if (alreadyHasAllRoles) {
+    // Find missing roles
+    const rolesToAdd = roleIds.filter(id => !member.roles.cache.has(id));
+
+    if (rolesToAdd.length === 0) {
       return;
     }
 
-    // Assign all roles
-    await Promise.all(
-      roleIds.map(roleId =>
-        member.roles.cache.has(roleId)
-          ? Promise.resolve()
-          : member.roles.add(roleId).then(() => {
-              logger.info(`✅ Role assigned: ${roleId} to ${user.tag}`);
-            }),
-      ),
-    );
+    // Assign all roles in a single API call
+    await member.roles.add(rolesToAdd);
+    for (const newRole of rolesToAdd) {
+      logger.info(`✅ Role assigned: ${newRole} to ${user.tag}`);
+    }
 
     logger.info(
       `✅ Assigned ${roleIds.length} role(s) to ${user.tag} for emoji ${emoji}`,

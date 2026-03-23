@@ -70,20 +70,23 @@ export const metadata = {
     {
       name: `Role Format Tips`,
       value: [
-        "• **@RoleName** - Use @ symbol (e.g., `@Gamer`)",
-        "• **RoleName** - Use role name directly (e.g., `Gamer`)",
-        "• **<@&ID>** - Use role mention (e.g., `<@&123456789>`)",
-        '• **"Role Name"** - Use quotes for spaces (e.g., `"Gaming Role"`)',
+        "• **@RoleName** - Use standard mentions (e.g., `🎮:@Gamer`)",
+        '• **"Role Name"** - Use quotes for spaced names (e.g., `💬:"My Role"`)',
+        "• **[@Role1, @Role2]** - Create inline arrays (e.g., `💡:[@Mod, @Admin]`)",
+        "• **[BundleName]** - Drop in Database Bundles (e.g., `🚀:[StarterPack]`)",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `Tier Limitations`,
+      value: [
+        "• **Active Menus:** 3 Menus (Free) | 20 Menus (Pro Engine)",
+        "• **Emojis per Menu:** 10 Emojis (Free) | 20 Emojis (Pro Engine)",
+        "• **Roles per Array:** 5 Roles (Free) | 15 Roles (Pro Engine)",
       ].join("\n"),
       inline: false,
     },
   ],
-  autocomplete: async (interaction, _client) => {
-    const focusedOption = interaction.options.getFocused(true);
-    if (focusedOption.name === "bundle") {
-      await handleBundleAutocomplete(interaction);
-    }
-  },
 };
 
 // ============================================================================
@@ -115,18 +118,9 @@ export const data = new SlashCommandBuilder()
         opt
           .setName("roles")
           .setDescription(
-            "Emoji:role pairs. Format: 🎮:@Gamer, 🎨:@Artist. Or use bundle",
+            "Ex: 🎮:@Gamer, 💡:[@Role1, @Role2], 🚀:[MyBundle] (10-20 Max)",
           )
-          .setRequired(false),
-      )
-      .addStringOption(opt =>
-        opt
-          .setName("bundle")
-          .setDescription(
-            "Use a role bundle instead of specifying roles directly",
-          )
-          .setRequired(false)
-          .setAutocomplete(true),
+          .setRequired(true),
       )
       .addStringOption(opt =>
         opt
@@ -181,7 +175,7 @@ export const data = new SlashCommandBuilder()
         opt
           .setName("roles")
           .setDescription(
-            'Emoji:role pairs separated by commas. Format: emoji:role, emoji:@role, emoji:"Role Name"',
+            "Ex: 🎮:@Gamer, 💡:[@Role1, @Role2], 🚀:[MyBundle] (10-20 Max)",
           )
           .setRequired(false),
       )
@@ -314,32 +308,5 @@ export async function handleButtonInteraction(interaction, client) {
   // Check if this is a pagination button
   if (customId.startsWith("role_list_")) {
     await handlePagination(interaction, client);
-  }
-}
-
-// Handle autocomplete for bundle selection
-export async function handleBundleAutocomplete(interaction) {
-  const focusedValue = interaction.options.getFocused()?.toLowerCase() || "";
-
-  try {
-    const roleBundleManager = (
-      await import("../../../features/rolebundles/RoleBundleManager.js")
-    ).default;
-    const bundles = await roleBundleManager.getAllForGuild(
-      interaction.guild.id,
-    );
-
-    const filtered = bundles
-      .filter(b => b.name.toLowerCase().includes(focusedValue))
-      .slice(0, 25)
-      .map(b => ({
-        name: `${b.name} (${b.roles?.length || 0} roles)`,
-        value: b.name,
-      }));
-
-    return await interaction.respond(filtered);
-  } catch (error) {
-    console.error("Bundle autocomplete error:", error);
-    return await interaction.respond([]);
   }
 }

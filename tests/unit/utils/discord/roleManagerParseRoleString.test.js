@@ -334,13 +334,7 @@ describe("parseRoleString", () => {
     test(`parses: ${JSON.stringify(input)}`, () => {
       const { roles, errors } = parseRoleString(input);
       expect(errors).toEqual([]);
-      // Update expected format to include roleIds and roleNames for multi-role support
-      const updatedExpected = expected.map(role => ({
-        ...role,
-        roleIds: role.roleIds || null,
-        roleNames: role.roleNames || null
-      }));
-      expect(roles).toEqual(updatedExpected);
+      expect(roles).toEqual(expected);
     });
   });
 
@@ -372,11 +366,12 @@ describe("parseRoleString", () => {
 
     test("handles duplicate emojis", () => {
       const { roles, errors } = parseRoleString("💻:Coder,💻:Developer");
-      // Now duplicate emojis are merged into a single role with multiple roleIds/roleNames
-      expect(roles.length).toBe(1);
+      // Now duplicate emojis are emitted sequentially without premature merging!
+      expect(roles.length).toBe(2);
       expect(roles[0].emoji).toBe("💻");
-      expect(roles[0].roleNames).toEqual(["Coder", "Developer"]);
-      // No errors - duplicate emojis are now supported for multi-role feature
+      expect(roles[0].roleName).toBe("Coder");
+      expect(roles[1].emoji).toBe("💻");
+      expect(roles[1].roleName).toBe("Developer");
       expect(errors.length).toBe(0);
     });
 
@@ -384,7 +379,7 @@ describe("parseRoleString", () => {
       const { roles, errors } = parseRoleString("Coder");
       expect(errors).toEqual([]);
       expect(roles).toEqual([
-        { emoji: null, roleName: "Coder", roleId: null, limit: null, roleIds: null, roleNames: null },
+        { emoji: null, roleName: "Coder", roleId: null, limit: null },
       ]);
     });
   });

@@ -83,12 +83,24 @@ Following the modular pattern established by other admin commands:
 - **Steel Brown** - Industrial steel brown
 - **Chrome Gray** - Polished chrome gray
 
-## Role Format
+## Role Format & Limits
+
+The system natively supports singular roles, limits, nested bundles, and dynamic arrays.
+
+**Formats:**
 
 - `emoji:role` - Simple format (🎮:Gamer)
 - `emoji:@role` - Role mention format (🎮:@Gamer)
 - `emoji:"Role Name"` - Quoted role names (🎮:"Gaming Enthusiast")
 - `emoji:role:limit` - With user limit (🎮:Gamer:10)
+- `emoji:[BundleName]` - Imports a saved Multi-Role Bundle (💡:[Starter Pack])
+- `emoji:[@Role1, @Role2]` - Creates an inline multi-role array instantly (💡:[@Artist, @Coder])
+
+**Tier Limits:**
+
+- **Active Menus per Server:** 3 Menus (Free Tier) | 20 Menus (Pro Engine)
+- **Emojis per Menu:** 10 Emojis (Free Tier) | 20 Emojis (Pro Engine)
+- **Roles per Bundle/Array:** 5 Roles (Free Tier) | 15 Roles (Pro Engine)
 
 ## Dependencies
 

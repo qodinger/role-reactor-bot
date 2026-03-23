@@ -103,16 +103,69 @@ export function isValidReactionEmoji(emoji) {
  * @param {string} roleString The string to parse.
  * @returns {{roles: Array<object>, errors: Array<string>}} The parsed roles and any errors.
  */
-export function parseRoleString(roleString) {
+export function parseRoleString(roleString, maxRoles = 5) {
   const roles = [];
   const errors = [];
   const input = unescapeHtml(roleString.trim());
 
-  const parts = input.split(/\s*(?:,|;|\n|\\n)\s*/).filter(Boolean);
+  // More robust splitting that respects brackets and quotes
+  const parts = [];
+  let currentPart = "";
+  let insideBrackets = false;
+  let insideQuotes = false;
+
+  for (let i = 0; i < input.length; i++) {
+    const char = input[i];
+
+    if (char === "[") insideBrackets = true;
+    else if (char === "]") insideBrackets = false;
+    else if (char === '"') insideQuotes = !insideQuotes;
+
+    if (
+      (char === "," || char === ";" || char === "\n") &&
+      !insideBrackets &&
+      !insideQuotes
+    ) {
+      if (currentPart.trim()) parts.push(currentPart.trim());
+      currentPart = "";
+    } else {
+      currentPart += char;
+    }
+  }
+  if (currentPart.trim()) parts.push(currentPart.trim());
+
+  // Helper to parse a pure role text (after emoji and limits are stripped)
+  const parseBaseRole = roleText => {
+    let rName = null;
+    let rId = null;
+    const t = roleText.trim();
+
+    if (t.startsWith('"')) {
+      const quoteMatch = t.match(/^"([^"]+)"$/);
+      if (quoteMatch) rName = quoteMatch[1];
+      else return { error: `Invalid quoted role name: "${roleText}"` };
+    } else if (t.match(/^<@&\d+>$/)) {
+      rName = t;
+      rId = t.match(/^<@&(\d+)>$/)[1];
+    } else if (t.match(/^@&\d+$/)) {
+      rName = `<${t}>`;
+      rId = t.match(/^@&(\d+)$/)[1];
+    } else {
+      if (t.startsWith("@") && !t.match(/^@&\d+$/)) {
+        rName = t.substring(1);
+      } else {
+        rName = t;
+      }
+    }
+
+    if (!rName || rName.trim() === "") {
+      return { error: `Invalid role name: "${roleText}"` };
+    }
+    return { name: rName, id: rId };
+  };
+
   for (const part of parts) {
     let str = part.trim();
-
-    // Skip empty parts
     if (!str) continue;
 
     const { emoji, remaining } = extractEmoji(str);
@@ -122,12 +175,11 @@ export function parseRoleString(roleString) {
     str = str.replace(/^:\s*/, "").trim();
 
     let limit = null;
-    let roleName = null;
-    let roleId = null;
 
     // Try to extract limit from the end (format: role:limit or role : limit)
+    // We only extract if it's after the matching brackets if there are brackets.
     const limitMatch = str.match(/(?:\s*:\s*|\s+)(\d+)$/);
-    if (limitMatch) {
+    if (limitMatch && !str.endsWith("]")) {
       limit = parseInt(limitMatch[1], 10);
       str = str.slice(0, limitMatch.index).trim();
     } else {
@@ -139,70 +191,57 @@ export function parseRoleString(roleString) {
       }
     }
 
-    // Handle quoted role names
-    if (str.startsWith('"')) {
-      const quoteMatch = str.match(/^"([^"]+)"$/);
-      if (quoteMatch) {
-        roleName = quoteMatch[1];
-      } else {
-        errors.push(`Invalid quoted role name in part: "${part}"`);
-        continue;
-      }
-    }
-    // Handle role mentions with @&
-    else if (str.match(/^<@&\d+>$/)) {
-      roleName = str;
-      roleId = str.match(/^<@&(\d+)>$/)[1];
-    }
-    // Handle role mentions without <>
-    else if (str.match(/^@&\d+$/)) {
-      roleName = `<${str}>`;
-      roleId = str.match(/^@&(\d+)$/)[1];
-    }
-    // Handle regular role names
-    else {
-      // Strip @ symbol if it's not a role mention (not @&123456789)
-      if (str.startsWith("@") && !str.match(/^@&\d+$/)) {
-        roleName = str.substring(1); // Remove the @ symbol
-      } else {
-        roleName = str;
-      }
-    }
-
-    if (!roleName || roleName.trim() === "") {
-      errors.push(`Invalid role name in part: "${part}"`);
-      continue;
-    }
-
-    // Validate limit if present
     if (limit !== null && (isNaN(limit) || limit < 1 || limit > 1000)) {
       errors.push(`Invalid user limit in part: "${part}" (must be 1-1000)`);
       continue;
     }
 
-    // Check for duplicate emojis - ALLOW multiple roles per emoji
-    // Instead of error, we'll group roles by emoji
-    const existingRole = roles.find(r => r.emoji === emoji);
-    if (existingRole && emoji !== null) {
-      // Merge roles with same emoji - user will get all roles when reacting
-      existingRole.roleNames = existingRole.roleNames || [
-        existingRole.roleName,
-      ];
-      existingRole.roleNames.push(roleName);
-      existingRole.roleIds = existingRole.roleIds || [];
-      if (roleId) existingRole.roleIds.push(roleId);
-      if (limit !== null) existingRole.limit = limit;
-      continue; // Skip adding as new role, already merged
+    // Check if it's an inline array list `[@Role1, @Role2]`
+    if (str.startsWith("[") && str.endsWith("]") && str.includes(",")) {
+      const innerContent = str.substring(1, str.length - 1).trim();
+      const subRoles = innerContent
+        .split(",")
+        .map(s => s.trim())
+        .filter(Boolean);
+
+      if (subRoles.length > maxRoles) {
+        const upgradeMsg =
+          maxRoles === 5 ? " Pro Engine server allows up to 15 roles." : "";
+        errors.push(
+          `Inline array "${part}" exceeds maximum of ${maxRoles} roles (you provided ${subRoles.length}).${upgradeMsg}`,
+        );
+        continue;
+      }
+
+      for (const subRoleStr of subRoles) {
+        const parsed = parseBaseRole(subRoleStr);
+        if (parsed.error) {
+          errors.push(parsed.error);
+        } else {
+          roles.push({
+            emoji,
+            roleName: parsed.name,
+            roleId: parsed.id,
+            limit,
+          });
+        }
+      }
+      continue;
     }
 
-    roles.push({
-      emoji,
-      roleName,
-      roleId,
-      limit,
-      roleNames: null,
-      roleIds: null,
-    });
+    // If it's `[BundleName]` exactly (starts and ends with bracket, no commas), leave it.
+    // parseBaseRole natively handles normal strings. If it's a bracket, it just sets rName to the bracket string.
+    const parsed = parseBaseRole(str);
+    if (parsed.error) {
+      errors.push(parsed.error);
+    } else {
+      roles.push({
+        emoji,
+        roleName: parsed.name,
+        roleId: parsed.id,
+        limit,
+      });
+    }
   }
 
   // If there are any errors, return empty roles array

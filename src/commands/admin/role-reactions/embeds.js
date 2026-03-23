@@ -33,7 +33,15 @@ export function createSetupRolesEmbed(
       const roleName = role.roleName || "";
       const emojiAlreadyInName = roleName.startsWith(role.emoji);
       const displayEmoji = emojiAlreadyInName ? "" : `${role.emoji} `;
-      return `${displayEmoji}<@&${role.roleId}>${limitText}`;
+
+      let roleMentions = "";
+      if (role.roleIds && role.roleIds.length > 0) {
+        roleMentions = role.roleIds.map(id => `<@&${id}>`).join(", ");
+      } else {
+        roleMentions = `<@&${role.roleId}>`;
+      }
+
+      return `${displayEmoji}${roleMentions}${limitText}`;
     })
     .join("\n");
 
@@ -187,7 +195,15 @@ export function createUpdatedRolesEmbed(updatedMapping, roleMapping, client) {
       const roleName = pair.roleName || "";
       const emojiAlreadyInName = roleName.startsWith(pair.emoji);
       const displayEmoji = emojiAlreadyInName ? "" : `${pair.emoji} `;
-      return `${displayEmoji}<@&${pair.roleId}>${limitText}`;
+
+      let roleMentions = "";
+      if (pair.roleIds && pair.roleIds.length > 0) {
+        roleMentions = pair.roleIds.map(id => `<@&${id}>`).join(", ");
+      } else {
+        roleMentions = `<@&${pair.roleId}>`;
+      }
+
+      return `${displayEmoji}${roleMentions}${limitText}`;
     })
     .join("\n");
 

@@ -11,8 +11,6 @@ import {
   createPaginationButtons,
 } from "./embeds.js";
 
-import { getMentionableCommand } from "../../../utils/commandUtils.js";
-
 // Import refactored utility modules
 import { validateInteraction, validateBotMember } from "./validation.js";
 import { handleDeferral } from "./deferral.js";
@@ -29,6 +27,12 @@ import {
   saveRoleMapping,
 } from "./messageOperations.js";
 import { THEME_COLOR } from "../../../config/theme.js";
+import { getPremiumManager } from "../../../features/premium/PremiumManager.js";
+import {
+  PremiumFeatures,
+  FREE_TIER,
+  PRO_TIER,
+} from "../../../features/premium/config.js";
 
 // Track active setups to prevent duplicates
 const activeSetups = new Set();
@@ -93,104 +97,72 @@ export async function handleSetup(interaction, client) {
       return interaction.editReply(channelPermissionValidation.errorResponse);
     }
 
-    // Process role input - support both direct roles and bundles
+    // Perform final permission check
+    const finalPermissionCheck = performFinalPermissionCheck(interaction);
+    if (!finalPermissionCheck.success) {
+      activeSetups.delete(interaction.id);
+      return interaction.editReply(finalPermissionCheck.errorResponse);
+    }
+
+    const premiumManager = getPremiumManager();
+    const isPro = await premiumManager.isFeatureActive(
+      interaction.guild.id,
+      PremiumFeatures.PRO.id,
+    );
+    const maxMessages = isPro
+      ? PRO_TIER.ROLE_REACTION_MAX_MESSAGES
+      : FREE_TIER.ROLE_REACTION_MAX_MESSAGES;
+
+    const storageManager = await getStorageManager();
+    const allMappings = await storageManager.getRoleMappings();
+    const guildMappingCount = Object.entries(allMappings).filter(
+      ([, m]) => m.guildId === interaction.guild.id,
+    ).length;
+
+    if (guildMappingCount >= maxMessages) {
+      activeSetups.delete(interaction.id);
+      const upgradeMsg = isPro
+        ? ""
+        : `\n\n🚀 Upgrade to **Pro Engine** to create up to ${PRO_TIER.ROLE_REACTION_MAX_MESSAGES} interactive role menus!`;
+      return interaction.editReply(
+        errorEmbed({
+          title: "Maximum Menus Reached",
+          description: `You have reached the maximum limit of **${maxMessages}** active Role Reaction messages for your current tier.${upgradeMsg}`,
+        }),
+      );
+    }
+
+    // Process role input
     const rolesString = interaction.options.getString("roles");
-    const bundleName = interaction.options.getString("bundle");
 
-    // Validate that either roles OR bundle is provided, not both
-    if (!rolesString && !bundleName) {
+    const roleProcessingResult = await processRoleInput(
+      interaction,
+      rolesString,
+    );
+    if (!roleProcessingResult.success) {
       activeSetups.delete(interaction.id);
-      return interaction.editReply(
-        errorEmbed({
-          title: "Missing Roles or Bundle",
-          description:
-            "You must provide either **roles** or a **bundle** parameter.",
-          solution:
-            "Use `roles:🎮:@Gamer, 🎨:@Artist` OR `bundle:Gaming-Roles`",
-        }),
-      );
-    }
-
-    if (rolesString && bundleName) {
-      activeSetups.delete(interaction.id);
-      return interaction.editReply(
-        errorEmbed({
-          title: "Invalid Parameters",
-          description:
-            "You cannot use both **roles** and **bundle** parameters together.",
-          solution:
-            "Use either `roles:🎮:@Gamer` OR `bundle:Gaming-Roles`, not both",
-        }),
-      );
-    }
-
-    let roleProcessingResult;
-
-    if (bundleName) {
-      // Load roles from bundle
-      const roleBundleManager = (
-        await import("../../../features/rolebundles/RoleBundleManager.js")
-      ).default;
-      const bundle = await roleBundleManager.getByName(
-        interaction.guild.id,
-        bundleName,
-      );
-
-      if (!bundle) {
-        activeSetups.delete(interaction.id);
-        return interaction.editReply(
-          errorEmbed({
-            title: "Bundle Not Found",
-            description: `Role bundle **${bundleName}** not found.`,
-            solution: `Use ${getMentionableCommand(interaction.client, "role-bundle list")} to see available bundles`,
-          }),
-        );
-      }
-
-      // Convert bundle roles to roleMapping format
-      const roleMapping = {};
-      const validRoles = [];
-
-      // Note: Bundles don't support emoji, so we need to get emoji from user input
-      // For now, we'll use a default emoji or require it in bundle name
-      // This is a limitation - bundles work best with single emoji
-      const defaultEmoji = "⭐"; // Default emoji for bundles
-
-      for (const roleData of bundle.roles) {
-        const role = interaction.guild.roles.cache.get(roleData.roleId);
-        if (role) {
-          validRoles.push({
-            emoji: defaultEmoji,
-            roleId: role.id,
-            roleName: role.name,
-            limit: null,
-          });
-
-          roleMapping[defaultEmoji] = {
-            emoji: defaultEmoji,
-            roleId: role.id,
-            roleName: role.name,
-            limit: null,
-            roleIds: bundle.roles.map(r => r.roleId),
-            roleNames: bundle.roles.map(r => r.roleName),
-          };
-        }
-      }
-
-      roleProcessingResult = {
-        success: true,
-        data: { validRoles, roleMapping },
-      };
-    } else {
-      // Use direct roles
-      roleProcessingResult = await processRoleInput(interaction, rolesString);
-      if (!roleProcessingResult.success) {
-        activeSetups.delete(interaction.id);
-        return interaction.editReply(roleProcessingResult.errorResponse);
-      }
+      return interaction.editReply(roleProcessingResult.errorResponse);
     }
 
     const { validRoles, roleMapping } = roleProcessingResult.data;
+
+
+    const maxEmojis = isPro
+      ? PRO_TIER.ROLE_REACTION_MAX_EMOJIS
+      : FREE_TIER.ROLE_REACTION_MAX_EMOJIS;
+
+    if (validRoles.length > maxEmojis) {
+      activeSetups.delete(interaction.id);
+      const upgradeMsg = isPro
+        ? ""
+        : `\n\n🚀 Upgrade to **Pro Engine** to use up to ${PRO_TIER.ROLE_REACTION_MAX_EMOJIS} unique emojis per message!`;
+      return interaction.editReply(
+        errorEmbed({
+          title: "Too Many Reactions",
+          description: `A role reaction message can contain a maximum of **${maxEmojis}** unique reaction emojis on your current tier. You provided **${validRoles.length}**.${upgradeMsg}`,
+        }),
+      );
+    }
 
     // Prepare message data
     const title = interaction.options.getString("title")?.replace(/\\n/g, "\n");
@@ -204,13 +176,6 @@ export async function handleSetup(interaction, client) {
       color = colorHex;
     }
     const hideList = interaction.options.getBoolean("hide_list") ?? false;
-
-    // Perform final permission check
-    const finalPermissionCheck = performFinalPermissionCheck(interaction);
-    if (!finalPermissionCheck.success) {
-      activeSetups.delete(interaction.id);
-      return interaction.editReply(finalPermissionCheck.errorResponse);
-    }
 
     // Create role-reaction message
     const messageResult = await createRoleReactionMessage(
@@ -564,6 +529,29 @@ export async function handleUpdate(interaction) {
         return interaction.editReply(result.errorResponse);
       }
       roleMapping = result.data.roleMapping;
+      const validRoles = result.data.validRoles;
+
+      const premiumManager = getPremiumManager();
+      const isPro = await premiumManager.isFeatureActive(
+        interaction.guild.id,
+        PremiumFeatures.PRO.id,
+      );
+      const maxEmojis = isPro
+        ? PRO_TIER.ROLE_REACTION_MAX_EMOJIS
+        : FREE_TIER.ROLE_REACTION_MAX_EMOJIS;
+
+      if (validRoles.length > maxEmojis) {
+        const upgradeMsg = isPro
+          ? ""
+          : `\n\n🚀 Upgrade to **Pro Engine** to use up to ${PRO_TIER.ROLE_REACTION_MAX_EMOJIS} unique emojis per message!`;
+        return interaction.editReply(
+          errorEmbed({
+            title: "Too Many Reactions",
+            description: `A role reaction message can contain a maximum of **${maxEmojis}** unique reaction emojis on your current tier. You provided **${validRoles.length}**.${upgradeMsg}`,
+          }),
+        );
+      }
+
       updates.roles = roleMapping;
     }
 

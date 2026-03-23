@@ -4,7 +4,50 @@
  */
 
 import { SlashCommandBuilder, MessageFlags } from "discord.js";
-import { handleCreate, handleDelete, handleList } from "./handlers.js";
+import {
+  handleCreate,
+  handleDelete,
+  handleList,
+  handleView,
+} from "./handlers.js";
+
+export const metadata = {
+  name: "role-bundle",
+  category: "admin",
+  description: "Manage reusable database role bundles",
+  keywords: ["role-bundle", "bundles", "packs", "role pack", "groups"],
+  emoji: "📦",
+  helpFields: [
+    {
+      name: `How to Use`,
+      value: [
+        "```/role-bundle create name:StarterPack roles:@Role1 @Role2```",
+        "```/role-bundle list```",
+        "```/role-bundle view name:StarterPack```",
+        "```/role-bundle delete name:StarterPack```",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `Integrating Bundles into Menus`,
+      value:
+        "Once a bundle is created, simply drop it into a `/role-reactions` menu natively by wrapping it in brackets: `💡:[StarterPack]`",
+      inline: false,
+    },
+    {
+      name: `Formatting Restrictions`,
+      value:
+        'All roles in a bundle must be separated by standard spaces. Role mentions, pure role names, and Role IDs are fully supported! If a Role Name has multiple words, wrap it in double quotes (e.g. `"My Role"`)',
+      inline: false,
+    },
+    {
+      name: `Tier Limitations`,
+      value:
+        "Free Tier is capped at bundling **5 Roles** securely. Upgrade to Pro Engine to immediately bundle massive **15 Role Arrays** at once!",
+      inline: false,
+    },
+  ],
+};
 
 /**
  * Role bundle command definition
@@ -33,7 +76,9 @@ export const command = {
         .addStringOption(option =>
           option
             .setName("roles")
-            .setDescription("Roles to include (e.g., @Role1 @Role2 @Role3)")
+            .setDescription(
+              "Ex: @Role1 @Role2 \"Role Name\" (Space separated. Max 5-15)",
+            )
             .setRequired(true),
         ),
     )
@@ -52,6 +97,17 @@ export const command = {
       subcommand
         .setName("list")
         .setDescription("List all role bundles in this server"),
+    )
+    .addSubcommand(subcommand =>
+      subcommand
+        .setName("view")
+        .setDescription("View roles in a specific role bundle")
+        .addStringOption(option =>
+          option
+            .setName("name")
+            .setDescription("Bundle name to view")
+            .setRequired(true),
+        ),
     ),
 
   /**
@@ -72,6 +128,9 @@ export const command = {
           break;
         case "list":
           await handleList(interaction);
+          break;
+        case "view":
+          await handleView(interaction);
           break;
         default:
           await interaction.reply({
