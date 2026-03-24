@@ -110,22 +110,22 @@ export async function createWinnerEmbed(giveaway, winners, client) {
     .setColor(THEME.SUCCESS)
     .addFields(
       {
-        name: "🎁 Prize",
+        name: "Prize",
         value: giveaway.prize,
         inline: true,
       },
       {
-        name: "🎉 Winners",
-        value: winnerMentions.join("\n"),
+        name: "Winners",
+        value: winnerMentions.join(", "),
         inline: false,
       },
       {
-        name: "📊 Total Entries",
+        name: "Total Entries",
         value: `${giveaway.entries.reduce((sum, e) => sum + e.count, 0).toLocaleString()}`,
         inline: true,
       },
       {
-        name: "👤 Host",
+        name: "Host",
         value: giveaway.host ? `<@${giveaway.host}>` : "Server Staff",
         inline: true,
       },
@@ -158,12 +158,12 @@ export function createNoEntriesEmbed(giveaway) {
     .setColor(THEME.ERROR)
     .addFields(
       {
-        name: "🎁 Prize",
+        name: "Prize",
         value: giveaway.prize,
         inline: true,
       },
       {
-        name: "👤 Host",
+        name: "Host",
         value: giveaway.host ? `<@${giveaway.host}>` : "Server Staff",
         inline: true,
       },
@@ -309,17 +309,17 @@ export function createEntryConfirmEmbed(giveaway, userEntries, totalEntries) {
     .setColor(THEME.SUCCESS)
     .addFields(
       {
-        name: "🎫 Your Entries",
+        name: "Your Entries",
         value: `${userEntries}`,
         inline: true,
       },
       {
-        name: "📊 Total Entries",
+        name: "Total Entries",
         value: `${totalEntries.toLocaleString()}`,
         inline: true,
       },
       {
-        name: "⏰ Ends",
+        name: "Ends",
         value: `<t:${Math.floor(giveaway.endTime.getTime() / 1000)}:R>`,
         inline: false,
       },
@@ -345,12 +345,12 @@ export function createWinnerDmEmbed(giveaway, guildName) {
     )
     .addFields(
       {
-        name: "📋 Next Steps",
+        name: "Next Steps",
         value: "Contact the giveaway host to claim your prize!",
         inline: false,
       },
       {
-        name: "⏰ Claim Period",
+        name: "Claim Period",
         value: "You have 48 hours to claim your prize.",
         inline: false,
       },

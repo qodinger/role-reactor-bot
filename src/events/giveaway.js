@@ -18,11 +18,13 @@ import {
   createEntryConfirmEmbed,
   createConfirmationEmbed,
   createWinnerDmEmbed,
+  createGiveawayListEmbed,
 } from "../commands/admin/giveaway/embeds.js";
 import {
   createActiveGiveawayActions,
   createEndedGiveawayActions,
   parseButtonCustomId,
+  createListPaginationButtons,
 } from "../commands/admin/giveaway/components.js";
 import {
   validateRequirements,
@@ -63,6 +65,9 @@ export async function handleGiveawayInteraction(interaction, _client) {
       break;
     case "giveaway_complete":
       await handleAdminComplete(interaction, parsed);
+      break;
+    case "giveaway_page":
+      await handleListPagination(interaction, parsed);
       break;
     default:
       await interaction.reply({
@@ -468,17 +473,82 @@ async function handleAdminComplete(interaction, parsed) {
       await giveawayManager.markClaimed(giveaway._id.toString(), winner.userId);
     }
 
-    await interaction.editReply({
-      embeds: [
-        createConfirmationEmbed(
-          "Giveaway Complete",
-          "All winners have been marked as claimed.",
-          "success",
-        ),
-      ],
+    // Preserve the existing embed but update the footer and strip all buttons
+    const existingEmbed = EmbedBuilder.from(interaction.message.embeds[0]);
+    existingEmbed.setFooter({
+      text: "Giveaway Completed • All Prizes Claimed!",
+    });
+
+    await interaction.message.edit({
+      embeds: [existingEmbed],
+      components: [],
+    });
+
+    // Provide a small quiet confirmation to the admin
+    await interaction.followUp({
+      content:
+        "All winners have been marked as claimed and the giveaway is now locked.",
+      flags: [MessageFlags.Ephemeral],
     });
   } catch (error) {
     logger.error("❌ Error handling admin complete:", error);
+  }
+}
+
+/**
+ * Handle listing pagination button clicks
+ * @param {Object} interaction - Discord interaction
+ * @param {Object} parsed - Parsed custom ID data
+ */
+async function handleListPagination(interaction, parsed) {
+  try {
+    const showAll = parsed.giveawayId === "all"; // 'all' or 'act' filter mapped to giveawayId slot
+    const page = parseInt(parsed.extra) || 1;
+    const limit = 4;
+
+    let giveaways;
+    if (showAll) {
+      giveaways = await giveawayManager.getAllForGuild(interaction.guild.id);
+    } else {
+      giveaways = await giveawayManager.getActiveForGuild(interaction.guild.id);
+    }
+
+    giveaways.sort((a, b) => {
+      const aTime = new Date(a.createdAt).getTime();
+      const bTime = new Date(b.createdAt).getTime();
+      return bTime - aTime;
+    });
+
+    const totalPages = Math.ceil(giveaways.length / limit);
+    const currentPage = Math.max(1, Math.min(page, totalPages || 1));
+    const skip = (currentPage - 1) * limit;
+    const paginatedGiveaways = giveaways.slice(skip, skip + limit);
+
+    const embed = createGiveawayListEmbed(
+      paginatedGiveaways,
+      interaction.guild,
+      currentPage,
+      totalPages,
+      giveaways.length,
+      interaction.client,
+      showAll,
+    );
+
+    const components =
+      totalPages > 1
+        ? [createListPaginationButtons(currentPage, totalPages, showAll)]
+        : [];
+
+    await interaction.update({
+      embeds: [embed],
+      components,
+    });
+  } catch (error) {
+    logger.error("❌ Error paginating giveaway list:", error);
+    await interaction.reply({
+      content: "Failed to load page. Please try again.",
+      flags: [MessageFlags.Ephemeral],
+    });
   }
 }
 
@@ -561,8 +631,8 @@ async function announceWinners(
         }
 
         endedEmbed.addFields({
-          name: "🎉 Winners",
-          value: winnerMentions.join("\n"),
+          name: "Winners",
+          value: winnerMentions.join(", "),
           inline: false,
         });
 

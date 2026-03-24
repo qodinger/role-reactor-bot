@@ -4,7 +4,42 @@
  */
 
 import { ButtonBuilder, ActionRowBuilder } from "discord.js";
-import { BUTTON_STYLES } from "../../../config/theme.js";
+import { BUTTON_STYLES, EMOJIS } from "../../../config/theme.js";
+
+/**
+ * Create pagination buttons for the giveaway list
+ * @param {number} currentPage 
+ * @param {number} totalPages 
+ * @param {boolean} showAll 
+ * @returns {ActionRowBuilder}
+ */
+export function createListPaginationButtons(currentPage, totalPages, showAll) {
+  const row = new ActionRowBuilder();
+  const filter = showAll ? "all" : "act";
+
+  row.addComponents(
+    new ButtonBuilder()
+      .setCustomId(`giveaway_page:${filter}:${Math.max(1, currentPage - 1)}`)
+      .setLabel("Previous")
+      .setStyle(BUTTON_STYLES.SECONDARY)
+      .setEmoji(EMOJIS.ACTIONS.BACK)
+      .setDisabled(currentPage <= 1),
+    
+    new ButtonBuilder()
+      .setCustomId(`giveaway_page:info:${currentPage}`)
+      .setLabel(`Page ${currentPage}/${totalPages}`)
+      .setStyle(BUTTON_STYLES.PRIMARY)
+      .setDisabled(true),
+
+    new ButtonBuilder()
+      .setCustomId(`giveaway_page:${filter}:${Math.min(totalPages, currentPage + 1)}`)
+      .setLabel("Next")
+      .setStyle(BUTTON_STYLES.SECONDARY)
+      .setEmoji(EMOJIS.ACTIONS.FORWARD)
+      .setDisabled(currentPage >= totalPages)
+  );
+  return row;
+}
 
 /**
  * Create the enter giveaway button
@@ -54,8 +89,7 @@ export function createCancelButton(giveawayId) {
   return new ButtonBuilder()
     .setCustomId(createCustomId("giveaway_cancel", giveawayId))
     .setLabel("Cancel")
-    .setStyle(BUTTON_STYLES.DANGER)
-    .setEmoji("🚫");
+    .setStyle(BUTTON_STYLES.DANGER);
 }
 
 /**
@@ -67,8 +101,7 @@ export function createCompleteButton(giveawayId) {
   return new ButtonBuilder()
     .setCustomId(createCustomId("giveaway_complete", giveawayId))
     .setLabel("Mark Complete")
-    .setStyle(BUTTON_STYLES.SUCCESS)
-    .setEmoji("✅");
+    .setStyle(BUTTON_STYLES.SUCCESS);
 }
 
 /**

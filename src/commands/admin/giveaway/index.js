@@ -18,6 +18,56 @@ import {
   handleDelete,
 } from "./handlers.js";
 
+export const metadata = {
+  name: "giveaway",
+  category: "admin",
+  description: "Create and manage high-capacity server giveaways",
+  keywords: ["giveaway", "raffle", "drop", "contest"],
+  emoji: "🎁",
+  helpFields: [
+    {
+      name: `How to Use`,
+      value: [
+        "```/giveaway create prize:Nitro winners:1 duration:24h```",
+        "```/giveaway list```",
+        "```/giveaway end giveaway-id:12345```",
+        "```/giveaway reroll giveaway-id:12345```",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `Subcommands`,
+      value: [
+        "**create** - Create a new customized giveaway",
+        "**list** - List all active giveaways on the server",
+        "**edit** - Edit an active giveaway's rules or prize",
+        "**end** - End a giveaway early and draw winners",
+        "**reroll** - Reroll a giveaway to select new winners",
+        "**cancel** - Void a giveaway completely",
+        "**delete** - Purge a giveaway from the database",
+      ].join("\n"),
+      inline: false,
+    },
+    {
+      name: `Permissions`,
+      value: "• **Manage Server** permission required",
+      inline: false,
+    },
+    {
+      name: `Advanced Requirements`,
+      value:
+        "When creating a giveaway, you can strictly restrict entry to specific subsets of your community! You can require a specific **Role**, a minimum **XP Level**, a minimum **Server Age**, or even strictly require a **Top.gg Vote** within the last 12 hours!",
+      inline: false,
+    },
+    {
+      name: `Tier Limitations`,
+      value:
+        "Free Tier safely supports up to **2,500 active entries**, **5 simultaneous Winners**, and **3 Active Giveaways**. Upgrade to Pro Engine to safely host massive server events supporting **50,000 Entries** and up to **20 simultaneous Winners** with automatic DMs!",
+      inline: false,
+    },
+  ],
+};
+
 /**
  * Giveaway command definition
  */

@@ -46,6 +46,7 @@ export const PremiumFeatures = {
 export const FREE_TIER = {
   LEVEL_REWARDS_MAX: 5,
   REWARD_MODE: "stack", // Only stack is free; replace requires Pro
+  GIVEAWAY_MAX_ACTIVE: 3,
   GIVEAWAY_MAX_ENTRIES: 2500,
   GIVEAWAY_MAX_WINNERS: 5,
   SCHEDULE_MAX_ACTIVE: 25,
@@ -60,6 +61,7 @@ export const FREE_TIER = {
  */
 export const PRO_TIER = {
   LEVEL_REWARDS_MAX: -1, // Unlimited
+  GIVEAWAY_MAX_ACTIVE: 20, // 6x free tier
   GIVEAWAY_MAX_ENTRIES: 50000, // Balanced for VPS safety (Reduced from 100k)
   GIVEAWAY_MAX_WINNERS: 20, // 4x free tier
   SCHEDULE_MAX_ACTIVE: 500, // 20x free tier

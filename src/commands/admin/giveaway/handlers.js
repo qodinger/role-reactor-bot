@@ -10,7 +10,10 @@ import {
   createConfirmationEmbed,
   createGiveawayListEmbed,
 } from "./embeds.js";
-import { createActiveGiveawayActions } from "./components.js";
+import {
+  createActiveGiveawayActions,
+  createListPaginationButtons,
+} from "./components.js";
 import {
   parseDuration,
   validateGiveawayCreation,
@@ -95,11 +98,34 @@ export async function handleCreate(interaction) {
       });
     }
 
-    // Check winners limit based on tier
+    // Get premium status
     const isPro = await giveawayManager.premiumManager.isFeatureActive(
       interaction.guild.id,
       "pro_engine",
     );
+
+    // Limit Check 1: Max Active Giveaways
+    const maxActive = isPro
+      ? PRO_TIER.GIVEAWAY_MAX_ACTIVE
+      : FREE_TIER.GIVEAWAY_MAX_ACTIVE;
+
+    const activeGiveaways = await giveawayManager.getActiveForGuild(
+      interaction.guild.id,
+    );
+
+    if (activeGiveaways.length >= maxActive) {
+      return interaction.editReply({
+        embeds: [
+          createConfirmationEmbed(
+            "Account Limit Reached",
+            `You already have **${activeGiveaways.length}** active giveaways! This is the strict maximum limit for your plan.\n\n${!isPro ? `Upgrade to **Pro Engine ✨** to instantly unlock capacity for **${PRO_TIER.GIVEAWAY_MAX_ACTIVE} simultaneous giveaways**!\nEnable it on our [website](https://rolereactor.app) with Cores.` : "You have reached the maximum active capacity for Pro Engine."}`,
+            "error",
+          ),
+        ],
+      });
+    }
+
+    // Limit Check 2: Max Winners
     const maxWinners = isPro
       ? PRO_TIER.GIVEAWAY_MAX_WINNERS
       : FREE_TIER.GIVEAWAY_MAX_WINNERS;
@@ -219,7 +245,7 @@ export async function handleList(interaction) {
 
     const page = interaction.options.getInteger("page") || 1;
     const showAll = interaction.options.getBoolean("show-all") || false;
-    const limit = 10;
+    const limit = 4; // Display 4 per page to prevent massive vertical embeds
 
     let giveaways;
     if (showAll) {
@@ -251,8 +277,14 @@ export async function handleList(interaction) {
       showAll,
     );
 
+    const components =
+      totalPages > 1
+        ? [createListPaginationButtons(currentPage, totalPages, showAll)]
+        : [];
+
     return interaction.editReply({
       embeds: [embed],
+      components,
       flags: [MessageFlags.Ephemeral],
     });
   } catch (error) {
