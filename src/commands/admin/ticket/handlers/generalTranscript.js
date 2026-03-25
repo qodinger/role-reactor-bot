@@ -1,3 +1,4 @@
+import { CORE_STATUS } from "../../../../features/premium/config.js";
 import {
   AttachmentBuilder,
   ActionRowBuilder,
@@ -109,8 +110,8 @@ export async function handleTranscript(interaction) {
     return interaction.editReply({
       embeds: [
         createErrorEmbed(
-          `The **${format.toUpperCase()}** export format is only available with **Pro Engine ✨**.\n\n` +
-            "Upgrade to **Pro Engine ✨** to unlock HTML transcripts, data exports, and unlimited retention! Enable it on our **[website](https://rolereactor.app)** using Cores.",
+          `The **${format.toUpperCase()}** export format is only available with **${CORE_STATUS.PRO.emoji} Pro Engine**.\n\n` +
+            "Upgrade to **${CORE_STATUS.PRO.emoji} Pro Engine** to unlock HTML transcripts, data exports, and unlimited retention! Enable it on our **[website](https://rolereactor.app)** using Cores.",
           "Premium Feature",
           interaction.client,
         ),

@@ -1,3 +1,4 @@
+import { CORE_STATUS } from "../premium/config.js";
 import { getStorageManager } from "../../utils/storage/storageManager.js";
 import { getPremiumManager } from "../premium/PremiumManager.js";
 import { getLogger } from "../../utils/logger.js";
@@ -77,7 +78,7 @@ export class TicketManager {
       const limitCheck = await this.checkTicketLimit(guildId);
       if (limitCheck.hasReachedLimit) {
         throw new Error(
-          `Ticket limit reached (${limitCheck.current}/${limitCheck.max}). Upgrade to **Pro Engine ✨** for more! Enable it on our **[website](https://rolereactor.app)** using Cores.`,
+          `Ticket limit reached (${limitCheck.current}/${limitCheck.max}). Upgrade to **${CORE_STATUS.PRO.emoji} Pro Engine** for more! Enable it on our **[website](https://rolereactor.app)** using Cores.`,
         );
       }
 

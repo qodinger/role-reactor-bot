@@ -11,4 +11,4 @@
 export { handleClaim } from "./staffClaim.js";
 export { handleClose } from "./staffClose.js";
 export { handleAdd, handleRemove } from "./staffMembers.js";
-export { handleTransfer, handleRename, handleAlert } from "./staffManage.js";
+export { handleTransfer, handleRename } from "./staffManage.js";

@@ -75,53 +75,34 @@ async function handleInfoView(
     "Current ticket system limits and settings.",
     interaction.client,
   ).addFields(
-    { name: "Staff Role", value: staffRoleDisplay, inline: true },
-    { name: "Staff Alerts", value: notifyChannelDisplay, inline: true },
-    { name: "Log Channel", value: logChannelDisplay, inline: true },
     {
-      name: "Member Export",
-      value: userTranscriptsDisplay,
-      inline: true,
+      name: "⚙️ System Configuration",
+      value: [
+        `**Staff Role:** ${staffRoleDisplay}`,
+        `**Staff Alerts:** ${notifyChannelDisplay}`,
+        `**Log Channel:** ${logChannelDisplay}`,
+        `**User Self-Exports:** ${userTranscriptsDisplay}`,
+      ].join("\n"),
+      inline: false,
     },
     {
-      name: "Panels",
-      value: `${panels.length} / ${limits.MAX_PANELS}`,
-      inline: true,
+      name: "📊 Limits & Usage",
+      value: [
+        `**Tier Plan:** ${ticketLimit.isPro ? `${CORE_STATUS.PRO.emoji} ${CORE_STATUS.PRO.label}` : CORE_STATUS.REGULAR.label}`,
+        `**Monthly Tickets:** ${ticketLimit.current} / ${limits.MAX_TICKETS_PER_MONTH}`,
+        `**Active Panels:** ${panels.length} / ${limits.MAX_PANELS}`,
+        `**Max Categories:** ${limits.MAX_CATEGORIES} per Panel`,
+      ].join("\n"),
+      inline: false,
     },
     {
-      name: "Monthly Tickets",
-      value: `${ticketLimit.current} / ${limits.MAX_TICKETS_PER_MONTH}`,
-      inline: true,
-    },
-    {
-      name: "Tier",
-      value: ticketLimit.isPro
-        ? CORE_STATUS.PRO.label
-        : CORE_STATUS.REGULAR.label,
-      inline: true,
-    },
-    {
-      name: "Storage Usage",
-      value: `${storageUsage.totalTranscripts} files • ${storageUsage.totalSizeMB} MB`,
-      inline: true,
-    },
-    {
-      name: "Categories",
-      value: `${limits.MAX_CATEGORIES} ${ticketLimit.isPro ? "(Pro)" : "(Free)"}`,
-      inline: true,
-    },
-    {
-      name: "Retention",
-      value:
-        limits.TRANSCRIPT_RETENTION_DAYS === -1
-          ? "Unlimited"
-          : `${limits.TRANSCRIPT_RETENTION_DAYS} days`,
-      inline: true,
-    },
-    {
-      name: "Exports",
-      value: limits.EXPORT_FORMATS.map(f => f.toUpperCase()).join(", "),
-      inline: true,
+      name: "💾 Storage & Data",
+      value: [
+        `**Usage:** ${storageUsage.totalTranscripts} files (${storageUsage.totalSizeMB} MB)`,
+        `**Retention:** ${limits.TRANSCRIPT_RETENTION_DAYS === -1 ? "Unlimited" : `${limits.TRANSCRIPT_RETENTION_DAYS} Days`}`,
+        `**Exports:** ${limits.EXPORT_FORMATS.map(f => f.toUpperCase()).join(", ")}`,
+      ].join("\n"),
+      inline: false,
     },
   );
 

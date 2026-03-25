@@ -6,6 +6,7 @@ import {
   ChannelSelectMenuBuilder,
   EmbedBuilder,
   MessageFlags,
+  PermissionFlagsBits,
 } from "discord.js";
 import { getTicketPanel } from "../../../../features/ticketing/TicketPanel.js";
 import { getTicketManager } from "../../../../features/ticketing/TicketManager.js";
@@ -14,7 +15,6 @@ import { createInfoEmbed } from "../../../../features/ticketing/embeds.js";
 
 import { getMentionableCommand } from "../../../../utils/commandUtils.js";
 import { EMOJIS, THEME } from "../../../../config/theme.js";
-import { CORE_STATUS } from "../../../../features/premium/config.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // /ticket settings — Interactive Dashboard
@@ -60,10 +60,6 @@ export async function handleSettings(interaction) {
       ? `${EMOJIS.STATUS.SUCCESS} Enabled`
       : `⚫ Disabled`;
 
-    const tierDisplay = ticketLimit.isPro
-      ? `${CORE_STATUS.PRO.emoji} ${CORE_STATUS.PRO.label}`
-      : `${EMOJIS.ACTIONS.FREE} ${CORE_STATUS.REGULAR.label}`;
-
     const embed = new EmbedBuilder()
       .setTitle("Ticketing System")
       .setDescription("Configure support tickets for your server")
@@ -90,7 +86,7 @@ export async function handleSettings(interaction) {
           inline: true,
         },
         {
-          name: "Member Export",
+          name: "Member Self-Export",
           value: accessDisplay,
           inline: true,
         },
@@ -102,11 +98,6 @@ export async function handleSettings(interaction) {
         {
           name: "Tickets Used",
           value: `${ticketLimit.current} / ${ticketLimit.max}`,
-          inline: true,
-        },
-        {
-          name: "Tier",
-          value: tierDisplay,
           inline: true,
         },
       ]);
@@ -131,8 +122,8 @@ export async function handleSettings(interaction) {
         .setCustomId("t_set_access")
         .setLabel(
           allowUserTranscripts
-            ? "Disable Member Export"
-            : "Enable Member Export",
+            ? "Disable Member Self-Export"
+            : "Enable Member Self-Export",
         )
         .setStyle(ButtonStyle.Secondary),
       new ButtonBuilder()
@@ -291,6 +282,32 @@ export async function handleSettings(interaction) {
 
     if (i.customId === "t_chan_select") {
       const channelId = i.values[0];
+
+      try {
+        const channel = await interaction.guild.channels.fetch(channelId);
+        const everyonePerms = channel.permissionsFor(
+          interaction.guild.roles.everyone,
+        );
+        const isPublic = everyonePerms.has(PermissionFlagsBits.ViewChannel);
+
+        if (isPublic) {
+          const backRow = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+              .setCustomId("t_back")
+              .setLabel("Back to Settings")
+              .setStyle(ButtonStyle.Secondary),
+          );
+
+          return await i.editReply({
+            content: `### ❌ Security Warning\nThe selected channel (<#${channelId}>) is **public**!\n\nTranscripts contain private chat histories, IPs, or sensitive screenshots. For safety, you **must** select a private channel where the \`@everyone\` role cannot view messages.`,
+            embeds: [],
+            components: [backRow],
+          });
+        }
+      } catch (_err) {
+        // If channel cannot be fetched due to weird perms, just proceed to set it
+      }
+
       const settings =
         await ticketManager.storage.dbManager.guildSettings.getByGuild(guildId);
       settings.ticketSettings = settings.ticketSettings || {};

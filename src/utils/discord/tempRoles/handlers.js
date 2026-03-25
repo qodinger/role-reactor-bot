@@ -3,7 +3,7 @@ import { getDatabaseManager } from "../../storage/databaseManager.js";
 import { getLogger } from "../../logger.js";
 import { getCachedMember, bulkAddRoles } from "../roleManager.js";
 import { sendAssignmentNotification } from "./embeds.js";
-import { FREE_TIER, PRO_TIER } from "../../../features/premium/config.js";
+import { FREE_TIER, PRO_TIER, CORE_STATUS } from "../../../features/premium/config.js";
 import { getPremiumManager } from "../../../features/premium/PremiumManager.js";
 
 // Constants
@@ -154,7 +154,7 @@ export async function addTemporaryRolesForMultipleUsers(
       logger.warn(
         `Too many users requested: ${userIds.length} (max: ${maxUsers})`,
       );
-      const errorMsg = `Too many users. Maximum allowed: ${maxUsers}, requested: ${userIds.length}. ${isPro ? "" : "Upgrade to **Pro Engine ✨** for higher limits! Enable it on our **[website](https://rolereactor.app)** using Cores. You can purchase Cores on the site or earn them for free with /vote."}`;
+      const errorMsg = `Too many users. Maximum allowed: ${maxUsers}, requested: ${userIds.length}. ${isPro ? "" : `Upgrade to **${CORE_STATUS.PRO.emoji} Pro Engine** for higher limits! Enable it on our **[website](https://rolereactor.app)** using Cores. You can purchase Cores on the site or earn them for free with /vote.`}`;
       return {
         success: 0,
         failed: userIds.length,

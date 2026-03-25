@@ -1,3 +1,4 @@
+import { CORE_STATUS } from "../premium/config.js";
 import { getStorageManager } from "../../utils/storage/storageManager.js";
 import { getPremiumManager } from "../premium/PremiumManager.js";
 import { getLogger } from "../../utils/logger.js";
@@ -77,7 +78,7 @@ export class TicketPanel {
         return {
           success: false,
           error: createErrorEmbed(
-            `Maximum ${maxCategories} categories allowed.${!isPro ? " Upgrade to **Pro Engine ✨** for more! Enable it on our **[website](https://rolereactor.app)** using Cores." : ""}`,
+            `Maximum ${maxCategories} categories allowed.${!isPro ? ` Upgrade to **${CORE_STATUS.PRO.emoji} Pro Engine** for more! Enable it on our **[website](https://rolereactor.app)** using Cores.` : ""}`,
           ),
         };
       }

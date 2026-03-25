@@ -1,3 +1,4 @@
+import { CORE_STATUS } from "../../../../features/premium/config.js";
 import { MessageFlags } from "discord.js";
 import { getTicketPanel } from "../../../../features/ticketing/TicketPanel.js";
 import { getTicketManager } from "../../../../features/ticketing/TicketManager.js";
@@ -89,7 +90,7 @@ async function handlePanelCategoryAdd(interaction) {
     return interaction.editReply({
       embeds: [
         createErrorEmbed(
-          `Maximum ${maxCategories} categories allowed for this panel.${!ticketLimit.isPro ? " Upgrade to **Pro Engine ✨** for more! Enable it on our **[website](https://rolereactor.app)** using Cores." : ""}`,
+          `Maximum ${maxCategories} categories allowed for this panel.${!ticketLimit.isPro ? ` Upgrade to **${CORE_STATUS.PRO.emoji} Pro Engine** for more! Enable it on our **[website](https://rolereactor.app)** using Cores.` : ""}`,
           "Limit Reached",
           interaction.client,
         ),

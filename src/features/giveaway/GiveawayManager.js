@@ -3,7 +3,7 @@ import { ObjectId } from "mongodb";
 import { randomBytes } from "crypto";
 import { getLogger } from "../../utils/logger.js";
 import { getDatabaseManager } from "../../utils/storage/databaseManager.js";
-import { FREE_TIER, PRO_TIER } from "../premium/config.js";
+import { FREE_TIER, PRO_TIER, CORE_STATUS } from "../premium/config.js";
 import { getPremiumManager } from "../premium/PremiumManager.js";
 
 const logger = getLogger();
@@ -432,7 +432,7 @@ class GiveawayManager extends EventEmitter {
       if (currentTotal + entries > maxEntries) {
         return {
           success: false,
-          error: `This giveaway has reached the maximum entry limit of ${maxEntries.toLocaleString()}. ${isPro ? "" : "Upgrade to **Pro Engine ✨** for unlimited entries! Enable it on our **[website](https://rolereactor.app)** using Cores."}`,
+          error: `This giveaway has reached the maximum entry limit of ${maxEntries.toLocaleString()}. ${isPro ? "" : `Upgrade to **${CORE_STATUS.PRO.emoji} Pro Engine** for unlimited entries! Enable it on our **[website](https://rolereactor.app)** using Cores.`}`,
         };
       }
 

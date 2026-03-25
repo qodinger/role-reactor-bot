@@ -24,7 +24,6 @@ import {
   handleTransfer,
   handleRemove,
   handleRename,
-  handleAlert,
 } from "./handlers/staff.js";
 
 const logger = getLogger();
@@ -56,7 +55,6 @@ export const metadata = {
         "```/ticket remove member:@User```",
         "```/ticket transfer staff:@SeniorStaff```",
         "```/ticket rename name:bug-report```",
-        "```/ticket alert```",
       ].join("\n"),
       inline: false,
     },
@@ -77,7 +75,6 @@ export const metadata = {
         "**remove** - Remove member from current ticket (Staff)",
         "**transfer** - Transfer ticket to another staff (Staff)",
         "**rename** - Rename the ticket channel (Staff)",
-        "**alert** - Ping the staff or ticket owner (Owner/Staff)",
         "**transcript** - Export chat history (Owner/Staff)",
       ].join("\n"),
       inline: false,
@@ -87,7 +84,7 @@ export const metadata = {
       value: [
         "**Setup/Config** - Manage Server permission",
         "**Claim/Add/Remove/Transfer/Rename** - Staff role",
-        "**Close/Alert/Transcript** - Ticket creator or staff",
+        "**Close/Transcript** - Ticket creator or staff",
         "**List/View** - Members",
       ].join("\n"),
       inline: false,
@@ -142,15 +139,6 @@ export const data = new SlashCommandBuilder()
           .setDescription("Choose a color for the embed")
           .setRequired(false)
           .addChoices(...getColorChoices()),
-      )
-      .addChannelOption(opt =>
-        opt
-          .setName("category")
-          .setDescription(
-            "Category to create tickets in (defaults to panel category)",
-          )
-          .setRequired(false)
-          .addChannelTypes(4),
       ),
   )
 
@@ -367,11 +355,6 @@ export const data = new SlashCommandBuilder()
           .setRequired(true)
           .setMaxLength(100),
       ),
-  )
-  .addSubcommand(sub =>
-    sub
-      .setName("alert")
-      .setDescription("Ping the claimed staff or ticket owner for attention"),
   );
 
 // ============================================================================
@@ -441,8 +424,6 @@ export async function execute(interaction) {
         return await handleRemove(interaction);
       case "rename":
         return await handleRename(interaction);
-      case "alert":
-        return await handleAlert(interaction);
       default:
         return interaction.reply({
           embeds: [
