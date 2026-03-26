@@ -40,8 +40,6 @@ export const serverConfig = {
     dockerCheck: process.env.DOCKER_HEALTH_CHECK !== "false",
   },
 
-
-
   // Server metadata
   metadata: {
     name: "Role Reactor Bot API Server",
@@ -177,6 +175,5 @@ export function getStartupInfo() {
     corsEnabled: true,
     loggingEnabled: serverConfig.logging.enabled,
     healthChecksEnabled: serverConfig.health.enabled,
-
   };
 }

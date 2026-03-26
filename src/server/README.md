@@ -62,7 +62,6 @@ src/server/
 
 ### Webhooks
 
-
 - `POST /webhook/crypto` - Crypto payment webhook handler
 
 ### API
