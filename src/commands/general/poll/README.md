@@ -75,15 +75,14 @@ poll/
 
 ### User Permissions
 
-- **Create**: Send Messages permission
-- **List**: Send Messages permission (public)
+- **Create**: None (Available to all)
+- **List**: None (Available to all)
 - **End/Delete**: Poll creator or Manage Messages permission
 
 ### Bot Permissions
 
-- **Send Messages**: Required for all operations
-- **Embed Links**: Required for poll display
-- **Manage Messages**: Required for poll deletion
+- **Core Operations**: None (Slash Command interactions inherently grant the ability to reply with Native Polls & Embeds)
+- **Manage Messages**: Required for early poll deletion
 
 ## Key Features
 

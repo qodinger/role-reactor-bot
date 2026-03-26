@@ -35,8 +35,7 @@ Returns a random "Would You Rather" question with interactive voting buttons.
 
 ## Permissions Required
 
-- `Send Messages` permission
-- `Embed Links` permission
+- None (Slash Command interactions inherently grant the ability to reply with embeds)
 - `Use External Emojis` permission (for button emojis)
 
 ## Key Features

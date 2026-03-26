@@ -62,7 +62,7 @@ export const metadata = {
     {
       name: `Permissions`,
       value:
-        "• **Send Messages** permission required\n• **Create Polls** - Anyone can create polls\n• **Manage Polls** - Poll creators and admins can close polls",
+        "• **Create Polls** - Anyone can create polls\n• **Manage Polls** - Poll creators and admins can close polls",
       inline: false,
     },
     {

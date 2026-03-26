@@ -60,8 +60,7 @@ Following the modular pattern established by other general commands:
 
 ## Permissions Required
 
-- `Send Messages` permission
-- `Embed Links` permission
+- None (Slash Command interactions inherently grant the ability to reply with embeds)
 
 ## Key Features
 

@@ -30,7 +30,7 @@ Following the modular pattern established by other general commands:
 
 ## Permissions Required
 
-- `Send Messages` permission
+- None (Slash Command interactions inherently grant the ability to reply with text/embeds)
 - All users can access
 
 ## Key Features

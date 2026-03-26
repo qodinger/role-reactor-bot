@@ -43,8 +43,7 @@ Following the modular pattern established by other developer commands:
 ## Permissions Required
 
 - **Developer** access required
-- `Send Messages` permission
-- `Embed Links` permission
+- None (Slash Command interactions inherently grant the ability to reply with embeds)
 - `Attach Files` permission
 
 ## Key Features

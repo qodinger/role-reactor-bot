@@ -33,7 +33,7 @@ export const metadata = {
     },
     {
       name: `Permissions`,
-      value: "• **Send Messages** permission required",
+      value: "• None required",
       inline: false,
     },
     {
