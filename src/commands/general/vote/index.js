@@ -118,8 +118,13 @@ export const command = {
       console.error("Vote command error:", error);
 
       if (!interaction.replied && !interaction.deferred) {
+        const errorEmbed = new EmbedBuilder()
+          .setTitle("Vote Error")
+          .setDescription("Failed to show vote information. Please try again.")
+          .setColor(THEME.ERROR);
+
         await interaction.reply({
-          content: "❌ Failed to show vote information. Please try again.",
+          embeds: [errorEmbed],
           flags: [MessageFlags.Ephemeral],
         });
       }

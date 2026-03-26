@@ -11,7 +11,10 @@ import {
 import { getTicketPanel } from "../../../../features/ticketing/TicketPanel.js";
 import { getTicketManager } from "../../../../features/ticketing/TicketManager.js";
 import { getTicketTranscript } from "../../../../features/ticketing/TicketTranscript.js";
-import { createInfoEmbed } from "../../../../features/ticketing/embeds.js";
+import {
+  createInfoEmbed,
+  createErrorEmbed,
+} from "../../../../features/ticketing/embeds.js";
 
 import { getMentionableCommand } from "../../../../utils/commandUtils.js";
 import { EMOJIS, THEME } from "../../../../config/theme.js";
@@ -269,6 +272,26 @@ export async function handleSettings(interaction) {
     // Handle Select Menus
     if (i.customId === "t_role_select") {
       const roleId = i.values[0];
+
+      try {
+        const role = await interaction.guild.roles.fetch(roleId);
+        if (role && !role.permissions.has(PermissionFlagsBits.ManageMessages)) {
+          await i.followUp({
+            embeds: [
+              createErrorEmbed(
+                `The selected role (<@&${roleId}>) does not have the **Manage Messages** permission in Discord.\n\nPlease enable the \`Manage Messages\` permission for this role in your Server Settings (Roles menu) to allow them to use ticket commands.`,
+                "Invalid Role",
+                i.client,
+              ),
+            ],
+            flags: [MessageFlags.Ephemeral],
+          });
+          return await renderDashboard(i);
+        }
+      } catch (err) {
+        // Ignore if role couldn't be fetched
+      }
+
       const settings =
         await ticketManager.storage.dbManager.guildSettings.getByGuild(guildId);
       settings.ticketSettings = settings.ticketSettings || {};
@@ -291,18 +314,17 @@ export async function handleSettings(interaction) {
         const isPublic = everyonePerms.has(PermissionFlagsBits.ViewChannel);
 
         if (isPublic) {
-          const backRow = new ActionRowBuilder().addComponents(
-            new ButtonBuilder()
-              .setCustomId("t_back")
-              .setLabel("Back to Settings")
-              .setStyle(ButtonStyle.Secondary),
-          );
-
-          return await i.editReply({
-            content: `### ❌ Security Warning\nThe selected channel (<#${channelId}>) is **public**!\n\nTranscripts contain private chat histories, IPs, or sensitive screenshots. For safety, you **must** select a private channel where the \`@everyone\` role cannot view messages.`,
-            embeds: [],
-            components: [backRow],
+          await i.followUp({
+            embeds: [
+              createErrorEmbed(
+                `The selected channel (<#${channelId}>) is **public**!\n\nTranscripts contain private chat histories, IPs, or sensitive screenshots. For safety, you **must** select a private channel where the \`@everyone\` role cannot view messages.`,
+                "Security Warning",
+                i.client,
+              ),
+            ],
+            flags: [MessageFlags.Ephemeral],
           });
+          return await renderDashboard(i);
         }
       } catch (_err) {
         // If channel cannot be fetched due to weird perms, just proceed to set it
@@ -337,21 +359,17 @@ export async function handleSettings(interaction) {
       const openCount = await ticketManager.storage.countOpenTickets(guildId);
 
       if (openCount > 0) {
-        const backRow = new ActionRowBuilder().addComponents(
-          new ButtonBuilder()
-            .setCustomId("t_back")
-            .setLabel("Back to Settings")
-            .setStyle(ButtonStyle.Secondary),
-        );
-
-        return await i.editReply({
-          content:
-            `### ⚠️ Cannot Reset Tickets\n` +
-            `There are still **${openCount}** open ticket(s).\n\n` +
-            `Please close all tickets before resetting to avoid orphaned threads with broken buttons.`,
-          embeds: [],
-          components: [backRow],
+        await i.followUp({
+          embeds: [
+            createErrorEmbed(
+              `There are still **${openCount}** open ticket(s).\n\nPlease close all tickets before resetting to avoid orphaned threads with broken buttons.`,
+              "Cannot Reset Tickets",
+              i.client,
+            ),
+          ],
+          flags: [MessageFlags.Ephemeral],
         });
+        return await renderDashboard(i);
       }
 
       const confirmRow = new ActionRowBuilder().addComponents(
@@ -366,8 +384,8 @@ export async function handleSettings(interaction) {
       );
 
       return await i.editReply({
-        content: `### ⚠️ Reset Tickets\nThis will permanently delete:\n- All closed tickets\n- All saved transcripts\n- Reset the counter to \`#0001\`\n\nYour **panels** and **settings** will not be affected.\n\n**This action cannot be undone.**`,
-        embeds: [],
+        content: "",
+        embeds: [createErrorEmbed(`This will permanently delete:\n- All closed tickets\n- All saved transcripts\n- Reset the counter to \`#0001\`\n\nYour **panels** and **settings** will not be affected.\n\n**This action cannot be undone.**`, "⚠️ Confirm Data Reset", i.client)],
         components: [confirmRow],
       });
     }

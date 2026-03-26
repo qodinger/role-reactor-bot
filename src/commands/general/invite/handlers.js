@@ -1,4 +1,5 @@
-import { MessageFlags } from "discord.js";
+import { MessageFlags, EmbedBuilder } from "discord.js";
+import { THEME } from "../../../config/theme.js";
 import { getDefaultInviteLink } from "../../../utils/discord/invite.js";
 import { createInviteEmbed } from "./embeds.js";
 import { createInviteButtons } from "./components.js";
@@ -29,8 +30,16 @@ export async function execute(interaction, client) {
       components: [buttons],
     });
   } catch (_error) {
+    const errorEmbed = new EmbedBuilder()
+      .setTitle("Invite Error")
+      .setDescription(
+        "Unable to generate invite link. Please try again later or contact support.",
+      )
+      .setColor(THEME.ERROR || 0xfca5a5);
+
     await interaction.editReply({
-      content: `❌ Unable to generate invite link. Please try again later or contact support.`,
+      content: "",
+      embeds: [errorEmbed],
     });
   }
 }

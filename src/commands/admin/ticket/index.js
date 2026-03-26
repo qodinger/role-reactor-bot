@@ -12,11 +12,7 @@ import {
   handlePanel,
   handleSettings,
 } from "./handlers/admin.js";
-import {
-  handleList,
-  handleView,
-  handleTranscript,
-} from "./handlers/general.js";
+import { handleTranscript } from "./handlers/general.js";
 import {
   handleClaim,
   handleClose,
@@ -47,9 +43,6 @@ export const metadata = {
         "```/ticket info action:stats```",
         "```/ticket panel list```",
         "```/ticket panel delete panel-id:1```",
-        "```/ticket list status:open```",
-        "```/ticket view ticket-id:00001```",
-        "```/ticket claim```",
         "```/ticket close reason:Issue resolved```",
         "```/ticket add member:@Staff```",
         "```/ticket remove member:@User```",
@@ -67,9 +60,6 @@ export const metadata = {
 
         "**panel list** - List all ticket panels in the server (Manage Server)",
         "**panel delete** - Delete a ticket panel by ID (Manage Server)",
-        "**list** - View your tickets with status filter (Members)",
-        "**view** - View details of a specific ticket (Members)",
-        "**claim** - Claim the current ticket (Staff)",
         "**close** - Close ticket with optional reason (Owner/Staff)",
         "**add** - Add member to current ticket (Staff)",
         "**remove** - Remove member from current ticket (Staff)",
@@ -83,9 +73,8 @@ export const metadata = {
       name: `Permissions`,
       value: [
         "**Setup/Config** - Manage Server permission",
-        "**Claim/Add/Remove/Transfer/Rename** - Staff role",
+        "**Add/Remove/Transfer/Rename** - Staff role",
         "**Close/Transcript** - Ticket creator or staff",
-        "**List/View** - Members",
       ].join("\n"),
       inline: false,
     },
@@ -107,6 +96,8 @@ export const metadata = {
 export const data = new SlashCommandBuilder()
   .setName("ticket")
   .setDescription("Manage the ticket support system")
+  .setDMPermission(false)
+  .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
 
   // Admin commands
   .addSubcommand(sub =>
@@ -171,112 +162,10 @@ export const data = new SlashCommandBuilder()
               .setDescription("Panel number to delete (e.g., 1)")
               .setRequired(true),
           ),
-      )
-      .addSubcommand(sub =>
-        sub
-          .setName("add-category")
-          .setDescription("Add a new category (department) to a ticket panel")
-          .addStringOption(opt =>
-            opt
-              .setName("panel-id")
-              .setDescription("The panel to add the category to")
-              .setRequired(true),
-          )
-          .addStringOption(opt =>
-            opt
-              .setName("label")
-              .setDescription("The button label (e.g., Bug Report)")
-              .setRequired(true)
-              .setMaxLength(80),
-          )
-          .addStringOption(opt =>
-            opt
-              .setName("id")
-              .setDescription("A unique keyword for this category (e.g., bug)")
-              .setRequired(true)
-              .setMaxLength(20),
-          )
-          .addStringOption(opt =>
-            opt
-              .setName("emoji")
-              .setDescription("Emoji for the button")
-              .setRequired(false),
-          )
-          .addStringOption(opt =>
-            opt
-              .setName("description")
-              .setDescription(
-                "Custom description for the ticket welcome message",
-              )
-              .setRequired(false)
-              .setMaxLength(500),
-          )
-          .addStringOption(opt =>
-            opt
-              .setName("color")
-              .setDescription("Embed color for this category")
-              .setRequired(false)
-              .addChoices(...getColorChoices()),
-          ),
-      )
-      .addSubcommand(sub =>
-        sub
-          .setName("remove-category")
-          .setDescription("Remove a category from a ticket panel")
-          .addStringOption(opt =>
-            opt
-              .setName("panel-id")
-              .setDescription("The panel to remove the category from")
-              .setRequired(true),
-          )
-          .addStringOption(opt =>
-            opt
-              .setName("category-id")
-              .setDescription("The ID of the category to remove")
-              .setRequired(true),
-          ),
-      )
-      .addSubcommand(sub =>
-        sub
-          .setName("list-categories")
-          .setDescription("List all categories for a ticket panel")
-          .addStringOption(opt =>
-            opt
-              .setName("panel-id")
-              .setDescription("The panel to list categories for")
-              .setRequired(true),
-          ),
       ),
   )
 
   // General commands
-  .addSubcommand(sub =>
-    sub
-      .setName("list")
-      .setDescription("View your tickets")
-      .addStringOption(opt =>
-        opt
-          .setName("status")
-          .setDescription("Filter by status")
-          .setRequired(false)
-          .addChoices(
-            { name: "Open", value: "open" },
-            { name: "Closed", value: "closed" },
-            { name: "All", value: "all" },
-          ),
-      ),
-  )
-  .addSubcommand(sub =>
-    sub
-      .setName("view")
-      .setDescription("View a specific ticket")
-      .addStringOption(opt =>
-        opt
-          .setName("ticket-id")
-          .setDescription("Ticket number (e.g., 1)")
-          .setRequired(true),
-      ),
-  )
   .addSubcommand(sub =>
     sub
       .setName("transcript")
@@ -299,9 +188,7 @@ export const data = new SlashCommandBuilder()
           ),
       ),
   )
-  .addSubcommand(sub =>
-    sub.setName("claim").setDescription("Claim the current ticket"),
-  )
+
   .addSubcommand(sub =>
     sub
       .setName("close")
@@ -406,14 +293,9 @@ export async function execute(interaction) {
         return await handleInfo(interaction);
       case "settings":
         return await handleSettings(interaction);
-      case "list":
-        return await handleList(interaction);
-      case "view":
-        return await handleView(interaction);
       case "transcript":
         return await handleTranscript(interaction);
-      case "claim":
-        return await handleClaim(interaction);
+
       case "close":
         return await handleClose(interaction);
       case "add":
