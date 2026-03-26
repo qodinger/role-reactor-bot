@@ -14,7 +14,6 @@ import {
 } from "./handlers/admin.js";
 import { handleTranscript } from "./handlers/general.js";
 import {
-  handleClaim,
   handleClose,
   handleAdd,
   handleTransfer,

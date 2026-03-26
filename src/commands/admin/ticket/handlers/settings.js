@@ -288,7 +288,7 @@ export async function handleSettings(interaction) {
           });
           return await renderDashboard(i);
         }
-      } catch (err) {
+      } catch (_err) {
         // Ignore if role couldn't be fetched
       }
 
@@ -385,7 +385,13 @@ export async function handleSettings(interaction) {
 
       return await i.editReply({
         content: "",
-        embeds: [createErrorEmbed(`This will permanently delete:\n- All closed tickets\n- All saved transcripts\n- Reset the counter to \`#0001\`\n\nYour **panels** and **settings** will not be affected.\n\n**This action cannot be undone.**`, "⚠️ Confirm Data Reset", i.client)],
+        embeds: [
+          createErrorEmbed(
+            `This will permanently delete:\n- All closed tickets\n- All saved transcripts\n- Reset the counter to \`#0001\`\n\nYour **panels** and **settings** will not be affected.\n\n**This action cannot be undone.**`,
+            "⚠️ Confirm Data Reset",
+            i.client,
+          ),
+        ],
         components: [confirmRow],
       });
     }

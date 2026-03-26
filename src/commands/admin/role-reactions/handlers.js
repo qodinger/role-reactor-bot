@@ -146,7 +146,6 @@ export async function handleSetup(interaction, client) {
 
     const { validRoles, roleMapping } = roleProcessingResult.data;
 
-
     const maxEmojis = isPro
       ? PRO_TIER.ROLE_REACTION_MAX_EMOJIS
       : FREE_TIER.ROLE_REACTION_MAX_EMOJIS;

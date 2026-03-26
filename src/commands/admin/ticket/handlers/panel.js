@@ -1,17 +1,11 @@
-import { CORE_STATUS } from "../../../../features/premium/config.js";
 import { MessageFlags } from "discord.js";
 import { getTicketPanel } from "../../../../features/ticketing/TicketPanel.js";
-import { getTicketManager } from "../../../../features/ticketing/TicketManager.js";
 import { getLogger } from "../../../../utils/logger.js";
 import {
   createInfoEmbed,
   createSuccessEmbed,
   createErrorEmbed,
 } from "../../../../features/ticketing/embeds.js";
-import {
-  FREE_TIER,
-  PRO_ENGINE,
-} from "../../../../features/ticketing/config.js";
 
 const logger = getLogger();
 
@@ -36,7 +30,6 @@ export async function handlePanel(interaction) {
     flags: [MessageFlags.Ephemeral],
   });
 }
-
 
 async function handlePanelList(interaction) {
   await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });

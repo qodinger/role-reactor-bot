@@ -23,7 +23,11 @@ import {
   generateScheduleId,
 } from "./utils.js";
 import { getDatabaseManager } from "../../../utils/storage/databaseManager.js";
-import { FREE_TIER, PRO_TIER, CORE_STATUS } from "../../../features/premium/config.js";
+import {
+  FREE_TIER,
+  PRO_TIER,
+  CORE_STATUS,
+} from "../../../features/premium/config.js";
 import { getPremiumManager } from "../../../features/premium/PremiumManager.js";
 import {
   acquireBulkSlot,

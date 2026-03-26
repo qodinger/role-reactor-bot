@@ -1423,7 +1423,12 @@ export async function handleHistoryPagination(interaction, client) {
           error,
         );
         await interaction.reply({
-          embeds: [createModerationErrorEmbed("Fetch Failed", "Failed to fetch user information.")],
+          embeds: [
+            createModerationErrorEmbed(
+              "Fetch Failed",
+              "Failed to fetch user information.",
+            ),
+          ],
           flags: MessageFlags.Ephemeral,
         });
         return;
@@ -1485,7 +1490,12 @@ export async function handleHistoryPagination(interaction, client) {
       try {
         await interaction.editReply({
           content: "",
-          embeds: [createModerationErrorEmbed("Update Failed", "An error occurred while updating the history page.")],
+          embeds: [
+            createModerationErrorEmbed(
+              "Update Failed",
+              "An error occurred while updating the history page.",
+            ),
+          ],
           components: [],
         });
       } catch (editError) {
@@ -1495,7 +1505,12 @@ export async function handleHistoryPagination(interaction, client) {
         );
       }
       await interaction.reply({
-        embeds: [createModerationErrorEmbed("Update Failed", "An error occurred while updating the history page.")],
+        embeds: [
+          createModerationErrorEmbed(
+            "Update Failed",
+            "An error occurred while updating the history page.",
+          ),
+        ],
         flags: MessageFlags.Ephemeral,
       });
     }

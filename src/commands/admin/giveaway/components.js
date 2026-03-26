@@ -8,9 +8,9 @@ import { BUTTON_STYLES, EMOJIS } from "../../../config/theme.js";
 
 /**
  * Create pagination buttons for the giveaway list
- * @param {number} currentPage 
- * @param {number} totalPages 
- * @param {boolean} showAll 
+ * @param {number} currentPage
+ * @param {number} totalPages
+ * @param {boolean} showAll
  * @returns {ActionRowBuilder}
  */
 export function createListPaginationButtons(currentPage, totalPages, showAll) {
@@ -24,7 +24,7 @@ export function createListPaginationButtons(currentPage, totalPages, showAll) {
       .setStyle(BUTTON_STYLES.SECONDARY)
       .setEmoji(EMOJIS.ACTIONS.BACK)
       .setDisabled(currentPage <= 1),
-    
+
     new ButtonBuilder()
       .setCustomId(`giveaway_page:info:${currentPage}`)
       .setLabel(`Page ${currentPage}/${totalPages}`)
@@ -32,11 +32,13 @@ export function createListPaginationButtons(currentPage, totalPages, showAll) {
       .setDisabled(true),
 
     new ButtonBuilder()
-      .setCustomId(`giveaway_page:${filter}:${Math.min(totalPages, currentPage + 1)}`)
+      .setCustomId(
+        `giveaway_page:${filter}:${Math.min(totalPages, currentPage + 1)}`,
+      )
       .setLabel("Next")
       .setStyle(BUTTON_STYLES.SECONDARY)
       .setEmoji(EMOJIS.ACTIONS.FORWARD)
-      .setDisabled(currentPage >= totalPages)
+      .setDisabled(currentPage >= totalPages),
   );
   return row;
 }

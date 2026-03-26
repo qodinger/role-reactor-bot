@@ -77,7 +77,7 @@ export const command = {
           option
             .setName("roles")
             .setDescription(
-              "Ex: @Role1 @Role2 \"Role Name\" (Space separated. Max 5-15)",
+              'Ex: @Role1 @Role2 "Role Name" (Space separated. Max 5-15)',
             )
             .setRequired(true),
         ),

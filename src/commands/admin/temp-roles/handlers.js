@@ -16,7 +16,11 @@ import {
   createTempRolesListEmbed,
   createTempRoleRemovalEmbed,
 } from "./embeds.js";
-import { FREE_TIER, PRO_TIER, CORE_STATUS } from "../../../features/premium/config.js";
+import {
+  FREE_TIER,
+  PRO_TIER,
+  CORE_STATUS,
+} from "../../../features/premium/config.js";
 import { getPremiumManager } from "../../../features/premium/PremiumManager.js";
 import { getDatabaseManager } from "../../../utils/storage/databaseManager.js";
 import {

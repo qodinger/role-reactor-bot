@@ -3,7 +3,11 @@ import { getDatabaseManager } from "../../storage/databaseManager.js";
 import { getLogger } from "../../logger.js";
 import { getCachedMember, bulkAddRoles } from "../roleManager.js";
 import { sendAssignmentNotification } from "./embeds.js";
-import { FREE_TIER, PRO_TIER, CORE_STATUS } from "../../../features/premium/config.js";
+import {
+  FREE_TIER,
+  PRO_TIER,
+  CORE_STATUS,
+} from "../../../features/premium/config.js";
 import { getPremiumManager } from "../../../features/premium/PremiumManager.js";
 
 // Constants
