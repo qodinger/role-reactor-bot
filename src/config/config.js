@@ -418,7 +418,6 @@ class Config {
   get features() {
     return {
       crypto: this.payments.plisio.enabled,
-      paypal: this.payments.paypal.enabled,
       serveStatic: process.env.SERVE_STATIC === "true",
     };
   }
@@ -432,14 +431,6 @@ class Config {
       plisio: {
         secretKey: process.env.PLISIO_SECRET_KEY,
         enabled: !!process.env.PLISIO_SECRET_KEY,
-      },
-      paypal: {
-        clientId: process.env.PAYPAL_CLIENT_ID,
-        clientSecret: process.env.PAYPAL_CLIENT_SECRET,
-        webhookId: process.env.PAYPAL_WEBHOOK_ID,
-        mode: process.env.PAYPAL_MODE || "sandbox",
-        enabled: process.env.PAYPAL_ENABLED === "true",
-        testMode: process.env.PAYPAL_TEST_MODE === "true", // Added for dev testing
       },
     };
   }

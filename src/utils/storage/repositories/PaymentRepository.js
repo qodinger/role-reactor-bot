@@ -2,7 +2,7 @@ import { BaseRepository } from "./BaseRepository.js";
 
 /**
  * Repository for managing payment transactions
- * Stores all PayPal, crypto, and other payment records
+ * Stores all crypto and other payment records
  */
 export class PaymentRepository extends BaseRepository {
   constructor(db, cache, logger) {
@@ -39,9 +39,9 @@ export class PaymentRepository extends BaseRepository {
     try {
       const now = new Date().toISOString();
       const payment = {
-        paymentId: paymentData.paymentId, // External ID from PayPal/Crypto
+        paymentId: paymentData.paymentId, // External ID from Crypto
         discordId: paymentData.discordId,
-        provider: paymentData.provider, // "paypal", "plisio", etc.
+        provider: paymentData.provider, // "plisio", etc.
         type: paymentData.type || "one_time", // "one_time", "subscription", "refund"
         status: paymentData.status || "completed", // "pending", "completed", "failed", "refunded"
         amount: paymentData.amount,

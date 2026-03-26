@@ -24,7 +24,6 @@ Welcome to the comprehensive documentation for Role Reactor Bot - a powerful Dis
 ### 💳 Integrations
 
 - **[top.gg Voting Setup](./integrations/topgg.md)** - Voting rewards webhook integration
-- **[PayPal Setup](./integrations/paypal.md)** - PayPal payment webhook integration
 - **[ComfyUI (AI) Integration](./integrations/comfyui/README.md)** - AI image generation documentation
 - **[Docker Troubleshooting](./integrations/docker/troubleshooting.md)** - Solutions for common Docker issues
 
@@ -69,7 +68,6 @@ docs/
 │   └── auth.md                     # Website Discord login guide
 └── integrations/
     ├── topgg.md                    # top.gg voting rewards setup
-    ├── paypal.md                   # PayPal payment setup
     ├── docker/
     │   ├── README.md               # Docker guide
     │   └── troubleshooting.md      # Docker fixes

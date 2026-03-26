@@ -5,7 +5,6 @@
 
 import express from "express";
 import { handleCryptoWebhook } from "../webhooks/crypto.js";
-import { handlePayPalWebhook } from "../webhooks/paypal.js";
 import { handleTopggVote } from "../webhooks/topgg.js";
 import { getLogger } from "../utils/logger.js";
 
@@ -171,7 +170,6 @@ function initializeRoutes() {
   // Webhook routes with rate limiting
   app.post("/webhook/verify", webhookRateLimiter, verifyWebhookToken);
   app.post("/webhook/crypto", webhookRateLimiter, handleCryptoWebhook);
-  app.post("/webhook/paypal", webhookRateLimiter, handlePayPalWebhook);
 
   // top.gg webhook - body already parsed by global express.json() middleware
   app.post(
@@ -320,9 +318,6 @@ export async function startWebhookServer() {
       );
       logger.info(
         `  Crypto: http://localhost:${serverConfig.port}/webhook/crypto`,
-      );
-      logger.info(
-        `  PayPal: http://localhost:${serverConfig.port}/webhook/paypal`,
       );
       logger.info(`  API Info: http://localhost:${serverConfig.port}/api/info`);
       logger.info(

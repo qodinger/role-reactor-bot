@@ -82,14 +82,12 @@ export async function apiPendingPayments(req, res) {
         "../../utils/storage/storageManager.js"
       );
       const storage = await getStorageManager();
-      const pendingPaypal =
-        (await storage.get("pending_paypal_payments")) || [];
       const pendingCrypto =
         (await storage.get("pending_crypto_payments")) || [];
       return res.json(
         createSuccessResponse({
-          pending: [...pendingPaypal, ...pendingCrypto],
-          total: pendingPaypal.length + pendingCrypto.length,
+          pending: [...pendingCrypto],
+          total: pendingCrypto.length,
           source: "legacy",
         }),
       );

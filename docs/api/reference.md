@@ -214,7 +214,6 @@ GET /api/pricing?user_id=639696408592777227
     "minimumPayment": 3,
     "currency": "USD",
     "paymentMethods": {
-      "paypal": true,
       "crypto": true
     },
     "promotions": [
@@ -355,7 +354,6 @@ Returns a user's Core credit balance.
     "hasAccount": true,
     "lastUpdated": "2026-01-14T09:30:00.000Z",
     "paymentHistory": {
-      "paypal": 2,
       "crypto": 1
     }
   },
@@ -374,7 +372,6 @@ Returns a user's Core credit balance.
     "totalGenerated": 0,
     "hasAccount": false,
     "paymentHistory": {
-      "paypal": 0,
       "crypto": 0
     }
   },
@@ -400,7 +397,7 @@ Returns a user's payment history.
 |-----------|------|---------|-------------|
 | `limit` | number | 50 | Maximum results to return |
 | `skip` | number | 0 | Results to skip (pagination) |
-| `provider` | string | null | Filter by provider (paypal, plisio) |
+| `provider` | string | null | Filter by provider (plisio) |
 
 **Alternative:** `GET /api/payments?user_id=:userId`
 
@@ -428,8 +425,7 @@ Returns a user's payment history.
       "totalAmount": 10,
       "totalCores": 165,
       "byProvider": {
-        "plisio": 1,
-        "paypal": 0
+        "plisio": 1
       }
     },
     "pagination": {
@@ -515,7 +511,7 @@ Returns pending payments awaiting processing. (Admin endpoint)
     "awaitingUserLink": [
       {
         "paymentId": "xyz789",
-        "provider": "paypal",
+        "provider": "plisio",
         "amount": 25,
         "email": "unknown@example.com",
         "createdAt": "2026-01-14T08:00:00.000Z"
@@ -642,17 +638,6 @@ Receives webhooks from crypto payment providers (Plisio).
 
 ---
 
-### POST `/webhook/paypal`
-
-Receives webhooks from PayPal.
-
-**Headers:**
-
-- Various PayPal signature headers for verification
-
-**Response:** `200 OK` with `{ "received": true }`
-
----
 
 ### POST `/webhook/verify`
 
@@ -846,8 +831,6 @@ SESSION_SECRET=random_secure_string
 
 # Payments
 PLISIO_SECRET_KEY=your_plisio_key
-PAYPAL_CLIENT_ID=your_paypal_id
-PAYPAL_CLIENT_SECRET=your_paypal_secret
 
 # Server
 PUBLIC_URL=https://your-domain.com

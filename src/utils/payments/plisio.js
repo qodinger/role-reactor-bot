@@ -20,9 +20,10 @@ export class PlisioPay {
    * @param {Object} orderDetails
    * @param {number} orderDetails.amount - Fiat amount
    * @param {string} orderDetails.currency - Fiat currency (USD, EUR, etc.)
+   * @param {string} [orderDetails.cryptoCurrency] - Specific crypto currency to use
    * @param {string} orderDetails.orderNumber - Unique order ID
    * @param {string} orderDetails.orderName - Description of the order
-   * @param {string} orderDetails.email - Customer email (optional)
+   * @param {string} [orderDetails.email] - Customer email (optional)
    * @param {string} orderDetails.callbackUrl - Webhook URL
    * @returns {Promise<string>} The invoice URL to redirect the user to
    */

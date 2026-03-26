@@ -86,9 +86,7 @@ export async function apiPricing(req, res) {
         );
         const storage = await getStorageManager();
         const userData = await storage.getCoreCredits(userId);
-        const hasPayments =
-          userData?.paypalPayments?.length > 0 ||
-          userData?.cryptoPayments?.length > 0;
+        const hasPayments = userData?.cryptoPayments?.length > 0;
         userEligibility = {
           userId,
           isFirstPurchase: !hasPayments,
@@ -100,17 +98,13 @@ export async function apiPricing(req, res) {
       }
     }
 
-    const minPayment =
-      isDev && config.payments.paypal.testMode
-        ? 1
-        : corePricing.coreSystem?.minimumPayment || 3;
+    const minPayment = corePricing.coreSystem?.minimumPayment || 3;
 
     const response = {
       packages,
       minimumPayment: minPayment,
       currency: "USD",
       paymentMethods: {
-        paypal: config.payments.paypal.enabled,
         crypto: config.payments.plisio.enabled,
       },
       promotions: activePromotions,
@@ -167,7 +161,7 @@ export async function apiUserBalance(req, res) {
           userId,
           credits: 0,
           hasAccount: false,
-          paymentHistory: { paypal: 0, crypto: 0 },
+          paymentHistory: { crypto: 0 },
         }),
       );
     }
@@ -179,7 +173,6 @@ export async function apiUserBalance(req, res) {
         hasAccount: true,
         lastUpdated: userData.lastUpdated || null,
         paymentHistory: {
-          paypal: userData.paypalPayments?.length || 0,
           crypto: userData.cryptoPayments?.length || 0,
         },
       }),
@@ -225,12 +218,11 @@ export async function apiUserPayments(req, res) {
       const coreCredits = (await storage.get("core_credit")) || {};
       const userData = coreCredits[userId];
       const payments = [];
-      if (userData?.paypalPayments)
-        payments.push(
-          ...userData.paypalPayments.map(p => ({ ...p, provider: "paypal" })),
-        );
       if (userData?.cryptoPayments) payments.push(...userData.cryptoPayments);
-      payments.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      payments.sort(
+        (a, b) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+      );
       return res.json(
         createSuccessResponse({
           userId,
