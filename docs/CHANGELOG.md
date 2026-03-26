@@ -16,12 +16,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Ticketing System**: Complete support ticket system with `/ticket setup`, `/ticket info`, `/ticket claim`, `/ticket close`, `/ticket add`, and `/ticket remove` commands.
 - **Ticket Panels**: Multiple custom panels with customizable titles, branding, and categorizations.
 - **Scalable Transcripts**: High-performance transcript system supporting rich HTML layouts for Pro servers and Markdown for free servers, with user-accessible download logs.
-- **Ticket Analytics**: Live tracking of open, closed, and active tickets with the `/ticket list` and `/ticket view` commands.
 - **Guild Data Purge**: Administrative tool to securely wipe all ticket history and reset the global counter from a simplified dashboard.
 - **Multi-Role Reactions**: A single emoji can now grant multiple roles at once in role-reaction setups.
 - **Interactive Help Menu**: All command names in the `/help` menu are now clickable slash command mentions, allowing you to directly trigger commands from the help guide.
 
 ### Changed
+
+- **Admin Command Styling**: Standardized the visual design and color schemes across all `/admin` command messages to provide a more cohesive and professional experience.
 
 - **Pro Engine Benefits**: Unlock 10x monthly ticket capacity, HTML transcripts/exports, unlimited retention, and staff performance analytics.
 - **Advanced Role Management**: 20x scheduled role capacity (500 active slots) and 10x bulk action targeting (250 members) for Pro servers.

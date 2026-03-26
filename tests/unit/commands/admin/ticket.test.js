@@ -45,14 +45,6 @@ describe("Ticket System - File Structure", () => {
       expect(existsSync(join(TICKET_BASE, "handlers/info.js"))).toBe(true);
     });
 
-    it("should have handlers/generalList.js", () => {
-      expect(existsSync(join(TICKET_BASE, "handlers/generalList.js"))).toBe(true);
-    });
-
-    it("should have handlers/generalView.js", () => {
-      expect(existsSync(join(TICKET_BASE, "handlers/generalView.js"))).toBe(true);
-    });
-
     it("should have handlers/generalTranscript.js", () => {
       expect(existsSync(join(TICKET_BASE, "handlers/generalTranscript.js"))).toBe(true);
     });

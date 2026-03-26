@@ -9,16 +9,20 @@ import {
 setupCommonMocks();
 
 // Mock invite utility
-const mockGetDefaultInviteLink = vi.fn().mockResolvedValue(
-  "https://discord.com/api/oauth2/authorize?client_id=123456789&permissions=8&scope=bot%20applications.commands",
-);
+const mockGetDefaultInviteLink = vi
+  .fn()
+  .mockResolvedValue(
+    "https://discord.com/api/oauth2/authorize?client_id=123456789&permissions=8&scope=bot%20applications.commands",
+  );
 
-vi.mock("src/utils/discord/invite.js", () => ({
-  getDefaultInviteLink: mockGetDefaultInviteLink,
+vi.mock("../../../../src/utils/discord/invite.js", () => ({
+  getDefaultInviteLink: vi
+    .fn()
+    .mockImplementation(() => mockGetDefaultInviteLink()),
 }));
 
 // Mock embeds
-vi.mock("src/commands/general/invite/embeds.js", () => ({
+vi.mock("../../../../src/commands/general/invite/embeds.js", () => ({
   createInviteEmbed: vi.fn((botName, botAvatar, userName, inviteLink) => ({
     data: {
       title: `Invite ${botName}`,
@@ -35,7 +39,7 @@ vi.mock("src/commands/general/invite/embeds.js", () => ({
 }));
 
 // Mock components
-vi.mock("src/commands/general/invite/components.js", () => ({
+vi.mock("../../../../src/commands/general/invite/components.js", () => ({
   createInviteButtons: vi.fn().mockResolvedValue({
     type: 1, // ACTION_ROW
     components: [
@@ -71,7 +75,9 @@ describe("Invite Command", () => {
       user: {
         id: "bot123",
         username: "TestBot",
-        displayAvatarURL: vi.fn().mockReturnValue("https://example.com/bot-avatar.png"),
+        displayAvatarURL: vi
+          .fn()
+          .mockReturnValue("https://example.com/bot-avatar.png"),
       },
       inviteLink: undefined, // Explicitly undefined
     });
@@ -123,7 +129,13 @@ describe("Invite Command", () => {
       // Should show error message
       expect(mockInteraction.editReply).toHaveBeenCalledWith(
         expect.objectContaining({
-          content: expect.stringContaining("Unable to generate invite link"),
+          embeds: expect.arrayContaining([
+            expect.objectContaining({
+              data: expect.objectContaining({
+                title: "Invite Error",
+              }),
+            }),
+          ]),
         }),
       );
     });
@@ -157,4 +169,3 @@ describe("Invite Command", () => {
     });
   });
 });
-
