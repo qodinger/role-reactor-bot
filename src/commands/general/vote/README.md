@@ -28,9 +28,9 @@ Following the streamlined pattern established for singular-function general comm
 1. **Command Execution**: User triggers the `/vote` slash command.
 2. **API Request**: The system dynamically fetches the user's vote status via the `topgg.js` webhook integration.
 3. **Data Compilation**:
-    - If the user has voted recently, the bot calculates the remaining cooldown time out of 12 hours.
-    - If they haven't voted, it prompts them that they are ready.
-    - Historical votes are tallied and included dynamically in the interaction text.
+   - If the user has voted recently, the bot calculates the remaining cooldown time out of 12 hours.
+   - If they haven't voted, it prompts them that they are ready.
+   - Historical votes are tallied and included dynamically in the interaction text.
 4. **Display**: Information is formatted into a clean embed with an interactive URL button linking directly to the bot's voting page.
 
 ## Usage Examples
