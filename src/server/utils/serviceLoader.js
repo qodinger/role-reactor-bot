@@ -16,7 +16,7 @@ const logger = getLogger();
  * @param {string} serviceConfig.basePath - Base path
  * @param {Function} serviceConfig.loader - Service loader function
  * @param {Object} serviceConfig.metadata - Service metadata
- * @returns {boolean} True if loaded successfully
+ * @returns {Promise<boolean>} True if loaded successfully
  */
 export async function loadService(serviceConfig) {
   const {

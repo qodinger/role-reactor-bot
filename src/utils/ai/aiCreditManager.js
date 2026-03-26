@@ -23,11 +23,12 @@ const creditLocks = new Map();
  * Ensures multiple bot instances (if any) or rapid successive calls
  * process in strict order.
  */
-async function withCreditLock(userId, operation) {
+export async function withCreditLock(userId, operation) {
   if (!userId) throw new Error("Invalid userId");
 
   const previousLock = creditLocks.get(userId) || Promise.resolve();
-  let resolveNext;
+  /** @type {Function} */
+  let resolveNext = () => {};
   const nextLock = new Promise(resolve => {
     resolveNext = resolve;
   });

@@ -317,24 +317,10 @@ export async function startWebhookServer() {
         `  Verify: http://localhost:${serverConfig.port}/webhook/verify`,
       );
       logger.info(
+        `  Top.gg: http://localhost:${serverConfig.port}/webhook/topgg`,
+      );
+      logger.info(
         `  Crypto: http://localhost:${serverConfig.port}/webhook/crypto`,
-      );
-      logger.info(`  API Info: http://localhost:${serverConfig.port}/api/info`);
-      logger.info(
-        `  API Stats: http://localhost:${serverConfig.port}/api/stats`,
-      );
-      logger.info(
-        `  Pricing: http://localhost:${serverConfig.port}/api/pricing`,
-      );
-      logger.info(
-        `  Balance: http://localhost:${serverConfig.port}/api/user/:userId/balance`,
-      );
-      logger.info(
-        `  Services: http://localhost:${serverConfig.port}/api/services`,
-      );
-      logger.info(`  API Docs: http://localhost:${serverConfig.port}/api/docs`);
-      logger.info(
-        `  OpenAPI: http://localhost:${serverConfig.port}/api/docs/openapi.json`,
       );
 
       // Log registered services
