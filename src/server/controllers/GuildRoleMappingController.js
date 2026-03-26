@@ -157,6 +157,66 @@ export async function apiDeleteGuildRoleMapping(req, res) {
   }
 }
 
+function mergeReactionRoles(reactions) {
+  const mergedReactions = new Map();
+  for (const r of reactions) {
+    if (!mergedReactions.has(r.emoji)) {
+      mergedReactions.set(r.emoji, {
+        emoji: r.emoji,
+        roleIds: [],
+        roleNames: [],
+        roleId: r.roleId,
+        roleName: r.roleName,
+        roleColor: r.roleColor || 0,
+      });
+    }
+
+    const group = mergedReactions.get(r.emoji);
+    if (r.roleIds?.length > 0) {
+      group.roleIds.push(...r.roleIds);
+      group.roleNames.push(...(r.roleNames || []));
+    } else if (r.roleId) {
+      group.roleIds.push(r.roleId);
+      group.roleNames.push(r.roleName || "");
+    }
+  }
+
+  const validRoles = [];
+  const roleMapping = {};
+
+  for (const group of mergedReactions.values()) {
+    const uniqueIds = new Set();
+    const finalRoleIds = [];
+    const finalRoleNames = [];
+
+    for (let i = 0; i < group.roleIds.length; i++) {
+      const id = group.roleIds[i];
+      if (!uniqueIds.has(id)) {
+        uniqueIds.add(id);
+        finalRoleIds.push(id);
+        finalRoleNames.push(group.roleNames[i] || "");
+      }
+    }
+
+    const mapping = {
+      roleId: finalRoleIds[0] || group.roleId,
+      roleName: finalRoleNames[0] || group.roleName,
+      roleColor: group.roleColor || 0,
+      emoji: group.emoji,
+    };
+
+    if (finalRoleIds.length > 1) {
+      mapping.roleIds = finalRoleIds;
+      mapping.roleNames = finalRoleNames;
+    }
+
+    roleMapping[group.emoji] = mapping;
+    validRoles.push(mapping);
+  }
+
+  return { validRoles, roleMapping };
+}
+
 /**
  * Deploy a new role-reaction setup
  */
@@ -213,31 +273,7 @@ export async function apiDeployRoleReactions(req, res) {
         .json(createErrorResponse("Missing permissions", 403).response);
     }
 
-    const validRoles = reactions.map(r => ({
-      emoji: r.emoji,
-      roleName: r.roleName,
-      roleId: r.roleId,
-      roleColor: r.roleColor || 0,
-      ...(r.roleIds?.length > 1 && {
-        roleIds: r.roleIds,
-        roleNames: r.roleNames,
-      }),
-    }));
-    const roleMapping = {};
-    for (const r of reactions) {
-      const mapping = {
-        roleId: r.roleId,
-        roleName: r.roleName,
-        roleColor: r.roleColor || 0,
-        emoji: r.emoji,
-      };
-      // Support multi-role per emoji (bundles/arrays)
-      if (r.roleIds?.length > 1) {
-        mapping.roleIds = r.roleIds;
-        mapping.roleNames = r.roleNames;
-      }
-      roleMapping[r.emoji] = mapping;
-    }
+    const { validRoles, roleMapping } = mergeReactionRoles(reactions);
 
     let embedColor = color || "#9b8bf0";
     if (embedColor && !embedColor.startsWith("#"))
@@ -358,33 +394,12 @@ export async function apiUpdateRoleReactions(req, res) {
         .status(404)
         .json(createErrorResponse("Message not found", 404).response);
 
-    const roleMapping = {};
-    const validRoles = [];
+    let roleMapping = {};
+    let validRoles = [];
     if (reactions?.length) {
-      for (const r of reactions) {
-        const mapping = {
-          roleId: r.roleId,
-          roleName: r.roleName,
-          roleColor: r.roleColor || 0,
-          emoji: r.emoji,
-        };
-        // Support multi-role per emoji (bundles/arrays)
-        if (r.roleIds?.length > 1) {
-          mapping.roleIds = r.roleIds;
-          mapping.roleNames = r.roleNames;
-        }
-        roleMapping[r.emoji] = mapping;
-        validRoles.push({
-          emoji: r.emoji,
-          roleName: r.roleName,
-          roleId: r.roleId,
-          roleColor: r.roleColor || 0,
-          ...(r.roleIds?.length > 1 && {
-            roleIds: r.roleIds,
-            roleNames: r.roleNames,
-          }),
-        });
-      }
+      const merged = mergeReactionRoles(reactions);
+      roleMapping = merged.roleMapping;
+      validRoles = merged.validRoles;
     }
 
     const finalRoleMapping = Object.keys(roleMapping).length
