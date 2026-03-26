@@ -8,7 +8,7 @@ const logger = getLogger();
  */
 export const serverConfig = {
   // Port configuration
-  port: process.env.API_PORT || 3030,
+  port: process.env.API_PORT || "3030",
 
   // Environment configuration
   environment: process.env.NODE_ENV || "development",
@@ -40,11 +40,7 @@ export const serverConfig = {
     dockerCheck: process.env.DOCKER_HEALTH_CHECK !== "false",
   },
 
-  // Webhook configuration
-  webhook: {
-    token: process.env.WEBHOOK_TOKEN,
-    verificationEnabled: process.env.WEBHOOK_VERIFICATION !== "false",
-  },
+
 
   // Server metadata
   metadata: {
@@ -181,6 +177,6 @@ export function getStartupInfo() {
     corsEnabled: true,
     loggingEnabled: serverConfig.logging.enabled,
     healthChecksEnabled: serverConfig.health.enabled,
-    webhookVerificationEnabled: serverConfig.webhook.verificationEnabled,
+
   };
 }

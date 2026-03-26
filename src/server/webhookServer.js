@@ -21,7 +21,7 @@ import { internalAuth } from "./middleware/internalAuth.js";
 
 // Import route handlers
 import { healthCheck, dockerHealthCheck } from "./routes/health.js";
-import { verifyWebhookToken } from "./routes/webhook.js";
+
 import { setDiscordClient } from "./utils/apiShared.js";
 import authRoutes from "./routes/auth.js";
 
@@ -168,7 +168,6 @@ function initializeRoutes() {
   app.use("/t", transcriptsRouter);
 
   // Webhook routes with rate limiting
-  app.post("/webhook/verify", webhookRateLimiter, verifyWebhookToken);
   app.post("/webhook/crypto", webhookRateLimiter, handleCryptoWebhook);
 
   // top.gg webhook - body already parsed by global express.json() middleware
@@ -283,7 +282,7 @@ export async function startWebhookServer() {
         logger.info(
           `💡 Starting server on port ${availablePort} instead of ${serverConfig.port}`,
         );
-        serverConfig.port = availablePort;
+        serverConfig.port = String(availablePort);
       } else {
         const errorMessage = `❌ No available ports found. Please free up port ${serverConfig.port} or set a different port with API_PORT environment variable.`;
         logger.error(errorMessage);
@@ -313,9 +312,6 @@ export async function startWebhookServer() {
         );
       }
 
-      logger.info(
-        `  Verify: http://localhost:${serverConfig.port}/webhook/verify`,
-      );
       logger.info(
         `  Top.gg: http://localhost:${serverConfig.port}/webhook/topgg`,
       );

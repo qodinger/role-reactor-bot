@@ -7,11 +7,11 @@ import { serviceRegistry } from "../services/ServiceRegistry.js";
 
 /**
  * Generate OpenAPI 3.0 specification
- * @param {Object} options - Generation options
- * @param {string} options.title - API title
- * @param {string} options.version - API version
- * @param {string} options.description - API description
- * @param {string} options.serverUrl - Server base URL
+ * @param {Object} [options] - Generation options
+ * @param {string} [options.title] - API title
+ * @param {string} [options.version] - API version
+ * @param {string} [options.description] - API description
+ * @param {string} [options.serverUrl] - Server base URL
  * @returns {Object} OpenAPI 3.0 specification
  */
 export function generateOpenAPISpec(options = {}) {
@@ -604,34 +604,6 @@ function addWebhookRoutes(spec) {
   if (!spec.tags.find(t => t.name === "Webhooks")) {
     spec.tags.push({ name: "Webhooks", description: "Webhook endpoints" });
   }
-
-  spec.paths["/webhook/verify"] = {
-    post: {
-      tags: ["Webhooks"],
-      summary: "Verify webhook token",
-      operationId: "verifyWebhook",
-      requestBody: {
-        required: true,
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              properties: {
-                token: {
-                  type: "string",
-                },
-              },
-            },
-          },
-        },
-      },
-      responses: {
-        200: {
-          description: "Verification result",
-        },
-      },
-    },
-  };
 
   spec.paths["/webhook/crypto"] = {
     post: {

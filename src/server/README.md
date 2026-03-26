@@ -24,7 +24,6 @@ src/server/
 │   ├── docs.js             # API documentation routes (Swagger/OpenAPI)
 │   ├── health.js           # Health check routes
 │   ├── services.js         # Service discovery routes
-│   └── webhook.js          # Webhook routes
 ├── services/
 │   ├── BaseService.js      # Base service class for all API services
 │   ├── ServiceRegistry.js  # Service registry for dynamic discovery
@@ -63,7 +62,7 @@ src/server/
 
 ### Webhooks
 
-- `POST /webhook/verify` - Webhook token verification
+
 - `POST /webhook/crypto` - Crypto payment webhook handler
 
 ### API
@@ -199,9 +198,7 @@ LOG_LEVEL=info                  # Log level (default: info)
 HEALTH_CHECKS=true              # Enable health checks (default: true)
 DOCKER_HEALTH_CHECK=true        # Enable Docker health check (default: true)
 
-# Webhook configuration
-WEBHOOK_TOKEN=your_token   # Webhook verification token
-WEBHOOK_VERIFICATION=true       # Enable webhook verification (default: true)
+
 
 # Rate limiting
 API_RATE_LIMIT_MAX=60           # API rate limit (default: 60 per 15min)
