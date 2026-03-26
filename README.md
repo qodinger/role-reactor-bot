@@ -363,6 +363,8 @@ Use bundles in role-reaction setup with the `bundle:` parameter.
 /poll create           # Create a Discord poll
 /8ball question:...    # Ask the magic 8ball
 /avatar prompt:...     # Generate AI avatar
+/wyr                   # Play "Would You Rather"
+/rps                   # Play Rock, Paper, Scissors against opponents
 /userinfo user:@user   # View user details
 /serverinfo            # View server details
 /level user:@user      # Check XP level
@@ -418,13 +420,15 @@ Use bundles in role-reaction setup with the `bundle:` parameter.
 | `/voice-roles list`           | List all voice control roles             | Administrator |
 | `/ticket setup`               | Set up ticket support system             | Manage Server |
 | `/ticket info`                | View ticket system information           | Manage Server |
-| `/ticket panel`               | Manage ticket panels                     | Manage Server |
-| `/ticket list`                | List all tickets                         | Manage Server |
-| `/ticket view`                | View specific ticket details             | Manage Server |
-| `/ticket claim`               | Claim a ticket                           | Manage Server |
-| `/ticket close`               | Close a ticket                           | Manage Server |
-| `/ticket add`                 | Add user to ticket                       | Manage Server |
-| `/ticket remove`              | Remove user from ticket                  | Manage Server |
+| `/ticket settings`            | Interactive ticket settings dashboard    | Manage Server |
+| `/ticket panel list`          | List all ticket panels                   | Manage Server |
+| `/ticket panel delete`        | Delete a ticket panel                    | Manage Server |
+| `/ticket transcript`          | Export a ticket transcript               | Staff Role    |
+| `/ticket close`               | Close a ticket                           | Staff Role    |
+| `/ticket add`                 | Add user to ticket                       | Staff Role    |
+| `/ticket remove`              | Remove user from ticket                  | Staff Role    |
+| `/ticket transfer`            | Transfer ticket to another staff         | Staff Role    |
+| `/ticket rename`              | Rename the ticket channel                | Staff Role    |
 
 #### General Commands
 
@@ -436,6 +440,8 @@ Use bundles in role-reaction setup with the `bundle:` parameter.
 | `/support`      | Get support server and GitHub links              | None        |
 | `/8ball`        | Ask the magic 8ball with intelligent responses   | None        |
 | `/avatar`       | Generate AI-powered avatars with custom prompts  | None        |
+| `/wyr`          | Play a game of "Would You Rather"                | None        |
+| `/rps`          | Play Rock, Paper, Scissors against opponents     | None        |
 | `/core balance` | Check Core balance and Pro Engine status         | None        |
 | `/core pricing` | View Core pricing and membership benefits        | None        |
 | `/vote`         | Vote for the bot on top.gg to earn Core Credits  | None        |

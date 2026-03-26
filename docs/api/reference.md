@@ -638,7 +638,6 @@ Receives webhooks from crypto payment providers (Plisio).
 
 ---
 
-
 ### POST `/webhook/verify`
 
 Verifies webhook token configuration.

@@ -43,6 +43,7 @@ pnpm start
 ### Test the Command
 
 Run `/vote` in Discord. You should see:
+
 - Vote link to top.gg
 - Reward information (1 Core per vote)
 - Cooldown info (12 hours)
@@ -102,7 +103,7 @@ User votes on top.gg
 
 ```javascript
 // Manual check in MongoDB
-db.credits.findOne({ userId: "USER_ID" })
+db.credits.findOne({ userId: "USER_ID" });
 ```
 
 ### Users Not Receiving DM
@@ -116,17 +117,26 @@ This is normal if the user has DMs disabled or blocked the bot. Core is still aw
 ```javascript
 db.credits.aggregate([
   { $match: { lastVote: { $exists: true } } },
-  { $group: { _id: null, totalVoters: { $sum: 1 }, totalVotes: { $sum: "$totalVotes" } } }
-])
+  {
+    $group: {
+      _id: null,
+      totalVoters: { $sum: 1 },
+      totalVotes: { $sum: "$totalVotes" },
+    },
+  },
+]);
 ```
 
 ### Recent Votes
 
 ```javascript
-db.credits.find(
-  { lastVote: { $exists: true } },
-  { userId: 1, totalVotes: 1, lastVote: 1 }
-).sort({ lastVote: -1 }).limit(10)
+db.credits
+  .find(
+    { lastVote: { $exists: true } },
+    { userId: 1, totalVotes: 1, lastVote: 1 },
+  )
+  .sort({ lastVote: -1 })
+  .limit(10);
 ```
 
 ## 🔐 Security

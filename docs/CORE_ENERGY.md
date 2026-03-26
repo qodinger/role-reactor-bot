@@ -13,16 +13,20 @@ Core Energy is a **user-based credit** that belongs to your personal Discord acc
 There are two primary ways to fuel your account:
 
 ### 1. 🗳️ Voting (Free & Consistent)
+
 You can earn Core Energy daily by supporting the bot on **top.gg**.
-*   **Reward**: `1 Core` per vote.
-*   **Cooldown**: You can vote once every **12 hours**.
-*   **Command**: Use `/vote` in any server to get your personal voting link.
-*   **Notifications**: The bot will DM you immediately once your reward is credited!
+
+- **Reward**: `1 Core` per vote.
+- **Cooldown**: You can vote once every **12 hours**.
+- **Command**: Use `/vote` in any server to get your personal voting link.
+- **Notifications**: The bot will DM you immediately once your reward is credited!
 
 ### 2. 🚀 Purchase (Instant)
+
 For those who need higher capacity immediately, Cores can be obtained via the **Web Dashboard**.
-*   Visit the **Upgrade Center** to see available packages.
-*   Credits are added instantly to your balance upon successful payment.
+
+- Visit the **Upgrade Center** to see available packages.
+- Credits are added instantly to your balance upon successful payment.
 
 ---
 
@@ -31,22 +35,24 @@ For those who need higher capacity immediately, Cores can be obtained via the **
 The **Pro Engine** is the ultimate upgrade for your Discord server. When activated, it unlocks advanced automation, higher limits across all features, and priority performance.
 
 ### 💰 Activation & Cost
-*   **Cost**: `20 Cores` per week.
-*   **Cycle**: **7 days** (Automatic renewal using the payer's balance).
-*   **Who Can Enable?**: Any administrator or user with **"Manage Server"** permissions who has enough Cores in their personal account.
+
+- **Cost**: `20 Cores` per week.
+- **Cycle**: **7 days** (Automatic renewal using the payer's balance).
+- **Who Can Enable?**: Any administrator or user with **"Manage Server"** permissions who has enough Cores in their personal account.
 
 ### 🎁 Guild-Wide Benefits
+
 When **one person** fuels the Pro Engine, **everyone** in the server wins. The following limits are unlocked for the entire community:
 
-| Feature | Free Tier | Pro Engine ✨ |
-| :--- | :--- | :--- |
-| **Giveaway Entries** | 2,500 | **50,000** |
-| **Giveaway Winners** | 5 | **20** |
-| **Scheduled Roles** | 25 active slots | **500 active slots** |
-| **Ticket Capacity** | 50 monthly | **500 monthly** |
-| **Transcript Storage** | 7 Days | **Unlimited** |
-| **Bulk Actions** | 25 users | **250 users** |
-| **Level Rewards** | 5 Rewards (Stack) | **Unlimited (Replace/Stack)** |
+| Feature                | Free Tier         | Pro Engine ✨                 |
+| :--------------------- | :---------------- | :---------------------------- |
+| **Giveaway Entries**   | 2,500             | **50,000**                    |
+| **Giveaway Winners**   | 5                 | **20**                        |
+| **Scheduled Roles**    | 25 active slots   | **500 active slots**          |
+| **Ticket Capacity**    | 50 monthly        | **500 monthly**               |
+| **Transcript Storage** | 7 Days            | **Unlimited**                 |
+| **Bulk Actions**       | 25 users          | **250 users**                 |
+| **Level Rewards**      | 5 Rewards (Stack) | **Unlimited (Replace/Stack)** |
 
 ---
 
@@ -56,8 +62,8 @@ The system is designed to be frictionless for server managers:
 
 1.  **Auto-Renew**: Every 7 days, the system checks the **original payer's** balance. If they have at least 20 Cores, the Pro Engine stays active for another week.
 2.  **Grace Period (🚨 3 Days)**: If the payer runs out of Cores, the Pro Engine **remains active** for a **3-day grace period**.
-    *   The payer will receive a DM notification to top up.
-    *   If no Cores are added by the end of the grace period, the guild is automatically downgraded to the Free Tier.
+    - The payer will receive a DM notification to top up.
+    - If no Cores are added by the end of the grace period, the guild is automatically downgraded to the Free Tier.
 
 ## ❓ FAQ
 
@@ -72,4 +78,4 @@ A: Yes, you can disable auto-renewal at any time via the Web Dashboard. The feat
 
 ---
 
-*For more support, visit our [Support Server](https://discord.gg/role-reactor) or check your balance with* `/core balance`*!*
+_For more support, visit our [Support Server](https://discord.gg/role-reactor) or check your balance with_ `/core balance`_!_
