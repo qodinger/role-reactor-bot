@@ -103,7 +103,20 @@ class EventHandler {
           }
         } else {
           // Use legacy rate limiting for non-command events
-          if (this.isRateLimited(userId, eventType)) {
+          // Skip passive gateway events that shouldn't be rate-limited per user
+          const passiveEvents = [
+            "guildMemberUpdate",
+            "guildMemberAdd",
+            "guildMemberRemove",
+            "guildMemberAvailable",
+            "voiceStateUpdate",
+            "presenceUpdate",
+          ];
+
+          if (
+            !passiveEvents.includes(eventType) &&
+            this.isRateLimited(userId, eventType)
+          ) {
             this.logger.logRateLimit(
               userId,
               eventType,
