@@ -304,6 +304,14 @@ export class GuildHelper {
       }
 
       enrichedRoles[emoji] = { emoji, roleId, roleName, roleColor };
+
+      // Preserve multi-role arrays if present
+      if (typeof roleConfig === "object") {
+        if (roleConfig.roleIds?.length > 1) {
+          enrichedRoles[emoji].roleIds = roleConfig.roleIds;
+          enrichedRoles[emoji].roleNames = roleConfig.roleNames || [];
+        }
+      }
     }
 
     return {

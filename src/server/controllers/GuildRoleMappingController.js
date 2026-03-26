@@ -218,15 +218,26 @@ export async function apiDeployRoleReactions(req, res) {
       roleName: r.roleName,
       roleId: r.roleId,
       roleColor: r.roleColor || 0,
+      ...(r.roleIds?.length > 1 && {
+        roleIds: r.roleIds,
+        roleNames: r.roleNames,
+      }),
     }));
     const roleMapping = {};
-    for (const r of reactions)
-      roleMapping[r.emoji] = {
+    for (const r of reactions) {
+      const mapping = {
         roleId: r.roleId,
         roleName: r.roleName,
         roleColor: r.roleColor || 0,
         emoji: r.emoji,
       };
+      // Support multi-role per emoji (bundles/arrays)
+      if (r.roleIds?.length > 1) {
+        mapping.roleIds = r.roleIds;
+        mapping.roleNames = r.roleNames;
+      }
+      roleMapping[r.emoji] = mapping;
+    }
 
     let embedColor = color || "#9b8bf0";
     if (embedColor && !embedColor.startsWith("#"))
@@ -351,17 +362,27 @@ export async function apiUpdateRoleReactions(req, res) {
     const validRoles = [];
     if (reactions?.length) {
       for (const r of reactions) {
-        roleMapping[r.emoji] = {
+        const mapping = {
           roleId: r.roleId,
           roleName: r.roleName,
           roleColor: r.roleColor || 0,
           emoji: r.emoji,
         };
+        // Support multi-role per emoji (bundles/arrays)
+        if (r.roleIds?.length > 1) {
+          mapping.roleIds = r.roleIds;
+          mapping.roleNames = r.roleNames;
+        }
+        roleMapping[r.emoji] = mapping;
         validRoles.push({
           emoji: r.emoji,
           roleName: r.roleName,
           roleId: r.roleId,
           roleColor: r.roleColor || 0,
+          ...(r.roleIds?.length > 1 && {
+            roleIds: r.roleIds,
+            roleNames: r.roleNames,
+          }),
         });
       }
     }
