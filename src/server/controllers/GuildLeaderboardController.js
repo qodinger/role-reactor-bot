@@ -15,9 +15,10 @@ const leaderboardCache = {
   ttl: 5 * 60 * 1000,
 };
 
-/**
- * Guild leaderboard endpoint
- */
+// Per-guild stats cache (5 min TTL)
+const guildStatsCache = new Map();
+const GUILD_STATS_TTL = 5 * 60 * 1000;
+
 export async function apiGuildLeaderboard(req, res) {
   const { guildId } = req.params;
   const limit = Math.min(parseInt(req.query.limit) || 10, 100);
@@ -59,6 +60,17 @@ export async function apiGuildLeaderboard(req, res) {
         );
         return res.status(statusCode).json(response);
       }
+
+      const client = getDiscordClient();
+      const guild = client?.guilds.cache.get(guildId);
+      if (guild && (guild.nsfwLevel === 1 || guild.nsfwLevel === 3)) {
+        const { statusCode, response } = createErrorResponse(
+          "NSFW leaderboards are strictly prohibited to comply with global advertising standards.",
+          403,
+          "NSFW_RESTRICTED",
+        );
+        return res.status(statusCode).json(response);
+      }
     }
 
     const { getExperienceManager } = await import(
@@ -95,46 +107,66 @@ export async function apiGuildLeaderboard(req, res) {
           banner: guild.banner,
           splash: guild.splash,
           description: guild.description || null,
-          memberCount: guild.memberCount,
-          botCount: 0,
-          humanCount: guild.memberCount,
+          memberCount:
+            guild.memberCount -
+            guild.members.cache.filter(m => m.user.bot).size,
+          botCount: guild.members.cache.filter(m => m.user.bot).size,
+          humanCount:
+            guild.memberCount -
+            guild.members.cache.filter(m => m.user.bot).size,
         };
       }
     }
 
-    const allRankedDocs =
-      await experienceManager.storageManager.provider.dbManager.userExperience.collection
-        .find({ guildId, totalXP: { $gt: 0 } })
+    // Use cached stats or compute via aggregation
+    const now = Date.now();
+    const cached = guildStatsCache.get(guildId);
+    let stats;
+    let total;
+
+    if (cached && now - cached.timestamp < GUILD_STATS_TTL) {
+      stats = cached.stats;
+      total = cached.total;
+    } else {
+      const collection =
+        experienceManager.storageManager.provider.dbManager.userExperience
+          .collection;
+
+      const [aggResult] = await collection
+        .aggregate([
+          { $match: { guildId, totalXP: { $gt: 0 } } },
+          {
+            $group: {
+              _id: null,
+              totalXP: { $sum: { $ifNull: ["$totalXP", "$xp"] } },
+              highestLevel: { $max: { $ifNull: ["$level", 0] } },
+              averageLevel: { $avg: { $ifNull: ["$level", 0] } },
+              count: { $sum: 1 },
+            },
+          },
+        ])
         .toArray();
 
-    const humanRankedDocs = allRankedDocs.filter(doc => {
-      const user = client?.users.cache.get(doc.userId);
-      return user ? !user.bot : true;
-    });
+      stats = aggResult
+        ? {
+            totalXP: aggResult.totalXP || 0,
+            highestLevel: aggResult.highestLevel || 0,
+            averageLevel: Math.round(aggResult.averageLevel || 0),
+          }
+        : { totalXP: 0, highestLevel: 0, averageLevel: 0 };
+      total = aggResult?.count || 0;
 
-    const totalXP = humanRankedDocs.reduce(
-      (sum, doc) => sum + (doc.totalXP || doc.xp || 0),
-      0,
-    );
-    const levels = humanRankedDocs.map(
-      doc =>
-        doc.level ||
-        experienceManager.calculateLevel(doc.totalXP || doc.xp || 0),
-    );
-    const highestLevel = levels.length > 0 ? Math.max(...levels) : 0;
-    const averageLevel =
-      levels.length > 0
-        ? Math.round(levels.reduce((a, b) => a + b, 0) / levels.length)
-        : 0;
+      guildStatsCache.set(guildId, { stats, total, timestamp: now });
+    }
 
     res.json(
       createSuccessResponse({
         guildId,
         leaderboard: enrichedLeaderboard,
-        total: humanRankedDocs.length,
+        total,
         isPremium,
         serverInfo,
-        stats: { totalXP, highestLevel, averageLevel },
+        stats,
       }),
     );
   } catch (error) {
@@ -153,8 +185,12 @@ export async function apiGuildLeaderboard(req, res) {
  */
 export async function apiGetPublicLeaderboards(req, res) {
   const { q } = req.query;
+  const limit = Math.min(parseInt(req.query.limit) || 30, 100);
   const query = (q || "").toLowerCase().trim();
-  logRequest(`Get public leaderboards: query=${query || "none"}`, req);
+  logRequest(
+    `Get public leaderboards: query=${query || "none"} limit=${limit}`,
+    req,
+  );
 
   try {
     const now = Date.now();
@@ -165,7 +201,7 @@ export async function apiGetPublicLeaderboards(req, res) {
     ) {
       return res.json(
         createSuccessResponse({
-          guilds: leaderboardCache.guilds.slice(0, 100),
+          guilds: leaderboardCache.guilds.slice(0, limit),
           cached: true,
           nextUpdateIn: Math.round(
             (leaderboardCache.ttl - (now - leaderboardCache.lastUpdate)) / 1000,
@@ -203,39 +239,50 @@ export async function apiGetPublicLeaderboards(req, res) {
     const publicGuildIds = publicSettings.map(s => s.guildId);
     const activePublicGuilds = publicGuildIds
       .map(id => client.guilds.cache.get(id))
-      .filter(Boolean);
+      .filter(g => g && g.nsfwLevel !== 1 && g.nsfwLevel !== 3);
 
-    const publicGuildsResults = await Promise.all(
-      activePublicGuilds.map(async guild => {
-        const leaderboard = await experienceManager.getLeaderboard(guild.id, 1);
-        if (leaderboard.length === 0) return null;
+    // Single aggregation for all public guilds instead of per-guild queries
+    const activeGuildIds = activePublicGuilds.map(g => g.id);
+    const collection =
+      experienceManager.storageManager.provider.dbManager.userExperience
+        .collection;
 
-        const allRankedDocs =
-          await experienceManager.storageManager.provider.dbManager.userExperience.collection
-            .find({ guildId: guild.id, totalXP: { $gt: 0 } })
-            .toArray();
+    const guildAggs = await collection
+      .aggregate([
+        { $match: { guildId: { $in: activeGuildIds }, totalXP: { $gt: 0 } } },
+        {
+          $group: {
+            _id: "$guildId",
+            totalXP: { $sum: { $ifNull: ["$totalXP", "$xp"] } },
+            rankedCount: { $sum: 1 },
+          },
+        },
+      ])
+      .toArray();
 
-        const humanRankedDocs = allRankedDocs.filter(doc => {
-          const user = client.users.cache.get(doc.userId);
-          return user ? !user.bot : true;
-        });
+    const statsMap = new Map(
+      guildAggs.map(g => [
+        g._id,
+        { totalXP: g.totalXP, rankedCount: g.rankedCount },
+      ]),
+    );
 
-        const totalXP = humanRankedDocs.reduce(
-          (sum, doc) => sum + (doc.totalXP || doc.xp || 0),
-          0,
-        );
-        if (totalXP <= 0) return null;
+    const publicGuildsResults = activePublicGuilds
+      .map(guild => {
+        const stats = statsMap.get(guild.id);
+        if (!stats || stats.totalXP <= 0) return null;
 
+        const botCount = guild.members.cache.filter(m => m.user.bot).size;
         return {
           id: guild.id,
           name: guild.name,
           icon: guild.iconURL({ size: 64 }),
-          memberCount: guild.memberCount,
-          totalXP,
-          rankedCount: humanRankedDocs.length,
+          memberCount: guild.memberCount - botCount,
+          totalXP: stats.totalXP,
+          rankedCount: stats.rankedCount,
         };
-      }),
-    );
+      })
+      .filter(Boolean);
 
     const allPublicGuilds = publicGuildsResults
       .filter(g => g !== null && g.totalXP > 0)
@@ -260,7 +307,7 @@ export async function apiGetPublicLeaderboards(req, res) {
 
     res.json(
       createSuccessResponse({
-        guilds: filteredGuilds.slice(0, 100),
+        guilds: filteredGuilds.slice(0, limit),
         cached: false,
       }),
     );

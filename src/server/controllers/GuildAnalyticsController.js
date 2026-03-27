@@ -40,93 +40,77 @@ export async function apiGetGuildAnalytics(req, res) {
     );
     const dbManager = await getDatabaseManager();
 
-    // Query only users belonging to this guild
-    const guildUsers = await dbManager.userExperience.collection
-      .find({ guildId })
+    // Use aggregation instead of loading all users into memory
+    const activityAgg = await dbManager.userExperience.collection
+      .aggregate([
+        { $match: { guildId } },
+        {
+          $group: {
+            _id: null,
+            totalMessages: { $sum: { $ifNull: ["$messagesSent", 0] } },
+            totalVoiceMinutes: { $sum: { $ifNull: ["$voiceTime", 0] } },
+            totalCommands: { $sum: { $ifNull: ["$commandsUsed", 0] } },
+          },
+        },
+      ])
       .toArray();
 
-    const activityStats = {
-      totalMessages: guildUsers.reduce(
-        (sum, u) => sum + (u.messagesSent || 0),
-        0,
-      ),
-      totalVoiceMinutes: guildUsers.reduce(
-        (sum, u) => sum + (u.voiceTime || 0),
-        0,
-      ),
-      totalCommands: guildUsers.reduce(
-        (sum, u) => sum + (u.commandsUsed || 0),
-        0,
-      ),
-    };
+    const activityStats = activityAgg[0]
+      ? {
+          totalMessages: activityAgg[0].totalMessages,
+          totalVoiceMinutes: activityAgg[0].totalVoiceMinutes,
+          totalCommands: activityAgg[0].totalCommands,
+        }
+      : { totalMessages: 0, totalVoiceMinutes: 0, totalCommands: 0 };
 
-    // Get top members (chatters + voice) - resolve usernames from guild cache
+    // Get top members directly from DB (sorted, limited) instead of loading all
     const topMembers = { chatters: [], voiceUsers: [] };
     try {
       const { getDiscordClient } = await import("../utils/apiShared.js");
       const client = getDiscordClient();
-      const guild = client?.guilds?.cache?.get(guildId);
 
-      const resolveUserInfo = async userId => {
-        let user = null;
-        if (guild) {
-          try {
-            // Try fetching member directly from guild (will use cache if available)
-            const member = await guild.members.fetch(userId);
-            user = member?.user;
-          } catch (_err) {
-            // Member might have left the guild
-          }
-        }
-
-        if (!user && client) {
-          try {
-            // Fallback to fetching user globally
-            user = await client.users.fetch(userId);
-          } catch (_err) {
-            // Failed globally
-          }
-        }
-
+      // Use cache-only lookup to avoid Discord API rate limits
+      const resolveUserInfo = userId => {
+        const user = client?.users?.cache?.get(userId);
         return {
           username: user?.username || `User ${userId.slice(-4)}`,
           avatar: user?.displayAvatarURL?.({ size: 64 }) || null,
         };
       };
 
-      const rawChatters = [...guildUsers]
-        .filter(u => (u.messagesSent || 0) > 0)
-        .sort((a, b) => (b.messagesSent || 0) - (a.messagesSent || 0))
-        .slice(0, 5);
+      const rawChatters = await dbManager.userExperience.collection
+        .find({ guildId, messagesSent: { $gt: 0 } })
+        .sort({ messagesSent: -1 })
+        .limit(5)
+        .project({ userId: 1, messagesSent: 1 })
+        .toArray();
 
-      topMembers.chatters = await Promise.all(
-        rawChatters.map(async u => {
-          const info = await resolveUserInfo(u.userId);
-          return {
-            userId: u.userId,
-            username: info.username,
-            avatar: info.avatar,
-            count: u.messagesSent || 0,
-          };
-        }),
-      );
+      topMembers.chatters = rawChatters.map(u => {
+        const info = resolveUserInfo(u.userId);
+        return {
+          userId: u.userId,
+          username: info.username,
+          avatar: info.avatar,
+          count: u.messagesSent || 0,
+        };
+      });
 
-      const rawVoice = [...guildUsers]
-        .filter(u => (u.voiceTime || 0) > 0)
-        .sort((a, b) => (b.voiceTime || 0) - (a.voiceTime || 0))
-        .slice(0, 5);
+      const rawVoice = await dbManager.userExperience.collection
+        .find({ guildId, voiceTime: { $gt: 0 } })
+        .sort({ voiceTime: -1 })
+        .limit(5)
+        .project({ userId: 1, voiceTime: 1 })
+        .toArray();
 
-      topMembers.voiceUsers = await Promise.all(
-        rawVoice.map(async u => {
-          const info = await resolveUserInfo(u.userId);
-          return {
-            userId: u.userId,
-            username: info.username,
-            avatar: info.avatar,
-            count: u.voiceTime || 0,
-          };
-        }),
-      );
+      topMembers.voiceUsers = rawVoice.map(u => {
+        const info = resolveUserInfo(u.userId);
+        return {
+          userId: u.userId,
+          username: info.username,
+          avatar: info.avatar,
+          count: u.voiceTime || 0,
+        };
+      });
     } catch (topErr) {
       logger.warn(
         `Could not resolve top members for ${guildId}:`,

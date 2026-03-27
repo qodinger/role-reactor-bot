@@ -62,11 +62,10 @@ function trackScannerIP(ip) {
   }
 
   // Remove old hits outside the window
-  entry.hits = entry.hits.filter((t) => now - t < SCANNER_WINDOW_MS);
+  entry.hits = entry.hits.filter(t => now - t < SCANNER_WINDOW_MS);
   entry.hits.push(now);
 
-  const justDetected =
-    !entry.flagged && entry.hits.length >= SCANNER_THRESHOLD;
+  const justDetected = !entry.flagged && entry.hits.length >= SCANNER_THRESHOLD;
   if (justDetected) {
     entry.flagged = true;
   }
@@ -79,15 +78,18 @@ function trackScannerIP(ip) {
 }
 
 // Cleanup stale scanner tracker entries every 5 minutes
-setInterval(() => {
-  const now = Date.now();
-  for (const [ip, entry] of scannerTracker) {
-    entry.hits = entry.hits.filter((t) => now - t < SCANNER_WINDOW_MS);
-    if (entry.hits.length === 0) {
-      scannerTracker.delete(ip);
+setInterval(
+  () => {
+    const now = Date.now();
+    for (const [ip, entry] of scannerTracker) {
+      entry.hits = entry.hits.filter(t => now - t < SCANNER_WINDOW_MS);
+      if (entry.hits.length === 0) {
+        scannerTracker.delete(ip);
+      }
     }
-  }
-}, 5 * 60 * 1000).unref();
+  },
+  5 * 60 * 1000,
+).unref();
 
 /**
  * 404 Not Found handler
@@ -101,10 +103,13 @@ export function notFoundHandler(req, res) {
 
   if (justDetected) {
     // Alert once when a scanner is first detected
-    logger.warn(`🛡️ Scanner detected from ${ip} (${hitCount} 404s in 60s), suppressing further 404 logs`, {
-      ip,
-      userAgent: req.get("User-Agent"),
-    });
+    logger.warn(
+      `🛡️ Scanner detected from ${ip} (${hitCount} 404s in 60s), suppressing further 404 logs`,
+      {
+        ip,
+        userAgent: req.get("User-Agent"),
+      },
+    );
   } else if (isScanner) {
     // Silently log at debug level for known scanners
     logger.debug(`🔍 404 (scanner) ${req.method} ${req.url}`, { ip });

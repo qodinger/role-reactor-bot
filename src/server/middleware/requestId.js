@@ -20,7 +20,8 @@ function generateRequestId() {
  */
 export function requestIdMiddleware(req, res, next) {
   // Use existing request ID from header, or generate a new one
-  req.requestId = /** @type {string} */ (req.headers["x-request-id"]) || generateRequestId();
+  req.requestId =
+    /** @type {string} */ (req.headers["x-request-id"]) || generateRequestId();
 
   // Set response header for client tracking
   res.setHeader("X-Request-ID", req.requestId);
