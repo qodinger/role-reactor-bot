@@ -6,7 +6,7 @@ const logger = getLogger();
 /**
  * Error handling middleware
  * @param {Error} error - The error object
- * @param {import('express').Request} req - Express request object
+ * @param {import('../types.js').ExtendedRequest} req - Express request object
  * @param {import('express').Response} res - Express response object
  * @param {import('express').NextFunction} _next - Express next function (unused)
  */
@@ -91,7 +91,7 @@ setInterval(() => {
 
 /**
  * 404 Not Found handler
- * @param {import('express').Request} req - Express request object
+ * @param {import('../types.js').ExtendedRequest} req - Express request object
  * @param {import('express').Response} res - Express response object
  */
 export function notFoundHandler(req, res) {

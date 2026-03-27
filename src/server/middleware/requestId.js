@@ -14,13 +14,13 @@ function generateRequestId() {
 /**
  * Request ID middleware
  * Adds a unique request ID to each request and response header
- * @param {import('express').Request} req - Express request object
+ * @param {import('../types.js').ExtendedRequest} req - Express request object
  * @param {import('express').Response} res - Express response object
  * @param {import('express').NextFunction} next - Express next function
  */
 export function requestIdMiddleware(req, res, next) {
   // Use existing request ID from header, or generate a new one
-  req.requestId = req.headers["x-request-id"] || generateRequestId();
+  req.requestId = /** @type {string} */ (req.headers["x-request-id"]) || generateRequestId();
 
   // Set response header for client tracking
   res.setHeader("X-Request-ID", req.requestId);

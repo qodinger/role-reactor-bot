@@ -4,7 +4,7 @@ const logger = getLogger();
 
 /**
  * Request logging middleware
- * @param {import('express').Request} req - Express request object
+ * @param {import('../types.js').ExtendedRequest} req - Express request object
  * @param {import('express').Response} res - Express response object
  * @param {import('express').NextFunction} next - Express next function
  */
@@ -44,7 +44,7 @@ export function requestLogger(req, res, next) {
     });
 
     // Call original end method
-    originalEnd.call(this, chunk, encoding);
+    return originalEnd.call(this, chunk, encoding);
   };
 
   next();
