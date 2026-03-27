@@ -92,9 +92,12 @@ export async function apiGuildLeaderboard(req, res) {
     ]);
 
     const client = getDiscordClient();
+    const guild = client?.guilds.cache.get(guildId);
+
     const enrichedLeaderboard = await GuildHelper.enrichLeaderboard(
       leaderboard,
       client,
+      guild || guildId,
     );
 
     let serverInfo = null;
@@ -128,9 +131,7 @@ export async function apiGuildLeaderboard(req, res) {
       stats = cached.stats;
       total = cached.total;
     } else {
-      const collection =
-        experienceManager.storageManager.provider.dbManager.userExperience
-          .collection;
+      const collection = dbManager.userExperience.collection;
 
       const [aggResult] = await collection
         .aggregate([
@@ -195,15 +196,31 @@ export async function apiGetPublicLeaderboards(req, res) {
   try {
     const now = Date.now();
 
-    // Only use cache for default listing (no search query)
+    // Determine if query is an exact guild ID (snowflake: 17-20 digit number)
+    const isGuildIdSearch = query && /^\d{17,20}$/.test(query);
+
+    // Use cache for default listing and name/rank searches
+    // Only bypass cache for exact guild ID lookups (to find newly enabled servers)
     if (
-      !query &&
+      !isGuildIdSearch &&
       leaderboardCache.guilds.length > 0 &&
       now - leaderboardCache.lastUpdate < leaderboardCache.ttl
     ) {
+      let filteredGuilds = leaderboardCache.guilds;
+
+      if (query) {
+        const queryClean = query.toLowerCase().replace("#", "");
+        const queryNum = parseInt(queryClean, 10);
+        filteredGuilds = leaderboardCache.guilds.filter(g => {
+          const nameMatch = g.name.toLowerCase().includes(query.toLowerCase());
+          const rankMatch = !isNaN(queryNum) && g.rank === queryNum;
+          return nameMatch || rankMatch;
+        });
+      }
+
       return res.json(
         createSuccessResponse({
-          guilds: leaderboardCache.guilds.slice(0, limit),
+          guilds: filteredGuilds.slice(0, limit),
           cached: true,
           nextUpdateIn: Math.round(
             (leaderboardCache.ttl - (now - leaderboardCache.lastUpdate)) / 1000,
@@ -225,10 +242,6 @@ export async function apiGetPublicLeaderboards(req, res) {
       "../../utils/storage/databaseManager.js"
     );
     const dbManager = await getDatabaseManager();
-    const { getExperienceManager } = await import(
-      "../../features/experience/ExperienceManager.js"
-    );
-    const experienceManager = await getExperienceManager();
 
     const publicSettings = await dbManager.guildSettings.collection
       .find({
@@ -245,9 +258,7 @@ export async function apiGetPublicLeaderboards(req, res) {
 
     // Single aggregation for all public guilds instead of per-guild queries
     const activeGuildIds = activePublicGuilds.map(g => g.id);
-    const collection =
-      experienceManager.storageManager.provider.dbManager.userExperience
-        .collection;
+    const collection = dbManager.userExperience.collection;
 
     const guildAggs = await collection
       .aggregate([

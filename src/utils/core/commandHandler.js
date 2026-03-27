@@ -410,6 +410,7 @@ class CommandHandler {
               interaction.guild.id,
               interaction.user.id,
               commandName,
+              client,
             );
             this.logger.info(
               `✅ Pre-awarded command XP for ${interaction.user.tag} running ${commandName}`,
@@ -469,6 +470,7 @@ class CommandHandler {
               interaction.guild.id,
               interaction.user.id,
               commandName,
+              client,
             );
 
             if (xpData) {

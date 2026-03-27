@@ -193,12 +193,28 @@ class ExperienceManager {
   }
 
   /**
+   * Snapshot user profile from Discord cache into the XP record
+   * @param {object} userData - The user data object to enrich
+   * @param {string} userId - Discord user ID
+   * @param {import('discord.js').Client|null} client - Discord client
+   */
+  _snapshotUserProfile(userData, userId, client) {
+    if (!client) return;
+    const user = client.users.cache.get(userId);
+    if (user) {
+      userData.username = user.username;
+      userData.discriminator = user.discriminator;
+      userData.avatarUrl = user.displayAvatarURL({ size: 64 });
+    }
+  }
+
+  /**
    * Add XP to a user with caching and batching
    * @param {string} guildId - Discord guild ID
    * @param {string} userId - Discord user ID
    * @param {number} xp - XP to add
    * @param {import('discord.js').Client} [client] - Optional Discord client for level-up notifications
-   * @returns {object} Updated user data
+   * @returns {Promise<object>} Updated user data
    */
   async addXP(guildId, userId, xp, client = null) {
     await this.initialize();
@@ -221,6 +237,9 @@ class ExperienceManager {
       level: newLevel,
       lastUpdated: new Date(),
     };
+
+    // Silently snapshot user profile for leaderboard reads
+    this._snapshotUserProfile(updatedData, userId, client);
 
     // Update cache immediately for fast access
     experienceCache.set(guildId, userId, updatedData);
@@ -294,7 +313,7 @@ class ExperienceManager {
    * Get user experience data
    * @param {string} guildId - Discord guild ID
    * @param {string} userId - Discord user ID
-   * @returns {object} User experience data
+   * @returns {Promise<object>} User experience data
    */
   async getUserData(guildId, userId) {
     await this.initialize();
@@ -332,7 +351,7 @@ class ExperienceManager {
    * Get leaderboard for a guild
    * @param {string} guildId - Discord guild ID
    * @param {number} limit - Number of users to return
-   * @returns {Array} Sorted leaderboard data
+   * @returns {Promise<Array>} Sorted leaderboard data
    */
   async getLeaderboard(guildId, limit = 10) {
     await this.initialize();
@@ -357,7 +376,7 @@ class ExperienceManager {
   /**
    * Get guild statistics
    * @param {string} guildId - Discord guild ID
-   * @returns {object} Guild XP statistics
+   * @returns {Promise<object>} Guild XP statistics
    */
   async getGuildStats(guildId) {
     await this.initialize();
@@ -403,7 +422,7 @@ class ExperienceManager {
    * Check if user can earn XP (cooldown system)
    * @param {string} guildId - Discord guild ID
    * @param {string} userId - Discord user ID
-   * @returns {boolean} Whether user can earn XP
+   * @returns {Promise<boolean>} Whether user can earn XP
    */
   async canEarnXP(guildId, userId) {
     await this.initialize();
@@ -430,7 +449,7 @@ class ExperienceManager {
     // 60 second cooldown between XP gains
     const cooldownMs = 60 * 1000;
 
-    if (!lastEarned || now - lastEarned >= cooldownMs) {
+    if (!lastEarned || now.getTime() - lastEarned.getTime() >= cooldownMs) {
       return true;
     }
 
@@ -442,7 +461,7 @@ class ExperienceManager {
    * @param {string} guildId - Discord guild ID
    * @param {string} userId - Discord user ID
    * @param {import('discord.js').Client} [client] - Optional Discord client for level-up notifications
-   * @returns {object|null} Awarded XP data or null if cooldown active
+   * @returns {Promise<object|null>} Awarded XP data or null if cooldown active
    */
   async awardMessageXP(guildId, userId, client = null) {
     // Check if message XP is enabled for this guild
@@ -462,8 +481,16 @@ class ExperienceManager {
       return null;
     }
 
-    // Random XP between 15-25
-    const xp = Math.floor(Math.random() * 11) + 15;
+    // Calculate random XP based on guild settings (default 15-25 if not set)
+    const guildSettings = await dbManager.guildSettings.getByGuild(guildId);
+
+    // Safety fallback in case settings are missing
+    const minXP = guildSettings?.experienceSystem?.messageXPAmount?.min ?? 15;
+    const maxXP = guildSettings?.experienceSystem?.messageXPAmount?.max ?? 25;
+
+    // Random XP between min and max (inclusive)
+    const xp = Math.floor(Math.random() * (maxXP - minXP + 1)) + minXP;
+
     const userData = await this.addXP(guildId, userId, xp, client);
 
     // Update last earned timestamp
@@ -490,7 +517,7 @@ class ExperienceManager {
    * Award XP for role activity
    * @param {string} guildId - Discord guild ID
    * @param {string} userId - Discord user ID
-   * @returns {object|null} Awarded XP data or null if XP system disabled
+   * @returns {Promise<object|null>} Awarded XP data or null if XP system disabled
    */
   async awardRoleXP(guildId, userId) {
     // Check if XP system is enabled for this guild
@@ -530,7 +557,7 @@ class ExperienceManager {
    * Check if user can earn command XP (cooldown system)
    * @param {string} guildId - Discord guild ID
    * @param {string} userId - Discord user ID
-   * @returns {boolean} Whether user can earn command XP
+   * @returns {Promise<boolean>} Whether user can earn command XP
    */
   async canEarnCommandXP(guildId, userId) {
     await this.initialize();
@@ -557,7 +584,10 @@ class ExperienceManager {
     // 30 second cooldown between command XP gains (shorter than message XP)
     const cooldownMs = 30 * 1000;
 
-    if (!lastCommandEarned || now - lastCommandEarned >= cooldownMs) {
+    if (
+      !lastCommandEarned ||
+      now.getTime() - lastCommandEarned.getTime() >= cooldownMs
+    ) {
       return true;
     }
 
@@ -569,9 +599,9 @@ class ExperienceManager {
    * @param {string} guildId - Discord guild ID
    * @param {string} userId - Discord user ID
    * @param {string} commandName - Name of the command used
-   * @returns {object|null} Awarded XP data or null if cooldown active
+   * @returns {Promise<object|null>} Awarded XP data or null if cooldown active
    */
-  async awardCommandXP(guildId, userId, commandName) {
+  async awardCommandXP(guildId, userId, commandName, client = null) {
     this.logger.info(
       `🎯 ExperienceManager: Awarding command XP for user ${userId} in guild ${guildId} for command ${commandName}`,
     );
@@ -601,7 +631,7 @@ class ExperienceManager {
     const guildSettings = await dbManager.guildSettings.getByGuild(guildId);
     const xp = guildSettings.experienceSystem.commandXPAmount.base;
 
-    const userData = await this.addXP(guildId, userId, xp);
+    const userData = await this.addXP(guildId, userId, xp, client);
 
     // Update commands used and last command earned timestamp
     userData.commandsUsed = (userData.commandsUsed || 0) + 1;

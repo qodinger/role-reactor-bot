@@ -202,41 +202,47 @@ export class GuildHelper {
    * Enrich leaderboard entries with Discord user data
    * @param {Array} leaderboard
    * @param {Object} client
+   * @param {import('discord.js').Guild|string} [guildOrId] - Optional guild or guild ID to fetch members from
    * @returns {Promise<Array>}
    */
-  static async enrichLeaderboard(leaderboard, client) {
-    const enriched = [];
-    for (const entry of leaderboard) {
-      let userDetails = {
-        username: "Unknown User",
-        discriminator: "0000",
-        avatar: null,
-        bot: false,
-      };
+  static async enrichLeaderboard(leaderboard, client, guildOrId = null) {
+    if (!client) return leaderboard;
 
-      if (client) {
-        const user =
-          client.users.cache.get(entry.userId) ||
-          (await client.users.fetch(entry.userId).catch(() => null));
-        if (user) {
-          userDetails = {
-            username: user.username,
-            discriminator: user.discriminator,
-            avatar: user.displayAvatarURL({ size: 64 }),
-            bot: user.bot,
-          };
-        }
-      }
-
-      if (userDetails.bot) continue;
-
-      enriched.push({
-        ...entry,
-        user: userDetails,
-        rankInfo: getRankTitle(entry.level || 1),
-      });
+    // Get guild object if possible
+    let guild = null;
+    if (guildOrId) {
+      guild =
+        typeof guildOrId === "string"
+          ? client.guilds.cache.get(guildOrId)
+          : guildOrId;
     }
-    return enriched;
+
+    // Cache-only enrichment — no Discord API calls to avoid latency
+    // Priority: 1. DB-stored profile (snapshotted on XP award) → 2. Discord cache
+    return leaderboard
+      .map(entry => {
+        const member = guild?.members.cache.get(entry.userId);
+        const cachedUser = member?.user || client.users.cache.get(entry.userId);
+
+        const isBot = cachedUser?.bot ?? false;
+        if (isBot) return null;
+
+        return {
+          ...entry,
+          user: {
+            username: cachedUser?.username || entry.username || "Unknown User",
+            discriminator:
+              cachedUser?.discriminator || entry.discriminator || "0",
+            avatar:
+              cachedUser?.displayAvatarURL({ size: 64 }) ||
+              entry.avatarUrl ||
+              null,
+            bot: false,
+          },
+          rankInfo: getRankTitle(entry.level || 1),
+        };
+      })
+      .filter(Boolean);
   }
 
   /**
