@@ -194,26 +194,16 @@ export async function apiGetPublicLeaderboards(req, res) {
 
   try {
     const now = Date.now();
+
+    // Only use cache for default listing (no search query)
     if (
+      !query &&
       leaderboardCache.guilds.length > 0 &&
       now - leaderboardCache.lastUpdate < leaderboardCache.ttl
     ) {
-      let filteredGuilds = leaderboardCache.guilds;
-
-      if (query) {
-        const queryClean = query.toLowerCase().replace("#", "");
-        const queryNum = parseInt(queryClean, 10);
-        filteredGuilds = leaderboardCache.guilds.filter(g => {
-          const idMatch = g.id === query;
-          const nameMatch = g.name.toLowerCase().includes(query.toLowerCase());
-          const rankMatch = !isNaN(queryNum) && g.rank === queryNum;
-          return idMatch || nameMatch || rankMatch;
-        });
-      }
-
       return res.json(
         createSuccessResponse({
-          guilds: filteredGuilds.slice(0, limit),
+          guilds: leaderboardCache.guilds.slice(0, limit),
           cached: true,
           nextUpdateIn: Math.round(
             (leaderboardCache.ttl - (now - leaderboardCache.lastUpdate)) / 1000,
