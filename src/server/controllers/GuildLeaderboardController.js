@@ -195,13 +195,25 @@ export async function apiGetPublicLeaderboards(req, res) {
   try {
     const now = Date.now();
     if (
-      !query &&
       leaderboardCache.guilds.length > 0 &&
       now - leaderboardCache.lastUpdate < leaderboardCache.ttl
     ) {
+      let filteredGuilds = leaderboardCache.guilds;
+
+      if (query) {
+        const queryClean = query.toLowerCase().replace("#", "");
+        const queryNum = parseInt(queryClean, 10);
+        filteredGuilds = leaderboardCache.guilds.filter(g => {
+          const idMatch = g.id === query;
+          const nameMatch = g.name.toLowerCase().includes(query.toLowerCase());
+          const rankMatch = !isNaN(queryNum) && g.rank === queryNum;
+          return idMatch || nameMatch || rankMatch;
+        });
+      }
+
       return res.json(
         createSuccessResponse({
-          guilds: leaderboardCache.guilds.slice(0, limit),
+          guilds: filteredGuilds.slice(0, limit),
           cached: true,
           nextUpdateIn: Math.round(
             (leaderboardCache.ttl - (now - leaderboardCache.lastUpdate)) / 1000,
@@ -292,11 +304,12 @@ export async function apiGetPublicLeaderboards(req, res) {
     let filteredGuilds = allPublicGuilds;
     if (query) {
       const queryClean = query.toLowerCase().replace("#", "");
-      const queryNum = parseInt(queryClean);
+      const queryNum = parseInt(queryClean, 10);
       filteredGuilds = allPublicGuilds.filter(g => {
+        const idMatch = g.id === query;
         const nameMatch = g.name.toLowerCase().includes(query.toLowerCase());
         const rankMatch = !isNaN(queryNum) && g.rank === queryNum;
-        return nameMatch || rankMatch;
+        return idMatch || nameMatch || rankMatch;
       });
     }
 

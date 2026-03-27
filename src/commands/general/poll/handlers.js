@@ -25,7 +25,7 @@ const logger = getLogger();
  * @param {import('discord.js').ChatInputCommandInteraction} interaction - The interaction
  * @param {import('discord.js').Client} client - The Discord client
  * @param {boolean} _deferred - Whether the interaction was deferred
- * @param {Object} options - Optional dependencies for testing
+ * @param {Object} [options={}] - Optional dependencies for testing
  * @param {Function} [options.getStorageManager] - Optional storage manager getter
  */
 export async function handlePollEnd(
@@ -661,7 +661,7 @@ async function createPollCard(interaction, poll, pollNumber) {
  * @param {import("discord.js").ChatInputCommandInteraction} interaction - The interaction object
  * @param {import("discord.js").Client} _client - The Discord client
  * @param {boolean} _deferred - Whether the interaction was deferred
- * @param {Object} options - Optional dependencies for testing
+ * @param {Object} [options={}] - Optional dependencies for testing
  * @param {Function} [options.getStorageManager] - Optional storage manager getter
  */
 export async function handlePollList(

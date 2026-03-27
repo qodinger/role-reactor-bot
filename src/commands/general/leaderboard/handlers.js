@@ -1,16 +1,17 @@
 import { getLogger } from "../../../utils/logger.js";
 import { getDatabaseManager as defaultGetDatabaseManager } from "../../../utils/storage/databaseManager.js";
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";
+import { getMentionableCommand } from "../../../utils/commandUtils.js";
 import { createLeaderboardEmbed } from "./embeds.js";
 
 /**
  * Handle the leaderboard display
- * @param {import('discord.js').CommandInteraction} interaction
+ * @param {import('discord.js').ChatInputCommandInteraction} interaction
  * @param {import('discord.js').Client} client
- * @param {Object} options - Optional dependencies for testing
- * @param {Function} options.getDatabaseManager - Optional database manager getter
- * @param {Function} options.getExperienceManager - Optional experience manager getter
- * @param {Function} options.getStorageManager - Optional storage manager getter
+ * @param {Object} [options={}] - Optional dependencies for testing
+ * @param {Function} [options.getDatabaseManager] - Optional database manager getter
+ * @param {Function} [options.getExperienceManager] - Optional experience manager getter
+ * @param {Function} [options.getStorageManager] - Optional storage manager getter
  */
 export async function handleLeaderboard(interaction, client, options = {}) {
   const logger = getLogger();
@@ -42,8 +43,7 @@ export async function handleLeaderboard(interaction, client, options = {}) {
         errorEmbed({
           title: "XP System Disabled",
           description: "The XP system is not enabled for this server.",
-          solution:
-            "Ask an administrator to enable the XP system using `/xp setup`.",
+          solution: `Ask an administrator to enable the XP system using ${getMentionableCommand(client, "xp settings", interaction.guild.id)}.`,
         }),
       );
     }
@@ -117,7 +117,12 @@ export async function handleLeaderboard(interaction, client, options = {}) {
     // Resolve display names
     try {
       const userIds = leaderboardData.map(u => u.userId);
-      const members = await interaction.guild.members.fetch({ user: userIds });
+      const members =
+        /** @type {import('discord.js').Collection<string, import('discord.js').GuildMember>} */ (
+          /** @type {unknown} */ (
+            await interaction.guild.members.fetch({ user: userIds })
+          )
+        );
       leaderboardData = leaderboardData.map(entry => {
         const member = members.get(entry.userId);
         return {
@@ -174,7 +179,7 @@ export async function handleLeaderboard(interaction, client, options = {}) {
  * @param {string} type - Leaderboard type
  * @param {number} limit - Number of users to return
  * @param {Function} getStorageManager - Optional storage manager getter for testing
- * @returns {Array} Sorted leaderboard data
+ * @returns {Promise<Array>} Sorted leaderboard data
  */
 async function getCustomLeaderboard(
   guildId,

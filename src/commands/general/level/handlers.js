@@ -1,17 +1,18 @@
 import { getLogger } from "../../../utils/logger.js";
 import { getDatabaseManager as defaultGetDatabaseManager } from "../../../utils/storage/databaseManager.js";
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";
+import { getMentionableCommand } from "../../../utils/commandUtils.js";
 import { createLevelEmbed } from "./embeds.js";
 
 /**
  * Handle the level display
- * @param {import('discord.js').CommandInteraction} interaction
+ * @param {import('discord.js').ChatInputCommandInteraction} interaction
  * @param {import('discord.js').Client} client
- * @param {Object} options - Optional dependencies for testing
- * @param {Function} options.getDatabaseManager - Optional database manager getter
- * @param {Function} options.getExperienceManager - Optional experience manager getter
+ * @param {Object} [options={}] - Optional dependencies for testing
+ * @param {Function} [options.getDatabaseManager] - Optional database manager getter
+ * @param {Function} [options.getExperienceManager] - Optional experience manager getter
  */
-export async function handleLevel(interaction, _client, options = {}) {
+export async function handleLevel(interaction, client, options = {}) {
   const logger = getLogger();
   const startTime = Date.now();
 
@@ -41,8 +42,7 @@ export async function handleLevel(interaction, _client, options = {}) {
         errorEmbed({
           title: "XP System Disabled",
           description: "The XP system is not enabled for this server.",
-          solution:
-            "Ask an administrator to enable the XP system using `/xp setup`.",
+          solution: `Ask an administrator to enable the XP system using ${getMentionableCommand(client, "xp settings", interaction.guild.id)}.`,
         }),
       );
     }
