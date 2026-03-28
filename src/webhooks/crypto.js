@@ -2,6 +2,7 @@ import { getStorageManager } from "../utils/storage/storageManager.js";
 import { getLogger } from "../utils/logger.js";
 import { formatCoreCredits } from "../utils/ai/aiCreditManager.js";
 import { plisioPay } from "../utils/payments/plisio.js";
+import { emojiConfig } from "../config/emojis.js";
 
 const logger = getLogger();
 
@@ -35,29 +36,7 @@ export async function handleCryptoWebhook(req, res) {
       .json({ status: "error", message: "Invalid signature" });
   }
 
-  // 2. Log every incoming webhook for audit purposes (regardless of status)
-  logger.info(`💰 Plisio webhook received`, {
-    paymentId,
-    status,
-    cryptoAmount,
-    sourceAmount,
-    currency,
-    sourceCurrency,
-  });
-
-  // 3. Always store the raw payment record for auditing — even for
-  //    non-completed statuses and tiny amounts
-  try {
-    await storePaymentRecord(req.body);
-  } catch (storeErr) {
-    logger.error(`❌ Failed to store payment record ${paymentId}:`, storeErr);
-  }
-
-  // 4. Filter for successful payment statuses
-  if (status !== "completed" && status !== "mismatch") {
-    return res.status(200).json({ status: "ignored" });
-  }
-
+  // 3. Extract user ID early for logging
   let userId = metadata?.discordId;
 
   // Fallback: Extract Discord ID from order_number if metadata is missing
@@ -72,6 +51,19 @@ export async function handleCryptoWebhook(req, res) {
     logger.debug(
       `🔍 Extracted user ID ${userId} from Plisio payment ID ${paymentId}`,
     );
+  }
+
+  // 4. Always store the raw payment record for auditing — even for
+  //    non-completed statuses and tiny amounts
+  try {
+    await storePaymentRecord(req.body, userId);
+  } catch (storeErr) {
+    logger.error(`❌ Failed to store payment record ${paymentId}:`, storeErr);
+  }
+
+  // 5. Filter for successful payment statuses
+  if (status !== "completed" && status !== "mismatch") {
+    return res.status(200).json({ status: "ignored" });
   }
 
   if (!userId) {
@@ -101,18 +93,20 @@ export async function handleCryptoWebhook(req, res) {
  * Store every incoming Plisio webhook payload for audit trail.
  * Non-critical — errors are logged but never block the main flow.
  */
-async function storePaymentRecord(body) {
+async function storePaymentRecord(body, discordId = null) {
   const storage = await getStorageManager();
+  const metadata = body.metadata || {};
 
   const record = {
     paymentId: body.order_number,
+    discordId: discordId || metadata.discordId,
     provider: "plisio",
     status: body.status,
     cryptoAmount: parseFloat(body.amount) || 0,
     cryptoCurrency: body.currency,
-    fiatAmount: parseFloat(body.source_amount) || 0,
-    fiatCurrency: body.source_currency || "USD",
-    email: body.email,
+    amount: parseFloat(body.source_amount) || 0,
+    currency: body.source_currency || "USD",
+    email: body.email || metadata.email,
     txnId: body.txn_id,
     rawPayload: body,
     receivedAt: new Date().toISOString(),
@@ -125,7 +119,7 @@ async function storePaymentRecord(body) {
     );
     const dbManager = await getDatabaseManager();
     if (dbManager?.payments) {
-      await dbManager.payments.create(record);
+      await dbManager.payments.complete(record);
       logger.debug(`📝 Raw payment record stored: ${record.paymentId}`);
     }
   } catch (_e) {
@@ -171,6 +165,9 @@ async function processCryptoPayment(
     // Check for duplicate payment
     const existingData = await storage.getCoreCredits(userId);
     if (existingData?.cryptoPayments?.some(p => p.chargeId === paymentId)) {
+      logger.info(
+        `🔄 Duplicate payment attempt: ${paymentId} already credited to user ${userId}.`,
+      );
       return { success: true, message: "Already processed" };
     }
 
@@ -218,9 +215,9 @@ async function processCryptoPayment(
     userData.lastUpdated = new Date().toISOString();
     await storage.setCoreCredits(userId, userData);
 
-    // Update separate payments ledger
+    // Update separate payments ledger (Upsert/Complete)
     try {
-      await storage.createPayment({
+      await storage.completePayment({
         paymentId: paymentId,
         discordId: userId,
         provider: "plisio",
@@ -287,7 +284,7 @@ async function processCryptoPayment(
             .send({
               embeds: [
                 {
-                  title: "💎 Cores Added!",
+                  title: `${emojiConfig.customEmojis.core} Cores Added!`,
                   description: `You received **${coresToAdd} Cores** from your crypto payment of **$${paymentAmount} ${sourceCurrency || "USD"}**.`,
                   color: 0x00d26a,
                   fields: [
@@ -298,7 +295,7 @@ async function processCryptoPayment(
                     },
                     {
                       name: "New Balance",
-                      value: `${userData.credits} Cores`,
+                      value: `${userData.credits} ${emojiConfig.customEmojis.core}`,
                       inline: true,
                     },
                   ],

@@ -227,6 +227,15 @@ class StorageManager {
     return true;
   }
 
+  async completePayment(paymentData) {
+    if (this.provider instanceof DatabaseProvider) {
+      if (this.dbManager && this.dbManager.payments) {
+        return await this.dbManager.payments.complete(paymentData);
+      }
+    }
+    return true;
+  }
+
   // Ticket methods
   async createTicket(ticketData) {
     if (this.provider instanceof DatabaseProvider) {

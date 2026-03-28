@@ -7,6 +7,7 @@ import {
   checkAIImageCredits,
   checkAndDeductAIImageCredits,
 } from "../../../utils/ai/aiCreditManager.js";
+import { emojiConfig } from "../../../config/emojis.js";
 import { getUserFacingErrorMessage } from "../../../utils/ai/errorMessages.js";
 import {
   createImagineProcessingEmbed,
@@ -267,7 +268,7 @@ export async function handleImagineCommand(interaction, _client) {
     const errorEmbed = createImagineErrorEmbed({
       interaction,
       prompt: originalPrompt,
-      error: `Insufficient energy. You need **${creditsNeeded} Core** to generate images. Your balance: **${userData.credits || 0} Core**.`,
+      error: `Insufficient energy. You need **${creditsNeeded} ${emojiConfig.customEmojis.core}** to generate images. Your balance: **${userData.credits || 0} ${emojiConfig.customEmojis.core}**.`,
     });
     await interaction.editReply({ embeds: [errorEmbed] });
     return;
@@ -361,7 +362,7 @@ export async function handleImagineCommand(interaction, _client) {
       // Continue anyway since image was generated successfully
     } else {
       logger.info(
-        `✅ Deducted ${deductionResult.creditsDeducted} Core from user ${interaction.user.id} for ${targetProvider}/${targetModel} generation (${deductionResult.creditsRemaining} remaining)`,
+        `✅ Deducted ${deductionResult.creditsDeducted} ${emojiConfig.customEmojis.core} from user ${interaction.user.id} for ${targetProvider}/${targetModel} generation (${deductionResult.creditsRemaining} remaining)`,
       );
     }
 
@@ -443,12 +444,38 @@ export async function handleImagineCommand(interaction, _client) {
       error,
     );
 
+    const isContentModeration =
+      error.message &&
+      (error.message.includes("content moderation") ||
+        error.message.includes("safety filters"));
+
+    // If it's a content moderation error, we STICK with the deduction
+    // Because the provider still charges US for the filtered attempt
+    if (isContentModeration) {
+      try {
+        const deductionResult = await checkAndDeductAIImageCredits(
+          interaction.user.id,
+          targetProvider,
+          targetModel,
+        );
+        if (deductionResult.success) {
+          logger.info(
+            `💰 Deducted ${deductionResult.creditsDeducted} ${emojiConfig.customEmojis.core} from user ${interaction.user.id} for FILTERED imagine prompt (Developer was charged by API)`,
+          );
+        }
+      } catch (deductionError) {
+        logger.error("Failed to deduct credits for filtered imagine prompt:", deductionError);
+      }
+    }
+
+    const errorDescription = isContentModeration
+      ? `${getUserFacingErrorMessage(error, { includeContentModeration: false })}\n\n**Note**: Core credits were still deducted to cover the AI processing cost of this attempt.`
+      : getUserFacingErrorMessage(error, { includeContentModeration: false });
+
     const errorEmbed = createImagineErrorEmbed({
       interaction,
       prompt: originalPrompt,
-      error: getUserFacingErrorMessage(error, {
-        includeContentModeration: false,
-      }),
+      error: errorDescription,
     });
 
     try {

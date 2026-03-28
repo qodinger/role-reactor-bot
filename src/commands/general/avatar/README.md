@@ -56,7 +56,7 @@ Following the modular pattern established by other general commands:
 
 - AI-powered anime avatar generation
 - Art style customization
-- Credit system integration (2 Core per generation)
+- Credit system integration (3 Core per generation)
 - Advanced prompt enhancement
 - Multiple AI provider fallback
 - Loading experience with static gradient
@@ -66,6 +66,6 @@ Following the modular pattern established by other general commands:
 ## Dependencies
 
 - Discord.js
-- AI service integration (Google Gemini 2.5 Flash)
+- AI service integration (Stability AI - SD 3.5 Flash)
 - Storage manager for credit persistence
 - Theme configuration for colors and styling

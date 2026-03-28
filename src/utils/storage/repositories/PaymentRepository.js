@@ -76,6 +76,56 @@ export class PaymentRepository extends BaseRepository {
   }
 
   /**
+   * Complete or update a payment record (Upsert)
+   * This is used when a webhook arrives with a final status
+   * @param {Object} paymentData - Payment data to update or create
+   * @returns {Promise<Object|null>} Updated/created payment document
+   */
+  async complete(paymentData) {
+    try {
+      const { paymentId } = paymentData;
+      if (!paymentId) throw new Error("Payment ID required for completion");
+
+      const now = new Date().toISOString();
+      const updateData = {
+        updatedAt: now,
+      };
+
+      // Only set properties if they are provided, to avoid overwriting existing
+      // data (e.g., discordId) with undefined during intermediate webhooks
+      if (paymentData.discordId) updateData.discordId = paymentData.discordId;
+      if (paymentData.provider) updateData.provider = paymentData.provider;
+      if (paymentData.type) updateData.type = paymentData.type;
+      if (paymentData.status) updateData.status = paymentData.status;
+      if (paymentData.amount !== undefined) updateData.amount = paymentData.amount;
+      if (paymentData.currency) updateData.currency = paymentData.currency;
+      if (paymentData.coresGranted !== undefined)
+        updateData.coresGranted = paymentData.coresGranted;
+      if (paymentData.tier) updateData.tier = paymentData.tier;
+      if (paymentData.email) updateData.email = paymentData.email.toLowerCase().trim();
+      if (paymentData.metadata) updateData.metadata = paymentData.metadata;
+
+      if (updateData.status === "completed") {
+        updateData.processedAt = now;
+      }
+
+      const result = await this.collection.findOneAndUpdate(
+        { paymentId },
+        {
+          $set: updateData,
+          $setOnInsert: { createdAt: now },
+        },
+        { upsert: true, returnDocument: "after" },
+      );
+
+      return result;
+    } catch (error) {
+      this.logger.error(`Failed to complete payment ${paymentData.paymentId}`, error);
+      return null;
+    }
+  }
+
+  /**
    * Find payment by external payment ID
    * @param {string} paymentId - External payment ID
    * @returns {Promise<Object|null>} Payment document or null
