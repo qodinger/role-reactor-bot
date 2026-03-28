@@ -131,10 +131,12 @@ class EventHandler {
       const startTime = Date.now();
       await handler(...args);
       const duration = Date.now() - startTime;
-      
+
       // Record in performance monitor
       try {
-        const { getPerformanceMonitor } = await import("../monitoring/performanceMonitor.js");
+        const { getPerformanceMonitor } = await import(
+          "../monitoring/performanceMonitor.js"
+        );
         getPerformanceMonitor().recordEvent(eventType, duration);
       } catch (_perfError) {
         // Ignore stats errors

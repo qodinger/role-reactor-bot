@@ -31,25 +31,40 @@ export class BaseRepository {
     return new Proxy(collection, {
       get: (target, prop) => {
         const originalAction = target[prop];
-        if (typeof prop === "string" && commonMethods.includes(prop) && typeof originalAction === "function") {
+        if (
+          typeof prop === "string" &&
+          commonMethods.includes(prop) &&
+          typeof originalAction === "function"
+        ) {
           return async (...args) => {
             const start = Date.now();
             try {
               const result = await originalAction.apply(target, args);
               const duration = Date.now() - start;
-              
-              const { getPerformanceMonitor } = await import("../../monitoring/performanceMonitor.js");
-              getPerformanceMonitor().recordDatabaseOperation(duration, duration > 1000);
-              
+
+              const { getPerformanceMonitor } = await import(
+                "../../monitoring/performanceMonitor.js"
+              );
+              getPerformanceMonitor().recordDatabaseOperation(
+                duration,
+                duration > 1000,
+              );
+
               return result;
             } catch (error) {
               const duration = Date.now() - start;
-              
+
               try {
-                const { getPerformanceMonitor } = await import("../../monitoring/performanceMonitor.js");
-                getPerformanceMonitor().recordDatabaseOperation(duration, false, true);
+                const { getPerformanceMonitor } = await import(
+                  "../../monitoring/performanceMonitor.js"
+                );
+                getPerformanceMonitor().recordDatabaseOperation(
+                  duration,
+                  false,
+                  true,
+                );
               } catch (_perfError) {}
-              
+
               throw error;
             }
           };
