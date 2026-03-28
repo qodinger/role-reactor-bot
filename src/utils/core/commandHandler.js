@@ -456,7 +456,7 @@ class CommandHandler {
           "../monitoring/performanceMonitor.js"
         );
         getPerformanceMonitor().recordCommand(commandName, duration);
-      } catch (perfError) {
+      } catch (_perfError) {
         // Ignore stats errors
       }
 

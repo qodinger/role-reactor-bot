@@ -48,7 +48,7 @@ export class BaseRepository {
               try {
                 const { getPerformanceMonitor } = await import("../../monitoring/performanceMonitor.js");
                 getPerformanceMonitor().recordDatabaseOperation(duration, false, true);
-              } catch (perfError) {}
+              } catch (_perfError) {}
               
               throw error;
             }

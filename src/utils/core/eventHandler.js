@@ -136,7 +136,7 @@ class EventHandler {
       try {
         const { getPerformanceMonitor } = await import("../monitoring/performanceMonitor.js");
         getPerformanceMonitor().recordEvent(eventType, duration);
-      } catch (perfError) {
+      } catch (_perfError) {
         // Ignore stats errors
       }
 
