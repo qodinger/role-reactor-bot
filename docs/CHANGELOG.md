@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Interactive Help Menu**: All command names in the `/help` menu are now clickable slash command mentions, allowing you to directly trigger commands from the help guide.
 - **High-Performance Leaderboards**: Complete refactor of the leaderboard system to use database-driven profile storage. Eliminates page load latency by removing sequential Discord API calls during rendering.
 - **Bulk Member Enrichment**: Resolved issues where the bot would frequently hit Discord rate limits during leaderboard rendering, ensuring smoother and more consistent data displays.
+- **Auto-Merging Mappings**: New backend system automatically identifies and merges duplicate role-emoji mappings for cleaner server configurations.
 
 ### Changed
 
@@ -38,12 +39,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Bulk Action Limits**: `/temp-roles` and `/schedule-role` now correctly support up to **250 users** per action on Pro Engine servers and **25 users** on Free servers (previously capped at 20 for all servers).
 - **Faster Moderation**: `/moderation` bulk operations (timeout, warn, ban, kick) are now significantly faster and more responsive when processing user lists.
 - **System Optimization**: Internal architectural improvements to ensure server features and leaderboard controllers perform more consistently across all guilds.
+- **Gateway Reliability**: Implemented a protective buffer to prevent the loss of passive Discord gateway events during high-traffic periods or rate-limit spikes.
 
 ### Fixed
 
 - **Role Name Lengths**: Shortened command descriptions for role-reactions to safely sit below the Discord global command limit.
 - **Bulk Action on Pro Servers**: Fixed an issue where `/temp-roles assign` and `/schedule-role create` would not process more than 20 users, even on Pro Engine servers entitled to 250 users.
 - **Experience Calculations**: Fixed an error in the experience manager where leveling progress could occasionally fail to calculate correctly under specific conditions.
+- **Leaderboard Search**: Improved the accuracy of leaderboard search filters, ensuring more reliable server discovery in the public index.
+- **Vulnerability Noise**: Suppressed 404 log spam from automated web vulnerability scanners in the bot's server logs for cleaner debugging.
 
 ## [1.6.3] - 2026-03-04
 
