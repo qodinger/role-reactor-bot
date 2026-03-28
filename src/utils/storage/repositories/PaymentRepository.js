@@ -97,12 +97,14 @@ export class PaymentRepository extends BaseRepository {
       if (paymentData.provider) updateData.provider = paymentData.provider;
       if (paymentData.type) updateData.type = paymentData.type;
       if (paymentData.status) updateData.status = paymentData.status;
-      if (paymentData.amount !== undefined) updateData.amount = paymentData.amount;
+      if (paymentData.amount !== undefined)
+        updateData.amount = paymentData.amount;
       if (paymentData.currency) updateData.currency = paymentData.currency;
       if (paymentData.coresGranted !== undefined)
         updateData.coresGranted = paymentData.coresGranted;
       if (paymentData.tier) updateData.tier = paymentData.tier;
-      if (paymentData.email) updateData.email = paymentData.email.toLowerCase().trim();
+      if (paymentData.email)
+        updateData.email = paymentData.email.toLowerCase().trim();
       if (paymentData.metadata) updateData.metadata = paymentData.metadata;
 
       if (updateData.status === "completed") {
@@ -120,7 +122,10 @@ export class PaymentRepository extends BaseRepository {
 
       return result;
     } catch (error) {
-      this.logger.error(`Failed to complete payment ${paymentData.paymentId}`, error);
+      this.logger.error(
+        `Failed to complete payment ${paymentData.paymentId}`,
+        error,
+      );
       return null;
     }
   }

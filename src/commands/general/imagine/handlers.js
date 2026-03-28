@@ -464,7 +464,10 @@ export async function handleImagineCommand(interaction, _client) {
           );
         }
       } catch (deductionError) {
-        logger.error("Failed to deduct credits for filtered imagine prompt:", deductionError);
+        logger.error(
+          "Failed to deduct credits for filtered imagine prompt:",
+          deductionError,
+        );
       }
     }
 
