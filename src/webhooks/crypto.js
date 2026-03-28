@@ -7,13 +7,22 @@ const logger = getLogger();
 
 /**
  * Handle Crypto Payment Webhook (Plisio)
+ *
+ * Plisio sends two amount fields:
+ *   - `amount`        → crypto amount (e.g. 0.00001511 BTC)
+ *   - `source_amount` → fiat amount   (e.g. 1.00 USD)
+ *
+ * We use `source_amount` (fiat) for Core calculations, and store
+ * both values in every payment record for full audit trail.
  */
 export async function handleCryptoWebhook(req, res) {
   const {
     order_number: paymentId,
     status,
-    amount,
+    amount: cryptoAmount,
+    source_amount: sourceAmount,
     currency,
+    source_currency: sourceCurrency,
     email,
     metadata,
   } = req.body;
@@ -26,18 +35,43 @@ export async function handleCryptoWebhook(req, res) {
       .json({ status: "error", message: "Invalid signature" });
   }
 
-  // 2. Filter for successful payment statuses
+  // 2. Log every incoming webhook for audit purposes (regardless of status)
+  logger.info(`💰 Plisio webhook received`, {
+    paymentId,
+    status,
+    cryptoAmount,
+    sourceAmount,
+    currency,
+    sourceCurrency,
+  });
+
+  // 3. Always store the raw payment record for auditing — even for
+  //    non-completed statuses and tiny amounts
+  try {
+    await storePaymentRecord(req.body);
+  } catch (storeErr) {
+    logger.error(`❌ Failed to store payment record ${paymentId}:`, storeErr);
+  }
+
+  // 4. Filter for successful payment statuses
   if (status !== "completed" && status !== "mismatch") {
     return res.status(200).json({ status: "ignored" });
   }
 
   let userId = metadata?.discordId;
 
-  // Fallback: Extract Discord ID from order_number if metadata is missing 
+  // Fallback: Extract Discord ID from order_number if metadata is missing
   // (Format: USERID_TIMESTAMP)
-  if (!userId && paymentId && typeof paymentId === "string" && paymentId.includes("_")) {
+  if (
+    !userId &&
+    paymentId &&
+    typeof paymentId === "string" &&
+    paymentId.includes("_")
+  ) {
     userId = paymentId.split("_")[0];
-    logger.debug(`🔍 Extracted user ID ${userId} from Plisio payment ID ${paymentId}`);
+    logger.debug(
+      `🔍 Extracted user ID ${userId} from Plisio payment ID ${paymentId}`,
+    );
   }
 
   if (!userId) {
@@ -49,8 +83,10 @@ export async function handleCryptoWebhook(req, res) {
     const result = await processCryptoPayment(
       userId,
       paymentId,
-      amount,
+      cryptoAmount,
+      sourceAmount,
       currency,
+      sourceCurrency,
       email,
       metadata,
     );
@@ -62,13 +98,64 @@ export async function handleCryptoWebhook(req, res) {
 }
 
 /**
+ * Store every incoming Plisio webhook payload for audit trail.
+ * Non-critical — errors are logged but never block the main flow.
+ */
+async function storePaymentRecord(body) {
+  const storage = await getStorageManager();
+
+  const record = {
+    paymentId: body.order_number,
+    provider: "plisio",
+    status: body.status,
+    cryptoAmount: parseFloat(body.amount) || 0,
+    cryptoCurrency: body.currency,
+    fiatAmount: parseFloat(body.source_amount) || 0,
+    fiatCurrency: body.source_currency || "USD",
+    email: body.email,
+    txnId: body.txn_id,
+    rawPayload: body,
+    receivedAt: new Date().toISOString(),
+  };
+
+  // Try to store in payments collection (best-effort)
+  try {
+    const { getDatabaseManager } = await import(
+      "../utils/storage/databaseManager.js"
+    );
+    const dbManager = await getDatabaseManager();
+    if (dbManager?.payments) {
+      await dbManager.payments.create(record);
+      logger.debug(`📝 Raw payment record stored: ${record.paymentId}`);
+    }
+  } catch (_e) {
+    // Fallback: store via storage manager
+    await storage.createPayment(record);
+    logger.debug(
+      `📝 Raw payment record stored (fallback): ${record.paymentId}`,
+    );
+  }
+}
+
+/**
  * Atomic processing of Crypto payment
+ *
+ * @param {string} userId         Discord user ID
+ * @param {string} paymentId      Plisio order_number
+ * @param {string} cryptoAmount   Amount in cryptocurrency (e.g. "0.00001511")
+ * @param {string} sourceAmount   Amount in fiat currency  (e.g. "1.00")
+ * @param {string} currency       Crypto currency code     (e.g. "BTC")
+ * @param {string} sourceCurrency Fiat currency code       (e.g. "USD")
+ * @param {string} _email
+ * @param {Object} _metadata
  */
 async function processCryptoPayment(
   userId,
   paymentId,
-  amount,
+  cryptoAmount,
+  sourceAmount,
   currency,
+  sourceCurrency,
   _email,
   _metadata,
 ) {
@@ -93,15 +180,12 @@ async function processCryptoPayment(
       lastUpdated: new Date().toISOString(),
     };
 
-    const minimumAmount = config.corePricing?.coreSystem?.minimumPayment || 1.0;
-    const paymentAmount = parseFloat(amount);
-
-    if (paymentAmount < minimumAmount) {
-      logger.warn(
-        `❌ Crypto payment below minimum: $${paymentAmount} < $${minimumAmount}`,
-      );
-      return { success: false, error: "Below minimum amount" };
-    }
+    // ─── Use the fiat (source) amount for Core calculation ───
+    // Plisio's `source_amount` is the USD value the user actually paid.
+    // Fall back to cryptoAmount only if source_amount is missing (shouldn't happen).
+    const fiatAmount = parseFloat(sourceAmount) || 0;
+    const cryptoAmt = parseFloat(cryptoAmount) || 0;
+    const paymentAmount = fiatAmount > 0 ? fiatAmount : cryptoAmt;
 
     // Use centralized calculateCores method from config
     const coresToAdd =
@@ -121,8 +205,10 @@ async function processCryptoPayment(
     userData.cryptoPayments.push({
       chargeId: paymentId,
       type: "payment",
-      amount: paymentAmount,
+      fiatAmount: paymentAmount,
+      cryptoAmount: cryptoAmt,
       currency,
+      sourceCurrency: sourceCurrency || "USD",
       cores: coresToAdd,
       provider: "plisio",
       timestamp: new Date().toISOString(),
@@ -141,7 +227,9 @@ async function processCryptoPayment(
         type: "one_time",
         status: "completed",
         amount: paymentAmount,
+        cryptoAmount: cryptoAmt,
         currency: currency,
+        sourceCurrency: sourceCurrency || "USD",
         coresGranted: coresToAdd,
         email: _email,
         metadata: _metadata,
@@ -155,7 +243,7 @@ async function processCryptoPayment(
     }
 
     logger.info(
-      `✅ Added ${coresToAdd} Cores to user ${userId} via Crypto ($${paymentAmount})`,
+      `✅ Added ${coresToAdd} Cores to user ${userId} via Crypto ($${paymentAmount} ${sourceCurrency || "USD"} / ${cryptoAmt} ${currency})`,
     );
 
     // Create in-app notification
@@ -173,13 +261,59 @@ async function processCryptoPayment(
           icon: "core",
           metadata: {
             coresGranted: coresToAdd,
-            amount: paymentAmount,
+            fiatAmount: paymentAmount,
+            cryptoAmount: cryptoAmt,
+            currency,
             provider: "plisio",
           },
         });
       }
     } catch (_e) {
       /* non-critical */
+    }
+
+    // Send Discord DM notification to user
+    try {
+      const { getPremiumManager } = await import(
+        "../features/premium/PremiumManager.js"
+      );
+      const premiumManager = getPremiumManager();
+      if (premiumManager?.client) {
+        const user = await premiumManager.client.users
+          .fetch(userId)
+          .catch(() => null);
+        if (user) {
+          await user
+            .send({
+              embeds: [
+                {
+                  title: "💎 Cores Added!",
+                  description: `You received **${coresToAdd} Cores** from your crypto payment of **$${paymentAmount} ${sourceCurrency || "USD"}**.`,
+                  color: 0x00d26a,
+                  fields: [
+                    {
+                      name: "Crypto Amount",
+                      value: `${cryptoAmt} ${currency}`,
+                      inline: true,
+                    },
+                    {
+                      name: "New Balance",
+                      value: `${userData.credits} Cores`,
+                      inline: true,
+                    },
+                  ],
+                  timestamp: new Date().toISOString(),
+                },
+              ],
+            })
+            .catch(() => null);
+          logger.info(
+            `📬 Sent DM notification to ${userId} for crypto payment`,
+          );
+        }
+      }
+    } catch (_e) {
+      /* non-critical — DM may fail if user has DMs disabled */
     }
 
     return { success: true, message: "Credited", credits: coresToAdd };
