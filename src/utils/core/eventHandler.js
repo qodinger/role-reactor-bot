@@ -131,6 +131,14 @@ class EventHandler {
       const startTime = Date.now();
       await handler(...args);
       const duration = Date.now() - startTime;
+      
+      // Record in performance monitor
+      try {
+        const { getPerformanceMonitor } = await import("../monitoring/performanceMonitor.js");
+        getPerformanceMonitor().recordEvent(eventType, duration);
+      } catch (perfError) {
+        // Ignore stats errors
+      }
 
       // Log slow events
       if (duration > 1000) {

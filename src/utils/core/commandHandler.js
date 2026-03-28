@@ -449,6 +449,17 @@ class CommandHandler {
       }
 
       const duration = Date.now() - startTime;
+
+      // Record in performance monitor
+      try {
+        const { getPerformanceMonitor } = await import(
+          "../monitoring/performanceMonitor.js"
+        );
+        getPerformanceMonitor().recordCommand(commandName, duration);
+      } catch (perfError) {
+        // Ignore stats errors
+      }
+
       this.recordCommand(
         commandName,
         interaction.user.id,

@@ -153,6 +153,7 @@ class PerformanceMonitor {
             2,
           )} MB`,
           dbQueries: summary.database.queries,
+          dbErrors: summary.database.errors,
         });
       },
       5 * 60 * 1000,
