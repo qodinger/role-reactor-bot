@@ -31,7 +31,15 @@ export async function handleCryptoWebhook(req, res) {
     return res.status(200).json({ status: "ignored" });
   }
 
-  const userId = metadata?.discordId;
+  let userId = metadata?.discordId;
+
+  // Fallback: Extract Discord ID from order_number if metadata is missing 
+  // (Format: USERID_TIMESTAMP)
+  if (!userId && paymentId && typeof paymentId === "string" && paymentId.includes("_")) {
+    userId = paymentId.split("_")[0];
+    logger.debug(`🔍 Extracted user ID ${userId} from Plisio payment ID ${paymentId}`);
+  }
+
   if (!userId) {
     logger.warn(`⚠️ Crypto payment without Discord ID: ${paymentId}`);
     return res.status(200).json({ status: "no_user_linked" });
