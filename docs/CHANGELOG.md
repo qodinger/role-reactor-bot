@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+## [1.7.0] - 2026-03-28
+
+### Added
+
 - **Giveaway System**: Complete `/giveaway` command with create, list, end, reroll, cancel, delete, and edit subcommands. Includes automatic timer-based ending, weighted random winner selection, bonus entries for roles/boosters, claim periods, account/server age requirements, and rate limiting.
 - **Role Bundles**: Create reusable groups of roles with `/role-bundle create`, `/role-bundle delete`, and `/role-bundle list`. Use bundles directly in `/role-reactions setup` with the `bundle:` parameter and autocomplete support.
 - **Web Dashboard Notifications**: Added a notification bell to the web dashboard for tracking Core balance changes, recent purchases, and Pro Engine status.
@@ -19,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Guild Data Purge**: Administrative tool to securely wipe all ticket history and reset the global counter from a simplified dashboard.
 - **Multi-Role Reactions**: A single emoji can now grant multiple roles at once in role-reaction setups.
 - **Interactive Help Menu**: All command names in the `/help` menu are now clickable slash command mentions, allowing you to directly trigger commands from the help guide.
+- **High-Performance Leaderboards**: Complete refactor of the leaderboard system to use database-driven profile storage. Eliminates page load latency by removing sequential Discord API calls during rendering.
+- **Bulk Member Enrichment**: Resolved issues where the bot would frequently hit Discord rate limits during leaderboard rendering, ensuring smoother and more consistent data displays.
 
 ### Changed
 
@@ -31,11 +37,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Core Balance Display**: `/core balance` now shows vote statistics, next vote countdown with Discord dynamic timestamps, server Pro Engine status, and quick-action buttons for "Vote & Earn" and "Upgrade Center."
 - **Bulk Action Limits**: `/temp-roles` and `/schedule-role` now correctly support up to **250 users** per action on Pro Engine servers and **25 users** on Free servers (previously capped at 20 for all servers).
 - **Faster Moderation**: `/moderation` bulk operations (timeout, warn, ban, kick) are now significantly faster and more responsive when processing user lists.
+- **System Optimization**: Internal architectural improvements to ensure server features and leaderboard controllers perform more consistently across all guilds.
 
 ### Fixed
 
 - **Role Name Lengths**: Shortened command descriptions for role-reactions to safely sit below the Discord global command limit.
 - **Bulk Action on Pro Servers**: Fixed an issue where `/temp-roles assign` and `/schedule-role create` would not process more than 20 users, even on Pro Engine servers entitled to 250 users.
+- **Experience Calculations**: Fixed an error in the experience manager where leveling progress could occasionally fail to calculate correctly under specific conditions.
 
 ## [1.6.3] - 2026-03-04
 
@@ -478,7 +486,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Role categories and organization.
 - Comprehensive error handling and rate limiting.
 
-[Unreleased]: https://github.com/qodinger/role-reactor-bot/compare/v1.6.3...HEAD
+[Unreleased]: https://github.com/qodinger/role-reactor-bot/compare/v1.7.0...HEAD
+[1.7.0]: https://github.com/qodinger/role-reactor-bot/compare/v1.6.3...v1.7.0
 [1.6.3]: https://github.com/qodinger/role-reactor-bot/compare/v1.6.2...v1.6.3
 [1.6.2]: https://github.com/qodinger/role-reactor-bot/compare/v1.6.1...v1.6.2
 [1.6.1]: https://github.com/qodinger/role-reactor-bot/compare/v1.6.0...v1.6.1
