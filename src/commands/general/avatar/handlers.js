@@ -7,6 +7,7 @@ import {
   checkAndDeductAIImageCredits,
 } from "../../../utils/ai/aiCreditManager.js";
 import { getUserFacingErrorMessage } from "../../../utils/ai/errorMessages.js";
+import { emojiConfig } from "../../../config/emojis.js";
 import { GenerationHistory } from "./utils/generationHistory.js";
 import {
   createErrorEmbed,
@@ -23,11 +24,13 @@ const logger = getLogger();
 
 /**
  * Helper function to reply to an interaction based on deferral status
- * @param {import('discord.js').Interaction} interaction - The interaction to reply to
+ * @param {import('discord.js').RepliableInteraction} interaction - The interaction to reply to
  * @param {boolean} deferred - Whether the interaction was deferred
  * @param {Object} options - Reply options (embeds, files, etc.)
  */
 async function replyToInteraction(interaction, deferred, options) {
+  if (!interaction.isRepliable()) return;
+
   if (deferred) {
     await interaction.editReply(options);
   } else {
@@ -35,6 +38,13 @@ async function replyToInteraction(interaction, deferred, options) {
   }
 }
 
+/**
+ * Handle the avatar generation command
+ * @param {import('discord.js').ChatInputCommandInteraction} interaction - The command interaction
+ * @param {import('discord.js').Client} _client - The Discord client
+ * @param {boolean} _deferred - Whether the interaction was deferred
+ * @param {Object} _options - Additional options
+ */
 export async function handleAvatarGeneration(
   interaction,
   _client,
@@ -88,7 +98,14 @@ export async function handleAvatarGeneration(
 
   const user = interaction.user;
   const guild = interaction.guild;
-  const channelNSFW = interaction.channel?.nsfw === true;
+  const channel = interaction.channel;
+  const isNSFWChannel = channel && "nsfw" in channel && channel.nsfw === true;
+  const isNSFWThread =
+    channel?.isThread?.() &&
+    channel.parent &&
+    "nsfw" in channel.parent &&
+    channel.parent.nsfw === true;
+  const channelNSFW = isNSFWChannel || isNSFWThread;
   const accountAge = user.createdAt ? Date.now() - user.createdAt.getTime() : 0;
   const accountAgeDays = Math.floor(accountAge / (1000 * 60 * 60 * 24));
 
@@ -189,7 +206,7 @@ export async function handleAvatarGeneration(
 
   // Log the credit calculation for transparency
   logger.info(
-    `💰 Credit calculation for user ${interaction.user.id}: ${provider}/${model} = ${creditsNeeded} Core credits`,
+    `💰 Credit calculation for user ${interaction.user.id}: ${provider}/${model} = ${creditsNeeded} ${emojiConfig.customEmojis.core} credits`,
   );
 
   if (!hasCredits) {
@@ -278,7 +295,7 @@ export async function handleAvatarGeneration(
       // Continue anyway since image was generated successfully
     } else {
       logger.info(
-        `✅ Deducted ${deductionResult.creditsDeducted} Core from user ${interaction.user.id} for ${provider}/${model} generation (${deductionResult.creditsRemaining} remaining)`,
+        `✅ Deducted ${deductionResult.creditsDeducted} ${emojiConfig.customEmojis.core} from user ${interaction.user.id} for ${provider}/${model} generation (${deductionResult.creditsRemaining} remaining)`,
       );
     }
     const deductionBreakdown = deductionResult.deductionBreakdown;
@@ -336,7 +353,7 @@ export async function handleAvatarGeneration(
 
         if (refundResult.success) {
           logger.info(
-            `💰 Refunded ${deductionResult.creditsDeducted} Core to user ${interaction.user.id} due to delivery failure`,
+            `💰 Refunded ${deductionResult.creditsDeducted} ${emojiConfig.customEmojis.core} to user ${interaction.user.id} due to delivery failure`,
           );
         } else {
           logger.error(
@@ -403,10 +420,41 @@ export async function handleAvatarGeneration(
       userTier: userData.credits > 0 ? "Core Package User" : "Regular",
     });
 
+    const isContentModeration =
+      error.message &&
+      (error.message.includes("content moderation") ||
+        error.message.includes("safety filters"));
+
+    // If it's a content moderation error, we STICK with the deduction
+    // Because the provider (Stability AI) still charges US for the filtered attempt
+    if (isContentModeration) {
+      try {
+        const deductionResult = await checkAndDeductAIImageCredits(
+          interaction.user.id,
+          provider,
+          model,
+        );
+        if (deductionResult.success) {
+          logger.info(
+            `💰 Deducted ${deductionResult.creditsDeducted} ${emojiConfig.customEmojis.core} from user ${interaction.user.id} for FILTERED prompt (Developer was charged by API)`,
+          );
+        }
+      } catch (deductionError) {
+        logger.error(
+          "Failed to deduct credits for filtered prompt:",
+          deductionError,
+        );
+      }
+    }
+
+    const errorDescription = isContentModeration
+      ? `${getUserFacingErrorMessage(error, { includeContentModeration: true })}\n\n**Note**: Core credits were still deducted to cover the AI processing cost of this attempt.`
+      : getUserFacingErrorMessage(error, { includeContentModeration: true });
+
     const errorEmbed = createErrorEmbed(
       interaction,
       "Unable to generate avatar",
-      getUserFacingErrorMessage(error, { includeContentModeration: true }),
+      errorDescription,
     );
 
     await replyToInteraction(interaction, _deferred, { embeds: [errorEmbed] });
