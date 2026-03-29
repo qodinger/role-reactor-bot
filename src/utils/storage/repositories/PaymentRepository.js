@@ -343,15 +343,39 @@ export class PaymentRepository extends BaseRepository {
   }
 
   /**
+   * Providers that represent real revenue (actual money received)
+   */
+  static REVENUE_PROVIDERS = ["plisio"];
+
+  /**
+   * Providers that are internal/system transactions (no real money)
+   */
+  static SYSTEM_PROVIDERS = [
+    "admin_adjustment",
+    "premium_system",
+    "vote_topgg",
+    "vote_reward",
+  ];
+
+  /**
    * Get global payment statistics
-   * @param {Object} options - Query options
+   * @param {Object} [options] - Query options
+   * @param {boolean} [options.revenueOnly] - If true, only include real payment providers
+   * @param {string} [options.startDate] - ISO date string for range start
+   * @param {string} [options.endDate] - ISO date string for range end
    * @returns {Promise<Object>} Global payment statistics
    */
   async getGlobalStats(options = {}) {
     try {
-      const { startDate = null, endDate = null } = options;
+      const { startDate = null, endDate = null, revenueOnly = false } = options;
 
       const matchStage = { status: "completed" };
+
+      // Filter to real payment providers only (excludes votes, admin, premium)
+      if (revenueOnly) {
+        matchStage.provider = { $in: PaymentRepository.REVENUE_PROVIDERS };
+      }
+
       if (startDate || endDate) {
         matchStage.createdAt = {};
         if (startDate) matchStage.createdAt.$gte = startDate;
@@ -403,13 +427,22 @@ export class PaymentRepository extends BaseRepository {
 
   /**
    * Get recent payments
-   * @param {number} limit - Maximum payments to return
+   * @param {number} [limit] - Maximum payments to return
+   * @param {Object} [options] - Query options
+   * @param {boolean} [options.revenueOnly] - If true, only include real payment providers
    * @returns {Promise<Array>} Array of recent payments
    */
-  async getRecent(limit = 10) {
+  async getRecent(limit = 10, options = {}) {
     try {
+      const { revenueOnly = false } = options;
+      const query = { status: "completed" };
+
+      if (revenueOnly) {
+        query.provider = { $in: PaymentRepository.REVENUE_PROVIDERS };
+      }
+
       return await this.collection
-        .find({ status: "completed" })
+        .find(query)
         .sort({ createdAt: -1 })
         .limit(limit)
         .toArray();

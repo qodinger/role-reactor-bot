@@ -32,8 +32,11 @@ export async function apiPaymentStats(req, res) {
     const stats = await dbManager.payments.getGlobalStats({
       startDate,
       endDate,
+      revenueOnly: true,
     });
-    const recentPayments = await dbManager.payments.getRecent(10);
+    const recentPayments = await dbManager.payments.getRecent(10, {
+      revenueOnly: true,
+    });
 
     res.json(
       createSuccessResponse({
