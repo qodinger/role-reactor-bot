@@ -123,10 +123,57 @@ export async function apiCommandUsage(req, res) {
   logRequest("Command usage", req);
 
   try {
+    // Get disabled commands from command handler
     const commandHandler = getCommandHandler();
-    const commandStats = await commandHandler.getCommandStats();
+    const disabledCommands = new Set();
+    for (const [name, cmd] of commandHandler.commands) {
+      if (cmd.disabled === true) {
+        disabledCommands.add(name);
+      }
+    }
 
-    if (!commandStats || Object.keys(commandStats).length === 0) {
+    // Fetch directly from MongoDB for reliability
+    const { getDatabaseManager } = await import(
+      "../../utils/storage/databaseManager.js"
+    );
+    const dbManager = await getDatabaseManager();
+
+    let commandArray = [];
+    let totalExecutions = 0;
+
+    if (dbManager?.commandUsage) {
+      const dbStats = await dbManager.commandUsage.getAllStats();
+      commandArray = dbStats
+        .filter(s => !disabledCommands.has(s.name))
+        .map(s => ({
+          name: s.name,
+          count: s.count,
+          avgDuration: s.avgDuration,
+          lastUsed: s.lastUsed,
+          uniqueUsers: s.uniqueUsers,
+        }));
+      totalExecutions = commandArray.reduce(
+        (sum, cmd) => sum + (cmd.count || 0),
+        0,
+      );
+    } else {
+      // Fallback to in-memory stats if DB not available
+      const commandStats = await commandHandler.getCommandStats(false);
+      if (commandStats && Object.keys(commandStats).length > 0) {
+        commandArray = Object.entries(commandStats)
+          .filter(([name]) => !disabledCommands.has(name))
+          .map(([name, stats]) => ({
+            name,
+            ...stats,
+          }));
+        totalExecutions = commandArray.reduce(
+          (sum, cmd) => sum + (cmd.count || 0),
+          0,
+        );
+      }
+    }
+
+    if (!commandArray || commandArray.length === 0) {
       return res.json(
         createSuccessResponse({
           commands: [],
@@ -141,39 +188,28 @@ export async function apiCommandUsage(req, res) {
     // Filter for specific command if requested
     const specificCommand = req.query.command;
     if (specificCommand) {
-      const stats = commandStats[specificCommand];
-      if (!stats) {
+      const cmdName = String(specificCommand);
+      const cmd = commandArray.find(c => c.name === cmdName);
+      if (!cmd) {
         const { statusCode, response } = createErrorResponse(
-          `Command '${specificCommand}' not found or has no usage data`,
+          `Command '${cmdName}' not found or has no usage data`,
           404,
         );
         return res.status(statusCode).json(response);
       }
       return res.json(
         createSuccessResponse({
-          command: specificCommand,
-          ...stats,
+          command: cmdName,
+          ...cmd,
         }),
       );
     }
-
-    // Convert to array and sort
-    let commandArray = Object.entries(commandStats).map(([name, stats]) => ({
-      name,
-      ...stats,
-    }));
-
-    // Calculate total executions
-    const totalExecutions = commandArray.reduce(
-      (sum, cmd) => sum + (cmd.count || 0),
-      0,
-    );
 
     // Sort by count descending
     commandArray.sort((a, b) => b.count - a.count);
 
     // Apply limit
-    const limit = parseInt(req.query.limit);
+    const limit = parseInt(String(req.query.limit));
     if (!isNaN(limit) && limit > 0) {
       commandArray = commandArray.slice(0, limit);
     }

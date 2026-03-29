@@ -2,6 +2,17 @@ import { getLogger } from "../../utils/logger.js";
 
 const logger = getLogger();
 
+// Import API metrics recorder from HealthController
+let recordRequest = () => {};
+try {
+  const { recordRequest: rr } = await import(
+    "../controllers/HealthController.js"
+  );
+  recordRequest = rr;
+} catch (e) {
+  // HealthController might not be loaded yet
+}
+
 /**
  * Request logging middleware
  * @param {import('../types.js').ExtendedRequest} req - Express request object
@@ -42,6 +53,9 @@ export function requestLogger(req, res, next) {
       duration: `${duration}ms`,
       timestamp: new Date().toISOString(),
     });
+
+    // Record API metrics
+    recordRequest(duration);
 
     // Call original end method
     return originalEnd.call(this, chunk, encoding);
