@@ -9,7 +9,7 @@ try {
     "../controllers/HealthController.js"
   );
   recordRequest = rr;
-} catch (e) {
+} catch (_e) {
   // HealthController might not be loaded yet
 }
 
