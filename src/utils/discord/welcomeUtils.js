@@ -8,8 +8,7 @@ import { THEME_COLOR } from "../../config/theme.js";
  * @returns {string} - Processed message
  */
 export function processWelcomeMessage(message, member) {
-  // Get human member count (excluding bots)
-  const humanCount = member.guild.members.cache.filter(m => !m.user.bot).size;
+  const memberCount = member.guild.memberCount;
 
   return message
     .replace(/{user}/g, member.user.toString())
@@ -18,8 +17,8 @@ export function processWelcomeMessage(message, member) {
     .replace(/{user.id}/g, member.user.id)
     .replace(/{server}/g, member.guild.name)
     .replace(/{server.id}/g, member.guild.id)
-    .replace(/{memberCount}/g, String(humanCount))
-    .replace(/{memberCount.ordinal}/g, getOrdinal(humanCount));
+    .replace(/{memberCount}/g, String(memberCount))
+    .replace(/{memberCount.ordinal}/g, getOrdinal(memberCount));
 }
 
 /**
@@ -29,6 +28,8 @@ export function processWelcomeMessage(message, member) {
  * @returns {EmbedBuilder} - Welcome embed
  */
 export function createWelcomeEmbed(settings, member) {
+  const memberCount = member.guild.memberCount;
+
   const embed = new EmbedBuilder()
     .setColor(settings.embedColor || THEME_COLOR)
     .setAuthor({
@@ -48,7 +49,7 @@ export function createWelcomeEmbed(settings, member) {
     })
     .addFields({
       name: "📊 Server Statistics",
-      value: `**${member.guild.members.cache.filter(m => !m.user.bot).size}** members total`,
+      value: `**${memberCount}** members total`,
       inline: true,
     })
     .addFields({
