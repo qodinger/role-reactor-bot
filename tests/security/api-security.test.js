@@ -292,23 +292,19 @@ describe("API Security Tests", () => {
   describe("Root Endpoints Security", () => {
     const internalKey = process.env.INTERNAL_API_KEY || "test-key";
 
-    it("should reject balance endpoint without user authentication", async () => {
-      const response = await request(app)
-        .get(`${API_BASE}/balance`)
-        .set("Authorization", `Bearer ${internalKey}`);
+    it("should reject balance endpoint without authentication", async () => {
+      const response = await request(app).get(`${API_BASE}/balance`);
 
-      expect([401, 403, 404]).toContain(response.status);
+      expect([401, 404]).toContain(response.status);
     });
 
-    it("should reject payments endpoint without user authentication", async () => {
-      const response = await request(app)
-        .get(`${API_BASE}/payments`)
-        .set("Authorization", `Bearer ${internalKey}`);
+    it("should reject payments endpoint without authentication", async () => {
+      const response = await request(app).get(`${API_BASE}/payments`);
 
-      expect([401, 403, 404]).toContain(response.status);
+      expect([401, 404]).toContain(response.status);
     });
 
-    it("should allow public root endpoints", async () => {
+    it("should allow public root endpoints without auth", async () => {
       const infoResponse = await request(app).get(`${API_BASE}/info`);
       expect([200, 404]).toContain(infoResponse.status);
 
@@ -317,21 +313,83 @@ describe("API Security Tests", () => {
     });
   });
 
-  describe("Stats Endpoints Security", () => {
+  describe("User Endpoints Security", () => {
     const internalKey = process.env.INTERNAL_API_KEY || "test-key";
 
-    it("should reject stats/usage without authentication", async () => {
-      const response = await request(app)
-        .get(`${API_BASE}/stats/usage`)
-        .set("Authorization", `Bearer ${internalKey}`);
+    it("should reject user balance without internal key", async () => {
+      const response = await request(app).get(
+        `${API_BASE}/user/${testUserId}/balance`,
+      );
 
-      expect([401, 403, 404]).toContain(response.status);
+      expect([401, 404]).toContain(response.status);
     });
 
-    it("should allow stats/global without authentication", async () => {
+    it("should reject user payments without internal key", async () => {
+      const response = await request(app).get(
+        `${API_BASE}/user/${testUserId}/payments`,
+      );
+
+      expect([401, 404]).toContain(response.status);
+    });
+
+    it("should reject user notifications without internal key", async () => {
+      const response = await request(app).get(
+        `${API_BASE}/user/${testUserId}/notifications`,
+      );
+
+      expect([401, 404]).toContain(response.status);
+    });
+
+    it("should reject admin endpoints without internal key", async () => {
+      const response = await request(app).get(`${API_BASE}/user`);
+
+      expect([401, 404]).toContain(response.status);
+    });
+  });
+
+  describe("Payments Endpoints Security", () => {
+    it("should reject payment creation without internal key", async () => {
+      const response = await request(app)
+        .post(`${API_BASE}/payments/create`)
+        .send({ amount: 100, currency: "USD" });
+
+      expect([401, 404]).toContain(response.status);
+    });
+
+    it("should reject admin payment stats without internal key", async () => {
+      const response = await request(app).get(`${API_BASE}/payments/stats`);
+
+      expect([401, 404]).toContain(response.status);
+    });
+  });
+
+  describe("Stats Endpoints Security", () => {
+    it("should reject stats/usage without internal key", async () => {
+      const response = await request(app).get(`${API_BASE}/stats/usage`);
+
+      expect([401, 404]).toContain(response.status);
+    });
+
+    it("should reject stats/global without internal key", async () => {
       const response = await request(app).get(`${API_BASE}/stats/global`);
 
-      expect([200, 404]).toContain(response.status);
+      expect([401, 404]).toContain(response.status);
+    });
+  });
+
+  describe("Commands Endpoints Security", () => {
+    it("should reject commands/usage without internal key", async () => {
+      const response = await request(app).get(`${API_BASE}/commands/usage`);
+
+      expect([401, 404]).toContain(response.status);
+    });
+  });
+
+  describe("Services Endpoints Security", () => {
+    it("should reject services without internal key", async () => {
+      const response = await request(app).get(`${API_BASE}/services`);
+
+      expect([401, 404]).toContain(response.status);
     });
   });
 
