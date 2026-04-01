@@ -413,6 +413,10 @@ class CommandHandler {
       if (command.preAwardXP) {
         setTimeout(async () => {
           try {
+            if (!interaction.user || !interaction.guild) {
+              return;
+            }
+
             const experienceManager = await getExperienceManager();
             await experienceManager.awardCommandXP(
               interaction.guild.id,
