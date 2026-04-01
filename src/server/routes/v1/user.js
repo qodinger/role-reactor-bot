@@ -27,7 +27,8 @@ import {
 const router = express.Router();
 
 // User data endpoints - require internal auth + user can only access their own data
-router.post("/sync", internalAuth, requireOwnUser, apiSyncUser);
+// Note: /sync doesn't use requireOwnUser since user ID comes from X-User-ID header (set by internalAuth)
+router.post("/sync", internalAuth, apiSyncUser);
 router.get("/:userId/balance", internalAuth, requireOwnUser, apiUserBalance);
 router.get("/:userId/payments", internalAuth, requireOwnUser, apiUserPayments);
 

@@ -10,10 +10,17 @@ const logger = getLogger();
 
 /**
  * Require authentication middleware
- * Checks if user is authenticated via session
+ * Checks session-based auth OR accepts req.user set from internalAuth (X-User-ID header)
  * @returns {Function} Express middleware
  */
 export function requireAuth(req, res, next) {
+  // If req.user is already set from internalAuth (X-User-ID header), skip session check
+  if (req.user && req.user.id) {
+    next();
+    return;
+  }
+
+  // Standard session-based authentication
   if (!req.session || !req.session.discordUser) {
     logger.debug("Authentication failed", {
       path: req.path,
@@ -25,7 +32,8 @@ export function requireAuth(req, res, next) {
       401,
       "Please log in to access this resource",
     );
-    return res.status(401).json(response);
+    res.status(401).json(response);
+    return;
   }
 
   // Attach user info to request
@@ -43,6 +51,7 @@ export function optionalAuth(req, res, next) {
     req.user = req.session.discordUser;
   }
   next();
+  return;
 }
 
 /**
@@ -62,7 +71,8 @@ export function requirePermission(checkPermission) {
         401,
         "Please log in to access this resource",
       );
-      return res.status(401).json(response);
+      res.status(401).json(response);
+      return;
     }
 
     const hasPermission = checkPermission(req.user.id, req.path);
@@ -78,7 +88,8 @@ export function requirePermission(checkPermission) {
         403,
         "You don't have permission to access this resource",
       );
-      return res.status(403).json(response);
+      res.status(403).json(response);
+      return;
     }
 
     next();
