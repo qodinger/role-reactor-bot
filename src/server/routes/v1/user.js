@@ -26,10 +26,10 @@ import {
 
 const router = express.Router();
 
-// User data endpoints - require auth + user can only access their own data
+// User data endpoints - require internal auth + user can only access their own data
 router.post("/sync", requireAuth, apiSyncUser);
-router.get("/:userId/balance", requireAuth, requireOwnUser, apiUserBalance);
-router.get("/:userId/payments", requireAuth, requireOwnUser, apiUserPayments);
+router.get("/:userId/balance", internalAuth, requireOwnUser, apiUserBalance);
+router.get("/:userId/payments", internalAuth, requireOwnUser, apiUserPayments);
 
 // Notification routes - require auth + user can only access their own notifications
 router.get(
