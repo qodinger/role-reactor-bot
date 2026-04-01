@@ -5,26 +5,27 @@
  * @param {import('express').NextFunction} next - Express next function
  */
 export function corsMiddleware(req, res, next) {
-  // Get allowed origins from environment - must be configured for production
   const allowedOrigins = process.env.CORS_ALLOWED_ORIGINS
     ? process.env.CORS_ALLOWED_ORIGINS.split(",").map(origin => origin.trim())
     : [];
 
-  // Get the origin from the request
   const origin = req.headers.origin;
 
-  // Check if origin is allowed
   let allowedOrigin = null;
   if (allowedOrigins.length === 0) {
-    // No origins configured - reject all cross-origin requests in production
     if (process.env.NODE_ENV === "production") {
-      return res.status(403).json({
-        status: "error",
-        message: "CORS: No allowed origins configured",
-      });
+      const vercelAppUrl = process.env.VERCEL_URL || process.env.VERCEL_APP_URL;
+      if (vercelAppUrl && origin && origin.includes("vercel.app")) {
+        allowedOrigin = origin;
+      } else {
+        return res.status(403).json({
+          status: "error",
+          message: "CORS: No allowed origins configured",
+        });
+      }
+    } else {
+      allowedOrigin = "*";
     }
-    // Allow all in development for testing
-    allowedOrigin = "*";
   } else if (allowedOrigins.includes("*")) {
     allowedOrigin = origin || "*";
   } else if (origin && allowedOrigins.includes(origin)) {
