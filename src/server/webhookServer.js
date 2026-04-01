@@ -204,7 +204,7 @@ function initializeRoutes() {
   app.use(`${API_PREFIX}/stats`, internalAuth, statsRouter);
   app.use(`${API_PREFIX}/logs`, internalAuth, logsRouter);
   app.use(`${API_PREFIX}/config`, internalAuth, configRouter);
-  app.use(`${API_PREFIX}/health`, internalAuth, healthRouter);
+  app.use(`${API_PREFIX}/health`, healthRouter);
 
   // Register existing routes as services for discovery
   if (process.env.DISCORD_CLIENT_ID) {
