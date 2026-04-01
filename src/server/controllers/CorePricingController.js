@@ -138,7 +138,7 @@ export async function apiPricing(req, res) {
 export async function apiUserBalance(req, res) {
   logRequest("User balance", req);
   const requestedUserId =
-    req.params.requestedUserId || req.query.user_id || req.query.discord_id;
+    req.params.userId || req.query.user_id || req.query.discord_id;
   const sessionUserId = req.user?.id;
 
   if (!requestedUserId) {
@@ -211,7 +211,7 @@ export async function apiUserBalance(req, res) {
 export async function apiUserPayments(req, res) {
   logRequest("User payments", req);
   const requestedUserId =
-    req.params.requestedUserId || req.query.user_id || req.query.discord_id;
+    req.params.userId || req.query.user_id || req.query.discord_id;
   const sessionUserId = req.user?.id;
 
   if (!requestedUserId) {
