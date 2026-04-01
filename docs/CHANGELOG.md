@@ -7,7 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
+### Security
+
+- **Critical Security Update**: Fixed a vulnerability that could allow unauthorized users to bypass role permissions. **All server administrators should review this update.**
+  - Role-reaction commands now require proper Discord permissions (`Manage Roles`)
+  - Added protection against API exploitation
+  - Enhanced authentication for all guild management features
+  
+  ⚠️ **Action Required**: Review your server's role permissions and ensure only trusted members have `Manage Roles` permission.
+
+### Changed
+
+- **Enhanced Security**: All API endpoints now verify user permissions before processing role management requests
+- **Improved Logging**: Security events are now logged with better context for auditing
+
+### Fixed
+
+- Prevented unauthorized role assignment through API endpoints
+- Secured payment creation against fraudulent access
+- Fixed potential data exposure in user endpoints
 
 ## [1.7.0] - 2026-03-28
 

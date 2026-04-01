@@ -26,8 +26,12 @@ export function getDiscordClient() {
  * Log API request helper
  * @param {string} endpoint - Endpoint name
  * @param {import('express').Request} req - Express request object
+ * @param {Object} [additionalInfo] - Additional context (userId, username, etc.)
  * @param {string} [emoji="📊"] - Emoji for log entry
  */
-export function logRequest(endpoint, req, emoji = "📊") {
-  logRequestHelper(logger, endpoint, req, emoji);
+export function logRequest(endpoint, req, additionalInfo = {}, emoji = "📊") {
+  const userInfo = additionalInfo?.userId
+    ? ` | User: ${additionalInfo.username || additionalInfo.userId}`
+    : "";
+  logRequestHelper(logger, `${endpoint}${userInfo}`, req, emoji);
 }

@@ -7,12 +7,16 @@ import {
 import { apiCreatePayment } from "../../controllers/PaymentProcessingController.js";
 
 import { internalAuth } from "../../middleware/internalAuth.js";
+import { requireAuth } from "../../middleware/authentication.js";
 
 const router = express.Router();
 
-router.get("/stats", internalAuth, apiPaymentStats);
-router.get("/pending", internalAuth, apiPendingPayments);
-router.get("/logs/admin", internalAuth, apiGetAdminActionLogs);
-router.post("/create", apiCreatePayment);
+// Admin endpoints - require internal auth + user authentication
+router.get("/stats", internalAuth, requireAuth, apiPaymentStats);
+router.get("/pending", internalAuth, requireAuth, apiPendingPayments);
+router.get("/logs/admin", internalAuth, requireAuth, apiGetAdminActionLogs);
+
+// Payment creation - requires authenticated user (who is making the payment)
+router.post("/create", requireAuth, apiCreatePayment);
 
 export default router;
