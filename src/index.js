@@ -668,7 +668,10 @@ async function main() {
           logger.debug(`🗑️ Cleaned up custom commands for guild ${guild.id}`);
         }
       } catch (error) {
-        logger.warn(`⚠️ Failed to cleanup custom commands for guild ${guild.id}:`, error.message);
+        logger.warn(
+          `⚠️ Failed to cleanup custom commands for guild ${guild.id}:`,
+          error.message,
+        );
       }
     });
 

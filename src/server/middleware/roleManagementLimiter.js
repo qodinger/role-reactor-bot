@@ -3,6 +3,10 @@ import { getLogger } from "../../utils/logger.js";
 
 const logger = getLogger();
 
+const keyGenerator = (req, fallback) => {
+  return req.user?.id || req.ip || fallback;
+};
+
 /**
  * Strict rate limiter for role management operations
  * Prevents abuse of role-reaction and role assignment features
@@ -17,10 +21,7 @@ export const roleManagementLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: req => {
-    // Use user ID from session if available, otherwise IP
-    return req.user?.id || req.ip || "unknown";
-  },
+  keyGenerator: (req, _res) => keyGenerator(req, "unknown"),
   handler: (req, _res) => {
     logger.warn("Rate limit exceeded for role management", {
       userId: req.user?.id,
@@ -29,6 +30,7 @@ export const roleManagementLimiter = rateLimit({
       method: req.method,
     });
   },
+  validate: { xForwardedForHeader: false },
 });
 
 /**
@@ -45,9 +47,7 @@ export const guildSettingsLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: req => {
-    return req.user?.id || req.ip || "unknown";
-  },
+  keyGenerator: (req, _res) => keyGenerator(req, "unknown"),
   handler: (req, _res) => {
     logger.warn("Rate limit exceeded for guild settings", {
       userId: req.user?.id,
@@ -56,6 +56,7 @@ export const guildSettingsLimiter = rateLimit({
       method: req.method,
     });
   },
+  validate: { xForwardedForHeader: false },
 });
 
 /**
@@ -71,9 +72,7 @@ export const customCommandLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: req => {
-    return req.user?.id || req.ip || "unknown";
-  },
+  keyGenerator: (req, _res) => keyGenerator(req, "unknown"),
   handler: (req, _res) => {
     logger.warn("Rate limit exceeded for custom commands", {
       userId: req.user?.id,
@@ -82,6 +81,7 @@ export const customCommandLimiter = rateLimit({
       method: req.method,
     });
   },
+  validate: { xForwardedForHeader: false },
 });
 
 /**
@@ -98,9 +98,7 @@ export const premiumActivationLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: req => {
-    return req.user?.id || req.ip || "unknown";
-  },
+  keyGenerator: (req, _res) => keyGenerator(req, "unknown"),
   handler: (req, _res) => {
     logger.warn("Rate limit exceeded for premium activation", {
       userId: req.user?.id,
@@ -109,4 +107,5 @@ export const premiumActivationLimiter = rateLimit({
       method: req.method,
     });
   },
+  validate: { xForwardedForHeader: false },
 });

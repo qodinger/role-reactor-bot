@@ -17,8 +17,9 @@ const MAX_COOLDOWN_SECONDS = 3600;
 const MIN_COOLDOWN_SECONDS = 5;
 
 async function getCustomCommandRepo() {
-  const { getDatabaseManager } =
-    await import("../../utils/storage/databaseManager.js");
+  const { getDatabaseManager } = await import(
+    "../../utils/storage/databaseManager.js"
+  );
   const dbManager = await getDatabaseManager();
   if (!dbManager?.customCommands) {
     throw new Error("Custom commands repository not available");
@@ -27,8 +28,9 @@ async function getCustomCommandRepo() {
 }
 
 async function checkPremium(guildId) {
-  const { getPremiumManager } =
-    await import("../../features/premium/PremiumManager.js");
+  const { getPremiumManager } = await import(
+    "../../features/premium/PremiumManager.js"
+  );
   return getPremiumManager().isFeatureActive(guildId, "pro_engine");
 }
 
@@ -1093,12 +1095,10 @@ export async function apiDuplicateCustomCommand(req, res) {
         autocomplete: opt.autocomplete || false,
         ...(opt.choices && opt.choices.length > 0
           ? {
-              choices: opt.choices
-                .slice(0, 25)
-                .map(c => ({
-                  name: String(c.name).slice(0, 100),
-                  value: String(c.value).slice(0, 100),
-                })),
+              choices: opt.choices.slice(0, 25).map(c => ({
+                name: String(c.name).slice(0, 100),
+                value: String(c.value).slice(0, 100),
+              })),
             }
           : {}),
       }));

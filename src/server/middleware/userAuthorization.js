@@ -6,7 +6,7 @@ const logger = getLogger();
 /**
  * Middleware to verify user can only access their own data
  * Must be used AFTER requireAuth middleware (req.user must be set)
- * 
+ *
  * @param {import('express').Request} req - Express request object
  * @param {import('express').Response} res - Express response object
  * @param {import('express').NextFunction} next - Express next function
@@ -71,7 +71,7 @@ export function requireOwnUser(req, res, next) {
 /**
  * Middleware to verify user is an admin
  * Must be used AFTER requireAuth middleware (req.user must be set)
- * 
+ *
  * @param {import('express').Request} req - Express request object
  * @param {import('express').Response} res - Express response object
  * @param {import('express').NextFunction} next - Express next function

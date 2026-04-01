@@ -207,8 +207,9 @@ class CommandHandler {
     // Persist to database asynchronously
     setTimeout(async () => {
       try {
-        const { getDatabaseManager } =
-          await import("../storage/databaseManager.js");
+        const { getDatabaseManager } = await import(
+          "../storage/databaseManager.js"
+        );
         const dbManager = await getDatabaseManager();
         if (dbManager && dbManager.commandUsage) {
           await dbManager.commandUsage.recordUsage(
@@ -254,8 +255,9 @@ class CommandHandler {
     // Merge with persistent stats if requested
     if (includePersistent) {
       try {
-        const { getDatabaseManager } =
-          await import("../storage/databaseManager.js");
+        const { getDatabaseManager } = await import(
+          "../storage/databaseManager.js"
+        );
         const dbManager = await getDatabaseManager();
         if (dbManager && dbManager.commandUsage) {
           const dbStats = await dbManager.commandUsage.getAllStats();
@@ -363,8 +365,9 @@ class CommandHandler {
     // Check if command is disabled in this guild
     try {
       if (interaction.guildId) {
-        const { getDatabaseManager } =
-          await import("../storage/databaseManager.js");
+        const { getDatabaseManager } = await import(
+          "../storage/databaseManager.js"
+        );
         const dbManager = await getDatabaseManager();
         if (dbManager && dbManager.guildSettings) {
           const settings = await dbManager.guildSettings.getByGuild(
@@ -457,8 +460,9 @@ class CommandHandler {
 
       // Record in performance monitor
       try {
-        const { getPerformanceMonitor } =
-          await import("../monitoring/performanceMonitor.js");
+        const { getPerformanceMonitor } = await import(
+          "../monitoring/performanceMonitor.js"
+        );
         getPerformanceMonitor().recordCommand(commandName, duration);
       } catch (_perfError) {
         // Ignore stats errors
@@ -558,8 +562,9 @@ class CommandHandler {
    * Returns true if the interaction was handled, false otherwise.
    */
   async _executeCustomCommand(interaction) {
-    const { getDatabaseManager } =
-      await import("../storage/databaseManager.js");
+    const { getDatabaseManager } = await import(
+      "../storage/databaseManager.js"
+    );
     const dbManager = await getDatabaseManager();
     if (!dbManager?.customCommands) return false;
 
@@ -570,8 +575,9 @@ class CommandHandler {
     if (!command || !command.enabled) return false;
 
     // Validate premium is still active
-    const { getPremiumManager } =
-      await import("../../features/premium/PremiumManager.js");
+    const { getPremiumManager } = await import(
+      "../../features/premium/PremiumManager.js"
+    );
     const isPremium = await getPremiumManager().isFeatureActive(
       interaction.guildId,
       "pro_engine",
@@ -621,8 +627,9 @@ class CommandHandler {
 
     // Check per-user cooldown
     if (command.cooldown && command.cooldown > 0) {
-      const { getCommandRateLimiter } =
-        await import("../rateLimit/commandRateLimiter.js");
+      const { getCommandRateLimiter } = await import(
+        "../rateLimit/commandRateLimiter.js"
+      );
       const rateLimiter = getCommandRateLimiter();
       const cooldownKey = `custom:${command.commandId}:${interaction.user.id}`;
       const cooldownResult = rateLimiter.checkLimit(
@@ -1059,8 +1066,9 @@ class CommandHandler {
       } else if (error.message.includes("rate limit")) {
         // Try to get remaining time for better error message
         try {
-          const { getRateLimitRemainingTime } =
-            await import("../discord/rateLimiter.js");
+          const { getRateLimitRemainingTime } = await import(
+            "../discord/rateLimiter.js"
+          );
           const remainingTime = getRateLimitRemainingTime(
             interaction.user.id,
             interaction.commandName,

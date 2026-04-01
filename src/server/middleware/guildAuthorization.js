@@ -6,7 +6,7 @@ const logger = getLogger();
 /**
  * Middleware to verify user has permission to manage roles in a guild
  * Must be used AFTER requireAuth middleware (req.user must be set)
- * 
+ *
  * @param {import('express').Request} req - Express request object
  * @param {import('express').Response} res - Express response object
  * @param {import('express').NextFunction} next - Express next function
@@ -98,7 +98,7 @@ async function checkUserGuildPermission(userId, guildId) {
   try {
     // Try to get guild from cache first
     let guild = client.guilds.cache.get(guildId);
-    
+
     // If not in cache, try to fetch it
     if (!guild) {
       guild = await client.guilds.fetch(guildId).catch(() => null);
@@ -111,7 +111,7 @@ async function checkUserGuildPermission(userId, guildId) {
 
     // Try to get member from cache
     let member = guild.members.cache.get(userId);
-    
+
     // If not in cache, try to fetch the member
     if (!member) {
       member = await guild.members.fetch(userId).catch(() => null);
@@ -125,13 +125,13 @@ async function checkUserGuildPermission(userId, guildId) {
     // Check if user has Manage Roles permission
     // This is the key permission for managing role reactions
     const hasManageRoles = member.permissions.has("ManageRoles");
-    
+
     // Also allow users with ManageGuild permission (admins)
     const hasManageGuild = member.permissions.has("ManageGuild");
-    
+
     // Allow bot owners/admins (check via user ID)
-    const isAdminUser = process.env.DISCORD_OWNER_ID && 
-                        userId === process.env.DISCORD_OWNER_ID;
+    const isAdminUser =
+      process.env.DISCORD_OWNER_ID && userId === process.env.DISCORD_OWNER_ID;
 
     const hasPermission = hasManageRoles || hasManageGuild || isAdminUser;
 
