@@ -27,32 +27,32 @@ import {
 const router = express.Router();
 
 // User data endpoints - require internal auth + user can only access their own data
-router.post("/sync", requireAuth, apiSyncUser);
+router.post("/sync", internalAuth, requireOwnUser, apiSyncUser);
 router.get("/:userId/balance", internalAuth, requireOwnUser, apiUserBalance);
 router.get("/:userId/payments", internalAuth, requireOwnUser, apiUserPayments);
 
-// Notification routes - require auth + user can only access their own notifications
+// Notification routes - require internal auth + user can only access their own notifications
 router.get(
   "/:userId/notifications",
-  requireAuth,
+  internalAuth,
   requireOwnUser,
   apiGetNotifications,
 );
 router.get(
   "/:userId/notifications/unread-count",
-  requireAuth,
+  internalAuth,
   requireOwnUser,
   apiGetUnreadCount,
 );
 router.patch(
   "/:userId/notifications/read-all",
-  requireAuth,
+  internalAuth,
   requireOwnUser,
   apiMarkAllAsRead,
 );
 router.patch(
   "/:userId/notifications/:notificationId/read",
-  requireAuth,
+  internalAuth,
   requireOwnUser,
   apiMarkAsRead,
 );

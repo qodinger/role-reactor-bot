@@ -53,18 +53,16 @@ router.post("/check", internalAuth, apiCheckGuilds);
 // List all guilds (internal only - for admin dashboard)
 router.get("/", internalAuth, requireAuth, apiListGuilds);
 
-// Settings - requires guild permission
+// Settings - requires guild permission (internal auth verifies website request)
 router.get(
   "/:guildId/settings",
   internalAuth,
-  requireAuth,
   requireGuildMembership,
   apiGetGuildSettings,
 );
 router.patch(
   "/:guildId/settings",
   internalAuth,
-  requireAuth,
   requireGuildPermission,
   guildSettingsLimiter,
   apiUpdateGuildSettings,
@@ -74,7 +72,6 @@ router.patch(
 router.get(
   "/:guildId/channels",
   internalAuth,
-  requireAuth,
   requireGuildMembership,
   apiGetGuildChannels,
 );
@@ -100,10 +97,53 @@ router.get(
 // Premium - requires guild permission for activation/cancellation
 router.post(
   "/:guildId/premium/activate",
-  requireAuth,
+  internalAuth,
   requireGuildPermission,
   premiumActivationLimiter,
   apiActivatePremiumFeature,
+);
+router.post(
+  "/:guildId/premium/cancel",
+  internalAuth,
+  requireGuildPermission,
+  premiumActivationLimiter,
+  apiCancelPremiumFeature,
+);
+router.get(
+  "/:guildId/premium/status",
+  internalAuth,
+  requireGuildMembership,
+  apiGetPremiumStatus,
+);
+
+// Analytics - requires guild permission
+router.get(
+  "/:guildId/analytics",
+  internalAuth,
+  requireGuildPermission,
+  apiGetGuildAnalytics,
+);
+
+// Role Reactions - CRITICAL: All role reaction endpoints require guild permission
+router.get(
+  "/:guildId/role-reactions",
+  internalAuth,
+  requireGuildPermission,
+  apiGetGuildRoleMappings,
+);
+router.delete(
+  "/:guildId/role-reactions/:messageId",
+  internalAuth,
+  requireGuildPermission,
+  roleManagementLimiter,
+  apiDeleteGuildRoleMapping,
+);
+router.post(
+  "/:guildId/roles/deploy",
+  internalAuth,
+  requireGuildPermission,
+  roleManagementLimiter,
+  apiDeployRoleReactions,
 );
 router.post(
   "/:guildId/premium/cancel",
@@ -115,7 +155,6 @@ router.post(
 router.get(
   "/:guildId/premium/status",
   internalAuth,
-  requireAuth,
   requireGuildMembership,
   apiGetPremiumStatus,
 );
@@ -128,7 +167,6 @@ router.get("/:guildId/leaderboard", apiGuildLeaderboard);
 router.get(
   "/:guildId/analytics",
   internalAuth,
-  requireAuth,
   requireGuildPermission,
   apiGetGuildAnalytics,
 );
@@ -137,14 +175,12 @@ router.get(
 router.get(
   "/:guildId/role-reactions",
   internalAuth,
-  requireAuth,
   requireGuildPermission,
   apiGetGuildRoleMappings,
 );
 router.delete(
   "/:guildId/role-reactions/:messageId",
   internalAuth,
-  requireAuth,
   requireGuildPermission,
   roleManagementLimiter,
   apiDeleteGuildRoleMapping,
@@ -152,7 +188,6 @@ router.delete(
 router.post(
   "/:guildId/roles/deploy",
   internalAuth,
-  requireAuth,
   requireGuildPermission,
   roleManagementLimiter,
   apiDeployRoleReactions,
@@ -160,7 +195,6 @@ router.post(
 router.patch(
   "/:guildId/role-reactions/:messageId",
   internalAuth,
-  requireAuth,
   requireGuildPermission,
   roleManagementLimiter,
   apiUpdateRoleReactions,
