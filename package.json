@@ -20,6 +20,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ci": "vitest run",
+    "test:security": "node scripts/test-security-exploit.js",
     "clean": "rm -rf node_modules pnpm-lock.yaml && pnpm install",
     "pre-commit": "lint-staged",
     "docker:build": "docker build -t role-reactor-bot .",
@@ -100,8 +101,10 @@
     "eslint-plugin-import": "^2.32.0",
     "husky": "^9.0.0",
     "lint-staged": "^15.2.0",
+    "node-fetch": "3.3.2",
     "nodemon": "^3.0.2",
     "prettier": "^3.2.0",
+    "supertest": "7.2.2",
     "typescript": "5.9.3",
     "vitest": "4.0.16"
   },

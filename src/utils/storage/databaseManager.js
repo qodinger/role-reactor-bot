@@ -22,6 +22,7 @@ import {
   TicketPanelRepository,
   TicketTranscriptRepository,
   NotificationRepository,
+  CustomCommandRepository,
 } from "./repositories/index.js";
 import { CacheManager } from "../cache/CacheManager.js";
 import { QueryCache } from "../cache/QueryCache.js";
@@ -68,6 +69,7 @@ class DatabaseManager {
     this.ticketPanels = null;
     this.ticketTranscripts = null;
     this.notifications = null;
+    this.customCommands = null;
     // Initialize connection manager asynchronously (non-blocking)
     this._initializeConnectionManager().catch(() => {
       // Silently fail - will be initialized on first connect
@@ -221,6 +223,11 @@ class DatabaseManager {
           this.logger,
         );
         this.notifications = new NotificationRepository(
+          db,
+          this.cacheManager,
+          this.logger,
+        );
+        this.customCommands = new CustomCommandRepository(
           db,
           this.cacheManager,
           this.logger,

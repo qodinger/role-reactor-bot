@@ -8,7 +8,7 @@ import {
   apiUserInfo,
   apiSetUserRole,
   apiSyncUser,
-  apiManageUserCores, // Added new function
+  apiManageUserCores,
 } from "../../controllers/UserController.js";
 import {
   apiGetNotifications,
@@ -18,32 +18,61 @@ import {
 } from "../../controllers/NotificationController.js";
 
 import { internalAuth } from "../../middleware/internalAuth.js";
+import { requireAuth } from "../../middleware/authentication.js";
+import {
+  requireOwnUser,
+  requireAdmin,
+} from "../../middleware/userAuthorization.js";
 
 const router = express.Router();
 
-// Public/User accessible (via internalAuth from website)
-router.post("/sync", internalAuth, apiSyncUser);
-router.get("/:userId/balance", internalAuth, apiUserBalance);
-router.get("/:userId/payments", internalAuth, apiUserPayments);
+// User data endpoints - require auth + user can only access their own data
+router.post("/sync", requireAuth, apiSyncUser);
+router.get("/:userId/balance", requireAuth, requireOwnUser, apiUserBalance);
+router.get("/:userId/payments", requireAuth, requireOwnUser, apiUserPayments);
 
-// Notification routes
-router.get("/:userId/notifications", internalAuth, apiGetNotifications);
+// Notification routes - require auth + user can only access their own notifications
+router.get(
+  "/:userId/notifications",
+  requireAuth,
+  requireOwnUser,
+  apiGetNotifications,
+);
 router.get(
   "/:userId/notifications/unread-count",
-  internalAuth,
+  requireAuth,
+  requireOwnUser,
   apiGetUnreadCount,
 );
-router.patch("/:userId/notifications/read-all", internalAuth, apiMarkAllAsRead);
+router.patch(
+  "/:userId/notifications/read-all",
+  requireAuth,
+  requireOwnUser,
+  apiMarkAllAsRead,
+);
 router.patch(
   "/:userId/notifications/:notificationId/read",
-  internalAuth,
+  requireAuth,
+  requireOwnUser,
   apiMarkAsRead,
 );
 
-// Admin accessible (via internalAuth from website)
-router.get("/", internalAuth, apiListUsers);
-router.get("/:userId", internalAuth, apiUserInfo);
-router.patch("/:userId/role", internalAuth, apiSetUserRole);
-router.post("/:userId/cores/manage", internalAuth, apiManageUserCores);
+// Admin endpoints - require internal auth + admin role
+router.get("/", internalAuth, requireAuth, requireAdmin, apiListUsers);
+router.get("/:userId", internalAuth, requireAuth, requireAdmin, apiUserInfo);
+router.patch(
+  "/:userId/role",
+  internalAuth,
+  requireAuth,
+  requireAdmin,
+  apiSetUserRole,
+);
+router.post(
+  "/:userId/cores/manage",
+  internalAuth,
+  requireAuth,
+  requireAdmin,
+  apiManageUserCores,
+);
 
 export default router;

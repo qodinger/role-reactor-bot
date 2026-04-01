@@ -664,6 +664,28 @@ git-workflow-help            # Show all available commands
 
 See [Git Workflow Guide](./docs/development/workflow.md) for detailed instructions.
 
+## 🔒 Security
+
+This bot implements enterprise-grade security measures to protect your community:
+
+- **🛡️ Multi-Layer Authentication** - Discord OAuth + API key + guild permission verification
+- **🔐 Authorization Checks** - Users must have ManageRoles permission to manage role reactions
+- **⏱️ Rate Limiting** - Prevents abuse of sensitive endpoints (10 requests/15min for role management)
+- **📝 Audit Logging** - All API requests logged with user context for security monitoring
+- **🚫 Input Validation** - Strict validation on all API inputs to prevent injection attacks
+
+### Security Vulnerability Disclosure
+
+In April 2026, a critical security vulnerability was discovered and immediately fixed:
+
+- **Issue**: API endpoints could be exploited to assign unauthorized roles
+- **Fix**: Implemented multi-layer authentication and authorization
+- **Status**: ✅ Fixed in version 1.7.0+
+
+For detailed security information, see [SECURITY_FIXES.md](SECURITY_FIXES.md).
+
+To report a security issue, please contact us privately before public disclosure.
+
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

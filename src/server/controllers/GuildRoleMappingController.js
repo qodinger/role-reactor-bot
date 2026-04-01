@@ -13,7 +13,10 @@ const logger = getLogger();
  */
 export async function apiGetGuildRoleMappings(req, res) {
   const { guildId } = req.params;
-  logRequest(`Get guild role mappings: ${guildId}`, req);
+  logRequest(`Get guild role mappings: ${guildId}`, req, {
+    userId: req.user?.id,
+    username: req.user?.username,
+  });
 
   if (!guildId) {
     const { statusCode, response } = createErrorResponse(
@@ -91,7 +94,10 @@ export async function apiGetGuildRoleMappings(req, res) {
  */
 export async function apiDeleteGuildRoleMapping(req, res) {
   const { guildId, messageId } = req.params;
-  logRequest(`Delete role mapping: ${messageId} for guild ${guildId}`, req);
+  logRequest(`Delete role mapping: ${messageId} for guild ${guildId}`, req, {
+    userId: req.user?.id,
+    username: req.user?.username,
+  });
 
   if (!guildId || !messageId) {
     const { statusCode, response } = createErrorResponse(
@@ -222,7 +228,10 @@ function mergeReactionRoles(reactions) {
  */
 export async function apiDeployRoleReactions(req, res) {
   const { guildId } = req.params;
-  logRequest(`Deploy role reactions for guild ${guildId}`, req);
+  logRequest(`Deploy role reactions for guild ${guildId}`, req, {
+    userId: req.user?.id,
+    username: req.user?.username,
+  });
 
   try {
     const client = getDiscordClient();
@@ -243,6 +252,7 @@ export async function apiDeployRoleReactions(req, res) {
       hideList,
       reactions,
     } = req.body;
+
     if (!channelId)
       return res
         .status(400)
@@ -255,6 +265,7 @@ export async function apiDeployRoleReactions(req, res) {
             .response,
         );
 
+    // SECURITY: Verify the bot has permission in the channel
     const guild = client.guilds.cache.get(guildId);
     const channel = guild?.channels.cache.get(channelId);
     if (!guild || !channel || !channel.isTextBased())
@@ -360,7 +371,10 @@ export async function apiDeployRoleReactions(req, res) {
  */
 export async function apiUpdateRoleReactions(req, res) {
   const { guildId, messageId } = req.params;
-  logRequest(`Update role reactions ${messageId} for guild ${guildId}`, req);
+  logRequest(`Update role reactions ${messageId} for guild ${guildId}`, req, {
+    userId: req.user?.id,
+    username: req.user?.username,
+  });
 
   try {
     const client = getDiscordClient();
