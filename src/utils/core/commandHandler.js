@@ -480,6 +480,13 @@ class CommandHandler {
       if (!command.preAwardXP) {
         setTimeout(async () => {
           try {
+            if (!interaction.user || !interaction.guild) {
+              this.logger.warn("Interaction expired before XP award", {
+                commandName,
+              });
+              return;
+            }
+
             const experienceManager = await getExperienceManager();
             this.logger.info(
               `🎯 Attempting to award XP for command: ${commandName} by user: ${interaction.user.id} in guild: ${interaction.guild.id}`,
