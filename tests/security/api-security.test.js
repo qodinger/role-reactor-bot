@@ -331,6 +331,52 @@ describe("API Security Tests", () => {
     });
   });
 
+  describe("Root Endpoints Security", () => {
+    const internalKey = process.env.INTERNAL_API_KEY || "test-key";
+
+    it("should reject balance endpoint without user authentication", async () => {
+      const response = await request(app)
+        .get(`${API_BASE}/balance`)
+        .set("Authorization", `Bearer ${internalKey}`);
+
+      expect([401, 403]).toContain(response.status);
+    });
+
+    it("should reject payments endpoint without user authentication", async () => {
+      const response = await request(app)
+        .get(`${API_BASE}/payments`)
+        .set("Authorization", `Bearer ${internalKey}`);
+
+      expect([401, 403]).toContain(response.status);
+    });
+
+    it("should allow public root endpoints", async () => {
+      const infoResponse = await request(app).get(`${API_BASE}/info`);
+      expect(infoResponse.status).toBe(200);
+
+      const pricingResponse = await request(app).get(`${API_BASE}/pricing`);
+      expect(pricingResponse.status).toBe(200);
+    });
+  });
+
+  describe("Stats Endpoints Security", () => {
+    const internalKey = process.env.INTERNAL_API_KEY || "test-key";
+
+    it("should reject stats/usage without authentication", async () => {
+      const response = await request(app)
+        .get(`${API_BASE}/stats/usage`)
+        .set("Authorization", `Bearer ${internalKey}`);
+
+      expect([401, 403]).toContain(response.status);
+    });
+
+    it("should allow stats/global without authentication", async () => {
+      const response = await request(app).get(`${API_BASE}/stats/global`);
+
+      expect(response.status).not.toBe(401);
+    });
+  });
+
   describe("System Endpoints Security", () => {
     const internalKey = process.env.INTERNAL_API_KEY || "test-key";
 
@@ -359,11 +405,11 @@ describe("API Security Tests", () => {
       expect(response.status).toBe(200);
     });
 
-    it("should allow services endpoint without authentication", async () => {
+    it("should reject services endpoint without authentication", async () => {
       const response = await request(app).get(`${API_BASE}/services/`);
 
-      // Services discovery should be public
-      expect(response.status).not.toBe(401);
+      // Services now require internal auth
+      expect([401, 403]).toContain(response.status);
     });
 
     it("should allow stats info without authentication", async () => {

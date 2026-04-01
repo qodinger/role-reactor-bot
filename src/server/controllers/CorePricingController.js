@@ -25,8 +25,8 @@ export async function apiPricing(req, res) {
       return res.status(statusCode).json(response);
     }
 
-    const userId = req.query.user_id || req.query.discord_id || null;
-    const isDev = config.isDeveloper(userId);
+    const requestedUserId = req.query.user_id || req.query.discord_id || null;
+    const isDev = config.isDeveloper(requestedUserId);
 
     const packages = Object.entries(corePricing.packages)
       .filter(([_, pkg]) => !pkg.hidden || isDev)
@@ -79,16 +79,16 @@ export async function apiPricing(req, res) {
     }
 
     let userEligibility = null;
-    if (userId) {
+    if (requestedUserId) {
       try {
         const { getStorageManager } = await import(
           "../../utils/storage/storageManager.js"
         );
         const storage = await getStorageManager();
-        const userData = await storage.getCoreCredits(userId);
+        const userData = await storage.getCoreCredits(requestedUserId);
         const hasPayments = userData?.cryptoPayments?.length > 0;
         userEligibility = {
-          userId,
+          requestedUserId,
           isFirstPurchase: !hasPayments,
           currentCredits: userData?.credits || 0,
           eligibleForFirstPurchaseBonus: !hasPayments,
@@ -137,13 +137,30 @@ export async function apiPricing(req, res) {
  */
 export async function apiUserBalance(req, res) {
   logRequest("User balance", req);
-  const userId = req.params.userId || req.query.user_id || req.query.discord_id;
+  const requestedUserId =
+    req.params.requestedUserId || req.query.user_id || req.query.discord_id;
+  const sessionUserId = req.user?.id;
 
-  if (!userId) {
+  if (!requestedUserId) {
     const { statusCode, response } = createErrorResponse(
       "User ID is required",
       400,
       "Provide user_id as a URL parameter or query parameter",
+    );
+    return res.status(statusCode).json(response);
+  }
+
+  // Enforce ownership - user can only access their own balance (checked by middleware, but verify here too)
+  if (
+    sessionUserId &&
+    requestedUserId !== sessionUserId &&
+    req.user?.role !== "admin" &&
+    req.user?.role !== "superadmin"
+  ) {
+    const { statusCode, response } = createErrorResponse(
+      "Insufficient permissions",
+      403,
+      "You can only access your own balance",
     );
     return res.status(statusCode).json(response);
   }
@@ -153,12 +170,12 @@ export async function apiUserBalance(req, res) {
       "../../utils/storage/storageManager.js"
     );
     const storage = await getStorageManager();
-    const userData = await storage.getCoreCredits(userId);
+    const userData = await storage.getCoreCredits(requestedUserId);
 
     if (!userData) {
       return res.json(
         createSuccessResponse({
-          userId,
+          requestedUserId: requestedUserId,
           credits: 0,
           hasAccount: false,
           paymentHistory: { crypto: 0 },
@@ -168,7 +185,7 @@ export async function apiUserBalance(req, res) {
 
     res.json(
       createSuccessResponse({
-        userId,
+        requestedUserId: requestedUserId,
         credits: userData.credits || 0,
         hasAccount: true,
         lastUpdated: userData.lastUpdated || null,
@@ -193,13 +210,30 @@ export async function apiUserBalance(req, res) {
  */
 export async function apiUserPayments(req, res) {
   logRequest("User payments", req);
-  const userId = req.params.userId || req.query.user_id || req.query.discord_id;
+  const requestedUserId =
+    req.params.requestedUserId || req.query.user_id || req.query.discord_id;
+  const sessionUserId = req.user?.id;
 
-  if (!userId) {
+  if (!requestedUserId) {
     const { statusCode, response } = createErrorResponse(
       "User ID is required",
       400,
       "Provide user_id as a URL parameter or query parameter",
+    );
+    return res.status(statusCode).json(response);
+  }
+
+  // Enforce ownership - user can only access their own payments
+  if (
+    sessionUserId &&
+    requestedUserId !== sessionUserId &&
+    req.user?.role !== "admin" &&
+    req.user?.role !== "superadmin"
+  ) {
+    const { statusCode, response } = createErrorResponse(
+      "Insufficient permissions",
+      403,
+      "You can only access your own payment history",
     );
     return res.status(statusCode).json(response);
   }
@@ -216,7 +250,7 @@ export async function apiUserPayments(req, res) {
       );
       const storage = await getStorageManager();
       const coreCredits = (await storage.get("core_credit")) || {};
-      const userData = coreCredits[userId];
+      const userData = coreCredits[requestedUserId];
       const payments = [];
       if (userData?.cryptoPayments) payments.push(...userData.cryptoPayments);
       payments.sort(
@@ -225,7 +259,7 @@ export async function apiUserPayments(req, res) {
       );
       return res.json(
         createSuccessResponse({
-          userId,
+          requestedUserId,
           payments,
           total: payments.length,
           source: "legacy",
@@ -236,17 +270,17 @@ export async function apiUserPayments(req, res) {
     const limit = parseInt(req.query.limit) || 50;
     const skip = parseInt(req.query.skip) || 0;
     const provider = req.query.provider || null;
-    const payments = await dbManager.payments.findByDiscordId(userId, {
+    const payments = await dbManager.payments.findByDiscordId(requestedUserId, {
       limit,
       skip,
       status: "completed",
       provider,
     });
-    const stats = await dbManager.payments.getUserStats(userId);
+    const stats = await dbManager.payments.getUserStats(requestedUserId);
 
     res.json(
       createSuccessResponse({
-        userId,
+        requestedUserId,
         payments: payments.map(p => ({
           paymentId: p.paymentId,
           provider: p.provider,
