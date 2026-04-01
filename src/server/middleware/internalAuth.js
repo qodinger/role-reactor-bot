@@ -12,6 +12,7 @@ const logger = getLogger();
  */
 export function internalAuth(req, res, next) {
   const apiKey = req.headers["authorization"] || req.headers["x-api-key"];
+  const userId = req.headers["x-user-id"];
   const internalKey = process.env.INTERNAL_API_KEY;
 
   if (!internalKey) {
@@ -57,6 +58,11 @@ export function internalAuth(req, res, next) {
       401,
     );
     return res.status(statusCode).json(response);
+  }
+
+  // If X-User-ID header provided, set req.user for downstream auth middleware
+  if (userId) {
+    req.user = { id: userId };
   }
 
   next();
