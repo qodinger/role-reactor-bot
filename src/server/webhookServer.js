@@ -195,7 +195,7 @@ function initializeRoutes() {
   // Core API routes with rate limiting
   app.use(API_PREFIX, apiRateLimiter);
   app.use(API_PREFIX, rootRouter);
-  app.use(`${API_PREFIX}/guilds`, guildsRouter);
+  app.use(`${API_PREFIX}/guilds`, internalAuth, guildsRouter);
   app.use(`${API_PREFIX}/payments`, internalAuth, paymentsRouter);
   app.use(`${API_PREFIX}/user`, internalAuth, userRouter);
   app.use(`${API_PREFIX}/commands`, internalAuth, commandsRouter);
