@@ -187,7 +187,7 @@ API_PORT=3030                    # Server port (default: 3030)
 NODE_ENV=development             # Environment (development/production)
 
 # CORS configuration
-CORS_ORIGIN=*                   # CORS origin (default: *)
+CORS_ALLOWED_ORIGINS=*                   # CORS origins (comma-separated, default: *)
 
 # Logging configuration
 REQUEST_LOGGING=true            # Enable request logging (default: true)
