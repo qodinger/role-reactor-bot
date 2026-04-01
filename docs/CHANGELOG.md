@@ -9,29 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
-- **API Security Hardening**: Comprehensive security improvements to protect against API exploitation:
-  - Multi-layer authentication: Internal API key + Discord OAuth user session + guild permission checks
-  - Added `requireGuildPermission` middleware for guild endpoints - verifies user has permission to manage the guild
-  - Added `requireOwnUser` middleware for user data endpoints - prevents users from accessing other users' data
-  - Added `requireAdmin` middleware for admin-only endpoints
-  - Added rate limiting for sensitive operations (10 requests/15min for role management)
-  - Added timing-safe comparison for API key validation to prevent timing attacks
-  - Made `/health` endpoint public (rate limited) for monitoring
-  - Made `/stats/usage` internal-only for admin analytics
-  - Added CORS protection requiring explicit origin configuration in production
+- **API Security Hardening**: Improved protection against unauthorized access to the bot's API:
+  - Added verification to ensure users can only access their own data
+  - Added permission checks so only server managers can modify server settings
+  - Added rate limits to prevent automated abuse
+  - Improved secure communication between the website and bot
 
 ### Changed
 
-- **Enhanced Security**: All API endpoints now verify user permissions before processing role management requests
-- **Improved Logging**: Security events are now logged with better context for auditing
-- **Rate Limiting**: Configurable rate limits for webhooks (100/15min), API (60/15min), and sensitive operations (10/15min)
+- **Enhanced Security**: Protected all API endpoints from unauthorized access
+- **Faster Monitoring**: Health check endpoint is now publicly accessible for monitoring tools
 
 ### Fixed
 
-- Prevented unauthorized role assignment through API endpoints
-- Secured payment creation against fraudulent access
-- Fixed potential data exposure in user endpoints
-- Fixed vulnerable API endpoints that allowed unauthorized access without proper authentication
+- Prevented unauthorized users from accessing sensitive API endpoints
+- Secured payment creation to prevent fraudulent transactions
+- Fixed potential data exposure in user account endpoints
 
 ## [1.7.0] - 2026-03-28
 
