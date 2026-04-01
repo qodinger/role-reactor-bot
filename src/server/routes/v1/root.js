@@ -6,6 +6,7 @@ import {
   apiUserBalance,
   apiUserPayments,
 } from "../../controllers/CorePricingController.js";
+import { internalAuth } from "../../middleware/internalAuth.js";
 import { requireAuth } from "../../middleware/authentication.js";
 import { requireOwnUser } from "../../middleware/userAuthorization.js";
 
@@ -15,7 +16,19 @@ router.get("/info", apiInfo);
 router.get("/stats", apiStats);
 router.get("/pricing", apiPricing);
 
-router.get("/balance", requireAuth, requireOwnUser, apiUserBalance);
-router.get("/payments", requireAuth, requireOwnUser, apiUserPayments);
+router.get(
+  "/balance",
+  internalAuth,
+  requireAuth,
+  requireOwnUser,
+  apiUserBalance,
+);
+router.get(
+  "/payments",
+  internalAuth,
+  requireAuth,
+  requireOwnUser,
+  apiUserPayments,
+);
 
 export default router;
