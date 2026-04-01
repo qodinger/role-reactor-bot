@@ -5,27 +5,33 @@
  * @param {import('express').NextFunction} next - Express next function
  */
 export function corsMiddleware(req, res, next) {
-  // Get allowed origins from environment or use default
+  // Get allowed origins from environment - must be configured for production
   const allowedOrigins = process.env.CORS_ALLOWED_ORIGINS
     ? process.env.CORS_ALLOWED_ORIGINS.split(",").map(origin => origin.trim())
-    : ["*"]; // Default to allow all for backward compatibility
+    : [];
 
   // Get the origin from the request
   const origin = req.headers.origin;
 
   // Check if origin is allowed
-  let allowedOrigin = "*";
-  if (allowedOrigins.includes("*")) {
-    // Mirror the origin if it exists, otherwise use '*'
-    // This is required for Access-Control-Allow-Credentials to work
+  let allowedOrigin = null;
+  if (allowedOrigins.length === 0) {
+    // No origins configured - reject all cross-origin requests in production
+    if (process.env.NODE_ENV === "production") {
+      return res.status(403).json({
+        status: "error",
+        message: "CORS: No allowed origins configured",
+      });
+    }
+    // Allow all in development for testing
+    allowedOrigin = "*";
+  } else if (allowedOrigins.includes("*")) {
     allowedOrigin = origin || "*";
   } else if (origin && allowedOrigins.includes(origin)) {
-    // Allow specific origin
     allowedOrigin = origin;
   } else if (
     origin &&
     allowedOrigins.some(allowed => {
-      // Support wildcard patterns like "https://*.example.com"
       const pattern = allowed.replace(/\*/g, ".*");
       const regex = new RegExp(`^${pattern}$`);
       return regex.test(origin);
@@ -33,7 +39,6 @@ export function corsMiddleware(req, res, next) {
   ) {
     allowedOrigin = origin;
   } else if (origin) {
-    // Origin not allowed - reject request
     return res.status(403).json({
       status: "error",
       message: "CORS: Origin not allowed",

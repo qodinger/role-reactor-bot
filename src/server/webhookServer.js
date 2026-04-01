@@ -198,7 +198,7 @@ function initializeRoutes() {
   app.use(`${API_PREFIX}/guilds`, internalAuth, guildsRouter);
   app.use(`${API_PREFIX}/payments`, internalAuth, paymentsRouter);
   app.use(`${API_PREFIX}/user`, internalAuth, userRouter);
-  app.use(`${API_PREFIX}/commands`, commandsRouter);
+  app.use(`${API_PREFIX}/commands`, internalAuth, commandsRouter);
   app.use(`${API_PREFIX}/services`, internalAuth, servicesRouter);
   app.use(`${API_PREFIX}/docs`, internalAuth, docsRouter);
   app.use(`${API_PREFIX}/stats`, internalAuth, statsRouter);
