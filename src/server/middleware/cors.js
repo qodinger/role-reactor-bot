@@ -7,26 +7,12 @@
 export function corsMiddleware(req, res, next) {
   const allowedOrigins = process.env.CORS_ALLOWED_ORIGINS
     ? process.env.CORS_ALLOWED_ORIGINS.split(",").map(origin => origin.trim())
-    : [];
+    : ["*"];
 
   const origin = req.headers.origin;
 
-  let allowedOrigin = null;
-  if (allowedOrigins.length === 0) {
-    if (process.env.NODE_ENV === "production") {
-      const vercelAppUrl = process.env.VERCEL_URL || process.env.VERCEL_APP_URL;
-      if (vercelAppUrl && origin && origin.includes("vercel.app")) {
-        allowedOrigin = origin;
-      } else {
-        return res.status(403).json({
-          status: "error",
-          message: "CORS: No allowed origins configured",
-        });
-      }
-    } else {
-      allowedOrigin = "*";
-    }
-  } else if (allowedOrigins.includes("*")) {
+  let allowedOrigin = "*";
+  if (allowedOrigins.includes("*")) {
     allowedOrigin = origin || "*";
   } else if (origin && allowedOrigins.includes(origin)) {
     allowedOrigin = origin;
