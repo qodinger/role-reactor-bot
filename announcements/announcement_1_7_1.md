@@ -1,4 +1,4 @@
-# v1.7.1 - Security Update
+# v1.7.1 - Security Patch
 
 @everyone
 
