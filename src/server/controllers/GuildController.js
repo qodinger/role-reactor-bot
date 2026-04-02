@@ -379,7 +379,8 @@ export async function apiUpdateGuildSettings(req, res) {
         welcomeSettings = welcomeUpdates;
       }
       // Remove welcomeSystem from the main settings update
-      const { welcomeSystem, ...otherUpdates } = updates;
+      // eslint-disable-next-line no-unused-vars
+      const { welcomeSystem: _welcomeSystem, ...otherUpdates } = updates;
       Object.assign(updates, otherUpdates);
     }
 
