@@ -100,11 +100,9 @@ export class PremiumManager {
         };
       }
 
-      // 2. Deduct credits
-      const deducted = await db.coreCredits.updateCredits(
-        userId,
-        -feature.cost,
-      );
+      // 2. Deduct credits (round to 2 decimal places to prevent floating point errors)
+      const cost = Math.round(feature.cost * 100) / 100;
+      const deducted = await db.coreCredits.updateCredits(userId, -cost);
       if (!deducted) {
         return {
           success: false,

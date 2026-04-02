@@ -186,7 +186,7 @@ export async function apiUserBalance(req, res) {
     res.json(
       createSuccessResponse({
         requestedUserId: requestedUserId,
-        credits: userData.credits || 0,
+        credits: Math.round((userData.credits || 0) * 100) / 100, // Round to 2 decimal places
         hasAccount: true,
         lastUpdated: userData.lastUpdated || null,
         paymentHistory: {

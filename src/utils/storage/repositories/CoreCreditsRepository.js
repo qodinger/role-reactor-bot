@@ -72,10 +72,13 @@ export class CoreCreditsRepository extends BaseRepository {
 
   async updateCredits(userId, creditsChange) {
     try {
+      // Round the credits change to 2 decimal places to prevent floating point errors
+      const roundedChange = Math.round(creditsChange * 100) / 100;
+
       const result = await this.collection.updateOne(
         { userId },
         {
-          $inc: { credits: creditsChange },
+          $inc: { credits: roundedChange },
           $set: { lastUpdated: new Date().toISOString() },
         },
         { upsert: true },
