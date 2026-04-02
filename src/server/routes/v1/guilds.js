@@ -7,6 +7,7 @@ import {
   apiGetGuildEmojis,
   apiCheckGuilds,
   apiListGuilds,
+  apiTestWelcome,
 } from "../../controllers/GuildController.js";
 import {
   apiActivatePremiumFeature,
@@ -247,6 +248,15 @@ router.delete(
   requireGuildPermission,
   customCommandLimiter,
   apiDeleteCustomCommand,
+);
+
+// Welcome System - Test endpoint
+router.post(
+  "/:guildId/welcome/test",
+  internalAuth,
+  requireAuth,
+  requireGuildPermission,
+  apiTestWelcome,
 );
 
 export default router;

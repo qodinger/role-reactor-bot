@@ -302,3 +302,86 @@ export async function testWelcomeSystem(
     };
   }
 }
+
+/**
+ * Send a test welcome message without needing a real member
+ * @param {string} guildId - Guild ID
+ * @param {Object} settings - Welcome settings
+ * @param {import('discord.js').Guild} guild - Discord guild object
+ * @returns {Object} - Result
+ */
+export async function sendTestWelcomeMessage(guildId, settings, guild) {
+  if (!settings?.channelId) {
+    return {
+      success: false,
+      error: "No welcome channel configured",
+    };
+  }
+
+  const welcomeChannel = guild.channels.cache.get(settings.channelId);
+  if (!welcomeChannel) {
+    return {
+      success: false,
+      error: "Welcome channel not found",
+    };
+  }
+
+  const botMember = guild.members.me;
+  const channelPermissions = welcomeChannel.permissionsFor(botMember);
+
+  if (!channelPermissions?.has("SendMessages")) {
+    return {
+      success: false,
+      error: "Bot lacks permission to send messages in welcome channel",
+    };
+  }
+
+  if (settings.embedEnabled && !channelPermissions.has("EmbedLinks")) {
+    return {
+      success: false,
+      error: "Bot lacks permission to embed links in welcome channel",
+    };
+  }
+
+  // Use bot's own member for test message (works for placeholder processing)
+  const testMember = botMember;
+
+  // Check auto-role if configured
+  let roleTestResult = null;
+  if (settings.autoRoleId) {
+    const autoRole = guild.roles.cache.get(settings.autoRoleId);
+    if (!autoRole) {
+      roleTestResult = "Auto-role not found";
+    } else {
+      const hasManageRoles = botMember.permissions.has("ManageRoles");
+      const botHighestRole = botMember.roles.highest;
+      const canAssignRole = autoRole.position < botHighestRole.position;
+
+      if (!hasManageRoles) {
+        roleTestResult = "Bot lacks ManageRoles permission";
+      } else if (!canAssignRole) {
+        roleTestResult = "Auto-role is higher than bot's highest role";
+      } else {
+        roleTestResult = "Role assignment available";
+      }
+    }
+  }
+
+  // Send test message using bot's member for real Discord placeholders
+  if (settings.embedEnabled) {
+    const embed = createWelcomeEmbed(settings, testMember);
+    await welcomeChannel.send({ embeds: [embed] });
+  } else {
+    const processedMessage = processWelcomeMessage(
+      settings.message,
+      testMember,
+    );
+    await welcomeChannel.send(processedMessage);
+  }
+
+  return {
+    success: true,
+    format: settings.embedEnabled ? "Embed" : "Text",
+    roleTestResult,
+  };
+}

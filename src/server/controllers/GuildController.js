@@ -114,9 +114,8 @@ export async function apiGetGuildSettings(req, res) {
       .json(createErrorResponse("Guild ID is required", 400).response);
 
   try {
-    const { getDatabaseManager } = await import(
-      "../../utils/storage/databaseManager.js"
-    );
+    const { getDatabaseManager } =
+      await import("../../utils/storage/databaseManager.js");
     const dbManager = await getDatabaseManager();
     const commandHandler = getCommandHandler();
 
@@ -129,6 +128,24 @@ export async function apiGetGuildSettings(req, res) {
         );
 
     const settings = await dbManager.guildSettings.getByGuild(guildId);
+
+    // Get welcome settings from the separate welcome_settings collection
+    let welcomeSettings = null;
+    if (dbManager.welcomeSettings) {
+      welcomeSettings = await dbManager.welcomeSettings.getByGuild(guildId);
+      // Remove internal fields for API response
+      if (welcomeSettings) {
+        welcomeSettings = {
+          enabled: welcomeSettings.enabled ?? false,
+          channelId: welcomeSettings.channelId ?? null,
+          message:
+            welcomeSettings.message ?? "Welcome **{user}** to **{server}**! 🎉",
+          autoRoleId: welcomeSettings.autoRoleId ?? null,
+          embed: welcomeSettings.embedEnabled ?? true,
+        };
+      }
+    }
+
     const client = getDiscordClient();
 
     if (!commandRegistry.initialized) await commandRegistry.initialize(client);
@@ -147,12 +164,10 @@ export async function apiGetGuildSettings(req, res) {
       })
       .filter(Boolean);
 
-    const { getPremiumManager } = await import(
-      "../../features/premium/PremiumManager.js"
-    );
-    const { PremiumFeatures } = await import(
-      "../../features/premium/config.js"
-    );
+    const { getPremiumManager } =
+      await import("../../features/premium/PremiumManager.js");
+    const { PremiumFeatures } =
+      await import("../../features/premium/config.js");
     const premiumManager = getPremiumManager();
 
     const isProActive = await premiumManager.isFeatureActive(
@@ -167,7 +182,10 @@ export async function apiGetGuildSettings(req, res) {
 
     res.json(
       createSuccessResponse({
-        settings,
+        settings: {
+          ...settings,
+          welcomeSystem: welcomeSettings,
+        },
         guildStats,
         premiumFeatures: settings.premiumFeatures || {},
         isPremium: { pro: isProActive },
@@ -262,6 +280,7 @@ export async function apiGetGuildRoles(req, res) {
   try {
     await guild.roles.fetch();
     const roles = guild.roles.cache
+      .filter(r => !r.managed)
       .map(r => ({
         id: r.id,
         name: r.name,
@@ -337,11 +356,32 @@ export async function apiUpdateGuildSettings(req, res) {
   logRequest(`Update guild settings: ${guildId}`, req);
 
   try {
-    const { getDatabaseManager } = await import(
-      "../../utils/storage/databaseManager.js"
-    );
+    const { getDatabaseManager } =
+      await import("../../utils/storage/databaseManager.js");
     const dbManager = await getDatabaseManager();
     const existingSettings = await dbManager.guildSettings.getByGuild(guildId);
+
+    // Handle welcome system settings separately
+    let welcomeSettings = null;
+    if (updates.welcomeSystem) {
+      if (dbManager.welcomeSettings) {
+        // Map the API format to the database format
+        const welcomeUpdates = {
+          enabled: updates.welcomeSystem.enabled ?? false,
+          channelId: updates.welcomeSystem.channelId ?? null,
+          message:
+            updates.welcomeSystem.message ??
+            "Welcome **{user}** to **{server}**! 🎉",
+          autoRoleId: updates.welcomeSystem.autoRoleId ?? null,
+          embedEnabled: updates.welcomeSystem.embed ?? true,
+        };
+        await dbManager.welcomeSettings.set(guildId, welcomeUpdates);
+        welcomeSettings = welcomeUpdates;
+      }
+      // Remove welcomeSystem from the main settings update
+      const { welcomeSystem, ...otherUpdates } = updates;
+      Object.assign(updates, otherUpdates);
+    }
 
     const newSettings = {
       ...existingSettings,
@@ -350,12 +390,10 @@ export async function apiUpdateGuildSettings(req, res) {
     };
 
     if (updates.disabledCommands) {
-      const { getPremiumManager } = await import(
-        "../../features/premium/PremiumManager.js"
-      );
-      const { PremiumFeatures } = await import(
-        "../../features/premium/config.js"
-      );
+      const { getPremiumManager } =
+        await import("../../features/premium/PremiumManager.js");
+      const { PremiumFeatures } =
+        await import("../../features/premium/config.js");
       const premiumManager = getPremiumManager();
       const isActive = await premiumManager.isFeatureActive(
         guildId,
@@ -388,7 +426,10 @@ export async function apiUpdateGuildSettings(req, res) {
     res.json(
       createSuccessResponse({
         message: "Settings updated successfully",
-        settings: newSettings,
+        settings: {
+          ...newSettings,
+          welcomeSystem: welcomeSettings || existingSettings.welcomeSystem,
+        },
       }),
     );
   } catch (error) {
@@ -398,6 +439,66 @@ export async function apiUpdateGuildSettings(req, res) {
       .json(
         createErrorResponse(
           "Failed to update guild settings",
+          500,
+          error.message,
+        ).response,
+      );
+  }
+}
+
+/**
+ * Test welcome message (preview)
+ */
+export async function apiTestWelcome(req, res) {
+  const { guildId } = req.params;
+  logRequest(`Test welcome: ${guildId}`, req);
+
+  const client = getDiscordClient();
+  const guild = client?.guilds.cache.get(guildId);
+  if (!guild)
+    return res
+      .status(404)
+      .json(createErrorResponse("Guild not found", 404).response);
+
+  try {
+    const { getDatabaseManager } =
+      await import("../../utils/storage/databaseManager.js");
+    const dbManager = await getDatabaseManager();
+    const settings = await dbManager.welcomeSettings.getByGuild(guildId);
+
+    if (!settings?.enabled) {
+      return res
+        .status(400)
+        .json(
+          createErrorResponse("Welcome system is not enabled", 400).response,
+        );
+    }
+
+    const { sendTestWelcomeMessage } =
+      await import("../../utils/discord/welcomeUtils.js");
+
+    const result = await sendTestWelcomeMessage(guildId, settings, guild);
+
+    if (result.success) {
+      res.json(
+        createSuccessResponse({
+          message: "Test message sent successfully",
+          details: {
+            format: result.format,
+            roleTest: result.roleTestResult,
+          },
+        }),
+      );
+    } else {
+      res.status(400).json(createErrorResponse(result.error, 400).response);
+    }
+  } catch (error) {
+    logger.error(`❌ Error testing welcome for guild ${guildId}:`, error);
+    res
+      .status(500)
+      .json(
+        createErrorResponse(
+          "Failed to test welcome message",
           500,
           error.message,
         ).response,
