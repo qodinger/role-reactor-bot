@@ -8,6 +8,7 @@ class StorageManager {
     this.logger = getLogger();
     this.provider = null;
     this.dbManager = null;
+    this.fileProvider = null;
     this.isInitialized = false;
   }
 
@@ -20,9 +21,11 @@ class StorageManager {
       if (dbManager && dbManager.connectionManager.db) {
         this.dbManager = dbManager;
         this.provider = new DatabaseProvider(dbManager, this.logger);
+        this.fileProvider = new FileProvider(this.logger);
         this.logger.success("✅ Database storage enabled");
       } else {
-        this.provider = new FileProvider(this.logger);
+        this.fileProvider = new FileProvider(this.logger);
+        this.provider = this.fileProvider;
         this.logger.warn(
           "⚠️ Database storage disabled, using local files only",
         );
@@ -32,7 +35,8 @@ class StorageManager {
         "⚠️ Failed to connect to database, falling back to local files:",
         error.message,
       );
-      this.provider = new FileProvider(this.logger);
+      this.fileProvider = new FileProvider(this.logger);
+      this.provider = this.fileProvider;
       this.logger.info("📁 Using local file storage as fallback");
     }
 
@@ -509,16 +513,14 @@ class StorageManager {
   // Generic storage methods
   async read(collection) {
     if (this.provider instanceof DatabaseProvider) {
-      const fileProvider = new FileProvider(this.logger);
-      return await fileProvider.read(collection);
+      return await this.fileProvider.read(collection);
     }
     return await this.provider.read(collection);
   }
 
   async write(collection, data) {
     if (this.provider instanceof DatabaseProvider) {
-      const fileProvider = new FileProvider(this.logger);
-      return await fileProvider.write(collection, data);
+      return await this.fileProvider.write(collection, data);
     }
     return await this.provider.write(collection, data);
   }
