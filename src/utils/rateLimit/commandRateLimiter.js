@@ -222,7 +222,7 @@ class CommandRateLimiter {
     // Cleanup every minute
     this.cleanupInterval = setInterval(() => {
       this.cleanup();
-    }, 60000);
+    }, 60000).unref();
 
     logger.debug("Rate limiter cleanup started");
   }

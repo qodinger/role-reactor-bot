@@ -32,7 +32,7 @@ export class InteractionManager {
         }
       },
       5 * 60 * 1000, // 5 minutes
-    );
+    ).unref();
   }
 
   /**

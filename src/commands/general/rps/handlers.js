@@ -60,7 +60,7 @@ function startPeriodicCleanup() {
 
   cleanupInterval = setInterval(() => {
     cleanupExpiredChallenges();
-  }, CLEANUP_INTERVAL_MS);
+  }, CLEANUP_INTERVAL_MS).unref();
 
   logger.debug("Started periodic RPS challenge cleanup");
 }

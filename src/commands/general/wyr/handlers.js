@@ -54,7 +54,7 @@ function startPeriodicCleanup() {
 
   cleanupInterval = setInterval(() => {
     cleanupExpiredVotes();
-  }, CLEANUP_INTERVAL_MS);
+  }, CLEANUP_INTERVAL_MS).unref();
 
   logger.debug("Started periodic WYR vote cleanup");
 }

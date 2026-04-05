@@ -159,7 +159,7 @@ export class ImagineGenerationHistory {
       // Set up daily interval
       cleanupInterval = setInterval(() => {
         this.runAutoCleanup(retentionDays);
-      }, CLEANUP_INTERVAL);
+      }, CLEANUP_INTERVAL).unref();
     }, timeUntilCleanup);
   }
 

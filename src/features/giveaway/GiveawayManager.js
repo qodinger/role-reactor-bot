@@ -77,7 +77,7 @@ class GiveawayManager extends EventEmitter {
 
     this.checkInterval = setInterval(async () => {
       await this.checkEndingGiveaways();
-    }, this.CHECK_INTERVAL_MS);
+    }, this.CHECK_INTERVAL_MS).unref();
 
     logger.debug("🕐 Giveaway check interval started");
   }

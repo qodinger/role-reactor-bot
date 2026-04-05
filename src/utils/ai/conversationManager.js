@@ -701,7 +701,7 @@ export class ConversationManager {
         // if needed in the future
       },
       3 * 60 * 1000,
-    ); // Every 3 minutes
+    ).unref(); // Every 3 minutes
   }
 
   /**

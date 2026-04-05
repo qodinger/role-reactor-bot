@@ -415,6 +415,6 @@ export const concurrencyManager = aiConcurrencyManager; // Alias for backward co
 // Clean up every 5 minutes
 setInterval(() => {
   aiConcurrencyManager.cleanup();
-}, 300000);
+}, 300000).unref();
 
 export default aiConcurrencyManager;

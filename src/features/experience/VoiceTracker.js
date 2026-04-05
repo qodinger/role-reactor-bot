@@ -81,7 +81,7 @@ class VoiceTracker {
   startVoiceXPInterval() {
     this.voiceXPInterval = setInterval(async () => {
       await this.processVoiceXP();
-    }, this.voiceXPIntervalMs);
+    }, this.voiceXPIntervalMs).unref();
   }
 
   /**
@@ -133,7 +133,7 @@ class VoiceTracker {
    * Award XP for voice chat participation
    * @param {string} guildId - Discord guild ID
    * @param {string} userId - Discord user ID
-   * @returns {object|null} Awarded XP data or null if XP system disabled
+   * @returns {Promise<object|null>} Awarded XP data or null if XP system disabled
    */
   async awardVoiceXP(guildId, userId) {
     const { getExperienceManager } = await import("./ExperienceManager.js");

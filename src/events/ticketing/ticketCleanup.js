@@ -24,7 +24,7 @@ export function startTicketCleanup(client) {
     } catch (error) {
       logger.error("Ticket cleanup error:", error);
     }
-  }, CLEANUP_INTERVAL);
+  }, CLEANUP_INTERVAL).unref();
 
   // Run on startup
   setTimeout(() => {
