@@ -2,6 +2,26 @@ import fs from "fs/promises";
 import fsSync from "fs";
 import path from "path";
 
+class WriteQueue {
+  constructor() {
+    this._queues = new Map();
+  }
+
+  async enqueue(key, fn) {
+    if (!this._queues.has(key)) {
+      this._queues.set(key, Promise.resolve());
+    }
+    const result = this._queues.get(key).then(fn, fn);
+    this._queues.set(
+      key,
+      result.catch(() => {}),
+    );
+    return result;
+  }
+}
+
+const writeQueue = new WriteQueue();
+
 export class FileProvider {
   constructor(logger, storagePath = "./data") {
     this.logger = logger;
@@ -17,6 +37,11 @@ export class FileProvider {
 
   _getFilePath(collection) {
     return path.join(this.storagePath, `${collection}.json`);
+  }
+
+  async _writeRaw(filePath, data) {
+    await fs.writeFile(filePath, JSON.stringify(data, null, 2));
+    return true;
   }
 
   async read(collection) {
@@ -86,14 +111,16 @@ export class FileProvider {
   }
 
   async write(collection, data) {
-    try {
-      const filePath = this._getFilePath(collection);
-      await fs.writeFile(filePath, JSON.stringify(data, null, 2));
-      return true;
-    } catch (error) {
-      this.logger.error(`❌ Failed to write ${collection} to file`, error);
-      return false;
-    }
+    const filePath = this._getFilePath(collection);
+    return writeQueue.enqueue(filePath, async () => {
+      try {
+        await fs.writeFile(filePath, JSON.stringify(data, null, 2));
+        return true;
+      } catch (error) {
+        this.logger.error(`❌ Failed to write ${collection} to file`, error);
+        return false;
+      }
+    });
   }
 
   async delete(collection) {
@@ -166,22 +193,28 @@ export class FileProvider {
   }
 
   async setRoleMapping(messageId, guildId, channelId, roles) {
-    const mappings = await this.read("role_mappings");
-    const existing = mappings[messageId] || {};
-    mappings[messageId] = {
-      guildId,
-      channelId,
-      roles,
-      createdAt: existing.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    return this.write("role_mappings", mappings);
+    const filePath = this._getFilePath("role_mappings");
+    return writeQueue.enqueue(filePath, async () => {
+      const mappings = await this.read("role_mappings");
+      const existing = mappings[messageId] || {};
+      mappings[messageId] = {
+        guildId,
+        channelId,
+        roles,
+        createdAt: existing.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      return this._writeRaw(filePath, mappings);
+    });
   }
 
   async deleteRoleMapping(messageId) {
-    const mappings = await this.read("role_mappings");
-    delete mappings[messageId];
-    return this.write("role_mappings", mappings);
+    const filePath = this._getFilePath("role_mappings");
+    return writeQueue.enqueue(filePath, async () => {
+      const mappings = await this.read("role_mappings");
+      delete mappings[messageId];
+      return this._writeRaw(filePath, mappings);
+    });
   }
 
   async cleanupExpiredRoles() {
@@ -200,26 +233,32 @@ export class FileProvider {
     expiresAt,
     notifyExpiry = false,
   ) {
-    const tempRoles = await this.read("temporary_roles");
-    if (!tempRoles[guildId]) tempRoles[guildId] = {};
-    if (!tempRoles[guildId][userId]) tempRoles[guildId][userId] = {};
-    tempRoles[guildId][userId][roleId] = { expiresAt, notifyExpiry };
-    return this.write("temporary_roles", tempRoles);
+    const filePath = this._getFilePath("temporary_roles");
+    return writeQueue.enqueue(filePath, async () => {
+      const tempRoles = await this.read("temporary_roles");
+      if (!tempRoles[guildId]) tempRoles[guildId] = {};
+      if (!tempRoles[guildId][userId]) tempRoles[guildId][userId] = {};
+      tempRoles[guildId][userId][roleId] = { expiresAt, notifyExpiry };
+      return this._writeRaw(filePath, tempRoles);
+    });
   }
 
   async removeTemporaryRole(guildId, userId, roleId) {
-    const tempRoles = await this.read("temporary_roles");
-    if (tempRoles[guildId]?.[userId]?.[roleId]) {
-      delete tempRoles[guildId][userId][roleId];
-      if (Object.keys(tempRoles[guildId][userId]).length === 0) {
-        delete tempRoles[guildId][userId];
+    const filePath = this._getFilePath("temporary_roles");
+    return writeQueue.enqueue(filePath, async () => {
+      const tempRoles = await this.read("temporary_roles");
+      if (tempRoles[guildId]?.[userId]?.[roleId]) {
+        delete tempRoles[guildId][userId][roleId];
+        if (Object.keys(tempRoles[guildId][userId]).length === 0) {
+          delete tempRoles[guildId][userId];
+        }
+        if (Object.keys(tempRoles[guildId]).length === 0) {
+          delete tempRoles[guildId];
+        }
+        return this._writeRaw(filePath, tempRoles);
       }
-      if (Object.keys(tempRoles[guildId]).length === 0) {
-        delete tempRoles[guildId];
-      }
-      return this.write("temporary_roles", tempRoles);
-    }
-    return false;
+      return false;
+    });
   }
 
   async getAllPolls() {
@@ -253,27 +292,36 @@ export class FileProvider {
   }
 
   async createPoll(pollData) {
-    const polls = await this.read("polls");
-    polls[pollData.id] = pollData;
-    return this.write("polls", polls);
+    const filePath = this._getFilePath("polls");
+    return writeQueue.enqueue(filePath, async () => {
+      const polls = await this.read("polls");
+      polls[pollData.id] = pollData;
+      return this._writeRaw(filePath, polls);
+    });
   }
 
   async updatePoll(pollId, pollData) {
-    const polls = await this.read("polls");
-    if (polls[pollId]) {
-      polls[pollId] = { ...polls[pollId], ...pollData };
-      return this.write("polls", polls);
-    }
-    return false;
+    const filePath = this._getFilePath("polls");
+    return writeQueue.enqueue(filePath, async () => {
+      const polls = await this.read("polls");
+      if (polls[pollId]) {
+        polls[pollId] = { ...polls[pollId], ...pollData };
+        return this._writeRaw(filePath, polls);
+      }
+      return false;
+    });
   }
 
   async deletePoll(pollId) {
-    const polls = await this.read("polls");
-    if (polls[pollId]) {
-      delete polls[pollId];
-      return this.write("polls", polls);
-    }
-    return false;
+    const filePath = this._getFilePath("polls");
+    return writeQueue.enqueue(filePath, async () => {
+      const polls = await this.read("polls");
+      if (polls[pollId]) {
+        delete polls[pollId];
+        return this._writeRaw(filePath, polls);
+      }
+      return false;
+    });
   }
 
   async cleanupEndedPolls() {
@@ -294,120 +342,147 @@ export class FileProvider {
   }
 
   async addVoiceDisconnectRole(guildId, roleId) {
-    const data = await this.read("voice_control_roles");
-    if (!data[guildId]) {
-      data[guildId] = {
-        guildId,
-        disconnectRoleIds: [],
-        muteRoleIds: [],
-        deafenRoleIds: [],
-        moveRoleMappings: {},
-      };
-    }
-    if (!data[guildId].disconnectRoleIds.includes(roleId)) {
-      data[guildId].disconnectRoleIds.push(roleId);
-    }
-    return this.write("voice_control_roles", data);
+    const filePath = this._getFilePath("voice_control_roles");
+    return writeQueue.enqueue(filePath, async () => {
+      const data = await this.read("voice_control_roles");
+      if (!data[guildId]) {
+        data[guildId] = {
+          guildId,
+          disconnectRoleIds: [],
+          muteRoleIds: [],
+          deafenRoleIds: [],
+          moveRoleMappings: {},
+        };
+      }
+      if (!data[guildId].disconnectRoleIds.includes(roleId)) {
+        data[guildId].disconnectRoleIds.push(roleId);
+      }
+      return this._writeRaw(filePath, data);
+    });
   }
 
   async removeVoiceDisconnectRole(guildId, roleId) {
-    const data = await this.read("voice_control_roles");
-    if (data[guildId]) {
-      data[guildId].disconnectRoleIds = data[guildId].disconnectRoleIds.filter(
-        id => id !== roleId,
-      );
-    }
-    return this.write("voice_control_roles", data);
+    const filePath = this._getFilePath("voice_control_roles");
+    return writeQueue.enqueue(filePath, async () => {
+      const data = await this.read("voice_control_roles");
+      if (data[guildId]) {
+        data[guildId].disconnectRoleIds = data[
+          guildId
+        ].disconnectRoleIds.filter(id => id !== roleId);
+      }
+      return this._writeRaw(filePath, data);
+    });
   }
 
   async addVoiceMuteRole(guildId, roleId) {
-    const data = await this.read("voice_control_roles");
-    if (!data[guildId]) {
-      data[guildId] = {
-        guildId,
-        disconnectRoleIds: [],
-        muteRoleIds: [],
-        deafenRoleIds: [],
-        moveRoleMappings: {},
-      };
-    }
-    if (!data[guildId].muteRoleIds.includes(roleId)) {
-      data[guildId].muteRoleIds.push(roleId);
-    }
-    return this.write("voice_control_roles", data);
+    const filePath = this._getFilePath("voice_control_roles");
+    return writeQueue.enqueue(filePath, async () => {
+      const data = await this.read("voice_control_roles");
+      if (!data[guildId]) {
+        data[guildId] = {
+          guildId,
+          disconnectRoleIds: [],
+          muteRoleIds: [],
+          deafenRoleIds: [],
+          moveRoleMappings: {},
+        };
+      }
+      if (!data[guildId].muteRoleIds.includes(roleId)) {
+        data[guildId].muteRoleIds.push(roleId);
+      }
+      return this._writeRaw(filePath, data);
+    });
   }
 
   async removeVoiceMuteRole(guildId, roleId) {
-    const data = await this.read("voice_control_roles");
-    if (data[guildId]) {
-      data[guildId].muteRoleIds = data[guildId].muteRoleIds.filter(
-        id => id !== roleId,
-      );
-    }
-    return this.write("voice_control_roles", data);
+    const filePath = this._getFilePath("voice_control_roles");
+    return writeQueue.enqueue(filePath, async () => {
+      const data = await this.read("voice_control_roles");
+      if (data[guildId]) {
+        data[guildId].muteRoleIds = data[guildId].muteRoleIds.filter(
+          id => id !== roleId,
+        );
+      }
+      return this._writeRaw(filePath, data);
+    });
   }
 
   async addVoiceDeafenRole(guildId, roleId) {
-    const data = await this.read("voice_control_roles");
-    if (!data[guildId]) {
-      data[guildId] = {
-        guildId,
-        disconnectRoleIds: [],
-        muteRoleIds: [],
-        deafenRoleIds: [],
-        moveRoleMappings: {},
-      };
-    }
-    if (!data[guildId].deafenRoleIds.includes(roleId)) {
-      data[guildId].deafenRoleIds.push(roleId);
-    }
-    return this.write("voice_control_roles", data);
+    const filePath = this._getFilePath("voice_control_roles");
+    return writeQueue.enqueue(filePath, async () => {
+      const data = await this.read("voice_control_roles");
+      if (!data[guildId]) {
+        data[guildId] = {
+          guildId,
+          disconnectRoleIds: [],
+          muteRoleIds: [],
+          deafenRoleIds: [],
+          moveRoleMappings: {},
+        };
+      }
+      if (!data[guildId].deafenRoleIds.includes(roleId)) {
+        data[guildId].deafenRoleIds.push(roleId);
+      }
+      return this._writeRaw(filePath, data);
+    });
   }
 
   async removeVoiceDeafenRole(guildId, roleId) {
-    const data = await this.read("voice_control_roles");
-    if (data[guildId]) {
-      data[guildId].deafenRoleIds = data[guildId].deafenRoleIds.filter(
-        id => id !== roleId,
-      );
-    }
-    return this.write("voice_control_roles", data);
+    const filePath = this._getFilePath("voice_control_roles");
+    return writeQueue.enqueue(filePath, async () => {
+      const data = await this.read("voice_control_roles");
+      if (data[guildId]) {
+        data[guildId].deafenRoleIds = data[guildId].deafenRoleIds.filter(
+          id => id !== roleId,
+        );
+      }
+      return this._writeRaw(filePath, data);
+    });
   }
 
   async addVoiceMoveRole(guildId, roleId, channelId) {
-    const data = await this.read("voice_control_roles");
-    if (!data[guildId]) {
-      data[guildId] = {
-        guildId,
-        disconnectRoleIds: [],
-        muteRoleIds: [],
-        deafenRoleIds: [],
-        moveRoleMappings: {},
-      };
-    }
-    if (!data[guildId].moveRoleMappings) {
-      data[guildId].moveRoleMappings = {};
-    }
-    data[guildId].moveRoleMappings[roleId] = channelId;
-    return this.write("voice_control_roles", data);
+    const filePath = this._getFilePath("voice_control_roles");
+    return writeQueue.enqueue(filePath, async () => {
+      const data = await this.read("voice_control_roles");
+      if (!data[guildId]) {
+        data[guildId] = {
+          guildId,
+          disconnectRoleIds: [],
+          muteRoleIds: [],
+          deafenRoleIds: [],
+          moveRoleMappings: {},
+        };
+      }
+      if (!data[guildId].moveRoleMappings) {
+        data[guildId].moveRoleMappings = {};
+      }
+      data[guildId].moveRoleMappings[roleId] = channelId;
+      return this._writeRaw(filePath, data);
+    });
   }
 
   async removeVoiceMoveRole(guildId, roleId) {
-    const data = await this.read("voice_control_roles");
-    if (data[guildId]?.moveRoleMappings) {
-      delete data[guildId].moveRoleMappings[roleId];
-    }
-    return this.write("voice_control_roles", data);
+    const filePath = this._getFilePath("voice_control_roles");
+    return writeQueue.enqueue(filePath, async () => {
+      const data = await this.read("voice_control_roles");
+      if (data[guildId]?.moveRoleMappings) {
+        delete data[guildId].moveRoleMappings[roleId];
+      }
+      return this._writeRaw(filePath, data);
+    });
   }
 
   async updateGuildAnalytics(guildId, date, type, amount) {
-    const data = await this.read("guild_analytics");
-    if (!data[guildId]) data[guildId] = {};
-    if (!data[guildId][date]) {
-      data[guildId][date] = { joins: 0, leaves: 0, members: 0 };
-    }
-    data[guildId][date][type] += amount;
-    return await this.write("guild_analytics", data);
+    const filePath = this._getFilePath("guild_analytics");
+    return writeQueue.enqueue(filePath, async () => {
+      const data = await this.read("guild_analytics");
+      if (!data[guildId]) data[guildId] = {};
+      if (!data[guildId][date]) {
+        data[guildId][date] = { joins: 0, leaves: 0, members: 0 };
+      }
+      data[guildId][date][type] += amount;
+      return this._writeRaw(filePath, data);
+    });
   }
 
   async getGuildAnalyticsHistory(guildId, startDate, endDate) {
@@ -432,20 +507,23 @@ export class FileProvider {
   }
 
   async cleanupOldAnalytics(cutoffDate) {
-    const data = await this.read("guild_analytics");
-    let modified = false;
-    for (const guildId in data) {
-      for (const dateKey in data[guildId]) {
-        if (dateKey < cutoffDate) {
-          delete data[guildId][dateKey];
-          modified = true;
+    const filePath = this._getFilePath("guild_analytics");
+    return writeQueue.enqueue(filePath, async () => {
+      const data = await this.read("guild_analytics");
+      let modified = false;
+      for (const guildId in data) {
+        for (const dateKey in data[guildId]) {
+          if (dateKey < cutoffDate) {
+            delete data[guildId][dateKey];
+            modified = true;
+          }
         }
       }
-    }
-    if (modified) {
-      await this.write("guild_analytics", data);
-    }
-    return 0;
+      if (modified) {
+        await this._writeRaw(filePath, data);
+      }
+      return 0;
+    });
   }
 
   async getUserExperience(guildId, userId) {
@@ -459,9 +537,12 @@ export class FileProvider {
   }
 
   async setUserExperience(guildId, userId, userData) {
-    const data = await this.read("user_experience");
-    data[`${guildId}_${userId}`] = userData;
-    return await this.write("user_experience", data);
+    const filePath = this._getFilePath("user_experience");
+    return writeQueue.enqueue(filePath, async () => {
+      const data = await this.read("user_experience");
+      data[`${guildId}_${userId}`] = userData;
+      return this._writeRaw(filePath, data);
+    });
   }
 
   async getUserExperienceLeaderboard(guildId, limit = 10) {
@@ -496,40 +577,49 @@ export class FileProvider {
   }
 
   async setCoreCredits(userId, userData) {
-    const data = await this.read("core_credit");
-    data[userId] = userData;
-    return await this.write("core_credit", data);
+    const filePath = this._getFilePath("core_credit");
+    return writeQueue.enqueue(filePath, async () => {
+      const data = await this.read("core_credit");
+      data[userId] = userData;
+      return this._writeRaw(filePath, data);
+    });
   }
 
   async updateCoreCredits(userId, creditsChange) {
-    const data = await this.read("core_credit");
-    if (!data[userId]) {
-      data[userId] = { credits: 0, lastUpdated: new Date().toISOString() };
-    }
-    data[userId].credits = (data[userId].credits || 0) + creditsChange;
-    data[userId].lastUpdated = new Date().toISOString();
-    return await this.write("core_credit", data);
+    const filePath = this._getFilePath("core_credit");
+    return writeQueue.enqueue(filePath, async () => {
+      const data = await this.read("core_credit");
+      if (!data[userId]) {
+        data[userId] = { credits: 0, lastUpdated: new Date().toISOString() };
+      }
+      data[userId].credits = (data[userId].credits || 0) + creditsChange;
+      data[userId].lastUpdated = new Date().toISOString();
+      return this._writeRaw(filePath, data);
+    });
   }
 
   async logModerationAction(actionData) {
-    const moderationLogs = (await this.read("moderation_logs")) || {};
-    if (!moderationLogs[actionData.guildId])
-      moderationLogs[actionData.guildId] = {};
-    if (!moderationLogs[actionData.guildId][actionData.userId])
-      moderationLogs[actionData.guildId][actionData.userId] = [];
+    const filePath = this._getFilePath("moderation_logs");
+    return writeQueue.enqueue(filePath, async () => {
+      const moderationLogs = (await this.read("moderation_logs")) || {};
+      if (!moderationLogs[actionData.guildId])
+        moderationLogs[actionData.guildId] = {};
+      if (!moderationLogs[actionData.guildId][actionData.userId])
+        moderationLogs[actionData.guildId][actionData.userId] = [];
 
-    const logEntry = {
-      ...actionData,
-      timestamp: actionData.timestamp || new Date().toISOString(),
-    };
-    moderationLogs[actionData.guildId][actionData.userId].push(logEntry);
+      const logEntry = {
+        ...actionData,
+        timestamp: actionData.timestamp || new Date().toISOString(),
+      };
+      moderationLogs[actionData.guildId][actionData.userId].push(logEntry);
 
-    if (moderationLogs[actionData.guildId][actionData.userId].length > 100) {
-      moderationLogs[actionData.guildId][actionData.userId] =
-        moderationLogs[actionData.guildId][actionData.userId].slice(-100);
-    }
+      if (moderationLogs[actionData.guildId][actionData.userId].length > 100) {
+        moderationLogs[actionData.guildId][actionData.userId] =
+          moderationLogs[actionData.guildId][actionData.userId].slice(-100);
+      }
 
-    return await this.write("moderation_logs", moderationLogs);
+      return this._writeRaw(filePath, moderationLogs);
+    });
   }
 
   async getModerationHistory(guildId, userId) {
@@ -558,18 +648,21 @@ export class FileProvider {
   }
 
   async removeWarning(guildId, userId, caseId) {
-    const moderationLogs = (await this.read("moderation_logs")) || {};
-    if (!moderationLogs[guildId]?.[userId]) return false;
+    const filePath = this._getFilePath("moderation_logs");
+    return writeQueue.enqueue(filePath, async () => {
+      const moderationLogs = (await this.read("moderation_logs")) || {};
+      if (!moderationLogs[guildId]?.[userId]) return false;
 
-    const initialLength = moderationLogs[guildId][userId].length;
-    moderationLogs[guildId][userId] = moderationLogs[guildId][userId].filter(
-      log => !(log.action === "warn" && log.caseId === caseId),
-    );
+      const initialLength = moderationLogs[guildId][userId].length;
+      moderationLogs[guildId][userId] = moderationLogs[guildId][userId].filter(
+        log => !(log.action === "warn" && log.caseId === caseId),
+      );
 
-    const removed = moderationLogs[guildId][userId].length < initialLength;
-    if (removed) {
-      await this.write("moderation_logs", moderationLogs);
-    }
-    return removed;
+      const removed = moderationLogs[guildId][userId].length < initialLength;
+      if (removed) {
+        await this._writeRaw(filePath, moderationLogs);
+      }
+      return removed;
+    });
   }
 }
