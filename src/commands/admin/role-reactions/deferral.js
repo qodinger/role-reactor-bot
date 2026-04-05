@@ -6,7 +6,7 @@ import { getLogger } from "../../../utils/logger.js";
  * @param {Object} interaction - Discord interaction object
  * @param {Object} options - Defer options
  * @param {number} timeoutMs - Timeout in milliseconds (default: 2000)
- * @returns {Object} Result with success boolean and error message
+ * @returns {Promise<Object>} Result with success boolean and error message
  */
 export async function safeDeferReply(
   interaction,
@@ -64,7 +64,7 @@ export async function safeDeferReply(
 /**
  * Safely defers an update for button interactions
  * @param {Object} interaction - Discord interaction object
- * @returns {Object} Result with success boolean and error message
+ * @returns {Promise<Object>} Result with success boolean and error message
  */
 export async function safeDeferUpdate(interaction) {
   const logger = getLogger();
@@ -91,7 +91,7 @@ export async function safeDeferUpdate(interaction) {
  * Handles deferral based on interaction type
  * @param {Object} interaction - Discord interaction object
  * @param {boolean} isButtonUpdate - Whether this is a button update
- * @returns {Object} Result with success boolean and error message
+ * @returns {Promise<Object>} Result with success boolean and error message
  */
 export async function handleDeferral(interaction, isButtonUpdate = false) {
   const logger = getLogger();

@@ -9,7 +9,7 @@ import { createSetupRolesEmbed } from "./embeds.js";
  * Processes role input and validates roles
  * @param {Object} interaction - Discord interaction object
  * @param {string} rolesString - Roles string from command options
- * @returns {Object} Processing result with success boolean and data/error
+ * @returns {Promise<Object>} Processing result with success boolean and data/error
  */
 export async function processRoleInput(interaction, rolesString) {
   const logger = getLogger();
@@ -134,7 +134,7 @@ export async function createRoleReactionMessage(
  * Adds reactions to a message with rate limiting
  * @param {Object} message - Discord message object
  * @param {Array} validRoles - Array of valid role objects
- * @returns {Object} Result with success boolean and failed reactions
+ * @returns {Promise<Object>} Result with success boolean and failed reactions
  */
 export async function addReactionsToMessage(message, validRoles) {
   const logger = getLogger();

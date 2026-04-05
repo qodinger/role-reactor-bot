@@ -322,7 +322,7 @@ class LevelUpNotifier {
   /**
    * Get level-up message configuration for a guild
    * @param {string} guildId - Discord guild ID
-   * @returns {object} Level-up configuration
+   * @returns {Promise<object>} Level-up configuration
    */
   async getLevelUpConfig(guildId) {
     await this.initialize();

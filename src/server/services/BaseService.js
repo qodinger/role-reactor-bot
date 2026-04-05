@@ -208,7 +208,7 @@ export class BaseService {
   /**
    * Get service health status
    * Override in subclasses to add custom health checks
-   * @returns {Object} Health status
+   * @returns {Promise<Object>} Health status
    */
   async getHealthStatus() {
     return {
