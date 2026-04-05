@@ -25,9 +25,7 @@ FROM node:22-alpine AS production
 # Install runtime dependencies
 RUN apk add --no-cache --update \
     ca-certificates \
-    bash \
-    && apk del --purge \
-    && apk cache clean
+    bash
 
 # Create non-root user
 RUN addgroup -g 1001 -S botuser \
