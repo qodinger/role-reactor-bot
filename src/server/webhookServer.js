@@ -360,22 +360,8 @@ export async function startWebhookServer() {
       }
     });
 
-    // Handle graceful shutdown
-    process.on("SIGTERM", () => {
-      logger.info("🔄 Received SIGTERM, shutting down gracefully...");
-      server.close(() => {
-        logger.info("✅ Server closed successfully");
-        process.exit(0);
-      });
-    });
-
-    process.on("SIGINT", () => {
-      logger.info("🔄 Received SIGINT, shutting down gracefully...");
-      server.close(() => {
-        logger.info("✅ Server closed successfully");
-        process.exit(0);
-      });
-    });
+    // Server only closes itself; shutdown handlers are managed by index.js
+    // to ensure BotContext.shutdown() runs (Discord client, schedulers, etc.)
 
     return server;
   } catch (error) {

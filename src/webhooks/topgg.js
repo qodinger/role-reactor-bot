@@ -6,6 +6,7 @@
 
 import { getLogger } from "../utils/logger.js";
 import { getDatabaseManager } from "../utils/storage/databaseManager.js";
+import { getBotContext } from "../utils/core/BotContext.js";
 import crypto from "crypto";
 
 const logger = getLogger();
@@ -317,7 +318,7 @@ async function processVote(vote, client) {
 
   // Send thank you DM (if possible)
   try {
-    const discordClient = client || global.discordClient;
+    const discordClient = client || getBotContext().client;
     if (discordClient && userId) {
       const discordUser = await discordClient.users.fetch(userId);
 
