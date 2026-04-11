@@ -15,9 +15,8 @@ export async function apiListUsers(req, res) {
   logRequest(logger, "List users", req);
 
   try {
-    const { getStorageManager } = await import(
-      "../../utils/storage/storageManager.js"
-    );
+    const { getStorageManager } =
+      await import("../../utils/storage/storageManager.js");
     const storage = await getStorageManager();
 
     const page = parseInt(req.query.page) || 1;
@@ -94,9 +93,8 @@ export async function apiUserInfo(req, res) {
   logRequest(logger, "User info", req);
 
   try {
-    const { getStorageManager } = await import(
-      "../../utils/storage/storageManager.js"
-    );
+    const { getStorageManager } =
+      await import("../../utils/storage/storageManager.js");
     const storage = await getStorageManager();
 
     const { userId } = req.params;
@@ -114,7 +112,7 @@ export async function apiUserInfo(req, res) {
     let credits = 0;
     try {
       const creditData = await storage.getCoreCredits(userId);
-      credits = creditData?.credits || 0;
+      credits = Math.round((creditData?.credits || 0) * 100) / 100;
     } catch (err) {
       logger.warn(`Failed to fetch credits for user ${userId}`, err);
     }
@@ -150,9 +148,8 @@ export async function apiSetUserRole(req, res) {
   logRequest(logger, "Set user role", req);
 
   try {
-    const { getStorageManager } = await import(
-      "../../utils/storage/storageManager.js"
-    );
+    const { getStorageManager } =
+      await import("../../utils/storage/storageManager.js");
     const storage = await getStorageManager();
 
     const { userId } = req.params;
@@ -200,9 +197,8 @@ export async function apiSyncUser(req, res) {
   logRequest(logger, "Sync user", req);
 
   try {
-    const { getStorageManager } = await import(
-      "../../utils/storage/storageManager.js"
-    );
+    const { getStorageManager } =
+      await import("../../utils/storage/storageManager.js");
     const storage = await getStorageManager();
 
     const {
@@ -280,14 +276,13 @@ export async function apiManageUserCores(req, res) {
   }
 
   try {
-    const { getDatabaseManager } = await import(
-      "../../utils/storage/databaseManager.js"
-    );
+    const { getDatabaseManager } =
+      await import("../../utils/storage/databaseManager.js");
     const dbManager = await getDatabaseManager();
 
     // Get current balance
     const credits = await dbManager.coreCredits.getByUserId(userId);
-    const currentBalance = credits?.credits || 0;
+    const currentBalance = Math.round((credits?.credits || 0) * 100) / 100;
     let newBalance = currentBalance;
 
     switch (action) {

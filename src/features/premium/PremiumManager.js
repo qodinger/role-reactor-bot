@@ -92,7 +92,7 @@ export class PremiumManager {
 
       // 1. Check user balance
       const creditData = await storage.getCoreCredits(userId);
-      const balance = creditData?.credits || 0;
+      const balance = Math.round((creditData?.credits || 0) * 100) / 100;
       if (balance < feature.cost) {
         return {
           success: false,
@@ -455,7 +455,7 @@ export class PremiumManager {
     counts,
   ) {
     const credits = await db.coreCredits.getByUserId(sub.payerUserId);
-    const balance = credits?.credits || 0;
+    const balance = Math.round((credits?.credits || 0) * 100) / 100;
 
     if (balance >= feature.cost) {
       // Deduct and renew
@@ -525,7 +525,7 @@ export class PremiumManager {
       if (!db) return false;
 
       const creditData = await storage.getCoreCredits(userId);
-      const balance = creditData?.credits || 0;
+      const balance = Math.round((creditData?.credits || 0) * 100) / 100;
 
       if (balance >= feature.cost) return false;
 
@@ -537,7 +537,11 @@ export class PremiumManager {
         fields: [
           { name: "Feature", value: feature.name, inline: true },
           { name: "Required", value: `${feature.cost} Cores`, inline: true },
-          { name: "Your Balance", value: `${balance} Cores`, inline: true },
+          {
+            name: "Your Balance",
+            value: `${balance.toFixed(2)} Cores`,
+            inline: true,
+          },
           {
             name: "Grace Period",
             value: `You have a **${GRACE_PERIOD_DAYS}-day grace period** after expiration to top up your Cores before the feature is disabled.`,
@@ -605,7 +609,11 @@ export class PremiumManager {
       fields: [
         { name: "Feature", value: feature.name, inline: true },
         { name: "Required", value: `${feature.cost} Cores`, inline: true },
-        { name: "Your Balance", value: `${balance} Cores`, inline: true },
+        {
+          name: "Your Balance",
+          value: `${Math.round(balance * 100) / 100} Cores`,
+          inline: true,
+        },
         {
           name: "⏰ Time Remaining",
           value: `**${daysLeft} day${daysLeft !== 1 ? "s" : ""}** before the feature is disabled.`,
@@ -725,9 +733,8 @@ export class PremiumManager {
 
       // ── 2. Disable extra ticket panels ───────────────────────────
       if (storage.dbManager?.ticketPanels) {
-        const { FREE_TIER: TICKET_FREE } = await import(
-          "../ticketing/config.js"
-        );
+        const { FREE_TIER: TICKET_FREE } =
+          await import("../ticketing/config.js");
         const panels = await storage.getTicketPanelsByGuild(guildId);
         const enabledPanels = panels.filter(p => p.settings?.enabled !== false);
 

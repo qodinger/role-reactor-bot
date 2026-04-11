@@ -81,16 +81,15 @@ export async function apiPricing(req, res) {
     let userEligibility = null;
     if (requestedUserId) {
       try {
-        const { getStorageManager } = await import(
-          "../../utils/storage/storageManager.js"
-        );
+        const { getStorageManager } =
+          await import("../../utils/storage/storageManager.js");
         const storage = await getStorageManager();
         const userData = await storage.getCoreCredits(requestedUserId);
         const hasPayments = userData?.cryptoPayments?.length > 0;
         userEligibility = {
           requestedUserId,
           isFirstPurchase: !hasPayments,
-          currentCredits: userData?.credits || 0,
+          currentCredits: Math.round((userData?.credits || 0) * 100) / 100,
           eligibleForFirstPurchaseBonus: !hasPayments,
         };
       } catch (error) {
@@ -166,9 +165,8 @@ export async function apiUserBalance(req, res) {
   }
 
   try {
-    const { getStorageManager } = await import(
-      "../../utils/storage/storageManager.js"
-    );
+    const { getStorageManager } =
+      await import("../../utils/storage/storageManager.js");
     const storage = await getStorageManager();
     const userData = await storage.getCoreCredits(requestedUserId);
 
@@ -239,15 +237,13 @@ export async function apiUserPayments(req, res) {
   }
 
   try {
-    const { getDatabaseManager } = await import(
-      "../../utils/storage/databaseManager.js"
-    );
+    const { getDatabaseManager } =
+      await import("../../utils/storage/databaseManager.js");
     const dbManager = await getDatabaseManager();
 
     if (!dbManager?.payments) {
-      const { getStorageManager } = await import(
-        "../../utils/storage/storageManager.js"
-      );
+      const { getStorageManager } =
+        await import("../../utils/storage/storageManager.js");
       const storage = await getStorageManager();
       const coreCredits = (await storage.get("core_credit")) || {};
       const userData = coreCredits[requestedUserId];
