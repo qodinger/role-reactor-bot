@@ -114,8 +114,9 @@ export async function apiGetGuildSettings(req, res) {
       .json(createErrorResponse("Guild ID is required", 400).response);
 
   try {
-    const { getDatabaseManager } =
-      await import("../../utils/storage/databaseManager.js");
+    const { getDatabaseManager } = await import(
+      "../../utils/storage/databaseManager.js"
+    );
     const dbManager = await getDatabaseManager();
     const commandHandler = getCommandHandler();
 
@@ -164,10 +165,12 @@ export async function apiGetGuildSettings(req, res) {
       })
       .filter(Boolean);
 
-    const { getPremiumManager } =
-      await import("../../features/premium/PremiumManager.js");
-    const { PremiumFeatures } =
-      await import("../../features/premium/config.js");
+    const { getPremiumManager } = await import(
+      "../../features/premium/PremiumManager.js"
+    );
+    const { PremiumFeatures } = await import(
+      "../../features/premium/config.js"
+    );
     const premiumManager = getPremiumManager();
 
     const isProActive = await premiumManager.isFeatureActive(
@@ -356,8 +359,9 @@ export async function apiUpdateGuildSettings(req, res) {
   logRequest(`Update guild settings: ${guildId}`, req);
 
   try {
-    const { getDatabaseManager } =
-      await import("../../utils/storage/databaseManager.js");
+    const { getDatabaseManager } = await import(
+      "../../utils/storage/databaseManager.js"
+    );
     const dbManager = await getDatabaseManager();
     const existingSettings = await dbManager.guildSettings.getByGuild(guildId);
 
@@ -391,10 +395,12 @@ export async function apiUpdateGuildSettings(req, res) {
     };
 
     if (updates.disabledCommands) {
-      const { getPremiumManager } =
-        await import("../../features/premium/PremiumManager.js");
-      const { PremiumFeatures } =
-        await import("../../features/premium/config.js");
+      const { getPremiumManager } = await import(
+        "../../features/premium/PremiumManager.js"
+      );
+      const { PremiumFeatures } = await import(
+        "../../features/premium/config.js"
+      );
       const premiumManager = getPremiumManager();
       const isActive = await premiumManager.isFeatureActive(
         guildId,
@@ -462,8 +468,9 @@ export async function apiTestWelcome(req, res) {
       .json(createErrorResponse("Guild not found", 404).response);
 
   try {
-    const { getDatabaseManager } =
-      await import("../../utils/storage/databaseManager.js");
+    const { getDatabaseManager } = await import(
+      "../../utils/storage/databaseManager.js"
+    );
     const dbManager = await getDatabaseManager();
     const settings = await dbManager.welcomeSettings.getByGuild(guildId);
 
@@ -475,8 +482,9 @@ export async function apiTestWelcome(req, res) {
         );
     }
 
-    const { sendTestWelcomeMessage } =
-      await import("../../utils/discord/welcomeUtils.js");
+    const { sendTestWelcomeMessage } = await import(
+      "../../utils/discord/welcomeUtils.js"
+    );
 
     const result = await sendTestWelcomeMessage(guildId, settings, guild);
 
