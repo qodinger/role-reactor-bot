@@ -5,6 +5,7 @@ import {
   createErrorResponse,
 } from "../utils/responseHelpers.js";
 import { validateQuery } from "../middleware/validation.js";
+import { getSessionSecurityManager } from "../../utils/security/sessionSecurity.js";
 
 const logger = getLogger();
 const router = express.Router();
@@ -16,6 +17,9 @@ const DISCORD_REDIRECT_URI =
   process.env.DISCORD_REDIRECT_URI ||
   `${process.env.BOT_URL || "http://localhost:3030"}/auth/discord/callback`;
 const DISCORD_API_BASE = "https://discord.com/api/v10";
+
+// Initialize session security manager
+const sessionSecurity = getSessionSecurityManager();
 
 /**
  * Initiate Discord OAuth2 flow
@@ -148,15 +152,8 @@ router.get(
 
       const userData = await userResponse.json();
 
-      // Store user session
-      req.session.discordUser = {
-        id: userData.id,
-        username: userData.username,
-        discriminator: userData.discriminator,
-        avatar: userData.avatar,
-        email: userData.email,
-        globalName: userData.global_name,
-      };
+      let userRole = "user";
+      let roleVersion = 0;
 
       // Persist user to database for long-term storage and dashboard features
       try {
@@ -170,7 +167,7 @@ router.get(
             expires_in: expiresIn,
           } = tokenData;
 
-          await db.users.upsertFromDiscordOAuth({
+          const user = await db.users.upsertFromDiscordOAuth({
             discordId: userData.id,
             username: userData.username,
             discriminator: userData.discriminator,
@@ -183,6 +180,12 @@ router.get(
               ? new Date(Date.now() + expiresIn * 1000).toISOString()
               : null,
           });
+
+          if (user?.role) {
+            userRole = user.role;
+            roleVersion = user.roleVersion || Date.now();
+          }
+
           logger.info(`User persisted to database: ${userData.username}`);
         }
       } catch (dbError) {
@@ -190,7 +193,32 @@ router.get(
           `Failed to persist user ${userData.id} to database:`,
           dbError.message,
         );
-        // We don't fail the login if DB persistence fails, as the session is still valid
+      }
+
+      // Store user session with role info
+      req.session.discordUser = {
+        id: userData.id,
+        username: userData.username,
+        discriminator: userData.discriminator,
+        avatar: userData.avatar,
+        email: userData.email,
+        globalName: userData.global_name,
+        role: userRole,
+        roleVersion,
+      };
+
+      // Register session with security manager for timeout and role change tracking
+      if (req.session.id) {
+        sessionSecurity.registerSession(
+          req.session.id,
+          userData.id,
+          userData.id,
+        );
+        sessionSecurity.updateSessionRole(
+          req.session.id,
+          userRole,
+          roleVersion,
+        );
       }
 
       // Clear OAuth state
@@ -223,9 +251,28 @@ router.get("/me", async (req, res) => {
         .json(createErrorResponse("Not authenticated", 401).response);
     }
 
+    // Check session validity (timeout)
+    if (req.session.id) {
+      const sessionValidity = sessionSecurity.checkSessionValidity(
+        req.session.id,
+      );
+      if (!sessionValidity.valid) {
+        if (sessionValidity.reason === "SESSION_EXPIRED") {
+          req.session.destroy();
+          return res.status(401).json({
+            success: false,
+            error: "Session expired due to inactivity",
+            code: "SESSION_EXPIRED",
+          });
+        }
+      }
+      sessionSecurity.updateSessionActivity(req.session.id);
+    }
+
     // Fetch latest credits and role from DB to ensure session is up to date
     let credits = 0;
     let role = "user";
+    let roleVersion = Date.now();
     try {
       const { getStorageManager } =
         await import("../../utils/storage/storageManager.js");
@@ -243,6 +290,34 @@ router.get("/me", async (req, res) => {
       );
       if (user && user.role) {
         role = user.role;
+        roleVersion = user.roleVersion || Date.now();
+      }
+
+      // Check if role has changed since login
+      const storedRoleVersion = req.session.discordUser.roleVersion || 0;
+      if (roleVersion > storedRoleVersion && req.session.id) {
+        // Role changed - force logout
+        sessionSecurity.invalidateSession(req.session.id);
+        req.session.destroy();
+
+        logger.info(
+          `User ${req.session.discordUser.id} force logged out due to role change`,
+        );
+
+        return res.status(401).json({
+          success: false,
+          error: "Session invalidated due to role change",
+          code: "ROLE_CHANGED",
+        });
+      }
+
+      // Update session with fresh role info
+      req.session.discordUser.role = role;
+      req.session.discordUser.roleVersion = roleVersion;
+
+      // Update session security manager
+      if (req.session.id) {
+        sessionSecurity.updateSessionRole(req.session.id, role, roleVersion);
       }
     } catch (dbError) {
       logger.warn("Failed to fetch fresh user data for /auth/me", dbError);
@@ -253,7 +328,7 @@ router.get("/me", async (req, res) => {
         user: {
           ...req.session.discordUser,
           credits,
-          role, // Ensure role is also fresh
+          role,
         },
       }),
     );
@@ -273,6 +348,11 @@ router.get("/me", async (req, res) => {
  */
 router.post("/logout", (req, res) => {
   try {
+    // Invalidate session in security manager first
+    if (req.session?.id) {
+      sessionSecurity.invalidateSession(req.session.id);
+    }
+
     req.session.destroy(err => {
       if (err) {
         logger.error("Error destroying session:", err);

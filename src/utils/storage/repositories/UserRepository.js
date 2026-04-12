@@ -325,7 +325,13 @@ export class UserRepository extends BaseRepository {
 
       const result = await this.collection.updateOne(
         { discordId },
-        { $set: { role, updatedAt: new Date().toISOString() } },
+        {
+          $set: {
+            role,
+            roleVersion: Date.now(),
+            updatedAt: new Date().toISOString(),
+          },
+        },
       );
 
       this.cache.delete(`user_discord_${discordId}`);

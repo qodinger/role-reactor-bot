@@ -86,27 +86,48 @@ async function initializeMiddleware() {
   app.use(jsonMiddleware);
   app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-  // Session middleware (for Discord OAuth)
-  // For production, use a session store like connect-mongo or redis
+  // Session middleware (for Discord OAuth) with MongoDB store
+  const SESSION_TIMEOUT_MS =
+    parseInt(process.env.SESSION_TIMEOUT_MS) || 30 * 60 * 1000;
   if (process.env.SESSION_SECRET) {
     try {
       const session = (await import("express-session")).default;
-      app.use(
-        session({
-          secret: process.env.SESSION_SECRET,
-          resave: false,
-          saveUninitialized: false,
-          cookie: {
-            secure: process.env.NODE_ENV === "production", // HTTPS only in production
-            httpOnly: true,
-            maxAge: 24 * 60 * 60 * 1000, // 24 hours
-          },
-        }),
-      );
-      logger.info("✅ Session middleware enabled for Discord OAuth");
+      const MongoStore = (await import("connect-mongo")).default;
+
+      const sessionConfig = {
+        secret: process.env.SESSION_SECRET,
+        resave: false,
+        saveUninitialized: false,
+        cookie: {
+          secure: process.env.NODE_ENV === "production",
+          httpOnly: true,
+          maxAge: SESSION_TIMEOUT_MS,
+          sameSite: "lax",
+        },
+      };
+
+      // Use MongoDB session store for persistence across restarts
+      if (process.env.MONGODB_URI) {
+        sessionConfig.store = new MongoStore({
+          mongoUrl: process.env.MONGODB_URI,
+          collectionName: "sessions",
+          ttl: SESSION_TIMEOUT_MS / 1000,
+          autoRemove: "native",
+          touchAfter: 24 * 3600,
+        });
+        logger.info(
+          `✅ Session middleware enabled with MongoDB store (timeout: ${SESSION_TIMEOUT_MS / 1000 / 60} min)`,
+        );
+      } else {
+        logger.info(
+          `✅ Session middleware enabled with in-memory store (timeout: ${SESSION_TIMEOUT_MS / 1000 / 60} min)`,
+        );
+      }
+
+      app.use(session(sessionConfig));
     } catch (_error) {
       logger.warn(
-        "⚠️ express-session not installed. Install with: npm install express-session",
+        `⚠️ Session setup error: ${_error.message}. Install with: npm install express-session connect-mongo`,
       );
     }
   }
