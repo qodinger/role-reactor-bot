@@ -33,26 +33,21 @@ async function calculateBotStats(useCache = true) {
   const guildCount = client.guilds.cache.size;
 
   // Calculate total user count across all guilds
-  // Note: This is an expensive operation for large bots
-  // Using a Set to count unique users
-  const uniqueUsers = new Set();
-
-  // Use for...of loop for better performance with async if needed,
-  // though we are synchronous here.
-  // We can use setImmediate to yield if needed, but for now just basic optimization.
+  // Use approximateMemberCount for estimation (Discord API provides this)
+  // This is much faster than iterating all cached members
+  let totalUsers = 0;
   for (const guild of client.guilds.cache.values()) {
-    // We can only count cached members. For accurate counts, we'd need to fetch,
-    // but that's too heavy. Using cache is standard for these stats.
-    for (const member of guild.members.cache.values()) {
-      if (!member.user.bot) {
-        uniqueUsers.add(member.user.id);
-      }
+    if (guild.approximateMemberCount) {
+      totalUsers += guild.approximateMemberCount;
+    } else {
+      // Fallback: count cached non-bot members
+      totalUsers += guild.members.cache.filter(m => !m.user.bot).size;
     }
   }
 
   const stats = {
     guilds: guildCount,
-    users: uniqueUsers.size,
+    users: totalUsers,
     bot: {
       id: client.user?.id || null,
       username: client.user?.username || null,
@@ -133,9 +128,8 @@ export async function apiCommandUsage(req, res) {
     }
 
     // Fetch directly from MongoDB for reliability
-    const { getDatabaseManager } = await import(
-      "../../utils/storage/databaseManager.js"
-    );
+    const { getDatabaseManager } =
+      await import("../../utils/storage/databaseManager.js");
     const dbManager = await getDatabaseManager();
 
     let commandArray = [];
