@@ -35,17 +35,96 @@ export async function apiListUsers(req, res) {
       ];
     }
 
-    const users = await storage.dbManager.users.listUsers(filter, limit, skip);
-    const total = await storage.dbManager.users.count(filter);
+    let users = await storage.dbManager.users.listUsers(filter, limit, skip);
+    let total = await storage.dbManager.users.count(filter);
+
+    // If search by Discord ID but not found in database, try fetching from Discord API
+    if (search && total === 0 && /^\d{17,19}$/.test(search)) {
+      const client = getDiscordClient();
+      if (client) {
+        try {
+          const discordUser = await client.users.fetch(search);
+          if (discordUser) {
+            users = [
+              {
+                discordId: discordUser.id,
+                username: discordUser.username,
+                globalName: discordUser.globalName,
+                avatar: discordUser.avatar,
+                role: "user",
+                fetchedFromDiscord: true,
+              },
+            ];
+            total = 1;
+          }
+        } catch {
+          // User not found in Discord
+        }
+      }
+    }
+
+    // Get payer users from guild_settings who aren't in users collection
+    // Only when NOT searching (showing all users)
+    const userIds = users.map(u => u.discordId);
+    if (storage.dbManager.guildSettings && !search) {
+      try {
+        const payerUsers = await storage.dbManager.guildSettings.collection
+          .find({
+            $and: [
+              { "premiumFeatures.pro_engine.payerUserId": { $exists: true } },
+              { "premiumFeatures.pro_engine.payerUserId": { $nin: userIds } },
+            ],
+          })
+          .project({ "premiumFeatures.pro_engine.payerUserId": 1 })
+          .toArray();
+
+        const payerUserIds = [
+          ...new Set(
+            payerUsers.map(g => g.premiumFeatures.pro_engine.payerUserId),
+          ),
+        ];
+
+        // Fetch Discord user info for payer users not in collection
+        const client = getDiscordClient();
+        for (const payerId of payerUserIds) {
+          if (client) {
+            try {
+              const discordUser = await client.users.fetch(payerId);
+              users.push({
+                discordId: payerId,
+                username: discordUser?.username || `User_${payerId}`,
+                globalName: discordUser?.globalName || null,
+                avatar: discordUser?.avatar || null,
+                role: "user",
+                isPayer: true,
+              });
+              total++;
+            } catch {
+              users.push({
+                discordId: payerId,
+                username: `User_${payerId}`,
+                globalName: null,
+                avatar: null,
+                role: "user",
+                isPayer: true,
+              });
+              total++;
+            }
+          }
+        }
+      } catch (err) {
+        logger.warn("Failed to fetch payer users from guild_settings", err);
+      }
+    }
 
     // Enrich with Core Credits
-    const userIds = users.map(u => u.discordId);
+    const allUserIds = users.map(u => u.discordId);
     const creditsMap = {};
 
-    if (userIds.length > 0 && storage.dbManager.coreCredits) {
+    if (allUserIds.length > 0 && storage.dbManager.coreCredits) {
       try {
         const credits = await storage.dbManager.coreCredits.collection
-          .find({ userId: { $in: userIds } })
+          .find({ userId: { $in: allUserIds } })
           .toArray();
 
         credits.forEach(c => {
@@ -67,6 +146,7 @@ export async function apiListUsers(req, res) {
           credits: creditsMap[u.discordId] || 0,
           lastLogin: u.lastLogin,
           createdAt: u.createdAt,
+          isPayer: u.isPayer || false,
         })),
         pagination: {
           page,
@@ -278,7 +358,40 @@ export async function apiManageUserCores(req, res) {
   try {
     const { getDatabaseManager } =
       await import("../../utils/storage/databaseManager.js");
+    const { getStorageManager } =
+      await import("../../utils/storage/storageManager.js");
     const dbManager = await getDatabaseManager();
+    const storage = await getStorageManager();
+
+    // Ensure user exists - fetch from Discord and create stub if needed
+    let user = await storage.dbManager.users.getByDiscordId(userId);
+    if (!user) {
+      const client = getDiscordClient();
+      let discordUser = null;
+      if (client) {
+        try {
+          discordUser = await client.users.fetch(userId);
+        } catch (err) {
+          logger.warn(`Could not fetch Discord user ${userId}:`, err.message);
+        }
+      }
+
+      await storage.dbManager.users.upsertFromDiscordOAuth({
+        discordId: userId,
+        username: discordUser?.username || `User_${userId}`,
+        discriminator: discordUser?.discriminator || "0",
+        globalName: discordUser?.globalName || null,
+        avatar: discordUser?.avatar || null,
+        email: null,
+        accessToken: null,
+        refreshToken: null,
+      });
+
+      user = await storage.dbManager.users.getByDiscordId(userId);
+      logger.info(
+        `Created user stub for ${userId} (was not in users collection)`,
+      );
+    }
 
     // Get current balance
     const credits = await dbManager.coreCredits.getByUserId(userId);

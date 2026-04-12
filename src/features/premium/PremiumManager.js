@@ -53,8 +53,13 @@ export class PremiumManager {
       const sub = settings?.premiumFeatures?.[featureId];
       if (!sub?.active) return false;
 
+      // If no valid expiry date, feature is not active
+      if (!sub.nextDeductionDate) return false;
+
       // Allow access during grace period
       const graceDeadline = new Date(sub.nextDeductionDate);
+      if (isNaN(graceDeadline.getTime())) return false;
+
       graceDeadline.setDate(graceDeadline.getDate() + GRACE_PERIOD_DAYS);
 
       return graceDeadline >= new Date();
@@ -586,6 +591,7 @@ export class PremiumManager {
 
   /**
    * Send a grace period warning DM
+   * Set ALLOW_DM_WARNING=false in env to disable Discord DMs and use dashboard only
    */
   async _sendGracePeriodWarning(
     guildId,
@@ -596,6 +602,20 @@ export class PremiumManager {
   ) {
     const warningKey = `grace-${guildId}-${feature.id}-${userId}`;
     if (this.sentWarnings.has(warningKey)) return;
+
+    // Check if DM is disabled via env var
+    const ALLOW_DM_WARNING = process.env.ALLOW_DM_WARNING !== "false";
+    if (!ALLOW_DM_WARNING) {
+      // Skip DM, create notification only for dashboard
+      await this._createNotificationOnly(
+        userId,
+        guildId,
+        feature,
+        balance,
+        graceDeadline,
+      );
+      return;
+    }
 
     const daysLeft = Math.max(
       0,
@@ -861,6 +881,39 @@ export class PremiumManager {
       logger.warn(`Could not send DM to user ${userId}: ${err.message}`);
       return false;
     }
+  }
+
+  /**
+   * Create dashboard notification only (no Discord DM)
+   * Used when ALLOW_DM_WARNING=false
+   */
+  async _createNotificationOnly(
+    userId,
+    guildId,
+    feature,
+    balance,
+    graceDeadline,
+  ) {
+    const daysLeft = Math.max(
+      0,
+      Math.ceil((graceDeadline.getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
+    );
+
+    const guildName = await this._fetchGuildName(guildId);
+
+    // Create notification in database for dashboard
+    const db = await this._db();
+    if (db) {
+      await this._notify(db, userId, {
+        type: "grace_period",
+        title: "Grace Period — Action Required",
+        message: `${feature.name} expired in ${guildName}. ${daysLeft} day${daysLeft !== 1 ? "s" : ""} left before it's disabled. Top up ${feature.cost} Cores now.`,
+        icon: "warning",
+        metadata: { guildId, featureId: feature.id, daysLeft, balance },
+      });
+    }
+
+    this.sentWarnings.add(`grace-${guildId}-${feature.id}-${userId}`);
   }
 
   /**

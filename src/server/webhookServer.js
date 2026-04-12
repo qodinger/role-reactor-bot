@@ -28,6 +28,7 @@ import authRoutes from "./routes/auth.js";
 // Import V1 Routers
 import rootRouter from "./routes/v1/root.js";
 import guildsRouter from "./routes/v1/guilds.js";
+import { apiGetPublicLeaderboards } from "./controllers/GuildLeaderboardController.js";
 import paymentsRouter from "./routes/v1/payments.js";
 import userRouter from "./routes/v1/user.js";
 import commandsRouter from "./routes/v1/commands.js";
@@ -195,6 +196,17 @@ function initializeRoutes() {
   // Core API routes with rate limiting
   app.use(API_PREFIX, apiRateLimiter);
   app.use(API_PREFIX, rootRouter);
+
+  // Public guilds endpoints (no auth required)
+  const publicGuildsRouter = express.Router();
+  publicGuildsRouter.get("/public-leaderboards", apiGetPublicLeaderboards);
+  publicGuildsRouter.get(
+    "/public-leaderboards/search",
+    apiGetPublicLeaderboards,
+  );
+  app.use(`${API_PREFIX}/guilds`, publicGuildsRouter);
+
+  // Internal guilds endpoints (auth required)
   app.use(`${API_PREFIX}/guilds`, internalAuth, guildsRouter);
   app.use(`${API_PREFIX}/payments`, internalAuth, paymentsRouter);
   app.use(`${API_PREFIX}/user`, internalAuth, userRouter);
