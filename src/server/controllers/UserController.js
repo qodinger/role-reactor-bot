@@ -364,7 +364,7 @@ export async function apiManageUserCores(req, res) {
     const storage = await getStorageManager();
 
     // Ensure user exists - fetch from Discord and create stub if needed
-    let user = await storage.dbManager.users.getByDiscordId(userId);
+    let user = await storage.users.getByDiscordId(userId);
     if (!user) {
       const client = getDiscordClient();
       let discordUser = null;
@@ -376,7 +376,7 @@ export async function apiManageUserCores(req, res) {
         }
       }
 
-      await storage.dbManager.users.upsertFromDiscordOAuth({
+      await storage.users.upsertFromDiscordOAuth({
         discordId: userId,
         username: discordUser?.username || `User_${userId}`,
         discriminator: discordUser?.discriminator || "0",
@@ -387,7 +387,7 @@ export async function apiManageUserCores(req, res) {
         refreshToken: null,
       });
 
-      user = await storage.dbManager.users.getByDiscordId(userId);
+      user = await storage.users.getByDiscordId(userId);
       logger.info(
         `Created user stub for ${userId} (was not in users collection)`,
       );
