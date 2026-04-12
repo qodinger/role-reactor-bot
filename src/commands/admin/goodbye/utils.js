@@ -1,4 +1,9 @@
 import { getLogger } from "../../../utils/logger.js";
+import { sanitizeInput } from "../../../utils/discord/inputUtils.js";
+import {
+  InputValidator,
+  INPUT_LIMITS,
+} from "../../../utils/validation/inputValidation.js";
 
 /**
  * Validate goodbye input parameters
@@ -26,12 +31,27 @@ export function validateGoodbyeInputs(inputs) {
     }
   }
 
-  // Validate message length
-  if (message && message.length > 2000) {
-    return {
-      valid: false,
-      error: "Goodbye message cannot exceed 2000 characters.",
-    };
+  // Validate message length and content
+  if (message) {
+    if (InputValidator.containsMaliciousContent(message)) {
+      return {
+        valid: false,
+        error: "Goodbye message contains disallowed HTML or script content.",
+      };
+    }
+
+    const lengthError = InputValidator.validateLength(
+      message,
+      "Goodbye message",
+      0,
+      INPUT_LIMITS.MESSAGE_CONTENT,
+    );
+    if (lengthError) {
+      return {
+        valid: false,
+        error: `Goodbye message cannot exceed ${INPUT_LIMITS.MESSAGE_CONTENT} characters.`,
+      };
+    }
   }
 
   return { valid: true };
@@ -53,9 +73,9 @@ export function processGoodbyeSettings(currentSettings, inputs) {
     newSettings.channelId = channel.id;
   }
 
-  // Update message
+  // Update message with sanitization
   if (message !== null) {
-    newSettings.message = message;
+    newSettings.message = sanitizeInput(message);
   }
 
   // Update enabled status

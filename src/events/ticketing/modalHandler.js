@@ -9,6 +9,11 @@ import {
   getStaffRoleId,
 } from "../../features/ticketing/helpers.js";
 import { getLogger } from "../../utils/logger.js";
+import { INPUT_LIMITS } from "../../utils/validation/inputValidation.js";
+import {
+  validateModalInput,
+  createFormValidationErrorEmbed,
+} from "../../utils/validation/formValidation.js";
 
 const logger = getLogger();
 
@@ -38,7 +43,22 @@ async function handleAddUserModal(interaction) {
   try {
     await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
-    const userIdInput = interaction.fields.getTextInputValue("user_id");
+    const rawUserIdInput = interaction.fields.getTextInputValue("user_id");
+
+    const userIdValidation = validateModalInput(rawUserIdInput, "User ID", {
+      required: true,
+      maxLength: INPUT_LIMITS.SHORT_TEXT,
+      stripHtml: true,
+      removeScripts: true,
+    });
+
+    if (!userIdValidation.valid) {
+      return interaction.editReply({
+        embeds: [userIdValidation.error],
+      });
+    }
+
+    const sanitizedUserIdInput = userIdValidation.sanitized;
     const channelId = interaction.channelId;
     const guild = interaction.guild;
 
@@ -61,14 +81,14 @@ async function handleAddUserModal(interaction) {
     }
 
     // Parse user ID from input (could be mention or raw ID)
-    const userId = parseUserId(userIdInput);
+    const userId = parseUserId(sanitizedUserIdInput);
     if (!userId) {
       return interaction.editReply({
         embeds: [
-          createErrorEmbed(
+          createFormValidationErrorEmbed(
+            "Invalid User ID",
             "Please enter a valid Discord user ID or @mention.",
-            "Invalid user ID or mention",
-            interaction.client,
+            "Use format: @username or enter a 17-19 digit Discord ID.",
           ),
         ],
       });
@@ -178,7 +198,22 @@ async function handleTransferModal(interaction) {
   try {
     await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
-    const staffIdInput = interaction.fields.getTextInputValue("staff_id");
+    const rawStaffIdInput = interaction.fields.getTextInputValue("staff_id");
+
+    const staffIdValidation = validateModalInput(rawStaffIdInput, "Staff ID", {
+      required: true,
+      maxLength: INPUT_LIMITS.SHORT_TEXT,
+      stripHtml: true,
+      removeScripts: true,
+    });
+
+    if (!staffIdValidation.valid) {
+      return interaction.editReply({
+        embeds: [staffIdValidation.error],
+      });
+    }
+
+    const sanitizedStaffIdInput = staffIdValidation.sanitized;
     const channelId = interaction.channelId;
     const guild = interaction.guild;
 
@@ -201,14 +236,14 @@ async function handleTransferModal(interaction) {
     }
 
     // Parse user ID from input
-    const staffId = parseUserId(staffIdInput);
+    const staffId = parseUserId(sanitizedStaffIdInput);
     if (!staffId) {
       return interaction.editReply({
         embeds: [
-          createErrorEmbed(
+          createFormValidationErrorEmbed(
+            "Invalid Staff ID",
             "Please enter a valid Discord user ID or @mention.",
-            "Invalid staff user ID or mention",
-            interaction.client,
+            "Use format: @username or enter a 17-19 digit Discord ID.",
           ),
         ],
       });
@@ -331,8 +366,8 @@ function parseUserId(input) {
     return mentionMatch[1];
   }
 
-  // Check for raw ID (17-20 digits)
-  if (/^\d{17,20}$/.test(input)) {
+  // Check for raw ID (17-19 digits - Discord ID format)
+  if (/^\d{17,19}$/.test(input)) {
     return input;
   }
 

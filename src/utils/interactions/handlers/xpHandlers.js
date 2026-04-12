@@ -11,6 +11,10 @@ import {
   createLevelUpComponents,
 } from "../../../commands/admin/xp/components.js";
 import { EMOJIS } from "../../../config/theme.js";
+import {
+  validateModalInput,
+  createFormValidationErrorEmbed,
+} from "../../validation/formValidation.js";
 
 /**
  * XP system button interaction handlers
@@ -27,9 +31,8 @@ export const handleXPToggleMessage = async interaction => {
   try {
     await interaction.deferUpdate();
 
-    const { getDatabaseManager } = await import(
-      "../../storage/databaseManager.js"
-    );
+    const { getDatabaseManager } =
+      await import("../../storage/databaseManager.js");
 
     const dbManager = await getDatabaseManager();
     const settings = await dbManager.guildSettings.getByGuild(
@@ -77,9 +80,8 @@ export const handleXPToggleCommand = async interaction => {
   try {
     await interaction.deferUpdate();
 
-    const { getDatabaseManager } = await import(
-      "../../storage/databaseManager.js"
-    );
+    const { getDatabaseManager } =
+      await import("../../storage/databaseManager.js");
 
     const dbManager = await getDatabaseManager();
     const settings = await dbManager.guildSettings.getByGuild(
@@ -127,9 +129,8 @@ export const handleXPToggleRole = async interaction => {
   try {
     await interaction.deferUpdate();
 
-    const { getDatabaseManager } = await import(
-      "../../storage/databaseManager.js"
-    );
+    const { getDatabaseManager } =
+      await import("../../storage/databaseManager.js");
 
     const dbManager = await getDatabaseManager();
     const settings = await dbManager.guildSettings.getByGuild(
@@ -177,9 +178,8 @@ export const handleXPToggleVoice = async interaction => {
   try {
     await interaction.deferUpdate();
 
-    const { getDatabaseManager } = await import(
-      "../../storage/databaseManager.js"
-    );
+    const { getDatabaseManager } =
+      await import("../../storage/databaseManager.js");
 
     const dbManager = await getDatabaseManager();
     const settings = await dbManager.guildSettings.getByGuild(
@@ -225,15 +225,12 @@ export const handleXPToggleSystem = async interaction => {
   const logger = getLogger();
 
   try {
-    const { getDatabaseManager } = await import(
-      "../../storage/databaseManager.js"
-    );
-    const { createXpSettingsEmbed } = await import(
-      "../../../commands/admin/xp/embeds.js"
-    );
-    const { createXpSettingsComponents } = await import(
-      "../../../commands/admin/xp/components.js"
-    );
+    const { getDatabaseManager } =
+      await import("../../storage/databaseManager.js");
+    const { createXpSettingsEmbed } =
+      await import("../../../commands/admin/xp/embeds.js");
+    const { createXpSettingsComponents } =
+      await import("../../../commands/admin/xp/components.js");
 
     const dbManager = await getDatabaseManager();
     const settings = await dbManager.guildSettings.getByGuild(
@@ -289,9 +286,8 @@ export const handleXPToggleLevelUp = async interaction => {
   try {
     await interaction.deferUpdate();
 
-    const { getDatabaseManager } = await import(
-      "../../storage/databaseManager.js"
-    );
+    const { getDatabaseManager } =
+      await import("../../storage/databaseManager.js");
 
     const dbManager = await getDatabaseManager();
     const settings = await dbManager.guildSettings.getByGuild(
@@ -348,9 +344,8 @@ export const handleXPConfigMessage = async interaction => {
     // Import required modules
     const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } =
       await import("discord.js");
-    const { getDatabaseManager } = await import(
-      "../../storage/databaseManager.js"
-    );
+    const { getDatabaseManager } =
+      await import("../../storage/databaseManager.js");
 
     const dbManager = await getDatabaseManager();
     const settings = await dbManager.guildSettings.getByGuild(
@@ -412,9 +407,8 @@ export const handleXPConfigCommand = async interaction => {
     // Import required modules
     const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } =
       await import("discord.js");
-    const { getDatabaseManager } = await import(
-      "../../storage/databaseManager.js"
-    );
+    const { getDatabaseManager } =
+      await import("../../storage/databaseManager.js");
 
     const dbManager = await getDatabaseManager();
     const settings = await dbManager.guildSettings.getByGuild(
@@ -463,9 +457,8 @@ export const handleXPConfigRole = async interaction => {
     // Import required modules
     const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } =
       await import("discord.js");
-    const { getDatabaseManager } = await import(
-      "../../storage/databaseManager.js"
-    );
+    const { getDatabaseManager } =
+      await import("../../storage/databaseManager.js");
 
     const dbManager = await getDatabaseManager();
     const settings = await dbManager.guildSettings.getByGuild(
@@ -514,15 +507,12 @@ export const handleXPToggleAll = async interaction => {
     await interaction.deferUpdate();
 
     // Import required modules
-    const { getDatabaseManager } = await import(
-      "../../storage/databaseManager.js"
-    );
-    const { createXpSourceEmbed } = await import(
-      "../../../commands/admin/xp/embeds.js"
-    );
-    const { createXpSourceComponents } = await import(
-      "../../../commands/admin/xp/components.js"
-    );
+    const { getDatabaseManager } =
+      await import("../../storage/databaseManager.js");
+    const { createXpSourceEmbed } =
+      await import("../../../commands/admin/xp/embeds.js");
+    const { createXpSourceComponents } =
+      await import("../../../commands/admin/xp/components.js");
 
     const dbManager = await getDatabaseManager();
     const settings = await dbManager.guildSettings.getByGuild(
@@ -583,9 +573,8 @@ export const handleXPConfigModal = async interaction => {
   try {
     await interaction.deferUpdate();
 
-    const { getDatabaseManager } = await import(
-      "../../storage/databaseManager.js"
-    );
+    const { getDatabaseManager } =
+      await import("../../storage/databaseManager.js");
 
     const dbManager = await getDatabaseManager();
     const settings = await dbManager.guildSettings.getByGuild(
@@ -597,28 +586,57 @@ export const handleXPConfigModal = async interaction => {
 
     switch (interaction.customId) {
       case "xp_config_message_modal": {
-        const minXP = parseInt(
-          interaction.fields.getTextInputValue("message_xp_min"),
-        );
-        const maxXP = parseInt(
-          interaction.fields.getTextInputValue("message_xp_max"),
-        );
+        const rawMinXP = interaction.fields.getTextInputValue("message_xp_min");
+        const rawMaxXP = interaction.fields.getTextInputValue("message_xp_max");
 
-        // Validation
-        if (
-          isNaN(minXP) ||
-          isNaN(maxXP) ||
-          minXP < 1 ||
-          maxXP < 1 ||
-          minXP > 100 ||
-          maxXP > 100
-        ) {
-          throw new Error(
-            "Invalid XP values. Please enter numbers between 1 and 100.",
-          );
+        const minXPValidation = validateModalInput(rawMinXP, "Min XP", {
+          required: true,
+          maxLength: 10,
+          customValidation: val => {
+            const num = parseInt(val);
+            if (isNaN(num)) return "Must be a valid number";
+            if (num < 1 || num > 100) return "Must be between 1 and 100";
+            return true;
+          },
+        });
+        if (!minXPValidation.valid) {
+          return await interaction.reply({
+            embeds: [minXPValidation.error],
+            flags: MessageFlags.Ephemeral,
+          });
         }
+
+        const maxXPValidation = validateModalInput(rawMaxXP, "Max XP", {
+          required: true,
+          maxLength: 10,
+          customValidation: val => {
+            const num = parseInt(val);
+            if (isNaN(num)) return "Must be a valid number";
+            if (num < 1 || num > 100) return "Must be between 1 and 100";
+            return true;
+          },
+        });
+        if (!maxXPValidation.valid) {
+          return await interaction.reply({
+            embeds: [maxXPValidation.error],
+            flags: MessageFlags.Ephemeral,
+          });
+        }
+
+        const minXP = parseInt(minXPValidation.sanitized);
+        const maxXP = parseInt(maxXPValidation.sanitized);
+
         if (minXP > maxXP) {
-          throw new Error("Minimum XP cannot be greater than maximum XP.");
+          return await interaction.reply({
+            embeds: [
+              createFormValidationErrorEmbed(
+                "Invalid XP Range",
+                "Minimum XP cannot be greater than maximum XP.",
+                "Ensure minimum value is less than or equal to maximum.",
+              ),
+            ],
+            flags: MessageFlags.Ephemeral,
+          });
         }
 
         newSettings.experienceSystem.messageXPAmount = {
@@ -630,34 +648,54 @@ export const handleXPConfigModal = async interaction => {
       }
 
       case "xp_config_command_modal": {
-        const baseXP = parseInt(
-          interaction.fields.getTextInputValue("command_xp_base"),
-        );
+        const rawBaseXP =
+          interaction.fields.getTextInputValue("command_xp_base");
 
-        // Validation
-        if (isNaN(baseXP) || baseXP < 1 || baseXP > 50) {
-          throw new Error(
-            "Invalid base XP value. Please enter a number between 1 and 50.",
-          );
+        const baseXPValidation = validateModalInput(rawBaseXP, "Base XP", {
+          required: true,
+          maxLength: 10,
+          customValidation: val => {
+            const num = parseInt(val);
+            if (isNaN(num)) return "Must be a valid number";
+            if (num < 1 || num > 50) return "Must be between 1 and 50";
+            return true;
+          },
+        });
+        if (!baseXPValidation.valid) {
+          return await interaction.reply({
+            embeds: [baseXPValidation.error],
+            flags: MessageFlags.Ephemeral,
+          });
         }
 
+        const baseXP = parseInt(baseXPValidation.sanitized);
         newSettings.experienceSystem.commandXPAmount.base = baseXP;
         successMessage = `Command base XP updated to ${baseXP} XP`;
         break;
       }
 
       case "xp_config_role_modal": {
-        const roleXP = parseInt(
-          interaction.fields.getTextInputValue("role_xp_amount"),
-        );
+        const rawRoleXP =
+          interaction.fields.getTextInputValue("role_xp_amount");
 
-        // Validation
-        if (isNaN(roleXP) || roleXP < 1 || roleXP > 200) {
-          throw new Error(
-            "Invalid role XP value. Please enter a number between 1 and 200.",
-          );
+        const roleXPValidation = validateModalInput(rawRoleXP, "Role XP", {
+          required: true,
+          maxLength: 10,
+          customValidation: val => {
+            const num = parseInt(val);
+            if (isNaN(num)) return "Must be a valid number";
+            if (num < 1 || num > 200) return "Must be between 1 and 200";
+            return true;
+          },
+        });
+        if (!roleXPValidation.valid) {
+          return await interaction.reply({
+            embeds: [roleXPValidation.error],
+            flags: MessageFlags.Ephemeral,
+          });
         }
 
+        const roleXP = parseInt(roleXPValidation.sanitized);
         newSettings.experienceSystem.roleXPAmount = roleXP;
         successMessage = `Role XP amount updated to ${roleXP} XP`;
         break;

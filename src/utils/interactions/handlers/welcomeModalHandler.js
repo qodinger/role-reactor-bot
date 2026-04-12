@@ -5,7 +5,9 @@ import { errorEmbed } from "../../discord/responseMessages.js";
 import { hasAdminPermissions } from "../../discord/permissions.js";
 import { createWelcomeConfigPageEmbed } from "../../../commands/admin/welcome/modals.js";
 import { createWelcomeConfigPageComponents } from "../../../commands/admin/welcome/components.js";
-import { isValidMessage } from "../../validation/welcomeValidation.js";
+import { validateWelcomeMessage } from "../../validation/welcomeValidation.js";
+import { validateModalInput } from "../../validation/formValidation.js";
+import { INPUT_LIMITS } from "../../validation/inputValidation.js";
 import { EMOJIS } from "../../../config/theme.js";
 
 /**
@@ -30,15 +32,38 @@ export async function handleWelcomeConfigModal(interaction) {
 
     await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
-    const messageInput =
+    const rawMessageInput =
       interaction.fields.getTextInputValue("welcome_message");
 
-    if (!isValidMessage(messageInput)) {
+    const inputValidation = validateModalInput(
+      rawMessageInput,
+      "Welcome Message",
+      {
+        required: false,
+        maxLength: INPUT_LIMITS.EMBED_DESCRIPTION,
+        stripHtml: true,
+        removeScripts: true,
+      },
+    );
+
+    if (!inputValidation.valid) {
+      return interaction.editReply({
+        embeds: [inputValidation.error],
+        flags: MessageFlags.Ephemeral,
+      });
+    }
+
+    const sanitizedMessage = inputValidation.sanitized;
+    const validation = validateWelcomeMessage(sanitizedMessage);
+
+    if (!validation.valid) {
       return interaction.editReply({
         embeds: [
           errorEmbed({
             title: "Invalid Message",
-            description: "Please provide a valid welcome message.",
+            description:
+              validation.error || "Please provide a valid welcome message.",
+            solution: "Remove any HTML or script content and try again.",
           }),
         ],
         flags: MessageFlags.Ephemeral,
@@ -53,9 +78,9 @@ export async function handleWelcomeConfigModal(interaction) {
     );
 
     const newSettings = {
-      ...currentSettings, // Preserve all existing settings
+      ...currentSettings,
       message:
-        messageInput ||
+        validation.sanitized ||
         `Welcome **{user}** to **{server}**! ${EMOJIS.ACTIONS.WELCOME}`,
       updatedAt: new Date(),
     };

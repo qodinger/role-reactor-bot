@@ -10,6 +10,7 @@ import {
   successEmbed,
   infoEmbed,
 } from "../../../utils/discord/responseMessages.js";
+import { InputSanitizer } from "../../../utils/validation/inputValidation.js";
 import {
   createScheduleEmbed,
   createScheduleListEmbed,
@@ -70,8 +71,9 @@ export async function handleCreate(interaction, client, deferred = false) {
     const usersString = interaction.options.getString("users");
     const scheduleType = interaction.options.getString("schedule-type");
     const scheduleInput = interaction.options.getString("schedule");
-    const reason =
-      interaction.options.getString("reason") || "No reason provided";
+    const reason = InputSanitizer.sanitize(
+      interaction.options.getString("reason") || "No reason provided",
+    );
 
     const premiumManager = getPremiumManager();
     const isPro = await premiumManager.isFeatureActive(

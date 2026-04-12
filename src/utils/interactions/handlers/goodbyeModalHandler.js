@@ -3,6 +3,8 @@ import { getLogger } from "../../logger.js";
 import { getDatabaseManager } from "../../storage/databaseManager.js";
 import { errorEmbed } from "../../discord/responseMessages.js";
 import { hasAdminPermissions } from "../../discord/permissions.js";
+import { validateModalInput } from "../../validation/formValidation.js";
+import { INPUT_LIMITS } from "../../validation/inputValidation.js";
 import { EMOJIS } from "../../../config/theme.js";
 
 /**
@@ -29,19 +31,28 @@ export async function handleGoodbyeConfigModal(interaction) {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     // Get form data
-    const messageInput =
+    const rawMessageInput =
       interaction.fields.getTextInputValue("goodbye_message");
 
-    // Validate message if provided
-    if (messageInput && messageInput.length > 2000) {
-      return interaction.editReply(
-        errorEmbed({
-          title: "Message Too Long",
-          description: "The goodbye message cannot exceed 2000 characters.",
-          solution: "Please shorten your message and try again.",
-        }),
-      );
+    const messageValidation = validateModalInput(
+      rawMessageInput,
+      "Goodbye Message",
+      {
+        required: false,
+        maxLength: INPUT_LIMITS.MESSAGE_CONTENT,
+        stripHtml: true,
+        removeScripts: true,
+      },
+    );
+
+    if (!messageValidation.valid) {
+      return interaction.editReply({
+        embeds: [messageValidation.error],
+        flags: MessageFlags.Ephemeral,
+      });
     }
+
+    const sanitizedMessage = messageValidation.sanitized;
 
     // Get current settings to preserve other values
     const dbManager = await getDatabaseManager();
@@ -53,7 +64,7 @@ export async function handleGoodbyeConfigModal(interaction) {
     const newSettings = {
       ...currentSettings,
       message:
-        messageInput ||
+        sanitizedMessage ||
         `**{user}** left the server\nThanks for being part of **{server}**! ${EMOJIS.ACTIONS.WAVE}`,
     };
 
@@ -65,12 +76,10 @@ export async function handleGoodbyeConfigModal(interaction) {
     );
 
     // Return to configuration page with updated settings
-    const { createGoodbyeConfigPageEmbed } = await import(
-      "../../../commands/admin/goodbye/modals.js"
-    );
-    const { createGoodbyeConfigPageComponents } = await import(
-      "../../../commands/admin/goodbye/components.js"
-    );
+    const { createGoodbyeConfigPageEmbed } =
+      await import("../../../commands/admin/goodbye/modals.js");
+    const { createGoodbyeConfigPageComponents } =
+      await import("../../../commands/admin/goodbye/components.js");
 
     const embed = createGoodbyeConfigPageEmbed(interaction, updatedSettings);
     const components = createGoodbyeConfigPageComponents(
@@ -87,7 +96,7 @@ export async function handleGoodbyeConfigModal(interaction) {
     logger.info(
       `Goodbye message configured via modal by ${interaction.user.tag} in ${interaction.guild.name}`,
       {
-        messageLength: messageInput?.length || 0,
+        messageLength: sanitizedMessage?.length || 0,
       },
     );
   } catch (error) {

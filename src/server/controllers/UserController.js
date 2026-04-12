@@ -358,10 +358,8 @@ export async function apiManageUserCores(req, res) {
   try {
     const { getDatabaseManager } =
       await import("../../utils/storage/databaseManager.js");
-    const { getStorageManager } =
-      await import("../../utils/storage/storageManager.js");
+    await import("../../utils/storage/storageManager.js");
     const dbManager = await getDatabaseManager();
-    const storage = await getStorageManager();
 
     // Ensure user exists - fetch from Discord and create stub if needed
     let user = await dbManager.users.findByDiscordId(userId);

@@ -7,6 +7,7 @@ import { PermissionFlagsBits } from "discord.js";
 import { getExperienceManager } from "../../features/experience/ExperienceManager.js";
 import { getDatabaseManager } from "../storage/databaseManager.js";
 import { getMentionableCommand } from "../commandUtils.js";
+import { InputSanitizer } from "../validation/inputValidation.js";
 
 /**
  * Parse duration string to milliseconds
@@ -221,13 +222,21 @@ export function validateGiveawayCreation(options) {
     errors: [],
   };
 
+  // Sanitize inputs
+  const sanitizedPrize = options.prize
+    ? InputSanitizer.sanitize(options.prize.trim())
+    : "";
+  const sanitizedDescription = options.description
+    ? InputSanitizer.sanitize(options.description.trim())
+    : "";
+
   // Validate prize
-  if (!options.prize || options.prize.trim().length === 0) {
+  if (!sanitizedPrize || sanitizedPrize.length === 0) {
     result.valid = false;
     result.errors.push("Prize is required.");
   }
 
-  if (options.prize && options.prize.length > 100) {
+  if (sanitizedPrize && sanitizedPrize.length > 100) {
     result.valid = false;
     result.errors.push("Prize must be less than 100 characters.");
   }
@@ -265,7 +274,7 @@ export function validateGiveawayCreation(options) {
   }
 
   // Validate description
-  if (options.description && options.description.length > 1000) {
+  if (sanitizedDescription && sanitizedDescription.length > 1000) {
     result.valid = false;
     result.errors.push("Description must be less than 1000 characters.");
   }

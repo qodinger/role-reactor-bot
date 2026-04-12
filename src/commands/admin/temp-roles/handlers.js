@@ -1,6 +1,7 @@
 import { MessageFlags } from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";
+import { InputSanitizer } from "../../../utils/validation/inputValidation.js";
 import {
   processUserList,
   validateRole,
@@ -49,8 +50,9 @@ export async function handleAssign(interaction, client, deferred) {
       interaction.options.getRole("role", true)
     );
     const duration = interaction.options.getString("duration", true);
-    const reason =
-      interaction.options.getString("reason") || "No reason provided";
+    const reason = InputSanitizer.sanitize(
+      interaction.options.getString("reason") || "No reason provided",
+    );
     const notify = interaction.options.getBoolean("notify") || false;
     const notifyExpiry =
       interaction.options.getBoolean("notify-expiry") || false;
@@ -190,9 +192,8 @@ export async function handleAssign(interaction, client, deferred) {
       }
 
       // 5. Calculate expiration date
-      const { parseDuration } = await import(
-        "../../../utils/discord/tempRoles/utils.js"
-      );
+      const { parseDuration } =
+        await import("../../../utils/discord/tempRoles/utils.js");
       const durationMs = parseDuration(duration);
       const expiresAt = new Date(Date.now() + durationMs);
 
@@ -323,9 +324,10 @@ export async function handleRemove(interaction, client, deferred) {
     const role = /** @type {import('discord.js').Role} */ (
       interaction.options.getRole("role", true)
     );
-    const reason =
+    const reason = InputSanitizer.sanitize(
       interaction.options.getString("reason") ||
-      "Manually removed by administrator";
+        "Manually removed by administrator",
+    );
     const notify = interaction.options.getBoolean("notify") || false;
 
     // 1. Process user list

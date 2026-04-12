@@ -11,6 +11,7 @@ import {
   getStaffRoleId,
 } from "../utils.js";
 import { getLogger } from "../../../../utils/logger.js";
+import { InputSanitizer } from "../../../../utils/validation/inputValidation.js";
 
 const logger = getLogger();
 
@@ -202,7 +203,9 @@ export async function handleTransfer(interaction) {
 export async function handleRename(interaction) {
   await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
-  const newName = interaction.options.getString("name");
+  const newName = InputSanitizer.sanitize(
+    interaction.options.getString("name") || "ticket",
+  );
   const isStaff = await checkStaffRole(interaction);
   const isAdmin = interaction.memberPermissions?.has(
     PermissionFlagsBits.ManageGuild,

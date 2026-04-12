@@ -2,6 +2,7 @@ import { PermissionFlagsBits, EmbedBuilder, MessageFlags } from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
 import { THEME, EMOJIS } from "../../../config/theme.js";
 import { delay } from "../../../utils/delay.js";
+import { InputSanitizer } from "../../../utils/validation/inputValidation.js";
 import {
   canModerateMember,
   botCanModerateMember,
@@ -84,8 +85,9 @@ export async function handleTimeout(interaction, client) {
   try {
     const usersString = interaction.options.getString("users", true);
     const durationStr = interaction.options.getString("duration");
-    const reason =
-      interaction.options.getString("reason") || "No reason provided";
+    const reason = InputSanitizer.sanitize(
+      interaction.options.getString("reason") || "No reason provided",
+    );
 
     // Validate duration
     const durationValidation = validateTimeoutDuration(durationStr);
@@ -340,8 +342,9 @@ export async function handleTimeout(interaction, client) {
 export async function handleWarn(interaction, client) {
   try {
     const usersString = interaction.options.getString("users", true);
-    const reason =
-      interaction.options.getString("reason") || "No reason provided";
+    const reason = InputSanitizer.sanitize(
+      interaction.options.getString("reason") || "No reason provided",
+    );
 
     // Parse users (can be single or multiple)
     const userValidation = await parseMultipleUsers(
@@ -668,8 +671,9 @@ export async function handleWarn(interaction, client) {
 export async function handleBan(interaction, client) {
   try {
     const usersString = interaction.options.getString("users", true);
-    const reason =
-      interaction.options.getString("reason") || "No reason provided";
+    const reason = InputSanitizer.sanitize(
+      interaction.options.getString("reason") || "No reason provided",
+    );
     const deleteDays = interaction.options.getInteger("delete-days") || 0;
 
     // Parse users (can be single or multiple)
@@ -821,8 +825,9 @@ export async function handleBan(interaction, client) {
 export async function handleKick(interaction, client) {
   try {
     const usersString = interaction.options.getString("users", true);
-    const reason =
-      interaction.options.getString("reason") || "No reason provided";
+    const reason = InputSanitizer.sanitize(
+      interaction.options.getString("reason") || "No reason provided",
+    );
 
     // Parse users (can be single or multiple)
     {
