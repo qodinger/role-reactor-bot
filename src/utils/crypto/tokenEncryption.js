@@ -140,9 +140,9 @@ export function isEncrypted(value) {
 
   try {
     const decoded = Buffer.from(value, "base64");
-    const isValidBase64 =
-      decoded.length > 64 && value.match(/^[A-Za-z0-9+/]+=*$/);
-    return Boolean(isValidBase64);
+    // Encrypted tokens have: salt (32) + iv (16) + authTag (16) + encrypted data
+    // Minimum size would be 64 + some encrypted content
+    return decoded.length > 64 && value.match(/^[A-Za-z0-9+/]+=*$/);
   } catch {
     return false;
   }
