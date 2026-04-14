@@ -8,6 +8,7 @@ export const UserRoles = {
   OWNER: "owner", // Absolute access to everything (Revenue, Bot Config)
 };
 
+import crypto from "crypto";
 import { BaseRepository } from "./BaseRepository.js";
 
 /**
@@ -26,17 +27,57 @@ export class UserRepository extends BaseRepository {
   async _ensureIndexes() {
     try {
       await this.collection.createIndex({ discordId: 1 }, { unique: true });
-      await this.collection.createIndex({ email: 1 }, { sparse: true });
+      await this.collection.createIndex(
+        { emailHash: 1 },
+        { unique: true, sparse: true },
+      );
       await this.collection.createIndex({ role: 1 });
       await this.collection.createIndex({ createdAt: 1 });
       this.logger.debug("UserRepository indexes ensured");
     } catch (error) {
-      // Indexes may already exist
       this.logger.debug(
         "UserRepository indexes already exist or error:",
         error.message,
       );
     }
+  }
+
+  /**
+   * Hash email for searchable lookup (one-way, not reversible)
+   * @param {string} email - Email to hash
+   * @returns {string} SHA256 hash of email
+   */
+  hashEmail(email) {
+    if (!email) return null;
+    return crypto
+      .createHash("sha256")
+      .update(email.toLowerCase().trim())
+      .digest("hex");
+  }
+
+  /**
+   * Encrypt PII data (emails, phone numbers) for secure storage
+   * Uses the same encryption as tokens
+   * @param {string} plaintext - Data to encrypt
+   * @returns {Promise<string|null>} Encrypted data or null
+   */
+  async encryptPII(plaintext) {
+    if (!plaintext) return null;
+
+    const { encryptToken } = await import("../../crypto/tokenEncryption.js");
+    return encryptToken(plaintext);
+  }
+
+  /**
+   * Decrypt PII data
+   * @param {string} encrypted - Encrypted data
+   * @returns {Promise<string|null>} Decrypted data or null
+   */
+  async decryptPII(encrypted) {
+    if (!encrypted) return null;
+
+    const { decryptToken } = await import("../../crypto/tokenEncryption.js");
+    return decryptToken(encrypted);
   }
 
   /**
@@ -65,15 +106,15 @@ export class UserRepository extends BaseRepository {
   }
 
   /**
-   * Find user by email
+   * Find user by email (searches by hash)
    * @param {string} email - User email
    * @returns {Promise<Object|null>} User document or null
    */
   async findByEmail(email) {
     try {
       if (!email) return null;
-      const normalizedEmail = email.toLowerCase().trim();
-      return await this.collection.findOne({ email: normalizedEmail });
+      const emailHash = this.hashEmail(email);
+      return await this.collection.findOne({ emailHash });
     } catch (error) {
       this.logger.error(`Failed to find user by email`, error);
       return null;
@@ -81,8 +122,18 @@ export class UserRepository extends BaseRepository {
   }
 
   /**
+   * Get decrypted email for a user
+   * @param {Object} user - User document (with encrypted email)
+   * @returns {Promise<string|null>} Decrypted email or null
+   */
+  async getDecryptedEmail(user) {
+    if (!user?.email) return null;
+    return this.decryptPII(user.email);
+  }
+
+  /**
    * Create or update user from Discord OAuth
-   * Stores user info and encrypted tokens for dashboard features
+   * Stores user info and encrypted tokens/emails for dashboard features
    * @param {Object} userData - User data from Discord OAuth
    * @returns {Promise<Object|null>} Created/updated user
    */
@@ -108,7 +159,7 @@ export class UserRepository extends BaseRepository {
         discordId,
         username,
         discriminator: discriminator || "0",
-        globalName: globalName || username, // Display name
+        globalName: globalName || username,
         avatar,
         lastLogin: now,
         updatedAt: now,
@@ -118,9 +169,11 @@ export class UserRepository extends BaseRepository {
       const { config } = await import("../../../config/config.js");
       const developers = config.parseDevelopers();
 
-      // Only update email if provided (requires email scope)
+      // Encrypt and store email if provided (requires email scope)
       if (email) {
-        updateData.email = email.toLowerCase().trim();
+        const normalizedEmail = email.toLowerCase().trim();
+        updateData.emailHash = this.hashEmail(normalizedEmail);
+        updateData.email = await this.encryptPII(normalizedEmail);
       }
 
       // Encrypt and store tokens if provided
@@ -139,8 +192,6 @@ export class UserRepository extends BaseRepository {
       if (developers.includes(discordId)) {
         updateData.role = UserRoles.OWNER;
       } else {
-        // Only set default role on initial creation for non-developers
-        // This prevents overwriting existing roles (like admin/support) on every login
         setOnInsert.role = UserRoles.USER;
       }
 
@@ -155,6 +206,13 @@ export class UserRepository extends BaseRepository {
 
       // Invalidate cache
       this.cache.delete(`user_discord_${discordId}`);
+
+      // Log sensitive data update (audit)
+      this.logger.info(`User ${discordId} profile updated`, {
+        action: "USER_UPDATE",
+        hasEmail: !!email,
+        hasTokens: !!(accessToken || refreshToken),
+      });
 
       return result;
     } catch (error) {
@@ -229,6 +287,13 @@ export class UserRepository extends BaseRepository {
       );
 
       this.cache.delete(`user_discord_${discordId}`);
+
+      // Audit log for token refresh
+      this.logger.info(`User ${discordId} tokens refreshed`, {
+        action: "TOKEN_REFRESH",
+        discordId,
+      });
+
       return result.modifiedCount > 0;
     } catch (error) {
       this.logger.error(`Failed to update tokens for ${discordId}`, error);
@@ -315,13 +380,18 @@ export class UserRepository extends BaseRepository {
    * Update user role
    * @param {string} discordId - Discord user ID
    * @param {string} role - New role
+   * @param {string} changedBy - ID of user making the change (for audit)
    * @returns {Promise<boolean>} Success status
    */
-  async setRole(discordId, role) {
+  async setRole(discordId, role, changedBy = null) {
     try {
       if (!Object.values(UserRoles).includes(role)) {
         throw new Error(`Invalid role: ${role}`);
       }
+
+      // Get current role for audit
+      const currentUser = await this.findByDiscordId(discordId);
+      const oldRole = currentUser?.role;
 
       const result = await this.collection.updateOne(
         { discordId },
@@ -335,6 +405,16 @@ export class UserRepository extends BaseRepository {
       );
 
       this.cache.delete(`user_discord_${discordId}`);
+
+      // Audit log for role change
+      this.logger.info(`User role changed`, {
+        action: "ROLE_CHANGE",
+        targetUser: discordId,
+        oldRole,
+        newRole: role,
+        changedBy,
+      });
+
       return result.modifiedCount > 0;
     } catch (error) {
       this.logger.error(`Failed to set role for user ${discordId}`, error);

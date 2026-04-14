@@ -33,6 +33,7 @@ export class Logger {
   async _loadConfigAsync() {
     try {
       const configModule = await import("../config/config.js");
+      /** @type {any} */
       const config =
         configModule?.config || configModule?.default || configModule || {};
 

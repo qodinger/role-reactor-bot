@@ -9,8 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
-- **Input Validation**: Better protection against malicious input in forms
-- **Session Security**: Improved security with automatic logout and session persistence
+- **Safer Data Storage**: Your email address is now encrypted when stored, protecting your personal information
+- **Better Session Security**: Improved login security with automatic timeout and protection against unauthorized access
+- **Streamlined Login**: Faster login process with improved security verification
+- **Profile Access**: View your account details including your email in your profile settings
 
 ## [1.7.1] - 2026-04-01
 

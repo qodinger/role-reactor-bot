@@ -197,13 +197,16 @@ export async function apiUserInfo(req, res) {
       logger.warn(`Failed to fetch credits for user ${userId}`, err);
     }
 
+    const decryptedEmail =
+      await storage.dbManager.users.getDecryptedEmail(user);
+
     return res.json(
       createSuccessResponse({
         id: user.discordId,
         username: user.username,
         globalName: user.globalName,
         avatar: user.avatar,
-        email: user.email,
+        email: decryptedEmail,
         role: user.role || "user",
         credits,
         lastLogin: user.lastLogin,
@@ -530,6 +533,72 @@ export async function apiManageUserCores(req, res) {
       "Internal Server Error",
       500,
       error.message,
+    );
+    return res.status(statusCode).json(response);
+  }
+}
+
+/**
+ * Get current user's profile info
+ */
+export async function apiMyInfo(req, res) {
+  logRequest(logger, "My info", req);
+
+  try {
+    const userId = req.session?.discordUser?.id || req.user?.id;
+
+    if (!userId) {
+      const { statusCode, response } = createErrorResponse(
+        "Not authenticated",
+        401,
+      );
+      return res.status(statusCode).json(response);
+    }
+
+    const { getStorageManager } =
+      await import("../../utils/storage/storageManager.js");
+    const storage = await getStorageManager();
+
+    const user = await storage.dbManager.users.findByDiscordId(userId);
+
+    if (!user) {
+      const { statusCode, response } = createErrorResponse(
+        "User not found",
+        404,
+      );
+      return res.status(statusCode).json(response);
+    }
+
+    let credits = 0;
+    try {
+      const creditData = await storage.getCoreCredits(userId);
+      credits = Math.round((creditData?.credits || 0) * 100) / 100;
+    } catch (err) {
+      logger.warn(`Failed to fetch credits for user ${userId}`, err);
+    }
+
+    const decryptedEmail =
+      await storage.dbManager.users.getDecryptedEmail(user);
+
+    return res.json(
+      createSuccessResponse({
+        id: user.discordId,
+        username: user.username,
+        globalName: user.globalName,
+        avatar: user.avatar,
+        email: decryptedEmail,
+        role: user.role || "user",
+        credits,
+        lastLogin: user.lastLogin,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+        message: "Profile retrieved successfully",
+      }),
+    );
+  } catch (error) {
+    logger.error("❌ Failed to get my info", error);
+    const { statusCode, response } = createErrorResponse(
+      "Internal Server Error",
     );
     return res.status(statusCode).json(response);
   }

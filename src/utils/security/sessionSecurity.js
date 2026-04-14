@@ -430,29 +430,7 @@ export class PasswordResetManager {
   }
 }
 
-let loginAttemptTracker = null;
-let passwordResetManager = null;
-
-export function getLoginAttemptTracker() {
-  if (!loginAttemptTracker) {
-    loginAttemptTracker = new LoginAttemptTracker();
-  }
-  return loginAttemptTracker;
-}
-
-export function getPasswordResetManager() {
-  if (!passwordResetManager) {
-    passwordResetManager = new PasswordResetManager();
-  }
-  return passwordResetManager;
-}
-
 export default {
   SessionSecurityManager,
   getSessionSecurityManager,
-  validatePassword,
-  LoginAttemptTracker,
-  getLoginAttemptTracker,
-  PasswordResetManager,
-  getPasswordResetManager,
 };

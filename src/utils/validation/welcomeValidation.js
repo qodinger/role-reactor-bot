@@ -17,7 +17,7 @@ export function isValidChannelId(channelId) {
 /**
  * Validate welcome message with sanitization
  * @param {string} message
- * @returns {{ valid: boolean, sanitized: string, error?: string }}
+ * @returns {{ valid: boolean, sanitized: string, error?: string, warning?: string }}
  */
 export function validateWelcomeMessage(message) {
   if (typeof message !== "string") {

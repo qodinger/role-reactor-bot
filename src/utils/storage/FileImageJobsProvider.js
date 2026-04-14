@@ -21,7 +21,11 @@ export class FileImageJobsProvider {
         jobId,
         ...record,
       }))
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .sort((a, b) => {
+        const dateA = new Date(/** @type {any} */ (a.createdAt)).getTime();
+        const dateB = new Date(/** @type {any} */ (b.createdAt)).getTime();
+        return dateB - dateA;
+      })
       .slice(0, limit);
 
     return userJobs;

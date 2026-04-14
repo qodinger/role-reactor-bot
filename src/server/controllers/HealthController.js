@@ -31,6 +31,8 @@ export async function apiGetHealth(req, res) {
   try {
     const uptime = process.uptime();
     const memUsage = process.memoryUsage();
+    const totalMem = os.totalmem();
+    const freeMem = os.freemem();
 
     // CPU usage (simple approximation)
     const cpus = os.cpus();
@@ -44,9 +46,8 @@ export async function apiGetHealth(req, res) {
     // Real Database Check
     const dbStatus = { connected: false, responseTime: 0 };
     try {
-      const { getDatabaseManager } = await import(
-        "../../utils/storage/databaseManager.js"
-      );
+      const { getDatabaseManager } =
+        await import("../../utils/storage/databaseManager.js");
       const dbManager = await getDatabaseManager();
       if (dbManager?.connectionManager) {
         const start = Date.now();
@@ -76,9 +77,10 @@ export async function apiGetHealth(req, res) {
       createSuccessResponse({
         uptime: Math.floor(uptime),
         memory: {
-          used: memUsage.heapUsed,
-          total: memUsage.heapTotal,
-          percentage: (memUsage.heapUsed / memUsage.heapTotal) * 100,
+          used: memUsage.rss,
+          total: totalMem,
+          free: freeMem,
+          percentage: (memUsage.rss / totalMem) * 100,
         },
         cpu: {
           usage: cpuUsage,

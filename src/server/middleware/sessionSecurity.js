@@ -1,4 +1,6 @@
-import { getSessionSecurityManager } from "../../utils/security/sessionSecurity.js";
+import sessionSecurityModule from "../../utils/security/sessionSecurity.js";
+
+const { getSessionSecurityManager } = sessionSecurityModule;
 
 export function sessionSecurityMiddleware(req, res, next) {
   const sessionSecurity = getSessionSecurityManager();
