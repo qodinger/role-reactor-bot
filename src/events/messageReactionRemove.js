@@ -1,5 +1,8 @@
 import { Events } from "discord.js";
-import { getRoleMapping } from "../utils/discord/roleMappingManager.js";
+import {
+  getRoleMapping,
+  decrementRoleUsage,
+} from "../utils/discord/roleMappingManager.js";
 import { getLogger } from "../utils/logger.js";
 
 export const name = Events.MessageReactionRemove;
@@ -104,6 +107,12 @@ export async function execute(reaction, user, client) {
 
     // Remove roles via a single API call to prevent rate limits
     await member.roles.remove(rolesToRemove);
+
+    // Decrement usage counter
+    if (roleConfig.limit && roleConfig.limit > 0) {
+      await decrementRoleUsage(reaction.message.id, emoji);
+    }
+
     for (const id of rolesToRemove) {
       logger.info(`✅ Role removed: ${id} from ${user.tag}`);
     }

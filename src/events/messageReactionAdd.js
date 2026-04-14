@@ -1,5 +1,9 @@
 import { Events } from "discord.js";
-import { getRoleMapping } from "../utils/discord/roleMappingManager.js";
+import {
+  getRoleMapping,
+  incrementRoleUsage,
+  getRoleUsageCount,
+} from "../utils/discord/roleMappingManager.js";
 import { getLogger } from "../utils/logger.js";
 import { getCachedMember } from "../utils/discord/roleManager.js";
 
@@ -72,6 +76,19 @@ export async function execute(reaction, user, client) {
     const roleConfig = rolesObj[emoji];
     if (!roleConfig) {
       return;
+    }
+
+    // Check max usage limit BEFORE assigning role
+    if (roleConfig.limit && roleConfig.limit > 0) {
+      const currentUsage = await getRoleUsageCount(reaction.message.id, emoji);
+      if (currentUsage >= roleConfig.limit) {
+        logger.info(
+          `⛔ Max usage reached for ${emoji}: ${currentUsage}/${roleConfig.limit}`,
+        );
+        // Remove the user's reaction since they can't get the role
+        await reaction.users.remove(user.id).catch(() => {});
+        return;
+      }
     }
 
     // Handle multiple roles per emoji (Phase 1 implementation)
@@ -196,6 +213,11 @@ export async function execute(reaction, user, client) {
       // Run all removals AND the new role grants simultaneously
       await Promise.all(operations);
 
+      // Increment usage counter
+      if (roleConfig.limit && roleConfig.limit > 0) {
+        await incrementRoleUsage(reaction.message.id, emoji);
+      }
+
       logger.info(
         `✅ Assigned ${roleIds.length} role(s) to ${user.tag} for emoji ${emoji}`,
       );
@@ -219,6 +241,12 @@ export async function execute(reaction, user, client) {
 
     // Assign all roles in a single API call
     await member.roles.add(rolesToAdd);
+
+    // Increment usage counter
+    if (roleConfig.limit && roleConfig.limit > 0) {
+      await incrementRoleUsage(reaction.message.id, emoji);
+    }
+
     for (const newRole of rolesToAdd) {
       logger.info(`✅ Role assigned: ${newRole} to ${user.tag}`);
     }

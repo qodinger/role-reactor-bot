@@ -92,18 +92,17 @@ export async function handleLevel(interaction, client, options = {}) {
       targetUser.id,
     );
 
-    // Check for Pro Engine (Premium)
-    const { getPremiumManager } = await import(
-      "../../../features/premium/PremiumManager.js"
-    );
-    const { PremiumFeatures } = await import(
-      "../../../features/premium/config.js"
-    );
+    // Check for Pro Engine (Premium) - logged but not blocking
+    const { getPremiumManager } =
+      await import("../../../features/premium/PremiumManager.js");
+    const { PremiumFeatures } =
+      await import("../../../features/premium/config.js");
     const premiumManager = getPremiumManager();
-    await premiumManager.isFeatureActive(
+    const isPro = await premiumManager.isFeatureActive(
       interaction.guild.id,
       PremiumFeatures.PRO.id,
     );
+    logger.debug(`Pro Engine status for ${interaction.guild.id}: ${isPro}`);
 
     // Standard Embed Display (Rank cards disabled)
     const embed = createLevelEmbed(

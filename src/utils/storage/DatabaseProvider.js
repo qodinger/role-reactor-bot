@@ -26,6 +26,11 @@ export class DatabaseProvider {
     return true;
   }
 
+  async updateRoleMappingUsage(messageId, updates) {
+    await this.dbManager.roleMappings.updatePartial(messageId, updates);
+    return true;
+  }
+
   async cleanupExpiredRoles() {
     await this.dbManager.temporaryRoles.cleanupExpired();
   }
