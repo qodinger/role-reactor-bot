@@ -65,7 +65,12 @@ export async function apiListUsers(req, res) {
 
     // Get payer users from guild_settings who aren't in users collection
     // Only when NOT searching (showing all users)
+    // Only include users with ACTIVE Pro subscriptions (not expired + grace period)
     const userIds = users.map(u => u.discordId);
+    const now = new Date();
+    const gracePeriodStart = new Date(now);
+    gracePeriodStart.setDate(gracePeriodStart.getDate() - 3); // 3-day grace period lookback
+
     if (storage.dbManager.guildSettings && !search) {
       try {
         const payerUsers = await storage.dbManager.guildSettings.collection
@@ -73,9 +78,18 @@ export async function apiListUsers(req, res) {
             $and: [
               { "premiumFeatures.pro_engine.payerUserId": { $exists: true } },
               { "premiumFeatures.pro_engine.payerUserId": { $nin: userIds } },
+              { "premiumFeatures.pro_engine.active": true },
+              {
+                "premiumFeatures.pro_engine.nextDeductionDate": {
+                  $gte: gracePeriodStart,
+                },
+              },
             ],
           })
-          .project({ "premiumFeatures.pro_engine.payerUserId": 1 })
+          .project({
+            "premiumFeatures.pro_engine.payerUserId": 1,
+            "premiumFeatures.pro_engine.nextDeductionDate": 1,
+          })
           .toArray();
 
         const payerUserIds = [
@@ -135,6 +149,40 @@ export async function apiListUsers(req, res) {
       }
     }
 
+    // Check which users have ACTIVE pro_engine on any guild they manage
+    // This ensures isPayer is true only for currently active subscriptions
+    const activeProPayers = new Set();
+
+    if (allUserIds.length > 0 && storage.dbManager.guildSettings) {
+      try {
+        const gracePeriodStart = new Date();
+        gracePeriodStart.setDate(gracePeriodStart.getDate() - 3);
+
+        const activePayers = await storage.dbManager.guildSettings.collection
+          .find({
+            $and: [
+              { "premiumFeatures.pro_engine.payerUserId": { $in: allUserIds } },
+              { "premiumFeatures.pro_engine.active": true },
+              {
+                "premiumFeatures.pro_engine.nextDeductionDate": {
+                  $gte: gracePeriodStart,
+                },
+              },
+            ],
+          })
+          .project({ "premiumFeatures.pro_engine.payerUserId": 1 })
+          .toArray();
+
+        activePayers.forEach(g => {
+          if (g.premiumFeatures?.pro_engine?.payerUserId) {
+            activeProPayers.add(g.premiumFeatures.pro_engine.payerUserId);
+          }
+        });
+      } catch (err) {
+        logger.warn("Failed to check active pro payers", err);
+      }
+    }
+
     return res.json(
       createSuccessResponse({
         users: users.map(u => ({
@@ -146,7 +194,7 @@ export async function apiListUsers(req, res) {
           credits: creditsMap[u.discordId] || 0,
           lastLogin: u.lastLogin,
           createdAt: u.createdAt,
-          isPayer: u.isPayer || false,
+          isPayer: activeProPayers.has(u.discordId) || u.isPayer || false,
         })),
         pagination: {
           page,
