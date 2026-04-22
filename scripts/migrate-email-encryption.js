@@ -170,7 +170,7 @@ async function migrateEmails(dryRun = true) {
 
           migrated++;
           console.log(`   ✅ Migrated: ${user.username} (${user.discordId})`);
-        } catch (error) {
+        } catch (_error) {
           failed++;
           console.log(
             `   ❌ Failed: ${user.username} (${user.discordId}) - Migration failed`,
