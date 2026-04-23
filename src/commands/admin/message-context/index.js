@@ -1,4 +1,4 @@
-import { ApplicationCommandType, EmbedBuilder } from "discord.js";
+import { ContextMenuCommandBuilder, ApplicationCommandType } from "discord.js";
 import { hasAdminPermissions } from "../../../utils/discord/permissions.js";
 import { getLogger } from "../../../utils/logger.js";
 import { THEME } from "../../../config/theme.js";
@@ -43,10 +43,9 @@ export const metadata = {
 // COMMAND DEFINITION
 // ============================================================================
 
-export const data = {
-  type: ApplicationCommandType.Message,
-  name: metadata.name,
-};
+export const data = new ContextMenuCommandBuilder()
+  .setName(metadata.name)
+  .setType(ApplicationCommandType.Message);
 
 // ============================================================================
 // MAIN EXECUTION
@@ -77,6 +76,7 @@ export async function execute(interaction, _client) {
 
     await targetMessage.delete();
 
+    const { EmbedBuilder } = await import("discord.js");
     const embed = new EmbedBuilder()
       .setTitle("🗑️ Message Deleted")
       .setColor(THEME.SUCCESS)

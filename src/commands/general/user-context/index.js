@@ -1,4 +1,8 @@
-import { ApplicationCommandType, EmbedBuilder } from "discord.js";
+import {
+  ContextMenuCommandBuilder,
+  ApplicationCommandType,
+  EmbedBuilder,
+} from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
 import { THEME } from "../../../config/theme.js";
 
@@ -42,10 +46,9 @@ export const metadata = {
 // COMMAND DEFINITION
 // ============================================================================
 
-export const data = {
-  type: ApplicationCommandType.User,
-  name: metadata.name,
-};
+export const data = new ContextMenuCommandBuilder()
+  .setName(metadata.name)
+  .setType(ApplicationCommandType.User);
 
 // ============================================================================
 // MAIN EXECUTION

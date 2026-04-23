@@ -1,6 +1,6 @@
 import {
+  ContextMenuCommandBuilder,
   ApplicationCommandType,
-  EmbedBuilder,
   PermissionFlagsBits,
 } from "discord.js";
 import { hasAdminPermissions } from "../../../utils/discord/permissions.js";
@@ -47,11 +47,10 @@ export const metadata = {
 // COMMAND DEFINITION
 // ============================================================================
 
-export const data = {
-  type: ApplicationCommandType.User,
-  name: metadata.name,
-  defaultMemberPermissions: PermissionFlagsBits.ModerateMembers,
-};
+export const data = new ContextMenuCommandBuilder()
+  .setName(metadata.name)
+  .setType(ApplicationCommandType.User)
+  .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers);
 
 // ============================================================================
 // MAIN EXECUTION
@@ -89,6 +88,7 @@ export async function execute(interaction, _client) {
     const duration = 10 * 60 * 1000;
     await targetMember.timeout(duration, "Quick timeout via context menu");
 
+    const { EmbedBuilder } = await import("discord.js");
     const embed = new EmbedBuilder()
       .setTitle("⏱️ User Timed Out")
       .setColor(THEME.WARNING)
