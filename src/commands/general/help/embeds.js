@@ -23,9 +23,8 @@ export class HelpEmbedBuilder {
     for (const permission of requiredPermissions) {
       if (permission === "DEVELOPER") {
         // Check if user is developer
-        const { isDeveloper } = await import(
-          "../../../utils/discord/permissions.js"
-        );
+        const { isDeveloper } =
+          await import("../../../utils/discord/permissions.js");
         if (!isDeveloper(member.user.id)) {
           return false;
         }
@@ -59,6 +58,7 @@ export class HelpEmbedBuilder {
           `Simple Setup • Beautiful UI • Instant Roles`,
           ``,
           `Use the dropdown to browse categories or the buttons to switch views.`,
+          `⚡ = Premium (Pro Engine) feature`,
         ].join("\n"),
       )
       .setColor(THEME_COLOR)
@@ -231,12 +231,15 @@ export class HelpEmbedBuilder {
 
       // Add commands as fields
       const { COMMAND_METADATA } = await getDynamicHelpData(client);
+      const PRO_MARKER = "⚡"; // Pro Engine marker
+
       category.commands.forEach(cmdName => {
         const meta = COMMAND_METADATA[cmdName];
         if (meta) {
           const mention = getMentionableCommand(client, cmdName);
+          const premiumBadge = meta.isPremium ? ` ${PRO_MARKER}` : "";
           embed.addFields({
-            name: mention,
+            name: `${mention}${premiumBadge}`,
             value: meta.shortDesc,
             inline: false,
           });
@@ -298,9 +301,8 @@ export class HelpEmbedBuilder {
     // Try to load helpFields from command registry first (dynamic)
     if (client) {
       try {
-        const { commandRegistry } = await import(
-          "../../../utils/core/commandRegistry.js"
-        );
+        const { commandRegistry } =
+          await import("../../../utils/core/commandRegistry.js");
         await commandRegistry.initialize(client);
         const helpFields = commandRegistry.getCommandHelpFields(commandName);
 

@@ -31,6 +31,7 @@ export const metadata = {
     "assign",
   ],
   emoji: "⏰",
+  premium: true,
   helpFields: [
     {
       name: `How to Use`,

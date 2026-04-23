@@ -17,6 +17,7 @@ export const metadata = {
   description: "Manage reusable database role bundles",
   keywords: ["role-bundle", "bundles", "packs", "role pack", "groups"],
   emoji: "📦",
+  premium: true,
   helpFields: [
     {
       name: `How to Use`,

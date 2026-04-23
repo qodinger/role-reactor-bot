@@ -24,6 +24,7 @@ export const metadata = {
   description: "Create and manage high-capacity server giveaways",
   keywords: ["giveaway", "raffle", "drop", "contest"],
   emoji: "🎁",
+  premium: true,
   helpFields: [
     {
       name: `How to Use`,

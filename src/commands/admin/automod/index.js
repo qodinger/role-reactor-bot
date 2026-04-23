@@ -21,7 +21,7 @@ export const metadata = {
   description: "Configure auto-moderation settings",
   keywords: ["automod", "auto-mod", "moderation", "spam", "filter", "badwords"],
   emoji: "🛡️",
-  premium: false, // Main command is free, only domains subcommand group is premium
+  premium: true, // Domain allowlisting is premium
   helpFields: [
     {
       name: `How to Use`,

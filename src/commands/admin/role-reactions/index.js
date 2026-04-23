@@ -34,6 +34,7 @@ export const metadata = {
     "reaction roles",
   ],
   emoji: "⭐",
+  premium: true,
   helpFields: [
     {
       name: `How to Use`,

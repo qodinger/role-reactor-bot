@@ -30,6 +30,7 @@ export const metadata = {
     "roles",
   ],
   emoji: "📈",
+  premium: true,
   helpFields: [
     {
       name: `How to Use`,

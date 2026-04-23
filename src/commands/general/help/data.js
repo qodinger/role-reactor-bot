@@ -3,6 +3,24 @@ import { getLogger } from "../../../utils/logger.js";
 import { commandRegistry } from "../../../utils/core/commandRegistry.js";
 
 // ============================================================================
+// PREMIUM CHECK
+// ============================================================================
+
+/**
+ * Get premium status for a command from registry metadata
+ * @param {string} commandName - The command name
+ * @returns {boolean} Whether the command is premium
+ */
+export function getCommandPremiumStatus(commandName) {
+  const metadata = commandRegistry.getCommandMetadata(commandName);
+  return metadata?.premium === true;
+}
+
+// ============================================================================
+// TAG GENERATION
+// ============================================================================
+
+// ============================================================================
 // TAG GENERATION
 // ============================================================================
 
@@ -156,10 +174,14 @@ export async function generateCommandMetadata(client) {
     // Generate tags using registry keywords (from metadata)
     const tags = await generateCommandTags(commandName, client);
 
+    // Get premium status from metadata
+    const isPremium = getCommandPremiumStatus(commandName);
+
     metadata[commandName] = {
       emoji,
       shortDesc,
       tags,
+      isPremium,
     };
   }
 

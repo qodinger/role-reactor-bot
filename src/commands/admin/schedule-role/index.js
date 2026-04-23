@@ -37,6 +37,7 @@ export const metadata = {
     "schedule",
   ],
   emoji: "📅",
+  premium: true,
   helpFields: [
     {
       name: `How to Use`,
