@@ -16,15 +16,12 @@ export async function handleToggle(interaction, settings) {
   const dbManager = await getDatabaseManager();
   await dbManager.automod.set(guildId, { ...settings, enabled });
 
-  return interaction.reply({
-    embeds: [
-      successEmbed({
-        title: "Auto-Moderation Updated",
-        description: `Auto-moderation ${enabled ? "enabled" : "disabled"}!`,
-      }),
-    ],
-    ephemeral: true,
+  const response = successEmbed({
+    title: "Auto-Moderation Updated",
+    description: `Auto-moderation ${enabled ? "enabled" : "disabled"}!`,
   });
+
+  return interaction.reply({ ...response, ephemeral: true });
 }
 
 export async function handleStatus(interaction, settings) {
@@ -66,15 +63,12 @@ export async function handleBadwordsToggle(interaction, settings) {
     badWords: { ...settings.badWords, enabled },
   });
 
-  return interaction.reply({
-    embeds: [
-      successEmbed({
-        title: "Bad Words Filter Updated",
-        description: `Bad words filter ${enabled ? "enabled" : "disabled"}!`,
-      }),
-    ],
-    ephemeral: true,
+  const response = successEmbed({
+    title: "Bad Words Filter Updated",
+    description: `Bad words filter ${enabled ? "enabled" : "disabled"}!`,
   });
+
+  return interaction.reply({ ...response, ephemeral: true });
 }
 
 export async function handleBadwordsWords(interaction, settings) {
@@ -90,15 +84,12 @@ export async function handleBadwordsWords(interaction, settings) {
     badWords: { ...settings.badWords, enabled: true, words },
   });
 
-  return interaction.reply({
-    embeds: [
-      successEmbed({
-        title: "Bad Words Updated",
-        description: `Bad words set to: ${words.join(", ")}`,
-      }),
-    ],
-    ephemeral: true,
+  const response = successEmbed({
+    title: "Bad Words Updated",
+    description: `Bad words set to: ${words.join(", ")}`,
   });
+
+  return interaction.reply({ ...response, ephemeral: true });
 }
 
 export async function handleLinksToggle(interaction, settings) {
@@ -111,15 +102,12 @@ export async function handleLinksToggle(interaction, settings) {
     links: { ...settings.links, enabled },
   });
 
-  return interaction.reply({
-    embeds: [
-      successEmbed({
-        title: "Link Filter Updated",
-        description: `Link filter ${enabled ? "enabled" : "disabled"}!`,
-      }),
-    ],
-    ephemeral: true,
+  const response = successEmbed({
+    title: "Link Filter Updated",
+    description: `Link filter ${enabled ? "enabled" : "disabled"}!`,
   });
+
+  return interaction.reply({ ...response, ephemeral: true });
 }
 
 export async function handleSpamToggle(interaction, settings) {
@@ -132,15 +120,12 @@ export async function handleSpamToggle(interaction, settings) {
     spam: { ...settings.spam, enabled },
   });
 
-  return interaction.reply({
-    embeds: [
-      successEmbed({
-        title: "Spam Detection Updated",
-        description: `Spam detection ${enabled ? "enabled" : "disabled"}!`,
-      }),
-    ],
-    ephemeral: true,
+  const response = successEmbed({
+    title: "Spam Detection Updated",
+    description: `Spam detection ${enabled ? "enabled" : "disabled"}!`,
   });
+
+  return interaction.reply({ ...response, ephemeral: true });
 }
 
 async function getDomainSettings(guildId, settings) {
@@ -189,15 +174,12 @@ export async function handleDomainsAdd(interaction, settings) {
     links: { ...settings.links, allowedDomains: combinedDomains },
   });
 
-  return interaction.reply({
-    embeds: [
-      successEmbed({
-        title: "Domains Added",
-        description: `Added domains: ${newDomains.join(", ")}\nAllowed domains: ${combinedDomains.join(", ")}`,
-      }),
-    ],
-    ephemeral: true,
+  const response = successEmbed({
+    title: "Domains Added",
+    description: `Added domains: ${newDomains.join(", ")}\nAllowed domains: ${combinedDomains.join(", ")}`,
   });
+
+  return interaction.reply({ ...response, ephemeral: true });
 }
 
 export async function handleDomainsRemove(interaction, settings) {
@@ -235,18 +217,15 @@ export async function handleDomainsRemove(interaction, settings) {
     links: { ...settings.links, allowedDomains: remainingDomains },
   });
 
-  return interaction.reply({
-    embeds: [
-      successEmbed({
-        title: "Domains Removed",
-        description:
-          removeDomains.length > 0
-            ? `Removed domains: ${removeDomains.join(", ")}\nAllowed domains: ${remainingDomains.join(", ") || "None"}`
-            : "No domains to remove.",
-      }),
-    ],
-    ephemeral: true,
+  const response = successEmbed({
+    title: "Domains Removed",
+    description:
+      removeDomains.length > 0
+        ? `Removed domains: ${removeDomains.join(", ")}\nAllowed domains: ${remainingDomains.join(", ") || "None"}`
+        : "No domains to remove.",
   });
+
+  return interaction.reply({ ...response, ephemeral: true });
 }
 
 export async function handleDomainsClear(interaction, settings) {
@@ -274,15 +253,12 @@ export async function handleDomainsClear(interaction, settings) {
     links: { ...settings.links, allowedDomains: [] },
   });
 
-  return interaction.reply({
-    embeds: [
-      successEmbed({
-        title: "Domains Cleared",
-        description: "All allowed domains have been cleared.",
-      }),
-    ],
-    ephemeral: true,
+  const response = successEmbed({
+    title: "Domains Cleared",
+    description: "All allowed domains have been cleared.",
   });
+
+  return interaction.reply({ ...response, ephemeral: true });
 }
 
 export async function handleDomainsList(interaction, settings) {
