@@ -19,6 +19,7 @@ export const metadata = {
   description: "Delete a message (right-click on message)",
   keywords: ["delete", "message", "remove", "mod", "context menu"],
   emoji: "🗑️",
+  createdAt: "2026-04-23",
   helpFields: [
     {
       name: `How to Use`,

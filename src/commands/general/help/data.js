@@ -17,6 +17,31 @@ export function getCommandPremiumStatus(commandName) {
 }
 
 // ============================================================================
+// NEW COMMAND CHECK
+// ============================================================================
+
+const NEW_DAYS_THRESHOLD = 30;
+
+/**
+ * Check if a command is new based on its createdAt date
+ * Commands added within the last 30 days show 🆕 badge
+ * @param {string} createdAt - ISO date string when command was added
+ * @returns {boolean} Whether the command is considered new
+ */
+export function isCommandNew(createdAt) {
+  if (!createdAt) return false;
+
+  try {
+    const createdDate = new Date(createdAt);
+    const now = new Date();
+    const daysSinceAdded = (now - createdDate) / (1000 * 60 * 60 * 24);
+    return daysSinceAdded < NEW_DAYS_THRESHOLD;
+  } catch {
+    return false;
+  }
+}
+
+// ============================================================================
 // TAG GENERATION
 // ============================================================================
 
@@ -177,11 +202,16 @@ export async function generateCommandMetadata(client) {
     // Get premium status from metadata
     const isPremium = getCommandPremiumStatus(commandName);
 
+    // Get created date from metadata and calculate if new (within 30 days)
+    const metadataObj = commandRegistry.getCommandMetadata(commandName);
+    const isNew = isCommandNew(metadataObj?.createdAt);
+
     metadata[commandName] = {
       emoji,
       shortDesc,
       tags,
       isPremium,
+      isNew,
     };
   }
 

@@ -23,6 +23,7 @@ export const metadata = {
   description: "Timeout a user for 10 minutes (right-click on user)",
   keywords: ["timeout", "mute", "user", "mod", "context menu"],
   emoji: "⏱️",
+  createdAt: "2026-04-23",
   helpFields: [
     {
       name: `How to Use`,

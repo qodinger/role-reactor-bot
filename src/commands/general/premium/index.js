@@ -1,7 +1,8 @@
 import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
 import { THEME } from "../../../config/theme.js";
-import { CORE_STATUS } from "../../../features/premium/config.js";
 import { PREMIUM_FEATURES } from "./premiumData.js";
+
+const PRO_NAME = "Pro Engine";
 
 export const metadata = {
   name: "premium",
@@ -9,6 +10,7 @@ export const metadata = {
   description: "View Pro Engine premium features and upgrade",
   keywords: ["premium", "pro", "upgrade", "cores", "subscription"],
   emoji: "⚡",
+  createdAt: "2026-04-23",
   helpFields: [
     {
       name: `How to Use`,
@@ -29,12 +31,12 @@ export const data = new SlashCommandBuilder()
 
 export async function execute(interaction, _client) {
   const embed = new EmbedBuilder()
-    .setTitle(`⚡ ${CORE_STATUS.PRO.name} - Premium Features`)
+    .setTitle(`⚡ ${PRO_NAME} - Premium Features`)
     .setDescription(
       [
         `Upgrade to unlock **unlimited features** and **higher limits**!`,
         "",
-        `**How to upgrade:** Visit **[rolereactor.app](https://rolereactor.app)** to purchase Cores and enable Pro Engine.`,
+        `**How to upgrade:** Visit **[rolereactor.app](https://rolereactor.app)** to purchase Cores and enable ${PRO_NAME}.`,
         "",
         `You can also earn **free Cores** by voting for Role Reactor on Top.gg!`,
       ].join("\n"),
@@ -47,7 +49,7 @@ export async function execute(interaction, _client) {
       name: `${feature.emoji} ${feature.name}`,
       value: [
         `**Free:** ${feature.free}`,
-        `**${CORE_STATUS.PRO.name}:** ${feature.pro}`,
+        `**${PRO_NAME}:** ${feature.pro}`,
       ].join("\n"),
       inline: false,
     });

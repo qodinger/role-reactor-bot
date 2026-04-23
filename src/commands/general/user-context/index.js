@@ -22,6 +22,7 @@ export const metadata = {
   description: "View user information (right-click on user)",
   keywords: ["user", "info", "member", "profile", "context menu"],
   emoji: "👤",
+  createdAt: "2026-04-23",
   helpFields: [
     {
       name: `How to Use`,

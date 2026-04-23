@@ -59,6 +59,7 @@ export class HelpEmbedBuilder {
           ``,
           `Use the dropdown to browse categories or the buttons to switch views.`,
           `⚡ = Premium (Pro Engine) feature`,
+          `🆕 = Recently added`,
         ].join("\n"),
       )
       .setColor(THEME_COLOR)
@@ -232,14 +233,19 @@ export class HelpEmbedBuilder {
       // Add commands as fields
       const { COMMAND_METADATA } = await getDynamicHelpData(client);
       const PRO_MARKER = "⚡"; // Pro Engine marker
+      const NEW_MARKER = "🆕"; // New command marker
 
       category.commands.forEach(cmdName => {
         const meta = COMMAND_METADATA[cmdName];
         if (meta) {
           const mention = getMentionableCommand(client, cmdName);
-          const premiumBadge = meta.isPremium ? ` ${PRO_MARKER}` : "";
+          const badges = [];
+          if (meta.isPremium) badges.push(PRO_MARKER);
+          if (meta.isNew) badges.push(NEW_MARKER);
+          const badgeStr = badges.length > 0 ? ` ${badges.join(" ")}` : "";
+
           embed.addFields({
-            name: `${mention}${premiumBadge}`,
+            name: `${mention}${badgeStr}`,
             value: meta.shortDesc,
             inline: false,
           });

@@ -20,6 +20,7 @@ export const metadata = {
   description: "Search for messages in the server",
   keywords: ["search", "find", "messages", "log", "moderation"],
   emoji: "🔍",
+  createdAt: "2026-04-23",
   helpFields: [
     {
       name: `How to Use`,

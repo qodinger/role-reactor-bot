@@ -20,6 +20,7 @@ export const metadata = {
   description: "Create invites that grant roles when joined",
   keywords: ["invite", "roles", "auto-role", "onboarding", "welcome"],
   emoji: "🎟️",
+  createdAt: "2026-04-23",
   helpFields: [
     {
       name: `How to Use`,

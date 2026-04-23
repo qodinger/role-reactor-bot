@@ -21,6 +21,7 @@ export const metadata = {
   description: "Configure auto-moderation settings",
   keywords: ["automod", "auto-mod", "moderation", "spam", "filter", "badwords"],
   emoji: "🛡️",
+  createdAt: "2026-04-23",
   premium: false, // Has free tier + premium features
   helpFields: [
     {

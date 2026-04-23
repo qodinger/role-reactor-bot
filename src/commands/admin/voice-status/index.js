@@ -20,6 +20,7 @@ export const metadata = {
   description: "Set voice channel status",
   keywords: ["voice", "channel", "status", "gaming", "afk"],
   emoji: "🎤",
+  createdAt: "2026-04-23",
   helpFields: [
     {
       name: `How to Use`,
