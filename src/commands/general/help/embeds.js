@@ -58,8 +58,6 @@ export class HelpEmbedBuilder {
           `Simple Setup • Beautiful UI • Instant Roles`,
           ``,
           `Use the dropdown to browse categories or the buttons to switch views.`,
-          `⚡ = Premium (Pro Engine) feature`,
-          `🆕 = Recently added`,
         ].join("\n"),
       )
       .setColor(THEME_COLOR)
@@ -163,7 +161,11 @@ export class HelpEmbedBuilder {
           .map(([cmdName, meta]) => {
             const lineMeta = meta || {};
             const mention = getMentionableCommand(client, cmdName);
-            return `${mention} — ${lineMeta?.shortDesc || "No description available"}`;
+            const badges = [];
+            if (lineMeta.isPremium) badges.push("⚡");
+            if (lineMeta.isNew) badges.push("🆕");
+            const badgeStr = badges.length > 0 ? ` ${badges.join(" ")}` : "";
+            return `${mention}${badgeStr} — ${lineMeta?.shortDesc || "No description available"}`;
           })
           .join("\n\n");
         embed.addFields({ name: `Commands ${label}`, value, inline: false });
