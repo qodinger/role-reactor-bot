@@ -31,7 +31,7 @@ export const metadata = {
     "assign",
   ],
   emoji: "⏰",
-  premium: true,
+  premium: false, // Has free tier (25) + premium (500)
   helpFields: [
     {
       name: `How to Use`,
