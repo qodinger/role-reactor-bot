@@ -4,10 +4,7 @@ import {
   errorEmbed,
 } from "../../../utils/discord/responseMessages.js";
 import { getPremiumManager } from "../../../features/premium/PremiumManager.js";
-
-const CORE_STATUS = {
-  PRO: { emoji: "⚡", name: "Pro Engine" },
-};
+import { CORE_STATUS } from "../../../features/premium/config.js";
 
 export async function handleToggle(interaction, settings) {
   const { options, guildId } = interaction;
@@ -147,16 +144,14 @@ export async function handleDomainsAdd(interaction, settings) {
   const isPro = await premiumManager.isFeatureActive(guildId, "pro_engine");
 
   if (!isPro) {
-    return interaction.reply({
-      embeds: [
-        errorEmbed({
-          title: `${CORE_STATUS.PRO.emoji} Pro Engine Required`,
-          description: `Domain allowlisting is a premium feature.`,
-          solution: `Enable ${CORE_STATUS.PRO.name} on our **[website](https://rolereactor.app)** using Cores to unlock this feature!`,
-        }),
-      ],
-      ephemeral: true,
+    const response = errorEmbed({
+      title: "Pro Engine Required",
+      description: `Domain allowlisting is a premium feature.`,
+      solution: `Enable ${CORE_STATUS.PRO.name} on our **[website](https://rolereactor.app)** using Cores to unlock this feature!`,
+      emoji: CORE_STATUS.PRO.emoji,
+      isPremium: true,
     });
+    return interaction.reply({ ...response, ephemeral: true });
   }
 
   const newDomains = options
@@ -189,16 +184,14 @@ export async function handleDomainsRemove(interaction, settings) {
   const isPro = await premiumManager.isFeatureActive(guildId, "pro_engine");
 
   if (!isPro) {
-    return interaction.reply({
-      embeds: [
-        errorEmbed({
-          title: `${CORE_STATUS.PRO.emoji} Pro Engine Required`,
-          description: `Domain allowlisting is a premium feature.`,
-          solution: `Enable ${CORE_STATUS.PRO.name} on our **[website](https://rolereactor.app)** using Cores to unlock this feature!`,
-        }),
-      ],
-      ephemeral: true,
+    const response = errorEmbed({
+      title: "Pro Engine Required",
+      description: `Domain allowlisting is a premium feature.`,
+      solution: `Enable ${CORE_STATUS.PRO.name} on our **[website](https://rolereactor.app)** using Cores to unlock this feature!`,
+      emoji: CORE_STATUS.PRO.emoji,
+      isPremium: true,
     });
+    return interaction.reply({ ...response, ephemeral: true });
   }
 
   const removeDomains = options
@@ -235,16 +228,14 @@ export async function handleDomainsClear(interaction, settings) {
   const isPro = await premiumManager.isFeatureActive(guildId, "pro_engine");
 
   if (!isPro) {
-    return interaction.reply({
-      embeds: [
-        errorEmbed({
-          title: `${CORE_STATUS.PRO.emoji} Pro Engine Required`,
-          description: `Domain allowlisting is a premium feature.`,
-          solution: `Enable ${CORE_STATUS.PRO.name} on our **[website](https://rolereactor.app)** using Cores to unlock this feature!`,
-        }),
-      ],
-      ephemeral: true,
+    const response = errorEmbed({
+      title: "Pro Engine Required",
+      description: `Domain allowlisting is a premium feature.`,
+      solution: `Enable ${CORE_STATUS.PRO.name} on our **[website](https://rolereactor.app)** using Cores to unlock this feature!`,
+      emoji: CORE_STATUS.PRO.emoji,
+      isPremium: true,
     });
+    return interaction.reply({ ...response, ephemeral: true });
   }
 
   const dbManager = await getDatabaseManager();
@@ -268,16 +259,14 @@ export async function handleDomainsList(interaction, settings) {
   const isPro = await premiumManager.isFeatureActive(guildId, "pro_engine");
 
   if (!isPro) {
-    return interaction.reply({
-      embeds: [
-        errorEmbed({
-          title: `${CORE_STATUS.PRO.emoji} Pro Engine Required`,
-          description: `Domain allowlisting is a premium feature.`,
-          solution: `Enable ${CORE_STATUS.PRO.name} on our **[website](https://rolereactor.app)** using Cores to unlock this feature!`,
-        }),
-      ],
-      ephemeral: true,
+    const response = errorEmbed({
+      title: "Pro Engine Required",
+      description: `Domain allowlisting is a premium feature.`,
+      solution: `Enable ${CORE_STATUS.PRO.name} on our **[website](https://rolereactor.app)** using Cores to unlock this feature!`,
+      emoji: CORE_STATUS.PRO.emoji,
+      isPremium: true,
     });
+    return interaction.reply({ ...response, ephemeral: true });
   }
 
   const domains = settings.links?.allowedDomains || [];
@@ -296,15 +285,11 @@ export async function handleAutomodCommand(interaction) {
 
   const dbManager = await getDatabaseManager();
   if (!dbManager?.automod) {
-    return interaction.reply({
-      embeds: [
-        errorEmbed({
-          title: "Database Error",
-          description: "Database error. Please try again.",
-        }),
-      ],
-      ephemeral: true,
+    const response = errorEmbed({
+      title: "Database Error",
+      description: "Database error. Please try again.",
     });
+    return interaction.reply({ ...response, ephemeral: true });
   }
 
   const settings = await dbManager.automod.getByGuild(guildId);

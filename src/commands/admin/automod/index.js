@@ -3,10 +3,7 @@ import { hasAdminPermissions } from "../../../utils/discord/permissions.js";
 import { getLogger } from "../../../utils/logger.js";
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 import { handleAutomodCommand } from "./handlers.js";
-
-const CORE_STATUS = {
-  PRO: { emoji: "⚡", name: "Pro Engine" },
-};
+import { CORE_STATUS } from "../../../features/premium/config.js";
 
 // ============================================================================
 // COMMAND METADATA
@@ -24,6 +21,7 @@ export const metadata = {
   description: "Configure auto-moderation settings",
   keywords: ["automod", "auto-mod", "moderation", "spam", "filter", "badwords"],
   emoji: "🛡️",
+  premium: false, // Main command is free, only domains subcommand group is premium
   helpFields: [
     {
       name: `How to Use`,

@@ -24,28 +24,45 @@ class EmbedFactory {
    * @param {string} options.description - The description of the embed.
    * @param {Array<object>} [options.fields=[]] - The fields to add to the embed.
    * @param {string} [options.footer=null] - The footer text.
+   * @param {string} [options.emoji=null] - Custom emoji to use instead of default status emoji.
+   * @param {boolean} [options.isPremium=false] - Use premium/gold color for the embed.
    * @returns {EmbedBuilder}
    */
-  create(type, { title, description, fields = [], footer = null }) {
+  create(
+    type,
+    {
+      title,
+      description,
+      fields = [],
+      footer = null,
+      emoji = null,
+      isPremium = false,
+    },
+  ) {
     const embed = new EmbedBuilder().setTimestamp();
-    const statusEmoji = this.emojis.STATUS[type] || "";
+    const statusEmoji = emoji || this.emojis.STATUS[type] || "";
 
-    switch (type) {
-      case "SUCCESS":
-        embed.setColor(this.theme.SUCCESS);
-        break;
-      case "ERROR":
-        embed.setColor(this.theme.ERROR);
-        break;
-      case "WARNING":
-        embed.setColor(this.theme.WARNING);
-        break;
-      case "INFO":
-        embed.setColor(this.theme.INFO);
-        break;
-      default:
-        embed.setColor(this.theme.PRIMARY);
-        break;
+    // Use premium color if isPremium is true
+    if (isPremium) {
+      embed.setColor(this.theme.PRO);
+    } else {
+      switch (type) {
+        case "SUCCESS":
+          embed.setColor(this.theme.SUCCESS);
+          break;
+        case "ERROR":
+          embed.setColor(this.theme.ERROR);
+          break;
+        case "WARNING":
+          embed.setColor(this.theme.WARNING);
+          break;
+        case "INFO":
+          embed.setColor(this.theme.INFO);
+          break;
+        default:
+          embed.setColor(this.theme.PRIMARY);
+          break;
+      }
     }
 
     embed.setTitle(`${statusEmoji} ${title}`.trim());
@@ -220,6 +237,8 @@ export function errorEmbed({
   description = "An error occurred. Please try again.",
   fields = [],
   solution = null,
+  emoji = null,
+  isPremium = false,
 }) {
   const allFields = [...fields];
   if (solution) {
@@ -235,6 +254,8 @@ export function errorEmbed({
     description,
     fields: allFields,
     footer: "Need help? Contact support or check the documentation",
+    emoji,
+    isPremium,
   });
 
   return {
