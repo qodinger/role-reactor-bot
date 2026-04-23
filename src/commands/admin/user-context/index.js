@@ -7,19 +7,55 @@ import { hasAdminPermissions } from "../../../utils/discord/permissions.js";
 import { getLogger } from "../../../utils/logger.js";
 import { THEME } from "../../../config/theme.js";
 
+// ============================================================================
+// COMMAND METADATA
+// ============================================================================
+
+/**
+ * Command metadata for centralized registry
+ * This allows the command to be automatically discovered and integrated
+ * into help system, command suggestions, and other features
+ * This is the single source of truth for command information
+ */
 export const metadata = {
   name: "Quick Timeout",
   category: "admin",
-  description: "Timeout a user for 10 minutes",
-  keywords: ["timeout", "mute", "user", "mod"],
+  description: "Timeout a user for 10 minutes (right-click on user)",
+  keywords: ["timeout", "mute", "user", "mod", "context menu"],
   emoji: "⏱️",
+  helpFields: [
+    {
+      name: `How to Use`,
+      value: "Right-click on a user → Apps → Quick Timeout",
+      inline: false,
+    },
+    {
+      name: `Permissions`,
+      value: "• **Moderate Members** permission required",
+      inline: false,
+    },
+    {
+      name: `What You'll See`,
+      value:
+        "Quickly timeout a user for 10 minutes. Perfect for quick moderation actions without using a full command.",
+      inline: false,
+    },
+  ],
 };
+
+// ============================================================================
+// COMMAND DEFINITION
+// ============================================================================
 
 export const data = {
   type: ApplicationCommandType.User,
   name: metadata.name,
   defaultMemberPermissions: PermissionFlagsBits.ModerateMembers,
 };
+
+// ============================================================================
+// MAIN EXECUTION
+// ============================================================================
 
 export async function execute(interaction, _client) {
   const logger = getLogger();

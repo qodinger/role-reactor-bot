@@ -3,18 +3,54 @@ import { hasAdminPermissions } from "../../../utils/discord/permissions.js";
 import { getLogger } from "../../../utils/logger.js";
 import { THEME } from "../../../config/theme.js";
 
+// ============================================================================
+// COMMAND METADATA
+// ============================================================================
+
+/**
+ * Command metadata for centralized registry
+ * This allows the command to be automatically discovered and integrated
+ * into help system, command suggestions, and other features
+ * This is the single source of truth for command information
+ */
 export const metadata = {
   name: "Delete Message",
   category: "admin",
-  description: "Delete a message",
-  keywords: ["delete", "message", "remove", "mod"],
+  description: "Delete a message (right-click on message)",
+  keywords: ["delete", "message", "remove", "mod", "context menu"],
   emoji: "🗑️",
+  helpFields: [
+    {
+      name: `How to Use`,
+      value: "Right-click on a message → Apps → Delete Message",
+      inline: false,
+    },
+    {
+      name: `Permissions`,
+      value: "• **Manage Messages** permission required",
+      inline: false,
+    },
+    {
+      name: `What You'll See`,
+      value:
+        "Quickly delete any message by right-clicking on it. The message author and channel will be shown in the confirmation.",
+      inline: false,
+    },
+  ],
 };
+
+// ============================================================================
+// COMMAND DEFINITION
+// ============================================================================
 
 export const data = {
   type: ApplicationCommandType.Message,
   name: metadata.name,
 };
+
+// ============================================================================
+// MAIN EXECUTION
+// ============================================================================
 
 export async function execute(interaction, _client) {
   const logger = getLogger();

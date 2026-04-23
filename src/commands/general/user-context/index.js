@@ -2,18 +2,54 @@ import { ApplicationCommandType, EmbedBuilder } from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
 import { THEME } from "../../../config/theme.js";
 
+// ============================================================================
+// COMMAND METADATA
+// ============================================================================
+
+/**
+ * Command metadata for centralized registry
+ * This allows the command to be automatically discovered and integrated
+ * into help system, command suggestions, and other features
+ * This is the single source of truth for command information
+ */
 export const metadata = {
   name: "User Info",
   category: "general",
-  description: "View user information",
-  keywords: ["user", "info", "member", "profile"],
+  description: "View user information (right-click on user)",
+  keywords: ["user", "info", "member", "profile", "context menu"],
   emoji: "👤",
+  helpFields: [
+    {
+      name: `How to Use`,
+      value: "Right-click on a user → Apps → User Info",
+      inline: false,
+    },
+    {
+      name: `What You'll See`,
+      value: [
+        "View detailed user information:",
+        "• User ID and account creation date",
+        "• Server join date",
+        "• User roles",
+        "• Whether they're a bot",
+      ].join("\n"),
+      inline: false,
+    },
+  ],
 };
+
+// ============================================================================
+// COMMAND DEFINITION
+// ============================================================================
 
 export const data = {
   type: ApplicationCommandType.User,
   name: metadata.name,
 };
+
+// ============================================================================
+// MAIN EXECUTION
+// ============================================================================
 
 export async function execute(interaction, _client) {
   const logger = getLogger();

@@ -1,11 +1,19 @@
 import { SlashCommandBuilder, PermissionFlagsBits } from "discord.js";
 import { hasAdminPermissions } from "../../../utils/discord/permissions.js";
 import { getLogger } from "../../../utils/logger.js";
-import {
-  errorEmbed,
-  successEmbed,
-} from "../../../utils/discord/responseMessages.js";
+import { errorEmbed } from "../../../utils/discord/responseMessages.js";
+import { handleVoiceStatusCommand } from "./handlers.js";
 
+// ============================================================================
+// COMMAND METADATA
+// ============================================================================
+
+/**
+ * Command metadata for centralized registry
+ * This allows the command to be automatically discovered and integrated
+ * into help system, command suggestions, and other features
+ * This is the single source of truth for command information
+ */
 export const metadata = {
   name: "voice-status",
   category: "admin",
@@ -15,7 +23,10 @@ export const metadata = {
   helpFields: [
     {
       name: `How to Use`,
-      value: "```/voice-status set channel:#voice-channel status:Gaming```",
+      value: [
+        "```/voice-status set channel:#voice-channel status:Gaming```",
+        "```/voice-status clear channel:#voice-channel```",
+      ].join("\n"),
       inline: false,
     },
     {
@@ -31,8 +42,21 @@ export const metadata = {
       value: "• **Manage Channel** permission required",
       inline: false,
     },
+    {
+      name: `What You'll See`,
+      value: [
+        "Voice channel status allows you to show what users are doing:",
+        "• Gaming, Music, AFK, LFG, etc.",
+        "• Shows in the voice channel name area",
+      ].join("\n"),
+      inline: false,
+    },
   ],
 };
+
+// ============================================================================
+// COMMAND DEFINITION
+// ============================================================================
 
 export const data = new SlashCommandBuilder()
   .setName(metadata.name)
@@ -67,6 +91,10 @@ export const data = new SlashCommandBuilder()
       ),
   );
 
+// ============================================================================
+// MAIN EXECUTION
+// ============================================================================
+
 export async function execute(interaction, _client) {
   const logger = getLogger();
 
@@ -82,56 +110,13 @@ export async function execute(interaction, _client) {
       );
     }
 
-    const subcommand = interaction.options.getSubcommand();
-    const channel = interaction.options.getChannel("channel");
-
-    if (channel.type !== 2 && channel.type !== 13) {
-      return interaction.reply(
-        errorEmbed({
-          title: "Invalid Channel",
-          description: "Please select a voice channel.",
-        }),
-      );
-    }
-
-    if (subcommand === "set") {
-      const status = interaction.options.getString("status");
-
-      if (status.length > 500) {
-        return interaction.reply(
-          errorEmbed({
-            title: "Status Too Long",
-            description: "Status must be 500 characters or less.",
-          }),
-        );
-      }
-
-      await channel.setVoiceStatus(status);
-
-      return interaction.reply(
-        successEmbed({
-          title: "Voice Status Set",
-          description: `Status set to: "${status}" for ${channel.name}`,
-        }),
-      );
-    }
-
-    if (subcommand === "clear") {
-      await channel.setVoiceStatus("");
-
-      return interaction.reply(
-        successEmbed({
-          title: "Voice Status Cleared",
-          description: `Status removed from ${channel.name}`,
-        }),
-      );
-    }
+    await handleVoiceStatusCommand(interaction);
   } catch (error) {
     logger.error("Error in voice-status command:", error);
     await interaction.reply(
       errorEmbed({
         title: "Error",
-        description: "Failed to set voice channel status.",
+        description: "Failed to process voice-status command.",
         solution: "Please try again or contact support if the issue persists.",
       }),
     );
