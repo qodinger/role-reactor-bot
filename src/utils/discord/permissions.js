@@ -47,6 +47,10 @@ export const BOT_PERMISSIONS = [
   PermissionFlagsBits.ManageChannels, // For ticket channel creation and management
   PermissionFlagsBits.ManageThreads, // For managing ticket threads
   PermissionFlagsBits.CreatePrivateThreads, // For creating private ticket threads
+  // Required as of February 23, 2026
+  PermissionFlagsBits.PinMessages, // For pinning messages (split from ManageMessages)
+  PermissionFlagsBits.CreateGuildExpressions, // For creating emoji/stickers (split from ManageGuildExpressions)
+  PermissionFlagsBits.CreateEvents, // For creating scheduled events (split from ManageEvents)
 ];
 
 /**

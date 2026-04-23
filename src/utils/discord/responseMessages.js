@@ -441,7 +441,7 @@ export function roleStatsEmbed({
 
 export function successEmbed({
   title,
-  description,
+  description = "Operation completed successfully.",
   solution = null,
   fields = [],
 }) {

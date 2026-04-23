@@ -23,3 +23,4 @@ export { TicketPanelRepository } from "./TicketPanelRepository.js";
 export { TicketTranscriptRepository } from "./TicketTranscriptRepository.js";
 export { NotificationRepository } from "./NotificationRepository.js";
 export { CustomCommandRepository } from "./CustomCommandRepository.js";
+export { AutomodRepository } from "./AutomodRepository.js";
