@@ -51,6 +51,8 @@ export const BOT_PERMISSIONS = [
   PermissionFlagsBits.PinMessages, // For pinning messages (split from ManageMessages)
   PermissionFlagsBits.CreateGuildExpressions, // For creating emoji/stickers (split from ManageGuildExpressions)
   PermissionFlagsBits.CreateEvents, // For creating scheduled events (split from ManageEvents)
+  // Voice channel status
+  PermissionFlagsBits.ManageChannels, // Required if not connected to voice channel
 ];
 
 /**
