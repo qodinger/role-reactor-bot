@@ -1,51 +1,79 @@
+import { EmbedBuilder } from "discord.js";
 import { getDatabaseManager } from "../../../utils/storage/databaseManager.js";
 import {
   successEmbed,
   errorEmbed,
 } from "../../../utils/discord/responseMessages.js";
 import { getPremiumManager } from "../../../features/premium/PremiumManager.js";
-import { CORE_STATUS } from "../../../features/premium/config.js";
+import { THEME } from "../../../config/theme.js";
+import { getMentionableCommand } from "../../../utils/commandUtils.js";
+import { createAutomodSettingsEmbed } from "./embeds.js";
+import { createAutomodSettingsComponents } from "./components.js";
 
-export async function handleToggle(interaction, settings) {
-  const { options, guildId } = interaction;
-  const enabled = options.getBoolean("enabled");
+export async function handleEnable(interaction, settings) {
+  const hasAnyFilterEnabled =
+    settings.badWords?.enabled ||
+    settings.links?.enabled ||
+    settings.spam?.enabled ||
+    settings.mentionSpam?.enabled ||
+    settings.inviteLink?.enabled;
 
-  const dbManager = await getDatabaseManager();
-  await dbManager.automod.set(guildId, { ...settings, enabled });
+  if (!hasAnyFilterEnabled) {
+    const response = errorEmbed({
+      title: "No Filters Enabled",
+      description:
+        "Enable at least one filter first using /automod <filter> toggle enabled:true",
+    });
+    return interaction.reply({ ...response, ephemeral: true });
+  }
 
   const response = successEmbed({
-    title: "Auto-Moderation Updated",
-    description: `Auto-moderation ${enabled ? "enabled" : "disabled"}!`,
+    title: "Auto-Mod Enabled",
+    description: "All configured filters are now active!",
   });
 
   return interaction.reply({ ...response, ephemeral: true });
 }
 
-export async function handleStatus(interaction, settings) {
-  const { isPro, allowedDomains } = await getDomainSettings(
+export async function handleDisable(interaction, settings) {
+  const { guildId } = interaction;
+
+  const dbManager = await getDatabaseManager();
+  await dbManager.automod.set(guildId, {
+    ...settings,
+    badWords: { ...settings.badWords, enabled: false },
+    links: { ...settings.links, enabled: false },
+    spam: { ...settings.spam, enabled: false },
+    mentionSpam: { ...settings.mentionSpam, enabled: false },
+    inviteLink: { ...settings.inviteLink, enabled: false },
+  });
+
+  const response = successEmbed({
+    title: "Auto-Mod Disabled",
+    description: "All filters have been disabled.",
+  });
+
+  return interaction.reply({ ...response, ephemeral: true });
+}
+
+export async function handleSettings(interaction, settings) {
+  const premiumManager = getPremiumManager();
+  const isPro = await premiumManager.isFeatureActive(
     interaction.guild.id,
-    settings,
+    "pro_engine",
   );
 
-  const status = [
-    `**Auto-Moderation Status**`,
-    `Global: ${settings.enabled ? "✅ Enabled" : "❌ Disabled"}`,
-    ``,
-    `**Bad Words:** ${settings.badWords?.enabled ? "✅ On" : "❌ Off"}`,
-    `Words: ${settings.badWords?.words?.join(", ") || "None"}`,
-    ``,
-    `**Links:** ${settings.links?.enabled ? "✅ On" : "❌ Off"}`,
-    `${isPro && allowedDomains?.length > 0 ? `Allowed Domains: ${allowedDomains.join(", ")}` : ""}`,
-    `${!isPro && settings.links?.enabled ? `🔒 Domain allowlisting: Pro only` : ""}`,
-    ``,
-    `**Spam:** ${settings.spam?.enabled ? "✅ On" : "❌ Off"}`,
-    `Threshold: ${settings.spam?.repeatedMessages || 3} messages`,
-  ]
-    .filter(Boolean)
-    .join("\n");
+  const embed = createAutomodSettingsEmbed(
+    settings,
+    isPro,
+    interaction.guild.name,
+    interaction.client,
+  );
+  const components = createAutomodSettingsComponents(settings);
 
   return interaction.reply({
-    content: status,
+    embeds: [embed],
+    components,
     ephemeral: true,
   });
 }
@@ -53,16 +81,43 @@ export async function handleStatus(interaction, settings) {
 export async function handleBadwordsToggle(interaction, settings) {
   const { options, guildId } = interaction;
   const enabled = options.getBoolean("enabled");
+  const action = options.getString("action");
+  const timeoutDuration = options.getInteger("timeout-duration");
+  const ignoreAdmins = options.getBoolean("ignore-admins");
+
+  const badwordsSettings = { ...settings.badWords, enabled };
+
+  if (action !== null) {
+    badwordsSettings.action = action;
+  }
+  if (timeoutDuration !== null) {
+    badwordsSettings.timeoutDuration = timeoutDuration;
+  }
+  if (ignoreAdmins !== null) {
+    badwordsSettings.ignoreAdmins = ignoreAdmins;
+  }
 
   const dbManager = await getDatabaseManager();
   await dbManager.automod.set(guildId, {
     ...settings,
-    badWords: { ...settings.badWords, enabled },
+    badWords: badwordsSettings,
   });
+
+  const parts = [];
+  parts.push(`Bad words filter ${enabled ? "enabled" : "disabled"}`);
+  if (action !== null) {
+    parts.push(`action: ${action}`);
+  }
+  if (timeoutDuration !== null) {
+    parts.push(`timeout: ${timeoutDuration}min`);
+  }
+  if (ignoreAdmins !== null) {
+    parts.push(`ignore-admins: ${ignoreAdmins ? "yes" : "no"}`);
+  }
 
   const response = successEmbed({
     title: "Bad Words Filter Updated",
-    description: `Bad words filter ${enabled ? "enabled" : "disabled"}!`,
+    description: parts.join(" | "),
   });
 
   return interaction.reply({ ...response, ephemeral: true });
@@ -92,66 +147,237 @@ export async function handleBadwordsWords(interaction, settings) {
 export async function handleLinksToggle(interaction, settings) {
   const { options, guildId } = interaction;
   const enabled = options.getBoolean("enabled");
+  const action = options.getString("action");
+  const timeoutDuration = options.getInteger("timeout-duration");
+  const ignoreAdmins = options.getBoolean("ignore-admins");
+
+  const linksSettings = { ...settings.links, enabled };
+
+  if (action !== null) {
+    linksSettings.action = action;
+  }
+  if (timeoutDuration !== null) {
+    linksSettings.timeoutDuration = timeoutDuration;
+  }
+  if (ignoreAdmins !== null) {
+    linksSettings.ignoreAdmins = ignoreAdmins;
+  }
 
   const dbManager = await getDatabaseManager();
   await dbManager.automod.set(guildId, {
     ...settings,
-    links: { ...settings.links, enabled },
+
+    links: linksSettings,
   });
 
-  const response = successEmbed({
-    title: "Link Filter Updated",
-    description: `Link filter ${enabled ? "enabled" : "disabled"}!`,
-  });
+  const parts = [];
+  parts.push(`Link filter ${enabled ? "enabled" : "disabled"}`);
+  if (action !== null) {
+    parts.push(`action: ${action}`);
+  }
+  if (timeoutDuration !== null) {
+    parts.push(`timeout: ${timeoutDuration}min`);
+  }
+  if (ignoreAdmins !== null) {
+    parts.push(`ignore-admins: ${ignoreAdmins ? "yes" : "no"}`);
+  }
 
-  return interaction.reply({ ...response, ephemeral: true });
+  const linkResponse = new EmbedBuilder()
+    .setTitle("Links Filter Updated")
+    .setColor(THEME.SUCCESS)
+    .setDescription(
+      `Filter ${enabled ? "enabled" : "disabled"}\n` + `${parts.join("\n")}`,
+    )
+    .setTimestamp();
+
+  if (enabled) {
+    const premiumManager = getPremiumManager();
+    const isPro = await premiumManager.isFeatureActive(guildId, "pro_engine");
+
+    if (!isPro) {
+      const warnEmbed = new EmbedBuilder()
+        .setTitle("Links Filter Warning")
+        .setColor(THEME.ERROR)
+        .setDescription(
+          "⚠️ **All links will be blocked!**\n\n" +
+            "Without allowed domains, members cannot share:\n" +
+            "• Discord invites\n" +
+            "• YouTube videos\n" +
+            "• Google links\n\n" +
+            "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n" +
+            "**Upgrade to Pro** to whitelist trusted domains\n" +
+            "**Or disable** using `/automod links toggle enabled:false`",
+        )
+        .setTimestamp();
+
+      return interaction.reply({ embeds: [warnEmbed], ephemeral: true });
+    }
+  }
+
+  return interaction.reply({ embeds: [linkResponse], ephemeral: true });
 }
 
 export async function handleSpamToggle(interaction, settings) {
   const { options, guildId } = interaction;
   const enabled = options.getBoolean("enabled");
+  const threshold = options.getInteger("threshold");
+  const action = options.getString("action");
+  const timeoutDuration = options.getInteger("timeout-duration");
+  const ignoreAdmins = options.getBoolean("ignore-admins");
+
+  const spamSettings = { ...settings.spam, enabled };
+
+  if (threshold !== null) {
+    spamSettings.repeatedMessages = threshold;
+  }
+  if (action !== null) {
+    spamSettings.action = action;
+  }
+  if (timeoutDuration !== null) {
+    spamSettings.timeoutDuration = timeoutDuration;
+  }
+  if (ignoreAdmins !== null) {
+    spamSettings.ignoreAdmins = ignoreAdmins;
+  }
 
   const dbManager = await getDatabaseManager();
   await dbManager.automod.set(guildId, {
     ...settings,
-    spam: { ...settings.spam, enabled },
+
+    spam: spamSettings,
   });
+
+  const parts = [];
+  parts.push(`Spam detection ${enabled ? "enabled" : "disabled"}`);
+  if (threshold !== null) {
+    parts.push(`threshold: ${threshold}`);
+  }
+  if (action !== null) {
+    parts.push(`action: ${action}`);
+  }
+  if (timeoutDuration !== null) {
+    parts.push(`timeout: ${timeoutDuration}min`);
+  }
+  if (ignoreAdmins !== null) {
+    parts.push(`ignore-admins: ${ignoreAdmins ? "yes" : "no"}`);
+  }
 
   const response = successEmbed({
     title: "Spam Detection Updated",
-    description: `Spam detection ${enabled ? "enabled" : "disabled"}!`,
+    description: parts.join(" | "),
   });
 
   return interaction.reply({ ...response, ephemeral: true });
 }
 
-async function getDomainSettings(guildId, settings) {
-  const premiumManager = getPremiumManager();
-  const isPro = await premiumManager.isFeatureActive(guildId, "pro_engine");
+export async function handleMentionSpamToggle(interaction, settings) {
+  const { options, guildId } = interaction;
+  const enabled = options.getBoolean("enabled");
+  const mentionCount = options.getInteger("mention-count");
+  const action = options.getString("action");
+  const timeoutDuration = options.getInteger("timeout-duration");
+  const ignoreAdmins = options.getBoolean("ignore-admins");
 
-  let allowedDomains = settings.links?.allowedDomains || [];
-  if (!isPro && allowedDomains.length > 0) {
-    allowedDomains = [];
+  const mentionSpamSettings = { ...settings.mentionSpam, enabled };
+
+  if (mentionCount !== null) {
+    mentionSpamSettings.mentionCount = mentionCount;
+  }
+  if (action !== null) {
+    mentionSpamSettings.action = action;
+  }
+  if (timeoutDuration !== null) {
+    mentionSpamSettings.timeoutDuration = timeoutDuration;
+  }
+  if (ignoreAdmins !== null) {
+    mentionSpamSettings.ignoreAdmins = ignoreAdmins;
   }
 
-  return { isPro, allowedDomains };
+  const dbManager = await getDatabaseManager();
+  await dbManager.automod.set(guildId, {
+    ...settings,
+
+    mentionSpam: mentionSpamSettings,
+  });
+
+  const parts = [];
+  parts.push(`Mention spam filter ${enabled ? "enabled" : "disabled"}`);
+  if (mentionCount !== null) {
+    parts.push(`mention count: ${mentionCount}`);
+  }
+  if (action !== null) {
+    parts.push(`action: ${action}`);
+  }
+  if (timeoutDuration !== null) {
+    parts.push(`timeout: ${timeoutDuration}min`);
+  }
+  if (ignoreAdmins !== null) {
+    parts.push(`ignore-admins: ${ignoreAdmins ? "yes" : "no"}`);
+  }
+
+  const response = successEmbed({
+    title: "Mention Spam Filter Updated",
+    description: parts.join(" | "),
+  });
+
+  return interaction.reply({ ...response, ephemeral: true });
+}
+
+export async function handleInviteToggle(interaction, settings) {
+  const { options, guildId } = interaction;
+  const enabled = options.getBoolean("enabled");
+  const action = options.getString("action");
+  const timeoutDuration = options.getInteger("timeout-duration");
+  const ignoreAdmins = options.getBoolean("ignore-admins");
+
+  const inviteSettings = { ...settings.inviteLink, enabled };
+
+  if (action !== null) {
+    inviteSettings.action = action;
+  }
+  if (timeoutDuration !== null) {
+    inviteSettings.timeoutDuration = timeoutDuration;
+  }
+  if (ignoreAdmins !== null) {
+    inviteSettings.ignoreAdmins = ignoreAdmins;
+  }
+
+  const dbManager = await getDatabaseManager();
+  await dbManager.automod.set(guildId, {
+    ...settings,
+
+    inviteLink: inviteSettings,
+  });
+
+  const parts = [];
+  parts.push(`Invite link filter ${enabled ? "enabled" : "disabled"}`);
+  if (action !== null) {
+    parts.push(`action: ${action}`);
+  }
+  if (timeoutDuration !== null) {
+    parts.push(`timeout: ${timeoutDuration}min`);
+  }
+  if (ignoreAdmins !== null) {
+    parts.push(`ignore-admins: ${ignoreAdmins ? "yes" : "no"}`);
+  }
+
+  const response = successEmbed({
+    title: "Invite Link Filter Updated",
+    description: parts.join(" | "),
+  });
+
+  return interaction.reply({ ...response, ephemeral: true });
 }
 
 export async function handleDomainsAdd(interaction, settings) {
   const { options, guildId } = interaction;
 
   const premiumManager = getPremiumManager();
-  const isPro = await premiumManager.isFeatureActive(guildId, "pro_engine");
+  const { isPro, response: proResponse } =
+    await premiumManager.checkProAndRespond(interaction, "Domain allowlisting");
 
   if (!isPro) {
-    const response = errorEmbed({
-      title: "Pro Engine Required",
-      description: `Domain allowlisting is a premium feature.`,
-      solution: `Enable ${CORE_STATUS.PRO.name} on our **[website](https://rolereactor.app)** using Cores to unlock this feature!`,
-      emoji: CORE_STATUS.PRO.emoji,
-      isPremium: true,
-    });
-    return interaction.reply({ ...response, ephemeral: true });
+    return interaction.reply({ ...proResponse, ephemeral: true });
   }
 
   const newDomains = options
@@ -169,29 +395,23 @@ export async function handleDomainsAdd(interaction, settings) {
     links: { ...settings.links, allowedDomains: combinedDomains },
   });
 
-  const response = successEmbed({
+  const successResponse = successEmbed({
     title: "Domains Added",
     description: `Added domains: ${newDomains.join(", ")}\nAllowed domains: ${combinedDomains.join(", ")}`,
   });
 
-  return interaction.reply({ ...response, ephemeral: true });
+  return interaction.reply({ ...successResponse, ephemeral: true });
 }
 
 export async function handleDomainsRemove(interaction, settings) {
   const { options, guildId } = interaction;
 
   const premiumManager = getPremiumManager();
-  const isPro = await premiumManager.isFeatureActive(guildId, "pro_engine");
+  const { isPro, response: proResponse } =
+    await premiumManager.checkProAndRespond(interaction, "Domain allowlisting");
 
   if (!isPro) {
-    const response = errorEmbed({
-      title: "Pro Engine Required",
-      description: `Domain allowlisting is a premium feature.`,
-      solution: `Enable ${CORE_STATUS.PRO.name} on our **[website](https://rolereactor.app)** using Cores to unlock this feature!`,
-      emoji: CORE_STATUS.PRO.emoji,
-      isPremium: true,
-    });
-    return interaction.reply({ ...response, ephemeral: true });
+    return interaction.reply({ ...proResponse, ephemeral: true });
   }
 
   const removeDomains = options
@@ -210,7 +430,7 @@ export async function handleDomainsRemove(interaction, settings) {
     links: { ...settings.links, allowedDomains: remainingDomains },
   });
 
-  const response = successEmbed({
+  const successResponse = successEmbed({
     title: "Domains Removed",
     description:
       removeDomains.length > 0
@@ -218,24 +438,18 @@ export async function handleDomainsRemove(interaction, settings) {
         : "No domains to remove.",
   });
 
-  return interaction.reply({ ...response, ephemeral: true });
+  return interaction.reply({ ...successResponse, ephemeral: true });
 }
 
 export async function handleDomainsClear(interaction, settings) {
   const { guildId } = interaction;
 
   const premiumManager = getPremiumManager();
-  const isPro = await premiumManager.isFeatureActive(guildId, "pro_engine");
+  const { isPro, response: proResponse } =
+    await premiumManager.checkProAndRespond(interaction, "Domain allowlisting");
 
   if (!isPro) {
-    const response = errorEmbed({
-      title: "Pro Engine Required",
-      description: `Domain allowlisting is a premium feature.`,
-      solution: `Enable ${CORE_STATUS.PRO.name} on our **[website](https://rolereactor.app)** using Cores to unlock this feature!`,
-      emoji: CORE_STATUS.PRO.emoji,
-      isPremium: true,
-    });
-    return interaction.reply({ ...response, ephemeral: true });
+    return interaction.reply({ ...proResponse, ephemeral: true });
   }
 
   const dbManager = await getDatabaseManager();
@@ -244,38 +458,32 @@ export async function handleDomainsClear(interaction, settings) {
     links: { ...settings.links, allowedDomains: [] },
   });
 
-  const response = successEmbed({
+  const successResponse = successEmbed({
     title: "Domains Cleared",
     description: "All allowed domains have been cleared.",
   });
 
-  return interaction.reply({ ...response, ephemeral: true });
+  return interaction.reply({ ...successResponse, ephemeral: true });
 }
 
 export async function handleDomainsList(interaction, settings) {
-  const { guildId } = interaction;
-
   const premiumManager = getPremiumManager();
-  const isPro = await premiumManager.isFeatureActive(guildId, "pro_engine");
+  const { isPro, response: proResponse } =
+    await premiumManager.checkProAndRespond(interaction, "Domain allowlisting");
 
   if (!isPro) {
-    const response = errorEmbed({
-      title: "Pro Engine Required",
-      description: `Domain allowlisting is a premium feature.`,
-      solution: `Enable ${CORE_STATUS.PRO.name} on our **[website](https://rolereactor.app)** using Cores to unlock this feature!`,
-      emoji: CORE_STATUS.PRO.emoji,
-      isPremium: true,
-    });
-    return interaction.reply({ ...response, ephemeral: true });
+    return interaction.reply({ ...proResponse, ephemeral: true });
   }
 
   const domains = settings.links?.allowedDomains || [];
+
+  const noDomainsMsg = `No domains in allowlist. Use ${getMentionableCommand(interaction.client, "automod domains add")} to add domains.`;
 
   return interaction.reply({
     content:
       domains.length > 0
         ? `**Allowed Domains:** ${domains.join(", ")}`
-        : "No domains in allowlist. Use `/automod domains add` to add domains.",
+        : noDomainsMsg,
     ephemeral: true,
   });
 }
@@ -296,12 +504,16 @@ export async function handleAutomodCommand(interaction) {
   const subcommand = options.getSubcommand();
   const subcommandGroup = options.getSubcommandGroup(false);
 
-  if (subcommand === "toggle" && !subcommandGroup) {
-    return handleToggle(interaction, settings);
+  if (subcommand === "settings") {
+    return handleSettings(interaction, settings);
   }
 
-  if (subcommand === "status") {
-    return handleStatus(interaction, settings);
+  if (subcommand === "enable") {
+    return handleEnable(interaction, settings);
+  }
+
+  if (subcommand === "disable") {
+    return handleDisable(interaction, settings);
   }
 
   if (subcommandGroup === "badwords") {
@@ -322,6 +534,18 @@ export async function handleAutomodCommand(interaction) {
   if (subcommandGroup === "spam") {
     if (subcommand === "toggle") {
       return handleSpamToggle(interaction, settings);
+    }
+  }
+
+  if (subcommandGroup === "mention-spam") {
+    if (subcommand === "toggle") {
+      return handleMentionSpamToggle(interaction, settings);
+    }
+  }
+
+  if (subcommandGroup === "invite") {
+    if (subcommand === "toggle") {
+      return handleInviteToggle(interaction, settings);
     }
   }
 

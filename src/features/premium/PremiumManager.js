@@ -73,6 +73,35 @@ export class PremiumManager {
   }
 
   /**
+   * Check Pro Engine status and return error embed if not active
+   * @param {import('discord.js').CommandInteraction} interaction
+   * @param {string} featureName - Name of the premium feature
+   * @returns {Promise<{isPro: boolean, response?: object}>}
+   */
+  async checkProAndRespond(interaction, featureName) {
+    const guildId = interaction.guildId;
+    const isPro = await this.isFeatureActive(guildId, "pro_engine");
+
+    if (isPro) {
+      return { isPro: true };
+    }
+
+    const { errorEmbed } =
+      await import("../../utils/discord/responseMessages.js");
+    const { CORE_STATUS } = await import("./config.js");
+
+    const response = errorEmbed({
+      title: "Pro Engine Required",
+      description: `${featureName} is a premium feature.`,
+      solution: `Enable ${CORE_STATUS.PRO.name} on our **[website](https://rolereactor.app)** to unlock this feature!`,
+      emoji: CORE_STATUS.PRO.emoji,
+      isPremium: true,
+    });
+
+    return { isPro: false, response };
+  }
+
+  /**
    * Activate a premium feature for a guild
    * @param {string} guildId - Discord guild ID
    * @param {string} featureId - Feature ID

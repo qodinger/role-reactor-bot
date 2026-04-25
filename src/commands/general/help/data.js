@@ -45,10 +45,6 @@ export function isCommandNew(createdAt) {
 // TAG GENERATION
 // ============================================================================
 
-// ============================================================================
-// TAG GENERATION
-// ============================================================================
-
 /**
  * Generate tags for commands using registry keywords
  * Tags are generated from command metadata keywords, which are the single source of truth

@@ -58,18 +58,4 @@ export const PREMIUM_FEATURES = [
     free: "Basic text transcripts",
     pro: "HTML/JSON exports, unlimited storage",
   },
-  {
-    command: "invite-roles",
-    name: "Invite Tracking",
-    emoji: "🎟️",
-    free: "Basic invites",
-    pro: "Advanced analytics & roles",
-  },
-  {
-    command: "voice-status",
-    name: "Voice Channel Status",
-    emoji: "🎤",
-    free: "Standard status",
-    pro: "Custom statuses & branding",
-  },
 ];

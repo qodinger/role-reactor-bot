@@ -2,6 +2,7 @@ import { Events } from "discord.js";
 import { getLogger } from "../utils/logger.js";
 import { getDatabaseManager } from "../utils/storage/databaseManager.js";
 import { getPremiumManager } from "../features/premium/PremiumManager.js";
+import { hasAdminPermissions } from "../utils/discord/permissions.js";
 
 const logger = getLogger();
 
@@ -23,7 +24,20 @@ export async function execute(message, client) {
     if (!dbManager?.automod) return;
 
     const settings = await dbManager.automod.getByGuild(guildId);
-    if (!settings || !settings.enabled) return;
+    if (!settings) return;
+
+    const hasAnyFilterEnabled =
+      settings.badWords?.enabled ||
+      settings.links?.enabled ||
+      settings.spam?.enabled ||
+      settings.mentionSpam?.enabled ||
+      settings.inviteLink?.enabled;
+
+    if (!hasAnyFilterEnabled) return;
+
+    logger.debug(
+      `[Automod] ${message.guild.name}: filters active - badwords:${settings.badWords?.enabled} links:${settings.links?.enabled} spam:${settings.spam?.enabled}`,
+    );
 
     const premiumManager = getPremiumManager();
     const isPro = await premiumManager.isFeatureActive(guildId, "pro_engine");
@@ -40,13 +54,18 @@ export async function execute(message, client) {
           type: "bad_words",
           action: settings.badWords.action,
           duration: settings.badWords.timeoutDuration,
+          ignoreAdmins: settings.badWords.ignoreAdmins,
         });
       }
     }
 
     if (settings.links?.enabled && settings.links.blockUrls) {
-      const urlRegex = /(https?:\/\/[^\s]+)/g;
+      const urlRegex = /(https?:\/\/[^\s]+)/i;
       const hasLink = urlRegex.test(message.content);
+
+      logger.debug(
+        `[Automod] Checking links in ${message.guild.name} by ${message.author.tag}: hasLink=${hasLink}, message.content.length=${message.content?.length}, content: |${message.content}|`,
+      );
 
       if (hasLink) {
         const shouldBlock =
@@ -54,10 +73,15 @@ export async function execute(message, client) {
             ? true
             : !containsAllowedDomain(message.content, allowedDomains);
 
+        logger.debug(
+          `[Automod] Link detected in ${message.guild.name} by ${message.author.tag}: shouldBlock=${shouldBlock}, allowedDomains=${allowedDomains.length}`,
+        );
+
         if (shouldBlock) {
           violations.push({
             type: "link",
             action: settings.links.action,
+            ignoreAdmins: settings.links.ignoreAdmins,
           });
         }
       }
@@ -81,6 +105,10 @@ export async function execute(message, client) {
         userMessages.shift();
       }
 
+      if (userMessages.length === 0) {
+        messageHistory.delete(key);
+      }
+
       const duplicateCount = userMessages.filter(
         m => m.content === message.content,
       ).length;
@@ -90,6 +118,34 @@ export async function execute(message, client) {
           type: "spam",
           action: settings.spam.action,
           duration: settings.spam.timeoutDuration,
+          ignoreAdmins: settings.spam.ignoreAdmins,
+        });
+      }
+    }
+
+    if (settings.mentionSpam?.enabled) {
+      const mentions =
+        message.mentions.users.size + message.mentions.roles.size;
+      if (mentions >= settings.mentionSpam.mentionCount) {
+        violations.push({
+          type: "mention_spam",
+          action: settings.mentionSpam.action,
+          duration: settings.mentionSpam.timeoutDuration,
+          ignoreAdmins: settings.mentionSpam.ignoreAdmins,
+        });
+      }
+    }
+
+    if (settings.inviteLink?.enabled) {
+      const inviteRegex = /(discord\.(gg|com\/invite)\/[\w-]+)/gi;
+      const hasInvite = inviteRegex.test(message.content);
+
+      if (hasInvite) {
+        violations.push({
+          type: "invite_link",
+          action: settings.inviteLink.action,
+          duration: settings.inviteLink.timeoutDuration,
+          ignoreAdmins: settings.inviteLink.ignoreAdmins,
         });
       }
     }
@@ -129,17 +185,34 @@ function containsAllowedDomain(message, allowedDomains) {
 }
 
 async function handleViolation(message, violation) {
-  const { member, author } = message;
+  const { member, author, guild } = message;
+
+  const isAdmin = hasAdminPermissions(member);
+
+  if (violation.ignoreAdmins && isAdmin) {
+    await message.delete().catch(() => {});
+    try {
+      await author.send({
+        content: `⚠️ Your message was deleted in ${guild.name} but admins are ignored.`,
+      });
+    } catch {}
+    await logAutomodAction(
+      message,
+      "Admin ignored - message deleted",
+      violation.type,
+    );
+    return;
+  }
 
   try {
     switch (violation.type) {
       case "bad_words":
         await message.delete().catch(() => {});
 
-        if (violation.action === "warn" || violation.action === "timeout") {
+        if (violation.action === "timeout") {
           if (member) {
             await member.timeout(
-              violation.duration * 1000,
+              violation.duration * 60 * 1000,
               "Automod: Bad word detected",
             );
           }
@@ -147,7 +220,7 @@ async function handleViolation(message, violation) {
 
         try {
           await author.send({
-            content: `⚠️ Your message was deleted in ${message.guild.name} for containing inappropriate content.`,
+            content: `⚠️ Your message was deleted in ${guild.name} for containing inappropriate content.`,
           });
         } catch {}
 
@@ -156,6 +229,15 @@ async function handleViolation(message, violation) {
 
       case "link":
         await message.delete().catch(() => {});
+
+        if (violation.action === "timeout") {
+          if (member) {
+            await member.timeout(
+              violation.duration * 60 * 1000,
+              "Automod: Link detected",
+            );
+          }
+        }
 
         try {
           await author.send({
@@ -167,14 +249,64 @@ async function handleViolation(message, violation) {
         break;
 
       case "spam":
+        await message.delete().catch(() => {});
+
         if (violation.action === "timeout" && member) {
           await member.timeout(
-            violation.duration * 1000,
+            violation.duration * 60 * 1000,
             "Automod: Spam detected",
           );
         }
 
+        try {
+          await author.send({
+            content: `⚠️ Your message was deleted in ${message.guild.name} for spam.`,
+          });
+        } catch {}
+
         await logAutomodAction(message, "Spam detected", violation.type);
+        break;
+
+      case "mention_spam":
+        await message.delete().catch(() => {});
+
+        if (violation.action === "timeout" && member) {
+          await member.timeout(
+            violation.duration * 60 * 1000,
+            "Automod: Mention spam detected",
+          );
+        }
+
+        try {
+          await author.send({
+            content: `⚠️ Your message was deleted in ${message.guild.name} for excessive mentions.`,
+          });
+        } catch {}
+
+        await logAutomodAction(
+          message,
+          "Mention spam detected",
+          violation.type,
+        );
+        break;
+
+      case "invite_link":
+        await message.delete().catch(() => {});
+
+        if (violation.action === "timeout" && member) {
+          await member.timeout(
+            violation.duration * 60 * 1000,
+            "Automod: Invite link detected",
+          );
+        }
+
+        try {
+          await author.send({
+            content: `⚠️ Your message was deleted in ${message.guild.name} for posting an invite link.`,
+          });
+        } catch {}
+
+        await logAutomodAction(message, "Invite link detected", violation.type);
         break;
     }
   } catch (error) {
