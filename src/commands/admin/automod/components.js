@@ -1,60 +1,31 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
 
 export function createAutomodSettingsComponents(settings) {
-  const hasAnyFilter =
-    settings.badWords?.enabled ||
-    settings.links?.enabled ||
-    settings.spam?.enabled ||
-    settings.mentionSpam?.enabled ||
-    settings.inviteLink?.enabled;
+  const createToggle = (customId, label, enabled) =>
+    new ButtonBuilder()
+      .setCustomId(customId)
+      .setLabel(label)
+      .setStyle(enabled ? ButtonStyle.Secondary : ButtonStyle.Primary);
 
-  const row1 = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId("automod_toggle_all")
-      .setLabel(hasAnyFilter ? "Disable All" : "Enable All")
-      .setStyle(hasAnyFilter ? ButtonStyle.Secondary : ButtonStyle.Primary),
-    new ButtonBuilder()
-      .setCustomId("automod_badwords_toggle")
-      .setLabel(settings.badWords?.enabled ? "Bad Words: On" : "Bad Words: Off")
-      .setStyle(
-        settings.badWords?.enabled
-          ? ButtonStyle.Secondary
-          : ButtonStyle.Primary,
+  return [
+    new ActionRowBuilder().addComponents(
+      createToggle(
+        "automod_badwords_toggle",
+        "Bad Words",
+        settings.badWords?.enabled,
       ),
-    new ButtonBuilder()
-      .setCustomId("automod_links_toggle")
-      .setLabel(settings.links?.enabled ? "Links: On" : "Links: Off")
-      .setStyle(
-        settings.links?.enabled ? ButtonStyle.Secondary : ButtonStyle.Primary,
+      createToggle("automod_links_toggle", "Links", settings.links?.enabled),
+      createToggle("automod_spam_toggle", "Spam", settings.spam?.enabled),
+      createToggle(
+        "automod_mention_spam_toggle",
+        "Mentions",
+        settings.mentionSpam?.enabled,
       ),
-  );
-
-  const row2 = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId("automod_spam_toggle")
-      .setLabel(settings.spam?.enabled ? "Spam: On" : "Spam: Off")
-      .setStyle(
-        settings.spam?.enabled ? ButtonStyle.Secondary : ButtonStyle.Primary,
+      createToggle(
+        "automod_invite_toggle",
+        "Invites",
+        settings.inviteLink?.enabled,
       ),
-    new ButtonBuilder()
-      .setCustomId("automod_mention_spam_toggle")
-      .setLabel(
-        settings.mentionSpam?.enabled ? "Mentions: On" : "Mentions: Off",
-      )
-      .setStyle(
-        settings.mentionSpam?.enabled
-          ? ButtonStyle.Secondary
-          : ButtonStyle.Primary,
-      ),
-    new ButtonBuilder()
-      .setCustomId("automod_invite_toggle")
-      .setLabel(settings.inviteLink?.enabled ? "Invites: On" : "Invites: Off")
-      .setStyle(
-        settings.inviteLink?.enabled
-          ? ButtonStyle.Secondary
-          : ButtonStyle.Primary,
-      ),
-  );
-
-  return [row1, row2];
+    ),
+  ];
 }

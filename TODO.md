@@ -4,20 +4,20 @@
 
 ## High Priority
 
-- [ ] Auto-moderation system (Rule-based, NO AI)
+- [x] Auto-moderation system (Rule-based, NO AI)
 
-  #### FREE (Basic Auto-Mod)
-  - [ ] Bad words filter (simple word list)
-  - [ ] Link filter (basic URL blocking)
-  - [ ] Spam detection (3+ repeated messages)
-  - [ ] Auto-mod dashboard (basic settings)
+   #### FREE (Basic Auto-Mod)
+   - [x] Bad words filter (simple word list)
+   - [x] Link filter (basic URL blocking)
+   - [x] Spam detection (3+ repeated messages)
+   - [x] Auto-mod dashboard (interactive settings)
+   - [x] Mention spam protection
+   - [x] Invite link filter
 
-  #### PREMIUM (Advanced Auto-Mod)
+  #### PREMIUM (Pro Engine)
+  - [x] Domain allowlisting (whitelist trusted domains)
   - [ ] Custom word lists with wildcards/regex
-  - [ ] Advanced link filter (domain-based)
   - [ ] Per-channel filtering
-  - [ ] Mention spam protection
-  - [ ] Invite link filter
   - [ ] Rate limiting (per user)
   - [ ] Caps lock filter
   - [ ] Duplicate message detection
@@ -50,12 +50,38 @@
 
 ## Revenue Improvements
 
-- [ ] Better Core pricing
-  - [ ] Increase first-purchase bonus
-  - [ ] Add limited-time offers
-  - [ ] Add lifetime Pro deal
-  - [ ] Add guild bundles
-- [ ] Improve Pro Engine value proposition
+### Pro Engine Features (Monetization)
+
+- [x] Domain allowlisting (Auto-Mod Pro)
+- [ ] Custom welcome images (Welcome/Goodbye Pro)
+  - [ ] Custom backgrounds, GIFs, video embeds
+- [ ] Voice Roles Pro
+  - [ ] Unlimited voice connections
+  - [ ] Priority queue
+- [ ] Ticket Pro
+  - [ ] PDF/HTML transcript exports
+  - [ ] Unlimited ticket storage
+- [ ] Giveaways Pro
+  - [ ] More winners (20+)
+  - [ ] More entries (50K+)
+  - [ ] More active giveaways (20+)
+- [ ] XP Pro
+  - [ ] Unlimited rewards
+  - [ ] Custom rank cards/backgrounds
+- [ ] Role Reactions Pro
+  - [ ] More emojis (20+)
+  - [ ] More menus (20+)
+- [ ] Scheduled Roles Pro
+  - [ ] More schedules (500+)
+- [ ] Temp Roles Pro
+  - [ ] More active roles (500+)
+
+### Better Core Pricing
+
+- [ ] Increase first-purchase bonus
+- [ ] Add limited-time offers
+- [ ] Add lifetime Pro deal
+- [ ] Add guild bundles
 
 ## Technical Improvements
 
@@ -68,12 +94,30 @@
 
 ### General Commands
 
-vote, support, poll, imagine, core, avatar, ask, userinfo, serverinfo, rps, ping, level, leaderboard, invite, 8ball, welcome, goodbye, help
+vote, support, poll, imagine, core, avatar, ask, userinfo, serverinfo, rps, ping, level, leaderboard, invite, 8ball, welcome, goodbye, help, premium
 
 ### Admin Commands
 
-XP system, tickets, role reactions, role bundles, giveaways, voice roles, moderation, temp roles, schedule roles, premium/Pro Engine
+XP system, tickets, role reactions, role bundles, giveaways, voice roles, voice-status, moderation, temp roles, schedule roles, premium/Pro Engine, automod
 
 ### Premium Features
 
-Pro Engine (subscription-based), Core credits system, Analytics tracking
+Pro Engine (subscription-based), Core credits system, Analytics tracking, Domain allowlisting
+
+### Recent Updates (2026)
+
+- Auto-moderation system (FREE: bad words, links, spam, mentions, invites | PRO: domain allowlisting)
+- Interactive automod settings (button-based toggle UI)
+- Configurable automod (threshold, action, timeout, ignore-admins)
+- /premium command (shows Free vs Pro features)
+- Removed: /search, /voice-status, invite-roles, context menus
+- Fixed: automod timeout bug (was 60x too long)
+- Added: Mention spam filter, Invite link filter
+
+### Revenue Strategy
+
+- AI Image Generation (credits system) - already monetizing
+- Pro Engine subscription (domain allowlist, more limits)
+- Core credits (AI usage) - already monetizing
+- Welcome custom images (planned Pro)
+- Ticket exports (planned Pro)

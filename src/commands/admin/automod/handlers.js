@@ -11,25 +11,21 @@ import { createAutomodSettingsEmbed } from "./embeds.js";
 import { createAutomodSettingsComponents } from "./components.js";
 
 export async function handleEnable(interaction, settings) {
-  const hasAnyFilterEnabled =
-    settings.badWords?.enabled ||
-    settings.links?.enabled ||
-    settings.spam?.enabled ||
-    settings.mentionSpam?.enabled ||
-    settings.inviteLink?.enabled;
+  const { guildId } = interaction;
 
-  if (!hasAnyFilterEnabled) {
-    const response = errorEmbed({
-      title: "No Filters Enabled",
-      description:
-        "Enable at least one filter first using /automod <filter> toggle enabled:true",
-    });
-    return interaction.reply({ ...response, ephemeral: true });
-  }
+  const dbManager = await getDatabaseManager();
+  await dbManager.automod.set(guildId, {
+    ...settings,
+    badWords: { ...settings.badWords, enabled: true },
+    links: { ...settings.links, enabled: true },
+    spam: { ...settings.spam, enabled: true },
+    mentionSpam: { ...settings.mentionSpam, enabled: true },
+    inviteLink: { ...settings.inviteLink, enabled: true },
+  });
 
   const response = successEmbed({
     title: "Auto-Mod Enabled",
-    description: "All configured filters are now active!",
+    description: "All filters are now active!",
   });
 
   return interaction.reply({ ...response, ephemeral: true });
@@ -221,6 +217,7 @@ export async function handleSpamToggle(interaction, settings) {
   const { options, guildId } = interaction;
   const enabled = options.getBoolean("enabled");
   const threshold = options.getInteger("threshold");
+  const rateThreshold = options.getInteger("rate-threshold");
   const action = options.getString("action");
   const timeoutDuration = options.getInteger("timeout-duration");
   const ignoreAdmins = options.getBoolean("ignore-admins");
@@ -229,6 +226,9 @@ export async function handleSpamToggle(interaction, settings) {
 
   if (threshold !== null) {
     spamSettings.repeatedMessages = threshold;
+  }
+  if (rateThreshold !== null) {
+    spamSettings.rateThreshold = rateThreshold;
   }
   if (action !== null) {
     spamSettings.action = action;

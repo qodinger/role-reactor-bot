@@ -7,12 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Security
+### Added
 
-- **Safer Data Storage**: Your email address is now encrypted when stored, protecting your personal information
-- **Better Session Security**: Improved login security with automatic timeout and protection against unauthorized access
-- **Streamlined Login**: Faster login process with improved security verification
-- **Profile Access**: View your account details including your email in your profile settings
+- **Auto-Moderation System**: Comprehensive FREE auto-mod to keep your server safe:
+  - **Bad Words**: Filter custom words or phrases from chat
+  - **Links**: Block unwanted URLs with optional domain allowlisting (Pro)
+  - **Spam Detection**: Catch repeated messages and spam behavior
+  - **Mention Spam**: Prevent excessive @mentions
+  - **Invite Links**: Block Discord invite links
+  - All filters support customizable actions (delete/warn/timeout) and durations
+- **Timeout List**: New `/moderation timeouts` command to easily see all currently timed out members in your server
 
 ## [1.7.1] - 2026-04-01
 

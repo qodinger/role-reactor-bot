@@ -48,6 +48,7 @@ export class AutomodRepository extends BaseRepository {
       spam: {
         enabled: false,
         repeatedMessages: 3,
+        rateThreshold: 5,
         action: "timeout",
         timeoutDuration: 5,
         ignoreAdmins: false,

@@ -224,10 +224,28 @@ export async function routeButtonInteraction(interaction, _client) {
       }
 
       // Auto-mod system buttons
+      case "automod_configure": {
+        const { handleAutomodConfigure } =
+          await import("../../../commands/admin/automod/buttonHandlers.js");
+        await handleAutomodConfigure(interaction);
+        break;
+      }
+      case "automod_back": {
+        const { handleAutomodBack } =
+          await import("../../../commands/admin/automod/buttonHandlers.js");
+        await handleAutomodBack(interaction);
+        break;
+      }
       case "automod_toggle_all": {
         const { handleAutomodToggleAll } =
           await import("../../../commands/admin/automod/buttonHandlers.js");
         await handleAutomodToggleAll(interaction);
+        break;
+      }
+      case "automod_toggle_all_off": {
+        const { handleAutomodToggleAllOff } =
+          await import("../../../commands/admin/automod/buttonHandlers.js");
+        await handleAutomodToggleAllOff(interaction);
         break;
       }
       case "automod_badwords_toggle": {
@@ -465,6 +483,10 @@ export async function routeButtonInteraction(interaction, _client) {
           const { handleHelpInteraction } =
             await import("../handlers/helpHandlers.js");
           await handleHelpInteraction(interaction);
+        } else if (customId.startsWith("automod_configure_")) {
+          const { handleAutomodConfigureButton } =
+            await import("../../../commands/admin/automod/buttonHandlers.js");
+          await handleAutomodConfigureButton(interaction);
         } else {
           logger.debug(`Unknown button interaction: ${customId}`);
         }

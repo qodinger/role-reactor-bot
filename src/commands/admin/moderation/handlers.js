@@ -1630,3 +1630,68 @@ export async function handleListBans(interaction, _client) {
     await interaction.editReply({ embeds: [embed] });
   }
 }
+
+/**
+ * Handle list-timeouts subcommand
+ * @param {import('discord.js').ChatInputCommandInteraction} interaction
+ * @param {import('discord.js').Client} _client
+ */
+export async function handleListTimeouts(interaction, _client) {
+  try {
+    const botMember = interaction.guild.members.me;
+    if (!botMember.permissions.has(PermissionFlagsBits.ModerateMembers)) {
+      const embed = createModerationErrorEmbed(
+        "Missing Bot Permissions",
+        "I need the `Moderate Members` permission to view timed out members.",
+        "Please grant me the `Moderate Members` permission in Server Settings → Roles",
+      );
+      return interaction.editReply({ embeds: [embed] });
+    }
+
+    const members = await interaction.guild.members.fetch();
+    const timedOutMembers = members.filter(
+      member =>
+        member.communicationDisabledUntil !== null &&
+        member.communicationDisabledUntil > new Date(),
+    );
+
+    const timedOutArray = Array.from(timedOutMembers.values());
+    timedOutArray.sort((a, b) => a.user.tag.localeCompare(b.user.tag));
+
+    if (timedOutArray.length === 0) {
+      const embed = new EmbedBuilder()
+        .setTitle("No Active Timeouts")
+        .setDescription("There are no members currently timed out.")
+        .setColor(THEME.SUCCESS);
+      return interaction.editReply({ embeds: [embed] });
+    }
+
+    const embed = new EmbedBuilder()
+      .setTitle(`⏱️ Active Timeouts (${timedOutArray.length})`)
+      .setColor(THEME.PRIMARY)
+      .setTimestamp();
+
+    for (const member of timedOutArray) {
+      const timeRemaining = member.communicationDisabledUntil - new Date();
+      const minutesLeft = Math.ceil(timeRemaining / 60000);
+      embed.addFields({
+        name: member.user.tag,
+        value: `${minutesLeft} minute${minutesLeft !== 1 ? "s" : ""} remaining`,
+        inline: true,
+      });
+    }
+
+    await interaction.editReply({ embeds: [embed] });
+
+    logger.info(
+      `⏱️ Timeouts list viewed by ${interaction.user.tag} - ${timedOutArray.length} timed out`,
+    );
+  } catch (error) {
+    logger.error("Error handling list-timeouts:", error);
+    const embed = createModerationErrorEmbed(
+      "List Timeouts Failed",
+      error.message || "An error occurred while fetching timed out members.",
+    );
+    await interaction.editReply({ embeds: [embed] });
+  }
+}

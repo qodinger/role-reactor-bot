@@ -200,6 +200,14 @@ export const data = new SlashCommandBuilder()
               .setMaxValue(10)
               .setRequired(false),
           )
+          .addIntegerOption(opt =>
+            opt
+              .setName("rate-threshold")
+              .setDescription("Messages per 5s to trigger spam (3-10)")
+              .setMinValue(3)
+              .setMaxValue(10)
+              .setRequired(false),
+          )
           .addStringOption(opt =>
             opt
               .setName("action")

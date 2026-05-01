@@ -36,7 +36,7 @@ export async function execute(message, client) {
     if (!hasAnyFilterEnabled) return;
 
     logger.debug(
-      `[Automod] ${message.guild.name}: filters active - badwords:${settings.badWords?.enabled} links:${settings.links?.enabled} spam:${settings.spam?.enabled}`,
+      `[Automod] ${message.guild.name}: filters active - badwords:${settings.badWords?.enabled} links:${settings.links?.enabled} spam:${settings.spam?.enabled} mentions:${settings.mentionSpam?.enabled} invites:${settings.inviteLink?.enabled}`,
     );
 
     const premiumManager = getPremiumManager();
@@ -48,6 +48,9 @@ export async function execute(message, client) {
     if (settings.badWords?.enabled && settings.badWords.words?.length > 0) {
       const hasBadWord = settings.badWords.words.some(word =>
         message.content.toLowerCase().includes(word.toLowerCase()),
+      );
+      logger.debug(
+        `[Automod] Checking badwords: hasBadWord=${hasBadWord}, words=${settings.badWords.words.join(", ")}`,
       );
       if (hasBadWord) {
         violations.push({
@@ -81,6 +84,7 @@ export async function execute(message, client) {
           violations.push({
             type: "link",
             action: settings.links.action,
+            duration: settings.links.timeoutDuration,
             ignoreAdmins: settings.links.ignoreAdmins,
           });
         }
@@ -90,26 +94,37 @@ export async function execute(message, client) {
     if (settings.spam?.enabled) {
       const key = `${guildId}:${userId}`;
       if (!messageHistory.has(key)) {
-        messageHistory.set(key, []);
+        messageHistory.set(key, {
+          messages: [],
+          recentCount: 0,
+        });
       }
-      const userMessages = messageHistory.get(key);
-      userMessages.push({
+      const userData = messageHistory.get(key);
+      const now = Date.now();
+
+      userData.messages.push({
         content: message.content,
-        time: Date.now(),
+        time: now,
       });
 
+      userData.recentCount++;
+
+      logger.debug(
+        `[Automod] Checking spam: queued messages=${userData.messages.length}, recentCount=${userData.recentCount}`,
+      );
+
       while (
-        userMessages.length > 0 &&
-        userMessages[0].time < Date.now() - 5000
+        userData.messages.length > 0 &&
+        userData.messages[0].time < now - 5000
       ) {
-        userMessages.shift();
+        userData.messages.shift();
       }
 
-      if (userMessages.length === 0) {
-        messageHistory.delete(key);
+      if (userData.messages.length === 0) {
+        userData.recentCount = 0;
       }
 
-      const duplicateCount = userMessages.filter(
+      const duplicateCount = userData.messages.filter(
         m => m.content === message.content,
       ).length;
 
@@ -120,12 +135,31 @@ export async function execute(message, client) {
           duration: settings.spam.timeoutDuration,
           ignoreAdmins: settings.spam.ignoreAdmins,
         });
+        logger.debug(
+          `[Automod] Spam triggered: duplicateCount=${duplicateCount}`,
+        );
+      }
+
+      if (userData.recentCount >= (settings.spam.rateThreshold || 5)) {
+        violations.push({
+          type: "spam",
+          action: settings.spam.action,
+          duration: settings.spam.timeoutDuration,
+          ignoreAdmins: settings.spam.ignoreAdmins,
+        });
+        logger.debug(
+          `[Automod] Rate limit triggered: recentCount=${userData.recentCount}, threshold=${settings.spam.rateThreshold || 5}`,
+        );
+        userData.recentCount = 0;
       }
     }
 
     if (settings.mentionSpam?.enabled) {
       const mentions =
         message.mentions.users.size + message.mentions.roles.size;
+      logger.debug(
+        `[Automod] Checking mentions: count=${mentions}, threshold=${settings.mentionSpam.mentionCount}`,
+      );
       if (mentions >= settings.mentionSpam.mentionCount) {
         violations.push({
           type: "mention_spam",
@@ -139,6 +173,7 @@ export async function execute(message, client) {
     if (settings.inviteLink?.enabled) {
       const inviteRegex = /(discord\.(gg|com\/invite)\/[\w-]+)/gi;
       const hasInvite = inviteRegex.test(message.content);
+      logger.debug(`[Automod] Checking invites: hasInvite=${hasInvite}`);
 
       if (hasInvite) {
         violations.push({
