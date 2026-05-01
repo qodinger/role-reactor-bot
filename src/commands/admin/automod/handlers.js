@@ -369,6 +369,68 @@ export async function handleInviteToggle(interaction, settings) {
   return interaction.reply({ ...response, ephemeral: true });
 }
 
+export async function handleCapsLockToggle(interaction, settings) {
+  const { options, guildId } = interaction;
+
+  const premiumManager = getPremiumManager();
+  const { isPro, response: proResponse } =
+    await premiumManager.checkProAndRespond(interaction, "Caps Lock filter");
+
+  if (!isPro) {
+    return interaction.reply({ ...proResponse, ephemeral: true });
+  }
+
+  const enabled = options.getBoolean("enabled");
+  const threshold = options.getInteger("threshold");
+  const minLength = options.getInteger("min-length");
+  const action = options.getString("action");
+  const timeoutDuration = options.getInteger("timeout-duration");
+  const ignoreAdmins = options.getBoolean("ignore-admins");
+
+  const capsLockSettings = { ...settings.capsLock, enabled };
+
+  if (threshold !== null) {
+    capsLockSettings.threshold = threshold;
+  }
+  if (minLength !== null) {
+    capsLockSettings.minLength = minLength;
+  }
+  if (action !== null) {
+    capsLockSettings.action = action;
+  }
+  if (timeoutDuration !== null) {
+    capsLockSettings.timeoutDuration = timeoutDuration;
+  }
+  if (ignoreAdmins !== null) {
+    capsLockSettings.ignoreAdmins = ignoreAdmins;
+  }
+
+  const dbManager = await getDatabaseManager();
+  await dbManager.automod.set(guildId, {
+    ...settings,
+    capsLock: capsLockSettings,
+  });
+
+  const parts = [];
+  parts.push(`Caps lock filter ${enabled ? "enabled" : "disabled"}`);
+  if (threshold !== null) {
+    parts.push(`threshold: ${threshold}%`);
+  }
+  if (minLength !== null) {
+    parts.push(`min-length: ${minLength}`);
+  }
+  if (action !== null) {
+    parts.push(`action: ${action}`);
+  }
+
+  const response = successEmbed({
+    title: "Caps Lock Filter Updated (Pro)",
+    description: parts.join(" | "),
+  });
+
+  return interaction.reply({ ...response, ephemeral: true });
+}
+
 export async function handleDomainsAdd(interaction, settings) {
   const { options, guildId } = interaction;
 
@@ -546,6 +608,12 @@ export async function handleAutomodCommand(interaction) {
   if (subcommandGroup === "invite") {
     if (subcommand === "toggle") {
       return handleInviteToggle(interaction, settings);
+    }
+  }
+
+  if (subcommandGroup === "caps-lock") {
+    if (subcommand === "toggle") {
+      return handleCapsLockToggle(interaction, settings);
     }
   }
 

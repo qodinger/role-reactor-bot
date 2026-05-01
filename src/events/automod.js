@@ -36,7 +36,7 @@ export async function execute(message, client) {
     if (!hasAnyFilterEnabled) return;
 
     logger.debug(
-      `[Automod] ${message.guild.name}: filters active - badwords:${settings.badWords?.enabled} links:${settings.links?.enabled} spam:${settings.spam?.enabled} mentions:${settings.mentionSpam?.enabled} invites:${settings.inviteLink?.enabled}`,
+      `[Automod] ${message.guild.name}: filters active - badwords:${settings.badWords?.enabled} links:${settings.links?.enabled} spam:${settings.spam?.enabled} mentions:${settings.mentionSpam?.enabled} invites:${settings.inviteLink?.enabled} caps:${settings.capsLock?.enabled}`,
     );
 
     const premiumManager = getPremiumManager();
@@ -182,6 +182,33 @@ export async function execute(message, client) {
           duration: settings.inviteLink.timeoutDuration,
           ignoreAdmins: settings.inviteLink.ignoreAdmins,
         });
+      }
+    }
+
+    if (settings.capsLock?.enabled) {
+      const content = message.content;
+      const threshold = settings.capsLock.threshold || 70;
+      const minLength = settings.capsLock.minLength || 10;
+
+      if (content.length >= minLength) {
+        const letters = content.replace(/[^a-zA-Z]/g, "");
+        const caps = content.replace(/[^A-Z]/g, "");
+
+        if (letters.length > 0) {
+          const capsPercentage = (caps.length / letters.length) * 100;
+          logger.debug(
+            `[Automod] Checking caps: capsPercentage=${capsPercentage.toFixed(1)}%, threshold=${threshold}`,
+          );
+
+          if (capsPercentage >= threshold) {
+            violations.push({
+              type: "caps_lock",
+              action: settings.capsLock.action,
+              duration: settings.capsLock.timeoutDuration,
+              ignoreAdmins: settings.capsLock.ignoreAdmins,
+            });
+          }
+        }
       }
     }
 

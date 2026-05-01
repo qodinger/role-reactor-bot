@@ -57,6 +57,7 @@ export const metadata = {
         "**domains add** - Allowlist domains (links from these domains are allowed)",
         "**domains remove** - Remove domains from allowlist",
         "**domains clear** - Clear all allowed domains",
+        "**caps-lock toggle** - Block messages that are mostly CAPS",
       ].join("\n"),
       inline: false,
     },
@@ -335,6 +336,62 @@ export const data = new SlashCommandBuilder()
             opt
               .setName("action")
               .setDescription("Action when invite detected")
+              .setChoices(
+                { name: "Delete message only", value: "delete" },
+                { name: "Delete + Timeout", value: "timeout" },
+              )
+              .setRequired(false),
+          )
+          .addIntegerOption(opt =>
+            opt
+              .setName("timeout-duration")
+              .setDescription("Timeout duration in minutes (1-60)")
+              .setMinValue(1)
+              .setMaxValue(60)
+              .setRequired(false),
+          )
+          .addBooleanOption(opt =>
+            opt
+              .setName("ignore-admins")
+              .setDescription("Ignore admins/mods (don't timeout)")
+              .setRequired(false),
+          ),
+      ),
+  )
+  .addSubcommandGroup(group =>
+    group
+      .setName("caps-lock")
+      .setDescription("Caps lock filter (Pro)")
+      .addSubcommand(sub =>
+        sub
+          .setName("toggle")
+          .setDescription("Enable or disable caps lock filter (Pro)")
+          .addBooleanOption(opt =>
+            opt
+              .setName("enabled")
+              .setDescription("Enable filter?")
+              .setRequired(true),
+          )
+          .addIntegerOption(opt =>
+            opt
+              .setName("threshold")
+              .setDescription("Percentage of caps required (50-100)")
+              .setMinValue(50)
+              .setMaxValue(100)
+              .setRequired(false),
+          )
+          .addIntegerOption(opt =>
+            opt
+              .setName("min-length")
+              .setDescription("Minimum message length to check")
+              .setMinValue(5)
+              .setMaxValue(50)
+              .setRequired(false),
+          )
+          .addStringOption(opt =>
+            opt
+              .setName("action")
+              .setDescription("Action when detected")
               .setChoices(
                 { name: "Delete message only", value: "delete" },
                 { name: "Delete + Timeout", value: "timeout" },

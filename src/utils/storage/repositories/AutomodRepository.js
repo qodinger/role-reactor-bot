@@ -66,6 +66,14 @@ export class AutomodRepository extends BaseRepository {
         timeoutDuration: 5,
         ignoreAdmins: false,
       },
+      capsLock: {
+        enabled: false,
+        threshold: 70,
+        minLength: 10,
+        action: "delete",
+        timeoutDuration: 5,
+        ignoreAdmins: false,
+      },
       createdAt: new Date(),
       updatedAt: new Date(),
     };
