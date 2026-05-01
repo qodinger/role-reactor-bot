@@ -45,13 +45,47 @@ export async function execute(message, client) {
 
     const violations = [];
 
-    if (settings.badWords?.enabled && settings.badWords.words?.length > 0) {
-      const hasBadWord = settings.badWords.words.some(word =>
-        message.content.toLowerCase().includes(word.toLowerCase()),
-      );
-      logger.debug(
-        `[Automod] Checking badwords: hasBadWord=${hasBadWord}, words=${settings.badWords.words.join(", ")}`,
-      );
+    if (settings.badWords?.enabled) {
+      let hasBadWord = false;
+      const content = message.content.toLowerCase();
+
+      const mode = settings.badWords.mode || "simple";
+      logger.debug(`[Automod] Checking badwords: mode=${mode}`);
+
+      if (mode === "wildcard" && settings.badWords.wildcardWords?.length > 0) {
+        hasBadWord = settings.badWords.wildcardWords.some(pattern => {
+          const regex = new RegExp(
+            pattern.toLowerCase().replace(/\*/g, ".*"),
+            "i",
+          );
+          return regex.test(content);
+        });
+      } else if (
+        mode === "regex" &&
+        settings.badWords.regexPatterns?.length > 0
+      ) {
+        hasBadWord = settings.badWords.regexPatterns.some(pattern => {
+          try {
+            const regex = new RegExp(pattern, "i");
+            return regex.test(content);
+          } catch {
+            return false;
+          }
+        });
+      } else if (settings.badWords.words?.length > 0) {
+        hasBadWord = settings.badWords.words.some(word =>
+          content.includes(word.toLowerCase()),
+        );
+      }
+
+      if (settings.badWords.advancedWords?.length > 0 && mode === "simple") {
+        hasBadWord = settings.badWords.advancedWords.some(word =>
+          content.includes(word.toLowerCase()),
+        );
+      }
+
+      logger.debug(`[Automod] Checking badwords: hasBadWord=${hasBadWord}`);
+
       if (hasBadWord) {
         violations.push({
           type: "bad_words",

@@ -119,6 +119,73 @@ export async function handleBadwordsToggle(interaction, settings) {
   return interaction.reply({ ...response, ephemeral: true });
 }
 
+export async function handleBadwordsAdvanced(interaction, settings) {
+  const { options, guildId } = interaction;
+
+  const premiumManager = getPremiumManager();
+  const { isPro, response: proResponse } =
+    await premiumManager.checkProAndRespond(
+      interaction,
+      "Advanced bad words (wildcards/regex)",
+    );
+
+  if (!isPro) {
+    return interaction.reply({ ...proResponse, ephemeral: true });
+  }
+
+  const mode = options.getString("mode");
+  const wordsInput = options.getString("words");
+  const action = options.getString("action");
+  const timeoutDuration = options.getInteger("timeout-duration");
+
+  const badwordsSettings = { ...settings.badWords };
+
+  if (mode) {
+    badwordsSettings.mode = mode;
+  }
+  if (wordsInput) {
+    const words = wordsInput
+      .split(",")
+      .map(w => w.trim())
+      .filter(w => w);
+    if (mode === "wildcard") {
+      badwordsSettings.wildcardWords = words;
+    } else if (mode === "regex") {
+      badwordsSettings.regexPatterns = words;
+    } else {
+      badwordsSettings.advancedWords = words;
+    }
+  }
+  if (action !== null) {
+    badwordsSettings.action = action;
+  }
+  if (timeoutDuration !== null) {
+    badwordsSettings.timeoutDuration = timeoutDuration;
+  }
+
+  const dbManager = await getDatabaseManager();
+  await dbManager.automod.set(guildId, {
+    ...settings,
+    badWords: badwordsSettings,
+  });
+
+  const parts = [];
+  parts.push(`Advanced mode: ${mode || "simple"}`);
+  if (wordsInput) {
+    parts.push(`words: ${wordsInput}`);
+  }
+  if (action !== null) {
+    parts.push(`action: ${action}`);
+  }
+
+  const response = successEmbed({
+    title: "Advanced Bad Words Updated (Pro)",
+    description: parts.join(" | "),
+  });
+
+  return interaction.reply({ ...response, ephemeral: true });
+}
+
 export async function handleBadwordsWords(interaction, settings) {
   const { options, guildId } = interaction;
   const words = options
@@ -576,6 +643,10 @@ export async function handleAutomodCommand(interaction) {
 
   if (subcommand === "disable") {
     return handleDisable(interaction, settings);
+  }
+
+  if (subcommand === "badwords") {
+    return handleBadwordsAdvanced(interaction, settings);
   }
 
   if (subcommandGroup === "badwords") {

@@ -58,6 +58,7 @@ export const metadata = {
         "**domains remove** - Remove domains from allowlist",
         "**domains clear** - Clear all allowed domains",
         "**caps-lock toggle** - Block messages that are mostly CAPS",
+        "**badwords advanced** - Custom words with wildcards/regex (Pro)",
       ].join("\n"),
       inline: false,
     },
@@ -412,6 +413,46 @@ export const data = new SlashCommandBuilder()
               .setDescription("Ignore admins/mods (don't timeout)")
               .setRequired(false),
           ),
+      ),
+  )
+  .addSubcommand(sub =>
+    sub
+      .setName("badwords")
+      .setDescription("Advanced bad words settings (Pro)")
+      .addStringOption(opt =>
+        opt
+          .setName("mode")
+          .setDescription("Matching mode")
+          .setChoices(
+            { name: "Simple (exact words)", value: "simple" },
+            { name: "Wildcards (* matches any)", value: "wildcard" },
+            { name: "Regex (advanced patterns)", value: "regex" },
+          )
+          .setRequired(true),
+      )
+      .addStringOption(opt =>
+        opt
+          .setName("words")
+          .setDescription("Words/patterns separated by commas")
+          .setRequired(false),
+      )
+      .addStringOption(opt =>
+        opt
+          .setName("action")
+          .setDescription("Action when detected")
+          .setChoices(
+            { name: "Delete message only", value: "delete" },
+            { name: "Delete + Timeout", value: "timeout" },
+          )
+          .setRequired(false),
+      )
+      .addIntegerOption(opt =>
+        opt
+          .setName("timeout-duration")
+          .setDescription("Timeout duration in minutes (1-60)")
+          .setMinValue(1)
+          .setMaxValue(60)
+          .setRequired(false),
       ),
   )
   .addSubcommand(sub =>
