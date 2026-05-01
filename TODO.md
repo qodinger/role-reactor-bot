@@ -16,11 +16,11 @@
 
   #### PREMIUM (Pro Engine)
   - [x] Domain allowlisting (whitelist trusted domains)
+  - [x] Rate limiting (per user) - 5 messages per 5 seconds, configurable
   - [ ] Custom word lists with wildcards/regex
   - [ ] Per-channel filtering
-  - [ ] Rate limiting (per user)
   - [ ] Caps lock filter
-  - [ ] Duplicate message detection
+  - [ ] Duplicate message detection (different from repeated)
   - [ ] Auto-mod analytics/stats
   - [ ] Export moderation logs
 
@@ -106,13 +106,17 @@ Pro Engine (subscription-based), Core credits system, Analytics tracking, Domain
 
 ### Recent Updates (2026)
 
-- Auto-moderation system (FREE: bad words, links, spam, mentions, invites | PRO: domain allowlisting)
+- Auto-moderation system (FREE: 5 filters | PRO: domain allowlisting, higher rate limits)
+  - FREE: Bad Words, Links, Spam, Mention Spam, Invite Links
+  - PRO: Domain allowlisting, configurable rate threshold
+  - Features: Rate limiting (5 msgs/5s), repeated message detection, configurable actions
 - Interactive automod settings (button-based toggle UI)
-- Configurable automod (threshold, action, timeout, ignore-admins)
+- Configurable automod (threshold, rate-threshold, action, timeout)
+- /stats command (shows servers, users, commands, features)
+- /moderation timeouts command (lists timed out members)
 - /premium command (shows Free vs Pro features)
 - Removed: /search, /voice-status, invite-roles, context menus
-- Fixed: automod timeout bug (was 60x too long)
-- Added: Mention spam filter, Invite link filter
+- Fixed: automod timeout bugs (duration calculation, links filter missing)
 
 ### Revenue Strategy
 
