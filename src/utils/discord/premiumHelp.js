@@ -31,8 +31,8 @@ export const PREMIUM_FEATURES = [
     command: "automod",
     name: "Auto-Moderation",
     emoji: "🛡️",
-    free: "Bad words, links, spam filters",
-    pro: "Domain allowlisting (whitelist trusted domains)",
+    free: "5 filters (bad words, links, spam, mentions, invites)",
+    pro: "7 features (domain allowlist, caps lock, wildcard/regex, per-channel, analytics, export)",
   },
   {
     command: "schedule-role",
@@ -80,7 +80,7 @@ export const PREMIUM_FEATURES = [
     command: "ticket",
     name: "Ticketing",
     emoji: "🎫",
-    free: "Basic text transcripts",
+    free: "Text transcripts (7 days)",
     pro: "HTML/JSON exports, unlimited storage",
   },
 ];

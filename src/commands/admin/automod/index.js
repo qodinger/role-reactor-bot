@@ -466,6 +466,73 @@ export const data = new SlashCommandBuilder()
   .addSubcommand(sub =>
     sub.setName("disable").setDescription("Disable all auto-mod filters"),
   )
+  .addSubcommandGroup(group =>
+    group
+      .setName("channel")
+      .setDescription("Per-channel filtering (Pro)")
+      .addSubcommand(sub =>
+        sub
+          .setName("add")
+          .setDescription("Add filter to a channel (Pro)")
+          .addChannelOption(opt =>
+            opt
+              .setName("channel")
+              .setDescription("Channel to add filter to")
+              .setRequired(true),
+          )
+          .addStringOption(opt =>
+            opt
+              .setName("filter")
+              .setDescription("Filter type to enable")
+              .setChoices(
+                { name: "All Filters", value: "all" },
+                { name: "Bad Words", value: "badWords" },
+                { name: "Links", value: "links" },
+                { name: "Spam", value: "spam" },
+                { name: "Mention Spam", value: "mentionSpam" },
+                { name: "Invite Links", value: "inviteLink" },
+                { name: "Caps Lock", value: "capsLock" },
+              )
+              .setRequired(false),
+          ),
+      )
+      .addSubcommand(sub =>
+        sub
+          .setName("remove")
+          .setDescription("Remove filter from a channel")
+          .addChannelOption(opt =>
+            opt
+              .setName("channel")
+              .setDescription("Channel to remove filter from")
+              .setRequired(true),
+          ),
+      )
+      .addSubcommand(sub =>
+        sub.setName("list").setDescription("List all channel filters"),
+      ),
+  )
+  .addSubcommandGroup(group =>
+    group
+      .setName("stats")
+      .setDescription("Auto-mod statistics (Pro)")
+      .addSubcommand(sub =>
+        sub.setName("show").setDescription("Show violation statistics"),
+      )
+      .addSubcommand(sub =>
+        sub.setName("export").setDescription("Export moderation logs as CSV"),
+      )
+      .addSubcommand(sub =>
+        sub.setName("clear").setDescription("Clear all statistics and logs"),
+      ),
+  )
+  .addSubcommand(sub =>
+    sub
+      .setName("enable")
+      .setDescription("Enable all configured auto-mod filters"),
+  )
+  .addSubcommand(sub =>
+    sub.setName("disable").setDescription("Disable all auto-mod filters"),
+  )
   .addSubcommand(sub =>
     sub.setName("settings").setDescription("Interactive settings panel"),
   );

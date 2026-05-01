@@ -19,6 +19,7 @@ export async function execute(message, client) {
 
     const guildId = message.guild.id;
     const userId = message.author.id;
+    const channelId = message.channel.id;
 
     const dbManager = await getDatabaseManager();
     if (!dbManager?.automod) return;
@@ -26,26 +27,40 @@ export async function execute(message, client) {
     const settings = await dbManager.automod.getByGuild(guildId);
     if (!settings) return;
 
+    let activeSettings = { ...settings };
+    const channelSettings = await dbManager.automod.getChannelSettings(
+      guildId,
+      channelId,
+    );
+    if (channelSettings?.enabled) {
+      activeSettings = { ...settings, ...channelSettings };
+      logger.debug(
+        `[Automod] Using channel-specific settings for #${message.channel.name}`,
+      );
+    }
+
     const hasAnyFilterEnabled =
-      settings.badWords?.enabled ||
-      settings.links?.enabled ||
-      settings.spam?.enabled ||
-      settings.mentionSpam?.enabled ||
-      settings.inviteLink?.enabled;
+      activeSettings.badWords?.enabled ||
+      activeSettings.links?.enabled ||
+      activeSettings.spam?.enabled ||
+      activeSettings.mentionSpam?.enabled ||
+      activeSettings.inviteLink?.enabled;
 
     if (!hasAnyFilterEnabled) return;
 
     logger.debug(
-      `[Automod] ${message.guild.name}: filters active - badwords:${settings.badWords?.enabled} links:${settings.links?.enabled} spam:${settings.spam?.enabled} mentions:${settings.mentionSpam?.enabled} invites:${settings.inviteLink?.enabled} caps:${settings.capsLock?.enabled}`,
+      `[Automod] ${message.guild.name}: filters active - badwords:${activeSettings.badWords?.enabled} links:${activeSettings.links?.enabled} spam:${activeSettings.spam?.enabled} mentions:${activeSettings.mentionSpam?.enabled} invites:${activeSettings.inviteLink?.enabled} caps:${activeSettings.capsLock?.enabled}`,
     );
 
     const premiumManager = getPremiumManager();
     const isPro = await premiumManager.isFeatureActive(guildId, "pro_engine");
-    const allowedDomains = isPro ? settings.links?.allowedDomains || [] : [];
+    const allowedDomains = isPro
+      ? activeSettings.links?.allowedDomains || []
+      : [];
 
     const violations = [];
 
-    if (settings.badWords?.enabled) {
+    if (activeSettings.badWords?.enabled) {
       let hasBadWord = false;
       const content = message.content.toLowerCase();
 
@@ -89,14 +104,14 @@ export async function execute(message, client) {
       if (hasBadWord) {
         violations.push({
           type: "bad_words",
-          action: settings.badWords.action,
-          duration: settings.badWords.timeoutDuration,
-          ignoreAdmins: settings.badWords.ignoreAdmins,
+          action: activeSettings.badWords.action,
+          duration: activeSettings.badWords.timeoutDuration,
+          ignoreAdmins: activeSettings.badWords.ignoreAdmins,
         });
       }
     }
 
-    if (settings.links?.enabled && settings.links.blockUrls) {
+    if (activeSettings.links?.enabled && activeSettings.links.blockUrls) {
       const urlRegex = /(https?:\/\/[^\s]+)/i;
       const hasLink = urlRegex.test(message.content);
 
@@ -117,15 +132,15 @@ export async function execute(message, client) {
         if (shouldBlock) {
           violations.push({
             type: "link",
-            action: settings.links.action,
-            duration: settings.links.timeoutDuration,
-            ignoreAdmins: settings.links.ignoreAdmins,
+            action: activeSettings.links.action,
+            duration: activeSettings.links.timeoutDuration,
+            ignoreAdmins: activeSettings.links.ignoreAdmins,
           });
         }
       }
     }
 
-    if (settings.spam?.enabled) {
+    if (activeSettings.spam?.enabled) {
       const key = `${guildId}:${userId}`;
       if (!messageHistory.has(key)) {
         messageHistory.set(key, {
@@ -162,49 +177,49 @@ export async function execute(message, client) {
         m => m.content === message.content,
       ).length;
 
-      if (duplicateCount >= settings.spam.repeatedMessages) {
+      if (duplicateCount >= activeSettings.spam.repeatedMessages) {
         violations.push({
           type: "spam",
-          action: settings.spam.action,
-          duration: settings.spam.timeoutDuration,
-          ignoreAdmins: settings.spam.ignoreAdmins,
+          action: activeSettings.spam.action,
+          duration: activeSettings.spam.timeoutDuration,
+          ignoreAdmins: activeSettings.spam.ignoreAdmins,
         });
         logger.debug(
           `[Automod] Spam triggered: duplicateCount=${duplicateCount}`,
         );
       }
 
-      if (userData.recentCount >= (settings.spam.rateThreshold || 5)) {
+      if (userData.recentCount >= (activeSettings.spam.rateThreshold || 5)) {
         violations.push({
           type: "spam",
-          action: settings.spam.action,
-          duration: settings.spam.timeoutDuration,
-          ignoreAdmins: settings.spam.ignoreAdmins,
+          action: activeSettings.spam.action,
+          duration: activeSettings.spam.timeoutDuration,
+          ignoreAdmins: activeSettings.spam.ignoreAdmins,
         });
         logger.debug(
-          `[Automod] Rate limit triggered: recentCount=${userData.recentCount}, threshold=${settings.spam.rateThreshold || 5}`,
+          `[Automod] Rate limit triggered: recentCount=${userData.recentCount}, threshold=${activeSettings.spam.rateThreshold || 5}`,
         );
         userData.recentCount = 0;
       }
     }
 
-    if (settings.mentionSpam?.enabled) {
+    if (activeSettings.mentionSpam?.enabled) {
       const mentions =
         message.mentions.users.size + message.mentions.roles.size;
       logger.debug(
-        `[Automod] Checking mentions: count=${mentions}, threshold=${settings.mentionSpam.mentionCount}`,
+        `[Automod] Checking mentions: count=${mentions}, threshold=${activeSettings.mentionSpam.mentionCount}`,
       );
-      if (mentions >= settings.mentionSpam.mentionCount) {
+      if (mentions >= activeSettings.mentionSpam.mentionCount) {
         violations.push({
           type: "mention_spam",
-          action: settings.mentionSpam.action,
-          duration: settings.mentionSpam.timeoutDuration,
-          ignoreAdmins: settings.mentionSpam.ignoreAdmins,
+          action: activeSettings.mentionSpam.action,
+          duration: activeSettings.mentionSpam.timeoutDuration,
+          ignoreAdmins: activeSettings.mentionSpam.ignoreAdmins,
         });
       }
     }
 
-    if (settings.inviteLink?.enabled) {
+    if (activeSettings.inviteLink?.enabled) {
       const inviteRegex = /(discord\.(gg|com\/invite)\/[\w-]+)/gi;
       const hasInvite = inviteRegex.test(message.content);
       logger.debug(`[Automod] Checking invites: hasInvite=${hasInvite}`);
@@ -212,17 +227,17 @@ export async function execute(message, client) {
       if (hasInvite) {
         violations.push({
           type: "invite_link",
-          action: settings.inviteLink.action,
-          duration: settings.inviteLink.timeoutDuration,
-          ignoreAdmins: settings.inviteLink.ignoreAdmins,
+          action: activeSettings.inviteLink.action,
+          duration: activeSettings.inviteLink.timeoutDuration,
+          ignoreAdmins: activeSettings.inviteLink.ignoreAdmins,
         });
       }
     }
 
-    if (settings.capsLock?.enabled) {
+    if (activeSettings.capsLock?.enabled) {
       const content = message.content;
-      const threshold = settings.capsLock.threshold || 70;
-      const minLength = settings.capsLock.minLength || 10;
+      const threshold = activeSettings.capsLock.threshold || 70;
+      const minLength = activeSettings.capsLock.minLength || 10;
 
       if (content.length >= minLength) {
         const letters = content.replace(/[^a-zA-Z]/g, "");
@@ -237,9 +252,9 @@ export async function execute(message, client) {
           if (capsPercentage >= threshold) {
             violations.push({
               type: "caps_lock",
-              action: settings.capsLock.action,
-              duration: settings.capsLock.timeoutDuration,
-              ignoreAdmins: settings.capsLock.ignoreAdmins,
+              action: activeSettings.capsLock.action,
+              duration: activeSettings.capsLock.timeoutDuration,
+              ignoreAdmins: activeSettings.capsLock.ignoreAdmins,
             });
           }
         }
@@ -247,7 +262,7 @@ export async function execute(message, client) {
     }
 
     for (const violation of violations) {
-      await handleViolation(message, violation);
+      await handleViolation(message, violation, dbManager, guildId);
     }
   } catch (error) {
     logger.error(`[Automod] Error:`, error);
@@ -280,7 +295,7 @@ function containsAllowedDomain(message, allowedDomains) {
   }
 }
 
-async function handleViolation(message, violation) {
+async function handleViolation(message, violation, dbManager, guildId) {
   const { member, author, guild } = message;
 
   const isAdmin = hasAdminPermissions(member);
@@ -296,6 +311,8 @@ async function handleViolation(message, violation) {
       message,
       "Admin ignored - message deleted",
       violation.type,
+      dbManager,
+      guildId,
     );
     return;
   }
@@ -320,7 +337,13 @@ async function handleViolation(message, violation) {
           });
         } catch {}
 
-        await logAutomodAction(message, "Bad word detected", violation.type);
+        await logAutomodAction(
+          message,
+          "Bad word detected",
+          violation.type,
+          dbManager,
+          guildId,
+        );
         break;
 
       case "link":
@@ -341,7 +364,13 @@ async function handleViolation(message, violation) {
           });
         } catch {}
 
-        await logAutomodAction(message, "Link detected", violation.type);
+        await logAutomodAction(
+          message,
+          "Link detected",
+          violation.type,
+          dbManager,
+          guildId,
+        );
         break;
 
       case "spam":
@@ -360,7 +389,13 @@ async function handleViolation(message, violation) {
           });
         } catch {}
 
-        await logAutomodAction(message, "Spam detected", violation.type);
+        await logAutomodAction(
+          message,
+          "Spam detected",
+          violation.type,
+          dbManager,
+          guildId,
+        );
         break;
 
       case "mention_spam":
@@ -383,6 +418,8 @@ async function handleViolation(message, violation) {
           message,
           "Mention spam detected",
           violation.type,
+          dbManager,
+          guildId,
         );
         break;
 
@@ -402,7 +439,13 @@ async function handleViolation(message, violation) {
           });
         } catch {}
 
-        await logAutomodAction(message, "Invite link detected", violation.type);
+        await logAutomodAction(
+          message,
+          "Invite link detected",
+          violation.type,
+          dbManager,
+          guildId,
+        );
         break;
     }
   } catch (error) {
@@ -410,11 +453,23 @@ async function handleViolation(message, violation) {
   }
 }
 
-async function logAutomodAction(message, reason, type) {
+async function logAutomodAction(message, reason, type, dbManager, guildId) {
   try {
     logger.info(
       `[Automod] ${message.guild.name}: ${message.author.tag} - ${reason} (${type})`,
     );
+
+    if (dbManager?.automod && guildId) {
+      await dbManager.automod.recordViolation(guildId, {
+        userId: message.author.id,
+        userTag: message.author.tag,
+        channelId: message.channel.id,
+        channelName: message.channel.name,
+        type,
+        reason,
+        timestamp: new Date(),
+      });
+    }
   } catch (error) {
     logger.error(`[Automod] Error logging action:`, error);
   }

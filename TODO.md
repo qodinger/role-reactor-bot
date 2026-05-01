@@ -16,9 +16,9 @@
 - [x] Domain allowlisting
 - [x] Custom word lists with wildcards/regex
 - [x] Caps lock filter
-- [ ] Per-channel filtering
-- [ ] Auto-mod analytics/stats
-- [ ] Export moderation logs
+- [x] Per-channel filtering
+- [x] Auto-mod analytics/stats
+- [x] Export moderation logs
 
 ### Verification System
 - [ ] Email verification

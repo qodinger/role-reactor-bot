@@ -74,6 +74,20 @@ export class AutomodRepository extends BaseRepository {
         timeoutDuration: 5,
         ignoreAdmins: false,
       },
+      channels: {},
+      analytics: {
+        totalViolations: 0,
+        violationsByType: {
+          bad_words: 0,
+          link: 0,
+          spam: 0,
+          mention_spam: 0,
+          invite_link: 0,
+          caps_lock: 0,
+        },
+        violationsByDay: {},
+      },
+      logs: [],
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -122,6 +136,112 @@ export class AutomodRepository extends BaseRepository {
         `Failed to delete automod settings for guild ${guildId}`,
         error,
       );
+      throw error;
+    }
+  }
+
+  async getChannelSettings(guildId, channelId) {
+    const settings = await this.getByGuild(guildId);
+    return settings.channels?.[channelId] || null;
+  }
+
+  async setChannelSettings(guildId, channelId, channelSettings) {
+    try {
+      const update = {};
+      update[`channels.${channelId}`] = channelSettings;
+      await this.collection.updateOne(
+        { guildId },
+        { $set: { ...update, updatedAt: new Date() } },
+      );
+      this.cache.clear();
+    } catch (error) {
+      this.logger.error(
+        `Failed to set channel settings for ${channelId} in guild ${guildId}`,
+        error,
+      );
+      throw error;
+    }
+  }
+
+  async deleteChannelSettings(guildId, channelId) {
+    try {
+      await this.collection.updateOne(
+        { guildId },
+        {
+          $unset: { [`channels.${channelId}`]: 1 },
+          $set: { updatedAt: new Date() },
+        },
+      );
+      this.cache.clear();
+    } catch (error) {
+      this.logger.error(
+        `Failed to delete channel settings for ${channelId} in guild ${guildId}`,
+        error,
+      );
+      throw error;
+    }
+  }
+
+  async getChannelSettingsList(guildId) {
+    const settings = await this.getByGuild(guildId);
+    return settings.channels || {};
+  }
+
+  async recordViolation(guildId, violation) {
+    try {
+      const today = new Date().toISOString().split("T")[0];
+      const statsUpdate = {
+        "analytics.totalViolations": 1,
+        [`analytics.violationsByType.${violation.type}`]: 1,
+        [`analytics.violationsByDay.${today}.${violation.type}`]: 1,
+      };
+      await this.collection.updateOne(
+        { guildId },
+        {
+          $inc: statsUpdate,
+          $push: {
+            logs: {
+              $each: [violation],
+              $position: 0,
+              $slice: 1000,
+            },
+          },
+          $set: { updatedAt: new Date() },
+        },
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to record violation for guild ${guildId}`,
+        error,
+      );
+    }
+  }
+
+  async getAnalytics(guildId) {
+    const settings = await this.getByGuild(guildId);
+    return (
+      settings.analytics || {
+        totalViolations: 0,
+        violationsByType: {},
+        violationsByDay: {},
+      }
+    );
+  }
+
+  async getLogs(guildId, limit = 100) {
+    const settings = await this.getByGuild(guildId);
+    return (settings.logs || []).slice(0, limit);
+  }
+
+  async clearLogs(guildId) {
+    try {
+      await this.collection.updateOne(
+        { guildId },
+        { $set: { logs: [], updatedAt: new Date() } },
+      );
+      this.cache.clear();
+    } catch (error) {
+      this.logger.error(`Failed to clear logs for guild ${guildId}`, error);
       throw error;
     }
   }

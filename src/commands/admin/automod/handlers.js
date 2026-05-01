@@ -703,8 +703,206 @@ export async function handleAutomodCommand(interaction) {
     }
   }
 
+  if (subcommandGroup === "channel") {
+    if (subcommand === "add") {
+      return handleChannelAdd(interaction, settings);
+    }
+    if (subcommand === "remove") {
+      return handleChannelRemove(interaction, settings);
+    }
+    if (subcommand === "list") {
+      return handleChannelList(interaction, settings);
+    }
+  }
+
+  if (subcommandGroup === "stats") {
+    if (subcommand === "show") {
+      return handleStatsShow(interaction, settings);
+    }
+    if (subcommand === "export") {
+      return handleStatsExport(interaction, settings);
+    }
+    if (subcommand === "clear") {
+      return handleStatsClear(interaction, settings);
+    }
+  }
+
   return interaction.reply({
     content: "Unknown command",
     ephemeral: true,
   });
+}
+
+async function handleChannelAdd(interaction, _settings) {
+  const { guildId, options } = interaction;
+  const channel = options.getChannel("channel");
+  const filterType = options.getString("filter") || "all";
+
+  const dbManager = await getDatabaseManager();
+
+  const channelSettings = {
+    enabled: true,
+    filters:
+      filterType === "all"
+        ? {
+            badWords: true,
+            links: true,
+            spam: true,
+            mentionSpam: true,
+            inviteLink: true,
+            capsLock: true,
+          }
+        : { [filterType]: true },
+  };
+
+  await dbManager.automod.setChannelSettings(
+    guildId,
+    channel.id,
+    channelSettings,
+  );
+
+  const response = successEmbed({
+    title: "Channel Filter Added",
+    description: `Auto-mod filters enabled for #${channel.name}`,
+  });
+
+  return interaction.reply({ ...response, ephemeral: true });
+}
+
+async function handleChannelRemove(interaction, _settings) {
+  const { guildId, options } = interaction;
+  const channel = options.getChannel("channel");
+
+  const dbManager = await getDatabaseManager();
+  await dbManager.automod.deleteChannelSettings(guildId, channel.id);
+
+  const response = successEmbed({
+    title: "Channel Filter Removed",
+    description: `Auto-mod filters removed for #${channel.name}`,
+  });
+
+  return interaction.reply({ ...response, ephemeral: true });
+}
+
+async function handleChannelList(interaction, _settings) {
+  const { guildId } = interaction;
+
+  const dbManager = await getDatabaseManager();
+  const channels = await dbManager.automod.getChannelSettingsList(guildId);
+
+  const channelList = Object.entries(channels).map(
+    ([channelId, channelSettings]) => {
+      const filters = Object.entries(channelSettings.filters || {})
+        .filter(([, enabled]) => enabled)
+        .map(([filter]) => filter)
+        .join(", ");
+      return `• <#${channelId}>: ${filters}`;
+    },
+  );
+
+  const embed = new EmbedBuilder()
+    .setTitle("Channel Filters")
+    .setDescription(
+      channelList.length > 0
+        ? channelList.join("\n")
+        : "No channel-specific filters configured",
+    )
+    .setColor(THEME.color);
+
+  return interaction.reply({ embeds: [embed], ephemeral: true });
+}
+
+async function handleStatsShow(interaction, _settings) {
+  const { guildId } = interaction;
+
+  const dbManager = await getDatabaseManager();
+  const analytics = await dbManager.automod.getAnalytics(guildId);
+
+  const embed = new EmbedBuilder()
+    .setTitle("Auto-Mod Statistics")
+    .addFields(
+      {
+        name: "Total Violations",
+        value: `${analytics.totalViolations || 0}`,
+        inline: true,
+      },
+      {
+        name: "Bad Words",
+        value: `${analytics.violationsByType?.bad_words || 0}`,
+        inline: true,
+      },
+      {
+        name: "Links",
+        value: `${analytics.violationsByType?.link || 0}`,
+        inline: true,
+      },
+      {
+        name: "Spam",
+        value: `${analytics.violationsByType?.spam || 0}`,
+        inline: true,
+      },
+      {
+        name: "Mention Spam",
+        value: `${analytics.violationsByType?.mention_spam || 0}`,
+        inline: true,
+      },
+      {
+        name: "Invite Links",
+        value: `${analytics.violationsByType?.invite_link || 0}`,
+        inline: true,
+      },
+    )
+    .setColor(THEME.color);
+
+  return interaction.reply({ embeds: [embed], ephemeral: true });
+}
+
+async function handleStatsExport(interaction, _settings) {
+  const { guildId } = interaction;
+
+  const dbManager = await getDatabaseManager();
+  const logs = await dbManager.automod.getLogs(guildId, 100);
+
+  const exportData = logs.map(log => ({
+    user: log.userTag,
+    type: log.type,
+    reason: log.reason,
+    channel: log.channelName,
+    timestamp: log.timestamp,
+  }));
+
+  const csv =
+    "User,Type,Reason,Channel,Timestamp\n" +
+    exportData
+      .map(d => `${d.user},${d.type},${d.reason},${d.channel},${d.timestamp}`)
+      .join("\n");
+
+  const embed = new EmbedBuilder()
+    .setTitle("Moderation Logs Exported")
+    .setDescription(
+      `Exported ${logs.length} violation records. Use the attachment to view.`,
+    )
+    .setColor(THEME.color);
+
+  return interaction.reply({
+    embeds: [embed],
+    files: [
+      { attachment: Buffer.from(csv, "utf-8"), name: "moderation-logs.csv" },
+    ],
+    ephemeral: true,
+  });
+}
+
+async function handleStatsClear(interaction, _settings) {
+  const { guildId } = interaction;
+
+  const dbManager = await getDatabaseManager();
+  await dbManager.automod.clearLogs(guildId);
+
+  const response = successEmbed({
+    title: "Statistics Cleared",
+    description: "All auto-mod statistics and logs have been cleared.",
+  });
+
+  return interaction.reply({ ...response, ephemeral: true });
 }

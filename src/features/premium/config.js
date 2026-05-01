@@ -26,16 +26,16 @@ export const PremiumFeatures = {
     period: "week",
     periodDays: 7,
     includes: [
-      "10x Ticket Capacity (500/month, 50 active, 10 panels)",
-      "20 Ticket Categories per Panel & Priority Notifications",
+      "10x Ticket Capacity (500/month, 10 panels)",
       "Advanced Ticket Automation & HTML Transcripts",
       "Unlimited Transcript Storage (Free: 7 days)",
-      "Detailed Analytics & Staff Performance Stats",
       "Unlimited Level-Up Rewards & 'Replace Role' Mode",
       "High-Capacity Giveaways (Up to 50,000 entries & 20 winners)",
       "20x Scheduled Role Capacity (500 active slots)",
       "10x Bulk Action Capacity (250 users per action)",
-      "Advanced Data Exports (JSON, Markdown, HTML)",
+      "Advanced Auto-Mod (domain allowlist, caps lock, wildcard/regex, per-channel, analytics, export)",
+      "Role Reactions (20 emojis, 20 menus)",
+      "Role Bundles (15 roles per bundle)",
     ],
   },
 };
@@ -54,11 +54,12 @@ export const FREE_TIER = {
   ROLE_BUNDLE_MAX_ROLES: 5,
   ROLE_REACTION_MAX_EMOJIS: 10,
   ROLE_REACTION_MAX_MESSAGES: 3,
+  // Ticketing
+  TICKET_MAX_PANELS: 3,
+  TICKET_MAX_TICKETS_PER_MONTH: 50,
+  TICKET_TRANSCRIPT_DAYS: 7,
 };
 
-/**
- * Pro Engine limits — unlocked with subscription
- */
 export const PRO_TIER = {
   LEVEL_REWARDS_MAX: -1, // Unlimited
   GIVEAWAY_MAX_ACTIVE: 20, // 6x free tier
@@ -69,4 +70,8 @@ export const PRO_TIER = {
   ROLE_BUNDLE_MAX_ROLES: 15, // 3x free tier
   ROLE_REACTION_MAX_EMOJIS: 20, // Discord's hard limit
   ROLE_REACTION_MAX_MESSAGES: 20, // Enough for huge communities
+  // Ticketing
+  TICKET_MAX_PANELS: 10,
+  TICKET_MAX_TICKETS_PER_MONTH: 500,
+  TICKET_TRANSCRIPT_DAYS: -1, // Unlimited
 };

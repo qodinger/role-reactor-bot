@@ -617,19 +617,28 @@ The bot includes comprehensive health monitoring:
 
 Upgrade your server with the **Pro Engine** for enhanced limits and features:
 
-| Feature            | Free Tier  | Pro Engine ✨   |
-| :----------------- | :--------- | :-------------- |
-| Giveaway Entries   | 2,500      | **50,000**      |
-| Giveaway Winners   | 5          | **20**          |
-| Scheduled Roles    | 25 active  | **500 active**  |
-| Ticket Capacity    | 50 monthly | **500 monthly** |
-| Transcript Storage | 7 Days     | **Unlimited**   |
-| Bulk Actions       | 25 users   | **250 users**   |
-| Level Rewards      | 5 (Stack)  | **Unlimited**   |
-| Auto-Mod Filters   | 5 filters  | **+4 advanced** |
-| Domain Allowlist   | ❌         | ✅              |
-| Caps Lock Filter   | ❌         | ✅              |
-| Wildcard/Regex     | ❌         | ✅              |
+| Feature            | Free Tier          | Pro Engine ✨           |
+| :----------------- | :----------------- | :---------------------- |
+| Giveaway Entries   | 2,500              | **50,000**              |
+| Giveaway Winners   | 5                  | **20**                  |
+| Giveaway Active    | 3                  | **20**                  |
+| Scheduled Roles    | 25 active          | **500 active**          |
+| Temp Roles         | 25 active          | **500 active**          |
+| Temp Roles Bulk    | 25 users           | **250 users**           |
+| Role Bundles       | 5 roles            | **15 roles**            |
+| Role Reactions     | 10 emojis, 3 menus | **20 emojis, 20 menus** |
+| XP Rewards         | 5 (Stack)          | **Unlimited**           |
+| Ticket Transcripts | Text               | **HTML/JSON**           |
+| Auto-Mod Filters   | 5                  | **7 advanced**          |
+
+### Auto-Mod Pro Features:
+
+- Domain Allowlisting (whitelist trusted domains)
+- Caps Lock Filter (block ALL CAPS messages)
+- Wildcard/Regex (advanced pattern matching)
+- Per-Channel Filtering
+- Analytics & Statistics
+- Export Moderation Logs
 
 See [Core Energy Guide](./docs/CORE_ENERGY.md) for details on activation and pricing.
 
