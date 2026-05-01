@@ -1,36 +1,33 @@
-# Role Reactor Bot - TODO
-
-## 2026 Roadmap
+# Role Reactor Bot - Development Roadmap
 
 ## High Priority
 
-- [x] Auto-moderation system (Rule-based, NO AI)
+### Auto-Moderation System
 
-   #### FREE (Basic Auto-Mod)
-   - [x] Bad words filter (simple word list)
-   - [x] Link filter (basic URL blocking)
-   - [x] Spam detection (3+ repeated messages)
-   - [x] Auto-mod dashboard (interactive settings)
-   - [x] Mention spam protection
-   - [x] Invite link filter
+**FREE (Basic Auto-Mod)**
+- [x] Bad words filter (simple word list)
+- [x] Link filter (basic URL blocking)
+- [x] Spam detection (3+ repeated messages)
+- [x] Auto-mod dashboard (interactive settings)
+- [x] Mention spam protection
+- [x] Invite link filter
 
-  #### PREMIUM (Pro Engine)
-  - [x] Domain allowlisting (whitelist trusted domains)
-  - [x] Rate limiting (per user) - 5 messages per 5 seconds, configurable
-  - [ ] Custom word lists with wildcards/regex
-  - [ ] Per-channel filtering
-  - [ ] Caps lock filter
-  - [ ] Duplicate message detection (different from repeated)
-  - [ ] Auto-mod analytics/stats
-  - [ ] Export moderation logs
+**Pro Engine**
+- [x] Domain allowlisting
+- [x] Custom word lists with wildcards/regex
+- [x] Caps lock filter
+- [ ] Per-channel filtering
+- [ ] Auto-mod analytics/stats
+- [ ] Export moderation logs
 
-- [ ] Verification system
-  - [ ] Email verification
-  - [ ] Phone verification (Discord native)
-  - [ ] Role-on-verify with captcha
-- [ ] Improve slash command UX
-  - [ ] Replace text commands with dropdowns
-  - [ ] Add modal forms for complex configs
+### Verification System
+- [ ] Email verification
+- [ ] Phone verification (Discord native)
+- [ ] Role-on-verify with captcha
+
+### Slash Command UX
+- [ ] Replace text commands with dropdowns
+- [ ] Add modal forms for complex configs
 
 ## Medium Priority
 
@@ -50,78 +47,25 @@
 
 ## Revenue Improvements
 
-### Pro Engine Features (Monetization)
-
+### Pro Engine Features
 - [x] Domain allowlisting (Auto-Mod Pro)
 - [ ] Custom welcome images (Welcome/Goodbye Pro)
-  - [ ] Custom backgrounds, GIFs, video embeds
 - [ ] Voice Roles Pro
-  - [ ] Unlimited voice connections
-  - [ ] Priority queue
-- [ ] Ticket Pro
-  - [ ] PDF/HTML transcript exports
-  - [ ] Unlimited ticket storage
-- [ ] Giveaways Pro
-  - [ ] More winners (20+)
-  - [ ] More entries (50K+)
-  - [ ] More active giveaways (20+)
-- [ ] XP Pro
-  - [ ] Unlimited rewards
-  - [ ] Custom rank cards/backgrounds
-- [ ] Role Reactions Pro
-  - [ ] More emojis (20+)
-  - [ ] More menus (20+)
-- [ ] Scheduled Roles Pro
-  - [ ] More schedules (500+)
-- [ ] Temp Roles Pro
-  - [ ] More active roles (500+)
+- [ ] Ticket Pro (PDF/HTML exports, unlimited storage)
+- [ ] Giveaways Pro (more winners, entries, active)
+- [ ] XP Pro (unlimited rewards, custom rank cards)
+- [ ] Role Reactions Pro (more emojis, more menus)
+- [ ] Scheduled Roles Pro (500+ schedules)
+- [ ] Temp Roles Pro (500+ active roles)
 
-### Better Core Pricing
-
+### Core Pricing Strategy
 - [ ] Increase first-purchase bonus
 - [ ] Add limited-time offers
 - [ ] Add lifetime Pro deal
 - [ ] Add guild bundles
 
 ## Technical Improvements
-
 - [ ] TypeScript migration (partial or full)
 - [ ] Add more automated tests
 - [ ] Performance optimization
 - [ ] Get Discord bot verified badge
-
-## Current Feature Set
-
-### General Commands
-
-vote, support, poll, imagine, core, avatar, ask, userinfo, serverinfo, rps, ping, level, leaderboard, invite, 8ball, welcome, goodbye, help, premium
-
-### Admin Commands
-
-XP system, tickets, role reactions, role bundles, giveaways, voice roles, voice-status, moderation, temp roles, schedule roles, premium/Pro Engine, automod
-
-### Premium Features
-
-Pro Engine (subscription-based), Core credits system, Analytics tracking, Domain allowlisting
-
-### Recent Updates (2026)
-
-- Auto-moderation system (FREE: 5 filters | PRO: domain allowlisting, higher rate limits)
-  - FREE: Bad Words, Links, Spam, Mention Spam, Invite Links
-  - PRO: Domain allowlisting, configurable rate threshold
-  - Features: Rate limiting (5 msgs/5s), repeated message detection, configurable actions
-- Interactive automod settings (button-based toggle UI)
-- Configurable automod (threshold, rate-threshold, action, timeout)
-- /stats command (shows servers, users, commands, features)
-- /moderation timeouts command (lists timed out members)
-- /premium command (shows Free vs Pro features)
-- Removed: /search, /voice-status, invite-roles, context menus
-- Fixed: automod timeout bugs (duration calculation, links filter missing)
-
-### Revenue Strategy
-
-- AI Image Generation (credits system) - already monetizing
-- Pro Engine subscription (domain allowlist, more limits)
-- Core credits (AI usage) - already monetizing
-- Welcome custom images (planned Pro)
-- Ticket exports (planned Pro)

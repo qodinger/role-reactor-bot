@@ -38,6 +38,7 @@ A powerful Discord bot that helps you manage your server with role management, A
 - **🎁 Giveaway System**: Full-featured giveaways with bonus entries, claim periods, requirements, and rerolling
 - **🎉 Welcome System**: Auto-welcome new members with customizable messages and auto-role assignment
 - **👋 Goodbye System**: Auto-goodbye messages when members leave with customizable placeholders
+- **🛡️ Auto-Mod System**: Automatic content filtering with bad words, links, spam, mention spam, and invite link filters
 - **🛡️ Moderation System**: Bulk timeout, warn, ban, kick, purge, and history tracking (up to 15 users at once)
 - **🎫 Ticket System**: Complete support ticket system with panels, transcripts, and lifecycle management
 - **🎙️ Voice Control**: Automatically manage users in voice channels based on roles (disconnect, mute, deafen, move)
@@ -255,6 +256,54 @@ The XP system is **disabled by default** and must be enabled by server administr
 
 **Note:** XP system configuration uses a simplified button-driven interface. All settings use optimized default values that work well for most servers.
 
+### Auto-Mod System
+
+Automatic content filtering to keep your server safe:
+
+**Quick Setup:**
+
+```
+/automod settings          # Open interactive settings panel
+/automod enable            # Enable all configured filters
+/automod badwords toggle enabled:true
+/automod badwords words:badword1,badword2,badword3
+```
+
+**Filter Configuration:**
+
+| Filter       | Command                        | Description                |
+| ------------ | ------------------------------ | -------------------------- |
+| Bad Words    | `/automod badwords toggle`     | Filter inappropriate words |
+| Links        | `/automod links toggle`        | Block URLs in messages     |
+| Spam         | `/automod spam toggle`         | Detect repeated messages   |
+| Mention Spam | `/automod mention-spam toggle` | Block mass mentions        |
+| Invite Links | `/automod invite toggle`       | Block Discord invites      |
+
+**Advanced Options (all filters support):**
+
+```
+action:delete              # Delete message only
+action:timeout             # Delete + timeout user
+timeout-duration:5        # Timeout duration in minutes
+ignore-admins:true         # Don't affect admins/mods
+```
+
+**Pro Features:**
+
+```
+/automod domains add discord.com,youtube.com   # Allowlist domains
+/automod caps-lock toggle enabled:true         # Block ALL CAPS messages
+/automod badwords mode:wildcard words:spam*,f*ll*w*rs   # Wildcard matching
+/automod badwords mode:regex words:\d{3}-\d{4}          # Regex patterns
+```
+
+**Pro Engine Features:**
+
+- Domain allowlisting (allow specific domains while blocking others)
+- Caps Lock filter (configurable threshold 50-100%)
+- Wildcard patterns (spam*, *bad) in bad words
+- Regex patterns (\d{3}-\d{4} for phone numbers)
+
 ### Moderation System
 
 Comprehensive moderation tools with bulk operations and history tracking:
@@ -381,6 +430,13 @@ Use bundles in role-reaction setup with the `bundle:` parameter.
 | `/role-reactions list`        | List all role-reaction messages          | Manage Roles  |
 | `/role-reactions update`      | Update an existing role-reaction message | Manage Roles  |
 | `/role-reactions delete`      | Delete a role-reaction message           | Manage Roles  |
+| `/automod settings`           | Auto-mod settings panel                  | Manage Server |
+| `/automod enable`             | Enable all auto-mod filters              | Manage Server |
+| `/automod badwords toggle`    | Toggle bad words filter                  | Manage Server |
+| `/automod links toggle`       | Toggle link filter                       | Manage Server |
+| `/automod spam toggle`        | Toggle spam detection                    | Manage Server |
+| `/automod caps-lock toggle`   | Toggle caps lock filter (Pro)            | Manage Server |
+| `/automod domains add`        | Add domain allowlist (Pro)               | Manage Server |
 | `/role-bundle create`         | Create a reusable role bundle            | Manage Roles  |
 | `/role-bundle list`           | List all role bundles                    | Manage Roles  |
 | `/role-bundle delete`         | Delete a role bundle                     | Manage Roles  |
@@ -570,6 +626,10 @@ Upgrade your server with the **Pro Engine** for enhanced limits and features:
 | Transcript Storage | 7 Days     | **Unlimited**   |
 | Bulk Actions       | 25 users   | **250 users**   |
 | Level Rewards      | 5 (Stack)  | **Unlimited**   |
+| Auto-Mod Filters   | 5 filters  | **+4 advanced** |
+| Domain Allowlist   | ❌         | ✅              |
+| Caps Lock Filter   | ❌         | ✅              |
+| Wildcard/Regex     | ❌         | ✅              |
 
 See [Core Energy Guide](./docs/CORE_ENERGY.md) for details on activation and pricing.
 

@@ -32,6 +32,8 @@ export const metadata = {
         "```/automod disable```",
         "```/automod badwords toggle enabled:true```",
         "```/automod badwords words word1,word2,word3```",
+        "```/automod badwords mode:wildcard words:spam*,f*ll*w*rs``` (Pro)",
+        "```/automod badwords mode:regex words:\\d{3}-\\d{4}``` (Pro)",
         "```/automod links toggle enabled:true```",
         "```/automod spam toggle enabled:true```",
         "```/automod domains add discord.com,youtube.com```",
@@ -54,11 +56,10 @@ export const metadata = {
     {
       name: `Subcommands (${CORE_STATUS.PRO.emoji} Pro Engine)`,
       value: [
-        "**domains add** - Allowlist domains (links from these domains are allowed)",
-        "**domains remove** - Remove domains from allowlist",
-        "**domains clear** - Clear all allowed domains",
-        "**caps-lock toggle** - Block messages that are mostly CAPS",
-        "**badwords advanced** - Custom words with wildcards/regex (Pro)",
+        "**domains add** - Allowlist domains",
+        "**caps-lock toggle** - Block CAPS messages",
+        "**badwords mode:wildcard** - Words with * (spam*, *bad)",
+        "**badwords mode:regex** - Regex patterns (\\d{3}-\\d{4})",
       ].join("\n"),
       inline: false,
     },
@@ -433,7 +434,9 @@ export const data = new SlashCommandBuilder()
       .addStringOption(opt =>
         opt
           .setName("words")
-          .setDescription("Words/patterns separated by commas")
+          .setDescription(
+            "Words/patterns separated by commas. Wildcard: spam*, Regex: \\d{3}-\\d{4}",
+          )
           .setRequired(false),
       )
       .addStringOption(opt =>
