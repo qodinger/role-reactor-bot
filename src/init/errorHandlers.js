@@ -16,6 +16,7 @@ export function setupErrorHandlers() {
     } catch (shutdownError) {
       getLogger().error("Error during emergency shutdown:", shutdownError);
     }
-    process.exit(1);
+    // Allow time for cleanup before exit
+    setTimeout(() => process.exit(1), 1000);
   });
 }

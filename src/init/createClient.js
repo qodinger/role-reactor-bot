@@ -16,6 +16,18 @@ export async function createClient() {
     GatewayIntentBits.MessageContent,
   ];
 
+  const privilegedIntents = [
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.MessageContent,
+  ];
+  const hasPrivilegedIntents = privilegedIntents.some(i => intents.includes(i));
+  if (hasPrivilegedIntents) {
+    getLogger().warn(
+      "⚠️ Bot is using privileged intents (GuildMembers, MessageContent). " +
+        "Ensure these are enabled in the Discord Developer Portal, or the bot may not function correctly.",
+    );
+  }
+
   const defaultCacheLimits = {
     MessageManager: 200,
     ChannelManager: 100,

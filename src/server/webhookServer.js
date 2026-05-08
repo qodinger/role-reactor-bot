@@ -89,6 +89,13 @@ async function initializeMiddleware() {
   // Session middleware (for Discord OAuth) with MongoDB store
   const SESSION_TIMEOUT_MS =
     parseInt(process.env.SESSION_TIMEOUT_MS) || 30 * 60 * 1000;
+  if (process.env.NODE_ENV === "production" && !process.env.SESSION_SECRET) {
+    const errorMessage =
+      "SESSION_SECRET environment variable is required in production";
+    logger.error(`❌ ${errorMessage}`);
+    throw new Error(errorMessage);
+  }
+
   if (process.env.SESSION_SECRET) {
     try {
       const session = (await import("express-session")).default;
@@ -130,6 +137,10 @@ async function initializeMiddleware() {
         `⚠️ Session setup error: ${_error.message}. Install with: npm install express-session connect-mongo`,
       );
     }
+  } else {
+    logger.debug(
+      "Session middleware disabled (SESSION_SECRET not set). Discord OAuth will not be available.",
+    );
   }
 
   // Serve static files (for website)

@@ -71,6 +71,20 @@ export async function handleCryptoWebhook(req, res) {
     return res.status(200).json({ status: "no_user_linked" });
   }
 
+  // Fast-path: Check for duplicate before expensive lock acquisition
+  try {
+    const storage = await getStorageManager();
+    const existingData = await storage.getCoreCredits(userId);
+    if (existingData?.cryptoPayments?.some(p => p.chargeId === paymentId)) {
+      logger.info(
+        `🔄 Duplicate payment detected early: ${paymentId} for user ${userId}`,
+      );
+      return res.status(200).json({ success: true, message: "Already processed" });
+    }
+  } catch (checkError) {
+    logger.warn(`Duplicate check failed, will retry in lock: ${checkError.message}`);
+  }
+
   try {
     const result = await processCryptoPayment(
       userId,

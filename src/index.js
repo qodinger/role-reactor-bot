@@ -226,16 +226,8 @@ async function main() {
       try {
         await client.application.commands.fetch();
 
-        // Always fetch guild commands for clickable mentions (both Dev & Prod)
-        for (const guild of client.guilds.cache.values()) {
-          await guild.commands.fetch().catch(err => {
-            logger.debug(
-              `⚠️ Failed to fetch commands for guild ${guild.name}: ${err.message}`,
-            );
-          });
-        }
-        logger.debug("✅ All guild commands fetched for clickable mentions");
-
+        // Lazy load guild commands on first use instead of all at startup
+        // Commands are fetched per-guild when needed via interactionCreate handler
         logger.debug("✅ Application commands fetched for clickable mentions");
       } catch (error) {
         logger.warn(
@@ -336,6 +328,8 @@ async function main() {
       if (ctx.pollCleanupInterval) {
         clearInterval(ctx.pollCleanupInterval);
       }
+      const POLL_CLEANUP_INTERVAL_MS =
+        parseInt(process.env.POLL_CLEANUP_INTERVAL_MS) || 6 * 60 * 60 * 1000;
       ctx.pollCleanupInterval = setInterval(
         async () => {
           try {
@@ -350,8 +344,8 @@ async function main() {
             logger.error("❌ Poll cleanup failed:", error);
           }
         },
-        6 * 60 * 60 * 1000,
-      ).unref(); // 6 hours
+        POLL_CLEANUP_INTERVAL_MS,
+      ).unref();
 
       healthCheckRunner.run(client);
 
