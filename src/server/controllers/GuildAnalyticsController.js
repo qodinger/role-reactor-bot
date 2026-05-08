@@ -21,7 +21,8 @@ async function checkPremium(guildId) {
  */
 export async function apiGetGuildAnalytics(req, res) {
   const { guildId } = req.params;
-  const days = parseInt(req.query.days) || 30; // Default to 30 days if not specified
+  const daysParam = req.query.days;
+  const days = typeof daysParam === "string" ? parseInt(daysParam) || 30 : 30;
   logRequest(`Get guild analytics: ${guildId} (${days} days)`, req);
 
   if (!guildId) {
