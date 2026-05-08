@@ -49,10 +49,10 @@ export async function execute(message, client) {
         userMessage = "Hello!";
       }
 
-      // Check if AI service is enabled
+      // AI chat is disabled - respond with help message
       if (!chatService.aiService.isEnabled()) {
         await message.reply(
-          "The AI chat service is currently disabled. Please use the `/ask` command or contact an administrator.",
+          "The AI chat feature has been disabled. Use `/help` to see available commands.",
         );
         return;
       }
@@ -60,13 +60,6 @@ export async function execute(message, client) {
       // Check if user has credits for AI request
       const creditCheck = await checkAICredits(message.author.id);
       if (!creditCheck.hasCredits) {
-        // const creditInfo = await getAICreditInfo(message.author.id);
-        // const chatCost = creditCheck.creditsNeeded; // Use creditsNeeded from check (already has fallback in aiCreditManager)
-        // const requestsPerCore = Math.floor(1 / chatCost);
-        // Silently ignore users without credits
-        // await message.reply(
-        //   `❌ **Insufficient Credits**\n\nYou need **${chatCost.toFixed(2)} ${customEmojis.core}** to use AI chat!\n\n**Your Balance:** ${creditInfo.credits.toFixed(2)} ${customEmojis.core}\n**Cost:** ${chatCost.toFixed(2)} ${customEmojis.core} per request (1 ${customEmojis.core} = ${requestsPerCore} requests)\n**Requests Available:** ${creditInfo.requestsRemaining}\n\nGet Cores: Visit https://rolereactor.app/sponsor`,
-        // );
         return;
       }
 
