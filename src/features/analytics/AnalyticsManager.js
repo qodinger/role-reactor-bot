@@ -22,11 +22,15 @@ class AnalyticsManager {
       this.isInitialized = true;
       this.logger.info("📈 Analytics Manager initialized");
 
-      // Auto-save data every 30 minutes just in case
+      // Cleanup runs on interval - independent of event triggers
+      // Runs daily at startup
       this.saveInterval = setInterval(
         () => this.cleanupOldData(),
         24 * 60 * 60 * 1000,
       ).unref();
+
+      // Cleanup once at startup
+      this.cleanupOldData();
 
       // Flush batch every 1 minute to prevent database spam
       this.batchInterval = setInterval(
@@ -193,13 +197,13 @@ class AnalyticsManager {
   }
 
   /**
-   * Cleanup data older than 90 days to save space
+   * Cleanup data older than retention period
    */
   async cleanupOldData() {
     try {
       const now = new Date();
       const cutoff = new Date();
-      cutoff.setDate(now.getDate() - 90);
+      cutoff.setDate(now.getDate() - 365); // 1 year retention
       const cutoffKey = cutoff.toISOString().split("T")[0];
 
       const deletedCount =
