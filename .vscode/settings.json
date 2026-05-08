@@ -91,8 +91,13 @@
     "usermod",
     "uuidv",
     "Valorant",
+    "vitest",
     "vtag"
   ],
   "docker.languageserver.diagnostics.vulnerabilities": "ignore",
-  "kiroAgent.configureMCP": "Disabled"
+  "kiroAgent.configureMCP": "Disabled",
+  "yaml.schemas": {
+    "github-actions": ".github/workflows/*"
+  }
+}
 }
