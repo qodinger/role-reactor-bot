@@ -289,6 +289,33 @@ describe("API Security Tests", () => {
     });
   });
 
+  describe("User Profile Endpoint Security (/me)", () => {
+    const internalKey = process.env.INTERNAL_API_KEY || "test-key";
+
+    it("should reject /me endpoint without authentication", async () => {
+      const response = await request(app).get(`${API_BASE}/user/me`);
+
+      expect([401, 404]).toContain(response.status);
+    });
+
+    it("should reject /me endpoint without internal key", async () => {
+      const response = await request(app)
+        .get(`${API_BASE}/user/me`)
+        .set("Authorization", `Bearer invalid-session`);
+
+      expect([401, 403, 404]).toContain(response.status);
+    });
+
+    it("should reject /me endpoint with only internal key (no session)", async () => {
+      const response = await request(app)
+        .get(`${API_BASE}/user/me`)
+        .set("Authorization", `Bearer ${internalKey}`);
+
+      // Should require session auth
+      expect([401, 403, 404]).toContain(response.status);
+    });
+  });
+
   describe("Root Endpoints Security", () => {
     const internalKey = process.env.INTERNAL_API_KEY || "test-key";
 

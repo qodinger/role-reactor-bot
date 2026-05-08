@@ -6,6 +6,7 @@ import {
   createErrorEmbed,
 } from "../../../../features/ticketing/embeds.js";
 import { DEFAULT_CATEGORY } from "../../../../features/ticketing/config.js";
+import { InputSanitizer } from "../../../../utils/validation/inputValidation.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // /ticket setup
@@ -15,10 +16,13 @@ export async function handleSetup(interaction) {
   await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
   const channel = interaction.options.getChannel("channel");
-  const title = interaction.options.getString("title") || "Support Tickets";
-  const description =
+  const title = InputSanitizer.sanitize(
+    interaction.options.getString("title") || "Support Tickets",
+  );
+  const description = InputSanitizer.sanitize(
     interaction.options.getString("description") ||
-    "Click a button below to create a ticket and get support from our team.";
+      "Click a button below to create a ticket and get support from our team.",
+  );
   const colorInput = interaction.options.getString("color");
 
   let color = 0x5865f2;

@@ -5,11 +5,15 @@
 
 import { getLogger } from "../../utils/logger.js";
 import { createErrorResponse } from "../utils/responseHelpers.js";
+import {
+  InputSanitizer,
+  InputValidator,
+} from "../../utils/validation/inputValidation.js";
 
 const logger = getLogger();
 
 /**
- * Validate request body against schema
+ * Validate request body against schema with enhanced security
  * @param {Object} schema - Validation schema
  * @returns {Function} Express middleware
  */
@@ -18,11 +22,16 @@ export function validateBody(schema) {
     try {
       const { body } = req;
       const errors = [];
+      req.sanitizedBody = {};
 
       // Validate required fields
       if (schema.required) {
         for (const field of schema.required) {
-          if (body[field] === undefined || body[field] === null) {
+          if (
+            body[field] === undefined ||
+            body[field] === null ||
+            body[field] === ""
+          ) {
             errors.push(`Missing required field: ${field}`);
           }
         }
@@ -31,9 +40,32 @@ export function validateBody(schema) {
       // Validate field types
       if (schema.properties) {
         for (const [field, config] of Object.entries(schema.properties)) {
-          if (body[field] !== undefined) {
+          if (body[field] !== undefined && body[field] !== null) {
             const value = body[field];
-            const { type, min, max, pattern, enum: enumValues } = config;
+            const {
+              type,
+              min,
+              max,
+              pattern,
+              enum: enumValues,
+              email,
+              noHtml,
+              sanitize,
+            } = config;
+
+            // Check for malicious content in string inputs
+            if (
+              (type === "string" || typeof value === "string") &&
+              email !== true &&
+              noHtml !== false
+            ) {
+              if (InputValidator.containsMaliciousContent(value)) {
+                errors.push(
+                  `Field ${field} contains disallowed HTML or script content`,
+                );
+                continue;
+              }
+            }
 
             // Type validation
             if (type === "string" && typeof value !== "string") {
@@ -53,17 +85,40 @@ export function validateBody(schema) {
 
             // String validations
             if (type === "string" && typeof value === "string") {
-              if (min !== undefined && value.length < min) {
+              let sanitizedValue = value;
+
+              // Apply sanitization
+              if (sanitize !== false) {
+                sanitizedValue = InputSanitizer.sanitize(sanitizedValue);
+              }
+
+              // Email validation
+              if (email === true) {
+                const emailError = InputValidator.validateEmail(
+                  sanitizedValue,
+                  field,
+                );
+                if (emailError) {
+                  errors.push(emailError.message);
+                  continue;
+                }
+                sanitizedValue = sanitizedValue.trim().toLowerCase();
+              }
+
+              if (min !== undefined && sanitizedValue.length < min) {
                 errors.push(
                   `Field ${field} must be at least ${min} characters`,
                 );
               }
-              if (max !== undefined && value.length > max) {
+              if (max !== undefined && sanitizedValue.length > max) {
                 errors.push(`Field ${field} must be at most ${max} characters`);
               }
-              if (pattern && !new RegExp(pattern).test(value)) {
+              if (pattern && !new RegExp(pattern).test(sanitizedValue)) {
                 errors.push(`Field ${field} does not match required pattern`);
               }
+
+              // Store sanitized value
+              req.sanitizedBody[field] = sanitizedValue;
             }
 
             // Number validations
@@ -82,6 +137,11 @@ export function validateBody(schema) {
                 `Field ${field} must be one of: ${enumValues.join(", ")}`,
               );
             }
+
+            // For non-string types, copy as-is
+            if (type !== "string") {
+              req.sanitizedBody[field] = value;
+            }
           }
         }
       }
@@ -95,6 +155,8 @@ export function validateBody(schema) {
         return res.status(400).json(response);
       }
 
+      // Replace body with sanitized version
+      Object.assign(req.body, req.sanitizedBody);
       next();
     } catch (error) {
       logger.error("Validation middleware error:", error);
@@ -105,7 +167,7 @@ export function validateBody(schema) {
 }
 
 /**
- * Validate query parameters
+ * Validate query parameters with sanitization
  * @param {Object} schema - Validation schema
  * @returns {Function} Express middleware
  */
@@ -114,10 +176,15 @@ export function validateQuery(schema) {
     try {
       const { query } = req;
       const errors = [];
+      req.sanitizedQuery = {};
 
       if (schema.required) {
         for (const field of schema.required) {
-          if (query[field] === undefined || query[field] === null) {
+          if (
+            query[field] === undefined ||
+            query[field] === null ||
+            query[field] === ""
+          ) {
             errors.push(`Missing required query parameter: ${field}`);
           }
         }
@@ -127,7 +194,7 @@ export function validateQuery(schema) {
         for (const [field, config] of Object.entries(schema.properties)) {
           if (query[field] !== undefined) {
             const value = query[field];
-            const { type, min, max, enum: enumValues } = config;
+            const { type, min, max, enum: enumValues, sanitize } = config;
 
             // Type validation
             if (type === "number") {
@@ -145,7 +212,24 @@ export function validateQuery(schema) {
                     `Query parameter ${field} must be at most ${max}`,
                   );
                 }
+                req.sanitizedQuery[field] = numValue;
               }
+            } else if (type === "string") {
+              let sanitizedValue = String(value);
+              if (sanitize !== false) {
+                sanitizedValue = InputSanitizer.sanitize(sanitizedValue);
+              }
+              if (
+                config.maxLength &&
+                sanitizedValue.length > config.maxLength
+              ) {
+                errors.push(
+                  `Query parameter ${field} must be at most ${config.maxLength} characters`,
+                );
+              }
+              req.sanitizedQuery[field] = sanitizedValue;
+            } else {
+              req.sanitizedQuery[field] = value;
             }
 
             if (enumValues && !enumValues.includes(value)) {
@@ -166,6 +250,7 @@ export function validateQuery(schema) {
         return res.status(400).json(response);
       }
 
+      Object.assign(req.query, req.sanitizedQuery);
       next();
     } catch (error) {
       logger.error("Query validation middleware error:", error);
@@ -176,7 +261,7 @@ export function validateQuery(schema) {
 }
 
 /**
- * Validate URL parameters
+ * Validate URL parameters with sanitization
  * @param {Object} schema - Validation schema
  * @returns {Function} Express middleware
  */
@@ -209,6 +294,11 @@ export function validateParams(schema) {
 
             if (pattern && !new RegExp(pattern).test(value)) {
               errors.push(`Parameter ${field} does not match required pattern`);
+            }
+
+            // Sanitize string params
+            if (type === "string" && typeof value === "string") {
+              params[field] = InputSanitizer.sanitize(value);
             }
           }
         }

@@ -16,6 +16,7 @@ import {
   handleHistory,
   handleRemoveWarn,
   handleListBans,
+  handleListTimeouts,
 } from "./handlers.js";
 
 const logger = getLogger();
@@ -65,6 +66,7 @@ export const metadata = {
         "**history** - View moderation history for a user or entire server with pagination",
         "**remove-warn** - Remove a specific warning from a user by case ID",
         "**list-bans** - List all banned users in the server",
+        "**timeouts** - List all currently timed out members",
       ].join("\n"),
       inline: false,
     },
@@ -279,6 +281,11 @@ export const data = new SlashCommandBuilder()
     subcommand
       .setName("list-bans")
       .setDescription("List all banned users in the server"),
+  )
+  .addSubcommand(subcommand =>
+    subcommand
+      .setName("timeouts")
+      .setDescription("List all currently timed out members"),
   );
 
 export async function execute(interaction, client) {
@@ -362,6 +369,9 @@ export async function execute(interaction, client) {
         break;
       case "list-bans":
         await handleListBans(interaction, client);
+        break;
+      case "timeouts":
+        await handleListTimeouts(interaction, client);
         break;
       default: {
         const response = errorEmbed({

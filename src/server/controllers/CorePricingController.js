@@ -86,11 +86,26 @@ export async function apiPricing(req, res) {
         const storage = await getStorageManager();
         const userData = await storage.getCoreCredits(requestedUserId);
         const hasPayments = userData?.cryptoPayments?.length > 0;
+
+        // Check if user has active Pro on any guild
+        let hasActivePro = false;
+        if (storage.dbManager?.guildSettings) {
+          const guildsWithPro = await storage.dbManager.guildSettings.collection
+            .find({
+              "premiumFeatures.pro_engine.payerUserId": requestedUserId,
+              "premiumFeatures.pro_engine.active": true,
+            })
+            .limit(1)
+            .toArray();
+          hasActivePro = guildsWithPro.length > 0;
+        }
+
         userEligibility = {
           requestedUserId,
           isFirstPurchase: !hasPayments,
           currentCredits: Math.round((userData?.credits || 0) * 100) / 100,
           eligibleForFirstPurchaseBonus: !hasPayments,
+          hasActivePro,
         };
       } catch (error) {
         logger.warn("Failed to check user eligibility:", error.message);

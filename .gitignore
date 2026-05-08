@@ -196,3 +196,6 @@ temp/
 
 # Unpublished Drafts
 docs/.drafts/
+
+# Personal notes
+TODO.md

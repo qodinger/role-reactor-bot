@@ -1,18 +1,44 @@
 import { EmbedBuilder } from "discord.js";
+import {
+  InputSanitizer,
+  InputValidator,
+  INPUT_LIMITS,
+} from "../validation/inputValidation.js";
 
 /**
  * Sanitizes user input to prevent XSS and injection attacks.
+ * Uses comprehensive sanitization from inputValidation utility.
  * @param {string} input The input to sanitize.
+ * @param {number} maxLength Maximum length (default: 2000)
  * @returns {string} The sanitized input.
  */
-export function sanitizeInput(input) {
+export function sanitizeInput(input, maxLength = INPUT_LIMITS.MESSAGE_CONTENT) {
   if (typeof input !== "string") return "";
 
-  return input
-    .replace(/[<>]/g, "")
-    .replace(/[&]/g, "&amp;")
-    .trim()
-    .slice(0, 2000);
+  const sanitized = InputSanitizer.sanitize(input);
+
+  // Check for malicious content and strip if found
+  if (InputValidator.containsMaliciousContent(input)) {
+    // Silently sanitize malicious content
+  }
+
+  return sanitized.slice(0, maxLength);
+}
+
+/**
+ * Sanitizes input while preserving line breaks.
+ * @param {string} input The input to sanitize.
+ * @param {number} maxLength Maximum length.
+ * @returns {string} The sanitized input.
+ */
+export function sanitizeInputPreserveLines(
+  input,
+  maxLength = INPUT_LIMITS.MESSAGE_CONTENT,
+) {
+  if (typeof input !== "string") return "";
+
+  const sanitized = InputSanitizer.sanitizePreserveLines(input);
+  return sanitized.slice(0, maxLength);
 }
 
 /**
@@ -133,6 +159,7 @@ export const validateCommandInputs = inputs => {
 
 export default {
   sanitizeInput,
+  sanitizeInputPreserveLines,
   isValidEmoji,
   isValidDuration,
   parseDuration,

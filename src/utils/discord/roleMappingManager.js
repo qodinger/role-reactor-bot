@@ -208,3 +208,83 @@ export async function removeRoleMapping(messageId) {
 export function clearRoleMappingCache() {
   roleMappingCache.clear();
 }
+
+/**
+ * Gets the current usage count for an emoji in a role mapping.
+ * @param {string} messageId The ID of the message.
+ * @param {string} emoji The emoji identifier.
+ * @returns {Promise<number>} The current usage count.
+ */
+export async function getRoleUsageCount(messageId, emoji) {
+  const mapping = await getRoleMapping(messageId);
+  if (!mapping) return 0;
+
+  const usage = mapping.usage || {};
+  return usage[emoji] || 0;
+}
+
+/**
+ * Increments the usage count for an emoji in a role mapping.
+ * @param {string} messageId The ID of the message.
+ * @param {string} emoji The emoji identifier.
+ * @returns {Promise<number>} The new usage count.
+ */
+export async function incrementRoleUsage(messageId, emoji) {
+  const logger = getLogger();
+  const storageManager = await getStorageManager();
+
+  try {
+    const mapping = await getRoleMapping(messageId);
+    if (!mapping) return 0;
+
+    const usage = mapping.usage || {};
+    usage[emoji] = (usage[emoji] || 0) + 1;
+
+    // Update storage with new usage count
+    await storageManager.updateRoleMappingUsage(messageId, { usage });
+
+    // Update cache
+    const cached = roleMappingCache.cache.get(messageId);
+    if (cached) {
+      cached.data.usage = usage;
+    }
+
+    return usage[emoji];
+  } catch (error) {
+    logger.error("Failed to increment role usage", error);
+    return 0;
+  }
+}
+
+/**
+ * Decrements the usage count for an emoji in a role mapping.
+ * @param {string} messageId The ID of the message.
+ * @param {string} emoji The emoji identifier.
+ * @returns {Promise<number>} The new usage count.
+ */
+export async function decrementRoleUsage(messageId, emoji) {
+  const logger = getLogger();
+  const storageManager = await getStorageManager();
+
+  try {
+    const mapping = await getRoleMapping(messageId);
+    if (!mapping) return 0;
+
+    const usage = mapping.usage || {};
+    usage[emoji] = Math.max(0, (usage[emoji] || 0) - 1);
+
+    // Update storage with new usage count
+    await storageManager.updateRoleMappingUsage(messageId, { usage });
+
+    // Update cache
+    const cached = roleMappingCache.cache.get(messageId);
+    if (cached) {
+      cached.data.usage = usage;
+    }
+
+    return usage[emoji];
+  } catch (error) {
+    logger.error("Failed to decrement role usage", error);
+    return 0;
+  }
+}

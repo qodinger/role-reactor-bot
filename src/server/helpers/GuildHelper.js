@@ -41,9 +41,8 @@ export class GuildHelper {
 
       const growthHistory = await (async () => {
         try {
-          const { getAnalyticsManager } = await import(
-            "../../features/analytics/AnalyticsManager.js"
-          );
+          const { getAnalyticsManager } =
+            await import("../../features/analytics/AnalyticsManager.js");
           const analyticsManager = await getAnalyticsManager();
           return await analyticsManager.getHistory(guild.id, 14);
         } catch {
@@ -53,9 +52,8 @@ export class GuildHelper {
 
       const leaderboard = await (async () => {
         try {
-          const { getStorageManager } = await import(
-            "../../utils/storage/storageManager.js"
-          );
+          const { getStorageManager } =
+            await import("../../utils/storage/storageManager.js");
           const storageManager = await getStorageManager();
           const guildUsers = await storageManager.getUserExperienceLeaderboard(
             guild.id,
@@ -82,9 +80,8 @@ export class GuildHelper {
 
       const activity = await (async () => {
         try {
-          const { getStorageManager } = await import(
-            "../../utils/storage/storageManager.js"
-          );
+          const { getStorageManager } =
+            await import("../../utils/storage/storageManager.js");
           const storageManager = await getStorageManager();
           const guildUsers = await storageManager.getUserExperienceByGuild(
             guild.id,
@@ -127,8 +124,10 @@ export class GuildHelper {
       return {
         name: guild.name,
         icon: guild.icon,
-        memberCount: guild.memberCount,
-        humanCount: humansInCache,
+        memberCount: guild.approximateMemberCount || guild.memberCount,
+        humanCount: guild.approximateMemberCount
+          ? guild.approximateMemberCount - botsInCache
+          : humansInCache,
         botCount: botsInCache,
         onlineCount: (function () {
           const precise = guild.members.cache.filter(

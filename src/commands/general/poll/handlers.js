@@ -17,6 +17,11 @@ import {
   createPollCreationMenu,
   createPollCreationMenuWithSelections,
 } from "./modals.js";
+import {
+  InputValidator,
+  INPUT_LIMITS,
+} from "../../../utils/validation/inputValidation.js";
+import { validateModalInput } from "../../../utils/validation/formValidation.js";
 
 const logger = getLogger();
 
@@ -469,8 +474,41 @@ export async function handlePollCreateFromModal(interaction, _client) {
     // No rate limiting - Discord doesn't limit poll creation
     // Allow users to create polls as with native Discord polls
 
-    const question = interaction.fields.getTextInputValue("poll_question");
-    const optionsString = interaction.fields.getTextInputValue("poll_options");
+    const rawQuestion = interaction.fields.getTextInputValue("poll_question");
+    const rawOptions = interaction.fields.getTextInputValue("poll_options");
+
+    const questionValidation = validateModalInput(
+      rawQuestion,
+      "Poll Question",
+      {
+        required: true,
+        maxLength: INPUT_LIMITS.POLL_QUESTION,
+        stripHtml: true,
+        removeScripts: true,
+      },
+    );
+
+    if (!questionValidation.valid) {
+      return await interaction.editReply({
+        embeds: [questionValidation.error],
+      });
+    }
+
+    const optionsValidation = validateModalInput(rawOptions, "Poll Options", {
+      required: true,
+      maxLength: INPUT_LIMITS.LONG_TEXT,
+      stripHtml: true,
+      removeScripts: true,
+    });
+
+    if (!optionsValidation.valid) {
+      return await interaction.editReply({
+        embeds: [optionsValidation.error],
+      });
+    }
+
+    const question = questionValidation.sanitized;
+    const optionsString = optionsValidation.sanitized;
 
     // Get duration and multiple choice from stored selections
     const userId = interaction.user.id;
@@ -515,23 +553,31 @@ export async function handlePollCreateFromModal(interaction, _client) {
     }
 
     // Validate question length (Discord API limit: 300 characters)
-    if (question.length > 300) {
+    const questionLengthError = InputValidator.validateLength(
+      question,
+      "Poll question",
+      1,
+      INPUT_LIMITS.POLL_QUESTION,
+    );
+    if (questionLengthError) {
       return await interaction.editReply(
         errorEmbed({
           title: "Question Too Long",
-          description: "Poll question cannot exceed 300 characters.",
-          solution: `Please shorten your question. Current length: ${question.length}/300 characters.`,
+          description: `Poll question cannot exceed ${INPUT_LIMITS.POLL_QUESTION} characters.`,
+          solution: `Please shorten your question. Current length: ${question.length}/${INPUT_LIMITS.POLL_QUESTION} characters.`,
         }),
       );
     }
 
     // Validate answer text length (Discord API limit: 55 characters per answer)
-    const invalidOptions = options.filter(option => option.length > 55);
+    const invalidOptions = options.filter(
+      option => option.length > INPUT_LIMITS.POLL_OPTION,
+    );
     if (invalidOptions.length > 0) {
       return await interaction.editReply(
         errorEmbed({
           title: "Answer Too Long",
-          description: `Poll answers cannot exceed 55 characters each.`,
+          description: `Poll answers cannot exceed ${INPUT_LIMITS.POLL_OPTION} characters each.`,
           solution: `Please shorten these answers: ${invalidOptions.map(opt => `"${opt}"`).join(", ")}`,
         }),
       );

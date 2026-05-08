@@ -95,7 +95,7 @@ router.get(
   apiGetGuildEmojis,
 );
 
-// Premium - requires guild permission for activation/cancellation
+// Premium - requires guild permission
 router.post(
   "/:guildId/premium/activate",
   internalAuth,
@@ -146,53 +146,6 @@ router.post(
   roleManagementLimiter,
   apiDeployRoleReactions,
 );
-router.post(
-  "/:guildId/premium/cancel",
-  requireAuth,
-  requireGuildPermission,
-  premiumActivationLimiter,
-  apiCancelPremiumFeature,
-);
-router.get(
-  "/:guildId/premium/status",
-  internalAuth,
-  requireGuildMembership,
-  apiGetPremiumStatus,
-);
-
-// Leaderboard - public access
-router.get("/public-leaderboards", apiGetPublicLeaderboards);
-router.get("/:guildId/leaderboard", apiGuildLeaderboard);
-
-// Analytics - requires guild permission
-router.get(
-  "/:guildId/analytics",
-  internalAuth,
-  requireGuildPermission,
-  apiGetGuildAnalytics,
-);
-
-// Role Reactions - CRITICAL: All role reaction endpoints require guild permission
-router.get(
-  "/:guildId/role-reactions",
-  internalAuth,
-  requireGuildPermission,
-  apiGetGuildRoleMappings,
-);
-router.delete(
-  "/:guildId/role-reactions/:messageId",
-  internalAuth,
-  requireGuildPermission,
-  roleManagementLimiter,
-  apiDeleteGuildRoleMapping,
-);
-router.post(
-  "/:guildId/roles/deploy",
-  internalAuth,
-  requireGuildPermission,
-  roleManagementLimiter,
-  apiDeployRoleReactions,
-);
 router.patch(
   "/:guildId/role-reactions/:messageId",
   internalAuth,
@@ -200,6 +153,10 @@ router.patch(
   roleManagementLimiter,
   apiUpdateRoleReactions,
 );
+
+// Leaderboard - public access
+router.get("/public-leaderboards", apiGetPublicLeaderboards);
+router.get("/:guildId/leaderboard", apiGuildLeaderboard);
 
 // Custom Commands - requires guild permission for modifications
 router.get(

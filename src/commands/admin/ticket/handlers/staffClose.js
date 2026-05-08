@@ -16,6 +16,7 @@ import {
 } from "../../../../features/ticketing/embeds.js";
 import { checkStaffRole, formatDuration } from "../utils.js";
 import { getLogger } from "../../../../utils/logger.js";
+import { InputSanitizer } from "../../../../utils/validation/inputValidation.js";
 
 const logger = getLogger();
 
@@ -26,7 +27,9 @@ const logger = getLogger();
 export async function handleClose(interaction) {
   await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
-  const reason = interaction.options.getString("reason");
+  const reason = InputSanitizer.sanitize(
+    interaction.options.getString("reason") || "No reason provided",
+  );
   const ticketManager = getTicketManager();
   const ticketTranscript = getTicketTranscript();
   await ticketManager.initialize();

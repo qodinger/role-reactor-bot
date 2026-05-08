@@ -30,6 +30,7 @@ export const metadata = {
     "roles",
   ],
   emoji: "📈",
+  premium: false, // Has free tier (stack) + premium (replace)
   helpFields: [
     {
       name: `How to Use`,

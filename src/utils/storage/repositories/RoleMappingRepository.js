@@ -17,6 +17,7 @@ export class RoleMappingRepository extends BaseRepository {
         guildId: doc.guildId,
         channelId: doc.channelId,
         roles: doc.roles,
+        usage: doc.usage || {},
         createdAt: doc.createdAt,
         updatedAt: doc.updatedAt,
       };
@@ -39,6 +40,14 @@ export class RoleMappingRepository extends BaseRepository {
 
   async delete(messageId) {
     await this.collection.deleteOne({ messageId });
+    this.cache.clear();
+  }
+
+  async updatePartial(messageId, updates) {
+    await this.collection.updateOne(
+      { messageId },
+      { $set: { ...updates, updatedAt: new Date() } },
+    );
     this.cache.clear();
   }
 

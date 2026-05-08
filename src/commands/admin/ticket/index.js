@@ -33,6 +33,7 @@ export const metadata = {
   description: "Manage the ticket support system",
   keywords: ["ticket", "support", "help", "ticketing", "support ticket"],
   emoji: "🎫",
+  premium: false, // Has free tier (txt) + premium (HTML/JSON)
   helpFields: [
     {
       name: `How to Use`,

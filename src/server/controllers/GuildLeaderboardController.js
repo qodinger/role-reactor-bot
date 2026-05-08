@@ -33,9 +33,8 @@ export async function apiGuildLeaderboard(req, res) {
   }
 
   try {
-    const { getDatabaseManager } = await import(
-      "../../utils/storage/databaseManager.js"
-    );
+    const { getDatabaseManager } =
+      await import("../../utils/storage/databaseManager.js");
     const dbManager = await getDatabaseManager();
 
     if (dbManager.guildSettings) {
@@ -73,15 +72,12 @@ export async function apiGuildLeaderboard(req, res) {
       }
     }
 
-    const { getExperienceManager } = await import(
-      "../../features/experience/ExperienceManager.js"
-    );
-    const { getPremiumManager } = await import(
-      "../../features/premium/PremiumManager.js"
-    );
-    const { PremiumFeatures } = await import(
-      "../../features/premium/config.js"
-    );
+    const { getExperienceManager } =
+      await import("../../features/experience/ExperienceManager.js");
+    const { getPremiumManager } =
+      await import("../../features/premium/PremiumManager.js");
+    const { PremiumFeatures } =
+      await import("../../features/premium/config.js");
 
     const experienceManager = await getExperienceManager();
     const premiumManager = getPremiumManager();
@@ -104,19 +100,17 @@ export async function apiGuildLeaderboard(req, res) {
     if (client) {
       const guild = client.guilds.cache.get(guildId);
       if (guild) {
+        const botsInCache = guild.members.cache.filter(m => m.user.bot).size;
+        const totalMembers = guild.approximateMemberCount || guild.memberCount;
         serverInfo = {
           name: guild.name,
           icon: guild.icon,
           banner: guild.banner,
           splash: guild.splash,
           description: guild.description || null,
-          memberCount:
-            guild.memberCount -
-            guild.members.cache.filter(m => m.user.bot).size,
-          botCount: guild.members.cache.filter(m => m.user.bot).size,
-          humanCount:
-            guild.memberCount -
-            guild.members.cache.filter(m => m.user.bot).size,
+          memberCount: totalMembers,
+          botCount: botsInCache,
+          humanCount: totalMembers - botsInCache,
         };
       }
     }
@@ -238,9 +232,8 @@ export async function apiGetPublicLeaderboards(req, res) {
       return res.status(statusCode).json(response);
     }
 
-    const { getDatabaseManager } = await import(
-      "../../utils/storage/databaseManager.js"
-    );
+    const { getDatabaseManager } =
+      await import("../../utils/storage/databaseManager.js");
     const dbManager = await getDatabaseManager();
 
     const publicSettings = await dbManager.guildSettings.collection
@@ -286,11 +279,12 @@ export async function apiGetPublicLeaderboards(req, res) {
         if (!stats || stats.totalXP <= 0) return null;
 
         const botCount = guild.members.cache.filter(m => m.user.bot).size;
+        const totalMembers = guild.approximateMemberCount || guild.memberCount;
         return {
           id: guild.id,
           name: guild.name,
           icon: guild.iconURL({ size: 64 }),
-          memberCount: guild.memberCount - botCount,
+          memberCount: totalMembers - botCount,
           totalXP: stats.totalXP,
           rankedCount: stats.rankedCount,
         };

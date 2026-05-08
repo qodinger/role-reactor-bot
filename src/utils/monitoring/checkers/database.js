@@ -22,6 +22,7 @@ export async function checkDatabase() {
     logger.error("Database health check failed", error);
     return {
       status: "error",
+      duration: 0,
       error: error.message,
       timestamp: new Date().toISOString(),
     };

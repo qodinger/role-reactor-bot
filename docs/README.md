@@ -24,7 +24,6 @@ Welcome to the comprehensive documentation for Role Reactor Bot - a powerful Dis
 ### 💳 Integrations
 
 - **[top.gg Voting Setup](./integrations/topgg.md)** - Voting rewards webhook integration
-- **[ComfyUI (AI) Integration](./integrations/comfyui/README.md)** - AI image generation documentation
 - **[Docker Troubleshooting](./integrations/docker/troubleshooting.md)** - Solutions for common Docker issues
 
 ## 🎯 Quick Navigation
@@ -46,7 +45,7 @@ Welcome to the comprehensive documentation for Role Reactor Bot - a powerful Dis
 
 - **Deployment issues?** See [Docker Troubleshooting](./integrations/docker/troubleshooting.md)
 - **Version updates?** Check the [Changelog](./CHANGELOG.md)
-- **Upcoming features?** View the [Development Roadmap](./ROADMAP.md)
+- **Upcoming features?** See [TODO.md](../../TODO.md)
 
 ## 🏗️ Project Structure
 
@@ -55,7 +54,6 @@ docs/
 ├── README.md                       # Documentation index
 ├── CHANGELOG.md                    # Version history
 ├── CORE_ENERGY.md                  # Core Energy & Pro Engine guide
-├── ROADMAP.md                      # Development roadmap & future ideas
 ├── CONTRIBUTING.md                 # Contribution guidelines
 ├── setup/
 │   ├── README.md                   # Installation & initial setup
@@ -68,15 +66,12 @@ docs/
 │   └── auth.md                     # Website Discord login guide
 └── integrations/
     ├── topgg.md                    # top.gg voting rewards setup
-    ├── docker/
-    │   ├── README.md               # Docker guide
-    │   └── troubleshooting.md      # Docker fixes
-    └── comfyui/
-        ├── README.md               # ComfyUI overview
-        ├── api.md                  # ComfyUI API reference
-        ├── roadmap.md              # AI roadmap
-        └── parameters.md           # AI parameter guide
+    └── docker/
+        ├── README.md               # Docker guide
+        └── troubleshooting.md      # Docker fixes
 ```
+
+> Note: For roadmap and upcoming features, see [TODO.md](../../TODO.md)
 
 ## 🔗 External Resources
 

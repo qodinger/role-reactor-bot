@@ -204,9 +204,8 @@ async function main() {
     client.on("guildDelete", async guild => {
       logger.info(`➖ Bot left guild: ${guild.name} (${guild.id})`);
       try {
-        const { getDatabaseManager } = await import(
-          "./utils/storage/databaseManager.js"
-        );
+        const { getDatabaseManager } =
+          await import("./utils/storage/databaseManager.js");
         const dbManager = await getDatabaseManager();
         if (dbManager?.customCommands) {
           await dbManager.customCommands.deleteAllForGuild(guild.id);
@@ -227,17 +226,15 @@ async function main() {
       try {
         await client.application.commands.fetch();
 
-        // In Development, also fetch guild commands for all guilds
-        if (process.env.NODE_ENV !== "production") {
-          for (const guild of client.guilds.cache.values()) {
-            await guild.commands.fetch().catch(err => {
-              logger.debug(
-                `⚠️ Failed to fetch commands for guild ${guild.name}: ${err.message}`,
-              );
-            });
-          }
-          logger.debug("✅ All guild commands fetched for clickable mentions");
+        // Always fetch guild commands for clickable mentions (both Dev & Prod)
+        for (const guild of client.guilds.cache.values()) {
+          await guild.commands.fetch().catch(err => {
+            logger.debug(
+              `⚠️ Failed to fetch commands for guild ${guild.name}: ${err.message}`,
+            );
+          });
         }
+        logger.debug("✅ All guild commands fetched for clickable mentions");
 
         logger.debug("✅ Application commands fetched for clickable mentions");
       } catch (error) {
@@ -279,9 +276,8 @@ async function main() {
 
       // Start ticketing system cleanup scheduler
       try {
-        const { startTicketCleanup } = await import(
-          "./events/ticketing/ticketCleanup.js"
-        );
+        const { startTicketCleanup } =
+          await import("./events/ticketing/ticketCleanup.js");
         startTicketCleanup(client);
         logger.info("✅ Ticketing system cleanup started");
       } catch (error) {
@@ -318,12 +314,10 @@ async function main() {
 
       // Start Premium Feature scheduler (handles Cores consumption for features)
       try {
-        const { getPremiumFeatureScheduler } = await import(
-          "./features/premium/PremiumFeatureScheduler.js"
-        );
-        const { getPremiumManager } = await import(
-          "./features/premium/PremiumManager.js"
-        );
+        const { getPremiumFeatureScheduler } =
+          await import("./features/premium/PremiumFeatureScheduler.js");
+        const { getPremiumManager } =
+          await import("./features/premium/PremiumManager.js");
         const premiumScheduler = getPremiumFeatureScheduler();
         ctx.premiumScheduler = premiumScheduler;
 
@@ -363,12 +357,10 @@ async function main() {
 
       // Start automatic ComfyUI job recovery system
       try {
-        const { multiProviderAIService } = await import(
-          "./utils/ai/multiProviderAIService.js"
-        );
-        const { startAutomaticRecovery, stopAutomaticRecovery } = await import(
-          "./utils/ai/providers/comfyui/startupRecovery.js"
-        );
+        const { multiProviderAIService } =
+          await import("./utils/ai/multiProviderAIService.js");
+        const { startAutomaticRecovery, stopAutomaticRecovery } =
+          await import("./utils/ai/providers/comfyui/startupRecovery.js");
 
         const comfyuiProvider =
           await multiProviderAIService.getProvider("comfyui");

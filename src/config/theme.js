@@ -7,6 +7,9 @@ export const THEME = {
   SECONDARY: 0x8b7fd8, // Muted purple
   ACCENT: 0xb8a9f5, // Light lavender
 
+  // Premium/Pro colors
+  PRO: 0xfcd34d, // Gold/Yellow for Pro features
+
   // Status colors (pastel versions)
   SUCCESS: 0x7dd3fc, // Soft sky blue
   ERROR: 0xfca5a5, // Soft coral

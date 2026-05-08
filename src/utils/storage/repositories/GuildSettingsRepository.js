@@ -9,6 +9,14 @@ export class GuildSettingsRepository extends BaseRepository {
   async _ensureIndexes() {
     try {
       await this.collection.createIndex({ guildId: 1 }, { unique: true });
+      await this.collection.createIndex(
+        {
+          "premiumFeatures.pro_engine.payerUserId": 1,
+          "premiumFeatures.pro_engine.active": 1,
+          "premiumFeatures.pro_engine.nextDeductionDate": 1,
+        },
+        { background: true },
+      );
       this.logger.debug("GuildSettingsRepository indexes ensured");
     } catch (error) {
       this.logger.warn(

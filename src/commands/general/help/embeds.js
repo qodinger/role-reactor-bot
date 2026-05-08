@@ -23,9 +23,8 @@ export class HelpEmbedBuilder {
     for (const permission of requiredPermissions) {
       if (permission === "DEVELOPER") {
         // Check if user is developer
-        const { isDeveloper } = await import(
-          "../../../utils/discord/permissions.js"
-        );
+        const { isDeveloper } =
+          await import("../../../utils/discord/permissions.js");
         if (!isDeveloper(member.user.id)) {
           return false;
         }
@@ -162,7 +161,11 @@ export class HelpEmbedBuilder {
           .map(([cmdName, meta]) => {
             const lineMeta = meta || {};
             const mention = getMentionableCommand(client, cmdName);
-            return `${mention} — ${lineMeta?.shortDesc || "No description available"}`;
+            const badges = [];
+            if (lineMeta.isPremium) badges.push("⚡");
+            if (lineMeta.isNew) badges.push("🆕");
+            const badgeStr = badges.length > 0 ? ` ${badges.join(" ")}` : "";
+            return `${mention}${badgeStr} — ${lineMeta?.shortDesc || "No description available"}`;
           })
           .join("\n\n");
         embed.addFields({ name: `Commands ${label}`, value, inline: false });
@@ -231,12 +234,20 @@ export class HelpEmbedBuilder {
 
       // Add commands as fields
       const { COMMAND_METADATA } = await getDynamicHelpData(client);
+      const PRO_MARKER = "⚡"; // Pro Engine marker
+      const NEW_MARKER = "🆕"; // New command marker
+
       category.commands.forEach(cmdName => {
         const meta = COMMAND_METADATA[cmdName];
         if (meta) {
           const mention = getMentionableCommand(client, cmdName);
+          const badges = [];
+          if (meta.isPremium) badges.push(PRO_MARKER);
+          if (meta.isNew) badges.push(NEW_MARKER);
+          const badgeStr = badges.length > 0 ? ` ${badges.join(" ")}` : "";
+
           embed.addFields({
-            name: mention,
+            name: `${mention}${badgeStr}`,
             value: meta.shortDesc,
             inline: false,
           });
@@ -298,9 +309,8 @@ export class HelpEmbedBuilder {
     // Try to load helpFields from command registry first (dynamic)
     if (client) {
       try {
-        const { commandRegistry } = await import(
-          "../../../utils/core/commandRegistry.js"
-        );
+        const { commandRegistry } =
+          await import("../../../utils/core/commandRegistry.js");
         await commandRegistry.initialize(client);
         const helpFields = commandRegistry.getCommandHelpFields(commandName);
 

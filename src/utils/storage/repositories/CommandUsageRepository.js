@@ -6,9 +6,9 @@ import { BaseRepository } from "./BaseRepository.js";
  */
 export class CommandUsageRepository extends BaseRepository {
   /**
-   * @param {Db} db - MongoDB database instance
-   * @param {CacheManager} cache - Cache manager instance
-   * @param {Logger} logger - Logger instance
+   * @param {object} db - MongoDB database instance
+   * @param {object} cache - Cache manager instance
+   * @param {object} logger - Logger instance
    */
   constructor(db, cache, logger) {
     super(db, "command_usage", cache, logger);

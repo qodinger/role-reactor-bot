@@ -13,6 +13,7 @@ export async function createClient() {
     GatewayIntentBits.GuildVoiceStates,
     GatewayIntentBits.GuildMessagePolls,
     GatewayIntentBits.GuildEmojisAndStickers,
+    GatewayIntentBits.MessageContent,
   ];
 
   const defaultCacheLimits = {

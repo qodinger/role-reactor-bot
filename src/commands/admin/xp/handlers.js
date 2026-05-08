@@ -21,6 +21,10 @@ import {
 } from "./components.js";
 import { EMOJIS, THEME } from "../../../config/theme.js";
 import { updateXpSettings } from "./utils.js";
+import {
+  validateModalInput,
+  createFormValidationErrorEmbed,
+} from "../../../utils/validation/formValidation.js";
 
 /**
  * Handle XP command (simplified single command)
@@ -456,93 +460,130 @@ export async function handleXpConfigModalSubmit(interaction) {
     );
     const xpSettings = settings.experienceSystem;
 
-    // Get values from modal
-    const messageXpMin = parseInt(
-      interaction.fields.getTextInputValue("message_xp_min"),
+    // Get and validate values from modal
+    const rawMessageXpMin =
+      interaction.fields.getTextInputValue("message_xp_min");
+    const rawMessageXpMax =
+      interaction.fields.getTextInputValue("message_xp_max");
+    const rawCommandXpAmount =
+      interaction.fields.getTextInputValue("command_xp_amount");
+    const rawRoleXpAmount =
+      interaction.fields.getTextInputValue("role_xp_amount");
+    const rawVoiceXpAmount =
+      interaction.fields.getTextInputValue("voice_xp_amount");
+
+    // Validate all inputs with specific error messages
+    const messageXpMinValidation = validateModalInput(
+      rawMessageXpMin,
+      "Message XP Minimum",
+      {
+        required: true,
+        maxLength: 10,
+        customValidation: val => {
+          const num = parseInt(val);
+          if (isNaN(num)) return "Must be a valid number";
+          if (num < 1 || num > 100) return "Must be between 1 and 100";
+          return true;
+        },
+      },
     );
-    const messageXpMax = parseInt(
-      interaction.fields.getTextInputValue("message_xp_max"),
+    if (!messageXpMinValidation.valid) {
+      return interaction.editReply({ embeds: [messageXpMinValidation.error] });
+    }
+
+    const messageXpMaxValidation = validateModalInput(
+      rawMessageXpMax,
+      "Message XP Maximum",
+      {
+        required: true,
+        maxLength: 10,
+        customValidation: val => {
+          const num = parseInt(val);
+          if (isNaN(num)) return "Must be a valid number";
+          if (num < 1 || num > 100) return "Must be between 1 and 100";
+          return true;
+        },
+      },
     );
-    const commandXpAmount = parseInt(
-      interaction.fields.getTextInputValue("command_xp_amount"),
+    if (!messageXpMaxValidation.valid) {
+      return interaction.editReply({ embeds: [messageXpMaxValidation.error] });
+    }
+
+    const commandXpValidation = validateModalInput(
+      rawCommandXpAmount,
+      "Command XP Amount",
+      {
+        required: true,
+        maxLength: 10,
+        customValidation: val => {
+          const num = parseInt(val);
+          if (isNaN(num)) return "Must be a valid number";
+          if (num < 1 || num > 100) return "Must be between 1 and 100";
+          return true;
+        },
+      },
     );
-    const roleXpAmount = parseInt(
-      interaction.fields.getTextInputValue("role_xp_amount"),
+    if (!commandXpValidation.valid) {
+      return interaction.editReply({ embeds: [commandXpValidation.error] });
+    }
+
+    const roleXpValidation = validateModalInput(
+      rawRoleXpAmount,
+      "Role XP Amount",
+      {
+        required: true,
+        maxLength: 10,
+        customValidation: val => {
+          const num = parseInt(val);
+          if (isNaN(num)) return "Must be a valid number";
+          if (num < 1 || num > 1000) return "Must be between 1 and 1000";
+          return true;
+        },
+      },
     );
-    const voiceXpAmount = parseInt(
-      interaction.fields.getTextInputValue("voice_xp_amount"),
+    if (!roleXpValidation.valid) {
+      return interaction.editReply({ embeds: [roleXpValidation.error] });
+    }
+
+    const voiceXpValidation = validateModalInput(
+      rawVoiceXpAmount,
+      "Voice XP Amount",
+      {
+        required: true,
+        maxLength: 10,
+        customValidation: val => {
+          const num = parseInt(val);
+          if (isNaN(num)) return "Must be a valid number";
+          if (num < 1 || num > 50) return "Must be between 1 and 50";
+          return true;
+        },
+      },
     );
+    if (!voiceXpValidation.valid) {
+      return interaction.editReply({ embeds: [voiceXpValidation.error] });
+    }
+
+    // Parse validated values
+    const messageXpMin = parseInt(messageXpMinValidation.sanitized);
+    const messageXpMax = parseInt(messageXpMaxValidation.sanitized);
+    const commandXpAmount = parseInt(commandXpValidation.sanitized);
+    const roleXpAmount = parseInt(roleXpValidation.sanitized);
+    const voiceXpAmount = parseInt(voiceXpValidation.sanitized);
+
+    // Additional cross-field validation: max must be >= min
+    if (messageXpMax < messageXpMin) {
+      return interaction.editReply(
+        createFormValidationErrorEmbed(
+          "Invalid XP Range",
+          "Message XP maximum must be greater than or equal to minimum.",
+          "Please ensure the maximum XP value is not less than the minimum.",
+        ),
+      );
+    }
 
     // Use existing values for cooldowns (not in modal due to Discord 5 ActionRow limit)
     const messageCooldown = xpSettings.messageCooldown;
     const commandCooldown = xpSettings.commandCooldown;
-
-    // Validate inputs - check for NaN first
-    if (isNaN(messageXpMin) || messageXpMin < 1 || messageXpMin > 100) {
-      return interaction.editReply(
-        errorEmbed({
-          title: "Invalid Input",
-          description:
-            "Message XP minimum must be a valid number between 1 and 100.",
-          solution: "Please enter a valid number and try again.",
-        }),
-      );
-    }
-
-    if (
-      isNaN(messageXpMax) ||
-      messageXpMax < 1 ||
-      messageXpMax > 100 ||
-      messageXpMax < messageXpMin
-    ) {
-      return interaction.editReply(
-        errorEmbed({
-          title: "Invalid Input",
-          description:
-            "Message XP maximum must be a valid number between 1 and 100, and greater than or equal to minimum.",
-          solution: "Please enter a valid number and try again.",
-        }),
-      );
-    }
-
-    if (
-      isNaN(commandXpAmount) ||
-      commandXpAmount < 1 ||
-      commandXpAmount > 100
-    ) {
-      return interaction.editReply(
-        errorEmbed({
-          title: "Invalid Input",
-          description:
-            "Command XP amount must be a valid number between 1 and 100.",
-          solution: "Please enter a valid number and try again.",
-        }),
-      );
-    }
-
-    if (isNaN(roleXpAmount) || roleXpAmount < 1 || roleXpAmount > 1000) {
-      return interaction.editReply(
-        errorEmbed({
-          title: "Invalid Input",
-          description:
-            "Role XP amount must be a valid number between 1 and 1000.",
-          solution: "Please enter a valid number and try again.",
-        }),
-      );
-    }
-
-    if (isNaN(voiceXpAmount) || voiceXpAmount < 1 || voiceXpAmount > 50) {
-      return interaction.editReply(
-        errorEmbed({
-          title: "Invalid Input",
-          description:
-            "Voice XP amount must be a valid number between 1 and 50.",
-          solution: "Please enter a valid number and try again.",
-        }),
-      );
-    }
-
-    // Cooldown validation removed - using existing values due to Discord modal limit
 
     // Update settings
     const updatedSettings = {
@@ -605,60 +646,79 @@ export async function handleXpAdvancedConfigModalSubmit(interaction) {
     );
     const xpSettings = settings.experienceSystem;
 
-    // Get values from modal
-    const messageCooldown = parseInt(
-      interaction.fields.getTextInputValue("message_cooldown"),
-    );
-    const commandCooldown = parseInt(
-      interaction.fields.getTextInputValue("command_cooldown"),
-    );
-    const voiceXpInterval = parseInt(
-      interaction.fields.getTextInputValue("voice_xp_interval"),
-    );
+    // Get and validate values from modal
+    const rawMessageCooldown =
+      interaction.fields.getTextInputValue("message_cooldown");
+    const rawCommandCooldown =
+      interaction.fields.getTextInputValue("command_cooldown");
+    const rawVoiceXpInterval =
+      interaction.fields.getTextInputValue("voice_xp_interval");
 
-    // Validate inputs
-    if (
-      isNaN(messageCooldown) ||
-      messageCooldown < 10 ||
-      messageCooldown > 300
-    ) {
-      return interaction.editReply(
-        errorEmbed({
-          title: "Invalid Input",
-          description:
-            "Message cooldown must be a valid number between 10 and 300 seconds.",
-          solution: "Please enter a valid number and try again.",
-        }),
-      );
+    const messageCooldownValidation = validateModalInput(
+      rawMessageCooldown,
+      "Message Cooldown",
+      {
+        required: true,
+        maxLength: 10,
+        customValidation: val => {
+          const num = parseInt(val);
+          if (isNaN(num)) return "Must be a valid number";
+          if (num < 10 || num > 300)
+            return "Must be between 10 and 300 seconds";
+          return true;
+        },
+      },
+    );
+    if (!messageCooldownValidation.valid) {
+      return interaction.editReply({
+        embeds: [messageCooldownValidation.error],
+      });
     }
 
-    if (
-      isNaN(commandCooldown) ||
-      commandCooldown < 5 ||
-      commandCooldown > 120
-    ) {
-      return interaction.editReply(
-        errorEmbed({
-          title: "Invalid Input",
-          description:
-            "Command cooldown must be a valid number between 5 and 120 seconds.",
-          solution: "Please enter a valid number and try again.",
-        }),
-      );
+    const commandCooldownValidation = validateModalInput(
+      rawCommandCooldown,
+      "Command Cooldown",
+      {
+        required: true,
+        maxLength: 10,
+        customValidation: val => {
+          const num = parseInt(val);
+          if (isNaN(num)) return "Must be a valid number";
+          if (num < 5 || num > 120) return "Must be between 5 and 120 seconds";
+          return true;
+        },
+      },
+    );
+    if (!commandCooldownValidation.valid) {
+      return interaction.editReply({
+        embeds: [commandCooldownValidation.error],
+      });
     }
 
-    if (isNaN(voiceXpInterval) || voiceXpInterval < 1 || voiceXpInterval > 60) {
-      return interaction.editReply(
-        errorEmbed({
-          title: "Invalid Input",
-          description:
-            "Voice XP interval must be a valid number between 1 and 60 minutes.",
-          solution: "Please enter a valid number and try again.",
-        }),
-      );
+    const voiceXpIntervalValidation = validateModalInput(
+      rawVoiceXpInterval,
+      "Voice XP Interval",
+      {
+        required: true,
+        maxLength: 10,
+        customValidation: val => {
+          const num = parseInt(val);
+          if (isNaN(num)) return "Must be a valid number";
+          if (num < 1 || num > 60) return "Must be between 1 and 60 minutes";
+          return true;
+        },
+      },
+    );
+    if (!voiceXpIntervalValidation.valid) {
+      return interaction.editReply({
+        embeds: [voiceXpIntervalValidation.error],
+      });
     }
 
-    // Level-up validation removed - handled by Level-Up Messages button
+    // Parse validated values
+    const messageCooldown = parseInt(messageCooldownValidation.sanitized);
+    const commandCooldown = parseInt(commandCooldownValidation.sanitized);
+    const voiceXpInterval = parseInt(voiceXpIntervalValidation.sanitized);
 
     // Update settings
     const updatedSettings = {
@@ -788,9 +848,8 @@ export async function handleXpTestLevelUp(interaction) {
 
   try {
     // Get level-up notifier
-    const { getLevelUpNotifier } = await import(
-      "../../../features/experience/LevelUpNotifier.js"
-    );
+    const { getLevelUpNotifier } =
+      await import("../../../features/experience/LevelUpNotifier.js");
     const levelUpNotifier = await getLevelUpNotifier();
 
     // Send test level-up notification
@@ -838,9 +897,8 @@ export async function handleRewardsCommand(interaction, subcommand, _client) {
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   try {
-    const { getLevelRewardsManager } = await import(
-      "../../../features/experience/LevelRewardsManager.js"
-    );
+    const { getLevelRewardsManager } =
+      await import("../../../features/experience/LevelRewardsManager.js");
     const { FREE_TIER } = await import("../../../features/premium/config.js");
     const rewardsManager = await getLevelRewardsManager();
     const { EmbedBuilder } = await import("discord.js");

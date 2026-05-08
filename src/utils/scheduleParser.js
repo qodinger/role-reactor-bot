@@ -138,7 +138,7 @@ export function parseOneTimeSchedule(scheduleInput) {
       const timeStr = input.substring(10);
       const afternoon = new Date();
       // Default to 2pm if no time specified
-      if (!afternoon.trim()) {
+      if (!timeStr.trim()) {
         afternoon.setHours(14, 0, 0, 0);
         return afternoon;
       }

@@ -35,17 +35,110 @@ export async function apiListUsers(req, res) {
       ];
     }
 
-    const users = await storage.dbManager.users.listUsers(filter, limit, skip);
-    const total = await storage.dbManager.users.count(filter);
+    let users = await storage.dbManager.users.listUsers(filter, limit, skip);
+    let total = await storage.dbManager.users.count(filter);
+
+    // If search by Discord ID but not found in database, try fetching from Discord API
+    if (search && total === 0 && /^\d{17,19}$/.test(search)) {
+      const client = getDiscordClient();
+      if (client) {
+        try {
+          const discordUser = await client.users.fetch(search);
+          if (discordUser) {
+            users = [
+              {
+                discordId: discordUser.id,
+                username: discordUser.username,
+                globalName: discordUser.globalName,
+                avatar: discordUser.avatar,
+                role: "user",
+                fetchedFromDiscord: true,
+              },
+            ];
+            total = 1;
+          }
+        } catch {
+          // User not found in Discord
+        }
+      }
+    }
+
+    // Get payer users from guild_settings who aren't in users collection
+    // Only when NOT searching (showing all users)
+    // Only include users with ACTIVE Pro subscriptions (not expired + grace period)
+    const userIds = users.map(u => u.discordId);
+    const now = new Date();
+    const gracePeriodStart = new Date(now);
+    gracePeriodStart.setDate(gracePeriodStart.getDate() - 3); // 3-day grace period lookback
+
+    if (storage.dbManager.guildSettings && !search) {
+      try {
+        const payerUsers = await storage.dbManager.guildSettings.collection
+          .find({
+            $and: [
+              { "premiumFeatures.pro_engine.payerUserId": { $exists: true } },
+              { "premiumFeatures.pro_engine.payerUserId": { $nin: userIds } },
+              { "premiumFeatures.pro_engine.active": true },
+              {
+                "premiumFeatures.pro_engine.nextDeductionDate": {
+                  $gte: gracePeriodStart,
+                },
+              },
+            ],
+          })
+          .project({
+            "premiumFeatures.pro_engine.payerUserId": 1,
+            "premiumFeatures.pro_engine.nextDeductionDate": 1,
+          })
+          .toArray();
+
+        const payerUserIds = [
+          ...new Set(
+            payerUsers.map(g => g.premiumFeatures.pro_engine.payerUserId),
+          ),
+        ];
+
+        // Fetch Discord user info for payer users not in collection
+        const client = getDiscordClient();
+        for (const payerId of payerUserIds) {
+          if (client) {
+            try {
+              const discordUser = await client.users.fetch(payerId);
+              users.push({
+                discordId: payerId,
+                username: discordUser?.username || `User_${payerId}`,
+                globalName: discordUser?.globalName || null,
+                avatar: discordUser?.avatar || null,
+                role: "user",
+                isPayer: true,
+              });
+              total++;
+            } catch {
+              users.push({
+                discordId: payerId,
+                username: `User_${payerId}`,
+                globalName: null,
+                avatar: null,
+                role: "user",
+                isPayer: true,
+              });
+              total++;
+            }
+          }
+        }
+      } catch (err) {
+        logger.warn("Failed to fetch payer users from guild_settings", err);
+      }
+    }
 
     // Enrich with Core Credits
-    const userIds = users.map(u => u.discordId);
+    const allUserIds = users.map(u => u.discordId);
     const creditsMap = {};
 
-    if (userIds.length > 0 && storage.dbManager.coreCredits) {
+    if (allUserIds.length > 0 && storage.dbManager.coreCredits) {
       try {
         const credits = await storage.dbManager.coreCredits.collection
-          .find({ userId: { $in: userIds } })
+          .find({ userId: { $in: allUserIds } })
           .toArray();
 
         credits.forEach(c => {
@@ -53,6 +146,40 @@ export async function apiListUsers(req, res) {
         });
       } catch (err) {
         logger.warn("Failed to fetch credits for user list", err);
+      }
+    }
+
+    // Check which users have ACTIVE pro_engine on any guild they manage
+    // This ensures isPayer is true only for currently active subscriptions
+    const activeProPayers = new Set();
+
+    if (allUserIds.length > 0 && storage.dbManager.guildSettings) {
+      try {
+        const gracePeriodStart = new Date();
+        gracePeriodStart.setDate(gracePeriodStart.getDate() - 3);
+
+        const activePayers = await storage.dbManager.guildSettings.collection
+          .find({
+            $and: [
+              { "premiumFeatures.pro_engine.payerUserId": { $in: allUserIds } },
+              { "premiumFeatures.pro_engine.active": true },
+              {
+                "premiumFeatures.pro_engine.nextDeductionDate": {
+                  $gte: gracePeriodStart,
+                },
+              },
+            ],
+          })
+          .project({ "premiumFeatures.pro_engine.payerUserId": 1 })
+          .toArray();
+
+        activePayers.forEach(g => {
+          if (g.premiumFeatures?.pro_engine?.payerUserId) {
+            activeProPayers.add(g.premiumFeatures.pro_engine.payerUserId);
+          }
+        });
+      } catch (err) {
+        logger.warn("Failed to check active pro payers", err);
       }
     }
 
@@ -67,6 +194,7 @@ export async function apiListUsers(req, res) {
           credits: creditsMap[u.discordId] || 0,
           lastLogin: u.lastLogin,
           createdAt: u.createdAt,
+          isPayer: activeProPayers.has(u.discordId) || u.isPayer || false,
         })),
         pagination: {
           page,
@@ -117,13 +245,16 @@ export async function apiUserInfo(req, res) {
       logger.warn(`Failed to fetch credits for user ${userId}`, err);
     }
 
+    const decryptedEmail =
+      await storage.dbManager.users.getDecryptedEmail(user);
+
     return res.json(
       createSuccessResponse({
         id: user.discordId,
         username: user.username,
         globalName: user.globalName,
         avatar: user.avatar,
-        email: user.email,
+        email: decryptedEmail,
         role: user.role || "user",
         credits,
         lastLogin: user.lastLogin,
@@ -278,7 +409,38 @@ export async function apiManageUserCores(req, res) {
   try {
     const { getDatabaseManager } =
       await import("../../utils/storage/databaseManager.js");
+    await import("../../utils/storage/storageManager.js");
     const dbManager = await getDatabaseManager();
+
+    // Ensure user exists - fetch from Discord and create stub if needed
+    let user = await dbManager.users.findByDiscordId(userId);
+    if (!user) {
+      const client = getDiscordClient();
+      let discordUser = null;
+      if (client) {
+        try {
+          discordUser = await client.users.fetch(userId);
+        } catch (err) {
+          logger.warn(`Could not fetch Discord user ${userId}:`, err.message);
+        }
+      }
+
+      await dbManager.users.upsertFromDiscordOAuth({
+        discordId: userId,
+        username: discordUser?.username || `User_${userId}`,
+        discriminator: discordUser?.discriminator || "0",
+        globalName: discordUser?.globalName || null,
+        avatar: discordUser?.avatar || null,
+        email: null,
+        accessToken: null,
+        refreshToken: null,
+      });
+
+      user = await dbManager.users.findByDiscordId(userId);
+      logger.info(
+        `Created user stub for ${userId} (was not in users collection)`,
+      );
+    }
 
     // Get current balance
     const credits = await dbManager.coreCredits.getByUserId(userId);
@@ -419,6 +581,72 @@ export async function apiManageUserCores(req, res) {
       "Internal Server Error",
       500,
       error.message,
+    );
+    return res.status(statusCode).json(response);
+  }
+}
+
+/**
+ * Get current user's profile info
+ */
+export async function apiMyInfo(req, res) {
+  logRequest(logger, "My info", req);
+
+  try {
+    const userId = req.session?.discordUser?.id || req.user?.id;
+
+    if (!userId) {
+      const { statusCode, response } = createErrorResponse(
+        "Not authenticated",
+        401,
+      );
+      return res.status(statusCode).json(response);
+    }
+
+    const { getStorageManager } =
+      await import("../../utils/storage/storageManager.js");
+    const storage = await getStorageManager();
+
+    const user = await storage.dbManager.users.findByDiscordId(userId);
+
+    if (!user) {
+      const { statusCode, response } = createErrorResponse(
+        "User not found",
+        404,
+      );
+      return res.status(statusCode).json(response);
+    }
+
+    let credits = 0;
+    try {
+      const creditData = await storage.getCoreCredits(userId);
+      credits = Math.round((creditData?.credits || 0) * 100) / 100;
+    } catch (err) {
+      logger.warn(`Failed to fetch credits for user ${userId}`, err);
+    }
+
+    const decryptedEmail =
+      await storage.dbManager.users.getDecryptedEmail(user);
+
+    return res.json(
+      createSuccessResponse({
+        id: user.discordId,
+        username: user.username,
+        globalName: user.globalName,
+        avatar: user.avatar,
+        email: decryptedEmail,
+        role: user.role || "user",
+        credits,
+        lastLogin: user.lastLogin,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+        message: "Profile retrieved successfully",
+      }),
+    );
+  } catch (error) {
+    logger.error("❌ Failed to get my info", error);
+    const { statusCode, response } = createErrorResponse(
+      "Internal Server Error",
     );
     return res.status(statusCode).json(response);
   }

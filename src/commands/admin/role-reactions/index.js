@@ -34,6 +34,7 @@ export const metadata = {
     "reaction roles",
   ],
   emoji: "⭐",
+  premium: false, // Has free tier + premium features
   helpFields: [
     {
       name: `How to Use`,

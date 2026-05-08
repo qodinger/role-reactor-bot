@@ -217,6 +217,20 @@ export class FileProvider {
     });
   }
 
+  async updateRoleMappingUsage(messageId, updates) {
+    const filePath = this._getFilePath("role_mappings");
+    return writeQueue.enqueue(filePath, async () => {
+      const mappings = await this.read("role_mappings");
+      if (!mappings[messageId]) return false;
+      mappings[messageId] = {
+        ...mappings[messageId],
+        ...updates,
+        updatedAt: new Date().toISOString(),
+      };
+      return this._writeRaw(filePath, mappings);
+    });
+  }
+
   async cleanupExpiredRoles() {
     // Basic implementation could be added if needed
     return 0;
