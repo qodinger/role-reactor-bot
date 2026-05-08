@@ -7,6 +7,13 @@ import { logRequest } from "../utils/apiShared.js";
 
 const logger = getLogger();
 
+async function checkPremium(guildId) {
+  const { getPremiumManager } = await import(
+    "../../features/premium/PremiumManager.js"
+  );
+  return getPremiumManager().isFeatureActive(guildId, "pro_engine");
+}
+
 /**
  * Get detailed analytics history for a guild
  * @param {import('express').Request} req - Express request object
@@ -21,6 +28,16 @@ export async function apiGetGuildAnalytics(req, res) {
     const { statusCode, response } = createErrorResponse(
       "Guild ID is required",
       400,
+    );
+    return res.status(statusCode).json(response);
+  }
+
+  // Pro Engine check
+  const isPremium = await checkPremium(guildId);
+  if (!isPremium) {
+    const { statusCode, response } = createErrorResponse(
+      "Pro Engine is required to access guild analytics",
+      403,
     );
     return res.status(statusCode).json(response);
   }
