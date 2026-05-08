@@ -267,6 +267,65 @@ export function getAIModels() {
           },
         },
       },
+
+      civitai: {
+        enabled: process.env.CIVITAI_ENABLED === "true",
+        name: "Civitai",
+        baseUrl: "https://orchestration.civitai.com",
+        apiKey: process.env.CIVITAI_API_KEY || null,
+        capabilities: ["image"],
+        safetyLevel: "nsfw", // NSFW allowed
+
+        // Anime-optimized models available on Civitai
+        models: {
+          image: {
+            "aisha-ai-official/animagine-xl-4.0": {
+              name: "Animagine XL 4.0",
+              type: "anime",
+              style: "anime",
+              nsfw: true,
+              quality: "excellent",
+              speed: "medium",
+              flags: ["anime", "manga", "2d", "stylized", "nsfw", "character"],
+              description: "Ultimate anime-themed SDXL model",
+              costUSD: 0.0068, // ~$0.0068 per generation
+            },
+            "aisha-ai-official/wai-nsfw-illustrious-v11": {
+              name: "NSFW Illustrious V1.1",
+              type: "anime",
+              style: "anime",
+              nsfw: true,
+              quality: "excellent",
+              speed: "medium",
+              flags: ["anime", "nsfw", "explicit"],
+              description: "Illustrious-based NSFW anime model",
+              costUSD: 0.0061, // ~$0.0061 per generation
+            },
+            "cjwbw/anything-v4.0": {
+              name: "Anything V4.0",
+              type: "anime",
+              style: "anime",
+              nsfw: true,
+              quality: "high",
+              speed: "fast",
+              flags: ["anime", "manga", "2d", "nsfw"],
+              description: "Classic high-quality anime model",
+              costUSD: 0.005, // Estimated ~$0.005 per generation
+            },
+            "datacte/proteus-v0.3": {
+              name: "Proteus V0.3",
+              type: "anime",
+              style: "anime",
+              nsfw: true,
+              quality: "high",
+              speed: "medium",
+              flags: ["anime", "artistic", "nsfw"],
+              description: "Versatile model good for anime and artistic styles",
+              costUSD: 0.024, // ~$0.024 per generation
+            },
+          },
+        },
+      },
     },
   };
 }

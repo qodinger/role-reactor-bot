@@ -135,6 +135,21 @@ export const NSFW_NEGATIVE_PROMPT = dedent`
 `;
 
 /**
+ * Avatar-specific negative prompt for /avatar command
+ * Technical quality exclusions for anime avatars
+ */
+export const AVATAR_NEGATIVE_PROMPT = dedent`
+  blurry, low quality, distorted, deformed, ugly, low resolution, pixelated, grainy, noisy,
+  bad anatomy, bad proportions, extra limbs, missing limbs, malformed hands, malformed feet,
+  extra fingers, missing fingers, fused fingers, long neck, bad hands, bad feet,
+  multiple heads, multiple faces, double exposure, out of focus, motion blur,
+  watermark, text, signature, jpeg artifacts, compression artifacts,
+  realistic, photorealistic, 3d render, cgi, computer generated, artificial, fake,
+  cartoon, western animation, disney style, pixar style,
+  oversaturated, undersaturated, low contrast, high contrast, dark, too bright, overexposed, underexposed
+`;
+
+/**
  * Comprehensive negative prompt for /imagine command (safe content)
  * Focuses on technical quality issues and prevents NSFW content
  */
@@ -156,6 +171,24 @@ export const IMAGINE_NEGATIVE_PROMPT = dedent`
  */
 export function getImagineNegativePrompt(isNSFW = false, _provider = null) {
   return isNSFW ? NSFW_NEGATIVE_PROMPT : IMAGINE_NEGATIVE_PROMPT;
+}
+
+/**
+ * Get the appropriate negative prompt for avatar generation
+ * @param {boolean} isNSFW - Whether this is NSFW content
+ * @returns {string} Appropriate negative prompt
+ */
+export function getAvatarNegativePrompt(isNSFW = false) {
+  if (isNSFW) {
+    return dedent`
+      worst quality, low quality, bad anatomy, bad hands, missing fingers, extra fingers,
+      deformed, ugly, blurry, bad proportions, extra limbs, missing limbs,
+      long neck, jpeg artifacts, watermark, text, signature,
+      realistic, photorealistic, 3d render, cartoon, western animation,
+      disney style, pixar style, oversaturated, undersaturated
+    `;
+  }
+  return AVATAR_NEGATIVE_PROMPT;
 }
 
 /**

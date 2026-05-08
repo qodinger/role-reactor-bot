@@ -2,6 +2,8 @@ import { multiProviderAIService } from "./multiProviderAIService.js";
 import { concurrencyManager } from "./concurrencyManager.js";
 import { getLogger } from "../logger.js";
 import { AI_STATUS_MESSAGES } from "./statusMessages.js";
+import { getAvatarNegativePrompt } from "../../config/prompts/imagePrompts.js";
+import { getExplicitNSFWKeywords } from "../../commands/general/avatar/utils.js";
 
 let promptConfigCache = null;
 async function loadPromptConfig() {
@@ -39,7 +41,7 @@ export class AvatarService {
     const results = [];
 
     for (const styleOptions of testCombinations) {
-      const enhancedPrompt = await this.buildAnimePrompt(
+      const promptResult = await this.buildAnimePrompt(
         prompt,
         styleOptions,
         this.aiService.getPrimaryProvider(),
@@ -59,13 +61,13 @@ export class AvatarService {
         }
         styleHash = Math.abs(hash).toString(36);
       }
-      const cacheKey = `avatar_${this.aiService.getPrimaryProvider()}_${styleHash}_${Buffer.from(enhancedPrompt).toString("base64").slice(0, 32)}`;
+      const cacheKey = `avatar_${this.aiService.getPrimaryProvider()}_${styleHash}_${Buffer.from(promptResult.positive).toString("base64").slice(0, 32)}`;
 
       results.push({
         styleOptions,
         styleHash,
         cacheKey,
-        promptLength: enhancedPrompt.length,
+        promptLength: promptResult.positive.length,
       });
     }
 
@@ -126,10 +128,19 @@ export class AvatarService {
           const targetProvider =
             this.aiService.providerManager?.getProviderForFeature("avatar") ||
             "stability";
-          const enhancedPrompt = await this.buildAnimePrompt(
+
+          // Detect NSFW content for appropriate negative prompt
+          const explicitNSFWKeywords = getExplicitNSFWKeywords();
+          const promptLower = prompt.toLowerCase();
+          const isNSFWContent = explicitNSFWKeywords.some(keyword =>
+            promptLower.includes(keyword),
+          );
+
+          const promptResult = await this.buildAnimePrompt(
             prompt,
             styleOptions,
             targetProvider,
+            isNSFWContent,
           );
 
           // ============================================================================
@@ -144,18 +155,27 @@ export class AvatarService {
             `[AVATAR PROMPT LOG] Style Options: ${JSON.stringify(styleOptions)}`,
           );
           logger.info(`[AVATAR PROMPT LOG] Provider: ${targetProvider}`);
+          logger.info(`[AVATAR PROMPT LOG] NSFW Content: ${isNSFWContent}`);
           logger.info(
-            `[AVATAR PROMPT LOG] Enhanced Prompt (${enhancedPrompt.length} chars):`,
+            `[AVATAR PROMPT LOG] Enhanced Prompt (${promptResult.positive.length} chars):`,
           );
-          logger.info(`[AVATAR PROMPT LOG] "${enhancedPrompt}"`);
+          logger.info(`[AVATAR PROMPT LOG] "${promptResult.positive}"`);
+          logger.info(
+            `[AVATAR PROMPT LOG] Negative Prompt (${promptResult.negative.length} chars):`,
+          );
+          logger.info(`[AVATAR PROMPT LOG] "${promptResult.negative}"`);
           logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
           if (showDebugPrompt) {
             return {
-              enhancedPrompt,
+              enhancedPrompt: promptResult.positive,
+              negativePrompt: promptResult.negative,
               originalPrompt: prompt,
             };
           }
+
+          const { positive: enhancedPrompt, negative: negativePrompt } =
+            promptResult;
 
           // Step 3: Connect to AI provider
           if (progressCallback)
@@ -178,6 +198,7 @@ export class AvatarService {
           const generationPayload = {
             type: "image",
             prompt: enhancedPrompt,
+            negativePrompt: negativePrompt,
             provider: avatarProvider, // Use feature-based provider selection
             progressCallback, // Pass progress callback for real-time updates
             config: {
@@ -187,6 +208,7 @@ export class AvatarService {
               userId, // Pass userId for rate limiting
               styleOptions, // Include style options for cache key differentiation
               featureName: "avatar", // Pass feature name for model selection
+              isNSFW: isNSFWContent, // Pass NSFW flag for provider-specific handling
             },
           };
 
@@ -207,6 +229,11 @@ export class AvatarService {
             `[AVATAR API PAYLOAD] Enhanced Prompt (${enhancedPrompt.length} chars):`,
           );
           logger.info(`[AVATAR API PAYLOAD] "${enhancedPrompt}"`);
+          logger.info(
+            `[AVATAR API PAYLOAD] Negative Prompt (${negativePrompt.length} chars):`,
+          );
+          logger.info(`[AVATAR API PAYLOAD] "${negativePrompt}"`);
+          logger.info(`[AVATAR API PAYLOAD] Is NSFW: ${isNSFWContent}`);
           logger.info(`[AVATAR API PAYLOAD] Configuration:`);
           logger.info(
             `[AVATAR API PAYLOAD] - Aspect Ratio: ${generationPayload.config.aspectRatio}`,
@@ -303,9 +330,24 @@ export class AvatarService {
    * Build enhanced anime prompt with fixed template
    * @param {string} userPrompt - User's original prompt
    * @param {Object} styleOptions - Optional style overrides
+   * @param {string} provider - Provider name
+   * @param {boolean} isNSFW - Whether content contains NSFW keywords
    * @returns {Promise<string>} Enhanced prompt
    */
-  async buildAnimePrompt(userPrompt, styleOptions = {}, provider = "comfyui") {
+  /**
+   * Build an enhanced anime prompt with style enhancements
+   * @param {string} userPrompt - User's base prompt
+   * @param {Object} styleOptions - Style override options
+   * @param {string} provider - AI provider name
+   * @param {boolean} isNSFW - Whether prompt contains NSFW content
+   * @returns {Promise<{positive: string, negative: string}>} Enhanced prompt object with positive and negative prompts
+   */
+  async buildAnimePrompt(
+    userPrompt,
+    styleOptions = {},
+    provider = "comfyui",
+    isNSFW = false,
+  ) {
     const config = await loadPromptConfig();
 
     // Use original prompt or default character if empty
@@ -328,6 +370,9 @@ export class AvatarService {
       providerConfig ||
       config.PROVIDER_PROMPTS.comfyui ||
       config.PROVIDER_PROMPTS.stability;
+
+    // Get negative prompt based on content type
+    const negativePrompt = getAvatarNegativePrompt(isNSFW);
 
     // Build prompt based on provider type
     let prompt;
@@ -433,7 +478,10 @@ export class AvatarService {
       prompt = parts.join(", ");
     }
 
-    return prompt;
+    return {
+      positive: prompt,
+      negative: negativePrompt,
+    };
   }
 
   /**
@@ -554,5 +602,8 @@ export const generateAvatar = (
     progressCallback,
     coreUserData,
   );
-export const buildAnimePrompt = (userPrompt, styleOptions) =>
-  avatarService.buildAnimePrompt(userPrompt, styleOptions);
+export const buildAnimePrompt = (
+  userPrompt,
+  styleOptions,
+  provider = "comfyui",
+) => avatarService.buildAnimePrompt(userPrompt, styleOptions, provider);
