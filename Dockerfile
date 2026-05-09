@@ -40,6 +40,9 @@ COPY --from=base /usr/src/app/node_modules ./node_modules
 # Copy application code
 COPY --chown=botuser:botuser . .
 
+# Ensure startup script is executable (Git may not preserve chmod +x)
+RUN chmod +x ./scripts/docker-startup.sh
+
 # Create logs directory with proper permissions
 RUN mkdir -p logs && chown -R botuser:botuser logs
 
@@ -50,6 +53,8 @@ ENV NODE_ENV=production
 USER botuser
 
 # Expose port
+# Note: Render Web Services inject PORT env var automatically.
+# The app reads PORT (Render) or API_PORT (custom) — see src/server/config/serverConfig.js
 EXPOSE 3030
 
 # Health check

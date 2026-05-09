@@ -8,7 +8,8 @@ const logger = getLogger();
  */
 export const serverConfig = {
   // Port configuration
-  port: process.env.API_PORT || "3030",
+  // Priority: PORT (injected by Render Web Services) > API_PORT (custom) > 3030 (default)
+  port: process.env.PORT || process.env.API_PORT || "3030",
 
   // Environment configuration
   environment: process.env.NODE_ENV || "development",
@@ -17,7 +18,7 @@ export const serverConfig = {
 
   // CORS configuration
   cors: {
-    origin: process.env.CORS_ORIGIN || "*",
+    origin: process.env.CORS_ALLOWED_ORIGINS || "*",
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: [
       "Origin",

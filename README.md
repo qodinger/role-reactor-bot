@@ -586,7 +586,61 @@ pnpm run docker:logs
 
 For more options and troubleshooting, see the **[Deployment Guide](./docs/setup/deployment.md)**.
 
+### Railway Deployment
+
+Deploy to [Railway](https://railway.app) — auto-detects your `Dockerfile`, gives you a public URL, always-on. Comes with **$5 free credit/month** on the Hobby plan ($5/mo subscription, but you get $5 back in credits — effectively free for lightweight usage).
+
+#### Prerequisites
+
+- A [Railway account](https://railway.app) (GitHub login)
+- A [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) cluster (free tier)
+- Your Discord bot token and client ID
+
+#### Steps
+
+1. **Push your code to GitHub**
+
+2. **Create a new project on Railway**
+   - Go to [railway.app](https://railway.app) → **New Project** → **Deploy from GitHub repo**
+   - Select your repo — Railway auto-detects the `Dockerfile` and starts building
+
+3. **Set environment variables**
+   - Go to your service → **Variables** tab
+   - Use `.env.railway.example` as a reference. At minimum you need:
+
+   ```
+   DISCORD_TOKEN          → Your bot token
+   DISCORD_CLIENT_ID      → Your application client ID
+   MONGODB_URI            → MongoDB Atlas connection string
+   SESSION_SECRET         → openssl rand -base64 32
+   INTERNAL_API_KEY       → openssl rand -hex 32
+   TOKEN_ENCRYPTION_KEY   → node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+   ```
+
+4. **Get your public URL**
+   - Go to your service → **Settings** → **Networking** → **Generate Domain**
+   - Railway gives you a `yourapp.up.railway.app` URL
+
+5. **Set `PUBLIC_URL`** in Railway Variables:
+   ```
+   PUBLIC_URL=https://yourapp.up.railway.app
+   ```
+
+6. **Deploy slash commands** (one-time, run locally):
+   ```bash
+   NODE_ENV=production pnpm run deploy:prod
+   ```
+
+#### Day-to-Day
+
+Railway auto-deploys on every push to your connected branch. To manage manually:
+
+- **Logs**: Railway dashboard → your service → **Logs** tab
+- **Redeploy**: Push to GitHub or click **Deploy** in the dashboard
+- **Variables**: Dashboard → **Variables** tab (changes trigger auto-redeploy)
+
 ### Developer Configuration
+
 
 To enable developer-only features (hidden commands and debug logging), configure developer IDs:
 
