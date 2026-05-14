@@ -17,6 +17,17 @@
   healthcheckTimeout = 300    # 5 min — gives bot time to connect to Discord
   restartPolicyType = "ON_FAILURE"
   restartPolicyMaxRetries = 10
+  serverless = false
+
+  # Gitignore-style patterns to trigger a new deployment when files change
+  watchPatterns = [
+    "Dockerfile",
+    "railway.toml",
+    "package.json",
+    "pnpm-lock.yaml",
+    "scripts/**",
+    "src/**"
+  ]
 
   # AUTO DEPLOY SLASH COMMANDS on every Railway deploy.
   # Uncomment the line below to enable — commands will register automatically
