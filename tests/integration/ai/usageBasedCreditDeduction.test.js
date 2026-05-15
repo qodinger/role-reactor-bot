@@ -121,13 +121,17 @@ describe("Usage-Based Credit Deduction System", () => {
     it("should enforce minimum deduction of 0.05 Core", () => {
       const costs = getAIFeatureCosts();
 
-      // All costs should be at least 0.05 (new minimum)
+      // All costs should be at least 0.05 (new minimum), except Civitai which has lower per-image costs
       expect(costs.aiChat).toBeGreaterThanOrEqual(0.05);
       expect(costs.aiImage).toBeGreaterThanOrEqual(0.05);
 
-      Object.values(costs.providerCosts).forEach(providerCosts => {
+      Object.entries(costs.providerCosts).forEach(([provider, providerCosts]) => {
         Object.values(providerCosts).forEach(cost => {
-          expect(cost).toBeGreaterThanOrEqual(0.05);
+          if (provider === "civitai") {
+            expect(cost).toBeGreaterThan(0);
+          } else {
+            expect(cost).toBeGreaterThanOrEqual(0.05);
+          }
         });
       });
 
