@@ -5,6 +5,7 @@ import { OpenRouterProvider } from "./providers/openRouterProvider.js";
 import { StabilityProvider } from "./providers/stabilityProvider.js";
 import { ComfyUIProvider } from "./providers/comfyUIProvider.js";
 import { RunPodServerlessProvider } from "./providers/runpodServerlessProvider.js";
+import { CivitaiProvider } from "./providers/civitaiProvider.js";
 import { AI_STATUS_MESSAGES } from "./statusMessages.js";
 
 const logger = getLogger();
