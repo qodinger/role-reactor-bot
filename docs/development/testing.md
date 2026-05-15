@@ -16,7 +16,7 @@ This guide walks you through testing the complete payment flow from login to rec
 ### Terminal 1 - Start the Bot
 
 ```bash
-cd /Users/tyecode/dev/projects/discord-bots/role-reactor-bot
+cd role-reactor-bot
 npm run dev
 ```
 
@@ -73,8 +73,8 @@ Expected response:
   "success": true,
   "data": {
     "user": {
-      "id": "639696408592777227",
-      "username": "irisreturn",
+      "id": "YOUR_DISCORD_USER_ID",
+      "username": "your_username",
       "email": "your@email.com"
     }
   }
@@ -90,7 +90,7 @@ Expected response:
 curl http://localhost:3030/api/pricing
 
 # With user ID for personalized data
-curl "http://localhost:3030/api/pricing?user_id=639696408592777227"
+curl "http://localhost:3030/api/pricing?user_id=YOUR_DISCORD_USER_ID"
 ```
 
 ---
@@ -114,12 +114,12 @@ curl -X POST http://localhost:3030/api/payments/create \
   "success": true,
   "data": {
     "invoiceUrl": "https://plisio.net/invoice/...",
-    "orderId": "639696408592777227_1705234567890",
+    "orderId": "YOUR_DISCORD_USER_ID_1705234567890",
     "amount": 10,
     "currency": "USD",
     "user": {
-      "discordId": "639696408592777227",
-      "username": "irisreturn",
+      "discordId": "YOUR_DISCORD_USER_ID",
+      "username": "your_username",
       "emailPrefilled": true
     }
   }
@@ -148,7 +148,7 @@ Create a test script to simulate a successful Plisio webhook:
 cat > /tmp/test-plisio-webhook.json << 'EOF'
 {
   "status": "completed",
-  "order_number": "639696408592777227_1705234567890",
+  "order_number": "YOUR_DISCORD_USER_ID_1705234567890",
   "amount": "0.00010551",
   "currency": "BTC",
   "source_amount": "10.00",
@@ -172,7 +172,7 @@ const PLISIO_SECRET_KEY = process.env.PLISIO_SECRET_KEY || "your-secret-key";
 // Test data - replace with your actual user ID
 const testData = {
   status: "completed",
-  order_number: "639696408592777227_" + Date.now(), // Your Discord ID
+  order_number: "YOUR_DISCORD_USER_ID_" + Date.now(), // Your Discord ID
   amount: "0.00010551",
   currency: "BTC",
   source_amount: "10.00",
@@ -228,7 +228,7 @@ You should see:
 
 ```
 💰 Processing Plisio Payment: {...}
-✅ Added 165 Cores to user 639696408592777227 (Plisio payment: $10)
+✅ Added 165 Cores to user YOUR_DISCORD_USER_ID (Plisio payment: $10)
 ```
 
 ---
@@ -238,7 +238,7 @@ You should see:
 ### Via API:
 
 ```bash
-curl http://localhost:3030/api/user/639696408592777227/balance
+curl http://localhost:3030/api/user/YOUR_DISCORD_USER_ID/balance
 ```
 
 Expected:
@@ -247,7 +247,7 @@ Expected:
 {
   "success": true,
   "data": {
-    "userId": "639696408592777227",
+    "userId": "YOUR_DISCORD_USER_ID",
     "credits": 165,
     "hasAccount": true,
     "paymentHistory": {
@@ -274,7 +274,7 @@ db.storage.find({ key: "core_credit" })
 ## Step 7: Check Payment History
 
 ```bash
-curl http://localhost:3030/api/user/639696408592777227/payments
+curl http://localhost:3030/api/user/YOUR_DISCORD_USER_ID/payments
 ```
 
 Expected:
@@ -283,10 +283,10 @@ Expected:
 {
   "success": true,
   "data": {
-    "userId": "639696408592777227",
+    "userId": "YOUR_DISCORD_USER_ID",
     "payments": [
       {
-        "chargeId": "639696408592777227_1705234567890",
+        "chargeId": "YOUR_DISCORD_USER_ID_1705234567890",
         "type": "payment",
         "amount": 10,
         "currency": "USD",
@@ -318,7 +318,7 @@ import crypto from "crypto";
 
 const API_BASE = process.env.API_BASE || "http://localhost:3030";
 const PLISIO_SECRET_KEY = process.env.PLISIO_SECRET_KEY;
-const TEST_USER_ID = process.env.TEST_USER_ID || "639696408592777227";
+const TEST_USER_ID = process.env.TEST_USER_ID || "YOUR_DISCORD_USER_ID";
 
 if (!PLISIO_SECRET_KEY) {
   console.error("❌ PLISIO_SECRET_KEY environment variable required");

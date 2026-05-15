@@ -45,7 +45,6 @@ Welcome to the comprehensive documentation for Role Reactor Bot - a powerful Dis
 
 - **Deployment issues?** See [Docker Troubleshooting](./integrations/docker/troubleshooting.md)
 - **Version updates?** Check the [Changelog](./CHANGELOG.md)
-- **Upcoming features?** See [TODO.md](../../TODO.md)
 
 ## 🏗️ Project Structure
 
@@ -71,7 +70,7 @@ docs/
         └── troubleshooting.md      # Docker fixes
 ```
 
-> Note: For roadmap and upcoming features, see [TODO.md](../../TODO.md)
+
 
 ## 🔗 External Resources
 

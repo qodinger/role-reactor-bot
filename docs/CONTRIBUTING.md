@@ -36,7 +36,7 @@ Thank you for your interest in contributing to Role Reactor Bot! This document p
 
 ### Prerequisites
 
-- Node.js 16.0.0 or higher
+- Node.js 20.0.0 or higher
 - pnpm package manager
 - MongoDB (local or Docker)
 - Discord Bot Token

@@ -19,8 +19,8 @@ Add to your `~/.bashrc` or `~/.zshrc`:
 
 ```bash
 # Git workflow helpers for role-reactor-bot
-if [ -f "$HOME/dev/projects/discord-bots/role-reactor-bot/scripts/git-helpers.sh" ]; then
-    source "$HOME/dev/projects/discord-bots/role-reactor-bot/scripts/git-helpers.sh"
+if [ -f "./scripts/git-helpers.sh" ]; then
+    source "./scripts/git-helpers.sh"
 fi
 ```
 

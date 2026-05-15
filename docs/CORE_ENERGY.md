@@ -79,4 +79,4 @@ A: Yes, you can disable auto-renewal at any time via the Web Dashboard. The feat
 
 ---
 
-_For more support, visit our [Support Server](https://discord.gg/role-reactor) or check your balance with_ `/core balance`_!_
+_For more support, visit our [Support Server](https://discord.gg/D8tYkU75Ry) or check your balance with_ `/core balance`_!_

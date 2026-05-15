@@ -125,7 +125,7 @@ Returns Core credit packages and current promotions.
 **Request:**
 
 ```
-GET /api/pricing?user_id=639696408592777227
+GET /api/pricing?user_id=YOUR_DISCORD_USER_ID
 ```
 
 **Response:**
@@ -239,7 +239,7 @@ GET /api/pricing?user_id=639696408592777227
       "minimumPurchase": 10
     },
     "user": {
-      "userId": "639696408592777227",
+      "userId": "YOUR_DISCORD_USER_ID",
       "isFirstPurchase": true,
       "currentCredits": 0,
       "eligibleForFirstPurchaseBonus": true
@@ -281,13 +281,13 @@ Creates a new payment invoice using Plisio. **Email is automatically pre-filled 
   "success": true,
   "data": {
     "invoiceUrl": "https://plisio.net/invoice/abc123xyz",
-    "orderId": "639696408592777227_1705234567890",
+    "orderId": "YOUR_DISCORD_USER_ID_1705234567890",
     "amount": 10,
     "currency": "USD",
     "packageId": "$10",
     "user": {
-      "discordId": "639696408592777227",
-      "username": "irisreturn",
+      "discordId": "YOUR_DISCORD_USER_ID",
+      "username": "your_username",
       "emailPrefilled": true
     },
     "message": "Payment invoice created successfully. Redirect user to invoiceUrl."
@@ -348,7 +348,7 @@ Returns a user's Core credit balance.
 {
   "success": true,
   "data": {
-    "userId": "639696408592777227",
+    "userId": "YOUR_DISCORD_USER_ID",
     "credits": 165,
     "totalGenerated": 50,
     "hasAccount": true,
@@ -367,7 +367,7 @@ Returns a user's Core credit balance.
 {
   "success": true,
   "data": {
-    "userId": "639696408592777227",
+    "userId": "YOUR_DISCORD_USER_ID",
     "credits": 0,
     "totalGenerated": 0,
     "hasAccount": false,
@@ -407,10 +407,10 @@ Returns a user's payment history.
 {
   "success": true,
   "data": {
-    "userId": "639696408592777227",
+    "userId": "YOUR_DISCORD_USER_ID",
     "payments": [
       {
-        "paymentId": "639696408592777227_1705234567890",
+        "paymentId": "YOUR_DISCORD_USER_ID_1705234567890",
         "provider": "plisio",
         "amount": 10,
         "currency": "USD",
@@ -576,8 +576,8 @@ Returns the currently authenticated user's information.
   "success": true,
   "data": {
     "user": {
-      "id": "639696408592777227",
-      "username": "irisreturn",
+      "id": "YOUR_DISCORD_USER_ID",
+      "username": "your_username",
       "discriminator": "0",
       "avatar": "abc123def456",
       "email": "user@example.com"
