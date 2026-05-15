@@ -378,6 +378,15 @@ export function getAIFeatureCosts() {
         // RunPod serverless compute costs
         default: 0.79,
       },
+      civitai: {
+        // Civitai API - pay per use with Buzz
+        // ~$0.006 per image for anime models
+        default: 0.01, // Conservative estimate
+        "aisha-ai-official/animagine-xl-4.0": 0.0068,
+        "aisha-ai-official/wai-nsfw-illustrious-v11": 0.0061,
+        "cjwbw/anything-v4.0": 0.005,
+        "datacte/proteus-v0.3": 0.024,
+      },
       openrouter: {
         // OpenRouter uses dynamic pricing based on actual token usage
         // These are fallback costs if usage data is unavailable

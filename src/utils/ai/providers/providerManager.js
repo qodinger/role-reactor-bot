@@ -36,6 +36,11 @@ export class ProviderManager {
       return !!(provider.apiKey && provider.endpointId);
     }
 
+    // Civitai requires API key
+    if (providerKey === "civitai") {
+      return !!provider.apiKey;
+    }
+
     // Other providers require API key
     return !!provider.apiKey;
   }
@@ -79,9 +84,9 @@ export class ProviderManager {
 
     // Handle "auto" provider selection with fallbacks
     if (feature.provider === "auto") {
-      // For NSFW content, try RunPod first, then ComfyUI (never Stability)
+      // For NSFW content, try Civitai first, then RunPod, then ComfyUI (never Stability)
       if (isNSFW) {
-        const fallbackOrder = ["runpod", "comfyui"];
+        const fallbackOrder = ["civitai", "runpod", "comfyui"];
         for (const providerKey of fallbackOrder) {
           if (
             this.isProviderAvailable(providerKey) &&

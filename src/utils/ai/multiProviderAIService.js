@@ -97,6 +97,7 @@ export class MultiProviderAIService {
       stability: new StabilityProvider(this.config.providers.stability),
       comfyui: new ComfyUIProvider(this.config.providers.comfyui || {}),
       runpod: new RunPodServerlessProvider(this.config.providers.runpod || {}),
+      civitai: new CivitaiProvider(this.config.providers.civitai || {}),
     };
 
     // Load config asynchronously in background
@@ -115,6 +116,7 @@ export class MultiProviderAIService {
             this.config.providers?.runpod || {},
           ),
           comfyui: new ComfyUIProvider(this.config.providers?.comfyui || {}),
+          civitai: new CivitaiProvider(this.config.providers?.civitai || {}),
         };
       })
       .catch(() => {

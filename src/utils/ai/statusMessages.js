@@ -89,6 +89,13 @@ export const AI_STATUS_MESSAGES = {
 
   // Multi-provider service steps
   MULTIPROVIDER_INITIALIZING: "Initializing image generation...",
+
+  // Civitai provider steps
+  CIVITAI_PREPARING: "Preparing Civitai request...",
+  CIVITAI_SUBMITTING: "Submitting workflow...",
+  CIVITAI_GENERATING: "Generating image...",
+  CIVITAI_DOWNLOADING: "Downloading generated image...",
+  CIVITAI_COMPLETE: "Generation complete!",
 };
 
 /**
