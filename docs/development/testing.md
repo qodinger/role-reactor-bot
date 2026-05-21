@@ -4,10 +4,10 @@ This guide walks you through testing the complete payment flow from login to rec
 
 ## Prerequisites
 
-1. **Bot running:** `npm run dev`
-2. **ngrok installed:** For webhook testing
+1. **Bot running:** `pnpm run dev`
+2. **ngrok installed:** For local webhook testing (development only)
 3. **Plisio account:** With API key configured
-4. **.env.development configured** with all required variables
+4. **`.env` configured** with all required variables
 
 ---
 
@@ -16,11 +16,10 @@ This guide walks you through testing the complete payment flow from login to rec
 ### Terminal 1 - Start the Bot
 
 ```bash
-cd role-reactor-bot
-npm run dev
+pnpm run dev
 ```
 
-### Terminal 2 - Start ngrok (for webhook testing)
+### Terminal 2 - Start ngrok (local development only)
 
 ```bash
 ngrok http 3030
@@ -30,13 +29,15 @@ Copy the **https URL** (e.g., `https://abc123.ngrok.io`)
 
 ### Update Environment
 
-Add to `.env.development`:
+Add to `.env`:
 
 ```env
 PUBLIC_URL=https://abc123.ngrok.io
 ```
 
 Restart the bot after updating.
+
+> **Production:** Set `PUBLIC_URL` to your Caddy domain (e.g., `https://api.rolereactor.app`). No ngrok needed.
 
 ---
 
@@ -97,8 +98,6 @@ curl "http://localhost:3030/api/pricing?user_id=YOUR_DISCORD_USER_ID"
 
 ## Step 4: Test Payment Creation
 
-### Via curl (requires session cookies)
-
 ```bash
 # First login via browser, then:
 curl -X POST http://localhost:3030/api/payments/create \
@@ -107,7 +106,7 @@ curl -X POST http://localhost:3030/api/payments/create \
   -d '{"packageId": "$10", "amount": 10}'
 ```
 
-### Expected Response:
+Expected response:
 
 ```json
 {
@@ -116,20 +115,10 @@ curl -X POST http://localhost:3030/api/payments/create \
     "invoiceUrl": "https://plisio.net/invoice/...",
     "orderId": "YOUR_DISCORD_USER_ID_1705234567890",
     "amount": 10,
-    "currency": "USD",
-    "user": {
-      "discordId": "YOUR_DISCORD_USER_ID",
-      "username": "your_username",
-      "emailPrefilled": true
-    }
+    "currency": "USD"
   }
 }
 ```
-
-### Verify Email is Pre-filled
-
-1. Open the `invoiceUrl` in browser
-2. Email field should already be filled with your Discord email!
 
 ---
 
@@ -141,38 +130,15 @@ Plisio has a sandbox/test mode. Use test payments there.
 
 ### Method B: Manual Webhook Simulation
 
-Create a test script to simulate a successful Plisio webhook:
-
-```bash
-# Create test webhook payload
-cat > /tmp/test-plisio-webhook.json << 'EOF'
-{
-  "status": "completed",
-  "order_number": "YOUR_DISCORD_USER_ID_1705234567890",
-  "amount": "0.00010551",
-  "currency": "BTC",
-  "source_amount": "10.00",
-  "source_currency": "USD",
-  "email": "test@example.com",
-  "txn_id": "test_txn_123456"
-}
-EOF
-```
-
-### Generate verify_hash for testing
-
-Run this Node.js script to generate a valid test webhook:
-
 ```javascript
 // test-webhook.js
 import crypto from "crypto";
 
 const PLISIO_SECRET_KEY = process.env.PLISIO_SECRET_KEY || "your-secret-key";
 
-// Test data - replace with your actual user ID
 const testData = {
   status: "completed",
-  order_number: "YOUR_DISCORD_USER_ID_" + Date.now(), // Your Discord ID
+  order_number: "YOUR_DISCORD_USER_ID_" + Date.now(),
   amount: "0.00010551",
   currency: "BTC",
   source_amount: "10.00",
@@ -181,7 +147,6 @@ const testData = {
   txn_id: "test_txn_" + Date.now(),
 };
 
-// Generate verify_hash
 const orderedKeys = Object.keys(testData).sort();
 const orderedData = {};
 for (const key of orderedKeys) {
@@ -195,9 +160,6 @@ const verifyHash = crypto
 
 testData.verify_hash = verifyHash;
 
-console.log("Webhook payload:");
-console.log(JSON.stringify(testData, null, 2));
-
 console.log("\nCurl command:");
 console.log(`curl -X POST http://localhost:3030/webhook/crypto \\
   -H "Content-Type: application/json" \\
@@ -210,58 +172,27 @@ Run it:
 PLISIO_SECRET_KEY=your_key node test-webhook.js
 ```
 
-Then execute the generated curl command.
-
-### Expected Webhook Response:
+Expected response:
 
 ```json
-{
-  "received": true,
-  "processed": true,
-  "type": "Plisio Payment Confirmed"
-}
-```
-
-### Check Bot Logs:
-
-You should see:
-
-```
-💰 Processing Plisio Payment: {...}
-✅ Added 165 Cores to user YOUR_DISCORD_USER_ID (Plisio payment: $10)
+{ "received": true, "processed": true, "type": "Plisio Payment Confirmed" }
 ```
 
 ---
 
 ## Step 6: Verify User Received Cores
 
-### Via API:
+### Via API
 
 ```bash
 curl http://localhost:3030/api/user/YOUR_DISCORD_USER_ID/balance
 ```
 
-Expected:
-
-```json
-{
-  "success": true,
-  "data": {
-    "userId": "YOUR_DISCORD_USER_ID",
-    "credits": 165,
-    "hasAccount": true,
-    "paymentHistory": {
-      "crypto": 1
-    }
-  }
-}
-```
-
-### Via Discord Bot:
+### Via Discord Bot
 
 Use the `/core balance` command in Discord.
 
-### Via Database (if using MongoDB):
+### Via Database
 
 ```bash
 mongosh
@@ -271,172 +202,7 @@ db.storage.find({ key: "core_credit" })
 
 ---
 
-## Step 7: Check Payment History
-
-```bash
-curl http://localhost:3030/api/user/YOUR_DISCORD_USER_ID/payments
-```
-
-Expected:
-
-```json
-{
-  "success": true,
-  "data": {
-    "userId": "YOUR_DISCORD_USER_ID",
-    "payments": [
-      {
-        "chargeId": "YOUR_DISCORD_USER_ID_1705234567890",
-        "type": "payment",
-        "amount": 10,
-        "currency": "USD",
-        "cores": 165,
-        "provider": "Plisio",
-        "timestamp": "2026-01-14T10:30:00.000Z",
-        "processed": true
-      }
-    ],
-    "total": 1
-  }
-}
-```
-
----
-
 ## Complete Test Script
-
-Save this as `scripts/test-payment-flow.js`:
-
-```javascript
-#!/usr/bin/env node
-/**
- * Payment Flow Test Script
- * Tests the complete payment flow from webhook to Core crediting
- */
-
-import crypto from "crypto";
-
-const API_BASE = process.env.API_BASE || "http://localhost:3030";
-const PLISIO_SECRET_KEY = process.env.PLISIO_SECRET_KEY;
-const TEST_USER_ID = process.env.TEST_USER_ID || "YOUR_DISCORD_USER_ID";
-
-if (!PLISIO_SECRET_KEY) {
-  console.error("❌ PLISIO_SECRET_KEY environment variable required");
-  process.exit(1);
-}
-
-async function testPaymentFlow() {
-  console.log("🧪 Starting Payment Flow Test\n");
-  console.log(`📍 API Base: ${API_BASE}`);
-  console.log(`👤 Test User: ${TEST_USER_ID}\n`);
-
-  // Step 1: Check initial balance
-  console.log("1️⃣ Checking initial balance...");
-  let response = await fetch(`${API_BASE}/api/user/${TEST_USER_ID}/balance`);
-  let data = await response.json();
-  const initialCredits = data.data?.credits || 0;
-  console.log(`   Initial credits: ${initialCredits}\n`);
-
-  // Step 2: Create test webhook payload
-  console.log("2️⃣ Creating test webhook payload...");
-  const orderNumber = `${TEST_USER_ID}_${Date.now()}`;
-  const testAmount = 10;
-
-  const webhookData = {
-    status: "completed",
-    order_number: orderNumber,
-    amount: "0.00010551",
-    currency: "BTC",
-    source_amount: testAmount.toString(),
-    source_currency: "USD",
-    email: "test@example.com",
-    txn_id: "test_" + Date.now(),
-  };
-
-  // Generate verify_hash
-  const orderedKeys = Object.keys(webhookData).sort();
-  const orderedData = {};
-  for (const key of orderedKeys) {
-    orderedData[key] = webhookData[key].toString();
-  }
-  const dataString = JSON.stringify(orderedData);
-  webhookData.verify_hash = crypto
-    .createHmac("sha1", PLISIO_SECRET_KEY)
-    .update(dataString)
-    .digest("hex");
-
-  console.log(`   Order: ${orderNumber}`);
-  console.log(`   Amount: $${testAmount}\n`);
-
-  // Step 3: Send webhook
-  console.log("3️⃣ Sending webhook to /webhook/crypto...");
-  response = await fetch(`${API_BASE}/webhook/crypto`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(webhookData),
-  });
-  data = await response.json();
-  console.log(`   Response: ${JSON.stringify(data)}\n`);
-
-  if (!data.processed) {
-    console.error("❌ Webhook was not processed!");
-    process.exit(1);
-  }
-
-  // Step 4: Wait a moment for processing
-  console.log("4️⃣ Waiting for processing...");
-  await new Promise(resolve => setTimeout(resolve, 1000));
-
-  // Step 5: Check new balance
-  console.log("5️⃣ Checking new balance...");
-  response = await fetch(`${API_BASE}/api/user/${TEST_USER_ID}/balance`);
-  data = await response.json();
-  const newCredits = data.data?.credits || 0;
-  const addedCredits = newCredits - initialCredits;
-
-  console.log(`   New credits: ${newCredits}`);
-  console.log(`   Added: +${addedCredits} Cores\n`);
-
-  // Step 6: Check payment history
-  console.log("6️⃣ Checking payment history...");
-  response = await fetch(`${API_BASE}/api/user/${TEST_USER_ID}/payments`);
-  data = await response.json();
-  const recentPayment = data.data?.payments?.find(
-    p => p.chargeId === orderNumber,
-  );
-
-  if (recentPayment) {
-    console.log("   ✅ Payment found in history!");
-    console.log(`   Cores granted: ${recentPayment.cores}`);
-  } else {
-    console.log(
-      "   ⚠️ Payment not found in history (may use different storage)",
-    );
-  }
-
-  // Final summary
-  console.log("\n" + "=".repeat(50));
-  console.log("📊 TEST SUMMARY");
-  console.log("=".repeat(50));
-
-  if (addedCredits > 0) {
-    console.log("✅ SUCCESS! Payment flow is working correctly.");
-    console.log(`   User ${TEST_USER_ID} received ${addedCredits} Cores.`);
-  } else {
-    console.log("⚠️ WARNING: No credits were added.");
-    console.log("   Check the bot logs for errors.");
-  }
-
-  console.log("\n💡 Next steps:");
-  console.log("   1. Test with a real Plisio sandbox payment");
-  console.log("   2. Verify /core balance command in Discord");
-  console.log("   3. Set up production webhook URL in Plisio dashboard");
-}
-
-testPaymentFlow().catch(console.error);
-```
-
-Run it:
 
 ```bash
 PLISIO_SECRET_KEY=your_key TEST_USER_ID=your_discord_id node scripts/test-payment-flow.js
@@ -446,33 +212,13 @@ PLISIO_SECRET_KEY=your_key TEST_USER_ID=your_discord_id node scripts/test-paymen
 
 ## Troubleshooting
 
-### Webhook not received
-
-- Check ngrok is running and URL is correct
-- Verify PUBLIC_URL in .env matches ngrok URL
-- Check Plisio dashboard for webhook delivery status
-
-### Invalid signature error
-
-- Ensure PLISIO_SECRET_KEY matches your Plisio API key
-- Check that the key doesn't have extra whitespace
-
-### Cores not added
-
-- Check bot logs for errors
-- Verify user ID is valid (17-20 digits)
-- Check storage/database connection
-
-### Session not working
-
-- Ensure SESSION_SECRET is set in .env
-- Install express-session: `npm install express-session`
-- Check cookies are being set (browser dev tools)
-
-### CORS errors
-
-- Add your domain to ALLOWED_ORIGINS in .env
-- For local testing, ensure you're accessing via localhost, not 127.0.0.1
+| Problem | Solution |
+|---|---|
+| Webhook not received | Check ngrok URL matches `PUBLIC_URL` in `.env` |
+| Invalid signature | Ensure `PLISIO_SECRET_KEY` has no extra whitespace |
+| Cores not added | Check bot logs; verify user ID is 17-20 digits |
+| Session not working | Ensure `SESSION_SECRET` is set in `.env` |
+| CORS errors | Add your domain to `CORS_ALLOWED_ORIGINS` in `.env` |
 
 ---
 
@@ -480,11 +226,11 @@ PLISIO_SECRET_KEY=your_key TEST_USER_ID=your_discord_id node scripts/test-paymen
 
 Before going live:
 
-- [ ] Set `PUBLIC_URL` to your production domain
-- [ ] Configure Plisio webhook URL to production endpoint
+- [ ] Set `PUBLIC_URL` to your Caddy domain (e.g., `https://api.rolereactor.app`)
+- [ ] Configure Plisio webhook URL to `https://api.rolereactor.app/webhook/crypto`
 - [ ] Set `NODE_ENV=production`
-- [ ] Use secure SESSION_SECRET
-- [ ] Enable HTTPS
+- [ ] Set a secure `SESSION_SECRET`
+- [ ] Set `CORS_ALLOWED_ORIGINS` to your frontend domain
 - [ ] Test with real small payment ($5)
 - [ ] Monitor logs for first few transactions
 
@@ -492,13 +238,13 @@ Before going live:
 
 ## Quick Reference
 
-| What          | Command/URL                                           |
-| ------------- | ----------------------------------------------------- |
-| Start bot     | `npm run dev`                                         |
-| Start ngrok   | `ngrok http 3030`                                     |
-| Login         | `http://localhost:3030/auth/discord`                  |
-| Check user    | `curl http://localhost:3030/auth/me -b cookies.txt`   |
-| Get pricing   | `curl http://localhost:3030/api/pricing`              |
+| What | Command/URL |
+|---|---|
+| Start bot | `pnpm run dev` |
+| Start ngrok (dev) | `ngrok http 3030` |
+| Login | `http://localhost:3030/auth/discord` |
+| Check user | `curl http://localhost:3030/auth/me -b cookies.txt` |
+| Get pricing | `curl http://localhost:3030/api/pricing` |
 | Check balance | `curl http://localhost:3030/api/user/USER_ID/balance` |
-| Test webhook  | Run `node scripts/test-payment-flow.js`               |
-| Bot logs      | Check terminal running `npm run dev`                  |
+| Test webhook | `node scripts/test-payment-flow.js` |
+| Bot logs | `pnpm run docker:logs` |

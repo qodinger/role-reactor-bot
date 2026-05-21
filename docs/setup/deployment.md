@@ -5,7 +5,7 @@
 For the fastest deployment of the latest version:
 
 ```bash
-# Method 1: Using npm/pnpm script (recommended)
+# Method 1: Using pnpm script (recommended)
 pnpm run deploy:latest
 
 # Method 2: Direct script execution
@@ -16,9 +16,7 @@ pnpm run deploy:latest
 
 ### 1. Latest Version Deployment (Recommended)
 
-The new `deploy-latest.sh` script is the most reliable way to deploy. It handles all edge cases and ensures the latest version is deployed correctly.
-
-**Available commands:**
+The `deploy-latest.sh` script handles all edge cases and ensures the latest version is deployed correctly.
 
 ```bash
 # Standard deployment
@@ -27,217 +25,201 @@ pnpm run deploy:latest
 # Verbose output (shows detailed docker commands)
 pnpm run deploy:latest:verbose
 
-# Force deployment (even if no changes detected)
+# Force deployment (clears all caches)
 pnpm run deploy:latest:force
 ```
 
 **What this script does:**
 
-1. ✅ Pulls latest changes from git repository
-2. ✅ Stops and removes existing containers
-3. ✅ Cleans Docker cache and images (prevents version mismatches)
-4. ✅ Builds fresh Docker image with `--no-cache` and `--pull`
-5. ✅ Verifies the built image contains the correct version
-6. ✅ Starts the new container
-7. ✅ Verifies deployment success and health
+1. Pulls latest changes from git
+2. Stops and removes existing containers
+3. Cleans Docker cache and images
+4. Builds fresh Docker image with `--no-cache` and `--pull`
+5. Verifies the built image contains the correct version
+6. Starts the new container
+7. Verifies deployment success and health
 
-### 2. Legacy Deployment Methods
-
-These scripts are still available but may encounter caching issues:
+### 2. Manual Deployment
 
 ```bash
-# Update scripts (may have caching issues)
-pnpm run docker:update          # Basic update
-pnpm run docker:force-update    # Aggressive cleanup + update
-
-# Manual deployment
 pnpm run docker:clean           # Stop and clean
 pnpm run docker:build:force     # Build with no cache
-pnpm run docker:prod            # Start production container
+pnpm run docker:prod            # Start production containers
 ```
 
-## Troubleshooting
-
-### Common Issues and Solutions
-
-#### 1. Version Mismatch (Old Version Still Running)
-
-**Problem:** Docker shows old version even after rebuild
-**Solution:** Use the new deployment script which handles this automatically:
-
-```bash
-pnpm run deploy:latest
-```
-
-#### 2. Container Fails to Start
-
-**Problem:** Container exits or shows unhealthy status
-**Solutions:**
-
-```bash
-# Check logs for errors
-docker logs role-reactor-bot
-
-# Check environment files exist
-ls -la .env*
-
-# Verify permissions
-./scripts/fix-permissions.sh
-```
-
-#### 3. Build Failures
-
-**Problem:** Docker build fails or uses cached layers incorrectly
-**Solution:**
-
-```bash
-# Use force deployment to clear all caches
-pnpm run deploy:latest:force
-```
-
-#### 4. Database Connection Issues
-
-**Problem:** Bot can't connect to database
-**Solutions:**
-
-```bash
-# Check if MongoDB is running (if using local DB)
-sudo systemctl status mongod
-
-# Verify environment variables
-docker exec role-reactor-bot printenv | grep MONGODB
-```
-
-### Health Checks
-
-After deployment, verify everything is working:
-
-```bash
-# Check container status
-docker ps | grep role-reactor-bot
-
-# Check logs
-docker logs role-reactor-bot -f
-
-# Check version inside container
-docker exec role-reactor-bot cat package.json | grep version
-```
+---
 
 ## Environment Setup
 
-### Required Files
-
-Ensure these files exist:
-
-- `.env.production` - Production environment variables
-- `docker-compose.prod.yml` - Production compose configuration
-
-### Environment Variables
-
-Key variables in `.env.production`:
+Create a `.env` file on the VPS with the following variables:
 
 ```env
 DISCORD_TOKEN=your_bot_token
 DISCORD_CLIENT_ID=your_client_id
 MONGODB_URI=your_mongodb_connection_string
 NODE_ENV=production
+CORS_ALLOWED_ORIGINS=https://api.rolereactor.app
 ```
+
+> **Note:** Environment variables are loaded directly from the host environment or `.env` file. There is no `.env.production` file — secrets are never baked into the image.
+
+---
+
+## Reverse Proxy & SSL (Caddy)
+
+Production uses Caddy as a reverse proxy. It handles SSL certificates automatically via Let's Encrypt.
+
+### Caddyfile
+
+Edit `Caddyfile` at the project root to set your domain:
+
+```
+api.rolereactor.app {
+    reverse_proxy role-reactor-bot:3030
+    ...
+}
+```
+
+### DNS Setup
+
+Add an A record in your DNS provider pointing your domain to the VPS IP:
+
+```
+api.rolereactor.app  →  <your VPS IP>
+```
+
+### Firewall
+
+Open ports 80 and 443 on the VPS before starting:
+
+```bash
+ufw allow 80 && ufw allow 443
+```
+
+### First Deploy
+
+On first `docker compose up`, Caddy automatically:
+- Fetches a free SSL certificate from Let's Encrypt
+- Sets up HTTPS on port 443
+- Redirects HTTP → HTTPS
+- Schedules automatic certificate renewal
+
+No certbot or cron jobs needed.
+
+---
 
 ## Monitoring
 
 ### View Live Logs
 
 ```bash
+# Bot logs
 docker logs role-reactor-bot -f
+
+# Caddy logs
+docker logs role-reactor-caddy -f
 ```
 
 ### Container Status
 
 ```bash
-# Quick status check
-docker ps | grep role-reactor-bot
-
-# Detailed container info
-docker inspect role-reactor-bot
+pnpm run docker:status
 ```
 
 ### Health Endpoint
 
-The bot exposes a health check endpoint:
-
 ```bash
+# Via domain (external)
+curl https://api.rolereactor.app/health
+
+# Via localhost (internal, bypasses Caddy)
 curl http://localhost:3030/health
 ```
 
-## Best Practices
+---
 
-1. **Always use the latest deployment script** for new deployments
-2. **Check logs after deployment** to ensure everything started correctly
-3. **Monitor memory usage** - the bot will show warnings if memory usage is high
-4. **Regular updates** - deploy updates promptly to get bug fixes and new features
-5. **Backup before deployment** - especially if you've made local configuration changes
+## Troubleshooting
+
+### Version Mismatch (Old Version Still Running)
+
+```bash
+pnpm run deploy:latest:force
+```
+
+### Container Fails to Start
+
+```bash
+# Check logs for errors
+docker logs role-reactor-bot
+
+# Verify env vars are set
+docker exec role-reactor-bot printenv | grep DISCORD
+
+# Fix volume permissions
+./scripts/fix-permissions.sh
+```
+
+### Build Failures
+
+```bash
+pnpm run deploy:latest:force
+```
+
+### Database Connection Issues
+
+```bash
+# Check if MongoDB is reachable
+sudo systemctl status mongod
+
+# Verify connection string inside container
+docker exec role-reactor-bot printenv | grep MONGODB
+```
+
+### SSL Certificate Not Issuing
+
+```bash
+# Check DNS propagation
+dig api.rolereactor.app
+
+# Check Caddy logs
+docker logs role-reactor-caddy
+```
+
+---
 
 ## Rollback
-
-If you need to rollback to a previous version:
 
 ```bash
 # 1. Check available tags
 git tag -l
 
 # 2. Checkout specific version
-git checkout v1.0.0  # Replace with desired version
+git checkout v1.7.0
 
-# 3. Deploy that version
+# 3. Force deploy that version
 pnpm run deploy:latest:force
 
-# 4. Return to main branch when ready
+# 4. Return to main when ready
 git checkout main
 ```
 
-## Advanced Usage
+---
 
-### Custom Docker Commands
-
-If you need more control:
+## Development Deployment
 
 ```bash
-# Build specific version
-docker build -t role-reactor-bot:v1.0.1 .
-
-# Run with custom configuration
-docker run -d --name role-reactor-bot \
-  --env-file .env.production \
-  -p 3030:3030 \
-  role-reactor-bot:v1.0.1
-```
-
-### Development Deployment
-
-For development deployment:
-
-```bash
-# Start development environment
+# Start development environment (hot reload)
 pnpm run docker:dev
 
-# View development logs
+# View logs
 pnpm run docker:dev:logs
 
-# Stop development environment
+# Stop
 pnpm run docker:dev:down
 ```
 
-## Support
-
-If you encounter issues:
-
-1. Check this deployment guide
-2. Review the logs: `docker logs role-reactor-bot`
-3. Try the force deployment: `pnpm run deploy:latest:force`
-4. Check the project's GitHub issues
-5. Ensure all required environment variables are set
+For full Docker documentation, see the [Docker Integration Guide](../integrations/docker/README.md).
 
 ---
 
-**Last Updated:** 2025-09-16
-**Script Version:** deploy-latest.sh v1.0
+**Last Updated:** 2026-05-21

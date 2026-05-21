@@ -1,114 +1,147 @@
 # Docker Deployment Guide
 
-## Quick Start
+## Architecture
 
-### Development
+Production runs on a VPS with two containers behind Caddy, which handles SSL and domain routing automatically:
 
-```bash
-# Start development environment
-npm run docker:dev
-
-# View logs
-npm run docker:dev:logs
-
-# Stop
-npm run docker:dev:down
+```
+Internet → Caddy (SSL + api.rolereactor.app) → role-reactor-bot:3030
 ```
 
-### Production
+The bot container is not exposed directly to the host — Caddy proxies to it via an internal Docker network.
+
+---
+
+## Development
+
+### Start
 
 ```bash
-# Build and start production
-npm run docker:prod
-
-# View logs
-npm run docker:prod:logs
-
-# Stop
-npm run docker:prod:down
+pnpm run docker:dev
 ```
 
-## Configuration
+This mounts your source code into the container for hot reload. The bot restarts automatically on file changes.
 
-### Environment Files
+### Logs
 
-- `.env.development` - Development environment
-- `.env.production` - Production environment
+```bash
+pnpm run docker:dev:logs
+```
 
-### Ports
+### Stop
 
-- **3030** - Main application port
-- Health check available at `http://localhost:3030/health`
+```bash
+pnpm run docker:dev:down
+```
 
-### Volumes
+---
 
-- `./data` - Persistent bot data
-- `./logs` - Application logs
+## Production (VPS)
+
+### Prerequisites
+
+1. **DNS** — Add an A record pointing your domain to the VPS IP:
+   ```
+   api.rolereactor.app  →  <your VPS IP>
+   ```
+
+2. **Firewall** — Open ports 80 and 443:
+   ```bash
+   ufw allow 80 && ufw allow 443
+   ```
+
+3. **Environment** — Create a `.env` file on the VPS:
+   ```env
+   DISCORD_TOKEN=your_bot_token
+   DISCORD_CLIENT_ID=your_client_id
+   MONGODB_URI=your_mongodb_connection_string
+   NODE_ENV=production
+   CORS_ALLOWED_ORIGINS=https://api.rolereactor.app
+   ```
+
+4. **Caddyfile** — Update the domain in `Caddyfile` at the project root if different from `api.rolereactor.app`.
+
+### Deploy
+
+```bash
+# First deploy
+pnpm run docker:prod
+
+# Update to latest version
+pnpm run deploy:latest
+```
+
+Caddy fetches and renews the SSL certificate automatically on first startup. No certbot or cron jobs needed.
+
+### Logs
+
+```bash
+pnpm run docker:prod:logs
+```
+
+---
 
 ## Health Monitoring
 
-The bot includes comprehensive health checks:
+```bash
+# Container status
+pnpm run docker:status
 
-- `/health` - Full system health check
-- `/health/docker` - Docker-specific health check
+# Health endpoint (from VPS — not exposed externally)
+curl http://localhost:3030/health
+```
 
-For more detailed troubleshooting, see the [Troubleshooting Guide](./troubleshooting.md).
+Via your domain after Caddy is running:
+
+```bash
+curl https://api.rolereactor.app/health
+```
+
+---
 
 ## Troubleshooting
 
-### Permission Issues
-
-If you encounter permission issues with mounted volumes:
+### Permission errors on mounted volumes
 
 ```bash
-# Fix host directory permissions
 sudo chown -R 1001:1001 ./data ./logs
 ```
 
-### Container Not Starting
-
-1. Check logs: `npm run docker:logs`
-2. Verify environment variables in `.env` file
-3. Ensure ports are not in use: `lsof -i :3030`
-
-### Health Check Failures
-
-1. Check if server is running: `curl http://localhost:3030/health`
-2. Verify Discord token and client ID are set
-3. Check database connectivity
-
-## Advanced Usage
-
-### Custom Build
+### Container not starting
 
 ```bash
-# Force rebuild without cache
-npm run docker:build:force
+# Check logs for the error
+docker logs role-reactor-bot
 
-# Clean everything and rebuild
-npm run docker:clean
-npm run docker:build:force
+# Verify required env vars are set
+docker exec role-reactor-bot printenv | grep DISCORD
 ```
 
-### Updates
+### SSL certificate not issuing
+
+- Confirm DNS is propagated: `dig api.rolereactor.app`
+- Confirm ports 80 and 443 are open: `ufw status`
+- Check Caddy logs: `docker logs role-reactor-caddy`
+
+### Build cache issues
 
 ```bash
-# Update from git and rebuild
-npm run docker:update
-
-# Force update (cleans everything)
-npm run docker:force-update
+pnpm run deploy:latest:force
 ```
 
-### Monitoring
+### Restart
 
 ```bash
-# Check container status
-npm run docker:status
-
-# View real-time logs
-npm run docker:logs
-
-# Restart container
-npm run docker:restart
+pnpm run docker:restart
 ```
+
+---
+
+## Volume Reference
+
+| Path (host) | Path (container) | Purpose |
+|---|---|---|
+| `./data` | `/usr/src/app/data` | Persistent bot data |
+| `./logs` | `/usr/src/app/logs` | Application logs |
+| `caddy_data` (volume) | `/data` | Caddy SSL certificates |
+| `caddy_config` (volume) | `/config` | Caddy config cache |

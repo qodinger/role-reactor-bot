@@ -54,7 +54,7 @@ A powerful Discord bot that helps you manage your server with role management, A
 
 ### Prerequisites
 
-- Node.js 16.0.0 or higher
+- Node.js 20.0.0 or higher
 - pnpm package manager
 - MongoDB (local or Atlas)
 - Discord Bot Token
@@ -571,19 +571,25 @@ Required Discord bot permissions:
 
 ## 🚀 Production Deployment
 
-### Production Deployment (Docker)
+### Architecture
 
-The recommended way to deploy is using the latest automated deployment script:
+Production runs on a VPS with Caddy handling SSL and domain routing automatically:
+
+```
+Internet → Caddy (SSL + api.rolereactor.app) → Docker container:3030
+```
+
+### Deploy
 
 ```bash
-# Deploy latest version (pulls, builds, and stays running)
+# Deploy latest version (pulls, builds, and starts)
 pnpm run deploy:latest
 
 # View logs
 pnpm run docker:logs
 ```
 
-For more options and troubleshooting, see the **[Deployment Guide](./docs/setup/deployment.md)**.
+For the full setup including DNS, firewall, and Caddy configuration, see the **[Deployment Guide](./docs/setup/deployment.md)**.
 
 ### Developer Configuration
 
