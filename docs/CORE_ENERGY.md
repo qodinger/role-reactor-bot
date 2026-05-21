@@ -51,7 +51,7 @@ When **one person** fuels the Pro Engine, **everyone** in the server wins. The f
 | **Scheduled Roles**    | 25 active slots   | **500 active slots**          |
 | **Ticket Capacity**    | 50 monthly        | **500 monthly**               |
 | **Transcript Type**    | Markdown          | **Rich HTML Layout**          |
-| **Transcript Storage** | 7 Days            | **Unlimited**                 |
+| **Transcript Storage** | 30 Days           | **Unlimited**                 |
 | **Bulk Actions**       | 25 users          | **250 users**                 |
 | **Level Rewards**      | 5 (Stack)         | **Unlimited (Replace/Stack)** |
 
