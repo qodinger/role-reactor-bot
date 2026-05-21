@@ -1,65 +1,96 @@
 # CLAUDE.md
 
-Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
+## Project Overview
 
-**Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
+Role Reactor Bot is a Discord bot built with Discord.js v14 and Node.js 22. It uses ES modules throughout (`"type": "module"` in package.json). The API server runs on port 3030 and is proxied via Caddy on a self-hosted VPS.
 
-## 1. Think Before Coding
+## Tech Stack
 
-**Don't assume. Don't hide confusion. Surface tradeoffs.**
+- **Runtime:** Node.js 22, ES modules (`import`/`export` everywhere — no `require`)
+- **Discord:** Discord.js v14
+- **Database:** MongoDB via native driver (`mongodb` package)
+- **Package manager:** pnpm 9.9.0 — always use `pnpm`, never `npm` or `yarn`
+- **Testing:** Vitest
+- **Linting/Formatting:** ESLint + Prettier
+- **Deployment:** Docker (multi-stage) + Caddy reverse proxy on VPS
 
-Before implementing:
-- State your assumptions explicitly. If uncertain, ask.
-- If multiple interpretations exist, present them - don't pick silently.
-- If a simpler approach exists, say so. Push back when warranted.
-- If something is unclear, stop. Name what's confusing. Ask.
+## Key Commands
 
-## 2. Simplicity First
-
-**Minimum code that solves the problem. Nothing speculative.**
-
-- No features beyond what was asked.
-- No abstractions for single-use code.
-- No "flexibility" or "configurability" that wasn't requested.
-- No error handling for impossible scenarios.
-- If you write 200 lines and it could be 50, rewrite it.
-
-Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
-
-## 3. Surgical Changes
-
-**Touch only what you must. Clean up only your own mess.**
-
-When editing existing code:
-- Don't "improve" adjacent code, comments, or formatting.
-- Don't refactor things that aren't broken.
-- Match existing style, even if you'd do it differently.
-- If you notice unrelated dead code, mention it - don't delete it.
-
-When your changes create orphans:
-- Remove imports/variables/functions that YOUR changes made unused.
-- Don't remove pre-existing dead code unless asked.
-
-The test: Every changed line should trace directly to the user's request.
-
-## 4. Goal-Driven Execution
-
-**Define success criteria. Loop until verified.**
-
-Transform tasks into verifiable goals:
-- "Add validation" → "Write tests for invalid inputs, then make them pass"
-- "Fix the bug" → "Write a test that reproduces it, then make it pass"
-- "Refactor X" → "Ensure tests pass before and after"
-
-For multi-step tasks, state a brief plan:
-```
-1. [Step] → verify: [check]
-2. [Step] → verify: [check]
-3. [Step] → verify: [check]
+```bash
+pnpm dev                    # Start with nodemon (hot reload)
+pnpm start                  # Start without hot reload
+pnpm test                   # Run tests (Vitest)
+pnpm lint                   # ESLint
+pnpm lint:fix               # ESLint with auto-fix
+pnpm format                 # Prettier
+pnpm run deploy:dev         # Deploy slash commands to dev guild
+pnpm run deploy:prod        # Deploy slash commands globally
+pnpm run docker:dev         # Start dev Docker environment
+pnpm run docker:prod        # Start production Docker environment
+pnpm run deploy:latest      # Pull + rebuild + deploy latest on VPS
 ```
 
-Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
+## Project Structure
 
----
+```
+src/
+  index.js              # Entry point
+  commands/
+    admin/              # Server management commands (role-reactions, moderation, etc.)
+    general/            # User-facing commands (help, ping, avatar, etc.)
+  events/               # Discord event handlers
+  features/             # Complex feature modules (giveaway, XP, temp-roles, etc.)
+  server/               # Express API server (port 3030)
+    routes/             # API route definitions
+    controllers/        # Route handlers
+    middleware/         # Auth, CORS, rate limiting
+  utils/
+    core/               # Command handler, event loader, base utilities
+    storage/            # MongoDB wrappers
+    monitoring/         # Health checks, metrics
+    ai/                 # AI provider integrations
+    discord/            # Discord-specific helpers
+  config/               # Environment config, prompts
+scripts/                # Deployment, git helpers, DB migrations
+tests/                  # Vitest test files
+```
 
-**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+## Git & Branch Workflow
+
+- **`dev`** — integration branch, all work goes here first
+- **`main`** — production-ready only, merged from `dev`
+- **`feature/*`** — feature branches, merge into `dev`
+- **`fix/*`** — bug fix branches, merge into `dev`
+- **`hotfix/*`** — critical fixes, merge into `main` and `dev`
+
+**Always commit directly to `dev` unless told otherwise. Never create a worktree unless explicitly asked.**
+
+## Deployment Architecture
+
+```
+Internet → Caddy (SSL, api.rolereactor.app) → Docker network → role-reactor-bot:3030
+```
+
+- Port 3030 is NOT exposed to the host — Caddy proxies internally
+- SSL is automatic via Caddy + Let's Encrypt
+- Environment variables come from the host `.env` file, never baked into the image
+- `docker-compose.prod.yml` runs both `caddy` and `role-reactor-bot` services
+
+## Code Conventions
+
+- **ES modules only** — `import`/`export`, never `require()`
+- **Async/await** over `.then()` chains
+- **Structured logging** via `getLogger()` from `src/utils/logger.js` — no `console.log` in production code
+- **Error handling** — always handle errors at command/event boundaries; let utilities throw
+- **MongoDB** — use helpers in `src/utils/storage/` rather than direct collection access
+- **Command structure** — each command exports `{ data, execute }` where `data` is a `SlashCommandBuilder`
+
+## Behavioral Guidelines
+
+**Think before coding.** State assumptions explicitly. If multiple interpretations exist, ask before picking one. If a simpler approach exists, say so.
+
+**Minimum code that solves the problem.** No speculative features, no abstractions for single-use code, no error handling for impossible scenarios.
+
+**Surgical changes.** Touch only what the task requires. Don't improve adjacent code. Don't refactor things that aren't broken. Match existing style.
+
+**Verify before reporting done.** For Docker changes, build and validate. For API changes, check the health endpoint. For commands, confirm the deploy script runs cleanly.
