@@ -28,13 +28,13 @@ export const PremiumFeatures = {
     includes: [
       "10x Ticket Capacity (500/month, 10 panels)",
       "Advanced Ticket Automation & HTML Transcripts",
-      "Unlimited Transcript Storage (Free: 7 days)",
+      "Unlimited Transcript Storage (Free: 30 days)",
       "Unlimited Level-Up Rewards & 'Replace Role' Mode",
       "High-Capacity Giveaways (Up to 50,000 entries & 20 winners)",
       "20x Scheduled Role Capacity (500 active slots)",
       "10x Bulk Action Capacity (250 users per action)",
       "Advanced Auto-Mod (domain allowlist, caps lock, wildcard/regex, per-channel, analytics, export)",
-      "Role Reactions (20 emojis, 20 menus)",
+      "Role Reactions (20 emojis, 8 menus)",
       "Role Bundles (15 roles per bundle)",
     ],
   },
@@ -57,7 +57,7 @@ export const FREE_TIER = {
   // Ticketing
   TICKET_MAX_PANELS: 3,
   TICKET_MAX_TICKETS_PER_MONTH: 50,
-  TICKET_TRANSCRIPT_DAYS: 7,
+  TICKET_TRANSCRIPT_DAYS: 30,
 };
 
 export const PRO_TIER = {
@@ -69,7 +69,7 @@ export const PRO_TIER = {
   BULK_ACTION_MAX_MEMBERS: 250, // 10x free tier
   ROLE_BUNDLE_MAX_ROLES: 15, // 3x free tier
   ROLE_REACTION_MAX_EMOJIS: 20, // Discord's hard limit
-  ROLE_REACTION_MAX_MESSAGES: 20, // Enough for huge communities
+  ROLE_REACTION_MAX_MESSAGES: 8,
   // Ticketing
   TICKET_MAX_PANELS: 10,
   TICKET_MAX_TICKETS_PER_MONTH: 500,

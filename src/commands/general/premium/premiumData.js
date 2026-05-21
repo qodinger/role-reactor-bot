@@ -35,7 +35,7 @@ export const PREMIUM_FEATURES = [
     name: "Role Reactions",
     emoji: "⭐",
     free: "10 emojis, 3 menus",
-    pro: "20 emojis, 20 menus",
+    pro: "20 emojis, 8 menus",
   },
   {
     command: "xp",

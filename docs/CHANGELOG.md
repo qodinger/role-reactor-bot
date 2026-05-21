@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Guild Analytics require Pro Engine**: Server growth analytics are now a Pro Engine feature. Pro servers also get up to 365 days of analytics history (previously 90 days).
 - **Auto-Mod Pro Features**: Advanced bad word filtering (wildcard and regex patterns), domain allowlisting, and the caps lock filter are exclusive to Pro Engine servers.
+- **Transcript Storage (Free tier)**: Free servers now keep ticket transcripts for 30 days, up from 7 days.
+- **Role Reaction Menus (Pro Engine)**: The Pro Engine menu limit has been updated from 20 to 8.
 
 ### Fixed
 

@@ -47,7 +47,7 @@ const ALL_PRO_FEATURES = [
     name: "Role Reactions",
     emoji: "⭐",
     freeFeatures: ["emojis_10", "menus_3"],
-    proFeatures: ["emojis_20", "menus_20"],
+    proFeatures: ["emojis_20", "menus_8"],
   },
   {
     id: "xp",
@@ -214,10 +214,10 @@ describe("Pro Engine - Role Reactions Limits", () => {
     expect(result.accessible).toBe(true);
   });
 
-  test("PRO tier should allow 20 emojis and menus", () => {
-    const result = checkLimitAccess("role_reactions", 20, true, {
-      free: 10,
-      pro: 20,
+  test("PRO tier should allow 20 emojis and 8 menus", () => {
+    const result = checkLimitAccess("role_reactions", 8, true, {
+      free: 3,
+      pro: 8,
     });
     expect(result.accessible).toBe(true);
     expect(result.tier).toBe("PRO");

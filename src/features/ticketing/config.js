@@ -8,7 +8,7 @@ export const FREE_TIER = {
   MAX_TICKETS_PER_MONTH: 50, // Monthly ticket limit
   MAX_PANELS: 1, // Maximum ticket panels
   MAX_CATEGORIES: 3, // Maximum categories per panel
-  TRANSCRIPT_RETENTION_DAYS: 7, // Days before transcript deletion
+  TRANSCRIPT_RETENTION_DAYS: 30, // Days before transcript deletion
   EXPORT_FORMATS: ["md"], // Available export formats
   ANALYTICS: "basic", // Analytics level: 'basic' | 'advanced'
   AUTOMATION: false, // Auto-close, auto-assign rules

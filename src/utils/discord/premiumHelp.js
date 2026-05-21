@@ -60,7 +60,7 @@ export const PREMIUM_FEATURES = [
     name: "Role Reactions",
     emoji: "⭐",
     free: "10 emojis, 3 menus",
-    pro: "20 emojis, 20 menus",
+    pro: "20 emojis, 8 menus",
   },
   {
     command: "xp",
@@ -80,7 +80,7 @@ export const PREMIUM_FEATURES = [
     command: "ticket",
     name: "Ticketing",
     emoji: "🎫",
-    free: "Text transcripts (7 days)",
+    free: "Text transcripts (30 days)",
     pro: "HTML/JSON exports, unlimited storage",
   },
 ];
