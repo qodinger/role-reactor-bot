@@ -111,13 +111,17 @@ router.get(
         redirect_uri: DISCORD_REDIRECT_URI,
       });
 
+      const tokenAbort = new AbortController();
+      const tokenTimeout = setTimeout(() => tokenAbort.abort(), 10000);
       const tokenResponse = await fetch(`${DISCORD_API_BASE}/oauth2/token`, {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
         },
         body: searchParams,
+        signal: tokenAbort.signal,
       });
+      clearTimeout(tokenTimeout);
 
       if (!tokenResponse.ok) {
         const errorText = await tokenResponse.text();
@@ -134,11 +138,15 @@ router.get(
       const { access_token: accessToken } = tokenData;
 
       // Get user information from Discord
+      const userAbort = new AbortController();
+      const userTimeout = setTimeout(() => userAbort.abort(), 10000);
       const userResponse = await fetch(`${DISCORD_API_BASE}/users/@me`, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
+        signal: userAbort.signal,
       });
+      clearTimeout(userTimeout);
 
       if (!userResponse.ok) {
         logger.error("Failed to fetch Discord user info");

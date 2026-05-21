@@ -73,8 +73,8 @@ class DatabaseManager {
     this.customCommands = null;
     this.automod = null;
     // Initialize connection manager asynchronously (non-blocking)
-    this._initializeConnectionManager().catch(() => {
-      // Silently fail - will be initialized on first connect
+    this._initializeConnectionManager().catch(err => {
+      this.logger?.warn("Database connection manager init failed, will retry on first use:", err?.message);
     });
   }
 

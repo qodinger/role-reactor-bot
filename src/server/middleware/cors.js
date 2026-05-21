@@ -11,20 +11,25 @@ export function corsMiddleware(req, res, next) {
 
   const origin = req.headers.origin;
 
-  let allowedOrigin = "*";
+  let allowedOrigin = null;
+  let isExplicitMatch = false;
+
   if (allowedOrigins.includes("*")) {
     allowedOrigin = origin || "*";
   } else if (origin && allowedOrigins.includes(origin)) {
     allowedOrigin = origin;
+    isExplicitMatch = true;
   } else if (
     origin &&
     allowedOrigins.some(allowed => {
-      const pattern = allowed.replace(/\*/g, ".*");
+      // Escape dots before replacing wildcard to prevent subdomain bypass
+      const pattern = allowed.replace(/\./g, "\\.").replace(/\*/g, ".*");
       const regex = new RegExp(`^${pattern}$`);
       return regex.test(origin);
     })
   ) {
     allowedOrigin = origin;
+    isExplicitMatch = true;
   } else if (origin) {
     return res.status(403).json({
       status: "error",
@@ -32,8 +37,9 @@ export function corsMiddleware(req, res, next) {
     });
   }
 
-  // Set CORS headers
-  res.header("Access-Control-Allow-Origin", allowedOrigin);
+  if (allowedOrigin) {
+    res.header("Access-Control-Allow-Origin", allowedOrigin);
+  }
   res.header(
     "Access-Control-Allow-Methods",
     "GET, POST, PUT, PATCH, DELETE, OPTIONS",
@@ -42,7 +48,10 @@ export function corsMiddleware(req, res, next) {
     "Access-Control-Allow-Headers",
     "Origin, X-Requested-With, Content-Type, Accept, Authorization",
   );
-  res.header("Access-Control-Allow-Credentials", "true");
+  // Only send credentials header when origin is explicitly matched, not wildcard
+  if (isExplicitMatch) {
+    res.header("Access-Control-Allow-Credentials", "true");
+  }
 
   // Handle preflight requests
   if (req.method === "OPTIONS") {

@@ -255,11 +255,16 @@ async function main() {
       roleScheduler.start();
 
       // Start automatic cleanup for generation history
-      import("./commands/general/avatar/utils/generationHistory.js").then(
-        ({ GenerationHistory }) => {
+      import("./commands/general/avatar/utils/generationHistory.js")
+        .then(({ GenerationHistory }) => {
           GenerationHistory.startAutoCleanup();
-        },
-      );
+        })
+        .catch(error => {
+          logger.warn(
+            "Failed to start generation history cleanup:",
+            error.message,
+          );
+        });
 
       // Start temporary role expiration scheduler
       const tempRoleScheduler = getRoleExpirationScheduler(client);

@@ -44,11 +44,22 @@ export async function apiCreatePayment(req, res) {
       return res.status(statusCode).json(response);
     }
 
+    const MAX_PAYMENT_AMOUNT = 10000;
+
     if (!amount || typeof amount !== "number" || amount < 1) {
       const { statusCode, response } = createErrorResponse(
         "Invalid amount",
         400,
         "Amount must be a positive number (minimum $1)",
+      );
+      return res.status(statusCode).json(response);
+    }
+
+    if (amount > MAX_PAYMENT_AMOUNT) {
+      const { statusCode, response } = createErrorResponse(
+        "Amount too high",
+        400,
+        `Amount cannot exceed $${MAX_PAYMENT_AMOUNT}`,
       );
       return res.status(statusCode).json(response);
     }

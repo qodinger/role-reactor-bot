@@ -501,7 +501,7 @@ class ExperienceManager {
     import("../analytics/AnalyticsManager.js")
       .then(({ getAnalyticsManager }) => getAnalyticsManager())
       .then(am => am.recordMessage(guildId))
-      .catch(() => {});
+      .catch(err => this.logger.debug("Analytics recording failed:", err.message));
 
     await this.storageManager.setUserExperience(guildId, userId, userData);
 

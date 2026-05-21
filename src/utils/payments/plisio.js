@@ -65,7 +65,7 @@ export class PlisioPay {
     // params.pay_fee = 1;
 
     try {
-      const response = await axios.get(url, { params });
+      const response = await axios.get(url, { params, timeout: 10000 });
 
       if (response.data && response.data.status === "success") {
         return response.data.data.invoice_url;
