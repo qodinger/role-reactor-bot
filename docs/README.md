@@ -12,9 +12,9 @@ Welcome to the comprehensive documentation for Role Reactor Bot - a powerful Dis
 
 ### 🛠️ Development & Testing
 
-- **[Testing Guide](./development/testing.md)** - Testing practices and procedures
+- **[Payment Testing Guide](./development/payment-testing.md)** - Payment flow testing procedures
 - **[Git Workflow](./development/workflow.md)** - Git branching strategy and helper commands
-- **[Contributing Guidelines](./contributing.md)** - How to contribute to the project
+- **[Contributing Guidelines](./CONTRIBUTING.md)** - How to contribute to the project
 
 ### 🔌 API & Authentication
 
@@ -36,7 +36,7 @@ Welcome to the comprehensive documentation for Role Reactor Bot - a powerful Dis
 
 ### For Developers
 
-- **Setting up tests?** Read the [Testing Guide](./development/testing.md)
+- **Testing payments?** Read the [Payment Testing Guide](./development/payment-testing.md)
 - **Working on features?** Follow the [Git Workflow](./development/workflow.md)
 - **Building a dashboard?** Use the [Auth Integration](./api/auth.md) and [API Reference](./api/reference.md)
 - **Contributing?** See [How to Contribute](./contributing.md)
@@ -58,7 +58,7 @@ docs/
 │   ├── README.md                   # Installation & initial setup
 │   └── deployment.md               # Production deployment guide
 ├── development/
-│   ├── testing.md                  # Testing practices & procedures
+│   ├── payment-testing.md          # Payment flow testing procedures
 │   └── workflow.md                 # Git branching & workflow
 ├── api/
 │   ├── reference.md                # Core API documentation

@@ -27,8 +27,15 @@ assignees: ''
 ## Environment
 
 - OS: [e.g., Windows, macOS, Linux]
-- Node Version: [e.g., 18.x]
+- Node Version: [e.g., 20.x]
 - Bot Version: [e.g., 1.7.1]
+
+## Bot Logs
+
+<!-- Paste any relevant bot logs here (remove sensitive tokens/credentials) -->
+
+```
+```
 
 ## Screenshots
 
