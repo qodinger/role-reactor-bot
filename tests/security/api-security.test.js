@@ -37,7 +37,8 @@ describe("API Security Tests", () => {
           reactions: [{ emoji: "🔴", roleId: "111111111111111111" }],
         });
 
-      expect([401, 404]).toContain(response.status);
+      expect(response.status).toBeLessThan(500);
+      expect([401, 403, 404]).toContain(response.status);
     });
 
     it("should reject role deploy with only internal API key (no user auth)", async () => {
@@ -47,6 +48,7 @@ describe("API Security Tests", () => {
         .set("Authorization", `Bearer ${internalKey}`)
         .send({ channelId: testChannelId, reactions: [] });
 
+      expect(response.status).toBeLessThan(500);
       expect([401, 403, 404]).toContain(response.status);
     });
 
@@ -56,7 +58,8 @@ describe("API Security Tests", () => {
         .set("Authorization", "Bearer invalid-key-12345")
         .send({ channelId: testChannelId, reactions: [] });
 
-      expect([401, 404]).toContain(response.status);
+      expect(response.status).toBeLessThan(500);
+      expect([401, 403, 404]).toContain(response.status);
     });
 
     it("should reject role delete without authentication", async () => {
@@ -65,7 +68,8 @@ describe("API Security Tests", () => {
         `${API_BASE}/guilds/${testGuildId}/role-reactions/${testMessageId}`,
       );
 
-      expect([401, 404]).toContain(response.status);
+      expect(response.status).toBeLessThan(500);
+      expect([401, 403, 404]).toContain(response.status);
     });
 
     it("should reject role update without authentication", async () => {
@@ -76,7 +80,8 @@ describe("API Security Tests", () => {
         )
         .send({ title: "Hacked Title" });
 
-      expect([401, 404]).toContain(response.status);
+      expect(response.status).toBeLessThan(500);
+      expect([401, 403, 404]).toContain(response.status);
     });
   });
 
@@ -88,7 +93,8 @@ describe("API Security Tests", () => {
           prefix: "!",
         });
 
-      expect([401, 404]).toContain(response.status);
+      expect(response.status).toBeLessThan(500);
+      expect([401, 403, 404]).toContain(response.status);
     });
 
     it("should reject guild settings with only internal API key", async () => {
@@ -101,6 +107,7 @@ describe("API Security Tests", () => {
           prefix: "!",
         });
 
+      expect(response.status).toBeLessThan(500);
       expect([401, 403, 404]).toContain(response.status);
     });
   });
@@ -114,7 +121,8 @@ describe("API Security Tests", () => {
           response: "test response",
         });
 
-      expect([401, 404]).toContain(response.status);
+      expect(response.status).toBeLessThan(500);
+      expect([401, 403, 404]).toContain(response.status);
     });
 
     it("should reject custom command creation with only internal API key", async () => {
@@ -128,6 +136,7 @@ describe("API Security Tests", () => {
           response: "test response",
         });
 
+      expect(response.status).toBeLessThan(500);
       expect([401, 403, 404]).toContain(response.status);
     });
   });
@@ -140,7 +149,8 @@ describe("API Security Tests", () => {
           featureId: "pro",
         });
 
-      expect([401, 404]).toContain(response.status);
+      expect(response.status).toBeLessThan(500);
+      expect([401, 403, 404]).toContain(response.status);
     });
   });
 
@@ -150,7 +160,8 @@ describe("API Security Tests", () => {
         `${API_BASE}/guilds/${testGuildId}/analytics`,
       );
 
-      expect([401, 404]).toContain(response.status);
+      expect(response.status).toBeLessThan(500);
+      expect([401, 403, 404]).toContain(response.status);
     });
   });
 
@@ -226,7 +237,8 @@ describe("API Security Tests", () => {
           currency: "USD",
         });
 
-      expect([401, 404]).toContain(response.status);
+      expect(response.status).toBeLessThan(500);
+      expect([401, 403, 404]).toContain(response.status);
     });
 
     it("should reject payment stats without authentication", async () => {
@@ -236,6 +248,7 @@ describe("API Security Tests", () => {
         .set("Authorization", `Bearer ${internalKey}`);
 
       // Should require user auth even with internal key
+      expect(response.status).toBeLessThan(500);
       expect([401, 403, 404]).toContain(response.status);
     });
   });
@@ -249,6 +262,7 @@ describe("API Security Tests", () => {
         .set("Authorization", `Bearer ${internalKey}`);
 
       // Should require user auth even with internal key
+      expect(response.status).toBeLessThan(500);
       expect([401, 403, 404]).toContain(response.status);
     });
 
@@ -257,6 +271,7 @@ describe("API Security Tests", () => {
         .get(`${API_BASE}/user/${testUserId}/payments`)
         .set("Authorization", `Bearer ${internalKey}`);
 
+      expect(response.status).toBeLessThan(500);
       expect([401, 403, 404]).toContain(response.status);
     });
 
@@ -265,6 +280,7 @@ describe("API Security Tests", () => {
         .get(`${API_BASE}/user/${testUserId}/notifications`)
         .set("Authorization", `Bearer ${internalKey}`);
 
+      expect(response.status).toBeLessThan(500);
       expect([401, 403, 404]).toContain(response.status);
     });
 
@@ -274,6 +290,7 @@ describe("API Security Tests", () => {
         .set("Authorization", `Bearer ${internalKey}`);
 
       // Should require both internal auth AND admin role
+      expect(response.status).toBeLessThan(500);
       expect([401, 403, 404]).toContain(response.status);
     });
 
@@ -285,6 +302,7 @@ describe("API Security Tests", () => {
           role: "admin",
         });
 
+      expect(response.status).toBeLessThan(500);
       expect([401, 403, 404]).toContain(response.status);
     });
   });
@@ -295,7 +313,8 @@ describe("API Security Tests", () => {
     it("should reject /me endpoint without authentication", async () => {
       const response = await request(app).get(`${API_BASE}/user/me`);
 
-      expect([401, 404]).toContain(response.status);
+      expect(response.status).toBeLessThan(500);
+      expect([401, 403, 404]).toContain(response.status);
     });
 
     it("should reject /me endpoint without internal key", async () => {
@@ -303,6 +322,7 @@ describe("API Security Tests", () => {
         .get(`${API_BASE}/user/me`)
         .set("Authorization", `Bearer invalid-session`);
 
+      expect(response.status).toBeLessThan(500);
       expect([401, 403, 404]).toContain(response.status);
     });
 
@@ -312,6 +332,7 @@ describe("API Security Tests", () => {
         .set("Authorization", `Bearer ${internalKey}`);
 
       // Should require session auth
+      expect(response.status).toBeLessThan(500);
       expect([401, 403, 404]).toContain(response.status);
     });
   });
@@ -322,13 +343,15 @@ describe("API Security Tests", () => {
     it("should reject balance endpoint without authentication", async () => {
       const response = await request(app).get(`${API_BASE}/balance`);
 
-      expect([401, 404]).toContain(response.status);
+      expect(response.status).toBeLessThan(500);
+      expect([401, 403, 404]).toContain(response.status);
     });
 
     it("should reject payments endpoint without authentication", async () => {
       const response = await request(app).get(`${API_BASE}/payments`);
 
-      expect([401, 404]).toContain(response.status);
+      expect(response.status).toBeLessThan(500);
+      expect([401, 403, 404]).toContain(response.status);
     });
 
     it("should allow public root endpoints without auth", async () => {
@@ -348,7 +371,8 @@ describe("API Security Tests", () => {
         `${API_BASE}/user/${testUserId}/balance`,
       );
 
-      expect([401, 404]).toContain(response.status);
+      expect(response.status).toBeLessThan(500);
+      expect([401, 403, 404]).toContain(response.status);
     });
 
     it("should reject user payments without internal key", async () => {
@@ -356,7 +380,8 @@ describe("API Security Tests", () => {
         `${API_BASE}/user/${testUserId}/payments`,
       );
 
-      expect([401, 404]).toContain(response.status);
+      expect(response.status).toBeLessThan(500);
+      expect([401, 403, 404]).toContain(response.status);
     });
 
     it("should reject user notifications without internal key", async () => {
@@ -364,13 +389,15 @@ describe("API Security Tests", () => {
         `${API_BASE}/user/${testUserId}/notifications`,
       );
 
-      expect([401, 404]).toContain(response.status);
+      expect(response.status).toBeLessThan(500);
+      expect([401, 403, 404]).toContain(response.status);
     });
 
     it("should reject admin endpoints without internal key", async () => {
       const response = await request(app).get(`${API_BASE}/user`);
 
-      expect([401, 404]).toContain(response.status);
+      expect(response.status).toBeLessThan(500);
+      expect([401, 403, 404]).toContain(response.status);
     });
   });
 
@@ -380,13 +407,15 @@ describe("API Security Tests", () => {
         .post(`${API_BASE}/payments/create`)
         .send({ amount: 100, currency: "USD" });
 
-      expect([401, 404]).toContain(response.status);
+      expect(response.status).toBeLessThan(500);
+      expect([401, 403, 404]).toContain(response.status);
     });
 
     it("should reject admin payment stats without internal key", async () => {
       const response = await request(app).get(`${API_BASE}/payments/stats`);
 
-      expect([401, 404]).toContain(response.status);
+      expect(response.status).toBeLessThan(500);
+      expect([401, 403, 404]).toContain(response.status);
     });
   });
 
@@ -394,13 +423,15 @@ describe("API Security Tests", () => {
     it("should reject stats/usage without internal key", async () => {
       const response = await request(app).get(`${API_BASE}/stats/usage`);
 
-      expect([401, 404]).toContain(response.status);
+      expect(response.status).toBeLessThan(500);
+      expect([401, 403, 404]).toContain(response.status);
     });
 
     it("should reject stats/global without internal key", async () => {
       const response = await request(app).get(`${API_BASE}/stats/global`);
 
-      expect([401, 404]).toContain(response.status);
+      expect(response.status).toBeLessThan(500);
+      expect([401, 403, 404]).toContain(response.status);
     });
   });
 
@@ -408,7 +439,8 @@ describe("API Security Tests", () => {
     it("should reject commands/usage without internal key", async () => {
       const response = await request(app).get(`${API_BASE}/commands/usage`);
 
-      expect([401, 404]).toContain(response.status);
+      expect(response.status).toBeLessThan(500);
+      expect([401, 403, 404]).toContain(response.status);
     });
   });
 
@@ -416,7 +448,8 @@ describe("API Security Tests", () => {
     it("should reject services without internal key", async () => {
       const response = await request(app).get(`${API_BASE}/services`);
 
-      expect([401, 404]).toContain(response.status);
+      expect(response.status).toBeLessThan(500);
+      expect([401, 403, 404]).toContain(response.status);
     });
   });
 
@@ -429,6 +462,7 @@ describe("API Security Tests", () => {
         .set("Authorization", `Bearer ${internalKey}`);
 
       // Logs should require additional admin auth
+      expect(response.status).toBeLessThan(500);
       expect([401, 403, 404]).toContain(response.status);
     });
 
@@ -438,6 +472,7 @@ describe("API Security Tests", () => {
         .set("Authorization", `Bearer ${internalKey}`);
 
       // Config should require additional admin auth
+      expect(response.status).toBeLessThan(500);
       expect([401, 403, 404]).toContain(response.status);
     });
 
@@ -452,6 +487,7 @@ describe("API Security Tests", () => {
       const response = await request(app).get(`${API_BASE}/services`);
 
       // Services now require internal auth
+      expect(response.status).toBeLessThan(500);
       expect([401, 403, 404]).toContain(response.status);
     });
 

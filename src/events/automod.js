@@ -3,6 +3,7 @@ import { getLogger } from "../utils/logger.js";
 import { getDatabaseManager } from "../utils/storage/databaseManager.js";
 import { getPremiumManager } from "../features/premium/PremiumManager.js";
 import { hasAdminPermissions } from "../utils/discord/permissions.js";
+import { detectBadWords } from "../utils/automod/badWordDetector.js";
 
 const logger = getLogger();
 
@@ -61,43 +62,16 @@ export async function execute(message, client) {
     const violations = [];
 
     if (activeSettings.badWords?.enabled) {
-      let hasBadWord = false;
-      const content = message.content.toLowerCase();
-
       const mode = settings.badWords.mode || "simple";
       logger.debug(`[Automod] Checking badwords: mode=${mode}`);
 
-      if (mode === "wildcard" && settings.badWords.wildcardWords?.length > 0) {
-        hasBadWord = settings.badWords.wildcardWords.some(pattern => {
-          const regex = new RegExp(
-            pattern.toLowerCase().replace(/\*/g, ".*"),
-            "i",
-          );
-          return regex.test(content);
-        });
-      } else if (
-        mode === "regex" &&
-        settings.badWords.regexPatterns?.length > 0
-      ) {
-        hasBadWord = settings.badWords.regexPatterns.some(pattern => {
-          try {
-            const regex = new RegExp(pattern, "i");
-            return regex.test(content);
-          } catch {
-            return false;
-          }
-        });
-      } else if (settings.badWords.words?.length > 0) {
-        hasBadWord = settings.badWords.words.some(word =>
-          content.includes(word.toLowerCase()),
-        );
-      }
-
-      if (settings.badWords.advancedWords?.length > 0 && mode === "simple") {
-        hasBadWord = settings.badWords.advancedWords.some(word =>
-          content.includes(word.toLowerCase()),
-        );
-      }
+      const hasBadWord = detectBadWords(message.content, {
+        mode,
+        words: settings.badWords.words,
+        wildcardWords: settings.badWords.wildcardWords,
+        regexPatterns: settings.badWords.regexPatterns,
+        advancedWords: settings.badWords.advancedWords,
+      });
 
       logger.debug(`[Automod] Checking badwords: hasBadWord=${hasBadWord}`);
 

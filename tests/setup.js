@@ -7,6 +7,12 @@ import { vi } from "vitest";
 // If you need to mock console, use vi.spyOn instead
 // vi.spyOn(console, 'log').mockImplementation(() => {});
 
+// Polyfill WebCrypto for Node 18 in Vitest's sandboxed environment
+if (!globalThis.crypto) {
+  const { webcrypto } = await import("node:crypto");
+  globalThis.crypto = webcrypto;
+}
+
 process.env.NODE_ENV = "test";
 process.env.DISCORD_TOKEN = "test-token";
 process.env.DISCORD_CLIENT_ID = "test-client-id";

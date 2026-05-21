@@ -1,45 +1,5 @@
 import { describe, test, expect } from "vitest";
-
-/**
- * Advanced Bad Words Detection Logic
- * Supports: simple, wildcard, regex modes
- */
-function detectBadWords(content, settings) {
-  const {
-    mode = "simple",
-    words = [],
-    wildcardWords = [],
-    regexPatterns = [],
-    advancedWords = [],
-  } = settings;
-  const lowerContent = content.toLowerCase();
-
-  let hasBadWord = false;
-
-  if (mode === "wildcard" && wildcardWords.length > 0) {
-    hasBadWord = wildcardWords.some(pattern => {
-      const regex = new RegExp(pattern.toLowerCase().replace(/\*/g, ".*"), "i");
-      return regex.test(lowerContent);
-    });
-  } else if (mode === "regex" && regexPatterns.length > 0) {
-    hasBadWord = regexPatterns.some(pattern => {
-      try {
-        const regex = new RegExp(pattern, "i");
-        return regex.test(lowerContent);
-      } catch {
-        return false;
-      }
-    });
-  } else if (words.length > 0) {
-    hasBadWord = words.some(word => lowerContent.includes(word.toLowerCase()));
-  } else if (advancedWords.length > 0 && mode === "simple") {
-    hasBadWord = advancedWords.some(word =>
-      lowerContent.includes(word.toLowerCase()),
-    );
-  }
-
-  return hasBadWord;
-}
+import { detectBadWords } from "../../../src/utils/automod/badWordDetector.js";
 
 describe("Advanced Bad Words Detection", () => {
   describe("Simple mode (default)", () => {
@@ -69,6 +29,13 @@ describe("Advanced Bad Words Detection", () => {
         words: ["bad", "word"],
       });
       expect(result).toBe(true);
+    });
+
+    test("returns false when no match", () => {
+      const result = detectBadWords("Clean content here", {
+        words: ["spam"],
+      });
+      expect(result).toBe(false);
     });
   });
 
@@ -104,6 +71,14 @@ describe("Advanced Bad Words Detection", () => {
       });
       expect(result).toBe(true);
     });
+
+    test("returns false when no match", () => {
+      const result = detectBadWords("Clean content", {
+        mode: "wildcard",
+        wildcardWords: ["spam*"],
+      });
+      expect(result).toBe(false);
+    });
   });
 
   describe("Regex mode", () => {
@@ -138,6 +113,14 @@ describe("Advanced Bad Words Detection", () => {
       });
       expect(result).toBe(false);
     });
+
+    test("returns false when no match", () => {
+      const result = detectBadWords("clean content", {
+        mode: "regex",
+        regexPatterns: ["\\d{3}-\\d{4}"],
+      });
+      expect(result).toBe(false);
+    });
   });
 
   describe("Edge cases", () => {
@@ -153,6 +136,24 @@ describe("Advanced Bad Words Detection", () => {
 
     test("no settings provided", () => {
       const result = detectBadWords("spam content", {});
+      expect(result).toBe(false);
+    });
+
+    test("wildcardWords ignored when not in wildcard mode", () => {
+      const result = detectBadWords("spam content", {
+        mode: "simple",
+        wildcardWords: ["spam*"],
+        words: [],
+      });
+      expect(result).toBe(false);
+    });
+
+    test("regexPatterns ignored when not in regex mode", () => {
+      const result = detectBadWords("spam content", {
+        mode: "simple",
+        regexPatterns: ["spam"],
+        words: [],
+      });
       expect(result).toBe(false);
     });
   });

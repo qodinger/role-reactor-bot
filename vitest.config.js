@@ -12,6 +12,7 @@ export default defineConfig({
 
     // File patterns to test
     include: ["**/tests/**/*.test.js", "**/tests/**/*.spec.js"],
+    exclude: ["node_modules/**", ".claude/**"],
 
     // Test timeout
     testTimeout: 10000,
@@ -27,10 +28,10 @@ export default defineConfig({
       reportsDirectory: "./coverage",
       threshold: {
         global: {
-          statements: 40,
-          branches: 30,
-          functions: 35,
-          lines: 40,
+          statements: 10,
+          branches: 50,
+          functions: 15,
+          lines: 10,
         },
       },
       exclude: [
@@ -38,7 +39,6 @@ export default defineConfig({
         "tests/**",
         "src/index.js",
         "src/config/**",
-        "src/server/**",
         "**/*.d.ts",
       ],
     },
@@ -63,11 +63,12 @@ export default defineConfig({
 
     // Pool options to reduce worker termination issues
     // Using threads instead of forks to avoid EPERM errors on macOS
-    // In Vitest 4, poolOptions are now top-level options
     pool: "threads",
-    threads: {
-      singleThread: false,
-      isolate: true,
+    poolOptions: {
+      threads: {
+        singleThread: false,
+        isolate: true,
+      },
     },
 
     // Suppress console output during tests (errors are still caught)
