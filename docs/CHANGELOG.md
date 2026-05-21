@@ -9,14 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Auto-Moderation System**: Comprehensive FREE auto-mod to keep your server safe:
-  - **Bad Words**: Filter custom words or phrases from chat
-  - **Links**: Block unwanted URLs with optional domain allowlisting (Pro)
-  - **Spam Detection**: Catch repeated messages and spam behavior
-  - **Mention Spam**: Prevent excessive @mentions
-  - **Invite Links**: Block Discord invite links
-  - All filters support customizable actions (delete/warn/timeout) and durations
-- **Timeout List**: New `/moderation timeouts` command to easily see all currently timed out members in your server
+- **Auto-Moderation System**: Keep your server safe automatically — for free. Five filters are available: bad words, link blocking, spam detection, mention spam, and invite link blocking. Each filter can be set to delete the message, warn the user, or issue a timeout.
+- **Role Reaction Limits**: You can now set a maximum number of times a role can be claimed through role reactions — great for limited-access roles.
+- **Pro Badge in Help**: The `/help` menu now shows a badge on commands that have Pro Engine features, so you always know what's available on your tier.
+- **Timeout List**: New `/moderation timeouts` command to see all currently timed-out members in your server at a glance.
+
+### Changed
+
+- **Guild Analytics require Pro Engine**: Server growth analytics are now a Pro Engine feature. Pro servers also get up to 365 days of analytics history (previously 90 days).
+- **Auto-Mod Pro Features**: Advanced bad word filtering (wildcard and regex patterns), domain allowlisting, and the caps lock filter are exclusive to Pro Engine servers.
+
+### Fixed
+
+- Core credit balance no longer shows rounding errors (e.g. `19.999999` now correctly shows as `20`).
+- Clickable command mentions in `/help` now work correctly on production servers.
+- `/serverinfo` now shows more accurate member counts.
 
 ## [1.7.1] - 2026-04-01
 
@@ -520,7 +527,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Role categories and organization.
 - Comprehensive error handling and rate limiting.
 
-[Unreleased]: https://github.com/qodinger/role-reactor-bot/compare/v1.7.0...HEAD
+[Unreleased]: https://github.com/qodinger/role-reactor-bot/compare/v1.7.1...HEAD
+[1.7.1]: https://github.com/qodinger/role-reactor-bot/compare/v1.7.0...v1.7.1
 [1.7.0]: https://github.com/qodinger/role-reactor-bot/compare/v1.6.3...v1.7.0
 [1.6.3]: https://github.com/qodinger/role-reactor-bot/compare/v1.6.2...v1.6.3
 [1.6.2]: https://github.com/qodinger/role-reactor-bot/compare/v1.6.1...v1.6.2

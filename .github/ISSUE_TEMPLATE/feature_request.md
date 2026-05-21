@@ -22,12 +22,6 @@ assignees: ''
 
 <!-- Add any other context, mockups, or examples about the feature request here -->
 
-## Priority
-
-- [ ] Low
-- [ ] Medium
-- [ ] High
-
 ## Is this related to Pro Engine?
 
 - [ ] Yes
