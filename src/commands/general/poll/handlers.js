@@ -89,12 +89,21 @@ export async function handlePollEnd(
     }
 
     // Get the poll message and end it using Discord's native API
-    const channel = /** @type {import('discord.js').TextChannel} */ (
-      await client.channels.fetch(poll.channelId)
+    const channel = /** @type {import('discord.js').TextChannel | null} */ (
+      await client.channels.fetch(poll.channelId).catch(() => null)
     );
-    const message = await channel.messages.fetch(poll.messageId);
+    if (!channel) {
+      return await interaction.editReply(
+        errorEmbed({
+          title: "Channel Not Found",
+          description: "The channel where this poll was created no longer exists or is inaccessible.",
+          solution: "The poll cannot be ended because its channel is gone.",
+        }),
+      );
+    }
+    const message = await channel.messages.fetch(poll.messageId).catch(() => null);
 
-    if (!message.poll) {
+    if (!message?.poll) {
       return await interaction.editReply(
         errorEmbed({
           title: "Invalid Poll",

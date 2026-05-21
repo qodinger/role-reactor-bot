@@ -660,7 +660,9 @@ export function setupGiveawayEvents(manager, client) {
   // Handle giveaway ended event
   manager.on("giveawayEnded", async (giveaway, winners) => {
     try {
-      const channel = await client.channels.fetch(giveaway.channelId);
+      const channel = await client.channels
+        .fetch(giveaway.channelId)
+        .catch(() => null);
 
       if (!channel) {
         logger.warn(
@@ -678,7 +680,9 @@ export function setupGiveawayEvents(manager, client) {
   // Handle giveaway rerolled event
   manager.on("giveawayRerolled", async (giveaway, winners) => {
     try {
-      const channel = await client.channels.fetch(giveaway.channelId);
+      const channel = await client.channels
+        .fetch(giveaway.channelId)
+        .catch(() => null);
 
       if (!channel) {
         logger.warn(
@@ -696,7 +700,9 @@ export function setupGiveawayEvents(manager, client) {
   // Handle giveaway cancelled event
   manager.on("giveawayCancelled", async giveaway => {
     try {
-      const channel = await client.channels.fetch(giveaway.channelId);
+      const channel = await client.channels
+        .fetch(giveaway.channelId)
+        .catch(() => null);
 
       if (!channel) {
         logger.warn(
