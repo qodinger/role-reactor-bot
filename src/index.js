@@ -204,8 +204,9 @@ async function main() {
     client.on("guildDelete", async guild => {
       logger.info(`➖ Bot left guild: ${guild.name} (${guild.id})`);
       try {
-        const { getDatabaseManager } =
-          await import("./utils/storage/databaseManager.js");
+        const { getDatabaseManager } = await import(
+          "./utils/storage/databaseManager.js"
+        );
         const dbManager = await getDatabaseManager();
         if (dbManager?.customCommands) {
           await dbManager.customCommands.deleteAllForGuild(guild.id);
@@ -273,8 +274,9 @@ async function main() {
 
       // Start ticketing system cleanup scheduler
       try {
-        const { startTicketCleanup } =
-          await import("./events/ticketing/ticketCleanup.js");
+        const { startTicketCleanup } = await import(
+          "./events/ticketing/ticketCleanup.js"
+        );
         startTicketCleanup(client);
         logger.info("✅ Ticketing system cleanup started");
       } catch (error) {
@@ -311,10 +313,12 @@ async function main() {
 
       // Start Premium Feature scheduler (handles Cores consumption for features)
       try {
-        const { getPremiumFeatureScheduler } =
-          await import("./features/premium/PremiumFeatureScheduler.js");
-        const { getPremiumManager } =
-          await import("./features/premium/PremiumManager.js");
+        const { getPremiumFeatureScheduler } = await import(
+          "./features/premium/PremiumFeatureScheduler.js"
+        );
+        const { getPremiumManager } = await import(
+          "./features/premium/PremiumManager.js"
+        );
         const premiumScheduler = getPremiumFeatureScheduler();
         ctx.premiumScheduler = premiumScheduler;
 
@@ -335,31 +339,28 @@ async function main() {
       }
       const POLL_CLEANUP_INTERVAL_MS =
         parseInt(process.env.POLL_CLEANUP_INTERVAL_MS) || 6 * 60 * 60 * 1000;
-      ctx.pollCleanupInterval = setInterval(
-        async () => {
-          try {
-            const storageManager = await getStorageManager();
-            const cleanedCount = await storageManager.cleanupEndedPolls();
-            if (cleanedCount > 0) {
-              logger.info(
-                `🧹 Poll cleanup: Removed ${cleanedCount} ended polls`,
-              );
-            }
-          } catch (error) {
-            logger.error("❌ Poll cleanup failed:", error);
+      ctx.pollCleanupInterval = setInterval(async () => {
+        try {
+          const storageManager = await getStorageManager();
+          const cleanedCount = await storageManager.cleanupEndedPolls();
+          if (cleanedCount > 0) {
+            logger.info(`🧹 Poll cleanup: Removed ${cleanedCount} ended polls`);
           }
-        },
-        POLL_CLEANUP_INTERVAL_MS,
-      ).unref();
+        } catch (error) {
+          logger.error("❌ Poll cleanup failed:", error);
+        }
+      }, POLL_CLEANUP_INTERVAL_MS).unref();
 
       healthCheckRunner.run(client);
 
       // Start automatic ComfyUI job recovery system
       try {
-        const { multiProviderAIService } =
-          await import("./utils/ai/multiProviderAIService.js");
-        const { startAutomaticRecovery, stopAutomaticRecovery } =
-          await import("./utils/ai/providers/comfyui/startupRecovery.js");
+        const { multiProviderAIService } = await import(
+          "./utils/ai/multiProviderAIService.js"
+        );
+        const { startAutomaticRecovery, stopAutomaticRecovery } = await import(
+          "./utils/ai/providers/comfyui/startupRecovery.js"
+        );
 
         const comfyuiProvider =
           await multiProviderAIService.getProvider("comfyui");

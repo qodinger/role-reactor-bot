@@ -128,8 +128,9 @@ export async function apiCommandUsage(req, res) {
     }
 
     // Fetch directly from MongoDB for reliability
-    const { getDatabaseManager } =
-      await import("../../utils/storage/databaseManager.js");
+    const { getDatabaseManager } = await import(
+      "../../utils/storage/databaseManager.js"
+    );
     const dbManager = await getDatabaseManager();
 
     let commandArray = [];

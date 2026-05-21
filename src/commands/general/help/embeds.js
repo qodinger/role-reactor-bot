@@ -23,8 +23,9 @@ export class HelpEmbedBuilder {
     for (const permission of requiredPermissions) {
       if (permission === "DEVELOPER") {
         // Check if user is developer
-        const { isDeveloper } =
-          await import("../../../utils/discord/permissions.js");
+        const { isDeveloper } = await import(
+          "../../../utils/discord/permissions.js"
+        );
         if (!isDeveloper(member.user.id)) {
           return false;
         }
@@ -309,8 +310,9 @@ export class HelpEmbedBuilder {
     // Try to load helpFields from command registry first (dynamic)
     if (client) {
       try {
-        const { commandRegistry } =
-          await import("../../../utils/core/commandRegistry.js");
+        const { commandRegistry } = await import(
+          "../../../utils/core/commandRegistry.js"
+        );
         await commandRegistry.initialize(client);
         const helpFields = commandRegistry.getCommandHelpFields(commandName);
 

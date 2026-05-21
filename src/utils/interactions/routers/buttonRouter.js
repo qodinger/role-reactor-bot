@@ -41,8 +41,9 @@ export async function routeButtonInteraction(interaction, _client) {
       customId.startsWith("imagine_regenerate_") ||
       customId.startsWith("imagine_upscale_")
     ) {
-      const { handleImagineButton } =
-        await import("../../../commands/general/imagine/buttonHandler.js");
+      const { handleImagineButton } = await import(
+        "../../../commands/general/imagine/buttonHandler.js"
+      );
       await handleImagineButton(interaction);
       return;
     }
@@ -53,8 +54,9 @@ export async function routeButtonInteraction(interaction, _client) {
         customId === "poll_continue_to_modal" ||
         customId === "poll_cancel_creation"
       ) {
-        const { handlePollCreationButton } =
-          await import("../../../commands/general/poll/handlers.js");
+        const { handlePollCreationButton } = await import(
+          "../../../commands/general/poll/handlers.js"
+        );
         await handlePollCreationButton(interaction, _client);
         return;
       }
@@ -64,8 +66,9 @@ export async function routeButtonInteraction(interaction, _client) {
         customId.startsWith("poll_list_page_") ||
         customId === "poll_list_current"
       ) {
-        const { handlePollListButton } =
-          await import("../../../commands/general/poll/handlers.js");
+        const { handlePollListButton } = await import(
+          "../../../commands/general/poll/handlers.js"
+        );
         await handlePollListButton(interaction, _client);
         return;
       }
@@ -87,24 +90,27 @@ export async function routeButtonInteraction(interaction, _client) {
     }
 
     if (customId.startsWith("rps_choice-")) {
-      const { handleRPSButton } =
-        await import("../../../commands/general/rps/handlers.js");
+      const { handleRPSButton } = await import(
+        "../../../commands/general/rps/handlers.js"
+      );
       await handleRPSButton(interaction);
       return;
     }
 
     // Handle WYR (Would You Rather) buttons
     if (customId.startsWith("wyr_vote_") || customId === "wyr_new_question") {
-      const { handleWYRButton } =
-        await import("../../../commands/general/wyr/handlers.js");
+      const { handleWYRButton } = await import(
+        "../../../commands/general/wyr/handlers.js"
+      );
       await handleWYRButton(interaction, _client);
       return;
     }
 
     // Handle giveaway buttons
     if (customId.startsWith("giveaway_")) {
-      const { handleGiveawayInteraction } =
-        await import("../../../events/giveaway.js");
+      const { handleGiveawayInteraction } = await import(
+        "../../../events/giveaway.js"
+      );
       await handleGiveawayInteraction(interaction, _client);
       return;
     }
@@ -118,8 +124,9 @@ export async function routeButtonInteraction(interaction, _client) {
       customId === "ticket_add_user" ||
       customId === "ticket_transfer"
     ) {
-      const { handleTicketButtons } =
-        await import("../../../events/ticketing/buttonHandler.js");
+      const { handleTicketButtons } = await import(
+        "../../../events/ticketing/buttonHandler.js"
+      );
       await handleTicketButtons(interaction);
       return;
     }
@@ -142,24 +149,27 @@ export async function routeButtonInteraction(interaction, _client) {
     // (Handler kept for backward compatibility but won't be called)
 
     if (customId.startsWith("leaderboard_")) {
-      const { handleLeaderboardButton } =
-        await import("../handlers/leaderboardHandlers.js");
+      const { handleLeaderboardButton } = await import(
+        "../handlers/leaderboardHandlers.js"
+      );
       await handleLeaderboardButton(interaction);
       return;
     }
 
     // Role-reactions pagination buttons
     if (customId.startsWith("rolelist_")) {
-      const { handlePagination } =
-        await import("../../../commands/admin/role-reactions/handlers.js");
+      const { handlePagination } = await import(
+        "../../../commands/admin/role-reactions/handlers.js"
+      );
       await handlePagination(interaction, _client);
       return;
     }
 
     // Moderation history pagination buttons
     if (customId.startsWith("mod_history_")) {
-      const { handleHistoryPagination } =
-        await import("../../../commands/admin/moderation/handlers.js");
+      const { handleHistoryPagination } = await import(
+        "../../../commands/admin/moderation/handlers.js"
+      );
       await handleHistoryPagination(interaction, _client);
       return;
     }
@@ -169,120 +179,139 @@ export async function routeButtonInteraction(interaction, _client) {
       // Welcome system buttons
       case "welcome_configure":
       case "welcome_edit": {
-        const { handleWelcomeConfigure } =
-          await import("../handlers/welcomeHandlers.js");
+        const { handleWelcomeConfigure } = await import(
+          "../handlers/welcomeHandlers.js"
+        );
         await handleWelcomeConfigure(interaction);
         break;
       }
       case "welcome_configure_message": {
-        const { handleWelcomeConfigureMessage } =
-          await import("../handlers/welcomeHandlers.js");
+        const { handleWelcomeConfigureMessage } = await import(
+          "../handlers/welcomeHandlers.js"
+        );
         await handleWelcomeConfigureMessage(interaction);
         break;
       }
       case "welcome_select_channel": {
-        const { handleWelcomeSelectChannel } =
-          await import("../handlers/welcomeHandlers.js");
+        const { handleWelcomeSelectChannel } = await import(
+          "../handlers/welcomeHandlers.js"
+        );
         await handleWelcomeSelectChannel(interaction);
         break;
       }
       case "welcome_test": {
-        const { handleWelcomeTest } =
-          await import("../handlers/welcomeHandlers.js");
+        const { handleWelcomeTest } = await import(
+          "../handlers/welcomeHandlers.js"
+        );
         await handleWelcomeTest(interaction);
         break;
       }
       case "welcome_toggle": {
-        const { handleWelcomeToggle } =
-          await import("../handlers/welcomeHandlers.js");
+        const { handleWelcomeToggle } = await import(
+          "../handlers/welcomeHandlers.js"
+        );
         await handleWelcomeToggle(interaction);
         break;
       }
       case "welcome_reset": {
-        const { handleWelcomeReset } =
-          await import("../handlers/welcomeHandlers.js");
+        const { handleWelcomeReset } = await import(
+          "../handlers/welcomeHandlers.js"
+        );
         await handleWelcomeReset(interaction);
         break;
       }
       case "welcome_format": {
-        const { handleWelcomeFormat } =
-          await import("../handlers/welcomeHandlers.js");
+        const { handleWelcomeFormat } = await import(
+          "../handlers/welcomeHandlers.js"
+        );
         await handleWelcomeFormat(interaction);
         break;
       }
       case "welcome_configure_role": {
-        const { handleWelcomeConfigureRole } =
-          await import("../handlers/welcomeHandlers.js");
+        const { handleWelcomeConfigureRole } = await import(
+          "../handlers/welcomeHandlers.js"
+        );
         await handleWelcomeConfigureRole(interaction);
         break;
       }
       case "welcome_clear_role": {
-        const { handleWelcomeClearRole } =
-          await import("../handlers/welcomeHandlers.js");
+        const { handleWelcomeClearRole } = await import(
+          "../handlers/welcomeHandlers.js"
+        );
         await handleWelcomeClearRole(interaction);
         break;
       }
 
       // Auto-mod system buttons
       case "automod_configure": {
-        const { handleAutomodConfigure } =
-          await import("../../../commands/admin/automod/buttonHandlers.js");
+        const { handleAutomodConfigure } = await import(
+          "../../../commands/admin/automod/buttonHandlers.js"
+        );
         await handleAutomodConfigure(interaction);
         break;
       }
       case "automod_back": {
-        const { handleAutomodBack } =
-          await import("../../../commands/admin/automod/buttonHandlers.js");
+        const { handleAutomodBack } = await import(
+          "../../../commands/admin/automod/buttonHandlers.js"
+        );
         await handleAutomodBack(interaction);
         break;
       }
       case "automod_toggle_all": {
-        const { handleAutomodToggleAll } =
-          await import("../../../commands/admin/automod/buttonHandlers.js");
+        const { handleAutomodToggleAll } = await import(
+          "../../../commands/admin/automod/buttonHandlers.js"
+        );
         await handleAutomodToggleAll(interaction);
         break;
       }
       case "automod_toggle_all_off": {
-        const { handleAutomodToggleAllOff } =
-          await import("../../../commands/admin/automod/buttonHandlers.js");
+        const { handleAutomodToggleAllOff } = await import(
+          "../../../commands/admin/automod/buttonHandlers.js"
+        );
         await handleAutomodToggleAllOff(interaction);
         break;
       }
       case "automod_badwords_toggle": {
-        const { handleAutomodBadwordsToggle } =
-          await import("../../../commands/admin/automod/buttonHandlers.js");
+        const { handleAutomodBadwordsToggle } = await import(
+          "../../../commands/admin/automod/buttonHandlers.js"
+        );
         await handleAutomodBadwordsToggle(interaction);
         break;
       }
       case "automod_links_toggle": {
-        const { handleAutomodLinksToggle } =
-          await import("../../../commands/admin/automod/buttonHandlers.js");
+        const { handleAutomodLinksToggle } = await import(
+          "../../../commands/admin/automod/buttonHandlers.js"
+        );
         await handleAutomodLinksToggle(interaction);
         break;
       }
       case "automod_spam_toggle": {
-        const { handleAutomodSpamToggle } =
-          await import("../../../commands/admin/automod/buttonHandlers.js");
+        const { handleAutomodSpamToggle } = await import(
+          "../../../commands/admin/automod/buttonHandlers.js"
+        );
         await handleAutomodSpamToggle(interaction);
         break;
       }
       case "automod_mention_spam_toggle": {
-        const { handleAutomodMentionSpamToggle } =
-          await import("../../../commands/admin/automod/buttonHandlers.js");
+        const { handleAutomodMentionSpamToggle } = await import(
+          "../../../commands/admin/automod/buttonHandlers.js"
+        );
         await handleAutomodMentionSpamToggle(interaction);
         break;
       }
       case "automod_invite_toggle": {
-        const { handleAutomodInviteToggle } =
-          await import("../../../commands/admin/automod/buttonHandlers.js");
+        const { handleAutomodInviteToggle } = await import(
+          "../../../commands/admin/automod/buttonHandlers.js"
+        );
         await handleAutomodInviteToggle(interaction);
         break;
       }
 
       // XP system buttons
       case "xp_toggle_system": {
-        const { handleXPToggleSystem } =
-          await import("../handlers/xpHandlers.js");
+        const { handleXPToggleSystem } = await import(
+          "../handlers/xpHandlers.js"
+        );
         await handleXPToggleSystem(interaction);
         break;
       }
@@ -292,120 +321,139 @@ export async function routeButtonInteraction(interaction, _client) {
         break;
       }
       case "xp_toggle_message": {
-        const { handleXPToggleMessage } =
-          await import("../handlers/xpHandlers.js");
+        const { handleXPToggleMessage } = await import(
+          "../handlers/xpHandlers.js"
+        );
         await handleXPToggleMessage(interaction);
         break;
       }
       case "xp_toggle_command": {
-        const { handleXPToggleCommand } =
-          await import("../handlers/xpHandlers.js");
+        const { handleXPToggleCommand } = await import(
+          "../handlers/xpHandlers.js"
+        );
         await handleXPToggleCommand(interaction);
         break;
       }
       case "xp_toggle_role": {
-        const { handleXPToggleRole } =
-          await import("../handlers/xpHandlers.js");
+        const { handleXPToggleRole } = await import(
+          "../handlers/xpHandlers.js"
+        );
         await handleXPToggleRole(interaction);
         break;
       }
       case "xp_toggle_voice": {
-        const { handleXPToggleVoice } =
-          await import("../handlers/xpHandlers.js");
+        const { handleXPToggleVoice } = await import(
+          "../handlers/xpHandlers.js"
+        );
         await handleXPToggleVoice(interaction);
         break;
       }
 
       // XP configuration buttons
       case "xp_configure": {
-        const { handleXpGeneralConfig } =
-          await import("../../../commands/admin/xp/handlers.js");
+        const { handleXpGeneralConfig } = await import(
+          "../../../commands/admin/xp/handlers.js"
+        );
         await handleXpGeneralConfig(interaction);
         break;
       }
       case "xp_configure_basic": {
-        const { handleXpBasicConfig } =
-          await import("../../../commands/admin/xp/handlers.js");
+        const { handleXpBasicConfig } = await import(
+          "../../../commands/admin/xp/handlers.js"
+        );
         await handleXpBasicConfig(interaction);
         break;
       }
       case "xp_configure_advanced": {
-        const { handleXpAdvancedConfig } =
-          await import("../../../commands/admin/xp/handlers.js");
+        const { handleXpAdvancedConfig } = await import(
+          "../../../commands/admin/xp/handlers.js"
+        );
         await handleXpAdvancedConfig(interaction);
         break;
       }
       case "xp_configure_sources": {
-        const { handleXpSourceConfig } =
-          await import("../../../commands/admin/xp/handlers.js");
+        const { handleXpSourceConfig } = await import(
+          "../../../commands/admin/xp/handlers.js"
+        );
         await handleXpSourceConfig(interaction);
         break;
       }
       case "xp_configure_levelup": {
-        const { handleLevelUpConfig } =
-          await import("../../../commands/admin/xp/handlers.js");
+        const { handleLevelUpConfig } = await import(
+          "../../../commands/admin/xp/handlers.js"
+        );
         await handleLevelUpConfig(interaction);
         break;
       }
       case "xp_toggle": {
-        const { handleXPToggleSystem } =
-          await import("../handlers/xpHandlers.js");
+        const { handleXPToggleSystem } = await import(
+          "../handlers/xpHandlers.js"
+        );
         await handleXPToggleSystem(interaction);
         break;
       }
       case "xp_test": {
-        const { handleXpTest } =
-          await import("../../../commands/admin/xp/handlers.js");
+        const { handleXpTest } = await import(
+          "../../../commands/admin/xp/handlers.js"
+        );
         await handleXpTest(interaction);
         break;
       }
       case "xp_toggle_levelup": {
-        const { handleXPToggleLevelUp } =
-          await import("../handlers/xpHandlers.js");
+        const { handleXPToggleLevelUp } = await import(
+          "../handlers/xpHandlers.js"
+        );
         await handleXPToggleLevelUp(interaction);
         break;
       }
       case "xp_configure_channel": {
-        const { handleXpChannelConfig } =
-          await import("../../../commands/admin/xp/handlers.js");
+        const { handleXpChannelConfig } = await import(
+          "../../../commands/admin/xp/handlers.js"
+        );
         await handleXpChannelConfig(interaction);
         break;
       }
       case "xp_test_levelup": {
-        const { handleXpTestLevelUp } =
-          await import("../../../commands/admin/xp/handlers.js");
+        const { handleXpTestLevelUp } = await import(
+          "../../../commands/admin/xp/handlers.js"
+        );
         await handleXpTestLevelUp(interaction);
         break;
       }
       case "welcome_back_to_settings": {
-        const { handleSettings } =
-          await import("../../../commands/admin/welcome/handlers.js");
+        const { handleSettings } = await import(
+          "../../../commands/admin/welcome/handlers.js"
+        );
         await handleSettings(interaction, interaction.client);
         break;
       }
       case "back_to_settings": {
-        const { handleXpCommand } =
-          await import("../../../commands/admin/xp/handlers.js");
+        const { handleXpCommand } = await import(
+          "../../../commands/admin/xp/handlers.js"
+        );
         await handleXpCommand(interaction, interaction.client);
         break;
       }
 
       // XP configuration buttons
       case "xp_config_message": {
-        const { handleXPConfigMessage } =
-          await import("../handlers/xpHandlers.js");
+        const { handleXPConfigMessage } = await import(
+          "../handlers/xpHandlers.js"
+        );
         await handleXPConfigMessage(interaction);
         break;
       }
       case "xp_config_command": {
-        const { handleXPConfigCommand } =
-          await import("../handlers/xpHandlers.js");
+        const { handleXPConfigCommand } = await import(
+          "../handlers/xpHandlers.js"
+        );
         await handleXPConfigCommand(interaction);
         break;
       }
       case "xp_config_role": {
-        const { handleXPConfigRole } =
-          await import("../handlers/xpHandlers.js");
+        const { handleXPConfigRole } = await import(
+          "../handlers/xpHandlers.js"
+        );
         await handleXPConfigRole(interaction);
         break;
       }
@@ -414,8 +462,9 @@ export async function routeButtonInteraction(interaction, _client) {
       case "help_back_main":
       case "help_view_overview":
       case "help_view_all": {
-        const { handleHelpInteraction } =
-          await import("../handlers/helpHandlers.js");
+        const { handleHelpInteraction } = await import(
+          "../handlers/helpHandlers.js"
+        );
         await handleHelpInteraction(interaction);
         break;
       }
@@ -423,56 +472,65 @@ export async function routeButtonInteraction(interaction, _client) {
       // Goodbye system buttons
       case "goodbye_configure":
       case "goodbye_edit": {
-        const { handleGoodbyeConfigure } =
-          await import("../handlers/goodbyeHandlers.js");
+        const { handleGoodbyeConfigure } = await import(
+          "../handlers/goodbyeHandlers.js"
+        );
         await handleGoodbyeConfigure(interaction);
         break;
       }
       case "goodbye_configure_message": {
-        const { handleGoodbyeConfigureMessage } =
-          await import("../handlers/goodbyeHandlers.js");
+        const { handleGoodbyeConfigureMessage } = await import(
+          "../handlers/goodbyeHandlers.js"
+        );
         await handleGoodbyeConfigureMessage(interaction);
         break;
       }
       case "goodbye_select_channel": {
-        const { handleGoodbyeSelectChannel } =
-          await import("../handlers/goodbyeHandlers.js");
+        const { handleGoodbyeSelectChannel } = await import(
+          "../handlers/goodbyeHandlers.js"
+        );
         await handleGoodbyeSelectChannel(interaction);
         break;
       }
       case "goodbye_toggle": {
-        const { handleGoodbyeToggle } =
-          await import("../handlers/goodbyeHandlers.js");
+        const { handleGoodbyeToggle } = await import(
+          "../handlers/goodbyeHandlers.js"
+        );
         await handleGoodbyeToggle(interaction);
         break;
       }
       case "goodbye_reset": {
-        const { handleGoodbyeReset } =
-          await import("../handlers/goodbyeHandlers.js");
+        const { handleGoodbyeReset } = await import(
+          "../handlers/goodbyeHandlers.js"
+        );
         await handleGoodbyeReset(interaction);
         break;
       }
       case "goodbye_format": {
-        const { handleGoodbyeFormat } =
-          await import("../handlers/goodbyeHandlers.js");
+        const { handleGoodbyeFormat } = await import(
+          "../handlers/goodbyeHandlers.js"
+        );
         await handleGoodbyeFormat(interaction);
         break;
       }
       case "goodbye_test": {
-        const { handleGoodbyeTest } =
-          await import("../handlers/goodbyeHandlers.js");
+        const { handleGoodbyeTest } = await import(
+          "../handlers/goodbyeHandlers.js"
+        );
         await handleGoodbyeTest(interaction);
         break;
       }
       case "goodbye_back_to_settings": {
-        const { handleSettings } =
-          await import("../../../commands/admin/goodbye/handlers.js");
+        const { handleSettings } = await import(
+          "../../../commands/admin/goodbye/handlers.js"
+        );
         await handleSettings(interaction, interaction.client);
         break;
       }
       case "goodbye_settings": {
-        const { handleGoodbyeEdit } =
-          await import("../handlers/goodbyeHandlers.js");
+        const { handleGoodbyeEdit } = await import(
+          "../handlers/goodbyeHandlers.js"
+        );
         await handleGoodbyeEdit(interaction);
         break;
       }
@@ -480,12 +538,14 @@ export async function routeButtonInteraction(interaction, _client) {
       default: {
         // Check if it's a help interaction that wasn't caught above
         if (customId.startsWith("help_cmd_")) {
-          const { handleHelpInteraction } =
-            await import("../handlers/helpHandlers.js");
+          const { handleHelpInteraction } = await import(
+            "../handlers/helpHandlers.js"
+          );
           await handleHelpInteraction(interaction);
         } else if (customId.startsWith("automod_configure_")) {
-          const { handleAutomodConfigureButton } =
-            await import("../../../commands/admin/automod/buttonHandlers.js");
+          const { handleAutomodConfigureButton } = await import(
+            "../../../commands/admin/automod/buttonHandlers.js"
+          );
           await handleAutomodConfigureButton(interaction);
         } else {
           logger.debug(`Unknown button interaction: ${customId}`);

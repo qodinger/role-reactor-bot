@@ -93,10 +93,12 @@ export async function handleLevel(interaction, client, options = {}) {
     );
 
     // Check for Pro Engine (Premium) - logged but not blocking
-    const { getPremiumManager } =
-      await import("../../../features/premium/PremiumManager.js");
-    const { PremiumFeatures } =
-      await import("../../../features/premium/config.js");
+    const { getPremiumManager } = await import(
+      "../../../features/premium/PremiumManager.js"
+    );
+    const { PremiumFeatures } = await import(
+      "../../../features/premium/config.js"
+    );
     const premiumManager = getPremiumManager();
     const isPro = await premiumManager.isFeatureActive(
       interaction.guild.id,

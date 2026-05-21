@@ -72,8 +72,9 @@ export async function handleAutomodConfigure(interaction) {
 }
 
 export async function handleAutomodBack(interaction) {
-  const { getDatabaseManager } =
-    await import("../../../utils/storage/databaseManager.js");
+  const { getDatabaseManager } = await import(
+    "../../../utils/storage/databaseManager.js"
+  );
 
   const dbManager = await getDatabaseManager();
   const settings = await dbManager.automod.getByGuild(interaction.guild.id);
@@ -103,8 +104,9 @@ export async function handleAutomodConfigureButton(interaction) {
 
   const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } =
     await import("discord.js");
-  const { getDatabaseManager } =
-    await import("../../../utils/storage/databaseManager.js");
+  const { getDatabaseManager } = await import(
+    "../../../utils/storage/databaseManager.js"
+  );
 
   const dbManager = await getDatabaseManager();
   const settings = await dbManager.automod.getByGuild(interaction.guild.id);
@@ -260,8 +262,9 @@ export async function handleAutomodToggleAll(interaction) {
   const logger = getLogger();
 
   try {
-    const { getDatabaseManager } =
-      await import("../../../utils/storage/databaseManager.js");
+    const { getDatabaseManager } = await import(
+      "../../../utils/storage/databaseManager.js"
+    );
 
     const dbManager = await getDatabaseManager();
     const settings = await dbManager.automod.getByGuild(interaction.guild.id);
@@ -298,8 +301,9 @@ export async function handleAutomodToggleAllOff(interaction) {
   const logger = getLogger();
 
   try {
-    const { getDatabaseManager } =
-      await import("../../../utils/storage/databaseManager.js");
+    const { getDatabaseManager } = await import(
+      "../../../utils/storage/databaseManager.js"
+    );
 
     const dbManager = await getDatabaseManager();
     const settings = await dbManager.automod.getByGuild(interaction.guild.id);
@@ -336,8 +340,9 @@ export async function handleAutomodBadwordsToggle(interaction) {
   const logger = getLogger();
 
   try {
-    const { getDatabaseManager } =
-      await import("../../../utils/storage/databaseManager.js");
+    const { getDatabaseManager } = await import(
+      "../../../utils/storage/databaseManager.js"
+    );
 
     const dbManager = await getDatabaseManager();
     const settings = await dbManager.automod.getByGuild(interaction.guild.id);
@@ -383,8 +388,9 @@ export async function handleAutomodLinksToggle(interaction) {
   const logger = getLogger();
 
   try {
-    const { getDatabaseManager } =
-      await import("../../../utils/storage/databaseManager.js");
+    const { getDatabaseManager } = await import(
+      "../../../utils/storage/databaseManager.js"
+    );
 
     const dbManager = await getDatabaseManager();
     const settings = await dbManager.automod.getByGuild(interaction.guild.id);
@@ -430,8 +436,9 @@ export async function handleAutomodSpamToggle(interaction) {
   const logger = getLogger();
 
   try {
-    const { getDatabaseManager } =
-      await import("../../../utils/storage/databaseManager.js");
+    const { getDatabaseManager } = await import(
+      "../../../utils/storage/databaseManager.js"
+    );
 
     const dbManager = await getDatabaseManager();
     const settings = await dbManager.automod.getByGuild(interaction.guild.id);
@@ -477,8 +484,9 @@ export async function handleAutomodMentionSpamToggle(interaction) {
   const logger = getLogger();
 
   try {
-    const { getDatabaseManager } =
-      await import("../../../utils/storage/databaseManager.js");
+    const { getDatabaseManager } = await import(
+      "../../../utils/storage/databaseManager.js"
+    );
 
     const dbManager = await getDatabaseManager();
     const settings = await dbManager.automod.getByGuild(interaction.guild.id);
@@ -524,8 +532,9 @@ export async function handleAutomodInviteToggle(interaction) {
   const logger = getLogger();
 
   try {
-    const { getDatabaseManager } =
-      await import("../../../utils/storage/databaseManager.js");
+    const { getDatabaseManager } = await import(
+      "../../../utils/storage/databaseManager.js"
+    );
 
     const dbManager = await getDatabaseManager();
     const settings = await dbManager.automod.getByGuild(interaction.guild.id);
@@ -576,8 +585,9 @@ export async function handleAutomodBadwordsModal(interaction) {
   const logger = getLogger();
 
   try {
-    const { getDatabaseManager } =
-      await import("../../../utils/storage/databaseManager.js");
+    const { getDatabaseManager } = await import(
+      "../../../utils/storage/databaseManager.js"
+    );
 
     const dbManager = await getDatabaseManager();
     const settings = await dbManager.automod.getByGuild(interaction.guild.id);
@@ -639,8 +649,9 @@ export async function handleAutomodLinksModal(interaction) {
   const logger = getLogger();
 
   try {
-    const { getDatabaseManager } =
-      await import("../../../utils/storage/databaseManager.js");
+    const { getDatabaseManager } = await import(
+      "../../../utils/storage/databaseManager.js"
+    );
 
     const dbManager = await getDatabaseManager();
     const settings = await dbManager.automod.getByGuild(interaction.guild.id);
@@ -697,8 +708,9 @@ export async function handleAutomodSpamModal(interaction) {
   const logger = getLogger();
 
   try {
-    const { getDatabaseManager } =
-      await import("../../../utils/storage/databaseManager.js");
+    const { getDatabaseManager } = await import(
+      "../../../utils/storage/databaseManager.js"
+    );
 
     const dbManager = await getDatabaseManager();
     const settings = await dbManager.automod.getByGuild(interaction.guild.id);
@@ -758,8 +770,9 @@ export async function handleAutomodMentionsModal(interaction) {
   const logger = getLogger();
 
   try {
-    const { getDatabaseManager } =
-      await import("../../../utils/storage/databaseManager.js");
+    const { getDatabaseManager } = await import(
+      "../../../utils/storage/databaseManager.js"
+    );
 
     const dbManager = await getDatabaseManager();
     const settings = await dbManager.automod.getByGuild(interaction.guild.id);
@@ -819,8 +832,9 @@ export async function handleAutomodInvitesModal(interaction) {
   const logger = getLogger();
 
   try {
-    const { getDatabaseManager } =
-      await import("../../../utils/storage/databaseManager.js");
+    const { getDatabaseManager } = await import(
+      "../../../utils/storage/databaseManager.js"
+    );
 
     const dbManager = await getDatabaseManager();
     const settings = await dbManager.automod.getByGuild(interaction.guild.id);

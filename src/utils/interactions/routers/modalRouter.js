@@ -17,36 +17,41 @@ export async function routeModalInteraction(interaction, _client) {
   try {
     // Route based on customId patterns
     if (customId === "xp_config_modal") {
-      const { handleXpConfigModalSubmit } =
-        await import("../../../commands/admin/xp/handlers.js");
+      const { handleXpConfigModalSubmit } = await import(
+        "../../../commands/admin/xp/handlers.js"
+      );
       await handleXpConfigModalSubmit(interaction);
       return;
     }
 
     if (customId === "xp_advanced_config_modal") {
-      const { handleXpAdvancedConfigModalSubmit } =
-        await import("../../../commands/admin/xp/handlers.js");
+      const { handleXpAdvancedConfigModalSubmit } = await import(
+        "../../../commands/admin/xp/handlers.js"
+      );
       await handleXpAdvancedConfigModalSubmit(interaction);
       return;
     }
 
     if (customId === "goodbye_config_modal") {
-      const { handleGoodbyeConfigModal } =
-        await import("../handlers/goodbyeModalHandler.js");
+      const { handleGoodbyeConfigModal } = await import(
+        "../handlers/goodbyeModalHandler.js"
+      );
       await handleGoodbyeConfigModal(interaction);
       return;
     }
 
     if (customId === "welcome_config_modal") {
-      const { handleWelcomeConfigModal } =
-        await import("../handlers/welcomeModalHandler.js");
+      const { handleWelcomeConfigModal } = await import(
+        "../handlers/welcomeModalHandler.js"
+      );
       await handleWelcomeConfigModal(interaction);
       return;
     }
 
     if (customId === "poll_creation_modal") {
-      const { handlePollModalSubmit } =
-        await import("../../../commands/general/poll/modalHandler.js");
+      const { handlePollModalSubmit } = await import(
+        "../../../commands/general/poll/modalHandler.js"
+      );
       await handlePollModalSubmit(interaction, _client);
       return;
     }
@@ -56,8 +61,9 @@ export async function routeModalInteraction(interaction, _client) {
       customId === "ticket_add_user_modal" ||
       customId === "ticket_transfer_modal"
     ) {
-      const { handleTicketModals } =
-        await import("../../../events/ticketing/modalHandler.js");
+      const { handleTicketModals } = await import(
+        "../../../events/ticketing/modalHandler.js"
+      );
       await handleTicketModals(interaction);
       return;
     }
@@ -74,8 +80,9 @@ export async function routeModalInteraction(interaction, _client) {
       };
       const handlerName = handlers[filter];
       if (handlerName) {
-        const { [handlerName]: handler } =
-          await import("../../../commands/admin/automod/buttonHandlers.js");
+        const { [handlerName]: handler } = await import(
+          "../../../commands/admin/automod/buttonHandlers.js"
+        );
         await handler(interaction);
         return;
       }

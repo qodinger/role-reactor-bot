@@ -848,8 +848,9 @@ export async function handleXpTestLevelUp(interaction) {
 
   try {
     // Get level-up notifier
-    const { getLevelUpNotifier } =
-      await import("../../../features/experience/LevelUpNotifier.js");
+    const { getLevelUpNotifier } = await import(
+      "../../../features/experience/LevelUpNotifier.js"
+    );
     const levelUpNotifier = await getLevelUpNotifier();
 
     // Send test level-up notification
@@ -897,8 +898,9 @@ export async function handleRewardsCommand(interaction, subcommand, _client) {
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   try {
-    const { getLevelRewardsManager } =
-      await import("../../../features/experience/LevelRewardsManager.js");
+    const { getLevelRewardsManager } = await import(
+      "../../../features/experience/LevelRewardsManager.js"
+    );
     const { FREE_TIER } = await import("../../../features/premium/config.js");
     const rewardsManager = await getLevelRewardsManager();
     const { EmbedBuilder } = await import("discord.js");

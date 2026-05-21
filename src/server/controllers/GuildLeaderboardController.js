@@ -33,8 +33,9 @@ export async function apiGuildLeaderboard(req, res) {
   }
 
   try {
-    const { getDatabaseManager } =
-      await import("../../utils/storage/databaseManager.js");
+    const { getDatabaseManager } = await import(
+      "../../utils/storage/databaseManager.js"
+    );
     const dbManager = await getDatabaseManager();
 
     if (dbManager.guildSettings) {
@@ -72,12 +73,15 @@ export async function apiGuildLeaderboard(req, res) {
       }
     }
 
-    const { getExperienceManager } =
-      await import("../../features/experience/ExperienceManager.js");
-    const { getPremiumManager } =
-      await import("../../features/premium/PremiumManager.js");
-    const { PremiumFeatures } =
-      await import("../../features/premium/config.js");
+    const { getExperienceManager } = await import(
+      "../../features/experience/ExperienceManager.js"
+    );
+    const { getPremiumManager } = await import(
+      "../../features/premium/PremiumManager.js"
+    );
+    const { PremiumFeatures } = await import(
+      "../../features/premium/config.js"
+    );
 
     const experienceManager = await getExperienceManager();
     const premiumManager = getPremiumManager();
@@ -232,8 +236,9 @@ export async function apiGetPublicLeaderboards(req, res) {
       return res.status(statusCode).json(response);
     }
 
-    const { getDatabaseManager } =
-      await import("../../utils/storage/databaseManager.js");
+    const { getDatabaseManager } = await import(
+      "../../utils/storage/databaseManager.js"
+    );
     const dbManager = await getDatabaseManager();
 
     const publicSettings = await dbManager.guildSettings.collection

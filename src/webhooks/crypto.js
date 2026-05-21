@@ -79,10 +79,14 @@ export async function handleCryptoWebhook(req, res) {
       logger.info(
         `🔄 Duplicate payment detected early: ${paymentId} for user ${userId}`,
       );
-      return res.status(200).json({ success: true, message: "Already processed" });
+      return res
+        .status(200)
+        .json({ success: true, message: "Already processed" });
     }
   } catch (checkError) {
-    logger.warn(`Duplicate check failed, will retry in lock: ${checkError.message}`);
+    logger.warn(
+      `Duplicate check failed, will retry in lock: ${checkError.message}`,
+    );
   }
 
   try {

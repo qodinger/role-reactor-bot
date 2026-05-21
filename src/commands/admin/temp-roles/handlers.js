@@ -192,8 +192,9 @@ export async function handleAssign(interaction, client, deferred) {
       }
 
       // 5. Calculate expiration date
-      const { parseDuration } =
-        await import("../../../utils/discord/tempRoles/utils.js");
+      const { parseDuration } = await import(
+        "../../../utils/discord/tempRoles/utils.js"
+      );
       const durationMs = parseDuration(duration);
       const expiresAt = new Date(Date.now() + durationMs);
 

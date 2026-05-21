@@ -86,8 +86,9 @@ export class PremiumManager {
       return { isPro: true };
     }
 
-    const { errorEmbed } =
-      await import("../../utils/discord/responseMessages.js");
+    const { errorEmbed } = await import(
+      "../../utils/discord/responseMessages.js"
+    );
     const { CORE_STATUS } = await import("./config.js");
 
     const response = errorEmbed({
@@ -782,8 +783,9 @@ export class PremiumManager {
 
       // ── 2. Disable extra ticket panels ───────────────────────────
       if (storage.dbManager?.ticketPanels) {
-        const { FREE_TIER: TICKET_FREE } =
-          await import("../ticketing/config.js");
+        const { FREE_TIER: TICKET_FREE } = await import(
+          "../ticketing/config.js"
+        );
         const panels = await storage.getTicketPanelsByGuild(guildId);
         const enabledPanels = panels.filter(p => p.settings?.enabled !== false);
 

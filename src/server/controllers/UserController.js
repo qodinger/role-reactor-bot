@@ -15,8 +15,9 @@ export async function apiListUsers(req, res) {
   logRequest(logger, "List users", req);
 
   try {
-    const { getStorageManager } =
-      await import("../../utils/storage/storageManager.js");
+    const { getStorageManager } = await import(
+      "../../utils/storage/storageManager.js"
+    );
     const storage = await getStorageManager();
 
     const page = parseInt(req.query.page) || 1;
@@ -221,8 +222,9 @@ export async function apiUserInfo(req, res) {
   logRequest(logger, "User info", req);
 
   try {
-    const { getStorageManager } =
-      await import("../../utils/storage/storageManager.js");
+    const { getStorageManager } = await import(
+      "../../utils/storage/storageManager.js"
+    );
     const storage = await getStorageManager();
 
     const { userId } = req.params;
@@ -279,8 +281,9 @@ export async function apiSetUserRole(req, res) {
   logRequest(logger, "Set user role", req);
 
   try {
-    const { getStorageManager } =
-      await import("../../utils/storage/storageManager.js");
+    const { getStorageManager } = await import(
+      "../../utils/storage/storageManager.js"
+    );
     const storage = await getStorageManager();
 
     const { userId } = req.params;
@@ -328,8 +331,9 @@ export async function apiSyncUser(req, res) {
   logRequest(logger, "Sync user", req);
 
   try {
-    const { getStorageManager } =
-      await import("../../utils/storage/storageManager.js");
+    const { getStorageManager } = await import(
+      "../../utils/storage/storageManager.js"
+    );
     const storage = await getStorageManager();
 
     const {
@@ -407,8 +411,9 @@ export async function apiManageUserCores(req, res) {
   }
 
   try {
-    const { getDatabaseManager } =
-      await import("../../utils/storage/databaseManager.js");
+    const { getDatabaseManager } = await import(
+      "../../utils/storage/databaseManager.js"
+    );
     await import("../../utils/storage/storageManager.js");
     const dbManager = await getDatabaseManager();
 
@@ -603,8 +608,9 @@ export async function apiMyInfo(req, res) {
       return res.status(statusCode).json(response);
     }
 
-    const { getStorageManager } =
-      await import("../../utils/storage/storageManager.js");
+    const { getStorageManager } = await import(
+      "../../utils/storage/storageManager.js"
+    );
     const storage = await getStorageManager();
 
     const user = await storage.dbManager.users.findByDiscordId(userId);

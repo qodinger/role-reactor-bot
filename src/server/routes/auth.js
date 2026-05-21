@@ -165,8 +165,9 @@ router.get(
 
       // Persist user to database for long-term storage and dashboard features
       try {
-        const { getDatabaseManager } =
-          await import("../../utils/storage/databaseManager.js");
+        const { getDatabaseManager } = await import(
+          "../../utils/storage/databaseManager.js"
+        );
         const db = await getDatabaseManager();
         if (db?.users) {
           const {
@@ -282,8 +283,9 @@ router.get("/me", async (req, res) => {
     let role = "user";
     let roleVersion = Date.now();
     try {
-      const { getStorageManager } =
-        await import("../../utils/storage/storageManager.js");
+      const { getStorageManager } = await import(
+        "../../utils/storage/storageManager.js"
+      );
       const storage = await getStorageManager();
 
       // Get credits

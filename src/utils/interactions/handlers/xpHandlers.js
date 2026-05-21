@@ -31,8 +31,9 @@ export const handleXPToggleMessage = async interaction => {
   try {
     await interaction.deferUpdate();
 
-    const { getDatabaseManager } =
-      await import("../../storage/databaseManager.js");
+    const { getDatabaseManager } = await import(
+      "../../storage/databaseManager.js"
+    );
 
     const dbManager = await getDatabaseManager();
     const settings = await dbManager.guildSettings.getByGuild(
@@ -80,8 +81,9 @@ export const handleXPToggleCommand = async interaction => {
   try {
     await interaction.deferUpdate();
 
-    const { getDatabaseManager } =
-      await import("../../storage/databaseManager.js");
+    const { getDatabaseManager } = await import(
+      "../../storage/databaseManager.js"
+    );
 
     const dbManager = await getDatabaseManager();
     const settings = await dbManager.guildSettings.getByGuild(
@@ -129,8 +131,9 @@ export const handleXPToggleRole = async interaction => {
   try {
     await interaction.deferUpdate();
 
-    const { getDatabaseManager } =
-      await import("../../storage/databaseManager.js");
+    const { getDatabaseManager } = await import(
+      "../../storage/databaseManager.js"
+    );
 
     const dbManager = await getDatabaseManager();
     const settings = await dbManager.guildSettings.getByGuild(
@@ -178,8 +181,9 @@ export const handleXPToggleVoice = async interaction => {
   try {
     await interaction.deferUpdate();
 
-    const { getDatabaseManager } =
-      await import("../../storage/databaseManager.js");
+    const { getDatabaseManager } = await import(
+      "../../storage/databaseManager.js"
+    );
 
     const dbManager = await getDatabaseManager();
     const settings = await dbManager.guildSettings.getByGuild(
@@ -225,12 +229,15 @@ export const handleXPToggleSystem = async interaction => {
   const logger = getLogger();
 
   try {
-    const { getDatabaseManager } =
-      await import("../../storage/databaseManager.js");
-    const { createXpSettingsEmbed } =
-      await import("../../../commands/admin/xp/embeds.js");
-    const { createXpSettingsComponents } =
-      await import("../../../commands/admin/xp/components.js");
+    const { getDatabaseManager } = await import(
+      "../../storage/databaseManager.js"
+    );
+    const { createXpSettingsEmbed } = await import(
+      "../../../commands/admin/xp/embeds.js"
+    );
+    const { createXpSettingsComponents } = await import(
+      "../../../commands/admin/xp/components.js"
+    );
 
     const dbManager = await getDatabaseManager();
     const settings = await dbManager.guildSettings.getByGuild(
@@ -286,8 +293,9 @@ export const handleXPToggleLevelUp = async interaction => {
   try {
     await interaction.deferUpdate();
 
-    const { getDatabaseManager } =
-      await import("../../storage/databaseManager.js");
+    const { getDatabaseManager } = await import(
+      "../../storage/databaseManager.js"
+    );
 
     const dbManager = await getDatabaseManager();
     const settings = await dbManager.guildSettings.getByGuild(
@@ -344,8 +352,9 @@ export const handleXPConfigMessage = async interaction => {
     // Import required modules
     const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } =
       await import("discord.js");
-    const { getDatabaseManager } =
-      await import("../../storage/databaseManager.js");
+    const { getDatabaseManager } = await import(
+      "../../storage/databaseManager.js"
+    );
 
     const dbManager = await getDatabaseManager();
     const settings = await dbManager.guildSettings.getByGuild(
@@ -407,8 +416,9 @@ export const handleXPConfigCommand = async interaction => {
     // Import required modules
     const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } =
       await import("discord.js");
-    const { getDatabaseManager } =
-      await import("../../storage/databaseManager.js");
+    const { getDatabaseManager } = await import(
+      "../../storage/databaseManager.js"
+    );
 
     const dbManager = await getDatabaseManager();
     const settings = await dbManager.guildSettings.getByGuild(
@@ -457,8 +467,9 @@ export const handleXPConfigRole = async interaction => {
     // Import required modules
     const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } =
       await import("discord.js");
-    const { getDatabaseManager } =
-      await import("../../storage/databaseManager.js");
+    const { getDatabaseManager } = await import(
+      "../../storage/databaseManager.js"
+    );
 
     const dbManager = await getDatabaseManager();
     const settings = await dbManager.guildSettings.getByGuild(
@@ -507,12 +518,15 @@ export const handleXPToggleAll = async interaction => {
     await interaction.deferUpdate();
 
     // Import required modules
-    const { getDatabaseManager } =
-      await import("../../storage/databaseManager.js");
-    const { createXpSourceEmbed } =
-      await import("../../../commands/admin/xp/embeds.js");
-    const { createXpSourceComponents } =
-      await import("../../../commands/admin/xp/components.js");
+    const { getDatabaseManager } = await import(
+      "../../storage/databaseManager.js"
+    );
+    const { createXpSourceEmbed } = await import(
+      "../../../commands/admin/xp/embeds.js"
+    );
+    const { createXpSourceComponents } = await import(
+      "../../../commands/admin/xp/components.js"
+    );
 
     const dbManager = await getDatabaseManager();
     const settings = await dbManager.guildSettings.getByGuild(
@@ -573,8 +587,9 @@ export const handleXPConfigModal = async interaction => {
   try {
     await interaction.deferUpdate();
 
-    const { getDatabaseManager } =
-      await import("../../storage/databaseManager.js");
+    const { getDatabaseManager } = await import(
+      "../../storage/databaseManager.js"
+    );
 
     const dbManager = await getDatabaseManager();
     const settings = await dbManager.guildSettings.getByGuild(

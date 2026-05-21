@@ -46,8 +46,9 @@ export async function apiGetHealth(req, res) {
     // Real Database Check
     const dbStatus = { connected: false, responseTime: 0 };
     try {
-      const { getDatabaseManager } =
-        await import("../../utils/storage/databaseManager.js");
+      const { getDatabaseManager } = await import(
+        "../../utils/storage/databaseManager.js"
+      );
       const dbManager = await getDatabaseManager();
       if (dbManager?.connectionManager) {
         const start = Date.now();

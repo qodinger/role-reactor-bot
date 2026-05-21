@@ -76,10 +76,12 @@ export async function handleGoodbyeConfigModal(interaction) {
     );
 
     // Return to configuration page with updated settings
-    const { createGoodbyeConfigPageEmbed } =
-      await import("../../../commands/admin/goodbye/modals.js");
-    const { createGoodbyeConfigPageComponents } =
-      await import("../../../commands/admin/goodbye/components.js");
+    const { createGoodbyeConfigPageEmbed } = await import(
+      "../../../commands/admin/goodbye/modals.js"
+    );
+    const { createGoodbyeConfigPageComponents } = await import(
+      "../../../commands/admin/goodbye/components.js"
+    );
 
     const embed = createGoodbyeConfigPageEmbed(interaction, updatedSettings);
     const components = createGoodbyeConfigPageComponents(

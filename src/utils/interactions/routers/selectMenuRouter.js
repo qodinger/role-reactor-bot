@@ -26,44 +26,50 @@ export async function routeSelectMenuInteraction(interaction, _client) {
         return;
       }
 
-      const { handlePollCreationSelect } =
-        await import("../../../commands/general/poll/handlers.js");
+      const { handlePollCreationSelect } = await import(
+        "../../../commands/general/poll/handlers.js"
+      );
       await handlePollCreationSelect(interaction, _client);
       return;
     }
 
     // Route based on customId patterns
     if (customId === "goodbye_channel_select") {
-      const { handleGoodbyeChannelSelect } =
-        await import("../handlers/goodbyeChannelSelectHandler.js");
+      const { handleGoodbyeChannelSelect } = await import(
+        "../handlers/goodbyeChannelSelectHandler.js"
+      );
       await handleGoodbyeChannelSelect(interaction);
       return;
     }
 
     if (customId === "xp_select_channel") {
-      const { handleXpChannelSelect } =
-        await import("../../../commands/admin/xp/handlers.js");
+      const { handleXpChannelSelect } = await import(
+        "../../../commands/admin/xp/handlers.js"
+      );
       await handleXpChannelSelect(interaction);
       return;
     }
 
     if (customId === "help_category_select") {
-      const { handleHelpInteraction } =
-        await import("../handlers/helpHandlers.js");
+      const { handleHelpInteraction } = await import(
+        "../handlers/helpHandlers.js"
+      );
       await handleHelpInteraction(interaction);
       return;
     }
 
     if (customId === "welcome_channel_select") {
-      const { handleWelcomeChannelSelect } =
-        await import("../handlers/welcomeChannelSelectHandler.js");
+      const { handleWelcomeChannelSelect } = await import(
+        "../handlers/welcomeChannelSelectHandler.js"
+      );
       await handleWelcomeChannelSelect(interaction);
       return;
     }
 
     if (customId === "welcome_role_select") {
-      const { handleWelcomeRoleSelect } =
-        await import("../handlers/welcomeRoleSelectHandler.js");
+      const { handleWelcomeRoleSelect } = await import(
+        "../handlers/welcomeRoleSelectHandler.js"
+      );
       await handleWelcomeRoleSelect(interaction);
       return;
     }
