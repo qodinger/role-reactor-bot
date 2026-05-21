@@ -3,7 +3,21 @@
     "allow": [
       "Bash(node test-comfyui.js:*)",
       "Bash(curl -s https://ufl6r0wb2vy21j-8188.proxy.runpod.net/queue)",
-      "Bash(curl -s https://ufl6r0wb2vy21j-8188.proxy.runpod.net/history)"
+      "Bash(curl -s https://ufl6r0wb2vy21j-8188.proxy.runpod.net/history)",
+      "Bash",
+      "Read",
+      "Edit",
+      "Write",
+      "WebFetch",
+      "Grep",
+      "Glob",
+      "LS",
+      "MultiEdit",
+      "NotebookRead",
+      "NotebookEdit",
+      "TodoRead",
+      "TodoWrite",
+      "WebSearch"
     ]
   }
 }
