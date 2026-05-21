@@ -1,26 +1,40 @@
 services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: role-reactor-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"  # HTTP/3
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - role-reactor-prod
+    depends_on:
+      - role-reactor-bot
+
   role-reactor-bot:
     build: .
     container_name: role-reactor-bot
     restart: unless-stopped
-    # Ensure proper permissions for mounted volumes
     user: "1001:1001"
-    env_file:
-      - .env.production
     volumes:
-      # Mount data directory for persistent storage
       - ./data:/usr/src/app/data
-      # Mount logs directory with proper permissions
       - ./logs:/usr/src/app/logs:rw
-    ports:
-      - "3030:3030"
     environment:
       - NODE_ENV=production
-    # Use production CMD from Dockerfile
-    # No need to override command for production
-    healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3030/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s 
+    # Port is NOT exposed to the host — Caddy reaches it via the internal network
+    networks:
+      - role-reactor-prod
+    # Healthcheck is defined in the Dockerfile
+
+volumes:
+  caddy_data:
+  caddy_config:
+
+networks:
+  role-reactor-prod:
+    driver: bridge

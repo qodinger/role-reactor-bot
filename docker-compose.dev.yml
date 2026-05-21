@@ -3,8 +3,6 @@
 # =============================================================================
 # For local development with hot reload and debugging
 
-version: '3.8'
-
 services:
   # Role Reactor Bot - Development
   role-reactor-bot-dev:
@@ -14,82 +12,57 @@ services:
       target: development
     container_name: role-reactor-bot-dev
     restart: unless-stopped
-    
+
     # Development environment
     environment:
       - NODE_ENV=development
       - LOG_LEVEL=DEBUG
       - LOG_CONSOLE=true
-      
+
     # Mount source code for hot reload
     volumes:
-      - .:/app
-      - /app/node_modules
-      - ./logs:/app/logs
-      - ./data:/app/data
-      
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+      - ./logs:/usr/src/app/logs
+      - ./data:/usr/src/app/data
+
     # Development ports
     ports:
-      - "3000:3000"  # Web server
+      - "3030:3030"  # Web server
       - "9229:9229"  # Node.js debugger
-      
-    # Development command with nodemon
-    command: npm run dev
-    
-    # Connect to development network
+
+    command: pnpm run dev
+
     networks:
       - role-reactor-dev
-      
-    # Depends on MongoDB for development
+
     depends_on:
       - mongodb-dev
-      
+
   # MongoDB - Development
   mongodb-dev:
     image: mongo:7
     container_name: mongodb-dev
     restart: unless-stopped
-    
-    # Development MongoDB settings
+
     environment:
       - MONGO_INITDB_ROOT_USERNAME=admin
       - MONGO_INITDB_ROOT_PASSWORD=devpassword
       - MONGO_INITDB_DATABASE=role-reactor-bot-dev
-      
-    # Development data persistence
+
     volumes:
       - mongodb_dev_data:/data/db
       - ./scripts/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
-      
-    # Development MongoDB port
+
     ports:
       - "27017:27017"
-      
-    networks:
-      - role-reactor-dev
 
-  # Redis - Development (for caching and sessions)
-  redis-dev:
-    image: redis:7-alpine
-    container_name: redis-dev
-    restart: unless-stopped
-    
-    # Development Redis port
-    ports:
-      - "6379:6379"
-      
-    # Development Redis data
-    volumes:
-      - redis_dev_data:/data
-      
     networks:
       - role-reactor-dev
 
 # Development volumes
 volumes:
   mongodb_dev_data:
-    driver: local
-  redis_dev_data:
     driver: local
 
 # Development network

@@ -31,10 +31,6 @@ if [ -d "/usr/src/app/logs" ]; then
     fi
 fi
 
-# Wait for system to stabilize
-echo "⏳ Waiting for system stability..."
-sleep 2
-
 # Check environment variables
 echo "🔍 Checking environment..."
 if [ -z "$DISCORD_TOKEN" ]; then
