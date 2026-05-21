@@ -139,6 +139,48 @@ export const data = new SlashCommandBuilder()
               .setDescription("Words to filter")
               .setRequired(true),
           ),
+      )
+      .addSubcommand(sub =>
+        sub
+          .setName("mode")
+          .setDescription("Advanced bad words settings (Pro)")
+          .addStringOption(opt =>
+            opt
+              .setName("mode")
+              .setDescription("Matching mode")
+              .setChoices(
+                { name: "Simple (exact words)", value: "simple" },
+                { name: "Wildcards (* matches any)", value: "wildcard" },
+                { name: "Regex (advanced patterns)", value: "regex" },
+              )
+              .setRequired(true),
+          )
+          .addStringOption(opt =>
+            opt
+              .setName("words")
+              .setDescription(
+                "Words/patterns separated by commas. Wildcard: spam*, Regex: \\d{3}-\\d{4}",
+              )
+              .setRequired(false),
+          )
+          .addStringOption(opt =>
+            opt
+              .setName("action")
+              .setDescription("Action when detected")
+              .setChoices(
+                { name: "Delete message only", value: "delete" },
+                { name: "Delete + Timeout", value: "timeout" },
+              )
+              .setRequired(false),
+          )
+          .addIntegerOption(opt =>
+            opt
+              .setName("timeout-duration")
+              .setDescription("Timeout duration in minutes (1-60)")
+              .setMinValue(1)
+              .setMaxValue(60)
+              .setRequired(false),
+          ),
       ),
   )
   .addSubcommandGroup(group =>
@@ -415,56 +457,6 @@ export const data = new SlashCommandBuilder()
               .setRequired(false),
           ),
       ),
-  )
-  .addSubcommand(sub =>
-    sub
-      .setName("badwords")
-      .setDescription("Advanced bad words settings (Pro)")
-      .addStringOption(opt =>
-        opt
-          .setName("mode")
-          .setDescription("Matching mode")
-          .setChoices(
-            { name: "Simple (exact words)", value: "simple" },
-            { name: "Wildcards (* matches any)", value: "wildcard" },
-            { name: "Regex (advanced patterns)", value: "regex" },
-          )
-          .setRequired(true),
-      )
-      .addStringOption(opt =>
-        opt
-          .setName("words")
-          .setDescription(
-            "Words/patterns separated by commas. Wildcard: spam*, Regex: \\d{3}-\\d{4}",
-          )
-          .setRequired(false),
-      )
-      .addStringOption(opt =>
-        opt
-          .setName("action")
-          .setDescription("Action when detected")
-          .setChoices(
-            { name: "Delete message only", value: "delete" },
-            { name: "Delete + Timeout", value: "timeout" },
-          )
-          .setRequired(false),
-      )
-      .addIntegerOption(opt =>
-        opt
-          .setName("timeout-duration")
-          .setDescription("Timeout duration in minutes (1-60)")
-          .setMinValue(1)
-          .setMaxValue(60)
-          .setRequired(false),
-      ),
-  )
-  .addSubcommand(sub =>
-    sub
-      .setName("enable")
-      .setDescription("Enable all configured auto-mod filters"),
-  )
-  .addSubcommand(sub =>
-    sub.setName("disable").setDescription("Disable all auto-mod filters"),
   )
   .addSubcommandGroup(group =>
     group

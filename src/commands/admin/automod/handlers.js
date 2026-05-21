@@ -645,16 +645,15 @@ export async function handleAutomodCommand(interaction) {
     return handleDisable(interaction, settings);
   }
 
-  if (subcommand === "badwords") {
-    return handleBadwordsAdvanced(interaction, settings);
-  }
-
   if (subcommandGroup === "badwords") {
     if (subcommand === "toggle") {
       return handleBadwordsToggle(interaction, settings);
     }
     if (subcommand === "words") {
       return handleBadwordsWords(interaction, settings);
+    }
+    if (subcommand === "mode") {
+      return handleBadwordsAdvanced(interaction, settings);
     }
   }
 
