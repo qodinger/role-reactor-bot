@@ -24,16 +24,13 @@ import {
   generateScheduleId,
 } from "./utils.js";
 import { getDatabaseManager } from "../../../utils/storage/databaseManager.js";
-import {
-  FREE_TIER,
-  PRO_TIER,
-  CORE_STATUS,
-} from "../../../features/premium/config.js";
+import { FREE_TIER, PRO_TIER } from "../../../features/premium/config.js";
 import { getPremiumManager } from "../../../features/premium/PremiumManager.js";
 import {
   acquireBulkSlot,
   BulkQueueTimeoutError,
 } from "../../../utils/bulkLimiter.js";
+import { upgradeLimitEmbed } from "../../../utils/discord/premiumHelp.js";
 
 /**
  * Handle the create schedule logic
@@ -121,13 +118,17 @@ export async function handleCreate(interaction, client, deferred = false) {
       : FREE_TIER.SCHEDULE_MAX_ACTIVE;
 
     if (totalActive >= maxActiveSchedules) {
-      const response = errorEmbed({
-        title: "Schedule Limit Reached",
-        description: `This server has reached the maximum of **${maxActiveSchedules} active schedules**.`,
-        solution: isPro
-          ? "Please cancel or complete existing schedules before creating new ones."
-          : `Upgrade to **${CORE_STATUS.PRO.emoji} Pro Engine** for up to 500 active schedules! Enable it on our **[website](https://rolereactor.app)** using Cores. You can purchase Cores on the site or earn them for free with /vote.`,
-      });
+      const response = isPro
+        ? errorEmbed({
+            title: "Schedule Limit Reached",
+            description: `This server has reached the maximum of **${maxActiveSchedules} active schedules**. Cancel or complete existing schedules before creating new ones.`,
+          })
+        : upgradeLimitEmbed({
+            feature: "Scheduled Roles",
+            freeText: `${FREE_TIER.SCHEDULE_MAX_ACTIVE} active schedules`,
+            proText: `${PRO_TIER.SCHEDULE_MAX_ACTIVE} active schedules`,
+            client: interaction.client,
+          });
 
       if (deferred) {
         return interaction.editReply(response);

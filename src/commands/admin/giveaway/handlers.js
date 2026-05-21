@@ -19,13 +19,9 @@ import {
   validateGiveawayCreation,
   sanitizeText,
 } from "../../../utils/giveaway/utils.js";
-import { getMentionableCommand } from "../../../utils/commandUtils.js";
-import {
-  FREE_TIER,
-  PRO_TIER,
-  CORE_STATUS,
-} from "../../../features/premium/config.js";
+import { FREE_TIER, PRO_TIER } from "../../../features/premium/config.js";
 import { getLogger } from "../../../utils/logger.js";
+import { upgradeLimitEmbed } from "../../../utils/discord/premiumHelp.js";
 
 const logger = getLogger();
 
@@ -118,11 +114,21 @@ export async function handleCreate(interaction) {
     );
 
     if (activeGiveaways.length >= maxActive) {
+      if (!isPro) {
+        return interaction.editReply(
+          upgradeLimitEmbed({
+            feature: "Active Giveaways",
+            freeText: `${FREE_TIER.GIVEAWAY_MAX_ACTIVE} active at once`,
+            proText: `${PRO_TIER.GIVEAWAY_MAX_ACTIVE} active at once`,
+            client: interaction.client,
+          }),
+        );
+      }
       return interaction.editReply({
         embeds: [
           createConfirmationEmbed(
-            "Account Limit Reached",
-            `You already have **${activeGiveaways.length}** active giveaways! This is the strict maximum limit for your plan.\n\n${!isPro ? `Upgrade to **${CORE_STATUS.PRO.emoji} Pro Engine** to instantly unlock capacity for **${PRO_TIER.GIVEAWAY_MAX_ACTIVE} simultaneous giveaways**!\nEnable it on our [website](https://rolereactor.app) with Cores.` : "You have reached the maximum active capacity for Pro Engine."}`,
+            "Giveaway Limit Reached",
+            `You have reached the maximum of **${maxActive}** active giveaways. End an existing one before creating a new one.`,
             "error",
           ),
         ],
@@ -135,11 +141,21 @@ export async function handleCreate(interaction) {
       : FREE_TIER.GIVEAWAY_MAX_WINNERS;
 
     if (winners > maxWinners) {
+      if (!isPro) {
+        return interaction.editReply(
+          upgradeLimitEmbed({
+            feature: "Giveaway Winners",
+            freeText: `Up to ${FREE_TIER.GIVEAWAY_MAX_WINNERS} winners`,
+            proText: `Up to ${PRO_TIER.GIVEAWAY_MAX_WINNERS} winners`,
+            client: interaction.client,
+          }),
+        );
+      }
       return interaction.editReply({
         embeds: [
           createConfirmationEmbed(
             "Winner Limit Exceeded",
-            `You can have a maximum of **${maxWinners} winners** on your current plan.${!isPro ? `\n\nUpgrade to **${CORE_STATUS.PRO.emoji} Pro Engine** for up to **20 winners**!\nEnable it on our **[website](https://rolereactor.app)** using Cores. You can purchase Cores on the site or earn them for free with ${getMentionableCommand(interaction.client, "vote")}.` : ""}`,
+            `You can have a maximum of **${maxWinners} winners** per giveaway.`,
             "error",
           ),
         ],
@@ -686,11 +702,21 @@ export async function handleEdit(interaction) {
         : FREE_TIER.GIVEAWAY_MAX_WINNERS;
 
       if (winners > maxWinners) {
+        if (!isPro) {
+          return interaction.editReply(
+            upgradeLimitEmbed({
+              feature: "Giveaway Winners",
+              freeText: `Up to ${FREE_TIER.GIVEAWAY_MAX_WINNERS} winners`,
+              proText: `Up to ${PRO_TIER.GIVEAWAY_MAX_WINNERS} winners`,
+              client: interaction.client,
+            }),
+          );
+        }
         return interaction.editReply({
           embeds: [
             createConfirmationEmbed(
               "Winner Limit Exceeded",
-              `You can have a maximum of **${maxWinners} winners** on your current plan.${!isPro ? `\n\nUpgrade to **${CORE_STATUS.PRO.emoji} Pro Engine** for up to **20 winners**!\nEnable it on our **[website](https://rolereactor.app)** using Cores. You can purchase Cores on the site or earn them for free with ${getMentionableCommand(interaction.client, "vote")}.` : ""}`,
+              `You can have a maximum of **${maxWinners} winners** per giveaway.`,
               "error",
             ),
           ],

@@ -33,6 +33,7 @@ import {
   FREE_TIER,
   PRO_TIER,
 } from "../../../features/premium/config.js";
+import { upgradeLimitEmbed } from "../../../utils/discord/premiumHelp.js";
 
 // Track active setups to prevent duplicates
 const activeSetups = new Set();
@@ -121,13 +122,20 @@ export async function handleSetup(interaction, client) {
 
     if (guildMappingCount >= maxMessages) {
       activeSetups.delete(interaction.id);
-      const upgradeMsg = isPro
-        ? ""
-        : `\n\n🚀 Upgrade to **Pro Engine** to create up to ${PRO_TIER.ROLE_REACTION_MAX_MESSAGES} interactive role menus!`;
+      if (!isPro) {
+        return interaction.editReply(
+          upgradeLimitEmbed({
+            feature: "Role Reaction Menus",
+            freeText: `${FREE_TIER.ROLE_REACTION_MAX_MESSAGES} menus`,
+            proText: `${PRO_TIER.ROLE_REACTION_MAX_MESSAGES} menus`,
+            client: interaction.client,
+          }),
+        );
+      }
       return interaction.editReply(
         errorEmbed({
           title: "Maximum Menus Reached",
-          description: `You have reached the maximum limit of **${maxMessages}** active Role Reaction messages for your current tier.${upgradeMsg}`,
+          description: `You have reached the maximum limit of **${maxMessages}** active Role Reaction menus.`,
         }),
       );
     }
@@ -152,13 +160,20 @@ export async function handleSetup(interaction, client) {
 
     if (validRoles.length > maxEmojis) {
       activeSetups.delete(interaction.id);
-      const upgradeMsg = isPro
-        ? ""
-        : `\n\n🚀 Upgrade to **Pro Engine** to use up to ${PRO_TIER.ROLE_REACTION_MAX_EMOJIS} unique emojis per message!`;
+      if (!isPro) {
+        return interaction.editReply(
+          upgradeLimitEmbed({
+            feature: "Role Reaction Emojis",
+            freeText: `${FREE_TIER.ROLE_REACTION_MAX_EMOJIS} emojis per menu`,
+            proText: `${PRO_TIER.ROLE_REACTION_MAX_EMOJIS} emojis per menu`,
+            client: interaction.client,
+          }),
+        );
+      }
       return interaction.editReply(
         errorEmbed({
           title: "Too Many Reactions",
-          description: `A role reaction message can contain a maximum of **${maxEmojis}** unique reaction emojis on your current tier. You provided **${validRoles.length}**.${upgradeMsg}`,
+          description: `A role reaction message can contain a maximum of **${maxEmojis}** unique reaction emojis. You provided **${validRoles.length}**.`,
         }),
       );
     }
@@ -540,13 +555,20 @@ export async function handleUpdate(interaction) {
         : FREE_TIER.ROLE_REACTION_MAX_EMOJIS;
 
       if (validRoles.length > maxEmojis) {
-        const upgradeMsg = isPro
-          ? ""
-          : `\n\n🚀 Upgrade to **Pro Engine** to use up to ${PRO_TIER.ROLE_REACTION_MAX_EMOJIS} unique emojis per message!`;
+        if (!isPro) {
+          return interaction.editReply(
+            upgradeLimitEmbed({
+              feature: "Role Reaction Emojis",
+              freeText: `${FREE_TIER.ROLE_REACTION_MAX_EMOJIS} emojis per menu`,
+              proText: `${PRO_TIER.ROLE_REACTION_MAX_EMOJIS} emojis per menu`,
+              client: interaction.client,
+            }),
+          );
+        }
         return interaction.editReply(
           errorEmbed({
             title: "Too Many Reactions",
-            description: `A role reaction message can contain a maximum of **${maxEmojis}** unique reaction emojis on your current tier. You provided **${validRoles.length}**.${upgradeMsg}`,
+            description: `A role reaction message can contain a maximum of **${maxEmojis}** unique reaction emojis. You provided **${validRoles.length}**.`,
           }),
         );
       }

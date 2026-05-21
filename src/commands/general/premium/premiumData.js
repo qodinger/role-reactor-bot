@@ -13,7 +13,7 @@ export const PREMIUM_FEATURES = [
     command: "schedule-role",
     name: "Scheduled Roles",
     emoji: "📅",
-    free: "25 active schedules",
+    free: "5 active schedules",
     pro: "500 active schedules",
   },
   {
