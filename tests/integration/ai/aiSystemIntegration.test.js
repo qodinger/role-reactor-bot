@@ -90,7 +90,7 @@ describe("AI System Integration", () => {
       const config = getAIConfig();
 
       expect(config.featureCosts.aiChat).toBe(0.05); // Updated to match new pricing
-      expect(config.featureCosts.aiImage).toBe(3.0); // Updated to match new pricing (3.0)
+      expect(config.featureCosts.aiImage).toBe(5.0); // Default image generation cost
     });
   });
 

@@ -96,12 +96,15 @@ export async function handlePollEnd(
       return await interaction.editReply(
         errorEmbed({
           title: "Channel Not Found",
-          description: "The channel where this poll was created no longer exists or is inaccessible.",
+          description:
+            "The channel where this poll was created no longer exists or is inaccessible.",
           solution: "The poll cannot be ended because its channel is gone.",
         }),
       );
     }
-    const message = await channel.messages.fetch(poll.messageId).catch(() => null);
+    const message = await channel.messages
+      .fetch(poll.messageId)
+      .catch(() => null);
 
     if (!message?.poll) {
       return await interaction.editReply(

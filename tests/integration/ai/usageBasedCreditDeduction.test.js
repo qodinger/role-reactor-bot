@@ -103,7 +103,7 @@ describe("Usage-Based Credit Deduction System", () => {
       const costs = getAIFeatureCosts();
 
       expect(costs.aiChat).toBe(0.05); // Standardized minimum charge
-      expect(costs.aiImage).toBe(3.0); // Default image cost (updated)
+      expect(costs.aiImage).toBe(5.0); // Default image generation cost
 
       // Provider-specific costs
       expect(costs.providerCosts.stability["sd3.5-large-turbo"]).toBe(5.0);
@@ -668,7 +668,7 @@ describe("Usage-Based Credit Deduction System", () => {
       );
 
       // Should fall back to default image cost
-      expect(result.creditsNeeded).toBe(3.0); // Default aiImage cost (updated to 3.0)
+      expect(result.creditsNeeded).toBe(5.0); // Default aiImage cost
     });
   });
 });

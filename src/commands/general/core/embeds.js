@@ -1,6 +1,9 @@
 import { EMOJIS, THEME } from "../../../config/theme.js";
 import { emojiConfig } from "../../../config/emojis.js";
-import { getConversionRateInfo, getAIFeatureCosts } from "../../../config/ai.js";
+import {
+  getConversionRateInfo,
+  getAIFeatureCosts,
+} from "../../../config/ai.js";
 // Get custom emojis object
 const { customEmojis } = emojiConfig;
 
@@ -27,7 +30,9 @@ export function createBalanceEmbed(
 
   const rateInfo = getConversionRateInfo();
   const featureCosts = getAIFeatureCosts();
-  const avatarCost = featureCosts.providerCosts?.stability?.["sd3.5-flash"] ?? featureCosts.aiImage;
+  const avatarCost =
+    featureCosts.providerCosts?.stability?.["sd3.5-flash"] ??
+    featureCosts.aiImage;
   const coreValueUSD = `$${rateInfo.coreValueUSD.toFixed(2)}`;
 
   const fields = [
