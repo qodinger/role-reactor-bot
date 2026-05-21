@@ -1,4 +1,6 @@
 import { CORE_STATUS } from "../../features/premium/config.js";
+import { errorEmbed } from "./responseMessages.js";
+import { getMentionableCommand } from "../commandUtils.js";
 
 /**
  * Creates a consistent Free vs Pro help field
@@ -38,7 +40,7 @@ export const PREMIUM_FEATURES = [
     command: "schedule-role",
     name: "Scheduled Roles",
     emoji: "📅",
-    free: "25 active schedules",
+    free: "5 active schedules",
     pro: "500 active schedules",
   },
   {
@@ -86,27 +88,25 @@ export const PREMIUM_FEATURES = [
 ];
 
 /**
- * Creates upgrade prompt message when hitting limits
- * @param {string} featureName - Name of the feature
- * @param {string} freeLimit - Description of free limit
- * @returns {object} Embed for upgrade prompt
+ * Creates a consistent upgrade embed when a user hits a free tier limit.
+ * Returns the same {embeds, flags} format as errorEmbed() for direct use in interaction.reply/editReply.
+ * @param {object} options
+ * @param {string} options.feature - Display name of the feature (e.g. "Role Reaction Menus")
+ * @param {string} options.freeText - Free tier limit description (e.g. "3 menus")
+ * @param {string} options.proText - Pro tier limit description (e.g. "20 menus")
+ * @param {import('discord.js').Client} [options.client] - Discord client for mentionable /vote command
+ * @returns {{embeds: import('discord.js').EmbedBuilder[], flags: number}}
  */
-export function createUpgradePrompt(featureName, freeLimit) {
-  return {
-    title: `${CORE_STATUS.PRO.emoji} Upgrade to ${CORE_STATUS.PRO.name}`,
-    description: `You've reached the **free tier limit** for ${featureName}.`,
+export function upgradeLimitEmbed({ feature, freeText, proText, client }) {
+  const voteCmd = client ? getMentionableCommand(client, "vote") : "`/vote`";
+  return errorEmbed({
+    title: "Free Tier Limit Reached",
+    description: `You've reached the **${feature}** limit for the free plan.`,
     fields: [
-      {
-        name: "Current Limit",
-        value: freeLimit,
-        inline: true,
-      },
-      {
-        name: "Need More?",
-        value: `Upgrade to ${CORE_STATUS.PRO.name} for unlimited!`,
-        inline: true,
-      },
+      { name: "Free Plan", value: freeText, inline: true },
+      { name: `⚡ ${CORE_STATUS.PRO.name}`, value: proText, inline: true },
     ],
-    footer: `Enable ${CORE_STATUS.PRO.name} on rolereactor.app using Cores`,
-  };
+    solution: `Purchase Cores at **[rolereactor.app](https://rolereactor.app)** · Earn free Cores with ${voteCmd}`,
+    isPremium: true,
+  });
 }

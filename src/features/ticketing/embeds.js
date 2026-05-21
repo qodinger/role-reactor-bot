@@ -302,7 +302,7 @@ export function createLimitReachedEmbed(options) {
 
   const description = isPro
     ? `You have reached the maximum of **${max} ${itemType}**.`
-    : `You have reached the maximum of **${max} ${itemType}** on the Free Tier.\n\nUpgrade to **${CORE_STATUS.PRO.emoji} Pro Engine** for more! Enable it on our **[website](https://rolereactor.app)** using Cores.`;
+    : `You have reached the maximum of **${max} ${itemType}** on the Free Tier.\n\nUpgrade to **${CORE_STATUS.PRO.emoji} Pro Engine** for more!\nPurchase Cores at **[rolereactor.app](https://rolereactor.app)** · Earn free Cores with \`/vote\``;
 
   return new EmbedBuilder()
     .setTitle(title)

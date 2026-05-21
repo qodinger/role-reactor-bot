@@ -78,7 +78,7 @@ export class TicketPanel {
         return {
           success: false,
           error: createErrorEmbed(
-            `Maximum ${maxCategories} categories allowed.${!isPro ? ` Upgrade to **${CORE_STATUS.PRO.emoji} Pro Engine** for more! Enable it on our **[website](https://rolereactor.app)** using Cores.` : ""}`,
+            `Maximum ${maxCategories} categories allowed per panel.${!isPro ? ` Upgrade to **${CORE_STATUS.PRO.emoji} Pro Engine** for up to ${PRO_ENGINE.MAX_CATEGORIES} categories!\n\nPurchase Cores at **rolereactor.app** or earn free Cores with \`/vote\`.` : ""}`,
           ),
         };
       }

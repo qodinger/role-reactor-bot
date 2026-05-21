@@ -7,6 +7,7 @@ import {
 import { getLogger } from "../../../utils/logger.js";
 import { getDatabaseManager } from "../../../utils/storage/databaseManager.js";
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";
+import { upgradeLimitEmbed } from "../../../utils/discord/premiumHelp.js";
 import {
   createXpSettingsEmbed,
   createXpSourceEmbed,
@@ -930,17 +931,14 @@ export async function handleRewardsCommand(interaction, subcommand, _client) {
 
         if (!result.success) {
           if (result.premiumRequired) {
-            return interaction.editReply({
-              embeds: [
-                new EmbedBuilder()
-                  .setTitle(`${EMOJIS.lock || "🔒"} Premium Required`)
-                  .setDescription(result.message)
-                  .setColor(THEME.WARNING)
-                  .setFooter({
-                    text: "Enable Pro Engine from the dashboard to unlock unlimited rewards.",
-                  }),
-              ],
-            });
+            return interaction.editReply(
+              upgradeLimitEmbed({
+                feature: "Level Rewards",
+                freeText: "5 rewards, Stack mode only",
+                proText: "Unlimited rewards, Replace mode",
+                client: interaction.client,
+              }),
+            );
           }
           return interaction.editReply(
             errorEmbed({
@@ -1094,17 +1092,14 @@ export async function handleRewardsCommand(interaction, subcommand, _client) {
 
         if (!result.success) {
           if (result.premiumRequired) {
-            return interaction.editReply({
-              embeds: [
-                new EmbedBuilder()
-                  .setTitle(`${EMOJIS.lock || "🔒"} Premium Required`)
-                  .setDescription(result.message)
-                  .setColor(THEME.WARNING)
-                  .setFooter({
-                    text: "Enable Pro Engine from the dashboard to use Replace mode.",
-                  }),
-              ],
-            });
+            return interaction.editReply(
+              upgradeLimitEmbed({
+                feature: "Level Reward Mode",
+                freeText: "Stack mode only",
+                proText: "Stack + Replace mode",
+                client: interaction.client,
+              }),
+            );
           }
           return interaction.editReply(
             errorEmbed({

@@ -15,6 +15,7 @@ import {
   FREE_TIER,
   PRO_TIER,
 } from "../../../features/premium/config.js";
+import { upgradeLimitEmbed } from "../../../utils/discord/premiumHelp.js";
 
 const logger = getLogger();
 
@@ -88,14 +89,21 @@ export async function handleCreate(interaction) {
       : FREE_TIER.ROLE_BUNDLE_MAX_ROLES;
 
     if (roles.length > maxRoles) {
-      const upgradeMsg = isPro
-        ? ""
-        : "\n\n🚀 Upgrade to **Pro Engine** to bundle up to 15 roles!";
+      if (!isPro) {
+        return interaction.editReply(
+          upgradeLimitEmbed({
+            feature: "Role Bundle Size",
+            freeText: `${FREE_TIER.ROLE_BUNDLE_MAX_ROLES} roles per bundle`,
+            proText: `${PRO_TIER.ROLE_BUNDLE_MAX_ROLES} roles per bundle`,
+            client: interaction.client,
+          }),
+        );
+      }
       return interaction.editReply({
         embeds: [
           createErrorEmbed(
             "Too Many Roles",
-            `A bundle can contain a maximum of **${maxRoles}** roles on your current tier. You provided **${roles.length}**.${upgradeMsg}`,
+            `A bundle can contain a maximum of **${maxRoles}** roles. You provided **${roles.length}**.`,
           ),
         ],
       });
