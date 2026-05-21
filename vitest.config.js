@@ -34,6 +34,7 @@ export default defineConfig({
           lines: 10,
         },
       },
+      include: ["src/**/*.js"],
       exclude: [
         "node_modules/**",
         "tests/**",
