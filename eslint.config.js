@@ -26,6 +26,7 @@ export default [
         URL: "readonly",
         URLSearchParams: "readonly",
         fetch: "readonly",
+        AbortController: "readonly",
         // Jest globals
         jest: "readonly",
         describe: "readonly",
