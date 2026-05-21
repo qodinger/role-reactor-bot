@@ -1,5 +1,6 @@
 import { EMOJIS, THEME } from "../../../config/theme.js";
 import { emojiConfig } from "../../../config/emojis.js";
+import { getConversionRateInfo, getAIFeatureCosts } from "../../../config/ai.js";
 // Get custom emojis object
 const { customEmojis } = emojiConfig;
 
@@ -24,11 +25,30 @@ export function createBalanceEmbed(
 
   const totalCredits = userData.credits || 0;
 
+  const rateInfo = getConversionRateInfo();
+  const featureCosts = getAIFeatureCosts();
+  const avatarCost = featureCosts.providerCosts?.stability?.["sd3.5-flash"] ?? featureCosts.aiImage;
+  const coreValueUSD = `$${rateInfo.coreValueUSD.toFixed(2)}`;
+
   const fields = [
     {
       name: `Core Balance`,
       value: `${customEmojis.core} **${Number(totalCredits.toFixed(2)).toLocaleString()}**`,
       inline: true,
+    },
+    {
+      name: `Core Value`,
+      value: `1 Core ≈ ${coreValueUSD} USD\n${rateInfo.conversionRate} Cores = **$1.00**`,
+      inline: true,
+    },
+    {
+      name: `Spending Guide`,
+      value: [
+        `⚡ **Pro Engine:** 20 Cores/week`,
+        `🖼️ **AI Avatar:** ${avatarCost} Cores each`,
+        `🚀 **Buy Cores:** rolereactor.app`,
+      ].join("\n"),
+      inline: false,
     },
   ];
 

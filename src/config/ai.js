@@ -358,17 +358,17 @@ export function getAIFeatureCosts() {
     aiChat: BASE_MINIMUM_CHARGE, // Use standardized minimum charge
 
     // Image generation credits per image - provider and model specific
-    aiImage: 3.0, // Default image generation cost (5 images per $1)
+    aiImage: 5.0, // Default image generation cost (3 images per $1)
 
     // Provider-specific costs in Core credits
     // These are based on actual API costs from providers
     providerCosts: {
       stability: {
-        // Stability AI model costs (Synchronized with 1.0 Core/vote reward)
+        // Stability AI model costs
         "sd3.5-large": 8.0,
         "sd3.5-large-turbo": 5.0,
         "sd3.5-medium": 4.0,
-        "sd3.5-flash": 3.0,
+        "sd3.5-flash": 5.0,
       },
       comfyui: {
         // ComfyUI/self-hosted compute costs

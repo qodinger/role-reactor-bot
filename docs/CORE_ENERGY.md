@@ -21,12 +21,25 @@ You can earn Core Energy daily by supporting the bot on **top.gg**.
 - **Command**: Use `/vote` in any server to get your personal voting link.
 - **Notifications**: The bot will DM you immediately once your reward is credited!
 
+> **Note:** Voting earns up to **14 Cores/week** (2 votes/day × 7 days). The Pro Engine costs **20 Cores/week**, so voting alone covers ~70% of the weekly cost. To maintain Pro Engine through voting, you'll need to supplement with purchased Cores.
+
 ### 2. 🚀 Purchase (Instant)
 
 For those who need higher capacity immediately, Cores can be obtained via the **Web Dashboard**.
 
 - Visit the **Upgrade Center** to see available packages.
 - Credits are added instantly to your balance upon successful payment.
+
+#### 💵 Core Packages
+
+| Package  | Price | Cores | Best For                           |
+| :------- | :---- | :---- | :--------------------------------- |
+| Starter  | $5    | 75    | Trying AI features (15 avatars)    |
+| Basic    | $10   | 165   | Regular users (33 avatars)         |
+| Pro      | $25   | 435   | Power users (87 avatars)           |
+| Ultimate | $50   | 900   | Heavy usage (180 avatars)          |
+
+**Core Value:** 15 Cores = $1.00 USD (1 Core ≈ $0.07)
 
 ---
 
@@ -54,6 +67,18 @@ When **one person** fuels the Pro Engine, **everyone** in the server wins. The f
 | **Transcript Storage** | 30 Days           | **Unlimited**                 |
 | **Bulk Actions**       | 25 users          | **250 users**                 |
 | **Level Rewards**      | 5 (Stack)         | **Unlimited (Replace/Stack)** |
+
+---
+
+## 🤖 AI Features (User-Level)
+
+Some features consume Cores from your **personal balance** and are not tied to server-wide Pro Engine activation.
+
+| Feature       | Cost per Use | Notes                               |
+| :------------ | :----------- | :---------------------------------- |
+| **AI Avatar** | 5 Cores      | Generates a custom avatar from text |
+
+With a **$5 Starter pack** (75 Cores), you can generate **15 AI Avatars**.
 
 ---
 

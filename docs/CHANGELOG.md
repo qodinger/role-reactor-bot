@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Auto-Mod Pro Features**: Advanced bad word filtering (wildcard and regex patterns), domain allowlisting, and the caps lock filter are exclusive to Pro Engine servers.
 - **Transcript Storage (Free tier)**: Free servers now keep ticket transcripts for 30 days, up from 7 days.
 - **Role Reaction Menus (Pro Engine)**: The Pro Engine menu limit has been updated from 20 to 8.
+- **AI Avatar Cost**: Generating an AI Avatar now costs 5 Cores (up from 3). This helps keep the service sustainable. At $5 you can generate 15 avatars.
+- **Core Balance display**: The `/core balance` command now shows Core value in USD and a quick cost reference for Pro Engine and AI Avatar.
 
 ### Fixed
 
