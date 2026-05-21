@@ -30,6 +30,7 @@ ARCHITECTURE-REVIEW.md
 Dockerfile*
 docker-compose*.yml
 .dockerignore
+Caddyfile
 
 # IDE files
 .idea
