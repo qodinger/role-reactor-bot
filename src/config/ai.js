@@ -341,16 +341,23 @@ export function getAIFeatureCosts() {
   //
   // IMPORTANT: These are the ONLY values you need to change to adjust pricing
   //
-  // Base conversion rate: 1 USD = X Core Credits
-  // Higher rate = cheaper Cores for users, lower revenue per API call
-  // Lower rate = more expensive Cores for users, higher revenue per API call
+  // Base conversion rate: 1 USD = X Core Credits (must match storefront price)
   const BASE_CONVERSION_RATE = 15; // 1 USD = 15 Core Credits (Matches Storefront)
+
+  // Platform markup applied on top of the raw conversion rate.
+  // This is the PROFIT MARGIN knob — raise it to increase margin.
+  //   1.25 → 20% gross margin  (user pays 25% more Core than raw API cost implies)
+  //   1.50 → 33% gross margin
+  //   2.00 → 50% gross margin
+  // The effective charge rate = BASE_CONVERSION_RATE × PLATFORM_MARKUP
+  // At 1.25: effective rate = 15 × 1.25 = 18.75 Core per $1 of API cost
+  const PLATFORM_MARKUP = 1.25;
 
   // Minimum charge per request (in Core credits)
   // Prevents micro-transactions for very small API calls
-  const BASE_MINIMUM_CHARGE = 0.05; // 0.05 Core minimum (~300 messages per $1)
+  const BASE_MINIMUM_CHARGE = 0.05; // 0.05 Core minimum
 
-  // Formula: Core_Credits = max(API_Cost_USD × BASE_CONVERSION_RATE, BASE_MINIMUM_CHARGE)
+  // Formula: Core_Credits = max(API_Cost_USD × BASE_CONVERSION_RATE × PLATFORM_MARKUP, BASE_MINIMUM_CHARGE)
 
   return {
     // Text generation credits are calculated dynamically based on actual token usage (OpenRouter)
@@ -403,18 +410,19 @@ export function getAIFeatureCosts() {
     // All providers use the same BASE_CONVERSION_RATE for consistency
     tokenPricing: {
       openrouter: {
-        // OpenRouter returns actual costs in their credits, convert to Core
-        conversionRate: BASE_CONVERSION_RATE, // Uses base rate
-        minimumCharge: BASE_MINIMUM_CHARGE, // Uses base minimum
+        conversionRate: BASE_CONVERSION_RATE,
+        platformMarkup: PLATFORM_MARKUP,
+        minimumCharge: BASE_MINIMUM_CHARGE,
       },
-      // Add other providers as needed
       anthropic: {
-        conversionRate: BASE_CONVERSION_RATE, // Uses base rate
-        minimumCharge: BASE_MINIMUM_CHARGE, // Uses base minimum
+        conversionRate: BASE_CONVERSION_RATE,
+        platformMarkup: PLATFORM_MARKUP,
+        minimumCharge: BASE_MINIMUM_CHARGE,
       },
       openai: {
-        conversionRate: BASE_CONVERSION_RATE, // Uses base rate
-        minimumCharge: BASE_MINIMUM_CHARGE, // Uses base minimum
+        conversionRate: BASE_CONVERSION_RATE,
+        platformMarkup: PLATFORM_MARKUP,
+        minimumCharge: BASE_MINIMUM_CHARGE,
       },
     },
 
@@ -470,11 +478,10 @@ export function getAIConfig() {
  * @returns {number} Core credits needed
  */
 export function calculateCoreCredits(usdCost) {
-  const featureCosts = getAIFeatureCosts();
-  const conversionRate = featureCosts.tokenPricing.openrouter.conversionRate;
-  const minimumCharge = featureCosts.tokenPricing.openrouter.minimumCharge;
-
-  const calculatedCredits = usdCost * conversionRate;
+  const { conversionRate, platformMarkup, minimumCharge } =
+    getAIFeatureCosts().tokenPricing.openrouter;
+  // Always apply the markup so every call is profitable, not just break-even
+  const calculatedCredits = usdCost * conversionRate * platformMarkup;
   return Math.max(calculatedCredits, minimumCharge);
 }
 
@@ -483,16 +490,18 @@ export function calculateCoreCredits(usdCost) {
  * @returns {Object} Conversion rate information
  */
 export function getConversionRateInfo() {
-  const featureCosts = getAIFeatureCosts();
-  const rate = featureCosts.tokenPricing.openrouter.conversionRate;
-  const minimum = featureCosts.tokenPricing.openrouter.minimumCharge;
+  const { conversionRate, platformMarkup, minimumCharge } =
+    getAIFeatureCosts().tokenPricing.openrouter;
+  const effectiveRate = conversionRate * platformMarkup;
 
   return {
-    conversionRate: rate,
-    minimumCharge: minimum,
-    coreValueUSD: 1 / rate,
-    coreValueCents: (1 / rate) * 100,
-    formula: `Core_Credits = max(API_Cost_USD × ${rate}, ${minimum})`,
+    conversionRate,
+    platformMarkup,
+    effectiveRate,
+    minimumCharge,
+    coreValueUSD: 1 / conversionRate,
+    coreValueCents: (1 / conversionRate) * 100,
+    formula: `Core_Credits = max(API_Cost_USD × ${conversionRate} × ${platformMarkup}, ${minimumCharge})`,
   };
 }
 

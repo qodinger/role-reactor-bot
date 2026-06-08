@@ -222,7 +222,9 @@ export async function deductCreditsIfNeeded(
 
   const responseText = result?.text || result?.response || fallbackText || "";
   const hasValidContent =
-    responseText.trim().length > 0 && responseText !== "No response generated.";
+    (responseText.trim().length > 0 && responseText !== "No response generated.") ||
+    // Tool-use path: Claude returns tool_calls with text = "" — still a real paid API call
+    (result?.toolCalls && result.toolCalls.length > 0);
 
   // Should deduct if we have valid content (API call succeeded and generated content)
   const shouldDeduct = hasValidContent;
@@ -246,32 +248,15 @@ export async function deductCreditsIfNeeded(
       `💰 Using usage-based deduction for ${callType} (${result.provider || "unknown"}) - API usage: ${result.usage.cost} credits`,
     );
 
-    // Get provider-specific conversion rate
     const provider = result.provider || "unknown";
-    let conversionRate = 2.0; // Default conversion rate
-
-    try {
-      const { getAIFeatureCosts } = await import("../../../config/ai.js");
-      const featureCosts = getAIFeatureCosts();
-
-      if (featureCosts.tokenPricing && featureCosts.tokenPricing[provider]) {
-        const providerPricing = featureCosts.tokenPricing[provider];
-        conversionRate = providerPricing.conversionRate || 2.0;
-        // Note: minimumCharge is available in config but not used in current implementation
-      }
-    } catch (error) {
-      logger.debug(
-        "Failed to load token pricing config, using defaults:",
-        error,
-      );
-    }
-
+    // deductCreditsFromUsage internally calls calculateCoreCredits — no need to
+    // read or pass a conversion rate here. The formula (including markup) lives
+    // entirely in config/ai.js calculateCoreCredits().
     const deductionResult = await deductCreditsFromUsage(
       userId,
       result.usage,
       provider,
       result.model || "unknown",
-      conversionRate,
     );
 
     if (!deductionResult.success) {

@@ -1,6 +1,6 @@
 import { getStorageManager } from "../storage/storageManager.js";
 import { getLogger } from "../logger.js";
-import { getAIFeatureCosts } from "../../config/ai.js";
+import { getAIFeatureCosts, calculateCoreCredits } from "../../config/ai.js";
 
 const logger = getLogger();
 
@@ -360,11 +360,10 @@ export async function deductCreditsFromUsage(
         };
       }
 
-      const featureCosts = getAIFeatureCosts();
-      const min = featureCosts.tokenPricing?.[provider]?.minimumCharge || 0.05;
-      const needed = formatCoreCredits(
-        Math.max(usage.cost * conversionRate, min),
-      );
+      // calculateCoreCredits is the single source of truth:
+      //   max(usdCost × BASE_CONVERSION_RATE × PLATFORM_MARKUP, BASE_MINIMUM_CHARGE)
+      // This ensures every call is profitable regardless of provider or caller-supplied rate.
+      const needed = formatCoreCredits(calculateCoreCredits(usage.cost));
 
       if ((data.credits || 0) < needed) {
         return {

@@ -202,8 +202,8 @@ describe("Usage-Based Credit Deduction System", () => {
       );
 
       expect(result.success).toBe(true);
-      expect(result.creditsDeducted).toBe(0.38); // 0.025 × 15 = 0.375 (rounded to 0.38)
-      expect(result.creditsRemaining).toBe(9.62); // 10.0 - 0.38
+      expect(result.creditsDeducted).toBe(0.47); // 0.025 × 15 × 1.25 = 0.46875 → 0.47
+      expect(result.creditsRemaining).toBe(9.53); // 10.0 - 0.47
       expect(result.deductionBreakdown.actualApiCost).toBe(0.025);
       expect(result.deductionBreakdown.conversionRate).toBe(15);
     });
@@ -248,8 +248,8 @@ describe("Usage-Based Credit Deduction System", () => {
       );
 
       expect(result.success).toBe(true);
-      expect(result.creditsDeducted).toBe(0.75); // 0.05 * 15 = 0.75
-      expect(result.creditsRemaining).toBe(9.25); // 10.0 - 0.75
+      expect(result.creditsDeducted).toBe(0.94); // 0.05 × 15 × 1.25 = 0.9375 → 0.94
+      expect(result.creditsRemaining).toBe(9.06); // 10.0 - 0.94
       expect(result.deductionBreakdown.actualApiCost).toBe(0.05);
       expect(result.deductionBreakdown.conversionRate).toBe(15);
     });
@@ -338,8 +338,8 @@ describe("Usage-Based Credit Deduction System", () => {
       );
 
       expect(result.success).toBe(true);
-      expect(result.creditsDeducted).toBe(0.18); // 0.012 * 15 = 0.18
-      expect(result.creditsRemaining).toBe(9.82); // 10.0 - 0.18
+      expect(result.creditsDeducted).toBe(0.22); // 0.012 × 15 × 1.25 = 0.225 → 0.22 (float precision)
+      expect(result.creditsRemaining).toBe(9.78); // 10.0 - 0.22
       expect(result.deductionBreakdown.actualApiCost).toBe(0.012);
     });
 
@@ -361,8 +361,8 @@ describe("Usage-Based Credit Deduction System", () => {
       );
 
       expect(result.success).toBe(true);
-      expect(result.creditsDeducted).toBe(0.12); // 0.008 * 15 = 0.12
-      expect(result.creditsRemaining).toBe(9.88); // 10.0 - 0.12
+      expect(result.creditsDeducted).toBe(0.15); // 0.008 × 15 × 1.25 = 0.15
+      expect(result.creditsRemaining).toBe(9.85); // 10.0 - 0.15
     });
 
     it("should apply minimum charge for very small requests", async () => {
@@ -405,9 +405,9 @@ describe("Usage-Based Credit Deduction System", () => {
 
       await deductCreditsIfNeeded(testUserId, mockResult, "initial");
 
-      // 0.03 USD * 15 conversion rate = 0.45 Core credits
+      // 0.03 USD × 15 × 1.25 (markup) = 0.5625 → 0.56 Core credits
       const creditData = mockStorage.get("core_credit")[testUserId];
-      expect(creditData.credits).toBe(9.55); // 10.0 - 0.45
+      expect(creditData.credits).toBe(9.44); // 10.0 - 0.56
     });
 
     it("should use provider-specific conversion rates from config", async () => {
@@ -425,9 +425,9 @@ describe("Usage-Based Credit Deduction System", () => {
 
       await deductCreditsIfNeeded(testUserId, mockResult, "initial");
 
-      // Uses actual usage-based deduction: 0.025 USD * 15 conversion rate = 0.38 Core credits (rounded)
+      // 0.025 USD × 15 × 1.25 (markup) = 0.46875 → 0.47 Core credits
       const creditData = mockStorage.get("core_credit")[testUserId];
-      expect(creditData.credits).toBe(9.62); // 10.0 - 0.38
+      expect(creditData.credits).toBe(9.53); // 10.0 - 0.47
     });
 
     it("should fall back to fixed deduction when no usage data", async () => {
@@ -582,8 +582,9 @@ describe("Usage-Based Credit Deduction System", () => {
       });
 
       // Final balance should be correct
+      // 0.02→0.38, 0.03→0.56, 0.01→0.19 (each × 18.75); total deducted = 1.13
       const creditData = mockStorage.get("core_credit")[testUserId];
-      expect(creditData.credits).toBe(9.85); // 10.0 - (3 * 0.05) since all are below minimum
+      expect(creditData.credits).toBe(8.87); // 10.0 - 1.13
     });
   });
 
@@ -631,8 +632,8 @@ describe("Usage-Based Credit Deduction System", () => {
       );
 
       expect(result.success).toBe(true);
-      // Should be rounded to 2 decimal places
-      expect(result.creditsRemaining).toBe(9.67); // 10.0 - 0.33 (rounded)
+      // 0.333... × 18.75 = 6.249... → formatCoreCredits rounds to 6.25
+      expect(result.creditsRemaining).toBe(3.75); // 10.0 - 6.25
     });
   });
 

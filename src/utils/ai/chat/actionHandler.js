@@ -2,6 +2,7 @@ import { actionExecutor } from "../actionExecutor.js";
 import { actionTriggersReQuery } from "../actionRegistry.js";
 import { systemPromptBuilder } from "../systemPromptBuilder.js";
 import { conversationManager } from "../conversationManager.js";
+import { checkAICredits } from "../aiCreditManager.js";
 import {
   FOLLOW_UP_QUERY_TIMEOUT,
   MAX_ACTION_LOOP_DEPTH,
@@ -141,6 +142,19 @@ export async function executeReQuery(
   logger.debug(
     `[generateResponse] Re-querying after actions: ${fetchActions.map(a => a.type).join(", ")}`,
   );
+
+  // Guard: skip the re-query (and its API cost) if the user is out of credits.
+  // They already received a response from the initial call — this just prevents a
+  // free second API call when their balance hits zero between the two calls.
+  if (userId) {
+    const creditCheck = await checkAICredits(userId);
+    if (!creditCheck.hasCredits) {
+      logger.warn(
+        `[executeReQuery] Skipping re-query for ${userId}: insufficient credits (${creditCheck.credits} < ${creditCheck.creditsNeeded})`,
+      );
+      return { finalResponse };
+    }
+  }
 
   // Determine what data to force include based on action types
   // Note: fetch_members has been removed - no longer supported
