@@ -26,12 +26,12 @@ export async function execute(interaction, client) {
   try {
     const question = interaction.options.getString("question", true);
 
-    // Check if AI is enabled
-    if (!chatService.aiService.isEnabled()) {
+    // Check if a text-capable provider is available (not just any AI feature)
+    if (!chatService.aiService.getTextProvider()) {
       const errorResponse = errorEmbed({
         title: "AI Unavailable",
         description:
-          "AI chat is not available. Please enable a text-capable AI provider in the bot configuration.",
+          "AI chat is not available. Please set `OPENROUTER_API_KEY` and ensure `aiChat` is enabled in the bot configuration.",
       });
       await interaction.reply(errorResponse);
       return;

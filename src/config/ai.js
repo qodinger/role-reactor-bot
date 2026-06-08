@@ -32,9 +32,9 @@ export function getAIModels() {
     // Each feature can be independently enabled/disabled and configured
 
     features: {
-      // AI Chat Feature (/chat command) - DISABLED
+      // AI Chat Feature (/ask command)
       aiChat: {
-        enabled: false, // Disabled - AI chat removed
+        enabled: true,
         provider: "openrouter",
         model: "openai/gpt-4o-mini",
       },

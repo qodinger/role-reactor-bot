@@ -70,7 +70,7 @@ describe("AI System Integration", () => {
       const aiChatConfig = config.models.features.aiChat;
 
       expect(aiChatConfig).toBeDefined();
-      expect(aiChatConfig.enabled).toBe(false); // AI chat is disabled
+      expect(aiChatConfig.enabled).toBe(true); // AI chat is enabled
       expect(aiChatConfig.provider).toBe("openrouter");
       expect(aiChatConfig.model).toBe("openai/gpt-4o-mini");
     });
@@ -405,7 +405,7 @@ describe("AI System Integration", () => {
       const config = getAIConfig();
 
       // Verify configuration is compatible with conversation manager
-      expect(config.models.features.aiChat.enabled).toBe(false); // AI chat is disabled
+      expect(config.models.features.aiChat.enabled).toBe(true); // AI chat is enabled
       expect(conversationManager.useLongTermMemory).toBe(true);
       expect(conversationManager.storageType).toBe("file");
     });
