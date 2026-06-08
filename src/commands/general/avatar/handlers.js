@@ -60,9 +60,9 @@ export async function handleAvatarGeneration(
     );
   }
 
-  if (!multiProviderAIService.isEnabled()) {
+  if (!multiProviderAIService.getImageProvider(false)) {
     const validationEmbed = createAvatarValidationEmbed(
-      "AI features are currently disabled. All AI services are unavailable.",
+      "Avatar generation is currently unavailable. Please set STABILITY_API_KEY in the bot configuration.",
     );
     await replyToInteraction(interaction, _deferred, {
       embeds: [validationEmbed],

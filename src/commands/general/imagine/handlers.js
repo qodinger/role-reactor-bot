@@ -82,9 +82,10 @@ export async function handleImagineCommand(interaction, _client) {
   // Safety tolerance: 6 = most permissive (default for Stability AI)
   const safetyTolerance = 6;
 
-  if (!multiProviderAIService.isEnabled()) {
+  // Check for a safe-content image provider; NSFW availability is checked later per-request
+  if (!multiProviderAIService.getImageProvider(false)) {
     const validationEmbed = createImagineValidationEmbed(
-      "AI features are currently disabled. All AI services are unavailable.",
+      "Image generation is currently unavailable. Please set STABILITY_API_KEY in the bot configuration.",
     );
     await interaction.editReply({ embeds: [validationEmbed] });
     return;
