@@ -597,7 +597,6 @@ export class ChatService {
       },
     );
 
-    // Prepare conversation context (use conversationManager for streaming, not memoryManager)
     const guildId = guild?.id || null;
     const { messages } = await this.prepareConversationContext(
       userId,
@@ -607,7 +606,7 @@ export class ChatService {
       client,
       options.locale || "en-US",
       onStatus,
-      false, // Use conversationManager for streaming
+      true, // Use MemoryManager (with summarization) same as non-streaming
     );
 
     // Update status before AI generation

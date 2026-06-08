@@ -80,10 +80,12 @@ export async function buildMessagesArray(
   });
 
   const reminder = needsAction
-    ? `[CRITICAL REMINDER: The user might be asking you to perform an action. IF you need to execute a command to fulfill this request, use JSON format: {"message": "...", "actions": [...]}. IF you already have the requested information in your context or cannot perform the action, respond in plain text! NEVER use JSON if you have NO actions.]`
-    : `[CRITICAL REMINDER: If you need to execute actions (commands, role changes, etc.), use JSON format: {"message": "...", "actions": [...]}. If you have NO actions (empty actions array), you MUST respond in plain text/markdown format - NO JSON, NO curly braces, NO code blocks. Just write your response directly.]`;
+    ? `[REMINDER: If you need to execute a command to fulfill this request, use JSON: {"message": "...", "actions": [...]}. If the information is already in context, respond in plain text — no JSON if actions array would be empty.]`
+    : null;
 
-  const userMessageWithContext = `[Current Date and Time for User: ${userDate} at ${userTime}]\n\n${userMessage}\n\n${reminder}`;
+  const userMessageWithContext = reminder
+    ? `[Current Date and Time for User: ${userDate} at ${userTime}]\n\n${userMessage}\n\n${reminder}`
+    : `[Current Date and Time for User: ${userDate} at ${userTime}]\n\n${userMessage}`;
   messages.push({ role: "user", content: userMessageWithContext });
 
   return messages;
