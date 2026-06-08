@@ -10,6 +10,18 @@ import { commandDiscoverer } from "../commandDiscoverer.js";
 async function buildDynamicActionsList(guild, client) {
   let actionsList = "";
 
+  // Always-available actions (work in DMs and servers)
+  actionsList += `**User Interaction:**\n`;
+  actionsList += `- "show_component" - Show Discord buttons or select menu for user to choose from\n`;
+  actionsList += `  options: { question: "...", options: [{label: "...", value: "...", description: "..."}], component_type: "buttons"|"select" }\n`;
+  actionsList += `  Use when you need the user to pick from a list of choices (e.g., which role, which channel, which option).\n`;
+  actionsList += `  ≤5 options → buttons auto-selected; >5 options → select menu auto-selected.\n\n`;
+
+  actionsList += `**Web Search:**\n`;
+  actionsList += `- "web_search" - Search the web for real-time or current information\n`;
+  actionsList += `  options: { query: "search terms", count: 5 }\n`;
+  actionsList += `  Use when the user asks about something that may have changed recently, current events, or you're unsure about.\n\n`;
+
   if (guild) {
     actionsList += `**Command Execution:**\n`;
     try {

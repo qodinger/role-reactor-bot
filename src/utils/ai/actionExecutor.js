@@ -1,5 +1,13 @@
+import {
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  StringSelectMenuBuilder,
+  StringSelectMenuOptionBuilder,
+} from "discord.js";
 import { getLogger } from "../logger.js";
 import {
+  ACTION_CATEGORIES,
   getActionConfig,
   actionRequiresGuild,
   validateActionOptions,
@@ -242,6 +250,56 @@ export class ActionExecutor {
   }
 
   /**
+   * Execute a single DATA_RETRIEVE action. Used for parallel execution.
+   * @param {Object} action
+   * @param {import('discord.js').Guild} guild
+   * @returns {Promise<string>} Result string
+   */
+  static async executeDataRetrieveAction(action, guild) {
+    if (!guild) return `${action.type} requires a server context`;
+
+    try {
+      switch (action.type) {
+        case "get_member_info": {
+          if (!action.options?.user_id && !action.options?.username)
+            return "get_member_info requires 'user_id' or 'username' in options";
+          const info = await dataFetcher.getMemberInfo(guild, action.options);
+          return info ? `Data: ${info}` : "Member not found";
+        }
+        case "get_role_info": {
+          if (!action.options?.role_id && !action.options?.role_name)
+            return "get_role_info requires 'role_id' or 'role_name' in options";
+          const info = await dataFetcher.getRoleInfo(guild, action.options);
+          return info ? `Data: ${info}` : "Role not found";
+        }
+        case "get_channel_info": {
+          if (!action.options?.channel_id && !action.options?.channel_name)
+            return "get_channel_info requires 'channel_id' or 'channel_name' in options";
+          const info = await dataFetcher.getChannelInfo(guild, action.options);
+          return info ? `Data: ${info}` : "Channel not found";
+        }
+        case "search_members_by_role": {
+          if (!action.options?.role_id && !action.options?.role_name)
+            return "search_members_by_role requires 'role_id' or 'role_name' in options";
+          const members = await dataFetcher.searchMembersByRole(
+            guild,
+            action.options,
+          );
+          if (!members?.length) return "No members found with that role";
+          const list = members
+            .map((m, i) => `${i + 1}. ${m.username} (${m.id}) - Joined: ${m.joinedAt}`)
+            .join("\n");
+          return `Found: ${members.length} member(s) with that role:\n${list}`;
+        }
+        default:
+          return `Unknown DATA_RETRIEVE action: ${action.type}`;
+      }
+    } catch (err) {
+      return `Failed to execute ${action.type}: ${err.message || "Unknown error"}`;
+    }
+  }
+
+  /**
    * Execute structured actions from AI response
    * @param {Array} actions - Array of action objects
    * @param {import('discord.js').Guild} guild - Discord guild
@@ -251,10 +309,6 @@ export class ActionExecutor {
    * @returns {Promise<{results: Array<string>, commandResponses: Array<{command: string, response: object}>}>}
    */
   static async executeStructuredActions(actions, guild, client, user, channel) {
-    const results = [];
-    // Commands now send responses directly to channel, no need to store them
-
-    // Validate actions array
     if (!Array.isArray(actions)) {
       logger.warn("[executeStructuredActions] Actions is not an array");
       return {
@@ -263,330 +317,306 @@ export class ActionExecutor {
       };
     }
 
-    for (const action of actions) {
-      // Validate action structure
+    // Pre-validate all actions and check guild requirements
+    const validatedActions = [];
+    const earlyResults = new Map(); // index → result for actions that fail pre-check
+
+    for (let i = 0; i < actions.length; i++) {
+      const action = actions[i];
       const validation = ActionExecutor.validateAction(action);
       if (!validation.isValid) {
-        logger.warn(
-          `[executeStructuredActions] Invalid action: ${validation.error}`,
-        );
-        results.push(`Invalid action: ${validation.error}`);
+        logger.warn(`[executeStructuredActions] Invalid action: ${validation.error}`);
+        earlyResults.set(i, `Invalid action: ${validation.error}`);
         continue;
       }
-
-      // Check if guild is required for this action (using registry)
       if (actionRequiresGuild(action.type) && !guild) {
-        results.push(
-          `${action.type} requires a server context (cannot be used in DMs)`,
-        );
+        earlyResults.set(i, `${action.type} requires a server context (cannot be used in DMs)`);
         continue;
       }
+      validatedActions.push({ index: i, action });
+    }
 
+    // Split validated actions: DATA_RETRIEVE runs in parallel, everything else sequential
+    const parallelBatch = validatedActions.filter(
+      ({ action }) => getActionConfig(action.type)?.category === ACTION_CATEGORIES.DATA_RETRIEVE,
+    );
+    const sequentialBatch = validatedActions.filter(
+      ({ action }) => getActionConfig(action.type)?.category !== ACTION_CATEGORIES.DATA_RETRIEVE,
+    );
+
+    // Allocate results array preserving original order
+    const results = new Array(actions.length).fill(null);
+    for (const [i, r] of earlyResults) results[i] = r;
+
+    // Run DATA_RETRIEVE actions in parallel
+    if (parallelBatch.length > 0) {
+      logger.debug(`[executeStructuredActions] Running ${parallelBatch.length} DATA_RETRIEVE action(s) in parallel`);
+      await Promise.all(
+        parallelBatch.map(async ({ index, action }) => {
+          results[index] = await ActionExecutor.executeDataRetrieveAction(action, guild);
+        }),
+      );
+    }
+
+    // Run remaining actions sequentially
+    for (const { index, action } of sequentialBatch) {
       try {
-        switch (action.type) {
-          case "fetch_channels":
-            if (!guild) {
-              results.push("Cannot fetch channels: not in a server");
-              break;
-            }
-            await guild.channels.fetch();
-            results.push("Fetched all channels");
-            break;
-
-          case "fetch_roles":
-            if (!guild) {
-              results.push("Cannot fetch roles: not in a server");
-              break;
-            }
-            await guild.roles.fetch();
-            results.push("Fetched all roles");
-            break;
-
-          case "fetch_all":
-            if (!guild) {
-              results.push("Error: Cannot fetch data - not in a server");
-              break;
-            }
-            try {
-              // Note: Member fetching has been removed for security and performance
-              // Only fetch channels and roles now
-              await guild.channels.fetch();
-              await guild.roles.fetch();
-              results.push(
-                "Success: Fetched server data (channels, roles). For member information, users should check Discord's member list.",
-              );
-            } catch (error) {
-              const errorMessage = error.message || "Unknown error occurred";
-              logger.error(
-                `[fetch_all] Unexpected error: ${errorMessage}`,
-                error,
-              );
-              results.push(
-                `Error: Failed to fetch server data - ${errorMessage}`,
-              );
-            }
-            break;
-
-          case "get_member_info":
-            if (!guild) {
-              results.push("Cannot get member info: not in a server");
-              break;
-            }
-            if (
-              !action.options ||
-              (!action.options.user_id && !action.options.username)
-            ) {
-              results.push(
-                "get_member_info requires 'user_id' or 'username' in options",
-              );
-              break;
-            }
-            {
-              const memberInfo = await dataFetcher.getMemberInfo(
-                guild,
-                action.options,
-              );
-              if (memberInfo) {
-                results.push(`Data: ${memberInfo}`);
-              } else {
-                results.push("Member not found");
-              }
-            }
-            break;
-
-          case "get_role_info":
-            if (!guild) {
-              results.push("Cannot get role info: not in a server");
-              break;
-            }
-            if (
-              !action.options ||
-              (!action.options.role_id && !action.options.role_name)
-            ) {
-              results.push(
-                "get_role_info requires 'role_id' or 'role_name' in options",
-              );
-              break;
-            }
-            {
-              const roleInfo = await dataFetcher.getRoleInfo(
-                guild,
-                action.options,
-              );
-              if (roleInfo) {
-                results.push(`Data: ${roleInfo}`);
-              } else {
-                results.push("Role not found");
-              }
-            }
-            break;
-
-          case "get_channel_info":
-            if (!guild) {
-              results.push("Cannot get channel info: not in a server");
-              break;
-            }
-            if (
-              !action.options ||
-              (!action.options.channel_id && !action.options.channel_name)
-            ) {
-              results.push(
-                "get_channel_info requires 'channel_id' or 'channel_name' in options",
-              );
-              break;
-            }
-            {
-              const channelInfo = await dataFetcher.getChannelInfo(
-                guild,
-                action.options,
-              );
-              if (channelInfo) {
-                results.push(`Data: ${channelInfo}`);
-              } else {
-                results.push("Channel not found");
-              }
-            }
-            break;
-
-          case "search_members_by_role":
-            if (!guild) {
-              results.push("Cannot search members: not in a server");
-              break;
-            }
-            if (
-              !action.options ||
-              (!action.options.role_id && !action.options.role_name)
-            ) {
-              results.push(
-                "search_members_by_role requires 'role_id' or 'role_name' in options",
-              );
-              break;
-            }
-            {
-              const members = await dataFetcher.searchMembersByRole(
-                guild,
-                action.options,
-              );
-              if (members && members.length > 0) {
-                const memberList = members
-                  .map(
-                    (m, idx) =>
-                      `${idx + 1}. ${m.username} (${m.id}) - Joined: ${m.joinedAt}`,
-                  )
-                  .join("\n");
-                results.push(
-                  `Found: ${members.length} member(s) with that role:\n${memberList}`,
-                );
-              } else {
-                results.push("No members found with that role");
-              }
-            }
-            break;
-
-          case "execute_command":
-            if (!guild) {
-              results.push("Cannot execute command: not in a server");
-              break;
-            }
-            if (!action.command) {
-              results.push("execute_command requires a 'command' field");
-              break;
-            }
-            {
-              try {
-                const { executeCommandProgrammatically } = await import(
-                  "./commandExecutor.js"
-                );
-
-                // Parse command name - handle cases where AI puts "command subcommand" in command field
-                // e.g., "poll create" should become command="poll", subcommand="create"
-                let commandName = action.command;
-                let subcommand =
-                  action.subcommand ||
-                  (action.options && action.options.subcommand) ||
-                  null;
-
-                // If command name contains a space, split it into command and subcommand
-                if (commandName.includes(" ") && !subcommand) {
-                  const parts = commandName.split(" ");
-                  commandName = parts[0];
-                  subcommand = parts.slice(1).join(" ");
-                  logger.debug(
-                    `[executeStructuredActions] Parsed command "${action.command}" into command="${commandName}", subcommand="${subcommand}"`,
-                  );
-                }
-
-                // Remove subcommand from options if it's there (it's not a real option)
-                const cleanOptions = { ...(action.options || {}) };
-                if (cleanOptions.subcommand) {
-                  delete cleanOptions.subcommand;
-                }
-
-                const result = await executeCommandProgrammatically({
-                  commandName,
-                  subcommand,
-                  options: cleanOptions,
-                  user,
-                  guild,
-                  channel,
-                  client,
-                });
-                if (result.success) {
-                  // Command has already sent its response directly to the channel
-                  logger.info(
-                    `[executeStructuredActions] Command ${action.command} executed and sent response to channel`,
-                  );
-                  const resultMsg = `Command Result: /${commandName}${subcommand ? ` ${subcommand}` : ""} executed successfully`;
-                  results.push(resultMsg);
-
-                  // Audit log
-                  ActionExecutor.logAuditAction(
-                    action.type,
-                    action,
-                    user,
-                    guild,
-                    resultMsg,
-                    true,
-                  );
-                } else {
-                  // Include detailed error information for AI to learn from
-                  const errorMsg = result.error || "Unknown error";
-                  const guidance = await ActionExecutor.getCommandErrorGuidance(
-                    errorMsg,
-                    action,
-                  );
-                  const resultMsg = `Command Error: Failed to execute command "${action.command}"${action.subcommand ? ` with subcommand "${action.subcommand}"` : ""}. Error: ${errorMsg}. ${guidance}`;
-                  results.push(resultMsg);
-
-                  // Audit log
-                  ActionExecutor.logAuditAction(
-                    action.type,
-                    action,
-                    user,
-                    guild,
-                    resultMsg,
-                    false,
-                  );
-                }
-              } catch (error) {
-                // Include detailed error information for AI to learn from
-                const errorMsg = error.message || "Unknown error";
-                const guidance = await ActionExecutor.getCommandErrorGuidance(
-                  errorMsg,
-                  action,
-                );
-                const resultMsg = `Command Error: Error executing command "${action.command}"${action.subcommand ? ` with subcommand "${action.subcommand}"` : ""}. Error: ${errorMsg}. ${guidance}`;
-                results.push(resultMsg);
-
-                // Audit log
-                ActionExecutor.logAuditAction(
-                  action.type,
-                  action,
-                  user,
-                  guild,
-                  resultMsg,
-                  false,
-                );
-              }
-            }
-            break;
-
-          // Note: Direct Discord API actions (send_message, add_role, kick_member, etc.)
-          // are NOT in the action registry. For safety, the AI executes server management
-          // through existing bot commands via admin-delegated permissions instead.
-          // Destructive commands (moderation) are blocked via AI_ADMIN_COMMAND_BLOCKLIST.
-
-          default:
-            // Check if this is a dynamic data fetching action
-            if (
-              action.type.startsWith("get_") &&
-              action.type !== "get_member_info" &&
-              action.type !== "get_role_info" &&
-              action.type !== "get_channel_info" &&
-              action.type !== "search_members_by_role"
-            ) {
-              const handled = await dataFetcher.handleDynamicDataFetching(
-                action.type,
-                guild,
-                client,
-              );
-              if (handled !== null) {
-                results.push(handled);
-                break;
-              }
-            }
-            logger.warn(`Unknown action type: ${action.type}`);
-            results.push(`Unknown action type: ${action.type}`);
-        }
+        results[index] = await ActionExecutor.executeSequentialAction(
+          action, guild, client, user, channel,
+        );
       } catch (error) {
         logger.error(`Error executing action ${action.type}:`, error);
-        results.push(
-          `Failed to execute ${action.type}: ${error.message || "Unknown error"}`,
-        );
+        results[index] = `Failed to execute ${action.type}: ${error.message || "Unknown error"}`;
       }
     }
 
-    return { results, commandResponses: [] }; // Commands send directly, no need to return them
+    return { results: results.filter(r => r !== null), commandResponses: [] };
+  }
+
+  /**
+   * Execute a single sequential action (DATA_FETCH, COMMAND_EXEC, USER_INTERACTION, WEB).
+   * @param {Object} action
+   * @param {import('discord.js').Guild} guild
+   * @param {import('discord.js').Client} client
+   * @param {import('discord.js').User} user
+   * @param {import('discord.js').Channel} channel
+   * @returns {Promise<string>}
+   */
+  static async executeSequentialAction(action, guild, client, user, channel) {
+    switch (action.type) {
+      case "fetch_channels":
+        if (!guild) return "Cannot fetch channels: not in a server";
+        await guild.channels.fetch();
+        return "Fetched all channels";
+
+      case "fetch_roles":
+        if (!guild) return "Cannot fetch roles: not in a server";
+        await guild.roles.fetch();
+        return "Fetched all roles";
+
+      case "fetch_all": {
+        if (!guild) return "Error: Cannot fetch data - not in a server";
+        try {
+          await guild.channels.fetch();
+          await guild.roles.fetch();
+          return "Success: Fetched server data (channels, roles). For member information, users should check Discord's member list.";
+        } catch (error) {
+          const msg = error.message || "Unknown error occurred";
+          logger.error(`[fetch_all] Unexpected error: ${msg}`, error);
+          return `Error: Failed to fetch server data - ${msg}`;
+        }
+      }
+
+      case "show_component":
+        return await ActionExecutor.executeShowComponent(action, channel, user);
+
+      case "web_search":
+        return await ActionExecutor.executeWebSearch(action);
+
+      case "execute_command":
+        return await ActionExecutor.executeCommand(action, guild, client, user, channel);
+
+      default: {
+        // Dynamic get_* actions not in registry
+        if (action.type.startsWith("get_")) {
+          const handled = await dataFetcher.handleDynamicDataFetching(action.type, guild, client);
+          if (handled !== null) return handled;
+        }
+        logger.warn(`Unknown action type: ${action.type}`);
+        return `Unknown action type: ${action.type}`;
+      }
+    }
+  }
+
+  /**
+   * Show a Discord button/select menu and wait for user selection.
+   * @param {Object} action
+   * @param {import('discord.js').Channel} channel
+   * @param {import('discord.js').User} user
+   * @returns {Promise<string>}
+   */
+  static async executeShowComponent(action, channel, user) {
+    if (!channel) return "show_component requires a channel context";
+
+    const { question, options, component_type, placeholder } = action.options || {};
+    if (!question || !Array.isArray(options) || options.length < 2)
+      return "show_component requires 'question' and at least 2 'options'";
+
+    const opts = options.slice(0, 25);
+    const useButtons = component_type === "buttons" || (!component_type && opts.length <= 5);
+
+    let row;
+    if (useButtons && opts.length <= 5) {
+      const buttons = opts.map((opt, i) =>
+        new ButtonBuilder()
+          .setCustomId(`ai_choice_${i}`)
+          .setLabel(String(opt.label).substring(0, 80))
+          .setStyle(i === 0 ? ButtonStyle.Primary : ButtonStyle.Secondary),
+      );
+      row = new ActionRowBuilder().addComponents(buttons);
+    } else {
+      const menu = new StringSelectMenuBuilder()
+        .setCustomId("ai_choice_select")
+        .setPlaceholder(String(placeholder || "Select an option…").substring(0, 150))
+        .addOptions(
+          opts.map((opt, i) =>
+            new StringSelectMenuOptionBuilder()
+              .setLabel(String(opt.label).substring(0, 100))
+              .setValue(String(opt.value ?? i))
+              .setDescription(String(opt.description ?? "").substring(0, 100)),
+          ),
+        );
+      row = new ActionRowBuilder().addComponents(menu);
+    }
+
+    let msg;
+    try {
+      msg = await channel.send({ content: question, components: [row] });
+    } catch (err) {
+      return `Failed to send component: ${err.message}`;
+    }
+
+    try {
+      const filter = i => !user || i.user.id === user.id;
+      const collected = await msg.awaitMessageComponent({ filter, time: 60_000 });
+
+      let selectedLabel;
+      if (collected.isButton()) {
+        const idx = parseInt(collected.customId.replace("ai_choice_", ""), 10);
+        selectedLabel = opts[idx]?.label ?? collected.customId;
+      } else {
+        const val = collected.values[0];
+        const found = opts.find(o => String(o.value ?? opts.indexOf(o)) === val);
+        selectedLabel = found?.label ?? val;
+      }
+
+      await collected.update({
+        content: `✓ Selected: **${selectedLabel}**`,
+        components: [],
+      });
+      return `User selected: ${selectedLabel}`;
+    } catch (_err) {
+      // Timeout — remove components so channel doesn't stay cluttered
+      try {
+        await msg.edit({ components: [] });
+      } catch (_e) {}
+      return "No selection made (timed out after 60 seconds)";
+    }
+  }
+
+  /**
+   * Search the web via Brave Search API.
+   * @param {Object} action
+   * @returns {Promise<string>}
+   */
+  static async executeWebSearch(action) {
+    const query = action.options?.query;
+    if (!query) return "web_search requires 'query' in options";
+
+    const apiKey = process.env.BRAVE_SEARCH_API_KEY;
+    if (!apiKey) {
+      return "Web search is not configured (BRAVE_SEARCH_API_KEY not set)";
+    }
+
+    const count = Math.min(parseInt(action.options?.count ?? 5, 10), 10);
+
+    try {
+      const url = new URL("https://api.search.brave.com/res/v1/web/search");
+      url.searchParams.set("q", query);
+      url.searchParams.set("count", String(count));
+      url.searchParams.set("result_filter", "web");
+
+      const response = await fetch(url.toString(), {
+        headers: {
+          "Accept": "application/json",
+          "Accept-Encoding": "gzip",
+          "X-Subscription-Token": apiKey,
+        },
+        signal: AbortSignal.timeout(10_000),
+      });
+
+      if (!response.ok) {
+        return `Web search failed: HTTP ${response.status}`;
+      }
+
+      const data = await response.json();
+      const webResults = data?.web?.results ?? [];
+
+      if (!webResults.length) {
+        return `No web results found for: "${query}"`;
+      }
+
+      const formatted = webResults
+        .map((r, i) => `${i + 1}. **${r.title}**\n   ${r.url}\n   ${r.description ?? ""}`.trim())
+        .join("\n\n");
+
+      return `Data: Web search results for "${query}":\n\n${formatted}`;
+    } catch (err) {
+      logger.warn(`[web_search] Error: ${err.message}`);
+      return `Web search error: ${err.message}`;
+    }
+  }
+
+  /**
+   * Execute a bot command programmatically.
+   * @param {Object} action
+   * @param {import('discord.js').Guild} guild
+   * @param {import('discord.js').Client} client
+   * @param {import('discord.js').User} user
+   * @param {import('discord.js').Channel} channel
+   * @returns {Promise<string>}
+   */
+  static async executeCommand(action, guild, client, user, channel) {
+    if (!guild) return "Cannot execute command: not in a server";
+    if (!action.command) return "execute_command requires a 'command' field";
+
+    try {
+      const { executeCommandProgrammatically } = await import("./commandExecutor.js");
+
+      let commandName = action.command;
+      let subcommand = action.subcommand || action.options?.subcommand || null;
+
+      if (commandName.includes(" ") && !subcommand) {
+        const parts = commandName.split(" ");
+        commandName = parts[0];
+        subcommand = parts.slice(1).join(" ");
+        logger.debug(
+          `[executeStructuredActions] Parsed command "${action.command}" into command="${commandName}", subcommand="${subcommand}"`,
+        );
+      }
+
+      const cleanOptions = { ...(action.options || {}) };
+      delete cleanOptions.subcommand;
+
+      const result = await executeCommandProgrammatically({
+        commandName,
+        subcommand,
+        options: cleanOptions,
+        user,
+        guild,
+        channel,
+        client,
+      });
+
+      if (result.success) {
+        logger.info(`[executeStructuredActions] Command ${action.command} executed and sent response to channel`);
+        const resultMsg = `Command Result: /${commandName}${subcommand ? ` ${subcommand}` : ""} executed successfully`;
+        ActionExecutor.logAuditAction(action.type, action, user, guild, resultMsg, true);
+        return resultMsg;
+      } else {
+        const errorMsg = result.error || "Unknown error";
+        const guidance = await ActionExecutor.getCommandErrorGuidance(errorMsg, action);
+        const resultMsg = `Command Error: Failed to execute command "${action.command}"${action.subcommand ? ` with subcommand "${action.subcommand}"` : ""}. Error: ${errorMsg}. ${guidance}`;
+        ActionExecutor.logAuditAction(action.type, action, user, guild, resultMsg, false);
+        return resultMsg;
+      }
+    } catch (error) {
+      const errorMsg = error.message || "Unknown error";
+      const guidance = await ActionExecutor.getCommandErrorGuidance(errorMsg, action);
+      const resultMsg = `Command Error: Error executing command "${action.command}"${action.subcommand ? ` with subcommand "${action.subcommand}"` : ""}. Error: ${errorMsg}. ${guidance}`;
+      ActionExecutor.logAuditAction(action.type, action, user, guild, resultMsg, false);
+      return resultMsg;
+    }
   }
 }
 

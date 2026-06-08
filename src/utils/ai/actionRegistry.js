@@ -14,6 +14,8 @@ export const ACTION_CATEGORIES = {
   DATA_FETCH: "data_fetch", // Fetches data from Discord (triggers re-query)
   DATA_RETRIEVE: "data_retrieve", // Retrieves specific data (read-only, no re-query)
   COMMAND_EXEC: "command_exec", // Executes bot commands
+  USER_INTERACTION: "user_interaction", // Renders Discord UI and waits for user input
+  WEB: "web", // Fetches external data from the internet
 };
 
 /**
@@ -131,6 +133,32 @@ export const ACTION_REGISTRY = {
     triggersReQuery: false,
     requiresOptions: false,
     description: "Get moderation history",
+  },
+
+  // ============================================================================
+  // USER INTERACTION (Renders Discord UI, blocks until user responds, re-queries)
+  // ============================================================================
+  show_component: {
+    type: "show_component",
+    category: ACTION_CATEGORIES.USER_INTERACTION,
+    requiresGuild: false,
+    triggersReQuery: true,
+    requiresOptions: true,
+    requiredOptions: ["question", "options"],
+    description: "Show Discord buttons or select menu and wait for user to choose",
+  },
+
+  // ============================================================================
+  // WEB ACTIONS (Fetch external data, triggers re-query for AI to synthesize)
+  // ============================================================================
+  web_search: {
+    type: "web_search",
+    category: ACTION_CATEGORIES.WEB,
+    requiresGuild: false,
+    triggersReQuery: true,
+    requiresOptions: true,
+    requiredOptions: ["query"],
+    description: "Search the web for current information",
   },
 
   // ============================================================================
