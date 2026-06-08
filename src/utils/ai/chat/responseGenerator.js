@@ -1,6 +1,11 @@
 import { performanceMonitor } from "../performanceMonitor.js";
 import { getLogger } from "../../logger.js";
 import { AI_STATUS_MESSAGES } from "../statusMessages.js";
+import {
+  TOOL_DEFINITIONS,
+  isClaudeModel,
+  translateToolCallsToActions,
+} from "../toolDefinitions.js";
 
 const logger = getLogger();
 
@@ -141,14 +146,19 @@ export async function generateAIResponseWithOptimization(
     `[AI] Request ${requestId}: ${messages.length} messages, ${JSON.stringify(messages).length} chars`,
   );
 
+  // Pass tool definitions for Claude models so the AI uses structured tool_use
+  // instead of outputting raw JSON — eliminates silent JSON-parsing failures.
+  const tools = isClaudeModel(currentModel) ? TOOL_DEFINITIONS : undefined;
+
   const result = await aiService.generate({
     type: "text",
     prompt: messages,
     config: {
       systemMessage,
-      temperature: modelOpts.temperature, // Use model-optimized temperature
-      maxTokens, // Adaptive: based on model and user preference
-      forceJson: false, // Don't force JSON - let AI choose based on whether actions are needed
+      temperature: modelOpts.temperature,
+      maxTokens,
+      forceJson: false,
+      ...(tools && { tools }),
     },
   });
 
@@ -180,24 +190,28 @@ export async function processAIResponse(
   // Deduct credits for initial API call only if it actually uses resources
   await services.deductCreditsIfNeeded(userId, result, "initial");
 
-  const rawResponse =
-    result.text || result.response || "No response generated.";
+  let finalResponse;
+  let actions;
 
-  // Log response summary (debug level for detailed logs)
-  logger.debug(
-    `[AI] Response: ${rawResponse.length} chars for user ${userId || "unknown"}`,
-  );
-
-  // Parse response - can be JSON (if actions) or plain text (if no actions)
-  const parsed = services.parseAIResponse(rawResponse);
-  let finalResponse = parsed.message;
-  const actions = parsed.actions;
+  if (result.toolCalls && result.toolCalls.length > 0) {
+    // Structured tool_use path (Claude models via OpenRouter) — no JSON parsing needed
+    logger.debug(`[AI] tool_use response: ${result.toolCalls.length} tool call(s) for user ${userId || "unknown"}`);
+    actions = translateToolCallsToActions(result.toolCalls);
+    finalResponse = result.text || "";
+  } else {
+    // Legacy JSON / plain-text path (non-Claude models)
+    const rawResponse = result.text || result.response || "No response generated.";
+    logger.debug(`[AI] Response: ${rawResponse.length} chars for user ${userId || "unknown"}`);
+    const parsed = services.parseAIResponse(rawResponse);
+    finalResponse = parsed.message;
+    actions = parsed.actions;
+  }
 
   // Validate and sanitize response
   finalResponse = services.validateAndSanitizeResponse(
     finalResponse,
     guild,
-    parsed.success,
+    !result.toolCalls, // isJsonResponse = true only for the legacy JSON path
   );
 
   // Process actions and handle re-query if needed
@@ -211,6 +225,7 @@ export async function processAIResponse(
     userMessage,
     locale: locale || "en-US",
     wantsDetail: options.wantsDetail,
+    initialOutputTokens: result.usage?.completion_tokens ?? 0,
   };
   const actionResult = await services.processActionsAndReQuery(
     actions,

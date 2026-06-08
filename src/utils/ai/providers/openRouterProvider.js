@@ -79,9 +79,12 @@ export class OpenRouterProvider {
       }
     }
 
-    // Add response_format for structured output if supported by model
-    // This helps enforce JSON format (OpenRouter supports this for compatible models)
-    if (config.responseFormat === "json_object" || config.forceJson) {
+    // Tools (Claude models via OpenRouter): pass definitions and skip response_format
+    // response_format and tools are mutually exclusive — tools take precedence.
+    if (config.tools && Array.isArray(config.tools) && config.tools.length > 0) {
+      requestBody.tools = config.tools;
+    } else if (config.responseFormat === "json_object" || config.forceJson) {
+      // Only set response_format when NOT using tools
       requestBody.response_format = { type: "json_object" };
     }
 
@@ -91,7 +94,20 @@ export class OpenRouterProvider {
       body: JSON.stringify(requestBody),
     });
 
-    const content = data.choices?.[0]?.message?.content;
+    const message = data.choices?.[0]?.message;
+
+    // Tool_use path: model returned structured tool calls instead of plain text
+    if (message?.tool_calls && message.tool_calls.length > 0) {
+      return {
+        text: message.content || "",
+        toolCalls: message.tool_calls,
+        model: data.model || model,
+        provider: "openrouter",
+        usage: data.usage || null,
+      };
+    }
+
+    const content = message?.content;
     if (!content) {
       throw new Error(
         "The AI service did not generate a response. Please try again.",

@@ -5,6 +5,7 @@ import { conversationManager } from "../conversationManager.js";
 import {
   FOLLOW_UP_QUERY_TIMEOUT,
   MAX_ACTION_LOOP_DEPTH,
+  TOKEN_BUDGET_OUTPUT_SOFT_LIMIT,
 } from "../constants.js";
 import { getLogger } from "../../logger.js";
 import { followUpTemplate } from "../../../config/prompts/chat/responses.js";
@@ -133,6 +134,7 @@ export async function executeReQuery(
     locale,
     wantsDetail,
     user,
+    initialOutputTokens = 0,
   } = context;
   const { aiService, parseAIResponse, deductCreditsIfNeeded } = services;
 
@@ -232,6 +234,16 @@ export async function executeReQuery(
     content: followUpPrompt,
   });
 
+  // Token budget: if the initial response was already large, give a tighter cap
+  // to the re-query to keep total costs predictable.
+  const tokensTight = initialOutputTokens > TOKEN_BUDGET_OUTPUT_SOFT_LIMIT;
+  const reQueryMaxTokens = tokensTight ? 300 : wantsDetail ? 800 : 500;
+  if (tokensTight) {
+    logger.debug(`[executeReQuery] Token budget tight (${initialOutputTokens} output tokens), capping re-query at ${reQueryMaxTokens}`);
+    updatedMessages[updatedMessages.length - 1].content +=
+      "\n\n[Token budget is tight — be concise.]";
+  }
+
   // Re-query AI with updated context (with timeout)
   const followUpPromise = aiService.generate({
     type: "text",
@@ -239,7 +251,7 @@ export async function executeReQuery(
     config: {
       systemMessage: updatedSystemMessage,
       temperature: 0.7,
-      maxTokens: wantsDetail ? 800 : 500,
+      maxTokens: reQueryMaxTokens,
       forceJson: true,
     },
   });

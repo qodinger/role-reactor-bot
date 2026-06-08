@@ -5,23 +5,51 @@ import { commandDiscoverer } from "../commandDiscoverer.js";
  * Build dynamic actions list for AI prompt
  * @param {import('discord.js').Guild} guild - Discord guild
  * @param {import('discord.js').Client} client - Discord client
+ * @param {Object} permissions - { isAdmin, isMod }
  * @returns {Promise<string>} Formatted actions list
  */
-async function buildDynamicActionsList(guild, client) {
+async function buildDynamicActionsList(guild, client, permissions = {}) {
+  const { isAdmin = false, isMod = false } = permissions;
+  const canRunServerActions = isAdmin || isMod;
   let actionsList = "";
+
+  // Permission tier label
+  if (isAdmin) {
+    actionsList += `**[Mode: Admin — all actions available]**\n\n`;
+  } else if (isMod) {
+    actionsList += `**[Mode: Moderator — server data and general commands available]**\n\n`;
+  } else {
+    actionsList += `**[Mode: Member — read-only lookups, web search, and general commands only]**\n\n`;
+  }
 
   // Always-available actions (work in DMs and servers)
   actionsList += `**User Interaction:**\n`;
   actionsList += `- "show_component" - Show Discord buttons or select menu for user to choose from\n`;
   actionsList += `  options: { question: "...", options: [{label: "...", value: "...", description: "..."}], component_type: "buttons"|"select" }\n`;
-  actionsList += `  Use when you need the user to pick from a list of choices (e.g., which role, which channel, which option).\n`;
-  actionsList += `  ≤5 options → buttons auto-selected; >5 options → select menu auto-selected.\n\n`;
+  actionsList += `  ≤5 options → buttons; >5 → select menu.\n\n`;
 
   actionsList += `**Web Search:**\n`;
   actionsList += `- "web_search" - Search the web for real-time or current information\n`;
-  actionsList += `  options: { query: "search terms", count: 5 }\n`;
-  actionsList += `  Use when the user asks about something that may have changed recently, current events, or you're unsure about.\n\n`;
+  actionsList += `  options: { query: "search terms", count: 5 }\n\n`;
 
+  // Read-only member lookups (all users in a server)
+  if (guild) {
+    actionsList += `**Data Lookup (read-only):**\n`;
+    actionsList += `- "get_member_info" — options: { user_id } or { username }\n`;
+    actionsList += `- "get_role_info" — options: { role_id } or { role_name }\n`;
+    actionsList += `- "get_channel_info" — options: { channel_id } or { channel_name }\n`;
+    actionsList += `- "search_members_by_role" — options: { role_id } or { role_name }\n\n`;
+  }
+
+  // Server data refresh — mods and admins only
+  if (guild && canRunServerActions) {
+    actionsList += `**Server Data Refresh (mods/admins only):**\n`;
+    actionsList += `- "fetch_channels" — refresh channel list\n`;
+    actionsList += `- "fetch_roles" — refresh role list\n`;
+    actionsList += `- "fetch_all" — refresh all server data\n\n`;
+  }
+
+  // Command execution
   if (guild) {
     actionsList += `**Command Execution:**\n`;
     try {
@@ -30,10 +58,9 @@ async function buildDynamicActionsList(guild, client) {
       );
       const executableCommands = await getExecutableCommands(client);
       if (executableCommands.length > 0) {
-        actionsList += `- "execute_command" - Execute any general bot command (command, subcommand, options)\n`;
+        actionsList += `- "execute_command" — command, subcommand (optional), options (optional)\n`;
         actionsList += `  Available commands: ${executableCommands.map(c => `/${c.name}`).join(", ")}\n`;
-        actionsList += `  **Note:** You can only execute commands from /src/commands/general (general commands only)\n`;
-        actionsList += `  **CRITICAL:** NEVER execute the "ask" command - you are ALREADY in the ask command context! If you need to answer a question, just respond directly with plain text. Do NOT use execute_command with "ask" as it will create infinite loops.\n`;
+        actionsList += `  **CRITICAL:** NEVER execute "ask" — you are already inside that command. Just respond in plain text.\n`;
       }
     } catch (_error) {
       // Ignore
@@ -147,10 +174,11 @@ async function buildResponseFormatExamples(
  * Build response format section of system prompt
  * @param {import('discord.js').Guild} guild - Discord guild
  * @param {import('discord.js').Client} client - Discord client
+ * @param {Object} permissions - { isAdmin, isMod }
  * @returns {Promise<string>} Response format section
  */
-export async function buildResponseFormatSection(guild, client) {
-  const actionsList = await buildDynamicActionsList(guild, client);
+export async function buildResponseFormatSection(guild, client, permissions = {}) {
+  const actionsList = await buildDynamicActionsList(guild, client, permissions);
   const examples = await buildResponseFormatExamples(
     guild,
     client,

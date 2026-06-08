@@ -91,15 +91,11 @@ export class SystemPromptBuilder {
    * Build response format section of system prompt
    * @param {import('discord.js').Guild} guild - Discord guild
    * @param {import('discord.js').Client} client - Discord client
-   * @param {Function} [_generateCommandExample=null] - Function to generate command example (deprecated, kept for compatibility)
+   * @param {Object} [permissions={}] - { isAdmin, isMod }
    * @returns {Promise<string>} Response format section
    */
-  async buildResponseFormatSection(
-    guild,
-    client,
-    _generateCommandExample = null,
-  ) {
-    return buildResponseFormatSection(guild, client);
+  async buildResponseFormatSection(guild, client, permissions = {}) {
+    return buildResponseFormatSection(guild, client, permissions);
   }
 
   /**
@@ -215,6 +211,7 @@ export class SystemPromptBuilder {
       const responseFormat = await this.buildResponseFormatSection(
         guild,
         client,
+        { isAdmin: isAdminUser, isMod: isModeratorUser },
       );
       const identity = this.buildIdentitySection();
       const contextSection = this.buildContextSection(guild);

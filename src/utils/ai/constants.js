@@ -67,3 +67,8 @@ export const AI_DEFAULT_ADMIN_BLOCKLIST = [
 // Audit logging for AI actions
 export const AI_AUDIT_LOGGING_ENABLED =
   process.env.AI_AUDIT_LOGGING !== "false"; // Enabled by default
+
+// Token budget: if the initial response consumed more than this many output tokens,
+// the re-query gets a tighter cap and a brevity signal to keep costs predictable.
+export const TOKEN_BUDGET_OUTPUT_SOFT_LIMIT =
+  parseInt(process.env.AI_TOKEN_BUDGET_SOFT_LIMIT) || 400;
