@@ -13,8 +13,6 @@ core/
 ├── embeds.js             # Discord embed creation and formatting
 ├── utils.js              # Helper functions, data management, and pricing calculations
 ├── validation.js         # Input validation and user data verification
-├── payment.js             # Payment processing and cryptocurrency integration
-├── paymentEmbeds.js       # Payment-related embed creation
 └── README.md             # This documentation
 ```
 

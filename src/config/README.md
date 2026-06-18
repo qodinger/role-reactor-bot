@@ -1,13 +1,34 @@
-# AI Configuration System
+# Configuration System
 
-This directory contains configuration files for AI services, including prompt templates and settings.
+This directory contains configuration files for the bot, including AI prompts, theme settings, and emoji configuration.
 
 ## Files
 
-### `prompts.js`
+### `config.js`
 
-- **Purpose**: AI prompt configuration with environment variable support
+- **Purpose**: Main bot configuration (Discord, database, Core pricing, etc.)
+- **Status**: Environment-based configuration with validation
+
+### `ai.js`
+
+- **Purpose**: AI configuration (models, feature credits, content filters)
+- **Status**: AI provider and pricing configuration
+
+### `theme.js`
+
+- **Purpose**: Theme configuration (colors, UI components, button styles)
+- **Status**: Visual theme settings for embeds and components
+
+### `emojis.js`
+
+- **Purpose**: Emoji configuration for bot reactions and responses
+- **Status**: Custom emoji IDs and mappings
+
+### `prompts/`
+
+- **Purpose**: AI prompt configuration organized by purpose
 - **Status**: Safe to commit to public repositories
+- **Structure**: Contains `imagePrompts.js`, `index.js`, and `chat/` subdirectory
 - **Usage**: Contains prompts that work out of the box, customizable via environment variables
 
 ## Setup Instructions

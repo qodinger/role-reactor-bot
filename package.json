@@ -69,8 +69,8 @@
   },
   "homepage": "https://github.com/qodinger/role-reactor-bot#readme",
   "engines": {
-    "node": ">=16.0.0",
-    "pnpm": ">=9.0.0"
+    "node": ">=22.0.0",
+    "pnpm": ">=9.9.0"
   },
   "dependencies": {
     "@napi-rs/canvas": "0.1.92",

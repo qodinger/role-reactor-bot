@@ -7,9 +7,6 @@ This directory contains all AI-related prompts organized by purpose for better m
 ```
 prompts/
 ├── index.js              # Main export file (re-exports everything)
-├── promptLoader.js       # Dynamic prompt loading with caching
-├── promptVersion.js      # Prompt version metadata
-├── promptAnalytics.js    # Usage and performance tracking
 ├── imagePrompts.js       # Image generation prompts
 ├── chat/                 # Chat prompts (organized by category)
 │   ├── index.js          # Chat prompts index
@@ -24,53 +21,8 @@ prompts/
 ### `index.js`
 
 - **Purpose**: Central export point for all prompts
-- **Exports**: All image and chat prompts, plus dynamic loader functions, versioning, and analytics
-- **Usage**: Import from here for backward compatibility
-
-### `promptLoader.js`
-
-- **Purpose**: Dynamic prompt loading with caching and template substitution
-- **Features**:
-  - Runtime loading with configurable cache TTL
-  - Template variable substitution (`{variableName}`)
-  - Hot-reload support via `clearPromptCache()`
-  - Cache statistics and monitoring
-  - Automatic performance tracking
-- **Functions**:
-  - `loadImagePrompts(forceReload)` - Load image prompts
-  - `loadChatPrompts(forceReload)` - Load chat prompts
-  - `loadAllPrompts(forceReload)` - Load all prompts
-  - `getPrompt(type, key, variables, forceReload)` - Get prompt with variable substitution
-  - `clearPromptCache()` - Clear cache for hot-reloading
-  - `getCacheStats()` - Get cache statistics
-
-### `promptVersion.js`
-
-- **Purpose**: Track version information for all prompt modules
-- **Features**:
-  - Version metadata for each prompt category
-  - Sub-category versioning support
-  - Last updated timestamps
-- **Functions**:
-  - `getPromptVersion(promptType)` - Get version for a specific prompt type
-  - `getAllPromptVersions()` - Get all version information
-
-### `promptAnalytics.js`
-
-- **Purpose**: Track prompt usage, performance, and errors
-- **Features**:
-  - Usage statistics (how often each prompt is used)
-  - Performance metrics (load times)
-  - Error tracking
-- **Functions**:
-  - `trackPromptUsage(type, key)` - Track prompt usage
-  - `trackPromptPerformance(type, loadTime)` - Track load performance
-  - `trackPromptError(type, key, error)` - Track errors
-  - `getUsageStats(type)` - Get usage statistics
-  - `getPerformanceStats(type)` - Get performance statistics
-  - `getErrorStats(type)` - Get error statistics
-  - `getAllAnalytics()` - Get all analytics data
-  - `resetAnalytics()` - Reset analytics (for testing)
+- **Exports**: All image and chat prompts for backward compatibility
+- **Usage**: Import from here for static usage
 
 ### `imagePrompts.js`
 

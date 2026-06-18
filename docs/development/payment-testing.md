@@ -202,12 +202,6 @@ db.storage.find({ key: "core_credit" })
 
 ---
 
-## Complete Test Script
-
-```bash
-PLISIO_SECRET_KEY=your_key TEST_USER_ID=your_discord_id node scripts/test-payment-flow.js
-```
-
 ---
 
 ## Troubleshooting
@@ -246,5 +240,4 @@ Before going live:
 | Check user | `curl http://localhost:3030/auth/me -b cookies.txt` |
 | Get pricing | `curl http://localhost:3030/api/pricing` |
 | Check balance | `curl http://localhost:3030/api/user/USER_ID/balance` |
-| Test webhook | `node scripts/test-payment-flow.js` |
 | Bot logs | `pnpm run docker:logs` |

@@ -24,13 +24,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`/ask` renamed to `/chat`**: The command name, option label (`question` → `message`), and all related files have been updated. The old `/ask` command no longer exists.
 - **AI Chat is now channel-shared**: Previously each user had their own private AI conversation. Now the whole channel shares one session so members can see what others asked and build on it together.
 - **AI now uses verified command examples**: When the AI suggests how to use a command (e.g. `/role-reactions setup`), it pulls the exact format from the command's own help documentation instead of guessing.
-- **`/core` Spending Guide**: The balance embed now shows AI Chat cost (0.05 Cores per message, ~20 per Core) alongside AI Avatar and Pro Engine costs.
 - **Guild Analytics require Pro Engine**: Server growth analytics are now a Pro Engine feature. Pro servers also get up to 365 days of analytics history (previously 90 days).
 - **Auto-Mod Pro Features**: Advanced bad word filtering (wildcard and regex patterns), domain allowlisting, and the caps lock filter are exclusive to Pro Engine servers.
 - **Transcript Storage (Free tier)**: Free servers now keep ticket transcripts for 30 days, up from 7 days.
 - **Role Reaction Menus (Pro Engine)**: The Pro Engine menu limit has been updated from 20 to 8.
 - **AI Avatar Cost**: Generating an AI Avatar now costs 5 Cores (up from 3). This helps keep the service sustainable. At $5 you can generate 15 avatars.
-- **Core Balance display**: The `/core balance` command now shows Core value in USD and a quick cost reference for Pro Engine, AI Avatar, and AI Chat.
 
 ### Fixed
 

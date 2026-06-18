@@ -53,8 +53,8 @@ A powerful Discord bot that helps you manage your server with role management, A
 
 ### Prerequisites
 
-- Node.js 20.0.0 or higher
-- pnpm package manager
+- Node.js 22 or higher
+- pnpm 9.9.0 or higher
 - MongoDB (local or Atlas)
 - Discord Bot Token
 
@@ -247,7 +247,6 @@ See [Core Energy Guide](./docs/CORE_ENERGY.md) for details on activation and pri
 - **[💎 Core Energy & Pro Engine](./docs/CORE_ENERGY.md)** - Credits, voting, and Pro Engine guide
 - **[🗳️ top.gg Voting Setup](./docs/integrations/topgg.md)** - Voting rewards webhook integration
 - **[🤝 Contributing Guidelines](./docs/CONTRIBUTING.md)** - How to contribute to the project
-- **[🌿 Git Workflow Guide](./docs/development/workflow.md)** - Branch strategy and workflow patterns
 
 ## 📝 Changelog
 
@@ -305,10 +304,6 @@ git-feature feature-name
 # ... develop ...
 git-finish-feature
 ```
-
-### Documentation
-
-- **[📘 Git Workflow Guide](./docs/development/workflow.md)** - Complete workflow documentation with patterns and best practices
 
 ### Git Helper Scripts
 

@@ -16,13 +16,21 @@ The AI utilities are designed with a modular, reusable architecture:
 ### Supporting Modules
 
 - **`conversationManager.js`** - Manages conversation history and long-term memory (MongoDB)
-- **`responseValidator.js`** - Validates and sanitizes AI responses for data accuracy and security
 - **`systemPromptBuilder.js`** - Builds system prompts with server context, command information, and user-specific data
 - **`commandDiscoverer.js`** - Discovers and formats bot commands for AI system prompts
 - **`serverInfoGatherer.js`** - Gathers server and bot information for AI context
 - **`commandExecutor.js`** - Executes bot commands programmatically from AI actions
 - **`actionRegistry.js`** - Centralized registry for all AI actions with validation and metadata
 - **`constants.js`** - Shared constants for all AI modules
+- **`aiCreditManager.js`** - AI credit checking and deduction logic
+- **`costMonitor.js`** - AI cost tracking and monitoring
+- **`dynamicPricing.js`** - Dynamic pricing calculations for AI features
+- **`pricingService.js`** - Pricing service for Core credit packages
+- **`promptIntelligence.js`** - Intelligent prompt processing and optimization
+- **`smartAssistant.js`** - Smart assistant with context-aware responses
+- **`smartAssistantIntegration.js`** - Smart assistant integration utilities
+- **`statusMessages.js`** - Status message templates for AI operations
+- **`toolDefinitions.js`** - AI tool definitions for function calling
 
 ### Chat Service Modules (`chat/`)
 
@@ -43,12 +51,9 @@ Hierarchical memory system for long-term conversation context:
 - **`summarizer.js`** - Conversation summarization for reducing token usage in long conversations
 - **`summaryStorage.js`** - Summary storage (file or MongoDB) for persistent memory
 
-### Extracted Modules (Internal)
+### Internal Modules
 
-- **`jsonParser.js`** - Parses JSON responses from AI, handling markdown code blocks
-- **`dataFetcher.js`** - Fetches Discord data (members, roles, channels) for AI context
 - **`actionExecutor.js`** - Validates and executes AI actions
-- **`modelOptimizer.js`** - Provides optimized parameters (maxTokens, temperature) for different AI models
 - **`commandExecutor/`** - Command discovery, validation, and mock interaction creation
 - **`promptSections/`** - Modular prompt sections (identity, context, response format)
 - **`providers/`** - Provider-specific implementations (OpenRouter, Stability, Self-hosted)

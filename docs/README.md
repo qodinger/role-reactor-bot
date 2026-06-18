@@ -13,7 +13,6 @@ Welcome to the comprehensive documentation for Role Reactor Bot - a powerful Dis
 ### 🛠️ Development & Testing
 
 - **[Payment Testing Guide](./development/payment-testing.md)** - Payment flow testing procedures
-- **[Git Workflow](./development/workflow.md)** - Git branching strategy and helper commands
 - **[Contributing Guidelines](./CONTRIBUTING.md)** - How to contribute to the project
 
 ### 🔌 API & Authentication
@@ -24,7 +23,6 @@ Welcome to the comprehensive documentation for Role Reactor Bot - a powerful Dis
 ### 💳 Integrations
 
 - **[top.gg Voting Setup](./integrations/topgg.md)** - Voting rewards webhook integration
-- **[Docker Troubleshooting](./integrations/docker/troubleshooting.md)** - Solutions for common Docker issues
 
 ## 🎯 Quick Navigation
 
@@ -37,13 +35,11 @@ Welcome to the comprehensive documentation for Role Reactor Bot - a powerful Dis
 ### For Developers
 
 - **Testing payments?** Read the [Payment Testing Guide](./development/payment-testing.md)
-- **Working on features?** Follow the [Git Workflow](./development/workflow.md)
 - **Building a dashboard?** Use the [Auth Integration](./api/auth.md) and [API Reference](./api/reference.md)
-- **Contributing?** See [How to Contribute](./contributing.md)
+- **Contributing?** See [How to Contribute](./CONTRIBUTING.md)
 
 ### For Administrators
 
-- **Deployment issues?** See [Docker Troubleshooting](./integrations/docker/troubleshooting.md)
 - **Version updates?** Check the [Changelog](./CHANGELOG.md)
 
 ## 🏗️ Project Structure
@@ -58,16 +54,14 @@ docs/
 │   ├── README.md                   # Installation & initial setup
 │   └── deployment.md               # Production deployment guide
 ├── development/
-│   ├── payment-testing.md          # Payment flow testing procedures
-│   └── workflow.md                 # Git branching & workflow
+│   └── payment-testing.md          # Payment flow testing procedures
 ├── api/
 │   ├── reference.md                # Core API documentation
 │   └── auth.md                     # Website Discord login guide
 └── integrations/
     ├── topgg.md                    # top.gg voting rewards setup
     └── docker/
-        ├── README.md               # Docker guide
-        └── troubleshooting.md      # Docker fixes
+        └── README.md               # Docker guide
 ```
 
 
@@ -87,4 +81,4 @@ docs/
 
 ---
 
-_Last Updated: March 28, 2026_
+_Last Updated: June 18, 2026_

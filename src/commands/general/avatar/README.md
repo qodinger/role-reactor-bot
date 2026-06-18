@@ -14,7 +14,6 @@ avatar/
 ├── utils.js                 # Utility functions
 ├── README.md                # This documentation
 └── utils/                   # Specialized utility modules
-    ├── creditManager.js     # Credit system management
     ├── generationHistory.js # Generation history tracking
     ├── imageUtils.js        # Image generation utilities
     └── interactionHandler.js # Interaction handling utilities
@@ -28,7 +27,6 @@ Following the modular pattern established by other general commands:
 - **`handlers.js`**: Core business logic, avatar generation, and interaction processing
 - **`embeds.js`**: Discord embed creation and formatting
 - **`utils.js`**: Helper functions, validation, and prompt enhancement
-- **`utils/creditManager.js`**: Credit checking and deduction logic
 - **`utils/imageUtils.js`**: Loading skeleton and image utilities
 - **`utils/interactionHandler.js`**: Safe interaction handling with error recovery
 

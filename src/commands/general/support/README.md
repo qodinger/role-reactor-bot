@@ -12,7 +12,6 @@ support/
 ├── handlers.js           # Main command handlers and response processing
 ├── embeds.js             # Discord embed creation for support information
 ├── components.js         # Interactive components (buttons for external links)
-├── utils.js              # Utility functions and helper methods
 └── README.md             # This documentation
 ```
 
@@ -24,7 +23,6 @@ Following the modular pattern established by other general commands:
 - **`handlers.js`**: Core business logic and interaction processing
 - **`embeds.js`**: Discord embed creation and formatting with simple, official styling
 - **`components.js`**: Interactive UI components (buttons for external links)
-- **`utils.js`**: Helper functions and utility methods
 
 ## Usage Examples
 

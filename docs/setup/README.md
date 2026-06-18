@@ -8,7 +8,7 @@ Copy the environment template and fill in your values:
 
 ```bash
 # Basic setup (single .env file)
-cp env.example .env
+cp .env.example .env
 ```
 
 ### 2. Edit Environment Files
@@ -27,11 +27,11 @@ MONGODB_DB=role-reactor-bot
 
 #### Advanced Setup (Separate Files)
 
-If using separate development and production files, copy `env.example` to create them:
+If using separate development and production files, copy `.env.example` to create them:
 
 ```bash
-cp env.example .env.development
-cp env.example .env.production
+cp .env.example .env.development
+cp .env.example .env.production
 ```
 
 Then edit each file with appropriate values. For development, include `DISCORD_GUILD_ID` for faster guild-specific command deployment. For production, omit `DISCORD_GUILD_ID` to deploy commands globally.

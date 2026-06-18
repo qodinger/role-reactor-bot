@@ -151,10 +151,6 @@ db.credits
 ```env
 # Required
 TOPGG_WEBHOOK_AUTH=your_topgg_authorization_token
-
-# Optional
-VOTE_REWARD_AMOUNT=1           # Core reward per vote (default: 1)
-VOTE_COOLDOWN_MS=43200000      # Cooldown in ms (default: 12 hours)
 ```
 
 ## ✅ Setup Checklist

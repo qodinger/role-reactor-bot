@@ -10,13 +10,35 @@ src/server/
 ├── webhookServer.js         # Main server setup and initialization
 ├── config/
 │   └── serverConfig.js      # Server configuration and validation
+├── controllers/
+│   ├── ConfigController.js
+│   ├── CorePricingController.js
+│   ├── GuildAnalyticsController.js
+│   ├── GuildController.js
+│   ├── GuildCustomCommandController.js
+│   ├── GuildLeaderboardController.js
+│   ├── GuildPremiumController.js
+│   ├── GuildRoleMappingController.js
+│   ├── HealthController.js
+│   ├── LogController.js
+│   ├── NotificationController.js
+│   ├── PaymentAdminController.js
+│   ├── PaymentProcessingController.js
+│   ├── StatsController.js
+│   ├── TranscriptController.js
+│   └── UserController.js
 ├── middleware/
 │   ├── authentication.js    # Authentication and authorization middleware
 │   ├── cors.js             # CORS middleware
 │   ├── errorHandler.js     # Error handling middleware
+│   ├── guildAuthorization.js # Guild membership verification
+│   ├── internalAuth.js     # Internal API authentication
 │   ├── rateLimiter.js      # Rate limiting middleware
 │   ├── requestId.js        # Request ID tracking middleware
 │   ├── requestLogger.js    # Request logging middleware
+│   ├── roleManagementLimiter.js # Role management rate limiting
+│   ├── sessionSecurity.js  # Session security middleware
+│   ├── userAuthorization.js # User authorization middleware
 │   └── validation.js       # Request validation middleware
 ├── routes/
 │   ├── api.js              # General API routes
@@ -24,9 +46,23 @@ src/server/
 │   ├── docs.js             # API documentation routes (Swagger/OpenAPI)
 │   ├── health.js           # Health check routes
 │   ├── services.js         # Service discovery routes
+│   └── v1/
+│       ├── commands.js     # Bot command routes
+│       ├── config.js       # Configuration routes
+│       ├── docs.js         # API documentation routes
+│       ├── guilds.js       # Guild management routes
+│       ├── health.js       # Health check routes
+│       ├── logs.js         # Log routes
+│       ├── payments.js     # Payment routes
+│       ├── root.js         # Root API routes
+│       ├── services.js     # Service routes
+│       ├── stats.js        # Statistics routes
+│       ├── transcripts.js  # Transcript routes
+│       └── user.js         # User routes
 ├── services/
 │   ├── BaseService.js      # Base service class for all API services
 │   ├── ServiceRegistry.js  # Service registry for dynamic discovery
+│   ├── comfyui/            # ComfyUI integration service
 │   ├── payments/           # Payments service
 │   ├── supporters/         # Supporters service
 │   └── example/            # Example service implementation

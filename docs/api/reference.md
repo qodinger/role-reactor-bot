@@ -652,17 +652,31 @@ Verifies webhook token configuration.
 
 Returns server health status.
 
-**Response:**
+**Response (200 OK):**
 
 ```json
 {
   "status": "healthy",
+  "service": "Unified API Server",
+  "uptime": 12345,
+  "memory": { "rss": 50000000, "heapTotal": 80000000, "heapUsed": 45000000 },
+  "environment": "production",
   "checks": {
     "database": { "status": "healthy", "duration": 15 },
-    "memory": { "status": "healthy", "heapUsed": "45.2 MB" },
-    "discord_api": { "status": "healthy", "ping": "45ms" }
+    "memory": { "status": "healthy" },
+    "discord_api": { "status": "healthy", "ping": 45 }
   },
   "timestamp": "2026-01-14T10:00:00.000Z"
+}
+```
+
+**Response (503 Service Unavailable):**
+
+```json
+{
+  "status": "unhealthy",
+  "service": "Unified API Server",
+  ...
 }
 ```
 
@@ -676,7 +690,7 @@ All API responses follow a consistent format:
 
 ```json
 {
-  "success": true,
+  "status": "success",
   "data": { ... },
   "timestamp": "2026-01-14T10:00:00.000Z"
 }
@@ -686,12 +700,8 @@ All API responses follow a consistent format:
 
 ```json
 {
-  "success": false,
-  "error": {
-    "message": "Human-readable error message",
-    "code": 400,
-    "details": "Additional error details (optional)"
-  },
+  "status": "error",
+  "message": "Human-readable error message",
   "timestamp": "2026-01-14T10:00:00.000Z"
 }
 ```
@@ -739,7 +749,7 @@ When rate limited, you'll receive:
 
 ## CORS
 
-The API supports CORS for browser-based requests. Allowed origins are configured via the `ALLOWED_ORIGINS` environment variable.
+The API supports CORS for browser-based requests. Allowed origins are configured via the `CORS_ALLOWED_ORIGINS` environment variable.
 
 For session-based authentication, ensure you include `credentials: 'include'` in your fetch requests.
 

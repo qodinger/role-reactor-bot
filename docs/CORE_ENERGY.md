@@ -39,8 +39,6 @@ For those who need higher capacity immediately, Cores can be obtained via the **
 | Pro      | $25   | 435   | Power users (87 avatars)           |
 | Ultimate | $50   | 900   | Heavy usage (180 avatars)          |
 
-**Core Value:** 15 Cores = $1.00 USD (1 Core ≈ $0.07)
-
 ---
 
 ## 🏗️ Pro Engine (Guild-Wide Upgrade)
