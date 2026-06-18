@@ -302,12 +302,12 @@ export async function execute(interaction, client) {
             onStatus, // Real status callback for processing steps
           },
         ),
-        new Promise((_, reject) =>
+        new Promise((_, reject) => {
           setTimeout(
             () => reject(new Error("AI response timed out. Please try again.")),
             RESPONSE_TIMEOUT_MS,
-          ),
-        ),
+          );
+        }),
       ]);
     } else {
       // Non-streaming mode - show real status updates tied to actual processing
@@ -340,12 +340,12 @@ export async function execute(interaction, client) {
             onStatus, // Real status callback - will be called at actual processing steps
           },
         ),
-        new Promise((_, reject) =>
+        new Promise((_, reject) => {
           setTimeout(
             () => reject(new Error("AI response timed out. Please try again.")),
             RESPONSE_TIMEOUT_MS,
-          ),
-        ),
+          );
+        }),
       ]);
     }
 

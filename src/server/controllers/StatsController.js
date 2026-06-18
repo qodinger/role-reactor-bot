@@ -228,3 +228,47 @@ export async function apiCommandUsage(req, res) {
     res.status(statusCode).json(response);
   }
 }
+
+/**
+ * Active user statistics (DAU/MAU)
+ * @param {import('express').Request} req - Express request object
+ * @param {import('express').Response} res - Express response object
+ */
+export async function apiActiveUsers(req, res) {
+  logRequest("Active users", req);
+
+  try {
+    const { getDatabaseManager } = await import(
+      "../../utils/storage/databaseManager.js"
+    );
+    const dbManager = await getDatabaseManager();
+
+    if (!dbManager?.users) {
+      const { statusCode, response } = createErrorResponse(
+        "Database not available",
+        503,
+      );
+      return res.status(statusCode).json(response);
+    }
+
+    const stats = await dbManager.users.getActiveUserStats();
+
+    res.json(
+      createSuccessResponse({
+        activeUsers: {
+          dau: stats.dau,
+          mau: stats.mau,
+          total: stats.total,
+        },
+      }),
+    );
+  } catch (error) {
+    logger.error("❌ Error getting active user stats:", error);
+    const { statusCode, response } = createErrorResponse(
+      "Failed to retrieve active user statistics",
+      500,
+      error.message,
+    );
+    res.status(statusCode).json(response);
+  }
+}

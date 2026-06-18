@@ -475,12 +475,12 @@ export class ActionExecutor {
   static async executeShowComponent(action, channel, user) {
     if (!channel) return "show_component requires a channel context";
 
-    const { question, options, component_type, placeholder } = action.options || {};
+    const { question, options, component_type: componentType, placeholder } = action.options || {};
     if (!question || !Array.isArray(options) || options.length < 2)
       return "show_component requires 'question' and at least 2 'options'";
 
     const opts = options.slice(0, 25);
-    const useButtons = component_type === "buttons" || (!component_type && opts.length <= 5);
+    const useButtons = componentType === "buttons" || (!componentType && opts.length <= 5);
 
     let row;
     if (useButtons && opts.length <= 5) {

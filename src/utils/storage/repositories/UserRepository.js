@@ -33,6 +33,7 @@ export class UserRepository extends BaseRepository {
       );
       await this.collection.createIndex({ role: 1 });
       await this.collection.createIndex({ createdAt: 1 });
+      await this.collection.createIndex({ lastSeen: 1 });
       this.logger.debug("UserRepository indexes ensured");
     } catch (error) {
       this.logger.debug(
@@ -162,6 +163,7 @@ export class UserRepository extends BaseRepository {
         globalName: globalName || username,
         avatar,
         lastLogin: now,
+        lastSeen: now,
         updatedAt: now,
       };
 
@@ -373,6 +375,83 @@ export class UserRepository extends BaseRepository {
     } catch (error) {
       this.logger.error("Failed to get recently active users", error);
       return [];
+    }
+  }
+
+  /**
+   * Update user's lastSeen timestamp (throttled to max once per 5 minutes)
+   * @param {string} discordId - Discord user ID
+   * @returns {Promise<boolean>} True if updated, false if throttled or error
+   */
+  async updateLastSeen(discordId) {
+    try {
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+      const result = await this.collection.updateOne(
+        {
+          discordId,
+          $or: [
+            { lastSeen: { $exists: false } },
+            { lastSeen: { $lt: fiveMinutesAgo } },
+          ],
+        },
+        {
+          $set: { lastSeen: new Date().toISOString() },
+        },
+      );
+      return result.modifiedCount > 0;
+    } catch (_error) {
+      this.logger.debug(`Failed to update lastSeen for ${discordId}`);
+      return false;
+    }
+  }
+
+  /**
+   * Get Daily Active Users (users active in last 24 hours)
+   * @returns {Promise<number>} Count of active users
+   */
+  async getDAU() {
+    try {
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      return await this.collection.countDocuments({
+        lastSeen: { $gte: oneDayAgo.toISOString() },
+      });
+    } catch (error) {
+      this.logger.error("Failed to get DAU", error);
+      return 0;
+    }
+  }
+
+  /**
+   * Get Monthly Active Users (users active in last 30 days)
+   * @returns {Promise<number>} Count of active users
+   */
+  async getMAU() {
+    try {
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      return await this.collection.countDocuments({
+        lastSeen: { $gte: thirtyDaysAgo.toISOString() },
+      });
+    } catch (error) {
+      this.logger.error("Failed to get MAU", error);
+      return 0;
+    }
+  }
+
+  /**
+   * Get active user stats for dashboard
+   * @returns {Promise<Object>} Object with DAU, MAU, and total users
+   */
+  async getActiveUserStats() {
+    try {
+      const [dau, mau, total] = await Promise.all([
+        this.getDAU(),
+        this.getMAU(),
+        this.count(),
+      ]);
+      return { dau, mau, total };
+    } catch (error) {
+      this.logger.error("Failed to get active user stats", error);
+      return { dau: 0, mau: 0, total: 0 };
     }
   }
 

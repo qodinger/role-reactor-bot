@@ -1,6 +1,7 @@
 import { MessageFlags, InteractionType } from "discord.js";
 import { getLogger } from "../logger.js";
 import { EMOJIS } from "../../config/theme.js";
+import { getDatabaseManager } from "../storage/databaseManager.js";
 
 /**
  * @typedef {import('discord.js').Client & { commands?: import('discord.js').Collection<string, any> }} ExtendedClient
@@ -83,6 +84,11 @@ export class InteractionManager {
 
       // Route to appropriate handler based on interaction type
       await this.routeInteraction(interaction, client);
+
+      // Update lastSeen for user activity tracking (fire-and-forget)
+      if (interaction.user?.id) {
+        this.updateUserLastSeen(interaction.user.id).catch(() => {});
+      }
     } catch (error) {
       this.logger.error("Error handling interaction", error);
 
@@ -190,6 +196,21 @@ export class InteractionManager {
           `Unknown interaction type: ${/** @type {any} */ (interaction).type}`,
         );
         break;
+    }
+  }
+
+  /**
+   * Update user's lastSeen timestamp for activity tracking
+   * @param {string} userId - Discord user ID
+   */
+  async updateUserLastSeen(userId) {
+    try {
+      const dbManager = await getDatabaseManager();
+      if (dbManager?.users) {
+        await dbManager.users.updateLastSeen(userId);
+      }
+    } catch (_error) {
+      // Silently ignore - activity tracking is non-critical
     }
   }
 
