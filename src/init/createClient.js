@@ -13,12 +13,12 @@ export async function createClient() {
     GatewayIntentBits.GuildVoiceStates,
     GatewayIntentBits.GuildMessagePolls,
     GatewayIntentBits.GuildEmojisAndStickers,
-    GatewayIntentBits.MessageContent,
+    // GatewayIntentBits.MessageContent, // Requires Discord verification for 100+ servers
   ];
 
   const privilegedIntents = [
     GatewayIntentBits.GuildMembers,
-    GatewayIntentBits.MessageContent,
+    // GatewayIntentBits.MessageContent,
   ];
   const hasPrivilegedIntents = privilegedIntents.some(i => intents.includes(i));
   if (hasPrivilegedIntents) {
