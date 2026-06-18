@@ -141,6 +141,8 @@ export class CommandDiscoverer {
           cmdData.default_member_permissions || cmdData.defaultMemberPermissions
             ? "Requires permissions"
             : "Available to all users",
+        // Pull usage examples and format tips directly from the command's own documentation
+        helpFields: command.metadata?.helpFields || [],
       };
 
       // Extract subcommands and options
@@ -358,6 +360,20 @@ export class CommandDiscoverer {
     const formatCommand = cmd => {
       let formatted = `/${cmd.name}: ${cmd.description}`;
 
+      // Include usage examples and format tips from the command's own help documentation.
+      // This is the ground-truth source — always prefer these over guessing.
+      if (Array.isArray(cmd.helpFields) && cmd.helpFields.length > 0) {
+        for (const field of cmd.helpFields) {
+          // Include "How to Use", format tips, and subcommand descriptions; skip Permissions/Tier/What You'll See
+          const skip = ["permissions", "tier", "what you'll see", "what you need"].some(s =>
+            field.name?.toLowerCase().includes(s),
+          );
+          if (!skip && field.value) {
+            formatted += `\n  [${field.name}]: ${field.value}`;
+          }
+        }
+      }
+
       if (cmd.subcommands && cmd.subcommands.length > 0) {
         formatted += "\n  Subcommands:";
         for (const subcmd of cmd.subcommands) {
@@ -440,8 +456,8 @@ export class CommandDiscoverer {
           .join("\n  ");
         formatted += `\n  Options:\n  ${optionDetails}`;
         // Add examples for commands with direct options
-        if (cmd.name === "ask") {
-          formatted += `\n  Example: /${cmd.name} question:Explain quantum computing in technical terms`;
+        if (cmd.name === "chat") {
+          formatted += `\n  Example: /${cmd.name} message:Explain quantum computing in technical terms`;
         } else if (cmd.name === "avatar") {
           formatted += `\n  Example: /${cmd.name} prompt:"cyberpunk hacker" art_style:modern`;
         } else if (cmd.name === "leaderboard") {

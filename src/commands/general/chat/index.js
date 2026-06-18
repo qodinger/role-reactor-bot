@@ -1,7 +1,7 @@
 import { SlashCommandBuilder, PermissionFlagsBits } from "discord.js";
 import { execute } from "./handlers.js";
 
-export const disabled = true;
+export const disabled = false;
 
 // ============================================================================
 // COMMAND METADATA
@@ -14,32 +14,32 @@ export const disabled = true;
  * This is the single source of truth for command information
  */
 export const metadata = {
-  name: "ask",
+  name: "chat",
   category: "general",
-  description: "Ask the AI assistant about the bot or server",
-  keywords: ["ask", "question", "chat", "ai", "assistant", "help me"],
+  description: "Chat with the AI — conversation is shared with everyone in this channel",
+  keywords: ["chat", "ask", "ai", "assistant", "help me", "question"],
   emoji: "💬",
   helpFields: [
     {
-      name: `How to Use`,
-      value: "```/ask question:How do I set up role reactions?```",
-      inline: false,
-    },
-    {
-      name: `What You Need`,
+      name: "Ways to Chat",
       value:
-        "**question** *(required)* - Your question or message for the AI assistant (max 1000 characters)",
+        "**Slash command:**\n```/chat message:How do I set up role reactions?```\n**Mention the bot:**\n```@Role Reactor what can you do?```",
       inline: false,
     },
     {
-      name: `Permissions`,
+      name: "What You Need",
+      value: "**message** *(required)* — Your message to the AI (max 1000 characters)",
+      inline: false,
+    },
+    {
+      name: "How it works",
+      value:
+        "The AI remembers the full conversation in this channel — all members can read and build on what others have said, just like a normal chat. Both `/chat` and `@mentions` share the same channel history. Different channels have separate sessions.",
+      inline: false,
+    },
+    {
+      name: "Permissions",
       value: "• None required",
-      inline: false,
-    },
-    {
-      name: `What You'll See`,
-      value:
-        "An intelligent AI response about the bot, server, or commands. The AI assistant can help you understand how to use features, troubleshoot issues, and get the most out of Role Reactor Bot!",
       inline: false,
     },
   ],
@@ -54,8 +54,8 @@ export const data = new SlashCommandBuilder()
   .setDescription(metadata.description)
   .addStringOption(option =>
     option
-      .setName("question")
-      .setDescription("Your question or message")
+      .setName("message")
+      .setDescription("Your message to the AI")
       .setRequired(true)
       .setMaxLength(1000),
   )

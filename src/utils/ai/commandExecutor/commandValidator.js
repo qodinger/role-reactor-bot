@@ -34,10 +34,10 @@ export async function canExecuteCommand(
   user = null,
   guild = null,
 ) {
-  // Block recursive ask command execution to prevent infinite loops
-  if (commandName === "ask") {
+  // Block recursive chat command execution to prevent infinite loops
+  if (commandName === "chat") {
     logger.warn(
-      `AI attempted to execute ask command recursively (blocked to prevent infinite loops)`,
+      `AI attempted to execute chat command recursively (blocked to prevent infinite loops)`,
     );
     return false;
   }

@@ -113,17 +113,19 @@ export class ConversationManager {
   }
 
   /**
-   * Get conversation key from userId and guildId
-   * @param {string} userId - User ID
-   * @param {string|null} guildId - Guild ID (null for DMs)
+   * Get conversation key from userId and guildId.
+   * Channel-scoped sessions use the "ch_<channelId>" form — pass the channelId
+   * as `userId` with the `ch_` prefix already prepended and `guildId = null`.
+   * @param {string} userId - User ID, or "ch_<channelId>" for channel sessions
+   * @param {string|null} guildId - Guild ID (null for DMs and channel sessions)
    * @returns {string} Composite conversation key
    */
   getConversationKey(userId, guildId = null) {
-    if (!guildId) {
-      // DMs use special prefix
-      return `dm_${userId}`;
-    }
-    // Server conversations use composite key
+    // Channel-scoped session — key is already fully formed
+    if (userId?.startsWith("ch_")) return userId;
+    // DMs use special prefix
+    if (!guildId) return `dm_${userId}`;
+    // Legacy per-user guild conversations
     return `${userId}_${guildId}`;
   }
 

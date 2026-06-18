@@ -229,6 +229,32 @@ const PROMPT_PATTERNS = {
  * Model-specific keyword mappings
  */
 const MODEL_KEYWORDS = {
+  // SD 3.5 (Flash / Large-Turbo) — Stability AI natural-language models.
+  // These use conversational prompts, NOT Danbooru tags.
+  // No "masterpiece / best quality" — those are SDXL-era magic words, irrelevant here.
+  sd3: {
+    quality: [
+      "highly detailed",
+      "sharp focus",
+      "professional illustration",
+      "high quality digital art",
+      "crisp linework",
+      "soft diffused lighting",
+    ],
+    style: [
+      "anime art style",
+      "clean illustration style",
+      "vibrant colors",
+      "professional character design",
+    ],
+    character: [
+      "expressive anime eyes",
+      "detailed facial features",
+      "natural pose",
+      "centered composition",
+    ],
+  },
+
   animagine: {
     // Animagine XL 4.0 responds well to these keywords
     quality: [

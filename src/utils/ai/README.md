@@ -130,8 +130,8 @@ const response = await chatService.generateResponse(
 
 **Used By:**
 
-- `/ask` command - Allows users to ask questions about the bot and server
-- `messageCreate` event - Responds when the bot is mentioned in messages
+- `/chat` command - Allows users to chat with the AI; conversation is shared across the channel
+- `@mention` / `messageCreate` event - Responds when the bot is mentioned; shares the same channel session as `/chat`
 
 ## Specialized Services
 
@@ -458,7 +458,7 @@ Provider selection is configured in `src/config/config.js` using the `enabled` f
 - Providers are checked in order (as they appear in config)
 - The first enabled provider is used automatically
 - If a provider is disabled, the system automatically falls back to the next enabled provider
-- **If all providers are disabled, AI features are completely disabled** - commands like `/avatar`, `/ask`, and `/imagine` will show an error message
+- **If all providers are disabled, AI features are completely disabled** - commands like `/avatar`, `/chat`, and `/imagine` will show an error message
 
 Example configuration:
 

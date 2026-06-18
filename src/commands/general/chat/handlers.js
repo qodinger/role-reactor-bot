@@ -15,7 +15,7 @@ const logger = getLogger();
 const { customEmojis } = emojiConfig;
 
 /**
- * Handle ask command execution
+ * Handle chat command execution
  * @param {import('discord.js').ChatInputCommandInteraction} interaction
  * @param {import('discord.js').Client} client
  */
@@ -24,7 +24,38 @@ export async function execute(interaction, client) {
   let currentRequestId = null;
 
   try {
-    const question = interaction.options.getString("question", true);
+    const question = interaction.options.getString("message", true);
+
+    // Jailbreak / prompt-injection detection
+    // These patterns try to override system instructions, impersonate admins, or bypass rules.
+    // Detected early — before any credits are consumed or API calls are made.
+    const JAILBREAK_PATTERNS = [
+      /ignore\s+(all\s+)?(previous|prior|above|your)\s+(instructions?|rules?|guidelines?|prompts?|system)/i,
+      /disregard\s+(your|all|the)\s+(previous|prior|instructions?|rules?|guidelines?)/i,
+      /you\s+are\s+now\s+(in\s+)?(developer|admin|god|unlimited|unrestricted|jailbreak|override)\s*mode/i,
+      /pretend\s+(you\s+are|to\s+be)\s+(an?\s+)?(admin|owner|developer|unrestricted|different\s+ai)/i,
+      /act\s+as\s+(an?\s+)?(unrestricted|uncensored|admin|developer|jailbroken)/i,
+      /bypass\s+(your\s+)?(restrictions?|rules?|guidelines?|filters?|safety)/i,
+      /\bDAN\b.*mode/i,   // "Do Anything Now" jailbreak variant
+      /\bjailbreak\b/i,
+      /\bprompt\s+injection\b/i,
+      /override\s+(your\s+)?(system\s+)?(prompt|instructions?|rules?)/i,
+      /you\s+have\s+no\s+(restrictions?|rules?|guidelines?|limits?)/i,
+      /forget\s+(you\s+are|that\s+you('re|\s+are))\s+a\s+bot/i,
+    ];
+
+    if (JAILBREAK_PATTERNS.some(p => p.test(question))) {
+      logger.warn(
+        `[chat] Jailbreak attempt detected from user ${interaction.user.id}: "${question.substring(0, 100)}"`,
+      );
+      const errorResponse = errorEmbed({
+        title: "Request Not Allowed",
+        description:
+          "That type of request isn't supported. I'm here to help with server management, roles, and bot features!",
+      });
+      await interaction.reply(errorResponse);
+      return;
+    }
 
     // Check if a text-capable provider is available (not just any AI feature)
     if (!chatService.aiService.getTextProvider()) {
@@ -118,7 +149,7 @@ export async function execute(interaction, client) {
           .setColor(THEME.PRIMARY)
           .setDescription(description || `${EMOJIS.UI.LOADING} ${status}`)
           .setFooter({
-            text: `Asked by ${interaction.user.tag} • Role Reactor`,
+            text: `Asked by ${interaction.user.displayName} • Role Reactor`,
           })
           .setTimestamp();
 
@@ -139,14 +170,16 @@ export async function execute(interaction, client) {
               interaction.user.id,
             );
           } catch (error) {
-            logger.debug("[ask] Failed to register status message:", error);
+            logger.debug("[chat] Failed to register status message:", error);
           }
         }
       } catch (error) {
         // Ignore edit errors (e.g., interaction expired)
-        logger.debug("[ask] Failed to update status embed:", error);
+        logger.debug("[chat] Failed to update status embed:", error);
       }
     };
+
+    const RESPONSE_TIMEOUT_MS = 90_000; // 90 seconds — well within Discord's 15-min window
 
     if (useStreaming) {
       // Create initial status message
@@ -238,7 +271,7 @@ export async function execute(interaction, client) {
                   .setColor(THEME.PRIMARY)
                   .setDescription(displayText)
                   .setFooter({
-                    text: `Asked by ${interaction.user.tag} • Role Reactor`,
+                    text: `Asked by ${interaction.user.displayName} • Role Reactor`,
                   })
                   .setTimestamp(),
               ],
@@ -246,27 +279,36 @@ export async function execute(interaction, client) {
             });
           } catch (error) {
             // Ignore edit errors (e.g., interaction expired)
-            logger.debug("[ask] Failed to update streaming message:", error);
+            logger.debug("[chat] Failed to update streaming message:", error);
           }
         }
       };
 
       // Generate streaming AI response with real status updates
-      response = await chatService.generateResponseStreaming(
-        question,
-        interaction.guild,
-        client,
-        {
-          userId: interaction.user.id,
-          coreUserData,
-          user: interaction.user,
-          channel: interaction.channel,
-          locale: interaction.locale || interaction.guildLocale || "en-US",
-          rateLimitReserved: true,
-          onChunk,
-          onStatus, // Real status callback for processing steps
-        },
-      );
+      response = await Promise.race([
+        chatService.generateResponseStreaming(
+          question,
+          interaction.guild,
+          client,
+          {
+            userId: interaction.user.id,
+            channelId: interaction.channelId,
+            coreUserData,
+            user: interaction.user,
+            channel: interaction.channel,
+            locale: interaction.locale || interaction.guildLocale || "en-US",
+            rateLimitReserved: true,
+            onChunk,
+            onStatus, // Real status callback for processing steps
+          },
+        ),
+        new Promise((_, reject) =>
+          setTimeout(
+            () => reject(new Error("AI response timed out. Please try again.")),
+            RESPONSE_TIMEOUT_MS,
+          ),
+        ),
+      ]);
     } else {
       // Non-streaming mode - show real status updates tied to actual processing
       await updateStatusEmbed("Thinking about your question...");
@@ -282,20 +324,29 @@ export async function execute(interaction, client) {
 
       // Generate AI response (non-streaming) with real status callback
       // Pass rateLimitReserved: true since we already checked and reserved the rate limit
-      response = await chatService.generateResponse(
-        question,
-        interaction.guild,
-        client,
-        {
-          userId: interaction.user.id,
-          coreUserData,
-          user: interaction.user,
-          channel: interaction.channel,
-          locale: interaction.locale || interaction.guildLocale || "en-US",
-          rateLimitReserved: true, // Already checked and reserved in handler
-          onStatus, // Real status callback - will be called at actual processing steps
-        },
-      );
+      response = await Promise.race([
+        chatService.generateResponse(
+          question,
+          interaction.guild,
+          client,
+          {
+            userId: interaction.user.id,
+            channelId: interaction.channelId,
+            coreUserData,
+            user: interaction.user,
+            channel: interaction.channel,
+            locale: interaction.locale || interaction.guildLocale || "en-US",
+            rateLimitReserved: true, // Already checked and reserved in handler
+            onStatus, // Real status callback - will be called at actual processing steps
+          },
+        ),
+        new Promise((_, reject) =>
+          setTimeout(
+            () => reject(new Error("AI response timed out. Please try again.")),
+            RESPONSE_TIMEOUT_MS,
+          ),
+        ),
+      ]);
     }
 
     // Handle response format (can be string or object with text, actions, and commandResponses)
@@ -325,20 +376,18 @@ export async function execute(interaction, client) {
           interaction.channel,
         );
         logger.debug(
-          `[ask] Executed ${responseActions.length} action(s) from streaming response`,
+          `[chat] Executed ${responseActions.length} action(s) from streaming response`,
         );
       } catch (actionError) {
-        logger.error("[ask] Failed to execute actions:", actionError);
+        logger.error("[chat] Failed to execute actions:", actionError);
         // Continue - don't fail the entire request if actions fail
       }
     }
 
-    // If response is empty (e.g., command already sent its response), don't send an empty embed
+    // If response is empty (e.g., command already sent its response), show a brief confirmation
     if (!responseText || responseText.trim().length === 0) {
-      // Command already sent its response directly to channel, no need to send AI's message
-      // Just delete the "thinking..." message - don't show any message
       try {
-        // Unregister status message before deleting (request is completing)
+        // Unregister status message (request is completing)
         if (currentRequestId) {
           try {
             const reply = await interaction.fetchReply().catch(() => null);
@@ -350,16 +399,23 @@ export async function execute(interaction, client) {
             }
           } catch (unregisterError) {
             logger.debug(
-              "[ask] Failed to unregister status message:",
+              "[chat] Failed to unregister status message:",
               unregisterError,
             );
           }
         }
 
-        await interaction.deleteReply();
+        // Show a brief "Done" confirmation so the user knows the action completed
+        const doneEmbed = new EmbedBuilder()
+          .setColor(THEME.SUCCESS || THEME.PRIMARY)
+          .setDescription(`✅ Done!`)
+          .setFooter({
+            text: `Asked by ${interaction.user.displayName} • Role Reactor`,
+          })
+          .setTimestamp();
+        await interaction.editReply({ embeds: [doneEmbed], components: [] });
       } catch {
-        // If delete fails (e.g., message already deleted or interaction expired), just return silently
-        // Don't send any message - the command already sent its response
+        // Ignore — command response was already sent to the channel
       }
       return;
     }
@@ -384,7 +440,7 @@ export async function execute(interaction, client) {
       .setColor(THEME.PRIMARY)
       .setDescription(finalResponseText)
       .setFooter({
-        text: `Asked by ${interaction.user.tag} • Role Reactor`,
+        text: `Asked by ${interaction.user.displayName} • Role Reactor`,
       })
       .setTimestamp();
 
@@ -400,7 +456,7 @@ export async function execute(interaction, client) {
         );
         concurrencyManager.unregisterStatusMessage(replyMessage.id);
       } catch (error) {
-        logger.debug("[ask] Failed to unregister status message:", error);
+        logger.debug("[chat] Failed to unregister status message:", error);
       }
     }
 
@@ -497,7 +553,7 @@ export async function execute(interaction, client) {
         }
       } catch (unregisterError) {
         logger.debug(
-          "[ask] Failed to unregister status message on error:",
+          "[chat] Failed to unregister status message on error:",
           unregisterError,
         );
       }

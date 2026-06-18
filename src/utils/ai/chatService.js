@@ -442,11 +442,22 @@ export class ChatService {
       },
     );
 
-    // Prepare conversation context
+    // Derive session scope — guild channels use a shared per-channel history so all
+    // members in the same channel see a continuous conversation together.
+    // DMs stay per-user as before.
     const guildId = guild?.id || null;
+    const channelId = options.channelId || null;
+    const sessionId = guild && channelId ? `ch_${channelId}` : userId;
+    const sessionGuildId = guild && channelId ? null : guildId;
+    // Prefix user message with display name so the AI knows who said what
+    const sessionUserMessage =
+      guild && channelId
+        ? `[${options.user?.displayName || options.user?.username || "Member"}]: ${userMessage}`
+        : userMessage;
+
     const { messages } = await this.prepareConversationContext(
-      userId,
-      guildId,
+      sessionId,
+      sessionGuildId,
       userMessage,
       systemMessage,
       client,
@@ -456,9 +467,9 @@ export class ChatService {
     );
 
     // Add user message to history (without context/reminder)
-    await this.addToHistory(userId, guildId, {
+    await this.addToHistory(sessionId, sessionGuildId, {
       role: "user",
-      content: userMessage,
+      content: sessionUserMessage,
     });
 
     const requestId = `chat-${userId || "unknown"}-${Date.now()}`;
@@ -474,6 +485,7 @@ export class ChatService {
       requestId,
       async () => {
         try {
+          if (onStatus) await onStatus(AI_STATUS_MESSAGES.CRAFTING_RESPONSE);
           // Generate AI response with optimization
           const { result, wantsDetail } =
             await this.generateAIResponseWithOptimization(
@@ -484,6 +496,7 @@ export class ChatService {
             );
 
           // Process AI response (parse, validate, handle actions)
+          // userId (real) is used for credit deduction; sessionGuildId scopes action history
           const { finalResponse, responseSuppressed } =
             await this.processAIResponse(
               result,
@@ -497,13 +510,13 @@ export class ChatService {
                 channel: options.channel,
                 wantsDetail,
               },
-              guildId,
+              sessionGuildId,
             );
 
           // Finalize response (update history, record metrics)
           return await this.finalizeResponse(
-            userId,
-            guildId,
+            sessionId,
+            sessionGuildId,
             finalResponse,
             responseSuppressed,
             requestStartTime,
@@ -598,9 +611,17 @@ export class ChatService {
     );
 
     const guildId = guild?.id || null;
+    const channelId = options.channelId || null;
+    const sessionId = guild && channelId ? `ch_${channelId}` : userId;
+    const sessionGuildId = guild && channelId ? null : guildId;
+    const sessionUserMessage =
+      guild && channelId
+        ? `[${options.user?.displayName || options.user?.username || "Member"}]: ${userMessage}`
+        : userMessage;
+
     const { messages } = await this.prepareConversationContext(
-      userId,
-      guildId,
+      sessionId,
+      sessionGuildId,
       userMessage,
       systemMessage,
       client,
@@ -626,13 +647,14 @@ export class ChatService {
 
       finalCallback();
 
-      // Process streaming response
+      // Process streaming response — pass sessionId/sessionGuildId so history
+      // is written under the channel key, and sessionUserMessage for the author prefix
       return await this.processStreamingResponse(
         result,
         state,
-        userId,
-        guildId,
-        userMessage,
+        sessionId,
+        sessionGuildId,
+        sessionUserMessage,
         onChunk,
         textProvider,
         requestStartTime,

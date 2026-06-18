@@ -110,7 +110,7 @@ export function createLoadingEmbed(
     );
   }
 
-  // Always use consistent footer format matching ask command
+  // Always use consistent footer format matching chat command
   embed
     .setFooter({
       text: `Generated for ${interaction.user.tag} • Role Reactor`,
@@ -152,7 +152,7 @@ export function createSuccessEmbed(
     ]);
   }
 
-  // Always use consistent footer format matching ask command
+  // Always use consistent footer format matching chat command
   embed
     .setFooter({
       text: `Generated for ${interaction.user.tag} • Role Reactor`,

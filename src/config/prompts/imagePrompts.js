@@ -14,26 +14,23 @@ import dedent from "dedent";
 
 // Provider-specific base prompt templates for /avatar command
 export const PROVIDER_PROMPTS = {
-  // Stability AI - Primary provider for avatar generation
+  // Stability AI SD 3.5 - Primary provider for avatar generation
+  // SD 3.5 uses natural language prompts, NOT SDXL-era tag-soup.
+  // Words like "masterpiece, best quality" are SD 1.5/SDXL remnants and add noise here.
   stability: {
     base: dedent`
-      anime avatar portrait, {characterDescription}, masterpiece, best quality, ultra detailed,
-      detailed character design, looking directly at viewer, professional anime art style,
-      clean line art, vibrant colors, expressive eyes, detailed facial features, perfect anatomy,
-      studio quality, sharp focus, professional digital art, anime character design, 
-      detailed shading, soft lighting, beautiful composition, centered framing, upper body portrait,
-      detailed clothing, character sheet quality, official art style, clean background
+      An anime portrait of {characterDescription}, looking directly at the viewer,
+      upper body composition, soft diffused lighting, expressive anime eyes,
+      vibrant colors, clean illustration style, crisp linework,
+      centered framing, clean solid background, high quality digital art
     `,
-    suffix: ", anime style, manga style, detailed, professional art",
+    suffix: ", anime art style, professional character illustration",
     negative: dedent`
-      blurry, low quality, distorted, deformed, ugly, low resolution, pixelated, grainy, noisy,
-      bad anatomy, bad proportions, extra limbs, missing limbs, malformed hands, malformed feet,
-      extra fingers, missing fingers, fused fingers, long neck, bad hands, bad feet,
-      multiple heads, multiple faces, double exposure, out of focus, motion blur,
-      watermark, text, signature, jpeg artifacts, compression artifacts,
-      realistic, photorealistic, 3d render, cgi, computer generated, artificial, fake,
-      cartoon, western animation, disney style, pixar style,
-      oversaturated, undersaturated, low contrast, high contrast, dark, too bright, overexposed, underexposed
+      blurry, low quality, distorted, deformed, extra limbs, missing limbs,
+      malformed hands, extra fingers, missing fingers, fused fingers, long neck,
+      multiple heads, double exposure, out of focus, watermark, text, signature,
+      jpeg artifacts, realistic photography, 3d render, western cartoon style,
+      overexposed, underexposed
     `,
   },
 
@@ -135,32 +132,28 @@ export const NSFW_NEGATIVE_PROMPT = dedent`
 `;
 
 /**
- * Avatar-specific negative prompt for /avatar command
- * Technical quality exclusions for anime avatars
+ * Avatar-specific negative prompt for /avatar command (SD 3.5 natural language — no weighted syntax)
  */
 export const AVATAR_NEGATIVE_PROMPT = dedent`
-  blurry, low quality, distorted, deformed, ugly, low resolution, pixelated, grainy, noisy,
-  bad anatomy, bad proportions, extra limbs, missing limbs, malformed hands, malformed feet,
-  extra fingers, missing fingers, fused fingers, long neck, bad hands, bad feet,
-  multiple heads, multiple faces, double exposure, out of focus, motion blur,
-  watermark, text, signature, jpeg artifacts, compression artifacts,
-  realistic, photorealistic, 3d render, cgi, computer generated, artificial, fake,
-  cartoon, western animation, disney style, pixar style,
-  oversaturated, undersaturated, low contrast, high contrast, dark, too bright, overexposed, underexposed
+  blurry, low quality, distorted, deformed, extra limbs, missing limbs,
+  malformed hands, extra fingers, missing fingers, fused fingers, long neck,
+  multiple heads, double exposure, out of focus, watermark, text, signature,
+  jpeg artifacts, realistic photography, 3d render, western cartoon style,
+  overexposed, underexposed
 `;
 
 /**
- * Comprehensive negative prompt for /imagine command (safe content)
- * Focuses on technical quality issues and prevents NSFW content
+ * Negative prompt for /imagine command safe content (SD 3.5 natural language — no weighted syntax)
+ * SD 3.5 does NOT support SDXL-style parenthetical weights like (word:1.4).
+ * Use plain comma-separated natural language instead.
  */
 export const IMAGINE_NEGATIVE_PROMPT = dedent`
-  (worst_quality, low_quality:1.4), (bad_anatomy, bad_hands:1.3), (missing_fingers, extra_fingers, fused_fingers:1.2), 
-  (poorly_drawn_hands, poorly_drawn_face:1.2), (deformed, ugly, blurry:1.2), (bad_proportions, extra_limbs, missing_limbs:1.2), 
-  (long_neck, mutation, mutilated:1.1), (out_of_frame, cropped:1.1), (jpeg_artifacts, watermark, signature, username, text:1.2), 
-  (monochrome, grayscale:1.1), (bad_feet, bad_legs:1.1), (asymmetrical_eyes, cross_eyed:1.1), (duplicate, clone:1.1),
-  nsfw, nude, naked, topless, bottomless, underwear, lingerie, bikini, swimsuit, revealing_clothing,
-  sexual, erotic, adult_content, inappropriate, explicit, suggestive, seductive, provocative,
-  breast, breasts, cleavage, nipple, nipples, genitals, private_parts, intimate, sensual
+  blurry, low quality, bad anatomy, bad hands, missing fingers, extra fingers, fused fingers,
+  poorly drawn hands, poorly drawn face, deformed, ugly, bad proportions, extra limbs, missing limbs,
+  long neck, mutation, mutilated, out of frame, cropped, jpeg artifacts, watermark, signature, text,
+  monochrome, bad feet, asymmetrical eyes, duplicate,
+  nsfw, nude, naked, topless, bottomless, underwear, lingerie, revealing clothing,
+  sexual content, explicit content, suggestive, provocative
 `;
 
 /**

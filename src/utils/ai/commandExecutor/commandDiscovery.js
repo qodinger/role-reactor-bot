@@ -14,7 +14,8 @@ const __dirname = path.dirname(__filename);
  */
 const FALLBACK_GENERAL_COMMANDS = [
   "8ball",
-  "ask",
+  "chat",
+  "chat-reset",
   "avatar",
   "core",
   "help",

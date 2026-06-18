@@ -475,8 +475,18 @@ export async function processRoles(interaction, rolesString) {
       }
 
       if (!isRoleManageable(role, botMember)) {
+        // Give a precise reason so admins can diagnose the issue
+        let reason;
+        if (!botMember.permissions.has(PermissionFlagsBits.ManageRoles)) {
+          reason = `the bot is missing the **Manage Roles** permission`;
+        } else if (role.managed) {
+          reason = `it is an integration-managed role (e.g. Nitro Booster, another bot's role)`;
+        } else {
+          const botHighestRole = botMember.roles.highest;
+          reason = `it is at position ${role.position} but the bot's highest role ("${botHighestRole.name}") is only at position ${botHighestRole.position}. Move the bot's role higher in **Server Settings → Roles**`;
+        }
         validationErrors.push(
-          `Cannot manage role "${role.name}" - it's higher than my highest role or I lack permissions.`,
+          `Cannot manage role "${role.name}" — ${reason}.`,
         );
         continue;
       }

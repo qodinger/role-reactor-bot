@@ -74,11 +74,16 @@ When **one person** fuels the Pro Engine, **everyone** in the server wins. The f
 
 Some features consume Cores from your **personal balance** and are not tied to server-wide Pro Engine activation.
 
-| Feature       | Cost per Use | Notes                               |
-| :------------ | :----------- | :---------------------------------- |
-| **AI Avatar** | 5 Cores      | Generates a custom avatar from text |
+| Feature       | Cost per Use  | Notes                                              |
+| :------------ | :------------ | :------------------------------------------------- |
+| **AI Chat**   | 0.05 Cores    | `/chat` command or `@mention` — channel-shared conversation |
+| **AI Avatar** | 5 Cores       | Generates a custom avatar from text                |
 
-With a **$5 Starter pack** (75 Cores), you can generate **15 AI Avatars**.
+**How far does 1 Core go?**
+- AI Chat: **~20 messages** per Core
+- AI Avatar: **0.2 avatars** per Core (5 Cores each)
+
+With a **$5 Starter pack** (75 Cores), you can send **~1,500 chat messages** or generate **15 AI Avatars**.
 
 ---
 

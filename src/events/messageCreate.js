@@ -394,6 +394,7 @@ export async function execute(message, client) {
               client,
               {
                 userId: message.author.id,
+                channelId: message.channelId, // Share channel session with /chat
                 coreUserData,
                 user: message.author,
                 channel: message.channel,
@@ -442,6 +443,7 @@ export async function execute(message, client) {
             client,
             {
               userId: message.author.id,
+              channelId: message.channelId, // Share channel session with /chat
               coreUserData,
               user: message.author,
               channel: message.channel,

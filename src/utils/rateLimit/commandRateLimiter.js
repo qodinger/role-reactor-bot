@@ -30,7 +30,7 @@ class CommandRateLimiter {
         // AI commands - stricter limits due to cost
         avatar: { commands: 2, windowMs: 60000 }, // 2 per minute
         imagine: { commands: 2, windowMs: 60000 }, // 2 per minute
-        ask: { commands: 5, windowMs: 60000 }, // 5 per minute
+        chat: { commands: 5, windowMs: 60000 }, // 5 per minute
 
         // Moderation commands
         moderation: { commands: 5, windowMs: 30000 }, // 5 per 30 seconds

@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`/chat` command**: Replaces `/ask`. AI conversation is now **channel-scoped** — everyone in the channel shares the same history, just like a real chat. Different channels get separate sessions.
+- **`@mention` AI trigger**: Users can mention `@Role Reactor` directly in any message to chat with the AI, as an alternative to `/chat`. Both methods share the same channel history.
+- **`/chat-reset` command**: Admins with Manage Messages can wipe the AI conversation history for a channel and start fresh.
+- **AI confirmation dialogs**: Before the AI executes any admin command on your behalf, it shows a confirmation prompt with what it's about to do. You have 60 seconds to confirm or cancel.
+- **AI admin command security**: Moderation and automod commands are always blocked from AI execution. Other admin commands require you to confirm first.
 - **Auto-Moderation System**: Keep your server safe automatically — for free. Five filters are available: bad words, link blocking, spam detection, mention spam, and invite link blocking. Each filter can be set to delete the message, warn the user, or issue a timeout.
 - **Role Reaction Limits**: You can now set a maximum number of times a role can be claimed through role reactions — great for limited-access roles.
 - **Pro Badge in Help**: The `/help` menu now shows a badge on commands that have Pro Engine features, so you always know what's available on your tier.
@@ -16,15 +21,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`/ask` renamed to `/chat`**: The command name, option label (`question` → `message`), and all related files have been updated. The old `/ask` command no longer exists.
+- **AI Chat is now channel-shared**: Previously each user had their own private AI conversation. Now the whole channel shares one session so members can see what others asked and build on it together.
+- **AI now uses verified command examples**: When the AI suggests how to use a command (e.g. `/role-reactions setup`), it pulls the exact format from the command's own help documentation instead of guessing.
+- **`/core` Spending Guide**: The balance embed now shows AI Chat cost (0.05 Cores per message, ~20 per Core) alongside AI Avatar and Pro Engine costs.
 - **Guild Analytics require Pro Engine**: Server growth analytics are now a Pro Engine feature. Pro servers also get up to 365 days of analytics history (previously 90 days).
 - **Auto-Mod Pro Features**: Advanced bad word filtering (wildcard and regex patterns), domain allowlisting, and the caps lock filter are exclusive to Pro Engine servers.
 - **Transcript Storage (Free tier)**: Free servers now keep ticket transcripts for 30 days, up from 7 days.
 - **Role Reaction Menus (Pro Engine)**: The Pro Engine menu limit has been updated from 20 to 8.
 - **AI Avatar Cost**: Generating an AI Avatar now costs 5 Cores (up from 3). This helps keep the service sustainable. At $5 you can generate 15 avatars.
-- **Core Balance display**: The `/core balance` command now shows Core value in USD and a quick cost reference for Pro Engine and AI Avatar.
+- **Core Balance display**: The `/core balance` command now shows Core value in USD and a quick cost reference for Pro Engine, AI Avatar, and AI Chat.
 
 ### Fixed
 
+- AI response was silently dropped instead of shown to the user (scoped constant bug in non-streaming path).
+- `@mention` AI conversations now share the same channel history as `/chat` instead of using a separate per-user session.
+- Default image credit fallback was `1.2 Core` instead of `5.0 Core`; a provider lookup failure would have undercharged users.
 - Core credit balance no longer shows rounding errors (e.g. `19.999999` now correctly shows as `20`).
 - Clickable command mentions in `/help` now work correctly on production servers.
 - `/serverinfo` now shows more accurate member counts.

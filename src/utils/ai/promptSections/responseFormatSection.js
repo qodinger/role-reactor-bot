@@ -60,7 +60,7 @@ async function buildDynamicActionsList(guild, client, permissions = {}) {
       if (executableCommands.length > 0) {
         actionsList += `- "execute_command" — command, subcommand (optional), options (optional)\n`;
         actionsList += `  Available commands: ${executableCommands.map(c => `/${c.name}`).join(", ")}\n`;
-        actionsList += `  **CRITICAL:** NEVER execute "ask" — you are already inside that command. Just respond in plain text.\n`;
+        actionsList += `  **CRITICAL:** NEVER execute "chat" — you are already inside that command. Just respond in plain text.\n`;
       }
     } catch (_error) {
       // Ignore
@@ -191,11 +191,12 @@ export async function buildResponseFormatSection(guild, client, permissions = {}
     **IMPORTANT: Use the correct format based on whether you need to execute actions:**
 
     ### When you need to execute actions (commands, role changes, etc.):
-    **You MUST respond in JSON format:**
+    **You MUST respond in JSON format — the ENTIRE response must be valid JSON with NO text before or after it:**
     {
       "message": "Your response text here (can be empty if command provides its own response)",
       "actions": [{"type": "execute_command", "command": "...", "options": {...}}]
     }
+    **CRITICAL: Do NOT write any text before or after the JSON block. Output ONLY the raw JSON object.**
 
     ### When you DON'T need to execute any actions:
     **Respond in plain text/markdown format (NO JSON):**
@@ -226,7 +227,7 @@ export async function buildResponseFormatSection(guild, client, permissions = {}
     - **CRITICAL:** JSON does NOT support comments (// or /* */). NEVER add comments inside JSON - they will break parsing!
     - Use actual data from Server Information - never placeholders
     - **CRITICAL:** When using "execute_command", you MUST provide ALL required options - commands will fail if options are missing
-    - **CRITICAL:** NEVER execute the "ask" command - you are ALREADY in the ask command context! If you need to answer a question, just respond directly with plain text. Do NOT use execute_command with "ask" as it will create infinite loops.
+    - **CRITICAL:** NEVER execute the "chat" command - you are ALREADY in the chat command context! If you need to answer a question, just respond directly with plain text. Do NOT use execute_command with "chat" as it will create infinite loops.
     - **REMEMBER:** If you're just answering a question without executing anything, use plain text!
     - **EXECUTE ONLY REQUESTED ACTIONS:** Only execute actions that the user explicitly requested. Do NOT add extra actions (like RPS challenges, games, etc.) unless the user specifically asks for them. If the user asks for server info, execute ONLY the serverinfo command - do not add other actions!
     - **NO HALLUCINATIONS:** If a user asks "who deleted my message" or "who banned this user", and you don't have the audit log data in your context, DO NOT execute a random command. Say: "I don't have access to that information."

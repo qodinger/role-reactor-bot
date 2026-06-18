@@ -36,7 +36,7 @@ vi.mock("../../../src/utils/core/commandHandler.js", () => ({
     commands: new Map([
       ["poll", { disabled: false }],
       ["help", { disabled: false }],
-      ["ask", { disabled: true }],
+      ["chat", { disabled: true }],
       ["imagine", { disabled: true }],
     ]),
     getCommandStats: vi.fn().mockResolvedValue({}),
@@ -132,7 +132,7 @@ describe("apiCommandUsage", () => {
         uniqueUsers: 20,
       },
       {
-        name: "ask",
+        name: "chat",
         count: 5,
         avgDuration: 50,
         lastUsed: "2026-01-17T01:00:00Z",

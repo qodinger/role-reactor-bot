@@ -52,9 +52,9 @@ vi.mock("src/commands/general/core/utils.js", () => ({
   getUserData: vi.fn().mockResolvedValue({ credits: 5, userId: "user123" }),
 }));
 
-import { execute } from "../../../../src/commands/general/ask/handlers.js";
+import { execute } from "../../../../src/commands/general/chat/handlers.js";
 
-describe("Ask Command", () => {
+describe("Chat Command", () => {
   let mockInteraction;
   let mockClient;
 

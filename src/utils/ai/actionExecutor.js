@@ -382,20 +382,57 @@ export class ActionExecutor {
    * @param {import('discord.js').Channel} channel
    * @returns {Promise<string>}
    */
+  /**
+   * Check if a user has moderator or administrator permissions in a guild.
+   * Used to gate server data refresh actions.
+   * @param {import('discord.js').User} user
+   * @param {import('discord.js').Guild} guild
+   * @returns {Promise<boolean>}
+   */
+  static async hasModOrAdminPermissions(user, guild) {
+    if (!user || !guild) return false;
+    try {
+      const member =
+        guild.members.cache.get(user.id) ||
+        (await guild.members.fetch(user.id).catch(() => null));
+      if (!member) return false;
+      return (
+        member.permissions.has("Administrator") ||
+        member.permissions.has("ManageGuild") ||
+        member.permissions.has("ManageMessages") ||
+        member.permissions.has("KickMembers") ||
+        member.permissions.has("BanMembers")
+      );
+    } catch {
+      return false;
+    }
+  }
+
   static async executeSequentialAction(action, guild, client, user, channel) {
     switch (action.type) {
-      case "fetch_channels":
+      case "fetch_channels": {
         if (!guild) return "Cannot fetch channels: not in a server";
+        if (!(await ActionExecutor.hasModOrAdminPermissions(user, guild))) {
+          return "Error: Refreshing server data requires moderator or administrator permissions.";
+        }
         await guild.channels.fetch();
         return "Fetched all channels";
+      }
 
-      case "fetch_roles":
+      case "fetch_roles": {
         if (!guild) return "Cannot fetch roles: not in a server";
+        if (!(await ActionExecutor.hasModOrAdminPermissions(user, guild))) {
+          return "Error: Refreshing server data requires moderator or administrator permissions.";
+        }
         await guild.roles.fetch();
         return "Fetched all roles";
+      }
 
       case "fetch_all": {
         if (!guild) return "Error: Cannot fetch data - not in a server";
+        if (!(await ActionExecutor.hasModOrAdminPermissions(user, guild))) {
+          return "Error: Refreshing server data requires moderator or administrator permissions.";
+        }
         try {
           await guild.channels.fetch();
           await guild.roles.fetch();
@@ -509,9 +546,34 @@ export class ActionExecutor {
    * @param {Object} action
    * @returns {Promise<string>}
    */
+  /** Topics that must never be searched via the bot's web_search action */
+  static WEB_SEARCH_BLOCKED_TERMS = [
+    // Hacking / exploitation
+    "how to hack", "sql injection", "ddos attack", "brute force password",
+    "exploit", "vulnerability scanner", "keylogger", "rat trojan", "malware download",
+    "ransomware", "phishing kit",
+    // Doxxing / personal data
+    "dox ", "doxx", "find personal information", "home address lookup",
+    // NSFW
+    "porn", "xxx", "hentai", "nsfw",
+  ];
+
   static async executeWebSearch(action) {
     const query = action.options?.query;
     if (!query) return "web_search requires 'query' in options";
+
+    // Block searches for harmful topics
+    const queryLower = query.toLowerCase();
+    const blocked = ActionExecutor.WEB_SEARCH_BLOCKED_TERMS.find(term =>
+      queryLower.includes(term),
+    );
+    if (blocked) {
+      logger.warn(`[web_search] Blocked query containing "${blocked}": ${query}`);
+      return `Web search blocked: that topic is not permitted.`;
+    }
+
+    // Log every search for audit purposes
+    logger.info(`[web_search] Query: "${query}"`);
 
     const apiKey = process.env.BRAVE_SEARCH_API_KEY;
     if (!apiKey) {
@@ -558,14 +620,106 @@ export class ActionExecutor {
   }
 
   /**
-   * Execute a bot command programmatically.
-   * @param {Object} action
-   * @param {import('discord.js').Guild} guild
-   * @param {import('discord.js').Client} client
-   * @param {import('discord.js').User} user
+   * Ask the requesting user to confirm an admin action before it runs.
+   * Sends an embed with ✅ Confirm / ❌ Cancel buttons and waits up to 60s.
+   * Returns true if confirmed, false if cancelled/timed-out.
+   * @param {string} cmdDisplay - Human-readable command string e.g. "/role-reactions setup"
+   * @param {Object} cleanOptions - Command options to display
    * @param {import('discord.js').Channel} channel
-   * @returns {Promise<string>}
+   * @param {import('discord.js').User} user
+   * @returns {Promise<boolean>}
    */
+  static async requestConfirmation(cmdDisplay, cleanOptions, channel, user) {
+    const {
+      EmbedBuilder,
+      ActionRowBuilder,
+      ButtonBuilder,
+      ButtonStyle,
+    } = await import("discord.js");
+
+    const optionLines = Object.entries(cleanOptions)
+      .filter(([, v]) => v !== undefined && v !== null && v !== "")
+      .map(([k, v]) => `• **${k}**: ${String(v).substring(0, 100)}`)
+      .join("\n");
+
+    const confirmEmbed = new EmbedBuilder()
+      .setColor(0xf59e0b)
+      .setTitle("⚠️ Confirm Action")
+      .setDescription(
+        `I'm about to run **${cmdDisplay}** on your behalf.\n\n` +
+        (optionLines ? `**Options:**\n${optionLines}\n\n` : "") +
+        `Do you want to proceed?`,
+      )
+      .setFooter({
+        text: `Requested by ${user?.displayName || user?.username || "Unknown"} • Expires in 60s`,
+      })
+      .setTimestamp();
+
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId("ai_confirm_yes")
+        .setLabel("Confirm")
+        .setEmoji("✅")
+        .setStyle(ButtonStyle.Success),
+      new ButtonBuilder()
+        .setCustomId("ai_confirm_no")
+        .setLabel("Cancel")
+        .setEmoji("❌")
+        .setStyle(ButtonStyle.Danger),
+    );
+
+    let confirmMsg;
+    try {
+      confirmMsg = await channel.send({ embeds: [confirmEmbed], components: [row] });
+    } catch (err) {
+      logger.warn(`[requestConfirmation] Could not send confirmation message: ${err.message}`);
+      return false;
+    }
+
+    try {
+      const filter = i => i.user.id === user?.id;
+      const collected = await confirmMsg.awaitMessageComponent({ filter, time: 60_000 });
+
+      if (collected.customId === "ai_confirm_yes") {
+        await collected.update({
+          embeds: [
+            new EmbedBuilder()
+              .setColor(0x22c55e)
+              .setDescription(`✅ Confirmed — running **${cmdDisplay}**...`)
+              .setTimestamp(),
+          ],
+          components: [],
+        });
+        return true;
+      } else {
+        await collected.update({
+          embeds: [
+            new EmbedBuilder()
+              .setColor(0xef4444)
+              .setDescription(`❌ Cancelled — **${cmdDisplay}** was not executed.`)
+              .setTimestamp(),
+          ],
+          components: [],
+        });
+        return false;
+      }
+    } catch {
+      // Timed out — clean up buttons and treat as cancelled
+      try {
+        await confirmMsg.edit({
+          embeds: [
+            new EmbedBuilder()
+              .setColor(0x6b7280)
+              .setDescription(`⏱️ Confirmation timed out — **${cmdDisplay}** was not executed.`)
+              .setTimestamp(),
+          ],
+          components: [],
+        });
+      } catch { /* ignore edit errors */ }
+      return false;
+    }
+  }
+
   static async executeCommand(action, guild, client, user, channel) {
     if (!guild) return "Cannot execute command: not in a server";
     if (!action.command) return "execute_command requires a 'command' field";
@@ -587,6 +741,24 @@ export class ActionExecutor {
 
       const cleanOptions = { ...(action.options || {}) };
       delete cleanOptions.subcommand;
+
+      // Require confirmation before running admin commands
+      const { getAllowedCommands } = await import("./commandExecutor/commandDiscovery.js");
+      const ALLOWED_COMMANDS = await getAllowedCommands(client);
+      const isAdminCommand = ALLOWED_COMMANDS[commandName]?.isAdmin === true;
+
+      if (isAdminCommand && channel) {
+        const cmdDisplay = `/${commandName}${subcommand ? ` ${subcommand}` : ""}`;
+        const confirmed = await ActionExecutor.requestConfirmation(
+          cmdDisplay,
+          cleanOptions,
+          channel,
+          user,
+        );
+        if (!confirmed) {
+          return `Command Error: Action cancelled — **${cmdDisplay}** was not executed.`;
+        }
+      }
 
       const result = await executeCommandProgrammatically({
         commandName,

@@ -193,7 +193,13 @@ export class ServerInfoGatherer {
       // Role information
       try {
         const roles = Array.from(guild.roles.cache.values())
-          .filter(role => role && role.name && role.name !== "@everyone")
+          .filter(
+            role =>
+              role &&
+              role.name &&
+              role.name !== "@everyone" &&
+              !role.managed, // exclude integration/bot-managed roles (Nitro Booster, bot roles, etc.)
+          )
           .map(role => ({
             name: responseValidator.sanitizeData(role.name),
             members: role.members?.size || 0,
@@ -205,7 +211,7 @@ export class ServerInfoGatherer {
           .slice(0, 30);
 
         if (roles.length > 0) {
-          info += `**Server Roles (first 30, sorted by member count):**\n`;
+          info += `**Server Roles (first 30, sorted by member count — bot/integration roles excluded):**\n`;
           roles.forEach(role => {
             let roleInfo = `- ${role.name}`;
             if (role.members > 0) {

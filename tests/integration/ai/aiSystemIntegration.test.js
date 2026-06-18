@@ -72,7 +72,7 @@ describe("AI System Integration", () => {
       expect(aiChatConfig).toBeDefined();
       expect(aiChatConfig.enabled).toBe(true); // AI chat is enabled
       expect(aiChatConfig.provider).toBe("openrouter");
-      expect(aiChatConfig.model).toBe("openai/gpt-4o-mini");
+      expect(aiChatConfig.model).toBe("deepseek/deepseek-v4-flash");
     });
 
     it("should have correct provider configuration", () => {

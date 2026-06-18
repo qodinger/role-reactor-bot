@@ -148,7 +148,12 @@ export async function handleImagineCommand(interaction, _client) {
 
   // Intelligently enhance the user's prompt for better results
   // This helps users who don't know proper prompt formatting or model-specific keywords
-  const modelName = model || "animagine"; // Default to animagine for premium feel
+  // Determine keyword set for prompt enhancement.
+  // `selectedModel` is what the user explicitly chose from the dropdown (null = auto).
+  // When auto-routing, match the ACTUAL generation model:
+  //   NSFW → AnythingXL (SDXL) → "animagine" keywords (Danbooru tags)
+  //   Safe → sd3.5-flash (Stability AI) → "sd3" keywords (natural language)
+  const modelName = selectedModel || (nsfwValidation.isNSFW ? "animagine" : "sd3");
   const intelligentlyEnhanced = enhancePromptIntelligently(
     validation.prompt,
     modelName,

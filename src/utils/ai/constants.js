@@ -60,8 +60,12 @@ export const AI_ADMIN_COMMAND_BLOCKLIST = (
   .filter(Boolean);
 
 // Default blocklist if env var is not set
+// These commands are NEVER executed by the AI regardless of user permissions.
+// All other admin commands are gated by the isAdmin check in canExecuteCommand —
+// non-admins are already blocked there; admins can use AI as a co-pilot.
 export const AI_DEFAULT_ADMIN_BLOCKLIST = [
-  "moderation", // kick/ban/timeout - too destructive for AI
+  "moderation", // kick/ban/timeout/purge — irreversible, always requires human intent
+  "automod",    // disabling safety filters is a security concern
 ];
 
 // Audit logging for AI actions

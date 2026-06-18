@@ -86,7 +86,34 @@ export function parseAIResponse(rawResponse, hasDetectedActions = false) {
     let finalMessage = rawResponse.trim();
     let actions = [];
 
-    // Fallback: If parsing failed but we detected actions during streaming,
+    // Fallback 1: Model wrapped JSON in prose (e.g. "Got it!\n\n{...}")
+    // Extract the first {...} block and try to parse it as a structured response.
+    const firstBrace = rawResponse.indexOf("{");
+    if (firstBrace !== -1) {
+      const candidate = rawResponse.slice(firstBrace);
+      const embeddedResult = jsonParser.parseJsonResponse(candidate);
+      if (embeddedResult.success) {
+        const embeddedActions = Array.isArray(embeddedResult.data.actions)
+          ? embeddedResult.data.actions
+          : [];
+        if (embeddedActions.length > 0) {
+          const embeddedMessage =
+            typeof embeddedResult.data.message === "string"
+              ? embeddedResult.data.message
+              : String(embeddedResult.data.message || "");
+          logger.info(
+            `[AI] Extracted embedded JSON with ${embeddedActions.length} action(s) from text-wrapped response`,
+          );
+          return {
+            success: true,
+            message: embeddedMessage,
+            actions: embeddedActions,
+          };
+        }
+      }
+    }
+
+    // Fallback 2: If parsing failed but we detected actions during streaming,
     // try to extract actions manually from raw text
     if (
       !parseResult.success &&
