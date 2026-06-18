@@ -26,6 +26,7 @@ import {
 import { createClient } from "./init/createClient.js";
 import { loadCommands } from "./init/loadCommands.js";
 import { loadEvents } from "./init/loadEvents.js";
+import { pricingService } from "./utils/ai/pricingService.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -89,6 +90,14 @@ async function main() {
     await getStorageManager();
     const performanceMonitor = getPerformanceMonitor();
     const healthCheckRunner = getHealthCheckRunner();
+
+    // Initialize pricing service (fetches OpenRouter model costs)
+    try {
+      await pricingService.initialize();
+      logger.info("✅ Pricing service initialized with real-time model costs");
+    } catch (error) {
+      logger.warn("⚠️ Pricing service failed to initialize, using fallback costs:", error.message);
+    }
 
     // Create Discord client
     client = await createClient();

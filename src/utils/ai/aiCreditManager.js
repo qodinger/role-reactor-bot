@@ -5,7 +5,7 @@ import { getAIFeatureCosts, calculateCoreCredits } from "../../config/ai.js";
 const logger = getLogger();
 
 const DEFAULT_CREDITS_PER_CHAT = 0.05;
-const DEFAULT_CREDITS_PER_IMAGE = 1.2;
+const DEFAULT_CREDITS_PER_IMAGE = 5.0; // Matches sd3.5-flash (avatar default) and sd3.5-large-turbo (imagine default)
 
 /**
  * Format Core credits to always show exactly 2 decimal places
@@ -79,8 +79,11 @@ function validateUserId(userId) {
 
 /**
  * Get the cost for a specific provider and model
+ * @param {string} provider - AI provider name
+ * @param {string} model - Model name
+ * @param {string} requestType - 'chat' or 'image' (default: 'image')
  */
-export async function getProviderModelCost(provider, model) {
+export async function getProviderModelCost(provider, model, requestType = "image") {
   try {
     const config = await getConfig();
     const costs = config.featureCosts;
@@ -89,9 +92,9 @@ export async function getProviderModelCost(provider, model) {
       if (model && pCosts[model]) return pCosts[model];
       if (pCosts.default) return pCosts.default;
     }
-    return config.aiImage;
+    return requestType === "chat" ? config.aiChat : config.aiImage;
   } catch (_e) {
-    return DEFAULT_CREDITS_PER_IMAGE;
+    return requestType === "chat" ? DEFAULT_CREDITS_PER_CHAT : DEFAULT_CREDITS_PER_IMAGE;
   }
 }
 

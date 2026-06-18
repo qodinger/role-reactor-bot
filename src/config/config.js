@@ -332,8 +332,8 @@ class Config {
         dynamicPricing: {
           enabled: true,
           peakHours: [18, 19, 20, 21, 22], // 6-10 PM peak hours
-          peakMultiplier: 1.2, // 20% higher during peak
-          offPeakDiscount: 0.9, // 10% discount during off-peak
+          peakMultiplier: parseFloat(process.env.PRICE_PEAK_MULTIPLIER) || 1.2,
+          offPeakDiscount: parseFloat(process.env.PRICE_OFFPEAK_DISCOUNT) || 0.9,
         },
 
         // All usage requires Cores (no free tier)

@@ -6,6 +6,7 @@
 
 import { getLogger } from "../logger.js";
 import { aiUsageMonitor } from "./costMonitor.js";
+import { pricingService } from "./pricingService.js";
 
 const logger = getLogger();
 
@@ -19,37 +20,51 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
  */
 const PRICING_CONFIG = {
   // Markup multipliers for different cost ranges
-  markupTiers: [
-    // Order matters - checked from lowest to highest threshold
-    { name: "veryLow", threshold: 0.00005, markup: 200 }, // Up to $0.00005 - 200x markup
-    { name: "low", threshold: 0.0001, markup: 150 }, // Up to $0.0001 - 150x markup
-    { name: "medium", threshold: 0.0005, markup: 100 }, // Up to $0.0005 - 100x markup
-    { name: "high", threshold: 0.001, markup: 75 }, // Up to $0.001 - 75x markup
-    { name: "veryHigh", threshold: 999999, markup: 50 }, // Above $0.001 - 50x markup
-  ],
-
-  // Minimum and maximum charges for CHAT (keep existing good margins)
-  minimumCharge: 0.01, // Minimum 0.01 Core (for chat)
-  maximumCharge: 0.05, // Maximum 0.05 Core (for chat)
-
-  // Image-specific pricing for better profit margins
-  imagePricing: {
-    minimumCharge: 0.05, // Higher minimum for images (better base profit)
-    maximumCharge: null, // NO MAXIMUM - charge based on actual usage
-    markupTiers: [
-      // Same markup tiers but with no upper limit
+  markupTiers: (() => {
+    const defaultTiers = [
       { name: "veryLow", threshold: 0.00005, markup: 200 },
       { name: "low", threshold: 0.0001, markup: 150 },
       { name: "medium", threshold: 0.0005, markup: 100 },
       { name: "high", threshold: 0.001, markup: 75 },
-      { name: "veryHigh", threshold: 999999, markup: 50 }, // Use large number instead of Infinity
-    ],
+      { name: "veryHigh", threshold: 999999, markup: 50 },
+    ];
+    try {
+      const envTiers = process.env.PRICE_MARKUP_TIERS;
+      return envTiers ? JSON.parse(envTiers) : defaultTiers;
+    } catch {
+      return defaultTiers;
+    }
+  })(),
+
+  // Minimum and maximum charges for CHAT (keep existing good margins)
+  minimumCharge: parseFloat(process.env.PRICE_CHAT_MIN) || 0.01,
+  maximumCharge: parseFloat(process.env.PRICE_CHAT_MAX) || 0.05,
+
+  // Image-specific pricing for better profit margins
+  imagePricing: {
+    minimumCharge: parseFloat(process.env.PRICE_IMAGE_MIN) || 0.05,
+    maximumCharge: null, // NO MAXIMUM - charge based on actual usage
+    markupTiers: (() => {
+      const defaultTiers = [
+        { name: "veryLow", threshold: 0.00005, markup: 200 },
+        { name: "low", threshold: 0.0001, markup: 150 },
+        { name: "medium", threshold: 0.0005, markup: 100 },
+        { name: "high", threshold: 0.001, markup: 75 },
+        { name: "veryHigh", threshold: 999999, markup: 50 },
+      ];
+      try {
+        const envTiers = process.env.PRICE_IMAGE_MARKUP_TIERS;
+        return envTiers ? JSON.parse(envTiers) : defaultTiers;
+      } catch {
+        return defaultTiers;
+      }
+    })(),
   },
 
   // Fallback pricing when real cost data is unavailable
   fallbackPricing: {
-    chat: 0.01, // Keep chat pricing low
-    image: 0.1, // Higher fallback for images
+    chat: parseFloat(process.env.PRICE_CHAT_FALLBACK) || 0.01,
+    image: parseFloat(process.env.PRICE_IMAGE_FALLBACK) || 0.1,
   },
 
   // Rounding precision for user-friendly pricing
@@ -205,31 +220,40 @@ export async function estimatePrice(
  * Calculate price based on token usage (when cost data unavailable)
  * @param {Object} usage - Token usage from API response
  * @param {string} provider - AI provider name
+ * @param {string} model - Model name (for real-time pricing lookup)
  * @returns {Promise<number>} Calculated Core price
  */
-export async function calculatePriceFromTokens(usage, provider = "openrouter") {
+export async function calculatePriceFromTokens(usage, provider = "openrouter", model = null) {
   try {
+    const promptTokens = usage?.prompt_tokens || 0;
+    const completionTokens = usage?.completion_tokens || 0;
     const totalTokens =
-      usage?.total_tokens ||
-      usage?.prompt_tokens + usage?.completion_tokens ||
-      50;
+      usage?.total_tokens || promptTokens + completionTokens || 50;
 
-    // Get average usage per token from historical data
-    const costStats = await aiUsageMonitor.getCostStats(provider);
-    let costPerToken;
+    let estimatedCost;
 
-    if (costStats && costStats.currentCostPerToken > 0) {
-      costPerToken = costStats.currentCostPerToken;
-    } else {
-      // Fallback to known averages
-      const fallbackRates = {
-        openrouter: 0.0000006, // Average usage per token
-        stability: 0.00002, // Stability AI average
-      };
-      costPerToken = fallbackRates[provider] || fallbackRates.openrouter;
+    // Try real-time pricing from pricingService first
+    if (model && provider === "openrouter") {
+      const costUSD = pricingService.calculateCostUSD(model, promptTokens, completionTokens);
+      if (costUSD !== null) {
+        estimatedCost = costUSD;
+      }
     }
 
-    const estimatedCost = costPerToken * totalTokens;
+    // Fall back to historical data or estimates
+    if (estimatedCost === undefined) {
+      const costStats = await aiUsageMonitor.getCostStats(provider);
+      let costPerToken;
+
+      if (costStats && costStats.currentCostPerToken > 0) {
+        costPerToken = costStats.currentCostPerToken;
+      } else {
+        costPerToken = pricingService.getFallbackCostPerToken(provider);
+      }
+
+      estimatedCost = costPerToken * totalTokens;
+    }
+
     return calculateDynamicPrice(estimatedCost, "chat");
   } catch (error) {
     logger.error("Error calculating price from tokens:", error);

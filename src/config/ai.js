@@ -32,11 +32,11 @@ export function getAIModels() {
     // Each feature can be independently enabled/disabled and configured
 
     features: {
-      // AI Chat Feature (/ask command)
+      // AI Chat Feature (/chat command)
       aiChat: {
         enabled: true,
         provider: "openrouter",
-        model: "openai/gpt-4o-mini",
+        model: "deepseek/deepseek-v4-flash",
       },
 
       // Avatar Generation (/avatar command)
@@ -288,7 +288,7 @@ export function getAIModels() {
               speed: "medium",
               flags: ["anime", "manga", "2d", "stylized", "nsfw", "character"],
               description: "Ultimate anime-themed SDXL model",
-              costUSD: 0.0068, // ~$0.0068 per generation
+              costUSD: parseFloat(process.env.PRICE_CIVITAI_ANIMAGINE) || 0.0068,
             },
             "aisha-ai-official/wai-nsfw-illustrious-v11": {
               name: "NSFW Illustrious V1.1",
@@ -299,7 +299,7 @@ export function getAIModels() {
               speed: "medium",
               flags: ["anime", "nsfw", "explicit"],
               description: "Illustrious-based NSFW anime model",
-              costUSD: 0.0061, // ~$0.0061 per generation
+              costUSD: parseFloat(process.env.PRICE_CIVITAI_ILLUSTRIOUS) || 0.0061,
             },
             "cjwbw/anything-v4.0": {
               name: "Anything V4.0",
@@ -310,7 +310,7 @@ export function getAIModels() {
               speed: "fast",
               flags: ["anime", "manga", "2d", "nsfw"],
               description: "Classic high-quality anime model",
-              costUSD: 0.005, // Estimated ~$0.005 per generation
+              costUSD: parseFloat(process.env.PRICE_CIVITAI_ANYTHING) || 0.005,
             },
             "datacte/proteus-v0.3": {
               name: "Proteus V0.3",
@@ -321,7 +321,7 @@ export function getAIModels() {
               speed: "medium",
               flags: ["anime", "artistic", "nsfw"],
               description: "Versatile model good for anime and artistic styles",
-              costUSD: 0.024, // ~$0.024 per generation
+              costUSD: parseFloat(process.env.PRICE_CIVITAI_PROTEUS) || 0.024,
             },
           },
         },
@@ -339,23 +339,21 @@ export function getAIFeatureCosts() {
   // CENTRALIZED CONVERSION RATE CONFIGURATION
   // =============================================================================
   //
-  // IMPORTANT: These are the ONLY values you need to change to adjust pricing
+  // IMPORTANT: These values are loaded from environment variables to protect
+  // proprietary pricing logic in open-source deployments.
   //
   // Base conversion rate: 1 USD = X Core Credits (must match storefront price)
-  const BASE_CONVERSION_RATE = 15; // 1 USD = 15 Core Credits (Matches Storefront)
+  const BASE_CONVERSION_RATE = parseFloat(process.env.PRICE_CONVERSION_RATE) || 15;
 
   // Platform markup applied on top of the raw conversion rate.
-  // This is the PROFIT MARGIN knob — raise it to increase margin.
   //   1.25 → 20% gross margin  (user pays 25% more Core than raw API cost implies)
   //   1.50 → 33% gross margin
   //   2.00 → 50% gross margin
   // The effective charge rate = BASE_CONVERSION_RATE × PLATFORM_MARKUP
-  // At 1.25: effective rate = 15 × 1.25 = 18.75 Core per $1 of API cost
-  const PLATFORM_MARKUP = 1.25;
+  const PLATFORM_MARKUP = parseFloat(process.env.PRICE_PLATFORM_MARKUP) || 1.25;
 
   // Minimum charge per request (in Core credits)
-  // Prevents micro-transactions for very small API calls
-  const BASE_MINIMUM_CHARGE = 0.05; // 0.05 Core minimum
+  const BASE_MINIMUM_CHARGE = parseFloat(process.env.PRICE_MINIMUM_CHARGE) || 0.05;
 
   // Formula: Core_Credits = max(API_Cost_USD × BASE_CONVERSION_RATE × PLATFORM_MARKUP, BASE_MINIMUM_CHARGE)
 
@@ -365,43 +363,35 @@ export function getAIFeatureCosts() {
     aiChat: BASE_MINIMUM_CHARGE, // Use standardized minimum charge
 
     // Image generation credits per image - provider and model specific
-    aiImage: 5.0, // Default image generation cost (3 images per $1)
+    aiImage: parseFloat(process.env.PRICE_IMAGE_DEFAULT) || 5.0,
 
-    // Provider-specific costs in Core credits
-    // These are based on actual API costs from providers
+    // Provider-specific costs
     providerCosts: {
       stability: {
-        // Stability AI model costs
-        "sd3.5-large": 8.0,
-        "sd3.5-large-turbo": 5.0,
-        "sd3.5-medium": 4.0,
-        "sd3.5-flash": 5.0,
+        "sd3.5-large": parseFloat(process.env.PRICE_STABILITY_LARGE) || 8.0,
+        "sd3.5-large-turbo": parseFloat(process.env.PRICE_STABILITY_LARGE_TURBO) || 5.0,
+        "sd3.5-medium": parseFloat(process.env.PRICE_STABILITY_MEDIUM) || 4.0,
+        "sd3.5-flash": parseFloat(process.env.PRICE_STABILITY_FLASH) || 5.0,
       },
       comfyui: {
-        // ComfyUI/self-hosted compute costs
-        default: 0.08,
+        default: parseFloat(process.env.PRICE_COMFYUI_DEFAULT) || 0.08,
       },
       runpod: {
-        // RunPod serverless compute costs
-        default: 0.79,
+        default: parseFloat(process.env.PRICE_RUNPOD_DEFAULT) || 0.79,
       },
       civitai: {
-        // Civitai API - pay per use with Buzz
-        // ~$0.006 per image for anime models
-        default: 0.01, // Conservative estimate
-        "aisha-ai-official/animagine-xl-4.0": 0.0068,
-        "aisha-ai-official/wai-nsfw-illustrious-v11": 0.0061,
-        "cjwbw/anything-v4.0": 0.005,
-        "datacte/proteus-v0.3": 0.024,
+        default: parseFloat(process.env.PRICE_CIVITAI_DEFAULT) || 0.01,
+        "aisha-ai-official/animagine-xl-4.0": parseFloat(process.env.PRICE_CIVITAI_ANIMAGINE) || 0.0068,
+        "aisha-ai-official/wai-nsfw-illustrious-v11": parseFloat(process.env.PRICE_CIVITAI_ILLUSTRIOUS) || 0.0061,
+        "cjwbw/anything-v4.0": parseFloat(process.env.PRICE_CIVITAI_ANYTHING) || 0.005,
+        "datacte/proteus-v0.3": parseFloat(process.env.PRICE_CIVITAI_PROTEUS) || 0.024,
       },
       openrouter: {
-        // OpenRouter uses dynamic pricing based on actual token usage
-        // These are fallback costs if usage data is unavailable
-        "openai/gpt-4o-mini": 0.08,
-        "anthropic/claude-3.5-sonnet": 0.35,
-        "deepseek/deepseek-chat": 0.08,
-        "black-forest-labs/flux.2-flex": 1.05,
-        "black-forest-labs/flux.2-pro": 2.1,
+        "openai/gpt-4o-mini": parseFloat(process.env.PRICE_OPENAI_GPT4O_MINI) || 0.08,
+        "anthropic/claude-3.5-sonnet": parseFloat(process.env.PRICE_ANTHROPIC_SONNET) || 0.35,
+        "deepseek/deepseek-chat": parseFloat(process.env.PRICE_DEEPSEEK_CHAT) || 0.08,
+        "black-forest-labs/flux.2-flex": parseFloat(process.env.PRICE_FLUX_FLEX) || 1.05,
+        "black-forest-labs/flux.2-pro": parseFloat(process.env.PRICE_FLUX_PRO) || 2.1,
       },
     },
 
@@ -430,20 +420,20 @@ export function getAIFeatureCosts() {
     bulkDiscounts: {
       enabled: true,
       tiers: [
-        { threshold: 1000, discount: 0.03 }, // 3% off for 1000+ Cores
-        { threshold: 2500, discount: 0.05 }, // 5% off for 2500+ Cores
-        { threshold: 5000, discount: 0.08 }, // 8% off for 5000+ Cores
+        { threshold: parseInt(process.env.PRICE_DISCOUNT_TIER1_THRESHOLD) || 1000, discount: parseFloat(process.env.PRICE_DISCOUNT_TIER1) || 0.03 },
+        { threshold: parseInt(process.env.PRICE_DISCOUNT_TIER2_THRESHOLD) || 2500, discount: parseFloat(process.env.PRICE_DISCOUNT_TIER2) || 0.05 },
+        { threshold: parseInt(process.env.PRICE_DISCOUNT_TIER3_THRESHOLD) || 5000, discount: parseFloat(process.env.PRICE_DISCOUNT_TIER3) || 0.08 },
       ],
     },
 
     // Loyalty rewards system
     loyaltyRewards: {
       enabled: true,
-      pointsPerDollar: 1, // 1 loyalty point per $1 spent
+      pointsPerDollar: parseInt(process.env.PRICE_LOYALTY_POINTS_PER_DOLLAR) || 1,
       rewardTiers: [
-        { points: 100, reward: "3% bonus on next purchase" },
-        { points: 250, reward: "5% bonus on next purchase" },
-        { points: 500, reward: "8% bonus + priority support" },
+        { points: parseInt(process.env.PRICE_LOYALTY_TIER1_POINTS) || 100, reward: process.env.PRICE_LOYALTY_TIER1_REWARD || "3% bonus on next purchase" },
+        { points: parseInt(process.env.PRICE_LOYALTY_TIER2_POINTS) || 250, reward: process.env.PRICE_LOYALTY_TIER2_REWARD || "5% bonus on next purchase" },
+        { points: parseInt(process.env.PRICE_LOYALTY_TIER3_POINTS) || 500, reward: process.env.PRICE_LOYALTY_TIER3_REWARD || "8% bonus + priority support" },
       ],
     },
   };

@@ -199,13 +199,11 @@ export class AIUsageMonitor {
         return stats.currentCostPerToken * tokens;
       }
 
-      // Fallback to known averages (based on our testing)
-      const fallbackCosts = {
-        openrouter: 0.00003045, // From our test data
-        stability: 0.001, // Estimated Stability AI usage
-      };
+      // Fallback to pricing service for cost-per-token estimates
+      const { pricingService } = await import("./pricingService.js");
+      const costPerToken = pricingService.getFallbackCostPerToken(provider);
 
-      return fallbackCosts[provider] || fallbackCosts.openrouter;
+      return costPerToken * tokens;
     } catch (error) {
       logger.error("Failed to get estimated cost:", error);
       return 0.00003045; // Safe fallback

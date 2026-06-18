@@ -30,9 +30,8 @@ export function createBalanceEmbed(
 
   const rateInfo = getConversionRateInfo();
   const featureCosts = getAIFeatureCosts();
-  const avatarCost =
-    featureCosts.providerCosts?.stability?.["sd3.5-flash"] ??
-    featureCosts.aiImage;
+  const avatarCost = featureCosts.aiImage ?? 5.0;
+  const chatCost = featureCosts.aiChat ?? 0.05;
   const coreValueUSD = `$${rateInfo.coreValueUSD.toFixed(2)}`;
 
   const fields = [
@@ -49,8 +48,9 @@ export function createBalanceEmbed(
     {
       name: `Spending Guide`,
       value: [
+        `💬 **AI Chat:** ${chatCost} Core per message (~${Math.floor(1 / chatCost)} messages per Core)`,
+        `🖼️ **AI Avatar:** ${avatarCost} Cores each (~${Math.floor(1 / avatarCost * 10) / 10} avatars per Core)`,
         `⚡ **Pro Engine:** 20 Cores/week`,
-        `🖼️ **AI Avatar:** ${avatarCost} Cores each`,
         `🚀 **Buy Cores:** rolereactor.app`,
       ].join("\n"),
       inline: false,
