@@ -102,6 +102,28 @@ export async function apiListGuilds(req, res) {
 }
 
 /**
+ * Serialize Date objects to ISO strings for React Server Components compatibility
+ * @param {*} value - The value to serialize
+ * @returns {*} The serialized value
+ */
+function serializeDates(value) {
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+  if (Array.isArray(value)) {
+    return value.map(serializeDates);
+  }
+  if (value && typeof value === "object" && value.constructor === Object) {
+    const result = {};
+    for (const [key, val] of Object.entries(value)) {
+      result[key] = serializeDates(val);
+    }
+    return result;
+  }
+  return value;
+}
+
+/**
  * Get guild settings and available commands
  */
 export async function apiGetGuildSettings(req, res) {
@@ -183,33 +205,34 @@ export async function apiGetGuildSettings(req, res) {
       PremiumFeatures.PRO.id,
     );
 
-    res.json(
-      createSuccessResponse({
-        settings: {
-          ...settings,
-          welcomeSystem: welcomeSettings,
-        },
-        guildStats,
-        premiumFeatures: settings.premiumFeatures || {},
-        isPremium: { pro: isProActive },
-        subscription: proSubscription
-          ? {
-              activatedAt: proSubscription.activatedAt,
-              expiresAt: proSubscription.nextDeductionDate,
-              cancelled: proSubscription.cancelled,
-              cancelledAt: proSubscription.cancelledAt,
-              autoRenew: proSubscription.autoRenew,
-              cost: proSubscription.cost,
-              period: proSubscription.period,
-              lastDeductionDate:
-                proSubscription.lastDeductionDate ||
-                proSubscription.activatedAt,
-            }
-          : null,
-        availableCommands: commandDetails,
-        premiumConfig: PremiumFeatures,
-      }),
-    );
+    const responseData = {
+      settings: {
+        ...settings,
+        welcomeSystem: welcomeSettings,
+      },
+      guildStats,
+      premiumFeatures: settings.premiumFeatures || {},
+      isPremium: { pro: isProActive },
+      subscription: proSubscription
+        ? {
+            activatedAt: proSubscription.activatedAt,
+            expiresAt: proSubscription.nextDeductionDate,
+            cancelled: proSubscription.cancelled,
+            cancelledAt: proSubscription.cancelledAt,
+            autoRenew: proSubscription.autoRenew,
+            cost: proSubscription.cost,
+            period: proSubscription.period,
+            lastDeductionDate:
+              proSubscription.lastDeductionDate ||
+              proSubscription.activatedAt,
+          }
+        : null,
+      availableCommands: commandDetails,
+      premiumConfig: PremiumFeatures,
+    };
+
+    // Serialize Date objects to ISO strings for React Server Components
+    res.json(createSuccessResponse(serializeDates(responseData)));
   } catch (error) {
     logger.error(`❌ Error getting settings for guild ${guildId}:`, error);
     res
