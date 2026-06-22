@@ -633,16 +633,16 @@ export async function handleAutomodCommand(interaction) {
   const subcommand = options.getSubcommand();
   const subcommandGroup = options.getSubcommandGroup(false);
 
-  if (subcommand === "settings") {
-    return handleSettings(interaction, settings);
-  }
-
-  if (subcommand === "enable") {
-    return handleEnable(interaction, settings);
-  }
-
-  if (subcommand === "disable") {
-    return handleDisable(interaction, settings);
+  if (subcommandGroup === "general") {
+    if (subcommand === "enable") {
+      return handleEnable(interaction, settings);
+    }
+    if (subcommand === "disable") {
+      return handleDisable(interaction, settings);
+    }
+    if (subcommand === "settings") {
+      return handleSettings(interaction, settings);
+    }
   }
 
   if (subcommandGroup === "badwords") {
