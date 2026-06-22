@@ -24,6 +24,8 @@ services:
     volumes:
       - ./data:/usr/src/app/data
       - ./logs:/usr/src/app/logs:rw
+    env_file:
+      - .env.production
     environment:
       - NODE_ENV=production
     # Port is NOT exposed to the host — Caddy reaches it via the internal network
