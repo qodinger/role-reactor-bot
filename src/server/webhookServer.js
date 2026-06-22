@@ -27,6 +27,7 @@ import authRoutes from "./routes/auth.js";
 
 // Import V1 Routers
 import rootRouter from "./routes/v1/root.js";
+import botStatusRouter from "./routes/v1/botStatus.js";
 import guildsRouter from "./routes/v1/guilds.js";
 import { apiGetPublicLeaderboards } from "./controllers/GuildLeaderboardController.js";
 import paymentsRouter from "./routes/v1/payments.js";
@@ -228,6 +229,7 @@ function initializeRoutes() {
   // Core API routes with rate limiting
   app.use(API_PREFIX, apiRateLimiter);
   app.use(API_PREFIX, rootRouter);
+  app.use(`${API_PREFIX}/bot`, botStatusRouter);
 
   // Public guilds endpoints (no auth required)
   const publicGuildsRouter = express.Router();

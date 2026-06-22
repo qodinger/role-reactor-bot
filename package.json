@@ -42,7 +42,15 @@
     "fix:permissions": "./scripts/fix-permissions.sh",
     "deploy:latest": "./scripts/deploy-latest.sh",
     "deploy:latest:verbose": "./scripts/deploy-latest.sh --verbose",
-    "deploy:latest:force": "./scripts/deploy-latest.sh --force"
+    "deploy:latest:force": "./scripts/deploy-latest.sh --force",
+    "pm2:setup": "./scripts/setup-pm2.sh",
+    "pm2:deploy": "./scripts/deploy-pm2.sh",
+    "pm2:start": "pm2 start ecosystem.config.cjs",
+    "pm2:stop": "pm2 stop role-reactor-bot",
+    "pm2:restart": "pm2 restart role-reactor-bot",
+    "pm2:logs": "pm2 logs role-reactor-bot",
+    "pm2:status": "pm2 status",
+    "pm2:monit": "pm2 monit"
   },
   "keywords": [
     "discord",

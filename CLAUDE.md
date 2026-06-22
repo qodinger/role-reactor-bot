@@ -28,6 +28,16 @@ pnpm run deploy:prod        # Deploy slash commands globally
 pnpm run docker:dev         # Start dev Docker environment
 pnpm run docker:prod        # Start production Docker environment
 pnpm run deploy:latest      # Pull + rebuild + deploy latest on VPS
+
+# PM2 (lightweight alternative)
+pnpm run pm2:setup          # Initial PM2 setup on fresh VPS
+pnpm run pm2:deploy         # Pull + restart bot
+pnpm run pm2:start          # Start bot with PM2
+pnpm run pm2:stop           # Stop bot
+pnpm run pm2:restart        # Restart bot
+pnpm run pm2:logs           # View logs
+pnpm run pm2:status         # Check status
+pnpm run pm2:monit          # Monitor resources
 ```
 
 ## Project Structure
@@ -67,14 +77,26 @@ tests/                  # Vitest test files
 
 ## Deployment Architecture
 
+### Docker (recommended for multi-service)
 ```
 Internet → Caddy (SSL, api.rolereactor.app) → Docker network → role-reactor-bot:3030
+```
+
+### PM2 (lightweight, single-app)
+```
+Internet → Caddy (SSL, api.rolereactor.app) → PM2 → role-reactor-bot:3030
 ```
 
 - Port 3030 is NOT exposed to the host — Caddy proxies internally
 - SSL is automatic via Caddy + Let's Encrypt
 - Environment variables come from the host `.env` file, never baked into the image
 - `docker-compose.prod.yml` runs both `caddy` and `role-reactor-bot` services
+
+### PM2 Notes
+- Use `ecosystem.config.cjs` for configuration
+- Log rotation handled by `pm2-logrotate` plugin
+- Auto-restart on boot via `pm2 startup` + `pm2 save`
+- Memory limit: 200MB (configurable in `ecosystem.config.cjs`)
 
 ## Code Conventions
 
