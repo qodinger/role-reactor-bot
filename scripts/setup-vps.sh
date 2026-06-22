@@ -24,7 +24,7 @@ fi
 
 DOMAIN="api.rolereactor.app"
 EMAIL="sengphachanh.dev@gmail.com"
-APP_DIR="/opt/role-reactor-bot"
+APP_DIR="/root/projects/role-reactor-bot"
 
 echo ""
 echo "╔═══════════════════════════════════════════════════════════════╗"
