@@ -12,7 +12,7 @@ NC='\033[0m'
 log() { echo -e "${BLUE}[$(date +'%H:%M:%S')]${NC} $1"; }
 success() { echo -e "${GREEN}[✓]${NC} $1"; }
 
-APP_DIR="/opt/role-reactor-bot"
+APP_DIR="/root/projects/role-reactor-bot"
 BOT_NAME="role-reactor-bot"
 
 echo ""

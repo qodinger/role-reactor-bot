@@ -14,7 +14,7 @@ log() { echo -e "${BLUE}[$(date +'%H:%M:%S')]${NC} $1"; }
 success() { echo -e "${GREEN}[✓]${NC} $1"; }
 warn() { echo -e "${YELLOW}[!]${NC} $1"; }
 
-APP_DIR="/opt/role-reactor-bot"
+APP_DIR="/root/projects/role-reactor-bot"
 
 echo ""
 echo "╔═══════════════════════════════════════════════════════════════╗"
