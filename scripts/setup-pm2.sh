@@ -27,9 +27,10 @@ echo ""
 
 # 1. Fix pnpm global bin directory if needed
 log "Checking pnpm setup..."
-if ! pnpm config get global-bin-dir &> /dev/null; then
-    log "Running pnpm setup..."
-    pnpm setup
+PNPM_GLOBAL_BIN="/root/.local/share/pnpm/bin"
+if [ ! -d "$PNPM_GLOBAL_BIN" ] || ! echo "$PATH" | grep -q "$PNPM_GLOBAL_BIN"; then
+    log "Setting up pnpm global bin directory..."
+    pnpm setup || true
 fi
 
 # Ensure PNPM_HOME is in PATH
