@@ -12,6 +12,10 @@ NC='\033[0m'
 log() { echo -e "${BLUE}[$(date +'%H:%M:%S')]${NC} $1"; }
 success() { echo -e "${GREEN}[✓]${NC} $1"; }
 
+# Ensure PNPM_HOME is in PATH
+export PNPM_HOME="/root/.local/share/pnpm"
+export PATH="$PNPM_HOME:$PATH"
+
 APP_DIR="/root/projects/role-reactor-bot"
 BOT_NAME="role-reactor-bot"
 
@@ -26,8 +30,10 @@ log "Checking PM2 installation..."
 if ! command -v pm2 &> /dev/null; then
     log "Running pnpm setup..."
     pnpm setup
-    source ~/.bashrc 2>/dev/null || source ~/.zshrc 2>/dev/null || true
-    export PATH="$HOME/.local/share/pnpm:$PATH"
+    
+    # Source shell config to update PATH
+    export PNPM_HOME="/root/.local/share/pnpm"
+    export PATH="$PNPM_HOME:$PATH"
     
     log "Installing PM2..."
     pnpm install -g pm2
