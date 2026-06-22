@@ -6,7 +6,7 @@
 
 <div align="center">
 
-[![Node.js](https://img.shields.io/badge/Node.js-20+-green.svg)](https://nodejs.org/) [![Discord.js](https://img.shields.io/badge/Discord.js-14.22.1-blue.svg)](https://discord.js.org/) [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE) [![Documentation](https://img.shields.io/badge/Documentation-rolereactor.app-blue.svg)](https://rolereactor.app/docs)
+[![Node.js](https://img.shields.io/badge/Node.js-22+-green.svg)](https://nodejs.org/) [![Discord.js](https://img.shields.io/badge/Discord.js-14.22.1-blue.svg)](https://discord.js.org/) [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE) [![Documentation](https://img.shields.io/badge/Documentation-rolereactor.app-blue.svg)](https://rolereactor.app/docs)
 
 </div>
 
@@ -289,10 +289,10 @@ This project follows a structured Git workflow for organized development and col
 **For small fixes/updates:**
 
 ```bash
-git checkout main && git pull origin main
+git checkout dev && git pull origin dev
 # Make changes
 git commit -m "fix(scope): description"
-git push origin main
+git push origin dev
 ```
 
 **For new features:**

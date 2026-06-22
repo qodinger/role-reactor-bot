@@ -272,3 +272,57 @@ export async function apiActiveUsers(req, res) {
     res.status(statusCode).json(response);
   }
 }
+
+/**
+ * Guild count history (daily snapshots)
+ * @param {import('express').Request} req - Express request object
+ * @param {import('express').Response} res - Express response object
+ */
+export async function apiGuildCountHistory(req, res) {
+  logRequest("Guild count history", req);
+
+  try {
+    const { getDatabaseManager } = await import(
+      "../../utils/storage/databaseManager.js"
+    );
+    const dbManager = await getDatabaseManager();
+
+    if (!dbManager?.guildCount) {
+      const { statusCode, response } = createErrorResponse(
+        "Database not available",
+        503,
+      );
+      return res.status(statusCode).json(response);
+    }
+
+    const days = Math.min(parseInt(String(req.query.days)) || 30, 365);
+    const history = await dbManager.guildCount.getHistory(days);
+    const latest = await dbManager.guildCount.getLatest();
+
+    res.json(
+      createSuccessResponse({
+        current: latest
+          ? {
+              guilds: latest.guildCount,
+              users: latest.userCount,
+              date: latest.date,
+            }
+          : null,
+        history: history.map(h => ({
+          date: h.date,
+          guilds: h.guildCount,
+          users: h.userCount,
+        })),
+        days,
+      }),
+    );
+  } catch (error) {
+    logger.error("❌ Error getting guild count history:", error);
+    const { statusCode, response } = createErrorResponse(
+      "Failed to retrieve guild count history",
+      500,
+      error.message,
+    );
+    res.status(statusCode).json(response);
+  }
+}

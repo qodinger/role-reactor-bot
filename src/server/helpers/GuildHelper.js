@@ -18,16 +18,15 @@ export class GuildHelper {
     if (!client) return null;
 
     try {
+      // Single fetch with counts to avoid redundant API call
       const guild =
         client.guilds.cache.get(guildId) ||
+        (await client.guilds.fetch({ guild: guildId, withCounts: true }).catch(() => null)) ||
         (await client.guilds.fetch(guildId).catch(() => null));
       if (!guild) return null;
 
       // Best-effort cache enrichment
       try {
-        await client.guilds
-          .fetch({ guild: guildId, withCounts: true, force: true })
-          .catch(() => null);
         if (guild.memberCount < 5000) {
           await guild.members.fetch({ time: 2000 }).catch(() => {});
         }

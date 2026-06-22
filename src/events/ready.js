@@ -65,6 +65,27 @@ export async function execute(client) {
     memoryUsage: (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2),
   };
 
+  // Record daily guild count snapshot
+  try {
+    const { getDatabaseManager } = await import(
+      "../utils/storage/databaseManager.js"
+    );
+    const dbManager = await getDatabaseManager();
+    if (dbManager?.guildCount) {
+      let totalUsers = 0;
+      for (const guild of client.guilds.cache.values()) {
+        totalUsers += guild.approximateMemberCount || guild.memberCount || 0;
+      }
+      await dbManager.guildCount.recordSnapshot(
+        client.guilds.cache.size,
+        totalUsers,
+      );
+      logger.debug("📊 Daily guild count snapshot recorded");
+    }
+  } catch (error) {
+    logger.debug("Failed to record guild count snapshot:", error.message);
+  }
+
   // Format stats for alignment
   const statLines = [
     `🟢 Status:        ONLINE`,

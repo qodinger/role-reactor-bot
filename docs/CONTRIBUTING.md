@@ -21,7 +21,7 @@ Thank you for your interest in contributing to Role Reactor Bot! This document p
 ### Code Contributions
 
 1. **Fork the repository**
-2. **Follow Git Workflow**: See [Git Workflow Guide](./development/workflow.md) for detailed branch strategy
+2. **Follow Git Workflow**: All work goes to `dev` branch first. See CLAUDE.md for branch strategy
 3. **Create a feature branch**:
    - Use helper: `source scripts/git-helpers.sh && git-feature amazing-feature`
    - Or manually: `git checkout -b feature/amazing-feature`
@@ -36,7 +36,7 @@ Thank you for your interest in contributing to Role Reactor Bot! This document p
 
 ### Prerequisites
 
-- Node.js 20.0.0 or higher
+- Node.js 22.0.0 or higher
 - pnpm package manager
 - MongoDB (local or Docker)
 - Discord Bot Token
@@ -100,7 +100,6 @@ pnpm format:check
 
 - **Commands**: Place in `src/commands/` with appropriate subdirectories
   - `admin/` - Server management commands
-  - `developer/` - Developer-only commands
   - `general/` - General user commands
 - **Events**: Place in `src/events/`
 - **Utilities**: Place in `src/utils/` with subdirectories

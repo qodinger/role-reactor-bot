@@ -118,7 +118,7 @@ pnpm test:ci
 
 ## 📊 Current Test Coverage
 
-### ✅ Covered (41 test files, 744 tests)
+### ✅ Covered (41+ test files, 1184+ tests)
 
 **Unit Tests:**
 - ✅ Admin Commands: welcome, goodbye, moderation, role-reactions, temp-roles, schedule-role, voice-roles, xp, **ticket**

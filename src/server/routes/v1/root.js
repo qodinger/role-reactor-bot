@@ -1,6 +1,9 @@
 import express from "express";
 import { apiInfo } from "../api.js";
-import { apiStats } from "../../controllers/StatsController.js";
+import {
+  apiStats,
+  apiGuildCountHistory,
+} from "../../controllers/StatsController.js";
 import {
   apiPricing,
   apiUserBalance,
@@ -14,6 +17,7 @@ const router = express.Router();
 
 router.get("/info", apiInfo);
 router.get("/stats", apiStats);
+router.get("/stats/guild-count", apiGuildCountHistory);
 router.get("/pricing", apiPricing);
 
 router.get(

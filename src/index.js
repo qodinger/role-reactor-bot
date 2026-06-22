@@ -210,25 +210,6 @@ async function main() {
       logger.info(`➕ Bot joined guild: ${guild.name} (${guild.id})`);
     });
 
-    client.on("guildDelete", async guild => {
-      logger.info(`➖ Bot left guild: ${guild.name} (${guild.id})`);
-      try {
-        const { getDatabaseManager } = await import(
-          "./utils/storage/databaseManager.js"
-        );
-        const dbManager = await getDatabaseManager();
-        if (dbManager?.customCommands) {
-          await dbManager.customCommands.deleteAllForGuild(guild.id);
-          logger.debug(`🗑️ Cleaned up custom commands for guild ${guild.id}`);
-        }
-      } catch (error) {
-        logger.warn(
-          `⚠️ Failed to cleanup custom commands for guild ${guild.id}:`,
-          error.message,
-        );
-      }
-    });
-
     client.once("clientReady", async () => {
       logger.success(`✅ ${client.user.tag} v${getVersion()} is ready!`);
 

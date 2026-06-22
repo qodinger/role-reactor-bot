@@ -5,13 +5,9 @@ import { chatService } from "../utils/ai/index.js";
 import { getUserData } from "../commands/general/core/utils.js";
 import {
   checkAICredits,
-  // getAICreditInfo,
 } from "../utils/ai/aiCreditManager.js";
-// import { emojiConfig } from "../config/emojis.js";
 import { EMOJIS } from "../config/theme.js";
 import { AI_STATUS_MESSAGES } from "../utils/ai/statusMessages.js";
-
-// const { customEmojis } = emojiConfig;
 
 export const name = Events.MessageCreate;
 

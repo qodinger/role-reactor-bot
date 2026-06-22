@@ -64,6 +64,25 @@ export async function execute(interaction) {
     const tempRolesCount = await safeCount(dbManager.temporaryRoles);
     const giveawaysCount = await safeCount(dbManager.giveaways);
 
+    // Guild count growth trend
+    let growthText = "No data yet";
+    try {
+      if (dbManager.guildCount) {
+        const history = await dbManager.guildCount.getHistory(7);
+        if (history.length >= 2) {
+          const current = history[history.length - 1].guildCount;
+          const weekAgo = history[0].guildCount;
+          const change = current - weekAgo;
+          const sign = change >= 0 ? "+" : "";
+          growthText = `**${current}** (${sign}${change} this week)`;
+        } else if (history.length === 1) {
+          growthText = `**${history[0].guildCount}** (just started tracking)`;
+        }
+      }
+    } catch {
+      growthText = "Unavailable";
+    }
+
     // Commands today and active servers
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -120,6 +139,7 @@ export async function execute(interaction) {
         value: [
           `📚 Total: **${totalServers}**`,
           `✨ Active (30d): **${activeServers}**`,
+          `📈 Growth: ${growthText}`,
         ].join("\n"),
         inline: true,
       },

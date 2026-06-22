@@ -231,7 +231,7 @@ Basic tests are available in `__tests__/promptLoader.test.js`:
 
 ```bash
 # Run tests (if using vitest)
-npm test prompts
+pnpm test prompts
 ```
 
 ## Migration Notes

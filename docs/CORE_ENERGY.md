@@ -65,6 +65,8 @@ When **one person** fuels the Pro Engine, **everyone** in the server wins. The f
 | **Transcript Storage** | 30 Days           | **Unlimited**                 |
 | **Bulk Actions**       | 25 users          | **250 users**                 |
 | **Level Rewards**      | 5 (Stack)         | **Unlimited (Replace/Stack)** |
+| **Role Reaction Menus**| 3                 | **8**                         |
+| **Role Reaction Emojis**| 10               | **20**                        |
 
 ---
 

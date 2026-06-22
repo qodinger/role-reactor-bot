@@ -319,6 +319,32 @@ export class ConnectionManager {
         .collection("moderation_logs")
         .createIndex({ timestamp: -1 });
 
+      // Missing guild-scoped indexes
+      await this.db
+        .collection("goodbye_settings")
+        .createIndex({ guildId: 1 }, { unique: true });
+      await this.db
+        .collection("guild_automod")
+        .createIndex({ guildId: 1 }, { unique: true });
+      await this.db
+        .collection("custom_commands")
+        .createIndex({ guildId: 1 });
+      await this.db
+        .collection("voice_control_roles")
+        .createIndex({ guildId: 1 });
+      await this.db
+        .collection("tickets")
+        .createIndex({ guildId: 1 });
+      await this.db
+        .collection("ticket_panels")
+        .createIndex({ guildId: 1 });
+      await this.db
+        .collection("ticket_transcripts")
+        .createIndex({ guildId: 1 });
+      await this.db
+        .collection("guild_count_history")
+        .createIndex({ date: 1 }, { unique: true });
+
       this.logger.success("✅ Database indexes created successfully");
     } catch (error) {
       this.logger.warn("⚠️ Index creation failed (non-critical)", error);

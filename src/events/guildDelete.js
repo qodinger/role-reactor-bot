@@ -13,27 +13,56 @@ export async function execute(guild, client) {
   if (!guild) throw new Error("Missing guild");
   if (!client) throw new Error("Missing client");
 
-  try {
-    // Get all role mappings and check if any are in the deleted guild
-    const allMappings = await getAllRoleMappings();
-    let removedCount = 0;
+  logger.info(`➖ Bot left guild: ${guild.name} (${guild.id})`);
 
+  try {
+    const { getDatabaseManager } = await import(
+      "../utils/storage/databaseManager.js"
+    );
+    const dbManager = await getDatabaseManager();
+
+    // Clean up role mappings from cache/DB
+    const allMappings = await getAllRoleMappings();
+    let removedMappings = 0;
     for (const [messageId, mapping] of Object.entries(allMappings)) {
       if (mapping.guildId === guild.id) {
-        const removedMapping = await removeRoleMapping(messageId);
-        if (removedMapping) {
-          logger.info(`🗑️ Role mapping removed for left guild: ${messageId}`);
-          removedCount++;
+        const removed = await removeRoleMapping(messageId);
+        if (removed) removedMappings++;
+      }
+    }
+    if (removedMappings > 0) {
+      logger.debug(
+        `🗑️ Removed ${removedMappings} role mappings for guild ${guild.id}`,
+      );
+    }
+
+    // Only clean ephemeral data — keep settings, XP, logs, configs
+    // so data is preserved if the bot is reinstalled
+    const ephemeralTasks = [
+      { name: "temporary_roles", fn: () => dbManager.temporaryRoles?.collection?.deleteMany({ guildId: guild.id }) },
+      { name: "tickets", fn: () => dbManager.tickets?.deleteByGuild(guild.id) },
+      { name: "ticket_panels", fn: () => dbManager.ticketPanels?.collection?.deleteMany({ guildId: guild.id }) },
+    ];
+
+    let cleaned = 0;
+    for (const task of ephemeralTasks) {
+      try {
+        const result = await task.fn();
+        if (result?.deletedCount > 0) {
+          cleaned += result.deletedCount;
+          logger.debug(`🗑️ Cleaned ${task.name} for guild ${guild.id}`);
         }
+      } catch {
+        // Repository may not be initialized — skip
       }
     }
 
-    if (removedCount > 0) {
+    if (cleaned > 0) {
       logger.info(
-        `📊 Removed ${removedCount} role mappings from left guild: ${guild.name}`,
+        `🗑️ Cleaned ${cleaned} ephemeral documents for left guild: ${guild.name} (${guild.id})`,
       );
     }
   } catch (error) {
-    logger.error("Error handling guild deletion", error);
+    logger.error(`Error handling guild deletion for ${guild.id}`, error);
   }
 }

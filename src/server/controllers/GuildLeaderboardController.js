@@ -38,6 +38,9 @@ export async function apiGuildLeaderboard(req, res) {
     );
     const dbManager = await getDatabaseManager();
 
+    const client = getDiscordClient();
+    const guild = client?.guilds.cache.get(guildId);
+
     if (dbManager.guildSettings) {
       const guildSettings = await dbManager.guildSettings.getByGuild(guildId);
       if (!guildSettings?.experienceSystem?.enabled) {
@@ -61,8 +64,6 @@ export async function apiGuildLeaderboard(req, res) {
         return res.status(statusCode).json(response);
       }
 
-      const client = getDiscordClient();
-      const guild = client?.guilds.cache.get(guildId);
       if (guild && (guild.nsfwLevel === 1 || guild.nsfwLevel === 3)) {
         const { statusCode, response } = createErrorResponse(
           "NSFW leaderboards are strictly prohibited to comply with global advertising standards.",
@@ -91,9 +92,6 @@ export async function apiGuildLeaderboard(req, res) {
       premiumManager.isFeatureActive(guildId, PremiumFeatures.PRO.id),
     ]);
 
-    const client = getDiscordClient();
-    const guild = client?.guilds.cache.get(guildId);
-
     const enrichedLeaderboard = await GuildHelper.enrichLeaderboard(
       leaderboard,
       client,
@@ -101,22 +99,19 @@ export async function apiGuildLeaderboard(req, res) {
     );
 
     let serverInfo = null;
-    if (client) {
-      const guild = client.guilds.cache.get(guildId);
-      if (guild) {
-        const botsInCache = guild.members.cache.filter(m => m.user.bot).size;
-        const totalMembers = guild.approximateMemberCount || guild.memberCount;
-        serverInfo = {
-          name: guild.name,
-          icon: guild.icon,
-          banner: guild.banner,
-          splash: guild.splash,
-          description: guild.description || null,
-          memberCount: totalMembers,
-          botCount: botsInCache,
-          humanCount: totalMembers - botsInCache,
-        };
-      }
+    if (guild) {
+      const botsInCache = guild.members.cache.filter(m => m.user.bot).size;
+      const totalMembers = guild.approximateMemberCount || guild.memberCount;
+      serverInfo = {
+        name: guild.name,
+        icon: guild.icon,
+        banner: guild.banner,
+        splash: guild.splash,
+        description: guild.description || null,
+        memberCount: totalMembers,
+        botCount: botsInCache,
+        humanCount: totalMembers - botsInCache,
+      };
     }
 
     // Use cached stats or compute via aggregation

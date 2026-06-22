@@ -66,7 +66,7 @@ Returns server information and capabilities.
     "message": "Unified API Server Information",
     "server": {
       "name": "Role Reactor Bot API Server",
-      "version": "1.5.0",
+      "version": "1.7.1",
       "description": "A powerful Discord bot..."
     },
     "features": {
@@ -211,7 +211,7 @@ GET /api/pricing?user_id=YOUR_DISCORD_USER_ID
         "features": ["Priority processing", "Dedicated support"]
       }
     ],
-    "minimumPayment": 3,
+    "minimumPayment": 10,
     "currency": "USD",
     "paymentMethods": {
       "crypto": true
@@ -262,7 +262,7 @@ Creates a new payment invoice using Plisio. **Email is automatically pre-filled 
 **Request Body:**
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `amount` | number | Yes | Payment amount in USD (minimum $1) |
+| `amount` | number | Yes | Payment amount in USD (minimum $10) |
 | `packageId` | string | No | Package identifier (e.g., "$10", "$25") |
 
 **Request:**
@@ -690,7 +690,7 @@ All API responses follow a consistent format:
 
 ```json
 {
-  "status": "success",
+  "success": true,
   "data": { ... },
   "timestamp": "2026-01-14T10:00:00.000Z"
 }
@@ -700,8 +700,8 @@ All API responses follow a consistent format:
 
 ```json
 {
-  "status": "error",
-  "message": "Human-readable error message",
+  "success": false,
+  "error": "Human-readable error message",
   "timestamp": "2026-01-14T10:00:00.000Z"
 }
 ```

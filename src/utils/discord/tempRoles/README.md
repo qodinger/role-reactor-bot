@@ -20,7 +20,7 @@ tempRoles/
 Provides the main functions for temporary role management:
 
 - **`addTemporaryRole()`** - Assign a temporary role to a single user
-- **`addTemporaryRolesForMultipleUsers()`** - Bulk assign temporary roles (up to 10 users)
+- **`addTemporaryRolesForMultipleUsers()`** - Bulk assign temporary roles (up to 25 Free / 250 Pro users)
 - **`removeTemporaryRole()`** - Remove a temporary role from a user
 - **`getUserTemporaryRoles()`** - Get all temporary roles for a specific user
 - **`getTemporaryRoles()`** - Get all temporary roles for a guild
@@ -126,7 +126,7 @@ const formatted = formatDurationMs(9000000); // Returns "2h 30m"
 
 ### Constants
 
-- **`MAX_USERS_PER_ASSIGNMENT`**: Maximum users per bulk assignment (default: 10)
+- **`BULK_ACTION_MAX_MEMBERS`**: Maximum users per bulk assignment (25 Free / 250 Pro, from premium config)
 
 ### Dependencies
 

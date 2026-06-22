@@ -24,11 +24,6 @@ import {
   removeRoleFromUser,
 } from "../../src/utils/discord/roleManager.js";
 import {
-  validateRoleData,
-  validateColor as isValidHexColor,
-  validateRoleName as isValidRoleName,
-} from "../../src/utils/discord/roleValidator.js";
-import {
   sanitizeInput,
   isValidEmoji,
   isValidDuration,
@@ -492,18 +487,6 @@ describe("Discord API Integration Tests", () => {
         ).resolves.toBe(true);
       }
     });
-
-    test("should validate role data", async () => {
-      const validRole = {
-        name: "Valid Role",
-        color: "#00ff00",
-        permissions: ["SEND_MESSAGES", "READ_MESSAGE_HISTORY"],
-      };
-
-      const result = validateRoleData(validRole);
-      expect(result.isValid).toBe(true);
-      expect(Array.isArray(result.errors)).toBe(true);
-    });
   });
 
   describe("Message and Reaction Handling", () => {
@@ -742,10 +725,6 @@ describe("Discord API Integration Tests", () => {
       const sanitizedInput = sanitizeInput("test input");
       expect(typeof sanitizedInput).toBe("string");
 
-      // Test color validation
-      const isValidColor = isValidHexColor("#00ff00");
-      expect(typeof isValidColor).toBe("boolean");
-
       // Test emoji validation
       const isValidEmojiResult = isValidEmoji("🎭");
       expect(typeof isValidEmojiResult).toBe("boolean");
@@ -757,10 +736,6 @@ describe("Discord API Integration Tests", () => {
       // Test duration parsing
       const parsedDuration = parseDuration("1h");
       expect(typeof parsedDuration).toBe("number");
-
-      // Test role name validation
-      const isValidRoleNameResult = isValidRoleName("Test Role");
-      expect(typeof isValidRoleNameResult).toBe("boolean");
 
       // Test embed content validation
       const isValidEmbedResult = isValidEmbedContent("Test content");

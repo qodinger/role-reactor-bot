@@ -24,6 +24,7 @@ import {
   NotificationRepository,
   CustomCommandRepository,
   AutomodRepository,
+  GuildCountRepository,
 } from "./repositories/index.js";
 import { CacheManager } from "../cache/CacheManager.js";
 import { QueryCache } from "../cache/QueryCache.js";
@@ -72,6 +73,7 @@ class DatabaseManager {
     this.notifications = null;
     this.customCommands = null;
     this.automod = null;
+    this.guildCount = null;
     // Initialize connection manager asynchronously (non-blocking)
     this._initializeConnectionManager().catch(err => {
       this.logger?.warn(
@@ -238,6 +240,11 @@ class DatabaseManager {
           this.logger,
         );
         this.automod = new AutomodRepository(
+          db,
+          this.cacheManager,
+          this.logger,
+        );
+        this.guildCount = new GuildCountRepository(
           db,
           this.cacheManager,
           this.logger,

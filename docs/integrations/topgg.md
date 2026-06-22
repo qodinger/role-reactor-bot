@@ -27,7 +27,7 @@ https://your-domain.com/webhook/topgg
 For local testing with ngrok:
 
 ```bash
-ngrok http 3000
+ngrok http 3030
 # Use: https://your-ngrok-url.ngrok.io/webhook/topgg
 ```
 
