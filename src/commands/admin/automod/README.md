@@ -24,9 +24,9 @@ Automatic content moderation to keep your server safe.
 ### Quick Setup
 
 ```bash
-/automod general settings          # Open interactive settings panel
-/automod general enable            # Enable all configured filters
-/automod general disable           # Disable all filters
+/automod settings          # Open interactive settings panel
+/automod enable            # Enable all configured filters
+/automod disable           # Disable all filters
 ```
 
 ### Bad Words

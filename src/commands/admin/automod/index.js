@@ -27,9 +27,9 @@ export const metadata = {
     {
       name: `How to Use`,
       value: [
-        "```/automod general settings```",
-        "```/automod general enable```",
-        "```/automod general disable```",
+        "```/automod settings```",
+        "```/automod enable```",
+        "```/automod disable```",
         "```/automod badwords toggle enabled:true```",
         "```/automod badwords words word1,word2,word3```",
         "```/automod badwords mode:wildcard words:spam*,f*ll*w*rs``` (Pro)",
@@ -517,21 +517,16 @@ export const data = new SlashCommandBuilder()
         sub.setName("clear").setDescription("Clear all statistics and logs"),
       ),
   )
-  .addSubcommandGroup(group =>
-    group
-      .setName("general")
-      .setDescription("General automod settings")
-      .addSubcommand(sub =>
-        sub
-          .setName("enable")
-          .setDescription("Enable all configured auto-mod filters"),
-      )
-      .addSubcommand(sub =>
-        sub.setName("disable").setDescription("Disable all auto-mod filters"),
-      )
-      .addSubcommand(sub =>
-        sub.setName("settings").setDescription("Interactive settings panel"),
-      ),
+  .addSubcommand(sub =>
+    sub
+      .setName("enable")
+      .setDescription("Enable all configured auto-mod filters"),
+  )
+  .addSubcommand(sub =>
+    sub.setName("disable").setDescription("Disable all auto-mod filters"),
+  )
+  .addSubcommand(sub =>
+    sub.setName("settings").setDescription("Interactive settings panel"),
   );
 
 // ============================================================================
