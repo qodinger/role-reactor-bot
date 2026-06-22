@@ -24,6 +24,11 @@ echo ""
 # 1. Install PM2 globally if not present
 log "Checking PM2 installation..."
 if ! command -v pm2 &> /dev/null; then
+    log "Running pnpm setup..."
+    pnpm setup
+    source ~/.bashrc 2>/dev/null || source ~/.zshrc 2>/dev/null || true
+    export PATH="$HOME/.local/share/pnpm:$PATH"
+    
     log "Installing PM2..."
     pnpm install -g pm2
     success "PM2 installed"
