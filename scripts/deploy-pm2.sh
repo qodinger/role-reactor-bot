@@ -14,6 +14,10 @@ log() { echo -e "${BLUE}[$(date +'%H:%M:%S')]${NC} $1"; }
 success() { echo -e "${GREEN}[✓]${NC} $1"; }
 warn() { echo -e "${YELLOW}[!]${NC} $1"; }
 
+# Ensure PNPM_HOME is in PATH
+export PNPM_HOME="/root/.local/share/pnpm"
+export PATH="$PNPM_HOME:$PATH"
+
 APP_DIR="/root/projects/role-reactor-bot"
 
 echo ""

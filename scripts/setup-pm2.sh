@@ -12,6 +12,10 @@ NC='\033[0m'
 log() { echo -e "${BLUE}[$(date +'%H:%M:%S')]${NC} $1"; }
 success() { echo -e "${GREEN}[✓]${NC} $1"; }
 
+# Ensure PNPM_HOME is in PATH
+export PNPM_HOME="/root/.local/share/pnpm"
+export PATH="$PNPM_HOME:$PATH"
+
 APP_DIR="/root/projects/role-reactor-bot"
 BOT_NAME="role-reactor-bot"
 
@@ -21,11 +25,22 @@ echo "║          Role Reactor Bot - PM2 Initial Setup               ║"
 echo "╚═══════════════════════════════════════════════════════════════╝"
 echo ""
 
-# 1. Install PM2 globally if not present
+# 1. Fix pnpm global bin directory if needed
+log "Checking pnpm setup..."
+if ! pnpm config get global-bin-dir &> /dev/null; then
+    log "Running pnpm setup..."
+    pnpm setup
+fi
+
+# Ensure PNPM_HOME is in PATH
+export PNPM_HOME="/root/.local/share/pnpm"
+export PATH="$PNPM_HOME:$PATH"
+
+# 2. Install PM2 globally if not present
 log "Checking PM2 installation..."
 if ! command -v pm2 &> /dev/null; then
     log "Installing PM2..."
-    npm install -g pm2
+    pnpm install -g pm2
     success "PM2 installed"
 else
     success "PM2 already installed"
