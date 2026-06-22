@@ -55,20 +55,46 @@ pm2 set pm2-logrotate:max_size 10M
 pm2 set pm2-logrotate:retain 7
 pm2 set pm2-logrotate:compress true
 
-# 7. Show status
+# 7. Install and configure Caddy reverse proxy
+log "Installing Caddy..."
+if ! command -v caddy &> /dev/null; then
+    sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https curl
+    curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+    curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
+    sudo apt update
+    sudo apt install -y caddy
+    success "Caddy installed"
+else
+    success "Caddy already installed"
+fi
+
+log "Configuring Caddy reverse proxy..."
+cat << 'CADDYFILE' > /etc/caddy/Caddyfile
+api.rolereactor.app {
+    reverse_proxy localhost:3030
+}
+CADDYFILE
+
+log "Starting Caddy..."
+sudo systemctl restart caddy
+sudo systemctl enable caddy
+success "Caddy configured: api.rolereactor.app → localhost:3030"
+
+# 8. Show status
 sleep 2
 pm2 status
 
 success "Setup complete!"
 echo ""
-echo "Next steps:"
-echo "  1. Follow the PM2 startup instructions above"
-echo "  2. Run: pm2 save"
-echo "  3. Verify: pm2 status"
+echo "Services:"
+echo "  Bot:     pm2 status"
+echo "  Caddy:   sudo systemctl status caddy"
+echo "  Logs:    pm2 logs $BOT_NAME"
 echo ""
 echo "Useful commands:"
-echo "  pm2 logs $BOT_NAME        # View logs"
+echo "  pm2 logs $BOT_NAME        # View bot logs"
 echo "  pm2 restart $BOT_NAME     # Restart bot"
 echo "  pm2 stop $BOT_NAME        # Stop bot"
 echo "  pm2 monit                 # Monitor resources"
+echo "  sudo systemctl restart caddy  # Restart Caddy"
 echo ""
