@@ -40,6 +40,14 @@ export const PremiumFeatures = {
   },
 };
 
+// Free trial configuration for Pro Engine
+export const ProTrialConfig = {
+  enabled: true,
+  durationDays: 7,           // Trial lasts 7 days
+  autoActivate: false,       // User-triggered via dashboard, not automatic
+  oneTimeOnly: true,         // Each guild gets only one trial
+};
+
 /**
  * Free tier limits — features available without Pro Engine
  */

@@ -470,8 +470,9 @@ class ExperienceManager {
     );
     const dbManager = await getDatabaseManager();
 
+    let guildSettings;
     if (dbManager.guildSettings) {
-      const guildSettings = await dbManager.guildSettings.getByGuild(guildId);
+      guildSettings = await dbManager.guildSettings.getByGuild(guildId);
       if (!guildSettings.experienceSystem.messageXP) {
         return null;
       }
@@ -482,8 +483,6 @@ class ExperienceManager {
     }
 
     // Calculate random XP based on guild settings (default 15-25 if not set)
-    const guildSettings = await dbManager.guildSettings.getByGuild(guildId);
-
     // Safety fallback in case settings are missing
     const minXP = guildSettings?.experienceSystem?.messageXPAmount?.min ?? 15;
     const maxXP = guildSettings?.experienceSystem?.messageXPAmount?.max ?? 25;
@@ -614,8 +613,9 @@ class ExperienceManager {
     );
     const dbManager = await getDatabaseManager();
 
+    let guildSettings;
     if (dbManager.guildSettings) {
-      const guildSettings = await dbManager.guildSettings.getByGuild(guildId);
+      guildSettings = await dbManager.guildSettings.getByGuild(guildId);
       if (!guildSettings.experienceSystem.commandXP) {
         return null;
       }
@@ -630,8 +630,7 @@ class ExperienceManager {
     }
 
     // Get base XP amount from guild settings
-    const guildSettings = await dbManager.guildSettings.getByGuild(guildId);
-    const xp = guildSettings.experienceSystem.commandXPAmount.base;
+    const xp = guildSettings?.experienceSystem?.commandXPAmount?.base ?? 10;
 
     const userData = await this.addXP(guildId, userId, xp, client);
 

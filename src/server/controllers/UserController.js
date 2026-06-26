@@ -101,31 +101,32 @@ export async function apiListUsers(req, res) {
 
         // Fetch Discord user info for payer users not in collection
         const client = getDiscordClient();
-        for (const payerId of payerUserIds) {
-          if (client) {
+        if (client) {
+          const fetchPromises = payerUserIds.map(async payerId => {
             try {
               const discordUser = await client.users.fetch(payerId);
-              users.push({
+              return {
                 discordId: payerId,
                 username: discordUser?.username || `User_${payerId}`,
                 globalName: discordUser?.globalName || null,
                 avatar: discordUser?.avatar || null,
                 role: "user",
                 isPayer: true,
-              });
-              total++;
+              };
             } catch {
-              users.push({
+              return {
                 discordId: payerId,
                 username: `User_${payerId}`,
                 globalName: null,
                 avatar: null,
                 role: "user",
                 isPayer: true,
-              });
-              total++;
+              };
             }
-          }
+          });
+          const fetchedUsers = await Promise.all(fetchPromises);
+          users.push(...fetchedUsers);
+          total += fetchedUsers.length;
         }
       } catch (err) {
         logger.warn("Failed to fetch payer users from guild_settings", err);

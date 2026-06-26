@@ -214,6 +214,14 @@ class CommandHandler {
             duration,
           );
         }
+        // Record to recent command users for time-windowed stats
+        if (dbManager && dbManager.recentCommandUsers) {
+          await dbManager.recentCommandUsers.recordUsage(
+            commandName,
+            userId,
+            guildId,
+          );
+        }
       } catch (error) {
         this.logger.error("Failed to persist command usage:", error);
       }

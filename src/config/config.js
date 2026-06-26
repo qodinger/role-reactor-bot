@@ -432,6 +432,7 @@ class Config {
         secretKey: process.env.PLISIO_SECRET_KEY,
         enabled: !!process.env.PLISIO_SECRET_KEY,
       },
+      buymeacoffeeUrl: process.env.BUYMEACOFFEE_PAGE_URL || "https://buymeacoffee.com/rolereactor",
     };
   }
 

@@ -1,4 +1,5 @@
 import express from "express";
+import crypto from "crypto";
 import { getLogger } from "../../utils/logger.js";
 import {
   createSuccessResponse,
@@ -288,6 +289,13 @@ router.get("/me", async (req, res) => {
       );
       const storage = await getStorageManager();
 
+      // Update lastSeen for dashboard activity tracking
+      if (storage?.dbManager?.users && req.session.discordUser.id) {
+        storage.dbManager.users
+          .updateLastSeen(req.session.discordUser.id)
+          .catch(() => {});
+      }
+
       // Get credits
       const creditData = await storage.getCoreCredits(
         req.session.discordUser.id,
@@ -419,16 +427,17 @@ function validateRedirectUrl(url) {
 }
 
 /**
- * Generate random string for state parameter
+ * Generate cryptographically secure random string for state parameter
  * @param {number} length - Length of string
  * @returns {string} Random string
  */
 function generateRandomString(length) {
   const chars =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const randomBytes = crypto.randomBytes(length);
   let result = "";
   for (let i = 0; i < length; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
+    result += chars[randomBytes[i] % chars.length];
   }
   return result;
 }

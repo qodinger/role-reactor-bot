@@ -5,6 +5,7 @@ import {
   apiGetAdminActionLogs,
 } from "../../controllers/PaymentAdminController.js";
 import { apiCreatePayment } from "../../controllers/PaymentProcessingController.js";
+import { apiGenerateBMACCode } from "../../controllers/BMACController.js";
 
 import { internalAuth } from "../../middleware/internalAuth.js";
 import { requireAuth } from "../../middleware/authentication.js";
@@ -31,5 +32,8 @@ router.get(
 
 // Payment creation - requires internal auth (website verifies user session)
 router.post("/create", internalAuth, apiCreatePayment);
+
+// Buy Me a Coffee code generation - requires internal auth
+router.post("/buymeacoffee/generate-code", internalAuth, apiGenerateBMACCode);
 
 export default router;

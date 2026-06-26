@@ -195,6 +195,7 @@ let sessionSecurityManager = null;
 export function getSessionSecurityManager() {
   if (!sessionSecurityManager) {
     sessionSecurityManager = new SessionSecurityManager();
+    sessionSecurityManager.initialize();
   }
   return sessionSecurityManager;
 }

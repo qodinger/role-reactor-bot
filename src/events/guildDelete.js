@@ -62,6 +62,12 @@ export async function execute(guild, client) {
         `🗑️ Cleaned ${cleaned} ephemeral documents for left guild: ${guild.name} (${guild.id})`,
       );
     }
+
+    // Record guild leave in history
+    if (dbManager.guildHistory) {
+      await dbManager.guildHistory.recordLeave(guild.id);
+      logger.info(`📝 Recorded guild leave: ${guild.name} (${guild.id})`);
+    }
   } catch (error) {
     logger.error(`Error handling guild deletion for ${guild.id}`, error);
   }

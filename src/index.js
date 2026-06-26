@@ -205,11 +205,6 @@ async function main() {
       logger.info("🔄 Discord client reconnecting...");
     });
 
-    // Track guild changes
-    client.on("guildCreate", async guild => {
-      logger.info(`➕ Bot joined guild: ${guild.name} (${guild.id})`);
-    });
-
     client.once("clientReady", async () => {
       logger.success(`✅ ${client.user.tag} v${getVersion()} is ready!`);
 

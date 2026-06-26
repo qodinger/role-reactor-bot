@@ -25,6 +25,8 @@ import {
   CustomCommandRepository,
   AutomodRepository,
   GuildCountRepository,
+  GuildHistoryRepository,
+  RecentCommandUsersRepository,
 } from "./repositories/index.js";
 import { CacheManager } from "../cache/CacheManager.js";
 import { QueryCache } from "../cache/QueryCache.js";
@@ -74,6 +76,8 @@ class DatabaseManager {
     this.customCommands = null;
     this.automod = null;
     this.guildCount = null;
+    this.guildHistory = null;
+    this.recentCommandUsers = null;
     // Initialize connection manager asynchronously (non-blocking)
     this._initializeConnectionManager().catch(err => {
       this.logger?.warn(
@@ -245,6 +249,16 @@ class DatabaseManager {
           this.logger,
         );
         this.guildCount = new GuildCountRepository(
+          db,
+          this.cacheManager,
+          this.logger,
+        );
+        this.guildHistory = new GuildHistoryRepository(
+          db,
+          this.cacheManager,
+          this.logger,
+        );
+        this.recentCommandUsers = new RecentCommandUsersRepository(
           db,
           this.cacheManager,
           this.logger,

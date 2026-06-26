@@ -13,6 +13,8 @@ import {
   apiActivatePremiumFeature,
   apiCancelPremiumFeature,
   apiGetPremiumStatus,
+  apiActivateTrial,
+  apiResetPremium,
 } from "../../controllers/GuildPremiumController.js";
 import {
   apiGuildLeaderboard,
@@ -53,6 +55,26 @@ router.post("/check", internalAuth, apiCheckGuilds);
 
 // List all guilds (internal only - for admin dashboard)
 router.get("/", internalAuth, requireAuth, apiListGuilds);
+
+// Guild history (internal only - for admin dashboard)
+router.get("/history", internalAuth, requireAuth, async (req, res) => {
+  try {
+    const { getStorageManager } = await import(
+      "../../../utils/storage/storageManager.js"
+    );
+    const storage = await getStorageManager();
+    if (!storage?.dbManager?.guildHistory) {
+      return res.status(503).json({ success: false, error: "Guild history not available" });
+    }
+    const guilds = await storage.dbManager.guildHistory.getAll();
+    res.json({ success: true, data: guilds });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Guild details for admin (bypasses membership check)
+router.get("/:guildId/details", internalAuth, requireAuth, apiGetGuildSettings);
 
 // Settings - requires guild permission (internal auth verifies website request)
 router.get(
@@ -104,6 +126,13 @@ router.post(
   apiActivatePremiumFeature,
 );
 router.post(
+  "/:guildId/premium/activate-trial",
+  internalAuth,
+  requireGuildPermission,
+  premiumActivationLimiter,
+  apiActivateTrial,
+);
+router.post(
   "/:guildId/premium/cancel",
   internalAuth,
   requireGuildPermission,
@@ -115,6 +144,12 @@ router.get(
   internalAuth,
   requireGuildMembership,
   apiGetPremiumStatus,
+);
+router.post(
+  "/:guildId/premium/reset",
+  internalAuth,
+  requireGuildPermission,
+  apiResetPremium,
 );
 
 // Analytics - requires guild permission

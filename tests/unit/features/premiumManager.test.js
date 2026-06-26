@@ -363,6 +363,9 @@ describe("PremiumManager", () => {
         cancelled: false,
         cancelledAt: null,
         autoRenew: true,
+        isTrial: false,
+        trialUsed: false,
+        trialEndsAt: null,
       });
     });
   });

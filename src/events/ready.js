@@ -82,6 +82,14 @@ export async function execute(client) {
       );
       logger.debug("📊 Daily guild count snapshot recorded");
     }
+
+    // Seed guild history for all current guilds
+    if (dbManager?.guildHistory) {
+      const seeded = await dbManager.guildHistory.seedFromClient(client);
+      if (seeded > 0) {
+        logger.info(`📝 Seeded ${seeded} guilds into guild history`);
+      }
+    }
   } catch (error) {
     logger.debug("Failed to record guild count snapshot:", error.message);
   }

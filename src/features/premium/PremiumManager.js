@@ -207,6 +207,79 @@ export class PremiumManager {
   }
 
   /**
+   * Activate a free trial of Pro Engine for a guild (no core deduction)
+   * @param {string} guildId - Discord guild ID
+   * @param {string} [userId] - Optional user ID who triggered the trial
+   * @returns {Promise<{success: boolean, message: string}>}
+   */
+  async activateTrial(guildId, userId = null) {
+    const featureId = PremiumFeatures.PRO.id;
+
+    try {
+      const storage = await getStorageManager();
+      if (!storage.dbManager) {
+        return { success: false, message: "Database connection required." };
+      }
+      const db = storage.dbManager;
+
+      // Check if trial already used
+      const settings = await db.guildSettings.getByGuild(guildId);
+      const existing = settings?.premiumFeatures?.[featureId];
+
+      if (existing?.trialUsed) {
+        return {
+          success: false,
+          message: "Free trial has already been used for this server.",
+        };
+      }
+
+      // Calculate trial end date
+      const { ProTrialConfig } = await import("./config.js");
+      const trialEndsAt = new Date();
+      trialEndsAt.setDate(trialEndsAt.getDate() + ProTrialConfig.durationDays);
+
+      // Activate trial — no core deduction
+      const premiumFeatures = settings?.premiumFeatures || {};
+      premiumFeatures[featureId] = {
+        active: true,
+        isTrial: true,
+        trialUsed: true,
+        trialEndsAt,
+        payerUserId: userId,
+        activatedAt: new Date(),
+        lastDeductionDate: new Date(),
+        nextDeductionDate: trialEndsAt,
+        cost: 0,
+        period: "trial",
+      };
+
+      await db.guildSettings.set(guildId, {
+        ...settings,
+        premiumFeatures,
+      });
+
+      // Sync guild commands for Pro Engine
+      const commandHandler = getCommandHandler();
+      await commandHandler.syncGuildCommands(
+        guildId,
+        settings?.disabledCommands || [],
+      );
+
+      logger.info(
+        `🎁 Pro Engine trial activated for guild ${guildId} (expires: ${trialEndsAt.toLocaleDateString()})`,
+      );
+
+      return {
+        success: true,
+        message: `Pro Engine trial activated! Valid until ${trialEndsAt.toLocaleDateString()}.`,
+      };
+    } catch (error) {
+      logger.error(`Failed to activate trial for guild ${guildId}:`, error);
+      return { success: false, message: "An internal error occurred." };
+    }
+  }
+
+  /**
    * Cancel a premium feature for a guild.
    * The feature remains active until the current billing cycle ends.
    * @param {string} guildId - Discord guild ID
@@ -298,6 +371,9 @@ export class PremiumManager {
         cancelled: !!sub.cancelledAt,
         cancelledAt: sub.cancelledAt || null,
         autoRenew: sub.autoRenew !== false,
+        isTrial: !!sub.isTrial,
+        trialUsed: !!sub.trialUsed,
+        trialEndsAt: sub.trialEndsAt || null,
       };
     } catch (error) {
       logger.error(
@@ -351,6 +427,17 @@ export class PremiumManager {
             if (deductionDate <= now) {
               await this.disableFeature(guildId, featureId, {
                 reason: "cancelled",
+              });
+              counts.disabled++;
+            }
+            continue;
+          }
+
+          // Handle trial expiry — disable without attempting renewal
+          if (sub.isTrial && sub.period === "trial") {
+            if (deductionDate <= now) {
+              await this.disableFeature(guildId, featureId, {
+                reason: "trial_expired",
               });
               counts.disabled++;
             }

@@ -24,6 +24,7 @@ import {
   requireOwnUser,
   requireAdmin,
 } from "../../middleware/userAuthorization.js";
+import { validateBody } from "../../middleware/validation.js";
 
 const router = express.Router();
 
@@ -68,6 +69,12 @@ router.patch(
   internalAuth,
   requireAuth,
   requireAdmin,
+  validateBody({
+    required: ["role"],
+    properties: {
+      role: { type: "string", enum: ["user", "support", "admin", "owner"] },
+    },
+  }),
   apiSetUserRole,
 );
 router.post(

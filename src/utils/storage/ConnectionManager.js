@@ -344,6 +344,20 @@ export class ConnectionManager {
       await this.db
         .collection("guild_count_history")
         .createIndex({ date: 1 }, { unique: true });
+      await this.db
+        .collection("guild_history")
+        .createIndex({ guildId: 1 }, { unique: true });
+      await this.db
+        .collection("guild_history")
+        .createIndex({ status: 1 });
+
+      // Recent command users indexes
+      await this.db
+        .collection("recent_command_users")
+        .createIndex({ timestamp: 1 }, { expireAfterSeconds: 604800 }); // 7 days TTL
+      await this.db
+        .collection("recent_command_users")
+        .createIndex({ userId: 1, timestamp: 1 });
 
       this.logger.success("✅ Database indexes created successfully");
     } catch (error) {

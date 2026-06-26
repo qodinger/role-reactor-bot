@@ -6,6 +6,7 @@
 import express from "express";
 import { handleCryptoWebhook } from "../webhooks/crypto.js";
 import { handleTopggVote } from "../webhooks/topgg.js";
+import { handleBMACWebhook } from "../webhooks/buymeacoffee.js";
 import { getLogger } from "../utils/logger.js";
 
 // Import middleware
@@ -203,6 +204,7 @@ function initializeRoutes() {
 
   // Webhook routes with rate limiting
   app.post("/webhook/crypto", webhookRateLimiter, handleCryptoWebhook);
+  app.post("/webhook/buymeacoffee", webhookRateLimiter, handleBMACWebhook);
 
   // top.gg webhook - body already parsed by global express.json() middleware
   app.post(
