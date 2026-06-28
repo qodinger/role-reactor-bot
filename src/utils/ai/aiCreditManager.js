@@ -83,7 +83,11 @@ function validateUserId(userId) {
  * @param {string} model - Model name
  * @param {string} requestType - 'chat' or 'image' (default: 'image')
  */
-export async function getProviderModelCost(provider, model, requestType = "image") {
+export async function getProviderModelCost(
+  provider,
+  model,
+  requestType = "image",
+) {
   try {
     const config = await getConfig();
     const costs = config.featureCosts;
@@ -94,7 +98,9 @@ export async function getProviderModelCost(provider, model, requestType = "image
     }
     return requestType === "chat" ? config.aiChat : config.aiImage;
   } catch (_e) {
-    return requestType === "chat" ? DEFAULT_CREDITS_PER_CHAT : DEFAULT_CREDITS_PER_IMAGE;
+    return requestType === "chat"
+      ? DEFAULT_CREDITS_PER_CHAT
+      : DEFAULT_CREDITS_PER_IMAGE;
   }
 }
 

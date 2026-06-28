@@ -3,9 +3,7 @@ import { getLogger } from "../utils/logger.js";
 import { getExperienceManager } from "../features/experience/ExperienceManager.js";
 import { chatService } from "../utils/ai/index.js";
 import { getUserData } from "../commands/general/core/utils.js";
-import {
-  checkAICredits,
-} from "../utils/ai/aiCreditManager.js";
+import { checkAICredits } from "../utils/ai/aiCreditManager.js";
 import { EMOJIS } from "../config/theme.js";
 import { AI_STATUS_MESSAGES } from "../utils/ai/statusMessages.js";
 

@@ -64,7 +64,9 @@ router.get("/history", internalAuth, requireAuth, async (req, res) => {
     );
     const storage = await getStorageManager();
     if (!storage?.dbManager?.guildHistory) {
-      return res.status(503).json({ success: false, error: "Guild history not available" });
+      return res
+        .status(503)
+        .json({ success: false, error: "Guild history not available" });
     }
     const guilds = await storage.dbManager.guildHistory.getAll();
     res.json({ success: true, data: guilds });

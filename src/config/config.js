@@ -333,7 +333,8 @@ class Config {
           enabled: true,
           peakHours: [18, 19, 20, 21, 22], // 6-10 PM peak hours
           peakMultiplier: parseFloat(process.env.PRICE_PEAK_MULTIPLIER) || 1.2,
-          offPeakDiscount: parseFloat(process.env.PRICE_OFFPEAK_DISCOUNT) || 0.9,
+          offPeakDiscount:
+            parseFloat(process.env.PRICE_OFFPEAK_DISCOUNT) || 0.9,
         },
 
         // All usage requires Cores (no free tier)
@@ -432,7 +433,9 @@ class Config {
         secretKey: process.env.PLISIO_SECRET_KEY,
         enabled: !!process.env.PLISIO_SECRET_KEY,
       },
-      buymeacoffeeUrl: process.env.BUYMEACOFFEE_PAGE_URL || "https://buymeacoffee.com/rolereactor",
+      buymeacoffeeUrl:
+        process.env.BUYMEACOFFEE_PAGE_URL ||
+        "https://buymeacoffee.com/rolereactor",
     };
   }
 

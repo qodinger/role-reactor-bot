@@ -96,7 +96,10 @@ async function main() {
       await pricingService.initialize();
       logger.info("✅ Pricing service initialized with real-time model costs");
     } catch (error) {
-      logger.warn("⚠️ Pricing service failed to initialize, using fallback costs:", error.message);
+      logger.warn(
+        "⚠️ Pricing service failed to initialize, using fallback costs:",
+        error.message,
+      );
     }
 
     // Create Discord client

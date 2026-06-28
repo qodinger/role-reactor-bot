@@ -16,7 +16,8 @@ export const disabled = false;
 export const metadata = {
   name: "chat",
   category: "general",
-  description: "Chat with the AI — conversation is shared with everyone in this channel",
+  description:
+    "Chat with the AI — conversation is shared with everyone in this channel",
   keywords: ["chat", "ask", "ai", "assistant", "help me", "question"],
   emoji: "💬",
   helpFields: [
@@ -28,7 +29,8 @@ export const metadata = {
     },
     {
       name: "What You Need",
-      value: "**message** *(required)* — Your message to the AI (max 1000 characters)",
+      value:
+        "**message** *(required)* — Your message to the AI (max 1000 characters)",
       inline: false,
     },
     {

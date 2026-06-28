@@ -195,10 +195,7 @@ export class ServerInfoGatherer {
         const roles = Array.from(guild.roles.cache.values())
           .filter(
             role =>
-              role &&
-              role.name &&
-              role.name !== "@everyone" &&
-              !role.managed, // exclude integration/bot-managed roles (Nitro Booster, bot roles, etc.)
+              role && role.name && role.name !== "@everyone" && !role.managed, // exclude integration/bot-managed roles (Nitro Booster, bot roles, etc.)
           )
           .map(role => ({
             name: responseValidator.sanitizeData(role.name),

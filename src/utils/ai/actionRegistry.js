@@ -145,7 +145,8 @@ export const ACTION_REGISTRY = {
     triggersReQuery: true,
     requiresOptions: true,
     requiredOptions: ["question", "options"],
-    description: "Show Discord buttons or select menu and wait for user to choose",
+    description:
+      "Show Discord buttons or select menu and wait for user to choose",
   },
 
   // ============================================================================

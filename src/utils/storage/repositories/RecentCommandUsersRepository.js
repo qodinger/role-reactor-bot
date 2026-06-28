@@ -25,7 +25,9 @@ export class RecentCommandUsersRepository extends BaseRepository {
         timestamp: new Date(),
       });
     } catch (error) {
-      this.logger.debug(`Failed to record recent command user: ${error.message}`);
+      this.logger.debug(
+        `Failed to record recent command user: ${error.message}`,
+      );
     }
   }
 
@@ -37,11 +39,13 @@ export class RecentCommandUsersRepository extends BaseRepository {
   async getUniqueActiveUsers(hours) {
     try {
       const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000);
-      const result = await this.collection.aggregate([
-        { $match: { timestamp: { $gte: cutoff } } },
-        { $group: { _id: "$userId" } },
-        { $count: "total" },
-      ]).toArray();
+      const result = await this.collection
+        .aggregate([
+          { $match: { timestamp: { $gte: cutoff } } },
+          { $group: { _id: "$userId" } },
+          { $count: "total" },
+        ])
+        .toArray();
       return result[0]?.total || 0;
     } catch (error) {
       this.logger.error("Failed to get unique active users", error);

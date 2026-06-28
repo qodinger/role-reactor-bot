@@ -81,7 +81,11 @@ export class OpenRouterProvider {
 
     // Tools (Claude models via OpenRouter): pass definitions and skip response_format
     // response_format and tools are mutually exclusive — tools take precedence.
-    if (config.tools && Array.isArray(config.tools) && config.tools.length > 0) {
+    if (
+      config.tools &&
+      Array.isArray(config.tools) &&
+      config.tools.length > 0
+    ) {
       requestBody.tools = config.tools;
     } else if (config.responseFormat === "json_object" || config.forceJson) {
       // Only set response_format when NOT using tools

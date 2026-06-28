@@ -108,7 +108,9 @@ class PricingService {
     const pricing = this.modelPricing.get(modelId);
     if (!pricing) return null;
 
-    return pricing.prompt * promptTokens + pricing.completion * completionTokens;
+    return (
+      pricing.prompt * promptTokens + pricing.completion * completionTokens
+    );
   }
 
   /**
@@ -134,7 +136,8 @@ class PricingService {
    */
   getFallbackCostPerToken(provider) {
     const fallbacks = {
-      stability: parseFloat(process.env.PRICE_STABILITY_COST_PER_TOKEN) || 0.00002,
+      stability:
+        parseFloat(process.env.PRICE_STABILITY_COST_PER_TOKEN) || 0.00002,
       comfyui: parseFloat(process.env.PRICE_COMFYUI_COST_PER_REQUEST) || 0.001,
       runpod: parseFloat(process.env.PRICE_RUNPOD_COST_PER_REQUEST) || 0.01,
       civitai: parseFloat(process.env.PRICE_CIVITAI_COST_PER_IMAGE) || 0.006,

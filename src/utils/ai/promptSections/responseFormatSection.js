@@ -177,7 +177,11 @@ async function buildResponseFormatExamples(
  * @param {Object} permissions - { isAdmin, isMod }
  * @returns {Promise<string>} Response format section
  */
-export async function buildResponseFormatSection(guild, client, permissions = {}) {
+export async function buildResponseFormatSection(
+  guild,
+  client,
+  permissions = {},
+) {
   const actionsList = await buildDynamicActionsList(guild, client, permissions);
   const examples = await buildResponseFormatExamples(
     guild,

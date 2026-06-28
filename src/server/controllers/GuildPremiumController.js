@@ -187,12 +187,19 @@ export async function apiCancelPremiumFeature(req, res) {
  */
 export async function apiActivateTrial(req, res) {
   const { guildId } = req.params;
-  const userId = req.user?.id || req.session?.discordUser?.id || req.headers["x-user-id"] || req.headers["x-discord-id"];
+  const userId =
+    req.user?.id ||
+    req.session?.discordUser?.id ||
+    req.headers["x-user-id"] ||
+    req.headers["x-discord-id"];
 
   logRequest(`Activate trial for guild ${guildId}`, req);
 
   if (!guildId || !userId) {
-    logger.warn(`Missing parameters for trial activation:`, { guildId, userId });
+    logger.warn(`Missing parameters for trial activation:`, {
+      guildId,
+      userId,
+    });
     const { statusCode, response } = createErrorResponse(
       "Guild ID and User ID are required",
       400,
@@ -214,10 +221,7 @@ export async function apiActivateTrial(req, res) {
       res.status(statusCode).json(response);
     }
   } catch (error) {
-    logger.error(
-      `❌ Error activating trial for guild ${guildId}:`,
-      error,
-    );
+    logger.error(`❌ Error activating trial for guild ${guildId}:`, error);
     const { statusCode, response } = createErrorResponse(
       "Failed to activate trial",
       500,

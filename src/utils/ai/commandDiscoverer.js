@@ -365,9 +365,12 @@ export class CommandDiscoverer {
       if (Array.isArray(cmd.helpFields) && cmd.helpFields.length > 0) {
         for (const field of cmd.helpFields) {
           // Include "How to Use", format tips, and subcommand descriptions; skip Permissions/Tier/What You'll See
-          const skip = ["permissions", "tier", "what you'll see", "what you need"].some(s =>
-            field.name?.toLowerCase().includes(s),
-          );
+          const skip = [
+            "permissions",
+            "tier",
+            "what you'll see",
+            "what you need",
+          ].some(s => field.name?.toLowerCase().includes(s));
           if (!skip && field.value) {
             formatted += `\n  [${field.name}]: ${field.value}`;
           }

@@ -37,7 +37,9 @@ export async function apiGenerateBMACCode(req, res) {
       });
     }
 
-    const { getDatabaseManager } = await import("../../utils/storage/databaseManager.js");
+    const { getDatabaseManager } = await import(
+      "../../utils/storage/databaseManager.js"
+    );
     const dbManager = await getDatabaseManager();
     if (!dbManager?.connectionManager?.db) {
       return res.status(500).json({
@@ -56,13 +58,17 @@ export async function apiGenerateBMACCode(req, res) {
     });
 
     if (existing) {
-      logger.info(`🔑 BMAC code already exists for user ${userId}: ${existing.code}`);
+      logger.info(
+        `🔑 BMAC code already exists for user ${userId}: ${existing.code}`,
+      );
       return res.status(200).json({
         success: true,
         data: {
           code: existing.code,
           expiresAt: existing.expiresAt,
-          buyMeACoffeeUrl: config.payments?.buymeacoffeeUrl || "https://buymeacoffee.com/rolereactor",
+          buyMeACoffeeUrl:
+            config.payments?.buymeacoffeeUrl ||
+            "https://buymeacoffee.com/rolereactor",
         },
       });
     }
@@ -80,7 +86,9 @@ export async function apiGenerateBMACCode(req, res) {
     }
 
     if (attempts >= maxAttempts) {
-      logger.error(`❌ BMAC code generation failed after ${maxAttempts} attempts for user ${userId}`);
+      logger.error(
+        `❌ BMAC code generation failed after ${maxAttempts} attempts for user ${userId}`,
+      );
       return res.status(500).json({
         success: false,
         message: "Failed to generate unique code",
@@ -107,7 +115,9 @@ export async function apiGenerateBMACCode(req, res) {
       data: {
         code,
         expiresAt: codeDocument.expiresAt,
-        buyMeACoffeeUrl: config.payments?.buymeacoffeeUrl || "https://buymeacoffee.com/rolereactor",
+        buyMeACoffeeUrl:
+          config.payments?.buymeacoffeeUrl ||
+          "https://buymeacoffee.com/rolereactor",
       },
     });
   } catch (error) {

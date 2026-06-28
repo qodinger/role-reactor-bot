@@ -249,7 +249,8 @@ export async function deductCreditsIfNeeded(
 
   const responseText = result?.text || result?.response || fallbackText || "";
   const hasValidContent =
-    (responseText.trim().length > 0 && responseText !== "No response generated.") ||
+    (responseText.trim().length > 0 &&
+      responseText !== "No response generated.") ||
     // Tool-use path: Claude returns tool_calls with text = "" — still a real paid API call
     (result?.toolCalls && result.toolCalls.length > 0);
 

@@ -21,7 +21,9 @@ export class GuildHelper {
       // Single fetch with counts to avoid redundant API call
       const guild =
         client.guilds.cache.get(guildId) ||
-        (await client.guilds.fetch({ guild: guildId, withCounts: true }).catch(() => null)) ||
+        (await client.guilds
+          .fetch({ guild: guildId, withCounts: true })
+          .catch(() => null)) ||
         (await client.guilds.fetch(guildId).catch(() => null));
       if (!guild) return null;
 

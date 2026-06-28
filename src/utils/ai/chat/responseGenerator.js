@@ -195,13 +195,18 @@ export async function processAIResponse(
 
   if (result.toolCalls && result.toolCalls.length > 0) {
     // Structured tool_use path (Claude models via OpenRouter) — no JSON parsing needed
-    logger.debug(`[AI] tool_use response: ${result.toolCalls.length} tool call(s) for user ${userId || "unknown"}`);
+    logger.debug(
+      `[AI] tool_use response: ${result.toolCalls.length} tool call(s) for user ${userId || "unknown"}`,
+    );
     actions = translateToolCallsToActions(result.toolCalls);
     finalResponse = result.text || "";
   } else {
     // Legacy JSON / plain-text path (non-Claude models)
-    const rawResponse = result.text || result.response || "No response generated.";
-    logger.debug(`[AI] Response: ${rawResponse.length} chars for user ${userId || "unknown"}`);
+    const rawResponse =
+      result.text || result.response || "No response generated.";
+    logger.debug(
+      `[AI] Response: ${rawResponse.length} chars for user ${userId || "unknown"}`,
+    );
     const parsed = services.parseAIResponse(rawResponse);
     finalResponse = parsed.message;
     actions = parsed.actions;

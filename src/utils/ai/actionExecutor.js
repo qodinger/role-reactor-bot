@@ -287,7 +287,10 @@ export class ActionExecutor {
           );
           if (!members?.length) return "No members found with that role";
           const list = members
-            .map((m, i) => `${i + 1}. ${m.username} (${m.id}) - Joined: ${m.joinedAt}`)
+            .map(
+              (m, i) =>
+                `${i + 1}. ${m.username} (${m.id}) - Joined: ${m.joinedAt}`,
+            )
             .join("\n");
           return `Found: ${members.length} member(s) with that role:\n${list}`;
         }
@@ -325,12 +328,17 @@ export class ActionExecutor {
       const action = actions[i];
       const validation = ActionExecutor.validateAction(action);
       if (!validation.isValid) {
-        logger.warn(`[executeStructuredActions] Invalid action: ${validation.error}`);
+        logger.warn(
+          `[executeStructuredActions] Invalid action: ${validation.error}`,
+        );
         earlyResults.set(i, `Invalid action: ${validation.error}`);
         continue;
       }
       if (actionRequiresGuild(action.type) && !guild) {
-        earlyResults.set(i, `${action.type} requires a server context (cannot be used in DMs)`);
+        earlyResults.set(
+          i,
+          `${action.type} requires a server context (cannot be used in DMs)`,
+        );
         continue;
       }
       validatedActions.push({ index: i, action });
@@ -338,10 +346,14 @@ export class ActionExecutor {
 
     // Split validated actions: DATA_RETRIEVE runs in parallel, everything else sequential
     const parallelBatch = validatedActions.filter(
-      ({ action }) => getActionConfig(action.type)?.category === ACTION_CATEGORIES.DATA_RETRIEVE,
+      ({ action }) =>
+        getActionConfig(action.type)?.category ===
+        ACTION_CATEGORIES.DATA_RETRIEVE,
     );
     const sequentialBatch = validatedActions.filter(
-      ({ action }) => getActionConfig(action.type)?.category !== ACTION_CATEGORIES.DATA_RETRIEVE,
+      ({ action }) =>
+        getActionConfig(action.type)?.category !==
+        ACTION_CATEGORIES.DATA_RETRIEVE,
     );
 
     // Allocate results array preserving original order
@@ -350,10 +362,15 @@ export class ActionExecutor {
 
     // Run DATA_RETRIEVE actions in parallel
     if (parallelBatch.length > 0) {
-      logger.debug(`[executeStructuredActions] Running ${parallelBatch.length} DATA_RETRIEVE action(s) in parallel`);
+      logger.debug(
+        `[executeStructuredActions] Running ${parallelBatch.length} DATA_RETRIEVE action(s) in parallel`,
+      );
       await Promise.all(
         parallelBatch.map(async ({ index, action }) => {
-          results[index] = await ActionExecutor.executeDataRetrieveAction(action, guild);
+          results[index] = await ActionExecutor.executeDataRetrieveAction(
+            action,
+            guild,
+          );
         }),
       );
     }
@@ -362,11 +379,16 @@ export class ActionExecutor {
     for (const { index, action } of sequentialBatch) {
       try {
         results[index] = await ActionExecutor.executeSequentialAction(
-          action, guild, client, user, channel,
+          action,
+          guild,
+          client,
+          user,
+          channel,
         );
       } catch (error) {
         logger.error(`Error executing action ${action.type}:`, error);
-        results[index] = `Failed to execute ${action.type}: ${error.message || "Unknown error"}`;
+        results[index] =
+          `Failed to execute ${action.type}: ${error.message || "Unknown error"}`;
       }
     }
 
@@ -451,12 +473,22 @@ export class ActionExecutor {
         return await ActionExecutor.executeWebSearch(action);
 
       case "execute_command":
-        return await ActionExecutor.executeCommand(action, guild, client, user, channel);
+        return await ActionExecutor.executeCommand(
+          action,
+          guild,
+          client,
+          user,
+          channel,
+        );
 
       default: {
         // Dynamic get_* actions not in registry
         if (action.type.startsWith("get_")) {
-          const handled = await dataFetcher.handleDynamicDataFetching(action.type, guild, client);
+          const handled = await dataFetcher.handleDynamicDataFetching(
+            action.type,
+            guild,
+            client,
+          );
           if (handled !== null) return handled;
         }
         logger.warn(`Unknown action type: ${action.type}`);
@@ -475,12 +507,18 @@ export class ActionExecutor {
   static async executeShowComponent(action, channel, user) {
     if (!channel) return "show_component requires a channel context";
 
-    const { question, options, component_type: componentType, placeholder } = action.options || {};
+    const {
+      question,
+      options,
+      component_type: componentType,
+      placeholder,
+    } = action.options || {};
     if (!question || !Array.isArray(options) || options.length < 2)
       return "show_component requires 'question' and at least 2 'options'";
 
     const opts = options.slice(0, 25);
-    const useButtons = componentType === "buttons" || (!componentType && opts.length <= 5);
+    const useButtons =
+      componentType === "buttons" || (!componentType && opts.length <= 5);
 
     let row;
     if (useButtons && opts.length <= 5) {
@@ -494,7 +532,9 @@ export class ActionExecutor {
     } else {
       const menu = new StringSelectMenuBuilder()
         .setCustomId("ai_choice_select")
-        .setPlaceholder(String(placeholder || "Select an option…").substring(0, 150))
+        .setPlaceholder(
+          String(placeholder || "Select an option…").substring(0, 150),
+        )
         .addOptions(
           opts.map((opt, i) =>
             new StringSelectMenuOptionBuilder()
@@ -515,7 +555,10 @@ export class ActionExecutor {
 
     try {
       const filter = i => !user || i.user.id === user.id;
-      const collected = await msg.awaitMessageComponent({ filter, time: 60_000 });
+      const collected = await msg.awaitMessageComponent({
+        filter,
+        time: 60_000,
+      });
 
       let selectedLabel;
       if (collected.isButton()) {
@@ -523,7 +566,9 @@ export class ActionExecutor {
         selectedLabel = opts[idx]?.label ?? collected.customId;
       } else {
         const val = collected.values[0];
-        const found = opts.find(o => String(o.value ?? opts.indexOf(o)) === val);
+        const found = opts.find(
+          o => String(o.value ?? opts.indexOf(o)) === val,
+        );
         selectedLabel = found?.label ?? val;
       }
 
@@ -549,13 +594,27 @@ export class ActionExecutor {
   /** Topics that must never be searched via the bot's web_search action */
   static WEB_SEARCH_BLOCKED_TERMS = [
     // Hacking / exploitation
-    "how to hack", "sql injection", "ddos attack", "brute force password",
-    "exploit", "vulnerability scanner", "keylogger", "rat trojan", "malware download",
-    "ransomware", "phishing kit",
+    "how to hack",
+    "sql injection",
+    "ddos attack",
+    "brute force password",
+    "exploit",
+    "vulnerability scanner",
+    "keylogger",
+    "rat trojan",
+    "malware download",
+    "ransomware",
+    "phishing kit",
     // Doxxing / personal data
-    "dox ", "doxx", "find personal information", "home address lookup",
+    "dox ",
+    "doxx",
+    "find personal information",
+    "home address lookup",
     // NSFW
-    "porn", "xxx", "hentai", "nsfw",
+    "porn",
+    "xxx",
+    "hentai",
+    "nsfw",
   ];
 
   static async executeWebSearch(action) {
@@ -568,7 +627,9 @@ export class ActionExecutor {
       queryLower.includes(term),
     );
     if (blocked) {
-      logger.warn(`[web_search] Blocked query containing "${blocked}": ${query}`);
+      logger.warn(
+        `[web_search] Blocked query containing "${blocked}": ${query}`,
+      );
       return `Web search blocked: that topic is not permitted.`;
     }
 
@@ -590,7 +651,7 @@ export class ActionExecutor {
 
       const response = await fetch(url.toString(), {
         headers: {
-          "Accept": "application/json",
+          Accept: "application/json",
           "Accept-Encoding": "gzip",
           "X-Subscription-Token": apiKey,
         },
@@ -609,7 +670,9 @@ export class ActionExecutor {
       }
 
       const formatted = webResults
-        .map((r, i) => `${i + 1}. **${r.title}**\n   ${r.url}\n   ${r.description ?? ""}`.trim())
+        .map((r, i) =>
+          `${i + 1}. **${r.title}**\n   ${r.url}\n   ${r.description ?? ""}`.trim(),
+        )
         .join("\n\n");
 
       return `Data: Web search results for "${query}":\n\n${formatted}`;
@@ -630,12 +693,8 @@ export class ActionExecutor {
    * @returns {Promise<boolean>}
    */
   static async requestConfirmation(cmdDisplay, cleanOptions, channel, user) {
-    const {
-      EmbedBuilder,
-      ActionRowBuilder,
-      ButtonBuilder,
-      ButtonStyle,
-    } = await import("discord.js");
+    const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } =
+      await import("discord.js");
 
     const optionLines = Object.entries(cleanOptions)
       .filter(([, v]) => v !== undefined && v !== null && v !== "")
@@ -647,8 +706,8 @@ export class ActionExecutor {
       .setTitle("⚠️ Confirm Action")
       .setDescription(
         `I'm about to run **${cmdDisplay}** on your behalf.\n\n` +
-        (optionLines ? `**Options:**\n${optionLines}\n\n` : "") +
-        `Do you want to proceed?`,
+          (optionLines ? `**Options:**\n${optionLines}\n\n` : "") +
+          `Do you want to proceed?`,
       )
       .setFooter({
         text: `Requested by ${user?.displayName || user?.username || "Unknown"} • Expires in 60s`,
@@ -670,15 +729,23 @@ export class ActionExecutor {
 
     let confirmMsg;
     try {
-      confirmMsg = await channel.send({ embeds: [confirmEmbed], components: [row] });
+      confirmMsg = await channel.send({
+        embeds: [confirmEmbed],
+        components: [row],
+      });
     } catch (err) {
-      logger.warn(`[requestConfirmation] Could not send confirmation message: ${err.message}`);
+      logger.warn(
+        `[requestConfirmation] Could not send confirmation message: ${err.message}`,
+      );
       return false;
     }
 
     try {
       const filter = i => i.user.id === user?.id;
-      const collected = await confirmMsg.awaitMessageComponent({ filter, time: 60_000 });
+      const collected = await confirmMsg.awaitMessageComponent({
+        filter,
+        time: 60_000,
+      });
 
       if (collected.customId === "ai_confirm_yes") {
         await collected.update({
@@ -696,7 +763,9 @@ export class ActionExecutor {
           embeds: [
             new EmbedBuilder()
               .setColor(0xef4444)
-              .setDescription(`❌ Cancelled — **${cmdDisplay}** was not executed.`)
+              .setDescription(
+                `❌ Cancelled — **${cmdDisplay}** was not executed.`,
+              )
               .setTimestamp(),
           ],
           components: [],
@@ -710,12 +779,16 @@ export class ActionExecutor {
           embeds: [
             new EmbedBuilder()
               .setColor(0x6b7280)
-              .setDescription(`⏱️ Confirmation timed out — **${cmdDisplay}** was not executed.`)
+              .setDescription(
+                `⏱️ Confirmation timed out — **${cmdDisplay}** was not executed.`,
+              )
               .setTimestamp(),
           ],
           components: [],
         });
-      } catch { /* ignore edit errors */ }
+      } catch {
+        /* ignore edit errors */
+      }
       return false;
     }
   }
@@ -725,7 +798,9 @@ export class ActionExecutor {
     if (!action.command) return "execute_command requires a 'command' field";
 
     try {
-      const { executeCommandProgrammatically } = await import("./commandExecutor.js");
+      const { executeCommandProgrammatically } = await import(
+        "./commandExecutor.js"
+      );
 
       let commandName = action.command;
       let subcommand = action.subcommand || action.options?.subcommand || null;
@@ -743,7 +818,9 @@ export class ActionExecutor {
       delete cleanOptions.subcommand;
 
       // Require confirmation before running admin commands
-      const { getAllowedCommands } = await import("./commandExecutor/commandDiscovery.js");
+      const { getAllowedCommands } = await import(
+        "./commandExecutor/commandDiscovery.js"
+      );
       const ALLOWED_COMMANDS = await getAllowedCommands(client);
       const isAdminCommand = ALLOWED_COMMANDS[commandName]?.isAdmin === true;
 
@@ -771,22 +848,51 @@ export class ActionExecutor {
       });
 
       if (result.success) {
-        logger.info(`[executeStructuredActions] Command ${action.command} executed and sent response to channel`);
+        logger.info(
+          `[executeStructuredActions] Command ${action.command} executed and sent response to channel`,
+        );
         const resultMsg = `Command Result: /${commandName}${subcommand ? ` ${subcommand}` : ""} executed successfully`;
-        ActionExecutor.logAuditAction(action.type, action, user, guild, resultMsg, true);
+        ActionExecutor.logAuditAction(
+          action.type,
+          action,
+          user,
+          guild,
+          resultMsg,
+          true,
+        );
         return resultMsg;
       } else {
         const errorMsg = result.error || "Unknown error";
-        const guidance = await ActionExecutor.getCommandErrorGuidance(errorMsg, action);
+        const guidance = await ActionExecutor.getCommandErrorGuidance(
+          errorMsg,
+          action,
+        );
         const resultMsg = `Command Error: Failed to execute command "${action.command}"${action.subcommand ? ` with subcommand "${action.subcommand}"` : ""}. Error: ${errorMsg}. ${guidance}`;
-        ActionExecutor.logAuditAction(action.type, action, user, guild, resultMsg, false);
+        ActionExecutor.logAuditAction(
+          action.type,
+          action,
+          user,
+          guild,
+          resultMsg,
+          false,
+        );
         return resultMsg;
       }
     } catch (error) {
       const errorMsg = error.message || "Unknown error";
-      const guidance = await ActionExecutor.getCommandErrorGuidance(errorMsg, action);
+      const guidance = await ActionExecutor.getCommandErrorGuidance(
+        errorMsg,
+        action,
+      );
       const resultMsg = `Command Error: Error executing command "${action.command}"${action.subcommand ? ` with subcommand "${action.subcommand}"` : ""}. Error: ${errorMsg}. ${guidance}`;
-      ActionExecutor.logAuditAction(action.type, action, user, guild, resultMsg, false);
+      ActionExecutor.logAuditAction(
+        action.type,
+        action,
+        user,
+        guild,
+        resultMsg,
+        false,
+      );
       return resultMsg;
     }
   }

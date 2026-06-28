@@ -65,7 +65,7 @@ export const AI_ADMIN_COMMAND_BLOCKLIST = (
 // non-admins are already blocked there; admins can use AI as a co-pilot.
 export const AI_DEFAULT_ADMIN_BLOCKLIST = [
   "moderation", // kick/ban/timeout/purge — irreversible, always requires human intent
-  "automod",    // disabling safety filters is a security concern
+  "automod", // disabling safety filters is a security concern
 ];
 
 // Audit logging for AI actions

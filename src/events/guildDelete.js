@@ -39,9 +39,19 @@ export async function execute(guild, client) {
     // Only clean ephemeral data — keep settings, XP, logs, configs
     // so data is preserved if the bot is reinstalled
     const ephemeralTasks = [
-      { name: "temporary_roles", fn: () => dbManager.temporaryRoles?.collection?.deleteMany({ guildId: guild.id }) },
+      {
+        name: "temporary_roles",
+        fn: () =>
+          dbManager.temporaryRoles?.collection?.deleteMany({
+            guildId: guild.id,
+          }),
+      },
       { name: "tickets", fn: () => dbManager.tickets?.deleteByGuild(guild.id) },
-      { name: "ticket_panels", fn: () => dbManager.ticketPanels?.collection?.deleteMany({ guildId: guild.id }) },
+      {
+        name: "ticket_panels",
+        fn: () =>
+          dbManager.ticketPanels?.collection?.deleteMany({ guildId: guild.id }),
+      },
     ];
 
     let cleaned = 0;

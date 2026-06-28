@@ -223,8 +223,7 @@ export async function apiGetGuildSettings(req, res) {
             cost: proSubscription.cost,
             period: proSubscription.period,
             lastDeductionDate:
-              proSubscription.lastDeductionDate ||
-              proSubscription.activatedAt,
+              proSubscription.lastDeductionDate || proSubscription.activatedAt,
           }
         : null,
       availableCommands: commandDetails,

@@ -253,7 +253,9 @@ export async function executeReQuery(
   const tokensTight = initialOutputTokens > TOKEN_BUDGET_OUTPUT_SOFT_LIMIT;
   const reQueryMaxTokens = tokensTight ? 300 : wantsDetail ? 800 : 500;
   if (tokensTight) {
-    logger.debug(`[executeReQuery] Token budget tight (${initialOutputTokens} output tokens), capping re-query at ${reQueryMaxTokens}`);
+    logger.debug(
+      `[executeReQuery] Token budget tight (${initialOutputTokens} output tokens), capping re-query at ${reQueryMaxTokens}`,
+    );
     updatedMessages[updatedMessages.length - 1].content +=
       "\n\n[Token budget is tight — be concise.]";
   }

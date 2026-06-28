@@ -485,9 +485,7 @@ export async function processRoles(interaction, rolesString) {
           const botHighestRole = botMember.roles.highest;
           reason = `it is at position ${role.position} but the bot's highest role ("${botHighestRole.name}") is only at position ${botHighestRole.position}. Move the bot's role higher in **Server Settings → Roles**`;
         }
-        validationErrors.push(
-          `Cannot manage role "${role.name}" — ${reason}.`,
-        );
+        validationErrors.push(`Cannot manage role "${role.name}" — ${reason}.`);
         continue;
       }
 

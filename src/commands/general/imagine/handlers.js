@@ -153,7 +153,8 @@ export async function handleImagineCommand(interaction, _client) {
   // When auto-routing, match the ACTUAL generation model:
   //   NSFW → AnythingXL (SDXL) → "animagine" keywords (Danbooru tags)
   //   Safe → sd3.5-flash (Stability AI) → "sd3" keywords (natural language)
-  const modelName = selectedModel || (nsfwValidation.isNSFW ? "animagine" : "sd3");
+  const modelName =
+    selectedModel || (nsfwValidation.isNSFW ? "animagine" : "sd3");
   const intelligentlyEnhanced = enhancePromptIntelligently(
     validation.prompt,
     modelName,

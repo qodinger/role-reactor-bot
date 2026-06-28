@@ -223,7 +223,11 @@ export async function estimatePrice(
  * @param {string} model - Model name (for real-time pricing lookup)
  * @returns {Promise<number>} Calculated Core price
  */
-export async function calculatePriceFromTokens(usage, provider = "openrouter", model = null) {
+export async function calculatePriceFromTokens(
+  usage,
+  provider = "openrouter",
+  model = null,
+) {
   try {
     const promptTokens = usage?.prompt_tokens || 0;
     const completionTokens = usage?.completion_tokens || 0;
@@ -234,7 +238,11 @@ export async function calculatePriceFromTokens(usage, provider = "openrouter", m
 
     // Try real-time pricing from pricingService first
     if (model && provider === "openrouter") {
-      const costUSD = pricingService.calculateCostUSD(model, promptTokens, completionTokens);
+      const costUSD = pricingService.calculateCostUSD(
+        model,
+        promptTokens,
+        completionTokens,
+      );
       if (costUSD !== null) {
         estimatedCost = costUSD;
       }

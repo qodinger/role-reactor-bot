@@ -15,15 +15,18 @@ export const TOOL_DEFINITIONS = [
         properties: {
           command: {
             type: "string",
-            description: "Bot command name (e.g. 'rps', 'avatar', 'poll', 'serverinfo').",
+            description:
+              "Bot command name (e.g. 'rps', 'avatar', 'poll', 'serverinfo').",
           },
           subcommand: {
             type: "string",
-            description: "Subcommand name when the command has subcommands (e.g. 'create' for 'poll create').",
+            description:
+              "Subcommand name when the command has subcommands (e.g. 'create' for 'poll create').",
           },
           options: {
             type: "object",
-            description: "Key-value pairs of command options (e.g. {\"user\": \"<@123>\", \"choice\": \"rock\"}).",
+            description:
+              'Key-value pairs of command options (e.g. {"user": "<@123>", "choice": "rock"}).',
           },
         },
         required: ["command"],
@@ -49,9 +52,19 @@ export const TOOL_DEFINITIONS = [
             items: {
               type: "object",
               properties: {
-                label: { type: "string", description: "Button/option label (max 80 chars)." },
-                value: { type: "string", description: "Internal value returned when selected." },
-                description: { type: "string", description: "Short description shown in select menus (max 100 chars)." },
+                label: {
+                  type: "string",
+                  description: "Button/option label (max 80 chars).",
+                },
+                value: {
+                  type: "string",
+                  description: "Internal value returned when selected.",
+                },
+                description: {
+                  type: "string",
+                  description:
+                    "Short description shown in select menus (max 100 chars).",
+                },
               },
               required: ["label"],
             },
@@ -61,7 +74,8 @@ export const TOOL_DEFINITIONS = [
           component_type: {
             type: "string",
             enum: ["buttons", "select"],
-            description: "Force 'buttons' or 'select'; omit to auto-detect from option count.",
+            description:
+              "Force 'buttons' or 'select'; omit to auto-detect from option count.",
           },
           placeholder: {
             type: "string",
@@ -100,7 +114,8 @@ export const TOOL_DEFINITIONS = [
     type: "function",
     function: {
       name: "fetch_channels",
-      description: "Refresh the server's channel list from Discord API. Use when the channel data in context may be stale.",
+      description:
+        "Refresh the server's channel list from Discord API. Use when the channel data in context may be stale.",
       parameters: { type: "object", properties: {} },
     },
   },
@@ -108,7 +123,8 @@ export const TOOL_DEFINITIONS = [
     type: "function",
     function: {
       name: "fetch_roles",
-      description: "Refresh the server's role list from Discord API. Use when the role data in context may be stale.",
+      description:
+        "Refresh the server's role list from Discord API. Use when the role data in context may be stale.",
       parameters: { type: "object", properties: {} },
     },
   },
@@ -116,7 +132,8 @@ export const TOOL_DEFINITIONS = [
     type: "function",
     function: {
       name: "fetch_all",
-      description: "Refresh all server data (channels and roles) from Discord API.",
+      description:
+        "Refresh all server data (channels and roles) from Discord API.",
       parameters: { type: "object", properties: {} },
     },
   },
@@ -124,12 +141,19 @@ export const TOOL_DEFINITIONS = [
     type: "function",
     function: {
       name: "get_member_info",
-      description: "Get detailed information about a specific server member (join date, roles, etc.).",
+      description:
+        "Get detailed information about a specific server member (join date, roles, etc.).",
       parameters: {
         type: "object",
         properties: {
-          user_id: { type: "string", description: "Discord user ID (snowflake)." },
-          username: { type: "string", description: "Discord username (used when ID is unknown)." },
+          user_id: {
+            type: "string",
+            description: "Discord user ID (snowflake).",
+          },
+          username: {
+            type: "string",
+            description: "Discord username (used when ID is unknown).",
+          },
         },
       },
     },
@@ -138,12 +162,19 @@ export const TOOL_DEFINITIONS = [
     type: "function",
     function: {
       name: "get_role_info",
-      description: "Get information about a specific server role (color, member count, permissions, etc.).",
+      description:
+        "Get information about a specific server role (color, member count, permissions, etc.).",
       parameters: {
         type: "object",
         properties: {
-          role_id: { type: "string", description: "Discord role ID (snowflake)." },
-          role_name: { type: "string", description: "Role name (used when ID is unknown)." },
+          role_id: {
+            type: "string",
+            description: "Discord role ID (snowflake).",
+          },
+          role_name: {
+            type: "string",
+            description: "Role name (used when ID is unknown).",
+          },
         },
       },
     },
@@ -152,12 +183,19 @@ export const TOOL_DEFINITIONS = [
     type: "function",
     function: {
       name: "get_channel_info",
-      description: "Get information about a specific server channel (type, category, position, etc.).",
+      description:
+        "Get information about a specific server channel (type, category, position, etc.).",
       parameters: {
         type: "object",
         properties: {
-          channel_id: { type: "string", description: "Discord channel ID (snowflake)." },
-          channel_name: { type: "string", description: "Channel name (used when ID is unknown)." },
+          channel_id: {
+            type: "string",
+            description: "Discord channel ID (snowflake).",
+          },
+          channel_name: {
+            type: "string",
+            description: "Channel name (used when ID is unknown).",
+          },
         },
       },
     },
@@ -166,12 +204,19 @@ export const TOOL_DEFINITIONS = [
     type: "function",
     function: {
       name: "search_members_by_role",
-      description: "Find all server members that currently have a specific role.",
+      description:
+        "Find all server members that currently have a specific role.",
       parameters: {
         type: "object",
         properties: {
-          role_id: { type: "string", description: "Discord role ID (snowflake)." },
-          role_name: { type: "string", description: "Role name (used when ID is unknown)." },
+          role_id: {
+            type: "string",
+            description: "Discord role ID (snowflake).",
+          },
+          role_name: {
+            type: "string",
+            description: "Role name (used when ID is unknown).",
+          },
         },
       },
     },

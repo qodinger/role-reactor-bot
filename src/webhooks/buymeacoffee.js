@@ -30,24 +30,36 @@ export async function handleBMACWebhook(req, res) {
   // Reasonable max to prevent abuse
   if (paymentAmount > 10000) {
     logger.warn(`⚠️ BMAC webhook: amount too high "$${paymentAmount}"`);
-    return res.status(400).json({ status: "error", message: "Amount too high" });
+    return res
+      .status(400)
+      .json({ status: "error", message: "Amount too high" });
   }
 
   // 2. Extract and validate code from message field
   const code = (message || "").trim().toUpperCase();
   if (!code.startsWith("RR-") || code.length !== 9) {
-    logger.debug(`BMAC webhook: no valid code in message "${(message || "").substring(0, 20)}"`);
-    return res.status(200).json({ status: "ignored", message: "No valid code" });
+    logger.debug(
+      `BMAC webhook: no valid code in message "${(message || "").substring(0, 20)}"`,
+    );
+    return res
+      .status(200)
+      .json({ status: "ignored", message: "No valid code" });
   }
 
   // 3. Look up code in pending_codes collection
-  const { getDatabaseManager } = await import("../utils/storage/databaseManager.js");
-  const { getStorageManager } = await import("../utils/storage/storageManager.js");
+  const { getDatabaseManager } = await import(
+    "../utils/storage/databaseManager.js"
+  );
+  const { getStorageManager } = await import(
+    "../utils/storage/storageManager.js"
+  );
   const dbManager = await getDatabaseManager();
   const storage = await getStorageManager();
   if (!dbManager?.connectionManager?.db) {
     logger.error("❌ BMAC webhook: database not available");
-    return res.status(500).json({ status: "error", message: "Database not available" });
+    return res
+      .status(500)
+      .json({ status: "error", message: "Database not available" });
   }
   const db = dbManager.connectionManager.db;
   const pendingCodes = db.collection("pending_codes");
@@ -56,7 +68,10 @@ export async function handleBMACWebhook(req, res) {
   try {
     codeRecord = await pendingCodes.findOne({ code });
   } catch (dbError) {
-    logger.error(`❌ BMAC webhook: database error looking up code "${code}":`, dbError);
+    logger.error(
+      `❌ BMAC webhook: database error looking up code "${code}":`,
+      dbError,
+    );
     return res.status(500).json({ status: "error", message: "Database error" });
   }
 
@@ -67,13 +82,17 @@ export async function handleBMACWebhook(req, res) {
 
   // 4. Check expiration
   if (new Date(codeRecord.expiresAt) < new Date()) {
-    logger.warn(`⚠️ BMAC webhook: code expired "${code}" (expired at ${codeRecord.expiresAt})`);
+    logger.warn(
+      `⚠️ BMAC webhook: code expired "${code}" (expired at ${codeRecord.expiresAt})`,
+    );
     return res.status(200).json({ status: "expired" });
   }
 
   // 5. Check if already used
   if (codeRecord.used) {
-    logger.info(`🔄 BMAC webhook: code already used "${code}" for user ${codeRecord.discordId}`);
+    logger.info(
+      `🔄 BMAC webhook: code already used "${code}" for user ${codeRecord.discordId}`,
+    );
     return res.status(200).json({ status: "already_processed" });
   }
 
@@ -83,10 +102,10 @@ export async function handleBMACWebhook(req, res) {
   try {
     const user = await storage.getUserByDiscordId(userId);
     if (user?.username && supporterName) {
-      const normalize = (s) => (s || "").trim().toLowerCase();
+      const normalize = s => (s || "").trim().toLowerCase();
       if (normalize(supporterName) !== normalize(user.username)) {
         logger.warn(
-          `⚠️ BMAC username mismatch: expected "${user.username}", got "${supporterName}" for code ${code}`
+          `⚠️ BMAC username mismatch: expected "${user.username}", got "${supporterName}" for code ${code}`,
         );
       }
     }
@@ -110,10 +129,15 @@ export async function handleBMACWebhook(req, res) {
       const coresToAdd =
         typeof config.calculateCores === "function"
           ? config.calculateCores(paymentAmount)
-          : Math.floor(paymentAmount * (config.corePricing?.coreSystem?.conversionRate || 15));
+          : Math.floor(
+              paymentAmount *
+                (config.corePricing?.coreSystem?.conversionRate || 15),
+            );
 
       // Update balance and historical total
-      userData.credits = formatCoreCredits((userData.credits || 0) + coresToAdd);
+      userData.credits = formatCoreCredits(
+        (userData.credits || 0) + coresToAdd,
+      );
       userData.totalGenerated = (userData.totalGenerated || 0) + coresToAdd;
 
       // Track BMAC-specific payment metadata
@@ -150,10 +174,13 @@ export async function handleBMACWebhook(req, res) {
               supporterName,
             },
           },
-        }
+        },
       );
     } catch (markError) {
-      logger.error(`❌ BMAC webhook: failed to mark code as used "${code}":`, markError);
+      logger.error(
+        `❌ BMAC webhook: failed to mark code as used "${code}":`,
+        markError,
+      );
       // Non-critical - cores were already added
     }
 
@@ -176,14 +203,21 @@ export async function handleBMACWebhook(req, res) {
           raw_amount: amount,
         },
       });
-      logger.debug(`📝 BMAC payment ${paymentId} logged to payments collection`);
+      logger.debug(
+        `📝 BMAC payment ${paymentId} logged to payments collection`,
+      );
     } catch (logError) {
-      logger.error(`Failed to log BMAC payment to payments collection:`, logError);
+      logger.error(
+        `Failed to log BMAC payment to payments collection:`,
+        logError,
+      );
     }
 
     // 10. Create in-app notification
     try {
-      const { getDatabaseManager } = await import("../utils/storage/databaseManager.js");
+      const { getDatabaseManager } = await import(
+        "../utils/storage/databaseManager.js"
+      );
       const dbManager = await getDatabaseManager();
       if (dbManager?.notifications) {
         await dbManager.notifications.create({
@@ -205,10 +239,14 @@ export async function handleBMACWebhook(req, res) {
 
     // 11. Send Discord DM notification
     try {
-      const { getPremiumManager } = await import("../features/premium/PremiumManager.js");
+      const { getPremiumManager } = await import(
+        "../features/premium/PremiumManager.js"
+      );
       const premiumManager = getPremiumManager();
       if (premiumManager?.client) {
-        const user = await premiumManager.client.users.fetch(userId).catch(() => null);
+        const user = await premiumManager.client.users
+          .fetch(userId)
+          .catch(() => null);
         if (user) {
           await user
             .send({
@@ -242,7 +280,7 @@ export async function handleBMACWebhook(req, res) {
     }
 
     logger.info(
-      `✅ BMAC payment processed: ${code} → user ${userId}, +${result.coresToAdd} cores ($${paymentAmount} ${currency || "USD"})`
+      `✅ BMAC payment processed: ${code} → user ${userId}, +${result.coresToAdd} cores ($${paymentAmount} ${currency || "USD"})`,
     );
     return res.status(200).json({ success: true, message: "Credited" });
   } catch (error) {

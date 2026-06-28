@@ -288,7 +288,8 @@ export function getAIModels() {
               speed: "medium",
               flags: ["anime", "manga", "2d", "stylized", "nsfw", "character"],
               description: "Ultimate anime-themed SDXL model",
-              costUSD: parseFloat(process.env.PRICE_CIVITAI_ANIMAGINE) || 0.0068,
+              costUSD:
+                parseFloat(process.env.PRICE_CIVITAI_ANIMAGINE) || 0.0068,
             },
             "aisha-ai-official/wai-nsfw-illustrious-v11": {
               name: "NSFW Illustrious V1.1",
@@ -299,7 +300,8 @@ export function getAIModels() {
               speed: "medium",
               flags: ["anime", "nsfw", "explicit"],
               description: "Illustrious-based NSFW anime model",
-              costUSD: parseFloat(process.env.PRICE_CIVITAI_ILLUSTRIOUS) || 0.0061,
+              costUSD:
+                parseFloat(process.env.PRICE_CIVITAI_ILLUSTRIOUS) || 0.0061,
             },
             "cjwbw/anything-v4.0": {
               name: "Anything V4.0",
@@ -343,7 +345,8 @@ export function getAIFeatureCosts() {
   // proprietary pricing logic in open-source deployments.
   //
   // Base conversion rate: 1 USD = X Core Credits (must match storefront price)
-  const BASE_CONVERSION_RATE = parseFloat(process.env.PRICE_CONVERSION_RATE) || 15;
+  const BASE_CONVERSION_RATE =
+    parseFloat(process.env.PRICE_CONVERSION_RATE) || 15;
 
   // Platform markup applied on top of the raw conversion rate.
   //   1.25 → 20% gross margin  (user pays 25% more Core than raw API cost implies)
@@ -353,7 +356,8 @@ export function getAIFeatureCosts() {
   const PLATFORM_MARKUP = parseFloat(process.env.PRICE_PLATFORM_MARKUP) || 1.25;
 
   // Minimum charge per request (in Core credits)
-  const BASE_MINIMUM_CHARGE = parseFloat(process.env.PRICE_MINIMUM_CHARGE) || 0.05;
+  const BASE_MINIMUM_CHARGE =
+    parseFloat(process.env.PRICE_MINIMUM_CHARGE) || 0.05;
 
   // Formula: Core_Credits = max(API_Cost_USD × BASE_CONVERSION_RATE × PLATFORM_MARKUP, BASE_MINIMUM_CHARGE)
 
@@ -369,7 +373,8 @@ export function getAIFeatureCosts() {
     providerCosts: {
       stability: {
         "sd3.5-large": parseFloat(process.env.PRICE_STABILITY_LARGE) || 8.0,
-        "sd3.5-large-turbo": parseFloat(process.env.PRICE_STABILITY_LARGE_TURBO) || 5.0,
+        "sd3.5-large-turbo":
+          parseFloat(process.env.PRICE_STABILITY_LARGE_TURBO) || 5.0,
         "sd3.5-medium": parseFloat(process.env.PRICE_STABILITY_MEDIUM) || 4.0,
         "sd3.5-flash": parseFloat(process.env.PRICE_STABILITY_FLASH) || 5.0,
       },
@@ -381,17 +386,26 @@ export function getAIFeatureCosts() {
       },
       civitai: {
         default: parseFloat(process.env.PRICE_CIVITAI_DEFAULT) || 0.01,
-        "aisha-ai-official/animagine-xl-4.0": parseFloat(process.env.PRICE_CIVITAI_ANIMAGINE) || 0.0068,
-        "aisha-ai-official/wai-nsfw-illustrious-v11": parseFloat(process.env.PRICE_CIVITAI_ILLUSTRIOUS) || 0.0061,
-        "cjwbw/anything-v4.0": parseFloat(process.env.PRICE_CIVITAI_ANYTHING) || 0.005,
-        "datacte/proteus-v0.3": parseFloat(process.env.PRICE_CIVITAI_PROTEUS) || 0.024,
+        "aisha-ai-official/animagine-xl-4.0":
+          parseFloat(process.env.PRICE_CIVITAI_ANIMAGINE) || 0.0068,
+        "aisha-ai-official/wai-nsfw-illustrious-v11":
+          parseFloat(process.env.PRICE_CIVITAI_ILLUSTRIOUS) || 0.0061,
+        "cjwbw/anything-v4.0":
+          parseFloat(process.env.PRICE_CIVITAI_ANYTHING) || 0.005,
+        "datacte/proteus-v0.3":
+          parseFloat(process.env.PRICE_CIVITAI_PROTEUS) || 0.024,
       },
       openrouter: {
-        "openai/gpt-4o-mini": parseFloat(process.env.PRICE_OPENAI_GPT4O_MINI) || 0.08,
-        "anthropic/claude-3.5-sonnet": parseFloat(process.env.PRICE_ANTHROPIC_SONNET) || 0.35,
-        "deepseek/deepseek-chat": parseFloat(process.env.PRICE_DEEPSEEK_CHAT) || 0.08,
-        "black-forest-labs/flux.2-flex": parseFloat(process.env.PRICE_FLUX_FLEX) || 1.05,
-        "black-forest-labs/flux.2-pro": parseFloat(process.env.PRICE_FLUX_PRO) || 2.1,
+        "openai/gpt-4o-mini":
+          parseFloat(process.env.PRICE_OPENAI_GPT4O_MINI) || 0.08,
+        "anthropic/claude-3.5-sonnet":
+          parseFloat(process.env.PRICE_ANTHROPIC_SONNET) || 0.35,
+        "deepseek/deepseek-chat":
+          parseFloat(process.env.PRICE_DEEPSEEK_CHAT) || 0.08,
+        "black-forest-labs/flux.2-flex":
+          parseFloat(process.env.PRICE_FLUX_FLEX) || 1.05,
+        "black-forest-labs/flux.2-pro":
+          parseFloat(process.env.PRICE_FLUX_PRO) || 2.1,
       },
     },
 
@@ -420,20 +434,48 @@ export function getAIFeatureCosts() {
     bulkDiscounts: {
       enabled: true,
       tiers: [
-        { threshold: parseInt(process.env.PRICE_DISCOUNT_TIER1_THRESHOLD) || 1000, discount: parseFloat(process.env.PRICE_DISCOUNT_TIER1) || 0.03 },
-        { threshold: parseInt(process.env.PRICE_DISCOUNT_TIER2_THRESHOLD) || 2500, discount: parseFloat(process.env.PRICE_DISCOUNT_TIER2) || 0.05 },
-        { threshold: parseInt(process.env.PRICE_DISCOUNT_TIER3_THRESHOLD) || 5000, discount: parseFloat(process.env.PRICE_DISCOUNT_TIER3) || 0.08 },
+        {
+          threshold:
+            parseInt(process.env.PRICE_DISCOUNT_TIER1_THRESHOLD) || 1000,
+          discount: parseFloat(process.env.PRICE_DISCOUNT_TIER1) || 0.03,
+        },
+        {
+          threshold:
+            parseInt(process.env.PRICE_DISCOUNT_TIER2_THRESHOLD) || 2500,
+          discount: parseFloat(process.env.PRICE_DISCOUNT_TIER2) || 0.05,
+        },
+        {
+          threshold:
+            parseInt(process.env.PRICE_DISCOUNT_TIER3_THRESHOLD) || 5000,
+          discount: parseFloat(process.env.PRICE_DISCOUNT_TIER3) || 0.08,
+        },
       ],
     },
 
     // Loyalty rewards system
     loyaltyRewards: {
       enabled: true,
-      pointsPerDollar: parseInt(process.env.PRICE_LOYALTY_POINTS_PER_DOLLAR) || 1,
+      pointsPerDollar:
+        parseInt(process.env.PRICE_LOYALTY_POINTS_PER_DOLLAR) || 1,
       rewardTiers: [
-        { points: parseInt(process.env.PRICE_LOYALTY_TIER1_POINTS) || 100, reward: process.env.PRICE_LOYALTY_TIER1_REWARD || "3% bonus on next purchase" },
-        { points: parseInt(process.env.PRICE_LOYALTY_TIER2_POINTS) || 250, reward: process.env.PRICE_LOYALTY_TIER2_REWARD || "5% bonus on next purchase" },
-        { points: parseInt(process.env.PRICE_LOYALTY_TIER3_POINTS) || 500, reward: process.env.PRICE_LOYALTY_TIER3_REWARD || "8% bonus + priority support" },
+        {
+          points: parseInt(process.env.PRICE_LOYALTY_TIER1_POINTS) || 100,
+          reward:
+            process.env.PRICE_LOYALTY_TIER1_REWARD ||
+            "3% bonus on next purchase",
+        },
+        {
+          points: parseInt(process.env.PRICE_LOYALTY_TIER2_POINTS) || 250,
+          reward:
+            process.env.PRICE_LOYALTY_TIER2_REWARD ||
+            "5% bonus on next purchase",
+        },
+        {
+          points: parseInt(process.env.PRICE_LOYALTY_TIER3_POINTS) || 500,
+          reward:
+            process.env.PRICE_LOYALTY_TIER3_REWARD ||
+            "8% bonus + priority support",
+        },
       ],
     },
   };

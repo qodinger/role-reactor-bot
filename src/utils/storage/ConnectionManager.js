@@ -326,18 +326,12 @@ export class ConnectionManager {
       await this.db
         .collection("guild_automod")
         .createIndex({ guildId: 1 }, { unique: true });
-      await this.db
-        .collection("custom_commands")
-        .createIndex({ guildId: 1 });
+      await this.db.collection("custom_commands").createIndex({ guildId: 1 });
       await this.db
         .collection("voice_control_roles")
         .createIndex({ guildId: 1 });
-      await this.db
-        .collection("tickets")
-        .createIndex({ guildId: 1 });
-      await this.db
-        .collection("ticket_panels")
-        .createIndex({ guildId: 1 });
+      await this.db.collection("tickets").createIndex({ guildId: 1 });
+      await this.db.collection("ticket_panels").createIndex({ guildId: 1 });
       await this.db
         .collection("ticket_transcripts")
         .createIndex({ guildId: 1 });
@@ -347,9 +341,7 @@ export class ConnectionManager {
       await this.db
         .collection("guild_history")
         .createIndex({ guildId: 1 }, { unique: true });
-      await this.db
-        .collection("guild_history")
-        .createIndex({ status: 1 });
+      await this.db.collection("guild_history").createIndex({ status: 1 });
 
       // Recent command users indexes
       await this.db

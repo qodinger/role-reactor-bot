@@ -36,7 +36,7 @@ export async function execute(interaction, client) {
       /pretend\s+(you\s+are|to\s+be)\s+(an?\s+)?(admin|owner|developer|unrestricted|different\s+ai)/i,
       /act\s+as\s+(an?\s+)?(unrestricted|uncensored|admin|developer|jailbroken)/i,
       /bypass\s+(your\s+)?(restrictions?|rules?|guidelines?|filters?|safety)/i,
-      /\bDAN\b.*mode/i,   // "Do Anything Now" jailbreak variant
+      /\bDAN\b.*mode/i, // "Do Anything Now" jailbreak variant
       /\bjailbreak\b/i,
       /\bprompt\s+injection\b/i,
       /override\s+(your\s+)?(system\s+)?(prompt|instructions?|rules?)/i,
@@ -325,21 +325,16 @@ export async function execute(interaction, client) {
       // Generate AI response (non-streaming) with real status callback
       // Pass rateLimitReserved: true since we already checked and reserved the rate limit
       response = await Promise.race([
-        chatService.generateResponse(
-          question,
-          interaction.guild,
-          client,
-          {
-            userId: interaction.user.id,
-            channelId: interaction.channelId,
-            coreUserData,
-            user: interaction.user,
-            channel: interaction.channel,
-            locale: interaction.locale || interaction.guildLocale || "en-US",
-            rateLimitReserved: true, // Already checked and reserved in handler
-            onStatus, // Real status callback - will be called at actual processing steps
-          },
-        ),
+        chatService.generateResponse(question, interaction.guild, client, {
+          userId: interaction.user.id,
+          channelId: interaction.channelId,
+          coreUserData,
+          user: interaction.user,
+          channel: interaction.channel,
+          locale: interaction.locale || interaction.guildLocale || "en-US",
+          rateLimitReserved: true, // Already checked and reserved in handler
+          onStatus, // Real status callback - will be called at actual processing steps
+        }),
         new Promise((_, reject) => {
           setTimeout(
             () => reject(new Error("AI response timed out. Please try again.")),
