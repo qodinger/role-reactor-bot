@@ -1,5 +1,5 @@
 import { EmbedBuilder } from "discord.js";
-import { THEME } from "../../../config/theme.js";
+import { THEME, UI_COMPONENTS } from "../../../config/theme.js";
 
 /**
  * Create embed showing list of voice control roles
@@ -11,7 +11,8 @@ export function createVoiceControlListEmbed(guild, settings) {
   const embed = new EmbedBuilder()
     .setTitle("Voice Control Roles")
     .setColor(THEME.ADMIN)
-    .setTimestamp();
+    .setTimestamp()
+    .setFooter(UI_COMPONENTS.createFooter("Voice Control Roles"));
 
   const disconnectRoles = settings.disconnectRoleIds?.filter(Boolean) || [];
   const muteRoles = settings.muteRoleIds?.filter(Boolean) || [];

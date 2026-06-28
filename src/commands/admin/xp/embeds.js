@@ -1,5 +1,5 @@
 import { EmbedBuilder } from "discord.js";
-import { THEME, EMOJIS } from "../../../config/theme.js";
+import { THEME, EMOJIS, UI_COMPONENTS } from "../../../config/theme.js";
 
 /**
  * Create the main XP settings embed
@@ -16,10 +16,12 @@ export function createXpSettingsEmbed(interaction, xpSettings, levelUpChannel) {
     )
     .setColor(THEME.PRIMARY)
     .setTimestamp()
-    .setFooter({
-      text: "XP System",
-      iconURL: interaction.client.user.displayAvatarURL(),
-    });
+    .setFooter(
+      UI_COMPONENTS.createFooter(
+        "XP System",
+        interaction.client.user.displayAvatarURL(),
+      ),
+    );
 
   // Configuration fields
   embed.addFields([
@@ -96,10 +98,12 @@ export function createXpSourceEmbed(interaction, xpSettings) {
     )
     .setColor(THEME.PRIMARY)
     .setTimestamp()
-    .setFooter({
-      text: "XP Sources",
-      iconURL: interaction.client.user.displayAvatarURL(),
-    });
+    .setFooter(
+      UI_COMPONENTS.createFooter(
+        "XP Sources",
+        interaction.client.user.displayAvatarURL(),
+      ),
+    );
 
   // Add XP source fields
   embed.addFields([
@@ -150,9 +154,13 @@ export function createLevelUpEmbed(interaction, xpSettings, levelUpChannel) {
       `Configure level-up notifications for **${interaction.guild.name}**`,
     )
     .setColor(THEME.PRIMARY)
-    .setTimestamp();
-
-  // Add level-up configuration fields
+    .setTimestamp()
+    .setFooter(
+      UI_COMPONENTS.createFooter(
+        "Level-Up Messages",
+        interaction.client.user.displayAvatarURL(),
+      ),
+    );
   embed.addFields([
     {
       name: "Status",
@@ -187,10 +195,12 @@ export function createXpTestEmbed(interaction, xpSettings) {
     )
     .setColor(THEME.PRIMARY)
     .setTimestamp()
-    .setFooter({
-      text: "XP Test",
-      iconURL: interaction.client.user.displayAvatarURL(),
-    });
+    .setFooter(
+      UI_COMPONENTS.createFooter(
+        "XP Test",
+        interaction.client.user.displayAvatarURL(),
+      ),
+    );
 
   // Add test results
   embed.addFields([
@@ -235,10 +245,12 @@ export function createXpConfigPageEmbed(
     )
     .setColor(THEME.PRIMARY)
     .setTimestamp()
-    .setFooter({
-      text: "XP Configuration",
-      iconURL: interaction.client.user.displayAvatarURL(),
-    });
+    .setFooter(
+      UI_COMPONENTS.createFooter(
+        "XP Configuration",
+        interaction.client.user.displayAvatarURL(),
+      ),
+    );
 
   // Configuration options
   embed.addFields([

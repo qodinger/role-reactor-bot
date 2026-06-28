@@ -36,7 +36,7 @@ export function createTimeoutEmbed(targetUser, duration, reason, caseId) {
         inline: true,
       },
     )
-    .setFooter({ text: "Moderation" })
+    .setFooter(UI_COMPONENTS.createFooter("Moderation"))
     .setTimestamp();
 }
 
@@ -86,7 +86,9 @@ export function createWarnEmbed(
     });
   }
 
-  return embed.setFooter({ text: "Moderation" }).setTimestamp();
+  return embed
+    .setFooter(UI_COMPONENTS.createFooter("Moderation"))
+    .setTimestamp();
 }
 
 /**
@@ -119,7 +121,7 @@ export function createBanEmbed(targetUser, reason, deleteDays, caseId) {
         inline: true,
       },
     )
-    .setFooter({ text: "Moderation" })
+    .setFooter(UI_COMPONENTS.createFooter("Moderation"))
     .setTimestamp();
 }
 
@@ -147,7 +149,7 @@ export function createKickEmbed(targetUser, reason, caseId) {
         inline: true,
       },
     )
-    .setFooter({ text: "Moderation" })
+    .setFooter(UI_COMPONENTS.createFooter("Moderation"))
     .setTimestamp();
 }
 
@@ -167,7 +169,7 @@ export function createUnbanEmbed(targetUser, caseId) {
       value: caseId,
       inline: true,
     })
-    .setFooter({ text: "Moderation" })
+    .setFooter(UI_COMPONENTS.createFooter("Moderation"))
     .setTimestamp();
 }
 
@@ -189,7 +191,7 @@ export function createPurgeEmbed(
     .setColor(THEME.SUCCESS)
     .setTitle("Messages Purged")
     .setDescription(description)
-    .setFooter({ text: "Moderation" })
+    .setFooter(UI_COMPONENTS.createFooter("Moderation"))
     .setTimestamp();
 }
 
@@ -221,13 +223,13 @@ export function createHistoryEmbed(
     embed
       .setTitle(`Server Moderation History`)
       .setThumbnail(guild?.iconURL() || null)
-      .setFooter({ text: "Moderation" })
+      .setFooter(UI_COMPONENTS.createFooter("Moderation"))
       .setTimestamp();
   } else {
     embed
       .setTitle(`Moderation History: ${targetUser.tag}`)
       .setThumbnail(targetUser.displayAvatarURL())
-      .setFooter({ text: "Moderation" })
+      .setFooter(UI_COMPONENTS.createFooter("Moderation"))
       .setTimestamp();
   }
 
@@ -445,7 +447,7 @@ export function createWarningDMEmbed(guild, reason, warnCount, caseId) {
         inline: true,
       },
     )
-    .setFooter({ text: `Moderation • ${guild.name}` })
+    .setFooter(UI_COMPONENTS.createFooter(`Moderation • ${guild.name}`))
     .setTimestamp();
 }
 
@@ -479,7 +481,7 @@ export function createTimeoutDMEmbed(guild, duration, reason, caseId) {
         inline: true,
       },
     )
-    .setFooter({ text: `Moderation • ${guild.name}` })
+    .setFooter(UI_COMPONENTS.createFooter(`Moderation • ${guild.name}`))
     .setTimestamp();
 }
 
@@ -507,7 +509,7 @@ export function createBanDMEmbed(guild, reason, caseId) {
         inline: true,
       },
     )
-    .setFooter({ text: `Moderation • ${guild.name}` })
+    .setFooter(UI_COMPONENTS.createFooter(`Moderation • ${guild.name}`))
     .setTimestamp();
 }
 
@@ -535,7 +537,7 @@ export function createKickDMEmbed(guild, reason, caseId) {
         inline: true,
       },
     )
-    .setFooter({ text: `Moderation • ${guild.name}` })
+    .setFooter(UI_COMPONENTS.createFooter(`Moderation • ${guild.name}`))
     .setTimestamp();
 }
 
@@ -555,7 +557,7 @@ export function createUnbanDMEmbed(guild, caseId) {
       value: caseId,
       inline: true,
     })
-    .setFooter({ text: `Moderation • ${guild.name}` })
+    .setFooter(UI_COMPONENTS.createFooter(`Moderation • ${guild.name}`))
     .setTimestamp();
 }
 
@@ -592,13 +594,15 @@ export function createBansListEmbed(bans, totalCount) {
 
   // Add footer with count
   if (totalCount > 20) {
-    embed.setFooter({
-      text: `Showing 20 of ${totalCount} banned users`,
-    });
+    embed.setFooter(
+      UI_COMPONENTS.createFooter(`Showing 20 of ${totalCount} banned users`),
+    );
   } else {
-    embed.setFooter({
-      text: `${totalCount} banned user${totalCount !== 1 ? "s" : ""}`,
-    });
+    embed.setFooter(
+      UI_COMPONENTS.createFooter(
+        `${totalCount} banned user${totalCount !== 1 ? "s" : ""}`,
+      ),
+    );
   }
 
   return embed;
@@ -717,7 +721,7 @@ export function createModerationErrorEmbed(title, description, solution) {
     .setColor(THEME.ERROR)
     .setTitle(title)
     .setDescription(description)
-    .setFooter({ text: "Moderation" })
+    .setFooter(UI_COMPONENTS.createFooter("Moderation"))
     .setTimestamp();
 
   if (solution) {

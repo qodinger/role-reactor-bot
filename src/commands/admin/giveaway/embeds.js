@@ -208,10 +208,12 @@ export function createGiveawayListEmbed(
     )
     .setColor(THEME.PRIMARY)
     .setTimestamp()
-    .setFooter({
-      text: `${guild.name} • Page ${currentPage} of ${totalPages || 1}`,
-      iconURL: client.user.displayAvatarURL(),
-    });
+    .setFooter(
+      UI_COMPONENTS.createFooter(
+        `${guild.name} • Page ${currentPage} of ${totalPages || 1}`,
+        client.user.displayAvatarURL(),
+      ),
+    );
 
   if (giveaways.length === 0) {
     embed.addFields({
@@ -290,6 +292,7 @@ export function createConfirmationEmbed(title, description, type = "info") {
     .setTitle(`${icons[type]} ${title}`)
     .setDescription(description)
     .setColor(colors[type])
+    .setFooter(UI_COMPONENTS.createFooter("Giveaways"))
     .setTimestamp();
 
   return embed;

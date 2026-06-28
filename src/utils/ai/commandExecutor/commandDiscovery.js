@@ -24,10 +24,13 @@ const FALLBACK_GENERAL_COMMANDS = [
   "level",
   "ping",
   "poll",
+  "premium",
   "rps",
   "serverinfo",
+  "stats",
   "support",
   "userinfo",
+  "vote",
   "wyr",
 ];
 

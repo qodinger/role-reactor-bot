@@ -1,7 +1,12 @@
-import { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } from "discord.js";
+import {
+  SlashCommandBuilder,
+  EmbedBuilder,
+  PermissionFlagsBits,
+} from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
 import { conversationManager } from "../../../utils/ai/conversationManager.js";
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";
+import { THEME, UI_COMPONENTS } from "../../../config/theme.js";
 
 const logger = getLogger();
 
@@ -64,12 +69,16 @@ export async function execute(interaction) {
     await interaction.reply({
       embeds: [
         new EmbedBuilder()
-          .setColor(0x22c55e)
+          .setColor(THEME.SUCCESS)
           .setTitle("🗑️ Conversation Reset")
           .setDescription(
             "The AI conversation history for this channel has been cleared.\nThe next `/chat` message will start a fresh session.",
           )
-          .setFooter({ text: `Reset by ${interaction.user.displayName}` })
+          .setFooter(
+            UI_COMPONENTS.createFooter(
+              `Reset by ${interaction.user.displayName}`,
+            ),
+          )
           .setTimestamp(),
       ],
       ephemeral: false,

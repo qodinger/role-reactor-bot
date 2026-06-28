@@ -1,5 +1,5 @@
 import { EmbedBuilder } from "discord.js";
-import { THEME } from "../../../config/theme.js";
+import { THEME, UI_COMPONENTS } from "../../../config/theme.js";
 import {
   CHOICE_EMOJIS,
   CHOICE_NAMES,
@@ -35,6 +35,7 @@ export function createRPSEmbed(playerChoice, botChoice, _user) {
     .setColor(embedColor)
     .setTitle("Rock Paper Scissors")
     .setDescription(description)
+    .setFooter(UI_COMPONENTS.createFooter("Rock Paper Scissors"))
     .setTimestamp();
 }
 
@@ -123,6 +124,7 @@ export function createMultiplayerResultEmbed(
     .setColor(embedColor)
     .setTitle("Rock Paper Scissors - Result")
     .setDescription(description)
+    .setFooter(UI_COMPONENTS.createFooter("Rock Paper Scissors"))
     .setTimestamp();
 }
 
@@ -153,5 +155,7 @@ export function createErrorEmbed() {
   return new EmbedBuilder()
     .setColor(THEME.ERROR)
     .setTitle("Error")
-    .setDescription("Failed to process your game. Please try again.");
+    .setDescription("Failed to process your game. Please try again.")
+    .setFooter(UI_COMPONENTS.createFooter("Rock Paper Scissors"))
+    .setTimestamp();
 }

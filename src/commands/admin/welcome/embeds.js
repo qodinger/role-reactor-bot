@@ -1,5 +1,5 @@
 import { EmbedBuilder } from "discord.js";
-import { THEME, EMOJIS } from "../../../config/theme.js";
+import { THEME, EMOJIS, UI_COMPONENTS } from "../../../config/theme.js";
 
 /**
  * Create the welcome settings embed
@@ -22,10 +22,12 @@ export function createWelcomeSettingsEmbed(
     )
     .setColor(THEME.PRIMARY)
     .setTimestamp()
-    .setFooter({
-      text: "Role Reactor • Welcome System",
-      iconURL: interaction.client.user.displayAvatarURL(),
-    });
+    .setFooter(
+      UI_COMPONENTS.createFooter(
+        "Welcome System",
+        interaction.client.user.displayAvatarURL(),
+      ),
+    );
 
   // Configuration fields
   embed.addFields([

@@ -1,4 +1,5 @@
 import { EmbedBuilder } from "discord.js";
+import { THEME, UI_COMPONENTS } from "../../config/theme.js";
 import {
   InputSanitizer,
   InputValidator,
@@ -8,7 +9,7 @@ import {
 
 export function createFormValidationEmbed(field, message) {
   return new EmbedBuilder()
-    .setColor("#FF0000")
+    .setColor(THEME.ERROR)
     .setTitle("Input Validation Error")
     .setDescription(`**Field:** ${field}\n**Issue:** ${message}`)
     .addFields({
@@ -16,7 +17,7 @@ export function createFormValidationEmbed(field, message) {
       value: "Please correct your input and try again.",
     })
     .setTimestamp()
-    .setFooter({ text: "Form validation failed" });
+    .setFooter(UI_COMPONENTS.createFooter("Form Validation"));
 }
 
 export function createFormValidationErrorEmbed(
@@ -25,10 +26,11 @@ export function createFormValidationErrorEmbed(
   solution = null,
 ) {
   const embed = new EmbedBuilder()
-    .setColor("#FF0000")
+    .setColor(THEME.ERROR)
     .setTitle(title)
     .setDescription(description)
-    .setTimestamp();
+    .setTimestamp()
+    .setFooter(UI_COMPONENTS.createFooter("Form Validation"));
 
   if (solution) {
     embed.addFields({

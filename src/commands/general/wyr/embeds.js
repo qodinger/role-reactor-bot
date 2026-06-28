@@ -1,5 +1,5 @@
 import { EmbedBuilder } from "discord.js";
-import { THEME, EMOJIS } from "../../../config/theme.js";
+import { THEME, EMOJIS, UI_COMPONENTS } from "../../../config/theme.js";
 import { parseQuestionOptions } from "./utils.js";
 
 /**
@@ -245,5 +245,7 @@ export function createErrorEmbed() {
   return new EmbedBuilder()
     .setColor(THEME.ERROR)
     .setTitle(`${EMOJIS.STATUS.ERROR} Error`)
-    .setDescription("Failed to generate a question. Please try again later.");
+    .setDescription("Failed to generate a question. Please try again later.")
+    .setFooter(UI_COMPONENTS.createFooter("Would You Rather"))
+    .setTimestamp();
 }

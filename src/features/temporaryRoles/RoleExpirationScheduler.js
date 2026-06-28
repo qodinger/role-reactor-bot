@@ -6,7 +6,7 @@ import {
   bulkRemoveRoles,
   getCachedMember,
 } from "../../utils/discord/roleManager.js";
-import { THEME, EMOJIS } from "../../config/theme.js";
+import { THEME, EMOJIS, UI_COMPONENTS } from "../../config/theme.js";
 import {
   getUsersCorePriority,
   sortByCorePriority,
@@ -315,9 +315,7 @@ class RoleExpirationScheduler {
             inline: false,
           },
         ])
-        .setFooter({
-          text: `Role Reactor • ${guild.name}`,
-        })
+        .setFooter(UI_COMPONENTS.createFooter(`Role Reactor • ${guild.name}`))
         .setTimestamp();
 
       await member.user.send({ embeds: [embed] });

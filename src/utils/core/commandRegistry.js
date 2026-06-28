@@ -125,6 +125,12 @@ class CommandRegistry {
         // Store with defaults if metadata not found
         // to ensure they match the file location, not metadata values
         // Spread metadata first, then override with explicit values to ensure correct order
+        // Skip disabled commands entirely - they should not appear in help or registry
+        if (metadata.disabled) {
+          logger.debug(`Skipping disabled command: ${commandName}`);
+          continue;
+        }
+
         this.metadataCache.set(commandName, {
           // Spread remaining metadata properties first (name/category/helpDescription already removed)
           ...metadata,
@@ -188,6 +194,11 @@ class CommandRegistry {
         delete metadata.category;
         delete metadata.helpDescription; // Remove helpDescription, we use description now
         // Keep helpFields - it's used for dynamic help content
+      }
+
+      // Check if command is disabled
+      if (commandModule.disabled === true) {
+        metadata.disabled = true;
       }
 
       // Fallback: Get description from command definition if not in metadata

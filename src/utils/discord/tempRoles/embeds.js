@@ -1,5 +1,5 @@
 import { EmbedBuilder } from "discord.js";
-import { THEME } from "../../../config/theme.js";
+import { THEME, UI_COMPONENTS } from "../../../config/theme.js";
 import { formatDurationMs } from "./utils.js";
 
 /**
@@ -28,9 +28,7 @@ export async function sendAssignmentNotification(
         inline: false,
       },
     ])
-    .setFooter({
-      text: `Role Reactor • ${guild.name}`,
-    })
+    .setFooter(UI_COMPONENTS.createFooter(`Role Reactor • ${guild.name}`))
     .setTimestamp();
 
   try {
@@ -85,9 +83,7 @@ export async function sendRemovalNotification(
         inline: false,
       },
     ])
-    .setFooter({
-      text: `Role Reactor • ${guild.name}`,
-    })
+    .setFooter(UI_COMPONENTS.createFooter(`Role Reactor • ${guild.name}`))
     .setTimestamp();
 
   try {

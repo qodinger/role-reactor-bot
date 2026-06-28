@@ -1,5 +1,5 @@
 import { EmbedBuilder } from "discord.js";
-import { THEME } from "../../../config/theme.js";
+import { THEME, UI_COMPONENTS } from "../../../config/theme.js";
 import {
   formatScheduleTime,
   formatRecurringSchedule,
@@ -57,10 +57,12 @@ export function createScheduleEmbed(
     .setColor(THEME.SUCCESS)
     .setThumbnail(role?.iconURL() || null)
     .setTimestamp()
-    .setFooter({
-      text: `Schedule ID: ${scheduleData.id}`,
-      iconURL: client.user?.displayAvatarURL() || undefined,
-    });
+    .setFooter(
+      UI_COMPONENTS.createFooter(
+        `Schedule ID: ${scheduleData.id}`,
+        client.user?.displayAvatarURL() || undefined,
+      ),
+    );
 
   // Schedule details
   const scheduleInfo = isRecurring
@@ -128,10 +130,12 @@ export function createScheduleListEmbed(
     )
     .setColor(THEME.PRIMARY)
     .setTimestamp()
-    .setFooter({
-      text: `${guild.name} • Page ${currentPage} of ${totalPages || 1}`,
-      iconURL: client.user.displayAvatarURL(),
-    });
+    .setFooter(
+      UI_COMPONENTS.createFooter(
+        `${guild.name} • Page ${currentPage} of ${totalPages || 1}`,
+        client.user.displayAvatarURL(),
+      ),
+    );
 
   if (schedules.length === 0) {
     embed.addFields({
@@ -260,10 +264,12 @@ export function createScheduleViewEmbed(schedule, scheduleType, guild, client) {
     )
     .setThumbnail(role ? role.iconURL() : null)
     .setTimestamp()
-    .setFooter({
-      text: `Role Reactor • Scheduled Roles`,
-      iconURL: client.user.displayAvatarURL(),
-    });
+    .setFooter(
+      UI_COMPONENTS.createFooter(
+        "Scheduled Roles",
+        client.user.displayAvatarURL(),
+      ),
+    );
 
   // Basic information
   embed.addFields(

@@ -4,7 +4,7 @@
  */
 
 import { EmbedBuilder, PermissionsBitField, MessageFlags } from "discord.js";
-import { THEME } from "../../../config/theme.js";
+import { THEME, UI_COMPONENTS } from "../../../config/theme.js";
 import roleBundleManager from "../../../features/rolebundles/RoleBundleManager.js";
 
 import { getMentionableCommand } from "../../../utils/commandUtils.js";
@@ -252,9 +252,13 @@ export async function handleList(interaction) {
       });
     });
 
-    embed.setFooter({
-      text: "Use /role-bundle view name:<bundle> to see all roles in a bundle",
-    });
+    embed.setFooter(
+      UI_COMPONENTS.createFooter(
+        "Use /role-bundle view name:<bundle> to see all roles in a bundle",
+      ),
+    );
+
+    embed.setTimestamp();
 
     return interaction.editReply({
       embeds: [embed],
@@ -309,9 +313,11 @@ export async function handleView(interaction) {
             ? bundle.roles.map(r => `• <@&${r.roleId}>`).join("\n")
             : "No roles in this bundle.",
       })
-      .setFooter({
-        text: `Use /role-bundle delete name:${bundle.name} to delete this bundle`,
-      })
+      .setFooter(
+        UI_COMPONENTS.createFooter(
+          `Use /role-bundle delete name:${bundle.name} to delete this bundle`,
+        ),
+      )
       .setTimestamp(bundle.createdAt);
 
     return interaction.editReply({
@@ -377,6 +383,7 @@ function createErrorEmbed(title, description) {
     .setTitle("❌ " + title)
     .setDescription(description)
     .setColor(THEME.ERROR)
+    .setFooter(UI_COMPONENTS.createFooter("Role Bundles"))
     .setTimestamp();
 }
 
@@ -391,6 +398,7 @@ function createSuccessEmbed(title, description) {
     .setTitle("✅ " + title)
     .setDescription(description)
     .setColor(THEME.SUCCESS)
+    .setFooter(UI_COMPONENTS.createFooter("Role Bundles"))
     .setTimestamp();
 }
 
@@ -405,5 +413,6 @@ function createInfoEmbed(title, description) {
     .setTitle("ℹ️ " + title)
     .setDescription(description)
     .setColor(THEME.INFO)
+    .setFooter(UI_COMPONENTS.createFooter("Role Bundles"))
     .setTimestamp();
 }

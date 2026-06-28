@@ -8,7 +8,7 @@ import {
   TextInputBuilder,
   TextInputStyle,
 } from "discord.js";
-import { EMOJIS, THEME } from "../../../config/theme.js";
+import { EMOJIS, THEME, UI_COMPONENTS } from "../../../config/theme.js";
 
 // Duration mapping for display (Discord native polls support 1 hour to 7 days max)
 const DURATION_MAP = {
@@ -79,7 +79,9 @@ export function createPollCreationMenu(_client) {
     .setDescription(
       "Configure your poll settings using the dropdowns below, then click **Continue to Details** to fill in the poll information.",
     )
-    .setColor(THEME.PRIMARY);
+    .setColor(THEME.PRIMARY)
+    .setFooter(UI_COMPONENTS.createFooter("Polls"))
+    .setTimestamp();
 
   // Duration selection (Discord native polls support 1 hour to 7 days max)
   const durationSelect = new StringSelectMenuBuilder()
@@ -212,7 +214,9 @@ export function createPollCreationMenuWithSelections(
     .setDescription(
       "Configure your poll settings using the dropdowns below, then click **Continue to Details** to fill in the poll information.",
     )
-    .setColor(THEME.PRIMARY);
+    .setColor(THEME.PRIMARY)
+    .setFooter(UI_COMPONENTS.createFooter("Polls"))
+    .setTimestamp();
 
   // Add current selections to description
   if (selections.duration || selections.allowMultiple !== undefined) {

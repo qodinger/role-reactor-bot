@@ -3,7 +3,7 @@ import {
   formatDuration,
   parseDuration,
 } from "../../../utils/discord/tempRoles.js";
-import { THEME, EMOJIS } from "../../../config/theme.js";
+import { THEME, EMOJIS, UI_COMPONENTS } from "../../../config/theme.js";
 
 /**
  * Create the temporary role assignment embed
@@ -42,10 +42,12 @@ export function createTempRoleEmbed(
     .setColor(THEME.PRIMARY)
     .setThumbnail(role.iconURL() || null)
     .setTimestamp()
-    .setFooter({
-      text: "Temporary Roles",
-      iconURL: client.user.displayAvatarURL(),
-    });
+    .setFooter(
+      UI_COMPONENTS.createFooter(
+        "Temporary Roles",
+        client.user.displayAvatarURL(),
+      ),
+    );
 
   // Role details and assignment info
   embed.addFields([
@@ -135,10 +137,12 @@ export function createTempRolesListEmbed(
     )
     .setColor(THEME.PRIMARY)
     .setTimestamp()
-    .setFooter({
-      text: "Temporary Roles",
-      iconURL: client.user.displayAvatarURL(),
-    });
+    .setFooter(
+      UI_COMPONENTS.createFooter(
+        "Temporary Roles",
+        client.user.displayAvatarURL(),
+      ),
+    );
 
   if (processedRoles.length === 0) {
     embed.addFields({
@@ -282,10 +286,12 @@ export function createTempRoleRemovedEmbed(
         inline: false,
       },
     ])
-    .setFooter({
-      text: "Temporary Roles",
-      iconURL: client.user.displayAvatarURL(),
-    })
+    .setFooter(
+      UI_COMPONENTS.createFooter(
+        "Temporary Roles",
+        client.user.displayAvatarURL(),
+      ),
+    )
     .setTimestamp();
 }
 
@@ -315,10 +321,12 @@ export function createTempRoleRemovalEmbed(
     .setColor(THEME.PRIMARY)
     .setThumbnail(role.iconURL() || null)
     .setTimestamp()
-    .setFooter({
-      text: "Temporary Roles",
-      iconURL: client.user.displayAvatarURL(),
-    });
+    .setFooter(
+      UI_COMPONENTS.createFooter(
+        "Temporary Roles",
+        client.user.displayAvatarURL(),
+      ),
+    );
 
   // Main information section
   embed.addFields([

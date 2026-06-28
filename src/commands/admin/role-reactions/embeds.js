@@ -4,7 +4,7 @@ import {
   ButtonBuilder,
   ButtonStyle,
 } from "discord.js";
-import { THEME, EMOJIS } from "../../../config/theme.js";
+import { THEME, EMOJIS, UI_COMPONENTS } from "../../../config/theme.js";
 import { getLogger } from "../../../utils/logger.js";
 
 // Setup Roles embed
@@ -21,10 +21,12 @@ export function createSetupRolesEmbed(
     .setDescription(description || "Click reactions to get roles") // Simplified description
     .setColor(color || THEME.PRIMARY) // Use THEME.PRIMARY
     .setTimestamp()
-    .setFooter({
-      text: "Role Reactions",
-      iconURL: client.user.displayAvatarURL(),
-    });
+    .setFooter(
+      UI_COMPONENTS.createFooter(
+        "Role Reactions",
+        client.user.displayAvatarURL(),
+      ),
+    );
 
   const roleList = validRoles
     .map(role => {
@@ -79,10 +81,12 @@ export function createListRolesEmbed(
     )
     .setColor(THEME.PRIMARY) // Use THEME.PRIMARY
     .setTimestamp()
-    .setFooter({
-      text: `Role Reactions • Page ${page}/${totalPages}`,
-      iconURL: client.user.displayAvatarURL(),
-    });
+    .setFooter(
+      UI_COMPONENTS.createFooter(
+        `Role Reactions • Page ${page}/${totalPages}`,
+        client.user.displayAvatarURL(),
+      ),
+    );
 
   if (guildMappings.length === 0) {
     embed.addFields([
@@ -182,10 +186,12 @@ export function createUpdatedRolesEmbed(updatedMapping, roleMapping, client) {
     .setDescription(updatedMapping.description || "React to get a role!") // Simplified description
     .setColor(updatedMapping.color || THEME.PRIMARY) // Use THEME.PRIMARY
     .setTimestamp()
-    .setFooter({
-      text: "Role Reactions",
-      iconURL: client.user.displayAvatarURL(),
-    });
+    .setFooter(
+      UI_COMPONENTS.createFooter(
+        "Role Reactions",
+        client.user.displayAvatarURL(),
+      ),
+    );
 
   const rolesToShow = Object.values(roleMapping || {});
   const roleList = rolesToShow

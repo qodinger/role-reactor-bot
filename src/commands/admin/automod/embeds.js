@@ -1,5 +1,5 @@
 import { EmbedBuilder } from "discord.js";
-import { THEME, EMOJIS } from "../../../config/theme.js";
+import { THEME, EMOJIS, UI_COMPONENTS } from "../../../config/theme.js";
 
 export function createAutomodSettingsEmbed(
   settings,
@@ -19,10 +19,12 @@ export function createAutomodSettingsEmbed(
     .setDescription(`Configure auto-mod filters for **${guildName}**`)
     .setColor(hasAnyFilter ? THEME.SUCCESS : THEME.PRIMARY)
     .setTimestamp()
-    .setFooter({
-      text: "Role Reactor • Auto-Mod",
-      iconURL: client?.user?.displayAvatarURL() || null,
-    });
+    .setFooter(
+      UI_COMPONENTS.createFooter(
+        "Auto-Mod",
+        client?.user?.displayAvatarURL() || null,
+      ),
+    );
 
   embed.addFields([
     {

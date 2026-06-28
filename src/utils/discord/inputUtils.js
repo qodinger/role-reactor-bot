@@ -1,4 +1,5 @@
 import { EmbedBuilder } from "discord.js";
+import { THEME, UI_COMPONENTS } from "../../config/theme.js";
 import {
   InputSanitizer,
   InputValidator,
@@ -103,11 +104,11 @@ export function parseDuration(duration) {
  */
 export const createValidationErrorEmbed = (field, reason) => {
   return new EmbedBuilder()
-    .setColor("#FF0000")
+    .setColor(THEME.ERROR)
     .setTitle("❌ Validation Error")
     .setDescription(`**Field:** ${field}\n**Issue:** ${reason}`)
     .setTimestamp()
-    .setFooter({ text: "Please check your input and try again" });
+    .setFooter(UI_COMPONENTS.createFooter("Validation"));
 };
 
 /**

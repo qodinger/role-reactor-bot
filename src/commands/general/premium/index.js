@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
-import { THEME } from "../../../config/theme.js";
+import { THEME, UI_COMPONENTS } from "../../../config/theme.js";
 import { PREMIUM_FEATURES } from "./premiumData.js";
 
 const PRO_NAME = "Pro Engine";
@@ -42,6 +42,7 @@ export async function execute(interaction, _client) {
       ].join("\n"),
     )
     .setColor(THEME.PRO)
+    .setFooter(UI_COMPONENTS.createFooter("Premium"))
     .setTimestamp();
 
   for (const feature of PREMIUM_FEATURES) {
