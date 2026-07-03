@@ -22,7 +22,8 @@ const GUILD_STATS_TTL = 5 * 60 * 1000;
 export async function apiGuildLeaderboard(req, res) {
   const { guildId } = req.params;
   const limit = Math.min(parseInt(req.query.limit) || 10, 100);
-  logRequest(`Guild leaderboard: ${guildId}`, req);
+  const period = req.query.period || "all";
+  logRequest(`Guild leaderboard: ${guildId} (period: ${period})`, req);
 
   if (!guildId) {
     const { statusCode, response } = createErrorResponse(
@@ -88,7 +89,7 @@ export async function apiGuildLeaderboard(req, res) {
     const premiumManager = getPremiumManager();
 
     const [leaderboard, isPremium] = await Promise.all([
-      experienceManager.getLeaderboard(guildId, limit),
+      experienceManager.getLeaderboard(guildId, limit, period),
       premiumManager.isFeatureActive(guildId, PremiumFeatures.PRO.id),
     ]);
 

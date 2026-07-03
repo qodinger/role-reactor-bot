@@ -66,6 +66,36 @@ class ExperienceCache {
         for (const update of updates) {
           userData.totalXP += update.xp;
           userData.lastUpdated = new Date();
+          
+          // Process time filters for this update
+          const now = new Date();
+          
+          // Daily check
+          if (!userData.lastDailyReset || new Date(userData.lastDailyReset).toDateString() !== now.toDateString()) {
+            userData.dailyXP = 0;
+            userData.lastDailyReset = now;
+          }
+          
+          // Weekly check (starts on Sunday)
+          const getStartOfWeek = (d) => {
+            const date = new Date(d);
+            const day = date.getDay();
+            return new Date(date.setDate(date.getDate() - day)).toDateString();
+          };
+          if (!userData.lastWeeklyReset || getStartOfWeek(userData.lastWeeklyReset) !== getStartOfWeek(now)) {
+            userData.weeklyXP = 0;
+            userData.lastWeeklyReset = now;
+          }
+          
+          // Monthly check
+          if (!userData.lastMonthlyReset || new Date(userData.lastMonthlyReset).getMonth() !== now.getMonth() || new Date(userData.lastMonthlyReset).getFullYear() !== now.getFullYear()) {
+            userData.monthlyXP = 0;
+            userData.lastMonthlyReset = now;
+          }
+          
+          userData.dailyXP = (userData.dailyXP || 0) + update.xp;
+          userData.weeklyXP = (userData.weeklyXP || 0) + update.xp;
+          userData.monthlyXP = (userData.monthlyXP || 0) + update.xp;
         }
 
         // Recalculate level (inline calculation to avoid context issues)
@@ -238,6 +268,29 @@ class ExperienceManager {
       lastUpdated: new Date(),
     };
 
+    // Process time filters for immediate cache update
+    const now = new Date();
+    if (!updatedData.lastDailyReset || new Date(updatedData.lastDailyReset).toDateString() !== now.toDateString()) {
+      updatedData.dailyXP = 0;
+      updatedData.lastDailyReset = now;
+    }
+    const getStartOfWeek = (d) => {
+      const date = new Date(d);
+      const day = date.getDay();
+      return new Date(date.setDate(date.getDate() - day)).toDateString();
+    };
+    if (!updatedData.lastWeeklyReset || getStartOfWeek(updatedData.lastWeeklyReset) !== getStartOfWeek(now)) {
+      updatedData.weeklyXP = 0;
+      updatedData.lastWeeklyReset = now;
+    }
+    if (!updatedData.lastMonthlyReset || new Date(updatedData.lastMonthlyReset).getMonth() !== now.getMonth() || new Date(updatedData.lastMonthlyReset).getFullYear() !== now.getFullYear()) {
+      updatedData.monthlyXP = 0;
+      updatedData.lastMonthlyReset = now;
+    }
+    updatedData.dailyXP = (updatedData.dailyXP || 0) + xp;
+    updatedData.weeklyXP = (updatedData.weeklyXP || 0) + xp;
+    updatedData.monthlyXP = (updatedData.monthlyXP || 0) + xp;
+
     // Silently snapshot user profile for leaderboard reads
     this._snapshotUserProfile(updatedData, userId, client);
 
@@ -328,6 +381,12 @@ class ExperienceManager {
       level: 1,
       messagesSent: 0,
       rolesEarned: 0,
+      dailyXP: 0,
+      weeklyXP: 0,
+      monthlyXP: 0,
+      lastDailyReset: new Date(),
+      lastWeeklyReset: new Date(),
+      lastMonthlyReset: new Date(),
       lastUpdated: new Date(),
     };
 
@@ -351,15 +410,44 @@ class ExperienceManager {
    * Get leaderboard for a guild
    * @param {string} guildId - Discord guild ID
    * @param {number} limit - Number of users to return
+   * @param {string} period - Time period ('all', 'daily', 'weekly', 'monthly')
    * @returns {Promise<Array>} Sorted leaderboard data
    */
-  async getLeaderboard(guildId, limit = 10) {
+  async getLeaderboard(guildId, limit = 10, period = "all") {
     await this.initialize();
 
-    const docs = await this.storageManager.getUserExperienceLeaderboard(
+    let docs = await this.storageManager.getUserExperienceLeaderboard(
       guildId,
-      limit,
+      1000, // Fetch more if filtering/sorting manually
     );
+    
+    // Sort based on period if not "all"
+    if (period !== "all") {
+      const now = new Date();
+      
+      const getStartOfWeek = (d) => {
+        const date = new Date(d);
+        const day = date.getDay();
+        return new Date(date.setDate(date.getDate() - day)).toDateString();
+      };
+      
+      docs = docs.filter(doc => {
+        if (period === "daily") {
+          return doc.lastDailyReset && new Date(doc.lastDailyReset).toDateString() === now.toDateString();
+        } else if (period === "weekly") {
+          return doc.lastWeeklyReset && getStartOfWeek(doc.lastWeeklyReset) === getStartOfWeek(now);
+        } else if (period === "monthly") {
+          return doc.lastMonthlyReset && new Date(doc.lastMonthlyReset).getMonth() === now.getMonth() && new Date(doc.lastMonthlyReset).getFullYear() === now.getFullYear();
+        }
+        return true;
+      });
+      
+      const sortField = period === "daily" ? "dailyXP" : period === "weekly" ? "weeklyXP" : "monthlyXP";
+      docs.sort((a, b) => (b[sortField] || 0) - (a[sortField] || 0));
+      docs = docs.slice(0, limit);
+    } else {
+      docs = docs.slice(0, limit);
+    }
     // Normalize fields to match file-provider shape
     return docs.map(doc => ({
       ...doc,
