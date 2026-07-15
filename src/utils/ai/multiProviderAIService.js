@@ -182,6 +182,7 @@ export class MultiProviderAIService {
           this.config.providers?.runpod || {},
         ),
         comfyui: new ComfyUIProvider(this.config.providers?.comfyui || {}),
+        civitai: new CivitaiProvider(this.config.providers?.civitai || {}),
       };
     }
 
@@ -192,7 +193,7 @@ export class MultiProviderAIService {
    * Generate AI content using the configured provider
    * @param {Object} options - Configuration options
    * @param {string} options.type - Type of generation (image, text)
-   * @param {string} options.prompt - Input prompt
+   * @param {string|Array} options.prompt - Input prompt
    * @param {Object} options.config - Additional configuration
    * @param {string} [options.provider] - Force specific provider (optional)
    * @param {Function} [options.progressCallback] - Optional callback for progress updates
@@ -215,6 +216,7 @@ export class MultiProviderAIService {
           this.config.providers?.runpod || {},
         ),
         comfyui: new ComfyUIProvider(this.config.providers?.comfyui || {}),
+        civitai: new CivitaiProvider(this.config.providers?.civitai || {}),
       };
     }
 
@@ -316,6 +318,11 @@ export class MultiProviderAIService {
       let result;
 
       if (type === "image") {
+        if (typeof prompt !== "string") {
+          throw new Error(
+            "The AI service encountered an internal error. Image generation prompt must be a string.",
+          );
+        }
         result = await this.generateImage(
           prompt,
           genConfig,
