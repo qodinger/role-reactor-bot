@@ -14,10 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`/chat-reset` command**: Admins with Manage Messages can wipe the AI conversation history for a channel and start fresh.
 - **AI confirmation dialogs**: Before the AI executes any admin command on your behalf, it shows a confirmation prompt with what it's about to do. You have 60 seconds to confirm or cancel.
 - **AI admin command security**: Moderation and automod commands are always blocked from AI execution. Other admin commands require you to confirm first.
-- **Auto-Moderation System**: Keep your server safe automatically — for free. Five filters are available: bad words, link blocking, spam detection, mention spam, and invite link blocking. Each filter can be set to delete the message, warn the user, or issue a timeout.
+- **Auto-Moderation System**: Keep your server safe automatically — for free. Six filters are available: bad words, link blocking, spam detection, mention spam, invite link blocking, and caps lock. Each filter can be set to delete the message, warn the user, kick, or ban.
 - **Role Reaction Limits**: You can now set a maximum number of times a role can be claimed through role reactions — great for limited-access roles.
 - **Pro Badge in Help**: The `/help` menu now shows a badge on commands that have Pro Engine features, so you always know what's available on your tier.
 - **Timeout List**: New `/moderation timeouts` command to see all currently timed-out members in your server at a glance.
+- **Time-based XP Tracking**: Track daily, weekly, and monthly XP with new leaderboard tabs.
+- **Active User Tracking**: Server analytics now show DAU/MAU metrics.
+- **Real-time AI Pricing**: AI avatar costs now update in real-time from OpenRouter API.
 
 ### Changed
 
@@ -25,7 +28,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **AI Chat is now channel-shared**: Previously each user had their own private AI conversation. Now the whole channel shares one session so members can see what others asked and build on it together.
 - **AI now uses verified command examples**: When the AI suggests how to use a command (e.g. `/role-reactions setup`), it pulls the exact format from the command's own help documentation instead of guessing.
 - **Guild Analytics require Pro Engine**: Server growth analytics are now a Pro Engine feature. Pro servers also get up to 365 days of analytics history (previously 90 days).
-- **Auto-Mod Pro Features**: Advanced bad word filtering (wildcard and regex patterns), domain allowlisting, and the caps lock filter are exclusive to Pro Engine servers.
 - **Transcript Storage (Free tier)**: Free servers now keep ticket transcripts for 30 days, up from 7 days.
 - **Role Reaction Menus (Pro Engine)**: The Pro Engine menu limit has been updated from 20 to 8.
 - **AI Avatar Cost**: Generating an AI Avatar now costs 5 Cores (up from 3). This helps keep the service sustainable. At $5 you can generate 15 avatars.
@@ -34,8 +36,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - AI response was silently dropped instead of shown to the user (scoped constant bug in non-streaming path).
 - `@mention` AI conversations now share the same channel history as `/chat` instead of using a separate per-user session.
-- Default image credit fallback was `1.2 Core` instead of `5.0 Core`; a provider lookup failure would have undercharged users.
-- Core credit balance no longer shows rounding errors (e.g. `19.999999` now correctly shows as `20`).
 - Clickable command mentions in `/help` now work correctly on production servers.
 - `/serverinfo` now shows more accurate member counts.
 
@@ -89,16 +89,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Core Balance Display**: `/core balance` now shows vote statistics, next vote countdown with Discord dynamic timestamps, server Pro Engine status, and quick-action buttons for "Vote & Earn" and "Upgrade Center."
 - **Bulk Action Limits**: `/temp-roles` and `/schedule-role` now correctly support up to **250 users** per action on Pro Engine servers and **25 users** on Free servers (previously capped at 20 for all servers).
 - **Faster Moderation**: `/moderation` bulk operations (timeout, warn, ban, kick) are now significantly faster and more responsive when processing user lists.
-- **System Optimization**: Internal architectural improvements to ensure server features and leaderboard controllers perform more consistently across all guilds.
-- **Gateway Reliability**: Implemented a protective buffer to prevent the loss of passive Discord gateway events during high-traffic periods or rate-limit spikes.
 
 ### Fixed
 
-- **Role Name Lengths**: Shortened command descriptions for role-reactions to safely sit below the Discord global command limit.
 - **Bulk Action on Pro Servers**: Fixed an issue where `/temp-roles assign` and `/schedule-role create` would not process more than 20 users, even on Pro Engine servers entitled to 250 users.
 - **Experience Calculations**: Fixed an error in the experience manager where leveling progress could occasionally fail to calculate correctly under specific conditions.
-- **Leaderboard Search**: Improved the accuracy of leaderboard search filters, ensuring more reliable server discovery in the public index.
-- **Vulnerability Noise**: Suppressed 404 log spam from automated web vulnerability scanners in the bot's server logs for cleaner debugging.
+- **Leaderboard Search**: Improved the accuracy of leaderboard search filters, ensuring more reliable server discovery for the public index.
 
 ## [1.6.3] - 2026-03-04
 
