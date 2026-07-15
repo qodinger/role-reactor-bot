@@ -28,6 +28,18 @@ export async function execute(message, client) {
     const settings = await dbManager.automod.getByGuild(guildId);
     if (!settings) return;
 
+    if (settings.ignoredRoles?.length > 0) {
+      const memberRoles = message.member?.roles?.cache?.map(r => r.id) || [];
+      const hasIgnoredRole = memberRoles.some(roleId =>
+        settings.ignoredRoles.includes(roleId),
+      );
+      if (hasIgnoredRole) return;
+    }
+
+    if (settings.ignoredChannels?.length > 0) {
+      if (settings.ignoredChannels.includes(channelId)) return;
+    }
+
     let activeSettings = { ...settings };
     const channelSettings = await dbManager.automod.getChannelSettings(
       guildId,
@@ -45,7 +57,8 @@ export async function execute(message, client) {
       activeSettings.links?.enabled ||
       activeSettings.spam?.enabled ||
       activeSettings.mentionSpam?.enabled ||
-      activeSettings.inviteLink?.enabled;
+      activeSettings.inviteLink?.enabled ||
+      activeSettings.capsLock?.enabled;
 
     if (!hasAnyFilterEnabled) return;
 
@@ -292,139 +305,94 @@ async function handleViolation(message, violation, dbManager, guildId) {
   }
 
   try {
-    switch (violation.type) {
-      case "bad_words":
-        await message.delete().catch(() => {});
+    await message.delete().catch(() => {});
 
-        if (violation.action === "timeout") {
+    const violationReason = getViolationReason(violation.type);
+
+    const actions = Array.isArray(violation.action)
+      ? violation.action
+      : [violation.action];
+
+    for (const action of actions) {
+      switch (action) {
+        case "timeout":
           if (member) {
             await member.timeout(
-              violation.duration * 60 * 1000,
-              "Automod: Bad word detected",
+              (violation.duration || 5) * 60 * 1000,
+              `Automod: ${violationReason}`,
             );
           }
-        }
+          break;
 
-        try {
-          await author.send({
-            content: `⚠️ Your message was deleted in ${guild.name} for containing inappropriate content.`,
-          });
-        } catch {}
-
-        await logAutomodAction(
-          message,
-          "Bad word detected",
-          violation.type,
-          dbManager,
-          guildId,
-        );
-        break;
-
-      case "link":
-        await message.delete().catch(() => {});
-
-        if (violation.action === "timeout") {
+        case "kick":
           if (member) {
-            await member.timeout(
-              violation.duration * 60 * 1000,
-              "Automod: Link detected",
-            );
+            await member.kick(`Automod: ${violationReason}`);
           }
-        }
+          break;
 
-        try {
-          await author.send({
-            content: `⚠️ Your message was deleted in ${message.guild.name} for containing a link.`,
-          });
-        } catch {}
-
-        await logAutomodAction(
-          message,
-          "Link detected",
-          violation.type,
-          dbManager,
-          guildId,
-        );
-        break;
-
-      case "spam":
-        await message.delete().catch(() => {});
-
-        if (violation.action === "timeout" && member) {
-          await member.timeout(
-            violation.duration * 60 * 1000,
-            "Automod: Spam detected",
-          );
-        }
-
-        try {
-          await author.send({
-            content: `⚠️ Your message was deleted in ${message.guild.name} for spam.`,
-          });
-        } catch {}
-
-        await logAutomodAction(
-          message,
-          "Spam detected",
-          violation.type,
-          dbManager,
-          guildId,
-        );
-        break;
-
-      case "mention_spam":
-        await message.delete().catch(() => {});
-
-        if (violation.action === "timeout" && member) {
-          await member.timeout(
-            violation.duration * 60 * 1000,
-            "Automod: Mention spam detected",
-          );
-        }
-
-        try {
-          await author.send({
-            content: `⚠️ Your message was deleted in ${message.guild.name} for excessive mentions.`,
-          });
-        } catch {}
-
-        await logAutomodAction(
-          message,
-          "Mention spam detected",
-          violation.type,
-          dbManager,
-          guildId,
-        );
-        break;
-
-      case "invite_link":
-        await message.delete().catch(() => {});
-
-        if (violation.action === "timeout" && member) {
-          await member.timeout(
-            violation.duration * 60 * 1000,
-            "Automod: Invite link detected",
-          );
-        }
-
-        try {
-          await author.send({
-            content: `⚠️ Your message was deleted in ${message.guild.name} for posting an invite link.`,
-          });
-        } catch {}
-
-        await logAutomodAction(
-          message,
-          "Invite link detected",
-          violation.type,
-          dbManager,
-          guildId,
-        );
-        break;
+        case "ban":
+          if (member) {
+            await member.ban({
+              reason: `Automod: ${violationReason}`,
+              deleteMessageSeconds: 24 * 60 * 60,
+            });
+          }
+          break;
+      }
     }
+
+    try {
+      const dmMessage = getDmMessage(violation.type, guild.name, actions);
+      await author.send({ content: dmMessage });
+    } catch {}
+
+    await logAutomodAction(
+      message,
+      violationReason,
+      violation.type,
+      dbManager,
+      guildId,
+    );
   } catch (error) {
     logger.error(`[Automod] Error handling violation:`, error);
   }
+}
+
+function getViolationReason(type) {
+  const reasons = {
+    bad_words: "Bad word detected",
+    link: "Link detected",
+    spam: "Spam detected",
+    mention_spam: "Mention spam detected",
+    invite_link: "Invite link detected",
+    caps_lock: "Excessive caps",
+  };
+  return reasons[type] || "Automod violation";
+}
+
+function getDmMessage(type, guildName, actions) {
+  const messages = {
+    bad_words: `⚠️ Your message was deleted in ${guildName} for containing inappropriate content.`,
+    link: `⚠️ Your message was deleted in ${guildName} for containing a link.`,
+    spam: `⚠️ Your message was deleted in ${guildName} for spam.`,
+    mention_spam: `⚠️ Your message was deleted in ${guildName} for excessive mentions.`,
+    invite_link: `⚠️ Your message was deleted in ${guildName} for posting an invite link.`,
+    caps_lock: `⚠️ Your message was deleted in ${guildName} for excessive caps.`,
+  };
+
+  let msg = messages[type] || `⚠️ Your message was deleted in ${guildName}.`;
+
+  if (actions.includes("timeout")) {
+    msg += " You have been timed out.";
+  }
+  if (actions.includes("kick")) {
+    msg += " You have been kicked.";
+  }
+  if (actions.includes("ban")) {
+    msg += " You have been banned.";
+  }
+
+  return msg;
 }
 
 async function logAutomodAction(message, reason, type, dbManager, guildId) {

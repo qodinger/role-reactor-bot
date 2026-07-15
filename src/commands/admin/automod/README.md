@@ -4,20 +4,14 @@ Automatic content moderation to keep your server safe.
 
 ## Features
 
-### Free Filters (5 filters)
+### Filters (6 filters)
 
 - **Bad Words** - Filter inappropriate words
 - **Links** - Block URLs in messages
 - **Spam** - Detect repeated messages and rate limiting (5 msgs/5s)
 - **Mention Spam** - Block mass mentions (3+ mentions)
 - **Invite Links** - Block Discord invite links
-
-### Pro Filters (+4 advanced)
-
-- **Domain Allowlist** - Allow specific domains while blocking others
-- **Caps Lock Filter** - Block messages that are mostly ALL CAPS
-- **Wildcard Matching** - Pattern matching (spam*, *badword)
-- **Regex Patterns** - Advanced regex (e.g., `\d{3}-\d{4}` for phone numbers)
+- **Caps Lock** - Block messages that are mostly ALL CAPS
 
 ## Commands
 
@@ -34,10 +28,6 @@ Automatic content moderation to keep your server safe.
 ```bash
 /automod badwords toggle enabled:true
 /automod badwords words:badword1,badword2,badword3
-
-# Pro features
-/automod badwords mode:wildcard words:spam*,f*ll*w*rs
-/automod badwords mode:regex words:\d{3}-\d{4}
 ```
 
 ### Links
@@ -64,13 +54,13 @@ Automatic content moderation to keep your server safe.
 /automod invite toggle enabled:true
 ```
 
-### Caps Lock (Pro)
+### Caps Lock
 
 ```bash
 /automod caps-lock toggle enabled:true threshold:70 min-length:10
 ```
 
-### Domain Allowlist (Pro)
+### Domain Allowlist
 
 ```bash
 /automod domains add discord.com,youtube.com,github.com
@@ -104,13 +94,13 @@ Each filter supports these options:
 | `threshold`  | Percentage of caps required (50-100) | 70      |
 | `min-length` | Minimum message length to check      | 10      |
 
-## Pro Engine
+## Domain Allowlist
 
-Upgrade to Pro Engine for advanced auto-mod features:
+Configure allowed domains for the Links filter:
 
-- Domain allowlisting
-- Caps Lock filter
-- Wildcard patterns in bad words
-- Regex pattern matching
-
-See [Core Energy Guide](../../../docs/CORE_ENERGY.md) for pricing and activation.
+```bash
+/automod domains add discord.com,youtube.com,github.com
+/automod domains remove youtube.com
+/automod domains list
+/automod domains clear
+```

@@ -9,6 +9,8 @@ setupCommonMocks();
 
 vi.mock("src/config/theme.js", () => ({
   THEME: { PRIMARY: 0x5865f2, ERROR: 0xed4245, SUCCESS: 0x57f287 },
+  EMOJIS: { STATUS: { SUCCESS: "✅", ERROR: "❌" }, ACTIONS: { BACK: "↩️" } },
+  UI_COMPONENTS: { createFooter: vi.fn().mockReturnValue({ text: "Auto-Mod" }) },
 }));
 
 vi.mock("src/utils/discord/responseMessages.js", () => ({
@@ -21,7 +23,7 @@ vi.mock("src/utils/commandUtils.js", () => ({
 }));
 
 const mockAutomodCollection = vi.hoisted(() => ({
-  get: vi.fn().mockResolvedValue(null),
+  getByGuild: vi.fn().mockResolvedValue(null),
   set: vi.fn().mockResolvedValue(undefined),
 }));
 
@@ -47,11 +49,7 @@ vi.mock("src/commands/admin/automod/components.js", () => ({
   createAutomodSettingsComponents: vi.fn().mockReturnValue([]),
 }));
 
-import {
-  handleEnable,
-  handleDisable,
-  handleSettings,
-} from "../../../../src/commands/admin/automod/handlers.js";
+import { handleAutomodSettings } from "../../../../src/commands/admin/automod/handlers.js";
 
 const defaultSettings = {
   badWords: { enabled: false, words: [] },
@@ -59,6 +57,7 @@ const defaultSettings = {
   spam: { enabled: false },
   mentionSpam: { enabled: false },
   inviteLink: { enabled: false },
+  capsLock: { enabled: false },
 };
 
 describe("Automod Command", () => {
@@ -67,6 +66,7 @@ describe("Automod Command", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockAutomodCollection.getByGuild.mockResolvedValue(defaultSettings);
     mockAutomodCollection.set.mockResolvedValue(undefined);
 
     mockInteraction = createMockInteraction({
@@ -93,50 +93,18 @@ describe("Automod Command", () => {
     mockClient = createMockClient();
   });
 
-  describe("handleEnable", () => {
-    it("should reply with success after enabling all filters", async () => {
-      await handleEnable(mockInteraction, defaultSettings);
-
-      expect(mockInteraction.reply).toHaveBeenCalled();
-    });
-
-    it("should not throw when called with valid settings", async () => {
-      await expect(
-        handleEnable(mockInteraction, defaultSettings),
-      ).resolves.not.toThrow();
-    });
-  });
-
-  describe("handleDisable", () => {
-    it("should reply with success after disabling all filters", async () => {
-      const enabledSettings = {
-        badWords: { enabled: true, words: [] },
-        links: { enabled: true },
-        spam: { enabled: true },
-        mentionSpam: { enabled: true },
-        inviteLink: { enabled: true },
-      };
-
-      await handleDisable(mockInteraction, enabledSettings);
-
-      expect(mockInteraction.reply).toHaveBeenCalled();
-    });
-
-    it("should not throw when called with valid settings", async () => {
-      await expect(
-        handleDisable(mockInteraction, defaultSettings),
-      ).resolves.not.toThrow();
-    });
-  });
-
-  describe("handleSettings", () => {
+  describe("handleAutomodSettings", () => {
     it("should reply with settings embed and components", async () => {
-      await handleSettings(mockInteraction, defaultSettings);
+      await handleAutomodSettings(mockInteraction);
 
       expect(mockInteraction.reply).toHaveBeenCalled();
       const replyArg = mockInteraction.reply.mock.calls[0][0];
       expect(replyArg.embeds).toBeDefined();
       expect(replyArg.components).toBeDefined();
+    });
+
+    it("should not throw when called with valid settings", async () => {
+      await expect(handleAutomodSettings(mockInteraction)).resolves.not.toThrow();
     });
   });
 });

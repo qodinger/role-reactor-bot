@@ -74,6 +74,9 @@ export class AutomodRepository extends BaseRepository {
         timeoutDuration: 5,
         ignoreAdmins: false,
       },
+      logChannel: null,
+      ignoredRoles: [],
+      ignoredChannels: [],
       channels: {},
       analytics: {
         totalViolations: 0,

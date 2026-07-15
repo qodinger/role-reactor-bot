@@ -65,6 +65,11 @@ export async function handleAutomodConfigure(interaction) {
       new ActionRowBuilder().addComponents(
         createConfigButton("mentions", "Mentions"),
         createConfigButton("invites", "Invites"),
+        createConfigButton("capslock", "Caps Lock"),
+      ),
+      new ActionRowBuilder().addComponents(
+        createConfigButton("domains", "Domains"),
+        createConfigButton("stats", "Stats"),
       ),
     ],
     ephemeral: true,
@@ -102,6 +107,65 @@ export async function handleAutomodBack(interaction) {
 export async function handleAutomodConfigureButton(interaction) {
   const filter = interaction.customId.replace("automod_configure_", "");
 
+  const { getDatabaseManager } = await import(
+    "../../../utils/storage/databaseManager.js"
+  );
+  const {
+    createBadwordsModal,
+    createLinksModal,
+    createSpamModal,
+    createMentionsModal,
+    createCapslockModal,
+    createDomainsModal,
+    createLogChannelModal,
+    createIgnoredRolesModal,
+    createIgnoredChannelsModal,
+  } = await import("./modals.js");
+
+  const dbManager = await getDatabaseManager();
+  const settings = await dbManager.automod.getByGuild(interaction.guild.id);
+
+  let modal;
+
+  switch (filter) {
+    case "badwords":
+      modal = createBadwordsModal(settings.badWords);
+      break;
+    case "links":
+      modal = createLinksModal(settings.links);
+      break;
+    case "spam":
+      modal = createSpamModal(settings.spam);
+      break;
+    case "mentions":
+      modal = createMentionsModal(settings.mentionSpam);
+      break;
+    case "capslock":
+      modal = createCapslockModal(settings.capsLock);
+      break;
+    case "domains":
+      modal = createDomainsModal(settings.links);
+      break;
+    case "logchannel":
+      modal = createLogChannelModal(settings);
+      break;
+    case "ignoredroles":
+      modal = createIgnoredRolesModal(settings);
+      break;
+    case "ignoredchannels":
+      modal = createIgnoredChannelsModal(settings);
+      break;
+    default:
+      return;
+  }
+
+  await interaction.showModal(modal);
+}
+
+// Keep the old function for backward compatibility
+export async function handleAutomodConfigureButtonOld(interaction) {
+  const filter = interaction.customId.replace("automod_configure_", "");
+
   const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } =
     await import("discord.js");
   const { getDatabaseManager } = await import(
@@ -121,21 +185,14 @@ export async function handleAutomodConfigureButton(interaction) {
           customId: "badwords_words",
           value: settings.badWords?.words?.join(", ") || "",
           placeholder: "badword1,badword2,badword3",
-          style: TextInputStyle.Paragraph,
+          style: "Paragraph",
         },
         {
-          label: "Action",
-          customId: "badwords_action",
-          value: settings.badWords?.action || "delete",
-          placeholder: "delete, warn, timeout",
-          style: TextInputStyle.Short,
-        },
-        {
-          label: "Timeout (minutes)",
+          label: "Timeout minutes (if using timeout action)",
           customId: "badwords_timeout",
           value: String(settings.badWords?.timeoutDuration || 5),
           placeholder: "5",
-          style: TextInputStyle.Short,
+          style: "Short",
         },
       ],
     },
@@ -144,18 +201,11 @@ export async function handleAutomodConfigureButton(interaction) {
       settings: settings.links,
       fields: [
         {
-          label: "Allowed Domains (Pro)",
+          label: "Allowed Domains (comma-separated)",
           customId: "links_domains",
           value: settings.links?.allowedDomains?.join(", ") || "",
           placeholder: "discord.com,youtube.com",
-          style: TextInputStyle.Paragraph,
-        },
-        {
-          label: "Action",
-          customId: "links_action",
-          value: settings.links?.action || "delete",
-          placeholder: "delete, warn, timeout",
-          style: TextInputStyle.Short,
+          style: "Paragraph",
         },
       ],
     },
@@ -171,14 +221,7 @@ export async function handleAutomodConfigureButton(interaction) {
           style: TextInputStyle.Short,
         },
         {
-          label: "Action",
-          customId: "spam_action",
-          value: settings.spam?.action || "timeout",
-          placeholder: "delete, warn, timeout",
-          style: TextInputStyle.Short,
-        },
-        {
-          label: "Timeout (minutes)",
+          label: "Timeout minutes (if using timeout action)",
           customId: "spam_timeout",
           value: String(settings.spam?.timeoutDuration || 5),
           placeholder: "5",
@@ -198,14 +241,7 @@ export async function handleAutomodConfigureButton(interaction) {
           style: TextInputStyle.Short,
         },
         {
-          label: "Action",
-          customId: "mentions_action",
-          value: settings.mentionSpam?.action || "delete",
-          placeholder: "delete, warn, timeout",
-          style: TextInputStyle.Short,
-        },
-        {
-          label: "Timeout (minutes)",
+          label: "Timeout minutes (if using timeout action)",
           customId: "mentions_timeout",
           value: String(settings.mentionSpam?.timeoutDuration || 5),
           placeholder: "5",
@@ -216,20 +252,96 @@ export async function handleAutomodConfigureButton(interaction) {
     invites: {
       title: "Configure Invite Links",
       settings: settings.inviteLink,
+      fields: [],
+    },
+    capslock: {
+      title: "Configure Caps Lock",
+      settings: settings.capsLock,
       fields: [
         {
-          label: "Action",
-          customId: "invites_action",
-          value: settings.inviteLink?.action || "delete",
-          placeholder: "delete, warn, timeout",
+          label: "Threshold (50-100%)",
+          customId: "capslock_threshold",
+          value: String(settings.capsLock?.threshold || 70),
+          placeholder: "70",
           style: TextInputStyle.Short,
         },
         {
-          label: "Timeout (minutes)",
-          customId: "invites_timeout",
-          value: String(settings.inviteLink?.timeoutDuration || 5),
+          label: "Min Length",
+          customId: "capslock_minlength",
+          value: String(settings.capsLock?.minLength || 10),
+          placeholder: "10",
+          style: TextInputStyle.Short,
+        },
+        {
+          label: "Action (delete / timeout / kick / ban)",
+          customId: "capslock_action",
+          value: settings.capsLock?.action || "delete",
+          placeholder: "delete",
+          style: TextInputStyle.Short,
+        },
+        {
+          label: "Timeout minutes (if action = timeout)",
+          customId: "capslock_timeout",
+          value: String(settings.capsLock?.timeoutDuration || 5),
           placeholder: "5",
           style: TextInputStyle.Short,
+        },
+      ],
+    },
+    domains: {
+      title: "Configure Allowed Domains",
+      settings: settings.links,
+      fields: [
+        {
+          label: "Domains (comma-separated)",
+          customId: "domains_list",
+          value: settings.links?.allowedDomains?.join(", ") || "",
+          placeholder: "discord.com, youtube.com",
+          style: TextInputStyle.Paragraph,
+        },
+      ],
+    },
+    stats: {
+      title: "Auto-Mod Statistics",
+      settings: {},
+      fields: [],
+    },
+    logchannel: {
+      title: "Configure Log Channel",
+      settings: {},
+      fields: [
+        {
+          label: "Channel ID",
+          customId: "log_channel_id",
+          value: settings.logChannel || "",
+          placeholder: "1234567890",
+          style: TextInputStyle.Short,
+        },
+      ],
+    },
+    ignoredroles: {
+      title: "Configure Ignored Roles",
+      settings: {},
+      fields: [
+        {
+          label: "Role IDs (comma-separated)",
+          customId: "ignored_roles",
+          value: settings.ignoredRoles?.join(", ") || "",
+          placeholder: "1234567890, 9876543210",
+          style: TextInputStyle.Paragraph,
+        },
+      ],
+    },
+    ignoredchannels: {
+      title: "Configure Ignored Channels",
+      settings: {},
+      fields: [
+        {
+          label: "Channel IDs (comma-separated)",
+          customId: "ignored_channels",
+          value: settings.ignoredChannels?.join(", ") || "",
+          placeholder: "1234567890, 9876543210",
+          style: TextInputStyle.Paragraph,
         },
       ],
     },
@@ -276,6 +388,7 @@ export async function handleAutomodToggleAll(interaction) {
       spam: { ...settings.spam, enabled: true },
       mentionSpam: { ...settings.mentionSpam, enabled: true },
       inviteLink: { ...settings.inviteLink, enabled: true },
+      capsLock: { ...settings.capsLock, enabled: true },
     };
 
     await dbManager.automod.set(interaction.guild.id, newSettings);
@@ -315,6 +428,7 @@ export async function handleAutomodToggleAllOff(interaction) {
       spam: { ...settings.spam, enabled: false },
       mentionSpam: { ...settings.mentionSpam, enabled: false },
       inviteLink: { ...settings.inviteLink, enabled: false },
+      capsLock: { ...settings.capsLock, enabled: false },
     };
 
     await dbManager.automod.set(interaction.guild.id, newSettings);
@@ -333,6 +447,81 @@ export async function handleAutomodToggleAllOff(interaction) {
   } catch (error) {
     logger.error("Error handling automod disable all", error);
     await handleAutomodError(interaction, "disabling all filters");
+  }
+}
+
+export async function handleAutomodQuickSetup(interaction) {
+  const logger = getLogger();
+
+  try {
+    const { getDatabaseManager } = await import(
+      "../../../utils/storage/databaseManager.js"
+    );
+
+    const dbManager = await getDatabaseManager();
+    const settings = await dbManager.automod.getByGuild(interaction.guild.id);
+
+    const newSettings = {
+      ...settings,
+      badWords: {
+        ...settings.badWords,
+        enabled: true,
+        words: settings.badWords?.words || [],
+        action: settings.badWords?.action || "delete",
+        timeoutDuration: settings.badWords?.timeoutDuration || 5,
+      },
+      links: {
+        ...settings.links,
+        enabled: true,
+        action: settings.links?.action || "delete",
+        timeoutDuration: settings.links?.timeoutDuration || 5,
+      },
+      spam: {
+        ...settings.spam,
+        enabled: true,
+        repeatedMessages: settings.spam?.repeatedMessages || 3,
+        action: settings.spam?.action || "timeout",
+        timeoutDuration: settings.spam?.timeoutDuration || 5,
+      },
+      mentionSpam: {
+        ...settings.mentionSpam,
+        enabled: true,
+        mentionCount: settings.mentionSpam?.mentionCount || 5,
+        action: settings.mentionSpam?.action || "delete",
+        timeoutDuration: settings.mentionSpam?.timeoutDuration || 5,
+      },
+      inviteLink: {
+        ...settings.inviteLink,
+        enabled: true,
+        action: settings.inviteLink?.action || "delete",
+        timeoutDuration: settings.inviteLink?.timeoutDuration || 5,
+      },
+      capsLock: {
+        ...settings.capsLock,
+        enabled: true,
+        threshold: settings.capsLock?.threshold || 70,
+        minLength: settings.capsLock?.minLength || 10,
+        action: settings.capsLock?.action || "delete",
+        timeoutDuration: settings.capsLock?.timeoutDuration || 5,
+      },
+    };
+
+    await dbManager.automod.set(interaction.guild.id, newSettings);
+
+    const premiumManager = getPremiumManager();
+    const isPro = await premiumManager.isFeatureActive(
+      interaction.guild.id,
+      "pro_engine",
+    );
+
+    await updateAutomodMessage(interaction, newSettings, isPro);
+
+    logger.info(
+      `Auto-mod quick setup enabled for guild ${interaction.guild.name} by user ${interaction.user.tag}`,
+    );
+  } catch (error) {
+    logger.error("Error handling automod quick setup", error);
+    await handleAutomodError(interaction, "running quick setup");
   }
 }
 
@@ -581,6 +770,55 @@ async function parseNumber(value, defaultValue = 0) {
   return isNaN(num) ? defaultValue : num;
 }
 
+export async function showActionSelectMenu(interaction, filterName, currentAction) {
+  const {
+    ActionRowBuilder,
+    StringSelectMenuBuilder,
+    StringSelectMenuOptionBuilder,
+    EmbedBuilder,
+  } = await import("discord.js");
+  const { THEME } = await import("../../../config/theme.js");
+
+  const embed = new EmbedBuilder()
+    .setTitle(`Select Action for ${filterName}`)
+    .setDescription("Choose what action to take when this filter is triggered")
+    .setColor(THEME.PRIMARY);
+
+  const selectMenu = new StringSelectMenuBuilder()
+    .setCustomId(`automod_action_select_${filterName}`)
+    .setPlaceholder("Select an action...")
+    .addOptions(
+      new StringSelectMenuOptionBuilder()
+        .setLabel("Delete Message")
+        .setDescription("Remove the offending message")
+        .setValue("delete")
+        .setDefault(currentAction === "delete"),
+      new StringSelectMenuOptionBuilder()
+        .setLabel("Timeout User")
+        .setDescription("Temporarily mute the user")
+        .setValue("timeout")
+        .setDefault(currentAction === "timeout"),
+      new StringSelectMenuOptionBuilder()
+        .setLabel("Kick User")
+        .setDescription("Remove user from server")
+        .setValue("kick")
+        .setDefault(currentAction === "kick"),
+      new StringSelectMenuOptionBuilder()
+        .setLabel("Ban User")
+        .setDescription("Permanently ban the user")
+        .setValue("ban")
+        .setDefault(currentAction === "ban"),
+    );
+
+  const row = new ActionRowBuilder().addComponents(selectMenu);
+
+  await interaction.followUp({
+    embeds: [embed],
+    components: [row],
+    ephemeral: true,
+  });
+}
+
 export async function handleAutomodBadwordsModal(interaction) {
   const logger = getLogger();
 
@@ -598,8 +836,6 @@ export async function handleAutomodBadwordsModal(interaction) {
       .map(w => w.trim())
       .filter(w => w);
 
-    const action =
-      interaction.fields.getTextInputValue("badwords_action") || "delete";
     const timeoutDuration = await parseNumber(
       interaction.fields.getTextInputValue("badwords_timeout"),
       5,
@@ -610,7 +846,6 @@ export async function handleAutomodBadwordsModal(interaction) {
       badWords: {
         ...settings.badWords,
         words,
-        action,
         timeoutDuration,
       },
     };
@@ -635,6 +870,12 @@ export async function handleAutomodBadwordsModal(interaction) {
       embeds: [embed],
       components,
     });
+
+    await showActionSelectMenu(
+      interaction,
+      "Bad Words",
+      settings.badWords?.action || "delete",
+    );
 
     logger.info(
       `Bad words filter configured for guild ${interaction.guild.name} by user ${interaction.user.tag}`,
@@ -661,8 +902,6 @@ export async function handleAutomodLinksModal(interaction) {
       .split(",")
       .map(d => d.trim())
       .filter(d => d);
-    const action =
-      interaction.fields.getTextInputValue("links_action") || "delete";
 
     const newSettings = {
       ...settings,
@@ -670,7 +909,6 @@ export async function handleAutomodLinksModal(interaction) {
         ...settings.links,
         blockUrls: true,
         allowedDomains,
-        action,
       },
     };
 
@@ -694,6 +932,12 @@ export async function handleAutomodLinksModal(interaction) {
       embeds: [embed],
       components,
     });
+
+    await showActionSelectMenu(
+      interaction,
+      "Links",
+      settings.links?.action || "delete",
+    );
 
     logger.info(
       `Links filter configured for guild ${interaction.guild.name} by user ${interaction.user.tag}`,
@@ -719,8 +963,6 @@ export async function handleAutomodSpamModal(interaction) {
       interaction.fields.getTextInputValue("spam_repeated"),
       3,
     );
-    const action =
-      interaction.fields.getTextInputValue("spam_action") || "timeout";
     const timeoutDuration = await parseNumber(
       interaction.fields.getTextInputValue("spam_timeout"),
       5,
@@ -731,7 +973,6 @@ export async function handleAutomodSpamModal(interaction) {
       spam: {
         ...settings.spam,
         repeatedMessages,
-        action,
         timeoutDuration,
       },
     };
@@ -756,6 +997,12 @@ export async function handleAutomodSpamModal(interaction) {
       embeds: [embed],
       components,
     });
+
+    await showActionSelectMenu(
+      interaction,
+      "Spam",
+      settings.spam?.action || "timeout",
+    );
 
     logger.info(
       `Spam filter configured for guild ${interaction.guild.name} by user ${interaction.user.tag}`,
@@ -781,8 +1028,6 @@ export async function handleAutomodMentionsModal(interaction) {
       interaction.fields.getTextInputValue("mentions_count"),
       5,
     );
-    const action =
-      interaction.fields.getTextInputValue("mentions_action") || "delete";
     const timeoutDuration = await parseNumber(
       interaction.fields.getTextInputValue("mentions_timeout"),
       5,
@@ -793,7 +1038,6 @@ export async function handleAutomodMentionsModal(interaction) {
       mentionSpam: {
         ...settings.mentionSpam,
         mentionCount,
-        action,
         timeoutDuration,
       },
     };
@@ -818,6 +1062,12 @@ export async function handleAutomodMentionsModal(interaction) {
       embeds: [embed],
       components,
     });
+
+    await showActionSelectMenu(
+      interaction,
+      "Mention Spam",
+      settings.mentionSpam?.action || "delete",
+    );
 
     logger.info(
       `Mention spam filter configured for guild ${interaction.guild.name} by user ${interaction.user.tag}`,
@@ -839,18 +1089,70 @@ export async function handleAutomodInvitesModal(interaction) {
     const dbManager = await getDatabaseManager();
     const settings = await dbManager.automod.getByGuild(interaction.guild.id);
 
-    const action =
-      interaction.fields.getTextInputValue("invites_action") || "delete";
+    const premiumManager = getPremiumManager();
+    const isPro = await premiumManager.isFeatureActive(
+      interaction.guild.id,
+      "pro_engine",
+    );
+
+    const embed = createAutomodSettingsEmbed(
+      settings,
+      isPro,
+      interaction.guild.name,
+      interaction.client,
+    );
+    const components = createAutomodSettingsComponents(settings);
+
+    await interaction.update({
+      embeds: [embed],
+      components,
+    });
+
+    await showActionSelectMenu(
+      interaction,
+      "Invite Links",
+      settings.inviteLink?.action || "delete",
+    );
+
+    logger.info(
+      `Invite link filter configured for guild ${interaction.guild.name} by user ${interaction.user.tag}`,
+    );
+  } catch (error) {
+    logger.error("Error handling automod invites modal", error);
+    await handleAutomodError(interaction, "saving invite link settings");
+  }
+}
+
+export async function handleAutomodCapslockModal(interaction) {
+  const logger = getLogger();
+
+  try {
+    const { getDatabaseManager } = await import(
+      "../../../utils/storage/databaseManager.js"
+    );
+
+    const dbManager = await getDatabaseManager();
+    const settings = await dbManager.automod.getByGuild(interaction.guild.id);
+
+    const threshold = await parseNumber(
+      interaction.fields.getTextInputValue("capslock_threshold"),
+      70,
+    );
+    const minLength = await parseNumber(
+      interaction.fields.getTextInputValue("capslock_minlength"),
+      10,
+    );
     const timeoutDuration = await parseNumber(
-      interaction.fields.getTextInputValue("invites_timeout"),
+      interaction.fields.getTextInputValue("capslock_timeout"),
       5,
     );
 
     const newSettings = {
       ...settings,
-      inviteLink: {
-        ...settings.inviteLink,
-        action,
+      capsLock: {
+        ...settings.capsLock,
+        threshold,
+        minLength,
         timeoutDuration,
       },
     };
@@ -876,11 +1178,354 @@ export async function handleAutomodInvitesModal(interaction) {
       components,
     });
 
+    await showActionSelectMenu(
+      interaction,
+      "Caps Lock",
+      settings.capsLock?.action || "delete",
+    );
+
     logger.info(
-      `Invite link filter configured for guild ${interaction.guild.name} by user ${interaction.user.tag}`,
+      `Caps lock filter configured for guild ${interaction.guild.name} by user ${interaction.user.tag}`,
     );
   } catch (error) {
-    logger.error("Error handling automod invites modal", error);
-    await handleAutomodError(interaction, "saving invite link settings");
+    logger.error("Error handling automod capslock modal", error);
+    await handleAutomodError(interaction, "saving caps lock settings");
+  }
+}
+
+export async function handleAutomodDomainsModal(interaction) {
+  const logger = getLogger();
+
+  try {
+    const { getDatabaseManager } = await import(
+      "../../../utils/storage/databaseManager.js"
+    );
+
+    const dbManager = await getDatabaseManager();
+    const settings = await dbManager.automod.getByGuild(interaction.guild.id);
+
+    const domains = interaction.fields
+      .getTextInputValue("domains_list")
+      .split(",")
+      .map(d => d.trim().toLowerCase())
+      .filter(d => d);
+
+    const newSettings = {
+      ...settings,
+      links: {
+        ...settings.links,
+        allowedDomains: domains,
+      },
+    };
+
+    await dbManager.automod.set(interaction.guild.id, newSettings);
+
+    const premiumManager = getPremiumManager();
+    const isPro = await premiumManager.isFeatureActive(
+      interaction.guild.id,
+      "pro_engine",
+    );
+
+    const embed = createAutomodSettingsEmbed(
+      newSettings,
+      isPro,
+      interaction.guild.name,
+      interaction.client,
+    );
+    const components = createAutomodSettingsComponents(newSettings);
+
+    await interaction.update({
+      embeds: [embed],
+      components,
+    });
+
+    logger.info(
+      `Domains configured for guild ${interaction.guild.name} by user ${interaction.user.tag}`,
+    );
+  } catch (error) {
+    logger.error("Error handling automod domains modal", error);
+    await handleAutomodError(interaction, "saving domains settings");
+  }
+}
+
+export async function handleAutomodStatsModal(interaction) {
+  const logger = getLogger();
+
+  try {
+    const { getDatabaseManager } = await import(
+      "../../../utils/storage/databaseManager.js"
+    );
+
+    const dbManager = await getDatabaseManager();
+    const analytics = await dbManager.automod.getAnalytics(interaction.guild.id);
+
+    const { EmbedBuilder } = await import("discord.js");
+    const { THEME } = await import("../../../config/theme.js");
+
+    const embed = new EmbedBuilder()
+      .setTitle("Auto-Mod Statistics")
+      .addFields(
+        {
+          name: "Total Violations",
+          value: `${analytics.totalViolations || 0}`,
+          inline: true,
+        },
+        {
+          name: "Bad Words",
+          value: `${analytics.violationsByType?.bad_words || 0}`,
+          inline: true,
+        },
+        {
+          name: "Links",
+          value: `${analytics.violationsByType?.link || 0}`,
+          inline: true,
+        },
+        {
+          name: "Spam",
+          value: `${analytics.violationsByType?.spam || 0}`,
+          inline: true,
+        },
+        {
+          name: "Mention Spam",
+          value: `${analytics.violationsByType?.mention_spam || 0}`,
+          inline: true,
+        },
+        {
+          name: "Invite Links",
+          value: `${analytics.violationsByType?.invite_link || 0}`,
+          inline: true,
+        },
+      )
+      .setColor(THEME.color);
+
+    await interaction.reply({
+      embeds: [embed],
+      ephemeral: true,
+    });
+
+    logger.info(
+      `Stats viewed for guild ${interaction.guild.name} by user ${interaction.user.tag}`,
+    );
+  } catch (error) {
+    logger.error("Error handling automod stats modal", error);
+    await handleAutomodError(interaction, "viewing stats");
+  }
+}
+
+export async function handleAutomodLogChannelModal(interaction) {
+  const logger = getLogger();
+
+  try {
+    const { getDatabaseManager } = await import(
+      "../../../utils/storage/databaseManager.js"
+    );
+
+    const dbManager = await getDatabaseManager();
+    const settings = await dbManager.automod.getByGuild(interaction.guild.id);
+
+    const channelId = interaction.fields
+      .getTextInputValue("log_channel_id")
+      .trim();
+
+    const newSettings = {
+      ...settings,
+      logChannel: channelId || null,
+    };
+
+    await dbManager.automod.set(interaction.guild.id, newSettings);
+
+    const premiumManager = getPremiumManager();
+    const isPro = await premiumManager.isFeatureActive(
+      interaction.guild.id,
+      "pro_engine",
+    );
+
+    const embed = createAutomodSettingsEmbed(
+      newSettings,
+      isPro,
+      interaction.guild.name,
+      interaction.client,
+    );
+    const components = createAutomodSettingsComponents(newSettings);
+
+    await interaction.update({
+      embeds: [embed],
+      components,
+    });
+
+    logger.info(
+      `Log channel configured for guild ${interaction.guild.name} by user ${interaction.user.tag}`,
+    );
+  } catch (error) {
+    logger.error("Error handling automod log channel modal", error);
+    await handleAutomodError(interaction, "saving log channel settings");
+  }
+}
+
+export async function handleAutomodIgnoredRolesModal(interaction) {
+  const logger = getLogger();
+
+  try {
+    const { getDatabaseManager } = await import(
+      "../../../utils/storage/databaseManager.js"
+    );
+
+    const dbManager = await getDatabaseManager();
+    const settings = await dbManager.automod.getByGuild(interaction.guild.id);
+
+    const roleIds = interaction.fields
+      .getTextInputValue("ignored_roles")
+      .split(",")
+      .map(id => id.trim())
+      .filter(id => id);
+
+    const newSettings = {
+      ...settings,
+      ignoredRoles: roleIds,
+    };
+
+    await dbManager.automod.set(interaction.guild.id, newSettings);
+
+    const premiumManager = getPremiumManager();
+    const isPro = await premiumManager.isFeatureActive(
+      interaction.guild.id,
+      "pro_engine",
+    );
+
+    const embed = createAutomodSettingsEmbed(
+      newSettings,
+      isPro,
+      interaction.guild.name,
+      interaction.client,
+    );
+    const components = createAutomodSettingsComponents(newSettings);
+
+    await interaction.update({
+      embeds: [embed],
+      components,
+    });
+
+    logger.info(
+      `Ignored roles configured for guild ${interaction.guild.name} by user ${interaction.user.tag}`,
+    );
+  } catch (error) {
+    logger.error("Error handling automod ignored roles modal", error);
+    await handleAutomodError(interaction, "saving ignored roles settings");
+  }
+}
+
+export async function handleAutomodIgnoredChannelsModal(interaction) {
+  const logger = getLogger();
+
+  try {
+    const { getDatabaseManager } = await import(
+      "../../../utils/storage/databaseManager.js"
+    );
+
+    const dbManager = await getDatabaseManager();
+    const settings = await dbManager.automod.getByGuild(interaction.guild.id);
+
+    const channelIds = interaction.fields
+      .getTextInputValue("ignored_channels")
+      .split(",")
+      .map(id => id.trim())
+      .filter(id => id);
+
+    const newSettings = {
+      ...settings,
+      ignoredChannels: channelIds,
+    };
+
+    await dbManager.automod.set(interaction.guild.id, newSettings);
+
+    const premiumManager = getPremiumManager();
+    const isPro = await premiumManager.isFeatureActive(
+      interaction.guild.id,
+      "pro_engine",
+    );
+
+    const embed = createAutomodSettingsEmbed(
+      newSettings,
+      isPro,
+      interaction.guild.name,
+      interaction.client,
+    );
+    const components = createAutomodSettingsComponents(newSettings);
+
+    await interaction.update({
+      embeds: [embed],
+      components,
+    });
+
+    logger.info(
+      `Ignored channels configured for guild ${interaction.guild.name} by user ${interaction.user.tag}`,
+    );
+  } catch (error) {
+    logger.error("Error handling automod ignored channels modal", error);
+    await handleAutomodError(interaction, "saving ignored channels settings");
+  }
+}
+
+export async function handleAutomodActionSelect(interaction) {
+  const logger = getLogger();
+
+  try {
+    const { getDatabaseManager } = await import(
+      "../../../utils/storage/databaseManager.js"
+    );
+
+    const dbManager = await getDatabaseManager();
+    const settings = await dbManager.automod.getByGuild(interaction.guild.id);
+
+    const filterName = interaction.customId.replace("automod_action_select_", "");
+    const selectedAction = interaction.values[0];
+
+    const filterMap = {
+      "Bad Words": "badWords",
+      Links: "links",
+      Spam: "spam",
+      "Mention Spam": "mentionSpam",
+      "Invite Links": "inviteLink",
+      "Caps Lock": "capsLock",
+    };
+
+    const filterKey = filterMap[filterName];
+    if (!filterKey) return;
+
+    const newSettings = {
+      ...settings,
+      [filterKey]: {
+        ...settings[filterKey],
+        action: selectedAction,
+      },
+    };
+
+    await dbManager.automod.set(interaction.guild.id, newSettings);
+
+    const premiumManager = getPremiumManager();
+    const isPro = await premiumManager.isFeatureActive(
+      interaction.guild.id,
+      "pro_engine",
+    );
+
+    const embed = createAutomodSettingsEmbed(
+      newSettings,
+      isPro,
+      interaction.guild.name,
+      interaction.client,
+    );
+    const components = createAutomodSettingsComponents(newSettings);
+
+    await interaction.update({
+      embeds: [embed],
+      components,
+    });
+
+    logger.info(
+      `Action set to ${selectedAction} for ${filterName} in guild ${interaction.guild.name} by user ${interaction.user.tag}`,
+    );
+  } catch (error) {
+    logger.error("Error handling automod action select", error);
+    await handleAutomodError(interaction, "selecting action");
   }
 }

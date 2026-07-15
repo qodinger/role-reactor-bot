@@ -1,9 +1,34 @@
-import { SlashCommandBuilder, PermissionFlagsBits } from "discord.js";
+import {
+  SlashCommandBuilder,
+  PermissionFlagsBits,
+  MessageFlags,
+} from "discord.js";
 import { hasAdminPermissions } from "../../../utils/discord/permissions.js";
 import { getLogger } from "../../../utils/logger.js";
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";
-import { handleAutomodCommand } from "./handlers.js";
-import { CORE_STATUS } from "../../../features/premium/config.js";
+import {
+  handleAutomodSettings,
+  handleEnable,
+  handleDisable,
+  handleBadwordsToggle,
+  handleBadwordsWords,
+  handleLinksToggle,
+  handleSpamToggle,
+  handleMentionSpamToggle,
+  handleInviteToggle,
+  handleCapsLockToggle,
+  handleDomainsAdd,
+  handleDomainsRemove,
+  handleDomainsList,
+  handleDomainsClear,
+  handleLogChannel,
+  handleIgnoredRoles,
+  handleIgnoredChannels,
+  handleStatsShow,
+} from "./handlers.js";
+
+// Hide from help system until ready for release
+export const disabled = false;
 
 // ============================================================================
 // COMMAND METADATA
@@ -31,12 +56,16 @@ export const metadata = {
         "```/automod enable```",
         "```/automod disable```",
         "```/automod badwords toggle enabled:true```",
-        "```/automod badwords words word1,word2,word3```",
-        "```/automod badwords mode:wildcard words:spam*,f*ll*w*rs``` (Pro)",
-        "```/automod badwords mode:regex words:\\d{3}-\\d{4}``` (Pro)",
+        "```/automod badwords words word1,word2```",
         "```/automod links toggle enabled:true```",
         "```/automod spam toggle enabled:true```",
-        "```/automod domains add discord.com,youtube.com```",
+        "```/automod mention-spam toggle enabled:true```",
+        "```/automod invite toggle enabled:true```",
+        "```/automod caps-lock toggle enabled:true```",
+        "```/automod domains add youtube.com,discord.com```",
+        "```/automod log-channel #mod-logs```",
+        "```/automod ignored-roles @Role1,@Role2```",
+        "```/automod ignored-channels #general,#off-topic```",
       ].join("\n"),
       inline: false,
     },
@@ -50,32 +79,53 @@ export const metadata = {
         "**badwords words** - Set bad words list (comma separated)",
         "**links toggle** - Enable or disable link filter",
         "**spam toggle** - Enable or disable spam detection",
+        "**mention-spam toggle** - Enable or disable mention spam filter",
+        "**invite toggle** - Enable or disable invite link filter",
+        "**caps-lock toggle** - Enable or disable caps lock filter",
+        "**domains add** - Add allowed domains (comma separated)",
+        "**domains remove** - Remove allowed domains",
+        "**domains list** - Show allowed domains",
+        "**domains clear** - Clear all allowed domains",
+        "**log-channel** - Set channel for automod logs",
+        "**ignored-roles** - Set roles to ignore (comma separated)",
+        "**ignored-channels** - Set channels to ignore (comma separated)",
+        "**stats show** - Show violation statistics",
       ].join("\n"),
       inline: false,
     },
     {
-      name: `Subcommands (${CORE_STATUS.PRO.emoji} Pro Engine)`,
+      name: `Options`,
       value: [
-        "**domains add** - Allowlist domains",
-        "**caps-lock toggle** - Block CAPS messages",
-        "**badwords mode:wildcard** - Words with * (spam*, *bad)",
-        "**badwords mode:regex** - Regex patterns (\\d{3}-\\d{4})",
+        "**enabled** *(required for toggle)* - Enable or disable the filter",
+        "**action** *(optional)* - Action to take: delete, timeout, kick, ban",
+        "**timeout-duration** *(optional)* - Timeout duration in minutes (1-60)",
+        "**ignore-admins** *(optional)* - Don't affect admins/mods",
+        "**threshold** *(spam only)* - Repeated messages to trigger (3-10)",
+        "**rate-threshold** *(spam only)* - Messages per 5s to trigger (3-10)",
+        "**words** *(badwords)* - Bad words list (comma separated)",
+        "**domains** *(domains)* - Allowed domains (comma separated)",
+        "**channel** *(log-channel)* - Channel for automod logs",
+        "**roles** *(ignored-roles)* - Roles to ignore (comma separated)",
+        "**channels** *(ignored-channels)* - Channels to ignore (comma separated)",
       ].join("\n"),
       inline: false,
     },
     {
       name: `Permissions`,
-      value: "• **Manage Server** permission required",
+      value:
+        "• **Manage Server** permission required for all automod commands",
       inline: false,
     },
     {
-      name: `What You'll See`,
+      name: `Key Features`,
       value: [
-        "Auto-moderation helps keep your server safe by automatically:",
-        "• Filtering bad words in messages",
-        "• Blocking suspicious links",
-        "• Detecting spam (repeated messages)",
-        "• Allowlisting trusted domains (Pro)",
+        "**6 Free Filters** - Bad words, links, spam, mentions, invites, caps lock",
+        "**Multiple Actions** - Delete message, timeout, kick, or ban users",
+        "**Quick Setup** - Enable all filters with one click",
+        "**Domain Allowlist** - Allow specific domains while blocking others",
+        "**Ignore List** - Skip automod for specific roles and channels",
+        "**Log Channel** - Dedicated channel for automod logs",
+        "**Statistics** - Track violations by type and day",
       ].join("\n"),
       inline: false,
     },
@@ -90,6 +140,15 @@ export const data = new SlashCommandBuilder()
   .setName(metadata.name)
   .setDescription(metadata.description)
   .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+  .addSubcommand(sub =>
+    sub.setName("settings").setDescription("Open auto-moderation settings"),
+  )
+  .addSubcommand(sub =>
+    sub.setName("enable").setDescription("Enable all configured filters"),
+  )
+  .addSubcommand(sub =>
+    sub.setName("disable").setDescription("Disable all filters"),
+  )
   .addSubcommandGroup(group =>
     group
       .setName("badwords")
@@ -98,88 +157,45 @@ export const data = new SlashCommandBuilder()
         sub
           .setName("toggle")
           .setDescription("Enable or disable bad words filter")
-          .addBooleanOption(opt =>
-            opt
+          .addBooleanOption(option =>
+            option
               .setName("enabled")
               .setDescription("Enable filter?")
               .setRequired(true),
           )
-          .addStringOption(opt =>
-            opt
+          .addStringOption(option =>
+            option
               .setName("action")
               .setDescription("Action when bad word detected")
-              .setChoices(
-                { name: "Delete message only", value: "delete" },
-                { name: "Delete + Timeout", value: "timeout" },
-              )
-              .setRequired(false),
+              .addChoices(
+                { name: "Delete Message", value: "delete" },
+                { name: "Timeout User", value: "timeout" },
+                { name: "Kick User", value: "kick" },
+                { name: "Ban User", value: "ban" },
+              ),
           )
-          .addIntegerOption(opt =>
-            opt
+          .addIntegerOption(option =>
+            option
               .setName("timeout-duration")
               .setDescription("Timeout duration in minutes (1-60)")
               .setMinValue(1)
-              .setMaxValue(60)
-              .setRequired(false),
+              .setMaxValue(60),
           )
-          .addBooleanOption(opt =>
-            opt
+          .addBooleanOption(option =>
+            option
               .setName("ignore-admins")
-              .setDescription("Ignore admins/mods (don't timeout)")
-              .setRequired(false),
+              .setDescription("Ignore admins/mods (don't timeout)"),
           ),
       )
       .addSubcommand(sub =>
         sub
           .setName("words")
           .setDescription("Set bad words list (comma separated)")
-          .addStringOption(opt =>
-            opt
+          .addStringOption(option =>
+            option
               .setName("words")
               .setDescription("Words to filter")
               .setRequired(true),
-          ),
-      )
-      .addSubcommand(sub =>
-        sub
-          .setName("mode")
-          .setDescription("Advanced bad words settings (Pro)")
-          .addStringOption(opt =>
-            opt
-              .setName("mode")
-              .setDescription("Matching mode")
-              .setChoices(
-                { name: "Simple (exact words)", value: "simple" },
-                { name: "Wildcards (* matches any)", value: "wildcard" },
-                { name: "Regex (advanced patterns)", value: "regex" },
-              )
-              .setRequired(true),
-          )
-          .addStringOption(opt =>
-            opt
-              .setName("words")
-              .setDescription(
-                "Words/patterns separated by commas. Wildcard: spam*, Regex: \\d{3}-\\d{4}",
-              )
-              .setRequired(false),
-          )
-          .addStringOption(opt =>
-            opt
-              .setName("action")
-              .setDescription("Action when detected")
-              .setChoices(
-                { name: "Delete message only", value: "delete" },
-                { name: "Delete + Timeout", value: "timeout" },
-              )
-              .setRequired(false),
-          )
-          .addIntegerOption(opt =>
-            opt
-              .setName("timeout-duration")
-              .setDescription("Timeout duration in minutes (1-60)")
-              .setMinValue(1)
-              .setMaxValue(60)
-              .setRequired(false),
           ),
       ),
   )
@@ -191,35 +207,34 @@ export const data = new SlashCommandBuilder()
         sub
           .setName("toggle")
           .setDescription("Enable or disable link filter")
-          .addBooleanOption(opt =>
-            opt
+          .addBooleanOption(option =>
+            option
               .setName("enabled")
               .setDescription("Enable filter?")
               .setRequired(true),
           )
-          .addStringOption(opt =>
-            opt
+          .addStringOption(option =>
+            option
               .setName("action")
               .setDescription("Action when link detected")
-              .setChoices(
-                { name: "Delete message only", value: "delete" },
-                { name: "Delete + Timeout", value: "timeout" },
-              )
-              .setRequired(false),
+              .addChoices(
+                { name: "Delete Message", value: "delete" },
+                { name: "Timeout User", value: "timeout" },
+                { name: "Kick User", value: "kick" },
+                { name: "Ban User", value: "ban" },
+              ),
           )
-          .addIntegerOption(opt =>
-            opt
+          .addIntegerOption(option =>
+            option
               .setName("timeout-duration")
               .setDescription("Timeout duration in minutes (1-60)")
               .setMinValue(1)
-              .setMaxValue(60)
-              .setRequired(false),
+              .setMaxValue(60),
           )
-          .addBooleanOption(opt =>
-            opt
+          .addBooleanOption(option =>
+            option
               .setName("ignore-admins")
-              .setDescription("Ignore admins/mods (don't timeout)")
-              .setRequired(false),
+              .setDescription("Ignore admins/mods (don't timeout)"),
           ),
       ),
   )
@@ -231,134 +246,94 @@ export const data = new SlashCommandBuilder()
         sub
           .setName("toggle")
           .setDescription("Enable or disable spam detection")
-          .addBooleanOption(opt =>
-            opt
+          .addBooleanOption(option =>
+            option
               .setName("enabled")
               .setDescription("Enable detection?")
               .setRequired(true),
           )
-          .addIntegerOption(opt =>
-            opt
+          .addIntegerOption(option =>
+            option
               .setName("threshold")
               .setDescription("Repeated messages to trigger (3-10)")
-              .setMinValue(2)
-              .setMaxValue(10)
-              .setRequired(false),
+              .setMinValue(3)
+              .setMaxValue(10),
           )
-          .addIntegerOption(opt =>
-            opt
+          .addIntegerOption(option =>
+            option
               .setName("rate-threshold")
               .setDescription("Messages per 5s to trigger spam (3-10)")
               .setMinValue(3)
-              .setMaxValue(10)
-              .setRequired(false),
+              .setMaxValue(10),
           )
-          .addStringOption(opt =>
-            opt
+          .addStringOption(option =>
+            option
               .setName("action")
               .setDescription("Action when spam detected")
-              .setChoices(
-                { name: "Delete message only", value: "delete" },
-                { name: "Delete + Timeout", value: "timeout" },
-              )
-              .setRequired(false),
+              .addChoices(
+                { name: "Delete Message", value: "delete" },
+                { name: "Timeout User", value: "timeout" },
+                { name: "Kick User", value: "kick" },
+                { name: "Ban User", value: "ban" },
+              ),
           )
-          .addIntegerOption(opt =>
-            opt
+          .addIntegerOption(option =>
+            option
               .setName("timeout-duration")
               .setDescription("Timeout duration in minutes (1-60)")
               .setMinValue(1)
-              .setMaxValue(60)
-              .setRequired(false),
+              .setMaxValue(60),
           )
-          .addBooleanOption(opt =>
-            opt
+          .addBooleanOption(option =>
+            option
               .setName("ignore-admins")
-              .setDescription("Ignore admins/mods (don't timeout)")
-              .setRequired(false),
+              .setDescription("Ignore admins/mods (don't timeout)"),
           ),
-      ),
-  )
-  .addSubcommandGroup(group =>
-    group
-      .setName("domains")
-      .setDescription("Domain allowlist settings (Pro)")
-      .addSubcommand(sub =>
-        sub
-          .setName("add")
-          .setDescription("Add domains to allowlist (Pro)")
-          .addStringOption(opt =>
-            opt
-              .setName("domains")
-              .setDescription(
-                "Domains to allow, comma separated (e.g., discord.com, youtube.com)",
-              )
-              .setRequired(true),
-          ),
-      )
-      .addSubcommand(sub =>
-        sub
-          .setName("remove")
-          .setDescription("Remove domains from allowlist (Pro)")
-          .addStringOption(opt =>
-            opt
-              .setName("domains")
-              .setDescription("Domains to remove, comma separated")
-              .setRequired(true),
-          ),
-      )
-      .addSubcommand(sub =>
-        sub.setName("clear").setDescription("Clear all allowed domains (Pro)"),
-      )
-      .addSubcommand(sub =>
-        sub.setName("list").setDescription("Show allowed domains (Pro)"),
       ),
   )
   .addSubcommandGroup(group =>
     group
       .setName("mention-spam")
-      .setDescription("Mention spam filter settings")
+      .setDescription("Mention spam settings")
       .addSubcommand(sub =>
         sub
           .setName("toggle")
           .setDescription("Enable or disable mention spam filter")
-          .addBooleanOption(opt =>
-            opt
+          .addBooleanOption(option =>
+            option
               .setName("enabled")
               .setDescription("Enable filter?")
               .setRequired(true),
           )
-          .addIntegerOption(opt =>
-            opt
+          .addIntegerOption(option =>
+            option
               .setName("mention-count")
-              .setDescription("Number of mentions to trigger (3-10)")
+              .setDescription("Mentions to trigger (3-20)")
               .setMinValue(3)
-              .setMaxValue(10)
-              .setRequired(false),
+              .setMaxValue(20),
           )
-          .addStringOption(opt =>
-            opt
+          .addStringOption(option =>
+            option
               .setName("action")
-              .setDescription("Action when spam detected")
-              .setChoices(
-                { name: "Delete message only", value: "delete" },
-                { name: "Delete + Timeout", value: "timeout" },
-              )
-              .setRequired(false),
+              .setDescription("Action when mention spam detected")
+              .addChoices(
+                { name: "Delete Message", value: "delete" },
+                { name: "Timeout User", value: "timeout" },
+                { name: "Kick User", value: "kick" },
+                { name: "Ban User", value: "ban" },
+              ),
           )
-          .addIntegerOption(opt =>
-            opt
+          .addIntegerOption(option =>
+            option
               .setName("timeout-duration")
               .setDescription("Timeout duration in minutes (1-60)")
               .setMinValue(1)
-              .setMaxValue(60)
-              .setRequired(false),
+              .setMaxValue(60),
           )
-          .addBooleanOption(opt =>
-            opt
+          .addBooleanOption(option =>
+            option
               .setName("ignore-admins")
-              .setDescription("Ignore admins/mods (don't timeout)")
-              .setRequired(false),
+              .setDescription("Ignore admins/mods (don't timeout)"),
           ),
       ),
   )
@@ -370,163 +345,158 @@ export const data = new SlashCommandBuilder()
         sub
           .setName("toggle")
           .setDescription("Enable or disable invite link filter")
-          .addBooleanOption(opt =>
-            opt
+          .addBooleanOption(option =>
+            option
               .setName("enabled")
               .setDescription("Enable filter?")
               .setRequired(true),
           )
-          .addStringOption(opt =>
-            opt
+          .addStringOption(option =>
+            option
               .setName("action")
-              .setDescription("Action when invite detected")
-              .setChoices(
-                { name: "Delete message only", value: "delete" },
-                { name: "Delete + Timeout", value: "timeout" },
-              )
-              .setRequired(false),
+              .setDescription("Action when invite link detected")
+              .addChoices(
+                { name: "Delete Message", value: "delete" },
+                { name: "Timeout User", value: "timeout" },
+                { name: "Kick User", value: "kick" },
+                { name: "Ban User", value: "ban" },
+              ),
           )
-          .addIntegerOption(opt =>
-            opt
+          .addIntegerOption(option =>
+            option
               .setName("timeout-duration")
               .setDescription("Timeout duration in minutes (1-60)")
               .setMinValue(1)
-              .setMaxValue(60)
-              .setRequired(false),
+              .setMaxValue(60),
           )
-          .addBooleanOption(opt =>
-            opt
+          .addBooleanOption(option =>
+            option
               .setName("ignore-admins")
-              .setDescription("Ignore admins/mods (don't timeout)")
-              .setRequired(false),
+              .setDescription("Ignore admins/mods (don't timeout)"),
           ),
       ),
   )
   .addSubcommandGroup(group =>
     group
       .setName("caps-lock")
-      .setDescription("Caps lock filter (Pro)")
+      .setDescription("Caps lock filter settings")
       .addSubcommand(sub =>
         sub
           .setName("toggle")
-          .setDescription("Enable or disable caps lock filter (Pro)")
-          .addBooleanOption(opt =>
-            opt
+          .setDescription("Enable or disable caps lock filter")
+          .addBooleanOption(option =>
+            option
               .setName("enabled")
               .setDescription("Enable filter?")
               .setRequired(true),
           )
-          .addIntegerOption(opt =>
-            opt
+          .addIntegerOption(option =>
+            option
               .setName("threshold")
-              .setDescription("Percentage of caps required (50-100)")
+              .setDescription("Caps percentage to trigger (50-100)")
               .setMinValue(50)
-              .setMaxValue(100)
-              .setRequired(false),
+              .setMaxValue(100),
           )
-          .addIntegerOption(opt =>
-            opt
+          .addIntegerOption(option =>
+            option
               .setName("min-length")
               .setDescription("Minimum message length to check")
-              .setMinValue(5)
-              .setMaxValue(50)
-              .setRequired(false),
+              .setMinValue(1)
+              .setMaxValue(100),
           )
-          .addStringOption(opt =>
-            opt
+          .addStringOption(option =>
+            option
               .setName("action")
-              .setDescription("Action when detected")
-              .setChoices(
-                { name: "Delete message only", value: "delete" },
-                { name: "Delete + Timeout", value: "timeout" },
-              )
-              .setRequired(false),
+              .setDescription("Action when caps detected")
+              .addChoices(
+                { name: "Delete Message", value: "delete" },
+                { name: "Timeout User", value: "timeout" },
+                { name: "Kick User", value: "kick" },
+                { name: "Ban User", value: "ban" },
+              ),
           )
-          .addIntegerOption(opt =>
-            opt
+          .addIntegerOption(option =>
+            option
               .setName("timeout-duration")
               .setDescription("Timeout duration in minutes (1-60)")
               .setMinValue(1)
-              .setMaxValue(60)
-              .setRequired(false),
+              .setMaxValue(60),
           )
-          .addBooleanOption(opt =>
-            opt
+          .addBooleanOption(option =>
+            option
               .setName("ignore-admins")
-              .setDescription("Ignore admins/mods (don't timeout)")
-              .setRequired(false),
+              .setDescription("Ignore admins/mods (don't timeout)"),
           ),
       ),
   )
   .addSubcommandGroup(group =>
     group
-      .setName("channel")
-      .setDescription("Per-channel filtering (Pro)")
+      .setName("domains")
+      .setDescription("Domain allowlist settings")
       .addSubcommand(sub =>
         sub
           .setName("add")
-          .setDescription("Add filter to a channel (Pro)")
-          .addChannelOption(opt =>
-            opt
-              .setName("channel")
-              .setDescription("Channel to add filter to")
+          .setDescription("Add allowed domains (comma separated)")
+          .addStringOption(option =>
+            option
+              .setName("domains")
+              .setDescription("Domains to allow (e.g., youtube.com,discord.com)")
               .setRequired(true),
-          )
-          .addStringOption(opt =>
-            opt
-              .setName("filter")
-              .setDescription("Filter type to enable")
-              .setChoices(
-                { name: "All Filters", value: "all" },
-                { name: "Bad Words", value: "badWords" },
-                { name: "Links", value: "links" },
-                { name: "Spam", value: "spam" },
-                { name: "Mention Spam", value: "mentionSpam" },
-                { name: "Invite Links", value: "inviteLink" },
-                { name: "Caps Lock", value: "capsLock" },
-              )
-              .setRequired(false),
           ),
       )
       .addSubcommand(sub =>
         sub
           .setName("remove")
-          .setDescription("Remove filter from a channel")
-          .addChannelOption(opt =>
-            opt
-              .setName("channel")
-              .setDescription("Channel to remove filter from")
+          .setDescription("Remove allowed domains (comma separated)")
+          .addStringOption(option =>
+            option
+              .setName("domains")
+              .setDescription("Domains to remove")
               .setRequired(true),
           ),
       )
       .addSubcommand(sub =>
-        sub.setName("list").setDescription("List all channel filters"),
-      ),
-  )
-  .addSubcommandGroup(group =>
-    group
-      .setName("stats")
-      .setDescription("Auto-mod statistics (Pro)")
-      .addSubcommand(sub =>
-        sub.setName("show").setDescription("Show violation statistics"),
+        sub.setName("list").setDescription("Show allowed domains"),
       )
       .addSubcommand(sub =>
-        sub.setName("export").setDescription("Export moderation logs as CSV"),
-      )
-      .addSubcommand(sub =>
-        sub.setName("clear").setDescription("Clear all statistics and logs"),
+        sub.setName("clear").setDescription("Clear all allowed domains"),
       ),
   )
   .addSubcommand(sub =>
     sub
-      .setName("enable")
-      .setDescription("Enable all configured auto-mod filters"),
+      .setName("log-channel")
+      .setDescription("Set channel for automod logs")
+      .addChannelOption(option =>
+        option
+          .setName("channel")
+          .setDescription("Channel for automod logs")
+          .setRequired(true),
+      ),
   )
   .addSubcommand(sub =>
-    sub.setName("disable").setDescription("Disable all auto-mod filters"),
+    sub
+      .setName("ignored-roles")
+      .setDescription("Set roles to ignore (comma separated)")
+      .addStringOption(option =>
+        option
+          .setName("roles")
+          .setDescription("Role IDs to ignore (comma separated)")
+          .setRequired(true),
+      ),
   )
   .addSubcommand(sub =>
-    sub.setName("settings").setDescription("Interactive settings panel"),
+    sub
+      .setName("ignored-channels")
+      .setDescription("Set channels to ignore (comma separated)")
+      .addStringOption(option =>
+        option
+          .setName("channels")
+          .setDescription("Channel IDs to ignore (comma separated)")
+          .setRequired(true),
+      ),
+  )
+  .addSubcommand(sub =>
+    sub.setName("stats").setDescription("Show violation statistics"),
   );
 
 // ============================================================================
@@ -538,25 +508,129 @@ export async function execute(interaction, _client) {
 
   try {
     if (!hasAdminPermissions(interaction.member)) {
-      return interaction.reply(
-        errorEmbed({
-          title: "Permission Denied",
-          description:
-            "You need Manage Server permissions to configure the auto-moderation system.",
-          solution: "Contact a server administrator for assistance.",
-        }),
-      );
+      const response = errorEmbed({
+        title: "Permission Denied",
+        description:
+          "You need Manage Server permissions to configure the auto-moderation system.",
+        solution: "Contact a server administrator for assistance.",
+      });
+
+      if (interaction.deferred || interaction.replied) {
+        return interaction.editReply(response);
+      } else {
+        return interaction.reply(response);
+      }
     }
 
-    await handleAutomodCommand(interaction);
+    // Defer the interaction to prevent timeout
+    let deferred = false;
+    try {
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        deferred = true;
+      }
+    } catch (deferError) {
+      logger.warn("Failed to defer interaction, proceeding without deferral", {
+        interactionId: interaction.id,
+        error: deferError.message,
+      });
+    }
+
+    const subcommand = interaction.options.getSubcommand();
+    const subcommandGroup = interaction.options.getSubcommandGroup();
+
+    logger.debug(
+      `Automod command executed by ${interaction.user.username} (${interaction.user.id}): ${subcommandGroup || ""} ${subcommand}`,
+    );
+
+    if (subcommandGroup) {
+      switch (subcommandGroup) {
+        case "badwords":
+          if (subcommand === "toggle") {
+            await handleBadwordsToggle(interaction);
+          } else if (subcommand === "words") {
+            await handleBadwordsWords(interaction);
+          }
+          break;
+        case "links":
+          if (subcommand === "toggle") {
+            await handleLinksToggle(interaction);
+          }
+          break;
+        case "spam":
+          if (subcommand === "toggle") {
+            await handleSpamToggle(interaction);
+          }
+          break;
+        case "mention-spam":
+          if (subcommand === "toggle") {
+            await handleMentionSpamToggle(interaction);
+          }
+          break;
+        case "invite":
+          if (subcommand === "toggle") {
+            await handleInviteToggle(interaction);
+          }
+          break;
+        case "caps-lock":
+          if (subcommand === "toggle") {
+            await handleCapsLockToggle(interaction);
+          }
+          break;
+        case "domains":
+          switch (subcommand) {
+            case "add":
+              await handleDomainsAdd(interaction);
+              break;
+            case "remove":
+              await handleDomainsRemove(interaction);
+              break;
+            case "list":
+              await handleDomainsList(interaction);
+              break;
+            case "clear":
+              await handleDomainsClear(interaction);
+              break;
+          }
+          break;
+      }
+    } else {
+      switch (subcommand) {
+        case "settings":
+          await handleAutomodSettings(interaction);
+          break;
+        case "enable":
+          await handleEnable(interaction);
+          break;
+        case "disable":
+          await handleDisable(interaction);
+          break;
+        case "log-channel":
+          await handleLogChannel(interaction);
+          break;
+        case "ignored-roles":
+          await handleIgnoredRoles(interaction);
+          break;
+        case "ignored-channels":
+          await handleIgnoredChannels(interaction);
+          break;
+        case "stats":
+          await handleStatsShow(interaction);
+          break;
+      }
+    }
   } catch (error) {
     logger.error("Error in automod command:", error);
-    await interaction.reply(
-      errorEmbed({
-        title: "Error",
-        description: "Failed to process automod command.",
-        solution: "Please try again or contact support if the issue persists.",
-      }),
-    );
+    const response = errorEmbed({
+      title: "Error",
+      description: "Failed to process automod command.",
+      solution: "Please try again or contact support if the issue persists.",
+    });
+
+    if (interaction.deferred || interaction.replied) {
+      await interaction.editReply(response).catch(() => {});
+    } else {
+      await interaction.reply(response).catch(() => {});
+    }
   }
 }
