@@ -523,11 +523,9 @@ export async function execute(interaction, _client) {
     }
 
     // Defer the interaction to prevent timeout
-    let deferred = false;
     try {
       if (!interaction.replied && !interaction.deferred) {
         await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-        deferred = true;
       }
     } catch (deferError) {
       logger.warn("Failed to defer interaction, proceeding without deferral", {

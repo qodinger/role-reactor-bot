@@ -3,7 +3,7 @@ import { THEME, EMOJIS, UI_COMPONENTS } from "../../../config/theme.js";
 
 export function createAutomodSettingsEmbed(
   settings,
-  isPro = false,
+  _isPro = false,
   guildName = "this server",
   client = null,
 ) {

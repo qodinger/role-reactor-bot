@@ -4,7 +4,7 @@ import {
   TextInputStyle,
   ActionRowBuilder,
 } from "discord.js";
-import { THEME } from "../../../config/theme.js";
+
 
 /**
  * Create bad words configuration modal
