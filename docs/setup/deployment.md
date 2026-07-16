@@ -58,7 +58,7 @@ DISCORD_TOKEN=your_bot_token
 DISCORD_CLIENT_ID=your_client_id
 MONGODB_URI=your_mongodb_connection_string
 NODE_ENV=production
-CORS_ALLOWED_ORIGINS=https://api.rolereactor.app
+CORS_ALLOWED_ORIGINS=https://api.rolereactor.xyz
 ```
 
 > **Note:** Environment variables are loaded directly from the host environment or `.env` file. There is no `.env.production` file — secrets are never baked into the image.
@@ -74,7 +74,7 @@ Production uses Caddy as a reverse proxy. It handles SSL certificates automatica
 Edit `Caddyfile` at the project root to set your domain:
 
 ```
-api.rolereactor.app {
+api.rolereactor.xyz {
     reverse_proxy role-reactor-bot:3030
     ...
 }
@@ -85,7 +85,7 @@ api.rolereactor.app {
 Add an A record in your DNS provider pointing your domain to the VPS IP:
 
 ```
-api.rolereactor.app  →  <your VPS IP>
+api.rolereactor.xyz  →  <your VPS IP>
 ```
 
 ### Firewall
@@ -130,7 +130,7 @@ pnpm run docker:status
 
 ```bash
 # Via domain (external)
-curl https://api.rolereactor.app/health
+curl https://api.rolereactor.xyz/health
 
 # Via localhost (internal, bypasses Caddy)
 curl http://localhost:3030/health
@@ -179,7 +179,7 @@ docker exec role-reactor-bot printenv | grep MONGODB
 
 ```bash
 # Check DNS propagation
-dig api.rolereactor.app
+dig api.rolereactor.xyz
 
 # Check Caddy logs
 docker logs role-reactor-caddy

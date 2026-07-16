@@ -37,7 +37,7 @@ PUBLIC_URL=https://abc123.ngrok.io
 
 Restart the bot after updating.
 
-> **Production:** Set `PUBLIC_URL` to your Caddy domain (e.g., `https://api.rolereactor.app`). No ngrok needed.
+> **Production:** Set `PUBLIC_URL` to your Caddy domain (e.g., `https://api.rolereactor.xyz`). No ngrok needed.
 
 ---
 
@@ -220,8 +220,8 @@ db.storage.find({ key: "core_credit" })
 
 Before going live:
 
-- [ ] Set `PUBLIC_URL` to your Caddy domain (e.g., `https://api.rolereactor.app`)
-- [ ] Configure Plisio webhook URL to `https://api.rolereactor.app/webhook/crypto`
+- [ ] Set `PUBLIC_URL` to your Caddy domain (e.g., `https://api.rolereactor.xyz`)
+- [ ] Configure Plisio webhook URL to `https://api.rolereactor.xyz/webhook/crypto`
 - [ ] Set `NODE_ENV=production`
 - [ ] Set a secure `SESSION_SECRET`
 - [ ] Set `CORS_ALLOWED_ORIGINS` to your frontend domain

@@ -5,7 +5,7 @@
 Production runs on a VPS with two containers behind Caddy, which handles SSL and domain routing automatically:
 
 ```
-Internet → Caddy (SSL + api.rolereactor.app) → role-reactor-bot:3030
+Internet → Caddy (SSL + api.rolereactor.xyz) → role-reactor-bot:3030
 ```
 
 The bot container is not exposed directly to the host — Caddy proxies to it via an internal Docker network.
@@ -42,7 +42,7 @@ pnpm run docker:dev:down
 
 1. **DNS** — Add an A record pointing your domain to the VPS IP:
    ```
-   api.rolereactor.app  →  <your VPS IP>
+   api.rolereactor.xyz  →  <your VPS IP>
    ```
 
 2. **Firewall** — Open ports 80 and 443:
@@ -56,10 +56,10 @@ pnpm run docker:dev:down
    DISCORD_CLIENT_ID=your_client_id
    MONGODB_URI=your_mongodb_connection_string
    NODE_ENV=production
-   CORS_ALLOWED_ORIGINS=https://api.rolereactor.app
+   CORS_ALLOWED_ORIGINS=https://api.rolereactor.xyz
    ```
 
-4. **Caddyfile** — Update the domain in `Caddyfile` at the project root if different from `api.rolereactor.app`.
+4. **Caddyfile** — Update the domain in `Caddyfile` at the project root if different from `api.rolereactor.xyz`.
 
 ### Deploy
 
@@ -94,7 +94,7 @@ curl http://localhost:3030/health
 Via your domain after Caddy is running:
 
 ```bash
-curl https://api.rolereactor.app/health
+curl https://api.rolereactor.xyz/health
 ```
 
 ---
@@ -119,7 +119,7 @@ docker exec role-reactor-bot printenv | grep DISCORD
 
 ### SSL certificate not issuing
 
-- Confirm DNS is propagated: `dig api.rolereactor.app`
+- Confirm DNS is propagated: `dig api.rolereactor.xyz`
 - Confirm ports 80 and 443 are open: `ufw status`
 - Check Caddy logs: `docker logs role-reactor-caddy`
 

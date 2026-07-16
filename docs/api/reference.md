@@ -809,7 +809,7 @@ class RoleReactorAPI {
 }
 
 // Usage
-const api = new RoleReactorAPI("https://api.rolereactor.app");
+const api = new RoleReactorAPI("https://api.rolereactor.xyz");
 
 // Get current user
 const {

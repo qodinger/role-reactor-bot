@@ -6,7 +6,7 @@
 
 <div align="center">
 
-[![Node.js](https://img.shields.io/badge/Node.js-22+-green.svg)](https://nodejs.org/) [![Discord.js](https://img.shields.io/badge/Discord.js-14.22.1-blue.svg)](https://discord.js.org/) [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE) [![Documentation](https://img.shields.io/badge/Documentation-rolereactor.app-blue.svg)](https://rolereactor.app/docs)
+[![Node.js](https://img.shields.io/badge/Node.js-22+-green.svg)](https://nodejs.org/) [![Discord.js](https://img.shields.io/badge/Discord.js-14.22.1-blue.svg)](https://discord.js.org/) [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE) [![Documentation](https://img.shields.io/badge/Documentation-rolereactor.xyz-blue.svg)](https://rolereactor.xyz/docs)
 
 </div>
 
@@ -169,7 +169,7 @@ Required Discord bot permissions:
 Production runs on a VPS with Caddy handling SSL and domain routing automatically:
 
 ```
-Internet → Caddy (SSL + api.rolereactor.app) → Docker container:3030
+Internet → Caddy (SSL + api.rolereactor.xyz) → Docker container:3030
 ```
 
 ### Deploy
@@ -242,7 +242,7 @@ See [Core Energy Guide](./docs/CORE_ENERGY.md) for details on activation and pri
 
 ## 📖 Documentation
 
-- **[📘 Command Reference](https://rolereactor.app/docs)** - Full command usage and examples
+- **[📘 Command Reference](https://rolereactor.xyz/docs)** - Full command usage and examples
 - **[🚀 Deployment Guide](./docs/setup/deployment.md)** - Production deployment instructions
 - **[💎 Core Energy & Pro Engine](./docs/CORE_ENERGY.md)** - Credits, voting, and Pro Engine guide
 - **[🗳️ top.gg Voting Setup](./docs/integrations/topgg.md)** - Voting rewards webhook integration

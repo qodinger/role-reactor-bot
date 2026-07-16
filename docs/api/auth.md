@@ -96,7 +96,7 @@ Here is a complete, minimal example using vanilla JavaScript.
     </div>
 
     <script>
-      const API_URL = "http://localhost:3030"; // Development — use https://api.rolereactor.app in production
+      const API_URL = "http://localhost:3030"; // Development — use https://api.rolereactor.xyz in production
 
       // 1. Check Authentication Status on Page Load
       async function checkAuth() {
@@ -236,13 +236,13 @@ If your frontend is on a different domain/port than the bot, set the `CORS_ALLOW
 CORS_ALLOWED_ORIGINS=http://localhost:3000
 
 # .env (production)
-CORS_ALLOWED_ORIGINS=https://rolereactor.app
+CORS_ALLOWED_ORIGINS=https://rolereactor.xyz
 ```
 
 Multiple origins can be comma-separated:
 
 ```env
-CORS_ALLOWED_ORIGINS=https://rolereactor.app,https://dashboard.rolereactor.app
+CORS_ALLOWED_ORIGINS=https://rolereactor.xyz,https://dashboard.rolereactor.xyz
 ```
 
 And in your frontend `fetch` calls, **always** include `credentials: 'include'` to allow cookies to be sent and received across origins.

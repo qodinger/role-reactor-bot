@@ -451,7 +451,7 @@ AI_MAX_CONVERSATIONS=1000
 
 # Bot Information
 BOT_NAME=Role Reactor Bot
-BOT_WEBSITE_URL=https://rolereactor.app
+BOT_WEBSITE_URL=https://rolereactor.xyz
 ```
 
 ## Provider Configuration

@@ -79,12 +79,12 @@ tests/                  # Vitest test files
 
 ### Docker (recommended for multi-service)
 ```
-Internet → Caddy (SSL, api.rolereactor.app) → Docker network → role-reactor-bot:3030
+Internet → Caddy (SSL, api.rolereactor.xyz) → Docker network → role-reactor-bot:3030
 ```
 
 ### PM2 (lightweight, single-app)
 ```
-Internet → Caddy (SSL, api.rolereactor.app) → PM2 → role-reactor-bot:3030
+Internet → Caddy (SSL, api.rolereactor.xyz) → PM2 → role-reactor-bot:3030
 ```
 
 - Port 3030 is NOT exposed to the host — Caddy proxies internally
