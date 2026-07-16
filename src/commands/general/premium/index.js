@@ -1,6 +1,7 @@
 import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
 import { THEME, UI_COMPONENTS } from "../../../config/theme.js";
 import { PREMIUM_FEATURES } from "./premiumData.js";
+import { WEBSITE_URL } from "../../../config/domains.js";
 
 const PRO_NAME = "Pro Engine";
 
@@ -36,7 +37,7 @@ export async function execute(interaction, _client) {
       [
         `Upgrade to unlock **unlimited features** and **higher limits**!`,
         "",
-        `**How to upgrade:** Visit **[rolereactor.app](https://rolereactor.app)** to purchase Cores and enable ${PRO_NAME}.`,
+        `**How to upgrade:** Visit **[${WEBSITE_URL}](${WEBSITE_URL})** to purchase Cores and enable ${PRO_NAME}.`,
         "",
         `You can also earn **free Cores** by voting for Role Reactor on Top.gg!`,
       ].join("\n"),

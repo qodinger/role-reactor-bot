@@ -10,6 +10,7 @@ import {
   createErrorEmbed,
   createLimitReachedEmbed,
 } from "./embeds.js";
+import { WEBSITE_URL } from "../../config/domains.js";
 
 const logger = getLogger();
 
@@ -78,7 +79,7 @@ export class TicketPanel {
         return {
           success: false,
           error: createErrorEmbed(
-            `Maximum ${maxCategories} categories allowed per panel.${!isPro ? ` Upgrade to **${CORE_STATUS.PRO.emoji} Pro Engine** for up to ${PRO_ENGINE.MAX_CATEGORIES} categories!\n\nPurchase Cores at **rolereactor.app** or earn free Cores with \`/vote\`.` : ""}`,
+            `Maximum ${maxCategories} categories allowed per panel.${!isPro ? ` Upgrade to **${CORE_STATUS.PRO.emoji} Pro Engine** for up to ${PRO_ENGINE.MAX_CATEGORIES} categories!\n\nPurchase Cores at **${WEBSITE_URL}** or earn free Cores with \`/vote\`.` : ""}`,
           ),
         };
       }

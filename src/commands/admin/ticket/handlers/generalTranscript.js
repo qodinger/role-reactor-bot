@@ -13,6 +13,7 @@ import {
   createInfoEmbed,
   createErrorEmbed,
 } from "../../../../features/ticketing/embeds.js";
+import { WEBSITE_URL } from "../../../../config/domains.js";
 import { checkStaffRole } from "../utils.js";
 import {
   FREE_TIER,
@@ -111,7 +112,7 @@ export async function handleTranscript(interaction) {
       embeds: [
         createErrorEmbed(
           `The **${format.toUpperCase()}** export format is only available with **${CORE_STATUS.PRO.emoji} Pro Engine**.\n\n` +
-            "Upgrade to **${CORE_STATUS.PRO.emoji} Pro Engine** to unlock HTML transcripts, data exports, and unlimited retention! Enable it on our **[website](https://rolereactor.app)** using Cores.",
+            `Upgrade to **${CORE_STATUS.PRO.emoji} Pro Engine** to unlock HTML transcripts, data exports, and unlimited retention! Enable it on our **[website](${WEBSITE_URL})** using Cores.`,
           "Premium Feature",
           interaction.client,
         ),

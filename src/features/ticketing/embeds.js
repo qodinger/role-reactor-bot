@@ -7,6 +7,7 @@ import {
   UI_COMPONENTS,
   BUTTON_STYLES,
 } from "../../config/theme.js";
+import { WEBSITE_URL } from "../../config/domains.js";
 
 // ─────────────────────────────────────────────
 // Helpers
@@ -302,7 +303,7 @@ export function createLimitReachedEmbed(options) {
 
   const description = isPro
     ? `You have reached the maximum of **${max} ${itemType}**.`
-    : `You have reached the maximum of **${max} ${itemType}** on the Free Tier.\n\nUpgrade to **${CORE_STATUS.PRO.emoji} Pro Engine** for more!\nPurchase Cores at **[rolereactor.app](https://rolereactor.app)** · Earn free Cores with \`/vote\``;
+    : `You have reached the maximum of **${max} ${itemType}** on the Free Tier.\n\nUpgrade to **${CORE_STATUS.PRO.emoji} Pro Engine** for more!\nPurchase Cores at **[${WEBSITE_URL}](${WEBSITE_URL})** · Earn free Cores with \`/vote\``;
 
   return new EmbedBuilder()
     .setTitle(title)

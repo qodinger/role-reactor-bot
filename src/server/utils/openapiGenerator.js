@@ -4,6 +4,7 @@
  */
 
 import { serviceRegistry } from "../services/ServiceRegistry.js";
+import { WEBSITE_URL } from "../../config/domains.js";
 
 /**
  * Generate OpenAPI 3.0 specification
@@ -30,7 +31,7 @@ export function generateOpenAPISpec(options = {}) {
       description,
       contact: {
         name: "Role Reactor Support",
-        url: "https://rolereactor.app",
+        url: WEBSITE_URL,
       },
     },
     servers: [

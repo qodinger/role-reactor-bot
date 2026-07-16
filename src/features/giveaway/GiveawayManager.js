@@ -5,6 +5,7 @@ import { getLogger } from "../../utils/logger.js";
 import { getDatabaseManager } from "../../utils/storage/databaseManager.js";
 import { FREE_TIER, PRO_TIER, CORE_STATUS } from "../premium/config.js";
 import { getPremiumManager } from "../premium/PremiumManager.js";
+import { WEBSITE_URL } from "../../config/domains.js";
 
 const logger = getLogger();
 
@@ -432,7 +433,7 @@ class GiveawayManager extends EventEmitter {
       if (currentTotal + entries > maxEntries) {
         return {
           success: false,
-          error: `This giveaway has reached the maximum entry limit of ${maxEntries.toLocaleString()}. ${isPro ? "" : `Upgrade to **${CORE_STATUS.PRO.emoji} Pro Engine** for unlimited entries! Enable it on our **[website](https://rolereactor.app)** using Cores.`}`,
+          error: `This giveaway has reached the maximum entry limit of ${maxEntries.toLocaleString()}. ${isPro ? "" : `Upgrade to **${CORE_STATUS.PRO.emoji} Pro Engine** for unlimited entries! Enable it on our **[website](${WEBSITE_URL})** using Cores.`}`,
         };
       }
 

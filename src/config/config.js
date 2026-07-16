@@ -1,5 +1,6 @@
 import dotenv from "dotenv";
 import { getAIFeatureCosts, getAvatarContentFilter } from "./ai.js";
+import { WEBSITE_URL, API_URL } from "./domains.js";
 
 // Load environment variables
 dotenv.config();
@@ -231,14 +232,13 @@ class Config {
    * @returns {Object} External links object
    */
   get externalLinks() {
-    const website = process.env.BOT_WEBSITE_URL || "https://rolereactor.app";
     return {
       name: process.env.BOT_NAME || "Role Reactor Bot",
-      website,
-      guide: `${website}/docs`,
+      website: WEBSITE_URL,
+      guide: `${WEBSITE_URL}/docs`,
       github: "https://github.com/qodinger/role-reactor-bot",
       support: "https://discord.gg/D8tYkU75Ry",
-      sponsor: `${website}/sponsor`,
+      sponsor: `${WEBSITE_URL}/sponsor`,
       vote:
         process.env.VOTE_URL || "https://top.gg/bot/1392714201558159431/vote",
       invite: null, // Will be generated dynamically by the bot
@@ -446,11 +446,7 @@ class Config {
   get botInfo() {
     return {
       name: this.externalLinks.name,
-      apiUrl:
-        process.env.BOT_API_URL ||
-        process.env.PUBLIC_URL ||
-        process.env.BOT_URL ||
-        "https://api.rolereactor.app",
+      apiUrl: API_URL,
       website: this.externalLinks.website,
     };
   }

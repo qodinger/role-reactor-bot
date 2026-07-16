@@ -2,6 +2,7 @@ import { PremiumFeatures } from "./config.js";
 import { getStorageManager } from "../../utils/storage/storageManager.js";
 import { getLogger } from "../../utils/logger.js";
 import { getCommandHandler } from "../../utils/core/commandHandler.js";
+import { WEBSITE_URL } from "../../config/domains.js";
 
 const logger = getLogger();
 
@@ -94,7 +95,7 @@ export class PremiumManager {
     const response = errorEmbed({
       title: "Pro Engine Required",
       description: `${featureName} is a premium feature.`,
-      solution: `Enable ${CORE_STATUS.PRO.name} on our **[website](https://rolereactor.app)** to unlock this feature!`,
+      solution: `Enable ${CORE_STATUS.PRO.name} on our **[website](${WEBSITE_URL})** to unlock this feature!`,
       emoji: CORE_STATUS.PRO.emoji,
       isPremium: true,
     });

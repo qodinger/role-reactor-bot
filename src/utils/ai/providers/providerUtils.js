@@ -2,6 +2,8 @@
  * Shared utility functions for AI providers
  */
 
+import { WEBSITE_URL } from "../../../config/domains.js";
+
 const fetch = globalThis.fetch;
 
 /**
@@ -93,8 +95,7 @@ export function createHeaders(apiKey, provider = "openrouter") {
   };
 
   if (provider === "openrouter") {
-    headers["HTTP-Referer"] =
-      process.env.BOT_WEBSITE_URL || "https://rolereactor.app";
+    headers["HTTP-Referer"] = WEBSITE_URL;
     headers["X-Title"] = process.env.BOT_NAME || "Role Reactor Bot";
   }
 

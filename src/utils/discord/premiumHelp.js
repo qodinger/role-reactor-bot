@@ -1,6 +1,7 @@
 import { CORE_STATUS } from "../../features/premium/config.js";
 import { errorEmbed } from "./responseMessages.js";
 import { getMentionableCommand } from "../commandUtils.js";
+import { WEBSITE_URL } from "../../config/domains.js";
 
 /**
  * Creates a consistent Free vs Pro help field
@@ -9,17 +10,13 @@ import { getMentionableCommand } from "../commandUtils.js";
  * @param {string} upgradeUrl - URL to upgrade (optional, defaults to rolereactor.app)
  * @returns {object} Help field object
  */
-export function createFreeVsProField(
-  freeLimit,
-  proLimit,
-  upgradeUrl = "rolereactor.app",
-) {
+export function createFreeVsProField(freeLimit, proLimit) {
   return {
     name: `⚡ ${CORE_STATUS.PRO.name} vs Free`,
     value: [
       `**Free:** ${freeLimit}`,
       `**${CORE_STATUS.PRO.name}:** ${proLimit}`,
-      `Upgrade on **[${upgradeUrl}](https://${upgradeUrl})**`,
+      `Upgrade on **[${WEBSITE_URL}](${WEBSITE_URL})**`,
     ].join("\n"),
     inline: false,
   };
@@ -106,7 +103,7 @@ export function upgradeLimitEmbed({ feature, freeText, proText, client }) {
       { name: "Free Plan", value: freeText, inline: true },
       { name: `⚡ ${CORE_STATUS.PRO.name}`, value: proText, inline: true },
     ],
-    solution: `Purchase Cores at **[rolereactor.app](https://rolereactor.app)** · Earn free Cores with ${voteCmd}`,
+    solution: `Purchase Cores at **[${WEBSITE_URL}](${WEBSITE_URL})** · Earn free Cores with ${voteCmd}`,
     isPremium: true,
   });
 }

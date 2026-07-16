@@ -10,6 +10,7 @@ import {
 } from "../../../utils/ai/aiCreditManager.js";
 import { emojiConfig } from "../../../config/emojis.js";
 import { STREAMING_ENABLED } from "../../../utils/ai/constants.js";
+import { WEBSITE_URL } from "../../../config/domains.js";
 
 const logger = getLogger();
 const { customEmojis } = emojiConfig;
@@ -76,7 +77,7 @@ export async function execute(interaction, client) {
       const requestsPerCore = Math.floor(1 / chatCost);
       const errorResponse = errorEmbed({
         title: "Insufficient Energy",
-        description: `You need **${chatCost} ${customEmojis.core}** to use AI chat!\n\n**Your Balance:** ${creditInfo.credits.toFixed(2)} ${customEmojis.core}\n**Cost:** ${chatCost} ${customEmojis.core} per request (1 ${customEmojis.core} = ${requestsPerCore} requests)\n**Requests Available:** ${creditInfo.requestsRemaining}\n\nGet Cores: Visit [rolereactor.app/sponsor](https://rolereactor.app/sponsor)`,
+        description: `You need **${chatCost} ${customEmojis.core}** to use AI chat!\n\n**Your Balance:** ${creditInfo.credits.toFixed(2)} ${customEmojis.core}\n**Cost:** ${chatCost} ${customEmojis.core} per request (1 ${customEmojis.core} = ${requestsPerCore} requests)\n**Requests Available:** ${creditInfo.requestsRemaining}\n\nGet Cores: Visit [${WEBSITE_URL}/sponsor](${WEBSITE_URL}/sponsor)`,
       });
       await interaction.reply(errorResponse);
       return;

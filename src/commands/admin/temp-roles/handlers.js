@@ -24,6 +24,7 @@ import {
 } from "../../../features/premium/config.js";
 import { getPremiumManager } from "../../../features/premium/PremiumManager.js";
 import { getDatabaseManager } from "../../../utils/storage/databaseManager.js";
+import { WEBSITE_URL } from "../../../config/domains.js";
 import {
   addTemporaryRolesForMultipleUsers,
   getTemporaryRoles,
@@ -98,7 +99,7 @@ export async function handleAssign(interaction, client, deferred) {
         description: `This server has reached the maximum of **${maxActiveSchedules} active temporary/scheduled roles**.`,
         solution: isPro
           ? "Please wait for existing roles to expire or cancel them before assigning new ones."
-          : `Upgrade to **${CORE_STATUS.PRO.emoji} Pro Engine** for up to 500 active slots! Enable it on our **[website](https://rolereactor.app)** using Cores. You can purchase Cores on the site or earn them for free with /vote.`,
+          : `Upgrade to **${CORE_STATUS.PRO.emoji} Pro Engine** for up to 500 active slots! Enable it on our **[website](${WEBSITE_URL})** using Cores. You can purchase Cores on the site or earn them for free with /vote.`,
       });
 
       return deferred
@@ -183,7 +184,7 @@ export async function handleAssign(interaction, client, deferred) {
           description: `You are trying to assign roles to **${userIds.length} users**, but the limit is **${maxBulk} users** per action.`,
           solution: isPro
             ? "Try splitting the assignment into smaller groups."
-            : `Upgrade to **${CORE_STATUS.PRO.emoji} Pro Engine** for 10x higher bulk capacity (250 users)! Enable it on our **[website](https://rolereactor.app)** using Cores. You can purchase Cores on the site or earn them for free with /vote.`,
+            : `Upgrade to **${CORE_STATUS.PRO.emoji} Pro Engine** for 10x higher bulk capacity (250 users)! Enable it on our **[website](${WEBSITE_URL})** using Cores. You can purchase Cores on the site or earn them for free with /vote.`,
         });
 
         return deferred
