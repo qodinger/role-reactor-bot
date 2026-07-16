@@ -22,7 +22,7 @@ if [[ $EUID -ne 0 ]]; then
     error "Run as root: sudo ./scripts/setup-vps.sh"
 fi
 
-DOMAIN="api.rolereactor.app"
+DOMAIN="api.rolereactor.xyz"
 EMAIL="sengphachanh.dev@gmail.com"
 APP_DIR="/root/projects/role-reactor-bot"
 

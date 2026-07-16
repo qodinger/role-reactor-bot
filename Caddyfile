@@ -1,4 +1,4 @@
-api.rolereactor.app {
+api.rolereactor.xyz {
 	reverse_proxy role-reactor-bot:3030
 
 	# Security headers

@@ -7,7 +7,6 @@ import { WEBSITE_URL } from "../../config/domains.js";
  * Creates a consistent Free vs Pro help field
  * @param {string} freeLimit - Description of free tier limit
  * @param {string} proLimit - Description of Pro Engine limit
- * @param {string} upgradeUrl - URL to upgrade (optional, defaults to rolereactor.app)
  * @returns {object} Help field object
  */
 export function createFreeVsProField(freeLimit, proLimit) {

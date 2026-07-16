@@ -22,8 +22,8 @@ vi.mock("src/utils/discord/responseMessages.js", () => ({
 }));
 
 vi.mock("src/config/config.js", () => ({
-  config: { externalLinks: { website: "https://rolereactor.app" } },
-  default: { externalLinks: { website: "https://rolereactor.app" } },
+  config: { externalLinks: { website: "https://rolereactor.xyz" } },
+  default: { externalLinks: { website: "https://rolereactor.xyz" } },
 }));
 
 vi.mock("src/commands/general/core/embeds.js", () => ({

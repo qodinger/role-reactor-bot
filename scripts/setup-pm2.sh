@@ -70,7 +70,7 @@ fi
 
 log "Configuring Caddy reverse proxy..."
 cat << 'CADDYFILE' > /etc/caddy/Caddyfile
-api.rolereactor.app {
+api.rolereactor.xyz {
     reverse_proxy localhost:3030
 }
 CADDYFILE
@@ -78,7 +78,7 @@ CADDYFILE
 log "Starting Caddy..."
 sudo systemctl restart caddy
 sudo systemctl enable caddy
-success "Caddy configured: api.rolereactor.app → localhost:3030"
+success "Caddy configured: api.rolereactor.xyz → localhost:3030"
 
 # 8. Show status
 sleep 2
