@@ -265,7 +265,7 @@ class Config {
         baseCores: 75,
         bonusCores: 0,
         description: "Perfect for trying AI features",
-        estimatedUsage: "~1,500 chat messages or 15 avatars",
+        estimatedUsage: "~150 image edits or 15 upscales",
         popular: false,
       },
       $10: {
@@ -273,7 +273,7 @@ class Config {
         baseCores: 150,
         bonusCores: 15,
         description: "Most popular choice for regular users",
-        estimatedUsage: "~3,300 chat messages or 33 avatars",
+        estimatedUsage: "~330 image edits or 33 upscales",
         popular: true,
       },
       $25: {
@@ -281,7 +281,7 @@ class Config {
         baseCores: 375,
         bonusCores: 60,
         description: "Best value for power users",
-        estimatedUsage: "~8,700 chat messages or 87 avatars",
+        estimatedUsage: "~870 image edits or 87 upscales",
         popular: false,
       },
       $50: {
@@ -289,7 +289,7 @@ class Config {
         baseCores: 750,
         bonusCores: 150,
         description: "Maximum value for heavy usage",
-        estimatedUsage: "~18,000 chat messages or 180 avatars",
+        estimatedUsage: "~1,800 image edits or 180 upscales",
         features: ["Priority processing", "Dedicated support"],
         popular: false,
       },
