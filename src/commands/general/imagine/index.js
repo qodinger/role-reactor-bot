@@ -126,7 +126,7 @@ export async function execute(interaction, client) {
       return;
     }
 
-    const deferred = await deferInteraction(interaction);
+    await deferInteraction(interaction);
     await handleImagineCommand(interaction, client);
   } catch (error) {
     logger.error("Error in imagine command:", error);
