@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Image Tools**: Introduced a new suite of Image Tools to the web dashboard, complete with dedicated backend API routes, extended request timeouts, and precise credit deduction support.
 - **`/chat` command**: Replaces `/ask`. AI conversation is now **channel-scoped** — everyone in the channel shares the same history, just like a real chat. Different channels get separate sessions.
 - **`@mention` AI trigger**: Users can mention `@Role Reactor` directly in any message to chat with the AI, as an alternative to `/chat`. Both methods share the same channel history.
 - **`/chat-reset` command**: Admins with Manage Messages can wipe the AI conversation history for a channel and start fresh.
@@ -38,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `@mention` AI conversations now share the same channel history as `/chat` instead of using a separate per-user session.
 - Clickable command mentions in `/help` now work correctly on production servers.
 - `/serverinfo` now shows more accurate member counts.
+- **Mobile Layout**: Fixed horizontal scrolling and unwanted black margins on the website's mobile home page caused by layout overflow.
 
 ## [1.7.1] - 2026-04-01
 
