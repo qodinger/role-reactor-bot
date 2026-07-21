@@ -1,20 +1,4 @@
 services:
-  caddy:
-    image: caddy:2-alpine
-    container_name: role-reactor-caddy
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"  # HTTP/3
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    networks:
-      - role-reactor-prod
-    depends_on:
-      - role-reactor-bot
 
   role-reactor-bot:
     build: .
@@ -28,14 +12,13 @@ services:
       - .env.production
     environment:
       - NODE_ENV=production
-    # Port is NOT exposed to the host — Caddy reaches it via the internal network
+    ports:
+      - "127.0.0.1:3030:3030"
+    # Port is exposed locally to the host for Nginx to proxy to
     networks:
       - role-reactor-prod
     # Healthcheck is defined in the Dockerfile
 
-volumes:
-  caddy_data:
-  caddy_config:
 
 networks:
   role-reactor-prod:
