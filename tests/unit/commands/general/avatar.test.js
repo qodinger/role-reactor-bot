@@ -7,22 +7,23 @@ import {
 
 setupCommonMocks();
 
-vi.mock("src/config/theme.js", () => ({
+vi.mock("../../../../src/config/theme.js", () => ({
   THEME: { PRIMARY: 0x5865f2, ERROR: 0xed4245 },
   EMOJIS: {},
 }));
 
-vi.mock("src/config/emojis.js", () => ({
+vi.mock("../../../../src/config/emojis.js", () => ({
   emojiConfig: { customEmojis: { core: "⚡" } },
 }));
 
-vi.mock("src/utils/ai/multiProviderAIService.js", () => ({
+vi.mock("../../../../src/utils/ai/multiProviderAIService.js", () => ({
   multiProviderAIService: {
     isEnabled: vi.fn().mockReturnValue(true),
+    getImageProvider: vi.fn().mockReturnValue('stability'),
   },
 }));
 
-vi.mock("src/utils/ai/avatarService.js", () => ({
+vi.mock("../../../../src/utils/ai/avatarService.js", () => ({
   generateAvatar: vi.fn().mockResolvedValue({
     imageBuffer: Buffer.alloc(5000, 0xff),
     provider: "stability",
@@ -30,7 +31,7 @@ vi.mock("src/utils/ai/avatarService.js", () => ({
   }),
 }));
 
-vi.mock("src/utils/ai/aiCreditManager.js", () => ({
+vi.mock("../../../../src/utils/ai/aiCreditManager.js", () => ({
   checkAIImageCredits: vi.fn().mockResolvedValue({
     userData: { credits: 10 },
     creditsNeeded: 1,
@@ -45,17 +46,17 @@ vi.mock("src/utils/ai/aiCreditManager.js", () => ({
   refundAIImageCredits: vi.fn().mockResolvedValue({ success: true }),
 }));
 
-vi.mock("src/utils/ai/errorMessages.js", () => ({
+vi.mock("../../../../src/utils/ai/errorMessages.js", () => ({
   getUserFacingErrorMessage: vi.fn().mockReturnValue("Something went wrong."),
 }));
 
-vi.mock("src/commands/general/avatar/utils/generationHistory.js", () => ({
+vi.mock("../../../../src/commands/general/avatar/utils/generationHistory.js", () => ({
   GenerationHistory: {
     recordGeneration: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
-vi.mock("src/commands/general/avatar/embeds.js", () => ({
+vi.mock("../../../../src/commands/general/avatar/embeds.js", () => ({
   createErrorEmbed: vi.fn().mockReturnValue({ data: { title: "Error" } }),
   createCoreEmbed: vi.fn().mockReturnValue({ data: { title: "Insufficient Credits" } }),
   createHelpEmbed: vi.fn().mockReturnValue({ data: { title: "Help" } }),
@@ -65,12 +66,12 @@ vi.mock("src/commands/general/avatar/embeds.js", () => ({
   createAvatarValidationEmbed: vi.fn().mockReturnValue({ data: { title: "Validation" } }),
 }));
 
-vi.mock("src/commands/general/avatar/utils.js", () => ({
+vi.mock("../../../../src/commands/general/avatar/utils.js", () => ({
   validatePrompt: vi.fn().mockResolvedValue({ isValid: true, prompt: "a cat" }),
   getExplicitNSFWKeywords: vi.fn().mockReturnValue([]),
 }));
 
-vi.mock("src/config/ai.js", () => ({
+vi.mock("../../../../src/config/ai.js", () => ({
   getAIConfig: vi.fn().mockReturnValue({
     models: {
       features: {
@@ -126,8 +127,7 @@ describe("Avatar Command", () => {
 
   describe("handleAvatarGeneration", () => {
     it("should send validation embed when AI is disabled", async () => {
-      const { multiProviderAIService } = await import(
-        "src/utils/ai/multiProviderAIService.js"
+      const { multiProviderAIService } = await import("../../../../src/utils/ai/multiProviderAIService.js"
       );
       multiProviderAIService.isEnabled.mockReturnValue(false);
 
@@ -137,8 +137,7 @@ describe("Avatar Command", () => {
     });
 
     it("should send validation embed when prompt is invalid", async () => {
-      const { validatePrompt } = await import(
-        "src/commands/general/avatar/utils.js"
+      const { validatePrompt } = await import("../../../../src/commands/general/avatar/utils.js"
       );
       validatePrompt.mockResolvedValue({
         isValid: false,
@@ -151,8 +150,7 @@ describe("Avatar Command", () => {
     });
 
     it("should send insufficient credits embed when user has no credits", async () => {
-      const { checkAIImageCredits } = await import(
-        "src/utils/ai/aiCreditManager.js"
+      const { checkAIImageCredits } = await import("../../../../src/utils/ai/aiCreditManager.js"
       );
       checkAIImageCredits.mockResolvedValue({
         userData: { credits: 0 },
@@ -166,8 +164,7 @@ describe("Avatar Command", () => {
     });
 
     it("should handle generation errors gracefully", async () => {
-      const { generateAvatar } = await import(
-        "src/utils/ai/avatarService.js"
+      const { generateAvatar } = await import("../../../../src/utils/ai/avatarService.js"
       );
       generateAvatar.mockRejectedValue(new Error("API error"));
 

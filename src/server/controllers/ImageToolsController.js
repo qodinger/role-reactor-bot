@@ -17,10 +17,7 @@ import {
   getImageToolCost,
   FREE_DAILY_QUOTA,
 } from "../../config/imageTools.js";
-import {
-  checkAndDeductAIImageCredits,
-  checkAndDeductSpecificCredits,
-} from "../../utils/ai/aiCreditManager.js";
+import { checkAndDeductSpecificCredits } from "../../utils/ai/aiCreditManager.js";
 import {
   checkAndConsumeFreeTier,
   getFreeQuota,

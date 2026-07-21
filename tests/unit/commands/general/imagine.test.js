@@ -7,18 +7,19 @@ import {
 
 setupCommonMocks();
 
-vi.mock("src/config/theme.js", () => ({
+vi.mock("../../../../src/config/theme.js", () => ({
   THEME: { PRIMARY: 0x5865f2, ERROR: 0xed4245 },
   EMOJIS: { STATUS: { LOADING: "⏳" } },
 }));
 
-vi.mock("src/config/emojis.js", () => ({
+vi.mock("../../../../src/config/emojis.js", () => ({
   emojiConfig: { customEmojis: { core: "⚡" } },
 }));
 
-vi.mock("src/utils/ai/multiProviderAIService.js", () => ({
+vi.mock("../../../../src/utils/ai/multiProviderAIService.js", () => ({
   multiProviderAIService: {
     isEnabled: vi.fn().mockReturnValue(true),
+    getImageProvider: vi.fn().mockReturnValue('stability'),
     generateImage: vi.fn().mockResolvedValue({
       imageBuffer: Buffer.alloc(5000, 0xff),
       provider: "stability",
@@ -27,7 +28,7 @@ vi.mock("src/utils/ai/multiProviderAIService.js", () => ({
   },
 }));
 
-vi.mock("src/utils/ai/concurrencyManager.js", () => ({
+vi.mock("../../../../src/utils/ai/concurrencyManager.js", () => ({
   concurrencyManager: {
     acquireSlot: vi.fn().mockResolvedValue(true),
     releaseSlot: vi.fn(),
@@ -35,7 +36,7 @@ vi.mock("src/utils/ai/concurrencyManager.js", () => ({
   },
 }));
 
-vi.mock("src/utils/ai/aiCreditManager.js", () => ({
+vi.mock("../../../../src/utils/ai/aiCreditManager.js", () => ({
   checkAIImageCredits: vi.fn().mockResolvedValue({
     userData: { credits: 10 },
     creditsNeeded: 1,
@@ -50,11 +51,11 @@ vi.mock("src/utils/ai/aiCreditManager.js", () => ({
   refundAIImageCredits: vi.fn().mockResolvedValue({ success: true }),
 }));
 
-vi.mock("src/utils/ai/errorMessages.js", () => ({
+vi.mock("../../../../src/utils/ai/errorMessages.js", () => ({
   getUserFacingErrorMessage: vi.fn().mockReturnValue("Something went wrong."),
 }));
 
-vi.mock("src/commands/general/imagine/utils.js", () => ({
+vi.mock("../../../../src/commands/general/imagine/utils.js", () => ({
   validatePrompt: vi.fn().mockResolvedValue({
     isValid: true,
     prompt: "a sunset over mountains",
@@ -62,7 +63,7 @@ vi.mock("src/commands/general/imagine/utils.js", () => ({
   parseInlineParameters: vi.fn().mockReturnValue({}),
 }));
 
-vi.mock("src/commands/general/imagine/embeds.js", () => ({
+vi.mock("../../../../src/commands/general/imagine/embeds.js", () => ({
   createImagineProcessingEmbed: vi.fn().mockReturnValue({ data: { title: "Processing..." } }),
   createImagineResultEmbed: vi.fn().mockReturnValue({ data: { title: "Result" } }),
   createImagineErrorEmbed: vi.fn().mockReturnValue({ data: { title: "Error" } }),
@@ -71,32 +72,33 @@ vi.mock("src/commands/general/imagine/embeds.js", () => ({
   createRegenerateButton: vi.fn().mockReturnValue({ components: [] }),
 }));
 
-vi.mock("src/utils/discord/nsfwSafety.js", () => ({
+vi.mock("../../../../src/utils/discord/nsfwSafety.js", () => ({
   validateNSFWProduction: vi.fn().mockReturnValue({ allowed: true }),
   logNSFWGeneration: vi.fn(),
 }));
 
-vi.mock("src/utils/ai/promptIntelligence.js", () => ({
+vi.mock("../../../../src/utils/ai/promptIntelligence.js", () => ({
   enhancePromptIntelligently: vi.fn().mockResolvedValue("enhanced prompt"),
   analyzeNSFWContent: vi.fn().mockReturnValue({ isNSFW: false, score: 0 }),
   getPromptSuggestions: vi.fn().mockReturnValue([]),
 }));
 
-vi.mock("src/config/prompts/imagePrompts.js", () => ({
+vi.mock("../../../../src/config/prompts/imagePrompts.js", () => ({
   enhanceImaginePrompt: vi.fn().mockReturnValue("enhanced prompt"),
   getImagineNegativePrompt: vi.fn().mockReturnValue(""),
 }));
 
-vi.mock("src/commands/general/imagine/utils/generationHistory.js", () => ({
+vi.mock("../../../../src/commands/general/imagine/utils/generationHistory.js", () => ({
   ImagineGenerationHistory: {
     recordGeneration: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
-vi.mock("src/utils/ai/providers/comfyui/modelManager.js", () => ({
+vi.mock("../../../../src/utils/ai/providers/comfyui/modelManager.js", () => ({
   modelManager: {
     getModel: vi.fn().mockReturnValue(null),
     isAvailable: vi.fn().mockReturnValue(false),
+    parseModelFlags: vi.fn().mockReturnValue({ defaultSettings: { steps: 20, cfg: 7 } }),
   },
 }));
 
@@ -151,8 +153,7 @@ describe("Imagine Command", () => {
 
   describe("handleImagineCommand", () => {
     it("should send validation embed when AI is disabled", async () => {
-      const { multiProviderAIService } = await import(
-        "src/utils/ai/multiProviderAIService.js"
+      const { multiProviderAIService } = await import("../../../../src/utils/ai/multiProviderAIService.js"
       );
       multiProviderAIService.isEnabled.mockReturnValue(false);
 
@@ -165,8 +166,7 @@ describe("Imagine Command", () => {
     });
 
     it("should send validation embed when prompt is invalid", async () => {
-      const { validatePrompt } = await import(
-        "src/commands/general/imagine/utils.js"
+      const { validatePrompt } = await import("../../../../src/commands/general/imagine/utils.js"
       );
       validatePrompt.mockResolvedValue({
         isValid: false,
@@ -182,8 +182,7 @@ describe("Imagine Command", () => {
     });
 
     it("should send insufficient credits embed when user has no credits", async () => {
-      const { checkAIImageCredits } = await import(
-        "src/utils/ai/aiCreditManager.js"
+      const { checkAIImageCredits } = await import("../../../../src/utils/ai/aiCreditManager.js"
       );
       checkAIImageCredits.mockResolvedValue({
         userData: { credits: 0 },
