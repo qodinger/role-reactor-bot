@@ -41,6 +41,7 @@ import logsRouter from "./routes/v1/logs.js";
 import configRouter from "./routes/v1/config.js";
 import healthRouter from "./routes/v1/health.js";
 import transcriptsRouter from "./routes/v1/transcripts.js";
+import imageToolsRouter from "./routes/v1/imageTools.js";
 
 // Import services
 import { SupportersService } from "./services/supporters/SupportersService.js";
@@ -160,14 +161,14 @@ async function initializeMiddleware() {
   app.use(requestIdMiddleware);
   app.use(corsMiddleware);
 
-  // Request timeout middleware (30 seconds)
+  // Request timeout middleware (120 seconds for long tasks like image AI processing)
   /**
    * @param {ExtendedRequest} req
    * @param {import('express').Response} res
    * @param {import('express').NextFunction} next
    */
   app.use((req, res, next) => {
-    req.setTimeout(30000, () => {
+    req.setTimeout(120000, () => {
       if (!res.headersSent) {
         res.status(408).json({
           status: "error",
@@ -253,6 +254,7 @@ function initializeRoutes() {
   app.use(`${API_PREFIX}/logs`, internalAuth, logsRouter);
   app.use(`${API_PREFIX}/config`, internalAuth, configRouter);
   app.use(`${API_PREFIX}/health`, healthRouter);
+  app.use(`${API_PREFIX}/image-tools`, internalAuth, imageToolsRouter);
 
   // Register existing routes as services for discovery
   if (process.env.DISCORD_CLIENT_ID) {

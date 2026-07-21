@@ -270,6 +270,70 @@ export async function checkAIImageCredits(
 }
 
 /**
+ * Atomic check and deduct specific amount of credits
+ */
+export async function checkAndDeductSpecificCredits(userId, amount) {
+  if (!validateUserId(userId))
+    return {
+      success: false,
+      creditsRemaining: 0,
+      creditsDeducted: 0,
+      error: "Invalid user ID",
+    };
+
+  if (typeof amount !== "number" || amount <= 0)
+    return {
+      success: false,
+      creditsRemaining: 0,
+      creditsDeducted: 0,
+      error: "Invalid deduction amount",
+    };
+
+  return withCreditLock(userId, async () => {
+    try {
+      const storage = await getStorageManager();
+      let data = await storage.getCoreCredits(userId);
+
+      if (!data) {
+        data = {
+          credits: 0,
+          totalGenerated: 0,
+          lastUpdated: new Date().toISOString(),
+        };
+      }
+
+      if ((data.credits || 0) < amount) {
+        return {
+          success: false,
+          creditsRemaining: formatCoreCredits(data.credits),
+          creditsDeducted: 0,
+          error: "Insufficient credits",
+        };
+      }
+
+      data.credits = formatCoreCredits(data.credits - amount);
+      data.totalGenerated = (data.totalGenerated || 0) + 1;
+      data.lastUpdated = new Date().toISOString();
+      await storage.setCoreCredits(userId, data);
+
+      return {
+        success: true,
+        creditsRemaining: data.credits,
+        creditsDeducted: formatCoreCredits(amount),
+        deductionBreakdown: { totalDeducted: formatCoreCredits(amount) },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        creditsRemaining: 0,
+        creditsDeducted: 0,
+        error: error.message,
+      };
+    }
+  });
+}
+
+/**
  * Atomic check and deduct credits for AI image generation
  */
 export async function checkAndDeductAIImageCredits(
