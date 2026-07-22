@@ -76,7 +76,7 @@ docs/
 ## 🆘 Getting Help
 
 1. **Check the Docs**: Most answers are right here!
-2. **Issues**: Search existing [GitHub issues](https://github.com/qodinger/role-reactor-bot/issues) or create a new one.
+2. **Issues**: Search existing [GitHub issues](https://github.com/rolereactor/role-reactor-bot/issues) or create a new one.
 3. **Community**: Join our [Support Server](https://discord.gg/D8tYkU75Ry) for direct assistance.
 
 ---

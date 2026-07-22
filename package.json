@@ -70,12 +70,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/qodinger/role-reactor-bot.git"
+    "url": "https://github.com/rolereactor/role-reactor-bot.git"
   },
   "bugs": {
-    "url": "https://github.com/qodinger/role-reactor-bot/issues"
+    "url": "https://github.com/rolereactor/role-reactor-bot/issues"
   },
-  "homepage": "https://github.com/qodinger/role-reactor-bot#readme",
+  "homepage": "https://github.com/rolereactor/role-reactor-bot#readme",
   "engines": {
     "node": ">=22.0.0",
     "pnpm": ">=9.9.0"

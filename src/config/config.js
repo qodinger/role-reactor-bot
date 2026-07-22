@@ -236,7 +236,7 @@ class Config {
       name: process.env.BOT_NAME || "Role Reactor Bot",
       website: WEBSITE_URL,
       guide: `${WEBSITE_URL}/docs`,
-      github: "https://github.com/qodinger/role-reactor-bot",
+      github: "https://github.com/rolereactor/role-reactor-bot",
       support: "https://discord.gg/D8tYkU75Ry",
       sponsor: `${WEBSITE_URL}/sponsor`,
       vote:

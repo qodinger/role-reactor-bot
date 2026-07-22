@@ -64,7 +64,7 @@ A powerful Discord bot that helps you manage your server with role management, A
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/qodinger/role-reactor-bot.git
+   git clone https://github.com/rolereactor/role-reactor-bot.git
    cd role-reactor-bot
    ```
 
@@ -159,7 +159,7 @@ Required Discord bot permissions:
 
 ### Getting Help
 
-- Check the [GitHub Issues](https://github.com/qodinger/role-reactor-bot/issues) for known problems
+- Check the [GitHub Issues](https://github.com/rolereactor/role-reactor-bot/issues) for known problems
 - Join our [Support Server](https://discord.gg/D8tYkU75Ry) for real-time help
 - Review the [Deployment Guide](./docs/setup/deployment.md) for setup issues
 

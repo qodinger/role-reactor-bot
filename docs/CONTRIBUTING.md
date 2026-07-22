@@ -45,7 +45,7 @@ Thank you for your interest in contributing to Role Reactor Bot! This document p
 
 ```bash
 # Clone the repository
-git clone https://github.com/qodinger/role-reactor-bot.git
+git clone https://github.com/rolereactor/role-reactor-bot.git
 cd role-reactor-bot
 
 # Install dependencies

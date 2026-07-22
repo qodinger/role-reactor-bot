@@ -85,7 +85,7 @@ mkdir -p $APP_DIR/data
 if [ ! -d "$APP_DIR/.git" ]; then
     log "Cloning repository..."
     cd /opt
-    git clone https://github.com/qodinger/role-reactor-bot.git role-reactor-bot
+    git clone https://github.com/rolereactor/role-reactor-bot.git role-reactor-bot
     cd role-reactor-bot
 else
     log "Repository exists, pulling latest..."
