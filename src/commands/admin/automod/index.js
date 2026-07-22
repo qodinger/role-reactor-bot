@@ -28,7 +28,7 @@ import {
 } from "./handlers.js";
 
 // Hide from help system until ready for release
-export const disabled = false;
+export const disabled = true;
 
 // ============================================================================
 // COMMAND METADATA

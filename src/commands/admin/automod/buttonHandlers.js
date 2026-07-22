@@ -155,6 +155,10 @@ export async function handleAutomodConfigureButton(interaction) {
     case "ignoredchannels":
       modal = createIgnoredChannelsModal(settings);
       break;
+    case "invites":
+      return handleAutomodInvitesModal(interaction);
+    case "stats":
+      return handleAutomodStatsModal(interaction);
     default:
       return;
   }
@@ -762,6 +766,54 @@ export async function handleAutomodInviteToggle(interaction) {
   } catch (error) {
     logger.error("Error handling automod invite toggle", error);
     await handleAutomodError(interaction, "toggling the invite link filter");
+  }
+}
+
+export async function handleAutomodCapslockToggle(interaction) {
+  const logger = getLogger();
+
+  try {
+    const { getDatabaseManager } = await import(
+      "../../../utils/storage/databaseManager.js"
+    );
+
+    const dbManager = await getDatabaseManager();
+    const settings = await dbManager.automod.getByGuild(interaction.guild.id);
+
+    const newEnabled = !settings.capsLock?.enabled;
+
+    await dbManager.automod.set(interaction.guild.id, {
+      ...settings,
+      capsLock: {
+        ...settings.capsLock,
+        enabled: newEnabled,
+      },
+    });
+
+    const premiumManager = getPremiumManager();
+    const isPro = await premiumManager.isFeatureActive(
+      interaction.guild.id,
+      "pro_engine",
+    );
+
+    await updateAutomodMessage(
+      interaction,
+      {
+        ...settings,
+        capsLock: {
+          ...settings.capsLock,
+          enabled: newEnabled,
+        },
+      },
+      isPro,
+    );
+
+    logger.info(
+      `Caps lock filter ${newEnabled ? "enabled" : "disabled"} for guild ${interaction.guild.name} by user ${interaction.user.tag}`,
+    );
+  } catch (error) {
+    logger.error("Error handling automod caps lock toggle", error);
+    await handleAutomodError(interaction, "toggling the caps lock filter");
   }
 }
 

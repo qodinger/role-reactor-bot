@@ -257,14 +257,21 @@ export async function routeButtonInteraction(interaction, _client) {
         await handleAutomodBack(interaction);
         break;
       }
-      case "automod_toggle_all": {
+      case "automod_quick_setup": {
+        const { handleAutomodQuickSetup } = await import(
+          "../../../commands/admin/automod/buttonHandlers.js"
+        );
+        await handleAutomodQuickSetup(interaction);
+        break;
+      }
+      case "automod_enable_all": {
         const { handleAutomodToggleAll } = await import(
           "../../../commands/admin/automod/buttonHandlers.js"
         );
         await handleAutomodToggleAll(interaction);
         break;
       }
-      case "automod_toggle_all_off": {
+      case "automod_disable_all": {
         const { handleAutomodToggleAllOff } = await import(
           "../../../commands/admin/automod/buttonHandlers.js"
         );
@@ -304,6 +311,13 @@ export async function routeButtonInteraction(interaction, _client) {
           "../../../commands/admin/automod/buttonHandlers.js"
         );
         await handleAutomodInviteToggle(interaction);
+        break;
+      }
+      case "automod_capslock_toggle": {
+        const { handleAutomodCapslockToggle } = await import(
+          "../../../commands/admin/automod/buttonHandlers.js"
+        );
+        await handleAutomodCapslockToggle(interaction);
         break;
       }
 

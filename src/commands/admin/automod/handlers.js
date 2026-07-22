@@ -13,7 +13,11 @@ export async function handleAutomodSettings(interaction) {
       title: "Database Error",
       description: "Database error. Please try again.",
     });
-    return interaction.reply({ ...response, ephemeral: true });
+    if (interaction.deferred || interaction.replied) {
+      return interaction.editReply(response);
+    } else {
+      return interaction.reply({ ...response, ephemeral: true });
+    }
   }
 
   const settings = await dbManager.automod.getByGuild(guildId);
@@ -29,11 +33,18 @@ export async function handleAutomodSettings(interaction) {
   );
   const components = createAutomodSettingsComponents(settings);
 
-  return interaction.reply({
-    embeds: [embed],
-    components,
-    ephemeral: true,
-  });
+  if (interaction.deferred || interaction.replied) {
+    return interaction.editReply({
+      embeds: [embed],
+      components,
+    });
+  } else {
+    return interaction.reply({
+      embeds: [embed],
+      components,
+      ephemeral: true,
+    });
+  }
 }
 
 export async function updateSettingsAndReply(interaction, settings) {
