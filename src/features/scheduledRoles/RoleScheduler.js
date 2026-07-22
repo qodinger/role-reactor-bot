@@ -280,11 +280,11 @@ class RoleScheduler {
         if (!lastExecutedAt) {
           // First execution - execute now if enough time has passed since creation
           const createdAt = new Date(schedule.createdAt);
-          const intervalMs = (scheduleConfig.intervalMinutes || 60) * 60 * 1000;
+          const intervalMs = (scheduleConfig.intervalMinutes || scheduleConfig.interval || 60) * 60 * 1000;
           return now.getTime() - createdAt.getTime() >= intervalMs;
         }
 
-        const intervalMs = (scheduleConfig.intervalMinutes || 60) * 60 * 1000;
+        const intervalMs = (scheduleConfig.intervalMinutes || scheduleConfig.interval || 60) * 60 * 1000;
         const nextExecutionTime = lastExecutedAt.getTime() + intervalMs;
         return now.getTime() >= nextExecutionTime;
       }

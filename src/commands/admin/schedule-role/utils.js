@@ -368,7 +368,7 @@ export function getNextExecutionTime(scheduleConfig, scheduleType) {
 
       return nextExecution;
     } else if (scheduleType === "custom") {
-      const interval = scheduleConfig.intervalMinutes || 60;
+      const interval = scheduleConfig.intervalMinutes || scheduleConfig.interval || 60;
       return new Date(Date.now() + interval * 60 * 1000);
     }
     return null;

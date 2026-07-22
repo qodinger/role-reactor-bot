@@ -9,16 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Image Tools**: Introduced a new suite of Image Tools to the web dashboard, complete with dedicated backend API routes, extended request timeouts, and precise credit deduction support.
+- **Image Tools**: Introduced a suite of Image Tools to the web dashboard — **Resize**, **Compress**, **Convert**, and **Upscale**. Resize, Compress, and Convert include a free daily quota; additional usage and Upscale draw from your Core credits.
 <!-- - **Auto-Moderation System**: Keep your server safe automatically — for free. Six filters are available: bad words, link blocking, spam detection, mention spam, invite link blocking, and caps lock. Each filter can be set to delete the message, warn the user, kick, or ban. -->
 - **Timeout List**: New `/moderation timeouts` command to see all currently timed-out members in your server at a glance.
 - **Starboard System**: New `/starboard` command to highlight the best messages in your server. Configure a dedicated channel, emoji, and reaction threshold. Starred messages are automatically posted with a dynamic heat-map embed color (gold → orange → red based on star count), reply context, image previews, and support for video, audio, and file attachments.
 
 ### Fixed
 
-- **Image Tools**: Credits and free daily quota are now automatically refunded if image processing fails after a charge has been made, ensuring users are never billed for unsuccessful operations.
-- **Schedule Role**: Fixed an issue where recurring schedules (`weekly`, `monthly`) failed to execute because of incorrect execution time comparisons.
-- **Schedule Role**: Fixed a display bug where recurring schedules appeared as one-time "Pending" schedules and showed `<t:NaN:F>` in the view command.
+- **Schedule Role**: Fixed an issue where recurring schedules (`weekly`, `monthly`) failed to execute due to incorrect execution time comparisons, and corrected a display bug where they appeared as one-time "Pending" schedules showing `<t:NaN:F>`.
 
 ## [1.7.1] - 2026-04-01
 

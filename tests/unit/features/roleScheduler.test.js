@@ -368,6 +368,52 @@ describe("RoleScheduler – shouldExecuteRecurringSchedule", () => {
       });
       expect(await scheduler.shouldExecuteRecurringSchedule(schedule, now)).toBe(false);
     });
+
+    it("returns true using 'interval' field (slash command format) when interval has passed", async () => {
+      const lastExecutedAt = new Date(Date.now() - 70 * 60 * 1000); // 70 min ago
+      const now = new Date();
+      const schedule = buildSchedule({
+        scheduleType: "custom",
+        scheduleConfig: { interval: 60, unit: "minutes" },
+        lastExecutedAt: lastExecutedAt.toISOString(),
+      });
+      expect(await scheduler.shouldExecuteRecurringSchedule(schedule, now)).toBe(true);
+    });
+
+    it("returns false using 'interval' field when interval has not passed", async () => {
+      const lastExecutedAt = new Date(Date.now() - 30 * 60 * 1000); // 30 min ago
+      const now = new Date();
+      const schedule = buildSchedule({
+        scheduleType: "custom",
+        scheduleConfig: { interval: 60, unit: "minutes" },
+        lastExecutedAt: lastExecutedAt.toISOString(),
+      });
+      expect(await scheduler.shouldExecuteRecurringSchedule(schedule, now)).toBe(false);
+    });
+
+    it("returns true on first run using 'interval' field when enough time has elapsed", async () => {
+      const createdAt = new Date(Date.now() - 2 * 60 * 60 * 1000); // 2h ago
+      const now = new Date();
+      const schedule = buildSchedule({
+        scheduleType: "custom",
+        scheduleConfig: { interval: 60, unit: "minutes" },
+        lastExecutedAt: null,
+        createdAt: createdAt.toISOString(),
+      });
+      expect(await scheduler.shouldExecuteRecurringSchedule(schedule, now)).toBe(true);
+    });
+
+    it("falls back to 60 minutes when neither intervalMinutes nor interval is set", async () => {
+      const createdAt = new Date(Date.now() - 90 * 60 * 1000); // 90 min ago
+      const now = new Date();
+      const schedule = buildSchedule({
+        scheduleType: "custom",
+        scheduleConfig: {},
+        lastExecutedAt: null,
+        createdAt: createdAt.toISOString(),
+      });
+      expect(await scheduler.shouldExecuteRecurringSchedule(schedule, now)).toBe(true);
+    });
   });
 
   // ── Edge cases ───────────────────────────────────────────────────────────
