@@ -311,4 +311,12 @@ export class DatabaseProvider {
     }
     return false;
   }
+
+  // Image Tool Usage methods
+  async logImageToolUsage(usageData) {
+    if (this.dbManager?.imageToolUsage) {
+      return await this.dbManager.imageToolUsage.logUsage(usageData);
+    }
+    return false;
+  }
 }

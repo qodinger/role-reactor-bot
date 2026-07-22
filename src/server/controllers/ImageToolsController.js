@@ -1,4 +1,5 @@
 import { getLogger } from "../../utils/logger.js";
+import { getStorageManager } from "../../utils/storage/storageManager.js";
 import {
   createSuccessResponse,
   createErrorResponse,
@@ -17,10 +18,14 @@ import {
   getImageToolCost,
   FREE_DAILY_QUOTA,
 } from "../../config/imageTools.js";
-import { checkAndDeductSpecificCredits } from "../../utils/ai/aiCreditManager.js";
+import {
+  checkAndDeductSpecificCredits,
+  refundAICredits,
+} from "../../utils/ai/aiCreditManager.js";
 import {
   checkAndConsumeFreeTier,
   getFreeQuota,
+  refundFreeTier,
 } from "../../utils/image-tools/freeQuotaManager.js";
 
 const logger = getLogger();
@@ -38,8 +43,12 @@ const SHARP_TOOLS = ["resize", "compress", "convert"];
 export async function apiProcessImage(req, res) {
   logRequest(logger, "Image Tools Process", req, "🖼️");
 
+  let creditsDeducted = 0;
+  let toolConfig = null;
+  let userId = null;
+
   try {
-    const userId = req.user?.id;
+    userId = req.user?.id;
     if (!userId) {
       const { statusCode, response } = createErrorResponse(
         "Unauthorized: User ID required",
@@ -105,10 +114,10 @@ export async function apiProcessImage(req, res) {
     }
 
     // ── Credit / free-tier check ───────────────────────────────────────────
-    const toolConfig = getImageToolConfig(tool);
+    toolConfig = getImageToolConfig(tool);
     const creditCost = getImageToolCost(tool);
 
-    let creditsDeducted = 0;
+    creditsDeducted = 0;
     let creditsRemaining = null;
     let freeRemaining = null;
 
@@ -188,9 +197,63 @@ export async function apiProcessImage(req, res) {
     }
 
     res.set(responseHeaders);
-    return res.send(result.buffer);
+    const sentResponse = res.send(result.buffer);
+
+    try {
+      const storageManager = await getStorageManager();
+      if (storageManager) {
+        await storageManager.logImageToolUsage({
+          userId,
+          tool,
+          options,
+          isFree: creditsDeducted === 0,
+          creditsDeducted,
+          status: "success"
+        });
+      }
+    } catch (logError) {
+      logger.error("Failed to log image tool usage:", logError);
+    }
+
+    return sentResponse;
   } catch (error) {
     logger.error("Image tools processing error:", error);
+
+    // Refund credits or free tier quota if the processing failed
+    try {
+      if (creditsDeducted > 0) {
+        await refundAICredits(userId, creditsDeducted, "Image tool processing failed");
+      } else if (toolConfig?.freeDaily) {
+        // If it was free and we consumed a free tier
+        await refundFreeTier(userId);
+      }
+    } catch (refundError) {
+      logger.error("Failed to refund image tool usage:", refundError);
+    }
+
+    try {
+      const tool = req.body?.tool;
+      if (userId && tool) {
+        const storageManager = await getStorageManager();
+        if (storageManager) {
+          let parsedOptions = {};
+          if (req.body.options) {
+             try { parsedOptions = typeof req.body.options === "string" ? JSON.parse(req.body.options) : req.body.options; } catch(e){}
+          }
+          await storageManager.logImageToolUsage({
+            userId,
+            tool,
+            options: parsedOptions,
+            isFree: false, // Don't care much since it failed
+            creditsDeducted: 0,
+            status: "failed",
+            error: error.message
+          });
+        }
+      }
+    } catch (logError) {
+      logger.error("Failed to log failed image tool usage:", logError);
+    }
 
     const { statusCode, response } = createErrorResponse(
       "Failed to process image",

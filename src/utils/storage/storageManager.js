@@ -510,6 +510,14 @@ class StorageManager {
     return false;
   }
 
+  // Image Tool Usage methods
+  async logImageToolUsage(usageData) {
+    if (this.provider instanceof DatabaseProvider) {
+      return await this.provider.logImageToolUsage(usageData);
+    }
+    return false;
+  }
+
   // Generic storage methods
   async read(collection) {
     if (this.provider instanceof DatabaseProvider) {

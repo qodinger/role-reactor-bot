@@ -113,3 +113,32 @@ export async function getFreeQuota(userId) {
     return { remaining: 0, total: FREE_DAILY_QUOTA, resetsAt: null };
   }
 }
+
+/**
+ * Refund a free tier operation (decrement the count).
+ * Useful when an operation fails after consuming quota.
+ *
+ * @param {string} userId - Discord user ID
+ * @returns {Promise<boolean>} True if refunded, false otherwise
+ */
+export async function refundFreeTier(userId) {
+  try {
+    const col = await getCollection();
+    const date = todayUTC();
+    
+    // Only decrement if count is greater than 0
+    const result = await col.updateOne(
+      { userId, date, count: { $gt: 0 } },
+      { $inc: { count: -1 } }
+    );
+    
+    if (result.modifiedCount > 0) {
+      logger.debug(`[FreeQuota] Refunded 1 free operation for ${userId}`);
+      return true;
+    }
+    return false;
+  } catch (error) {
+    logger.error(`[FreeQuota] Error refunding free tier for ${userId}:`, error);
+    return false;
+  }
+}
