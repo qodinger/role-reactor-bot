@@ -238,7 +238,7 @@ export async function apiProcessImage(req, res) {
         if (storageManager) {
           let parsedOptions = {};
           if (req.body.options) {
-             try { parsedOptions = typeof req.body.options === "string" ? JSON.parse(req.body.options) : req.body.options; } catch(e){}
+             try { parsedOptions = typeof req.body.options === "string" ? JSON.parse(req.body.options) : req.body.options; } catch(_e){}
           }
           await storageManager.logImageToolUsage({
             userId,
