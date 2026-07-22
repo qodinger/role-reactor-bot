@@ -5,13 +5,91 @@ import {
   bulkRemoveRoles,
   getCachedMember,
 } from "../../utils/discord/roleManager.js";
-import { getNextExecutionTime } from "../../commands/admin/schedule-role/utils.js";
+
 import { getRoleExecutor } from "./RoleExecutor.js";
 import {
   getUsersCorePriority,
   sortByCorePriority,
   logPriorityDistribution,
 } from "../../commands/general/core/utils.js";
+
+/**
+ * Calculate the most recent past occurrence of a recurring schedule.
+ * Unlike getNextExecutionTime (which always returns a future date), this
+ * returns the scheduled time that has already passed so we can check whether
+ * we're within the 5-minute execution window.
+ *
+ * @param {Object} scheduleConfig - The parsed schedule configuration
+ * @param {string} scheduleType  - "daily" | "weekly" | "monthly"
+ * @param {Date}   now           - Reference point (usually new Date())
+ * @returns {Date|null} The most recent past occurrence, or null on error
+ */
+function getLastOccurrenceTime(scheduleConfig, scheduleType, now) {
+  try {
+    if (scheduleType === "daily") {
+      const hour = scheduleConfig.hour ?? 0;
+      const minute = scheduleConfig.minute ?? 0;
+
+      const occurrence = new Date(now);
+      occurrence.setHours(hour, minute, 0, 0);
+
+      // If today's occurrence is still in the future, use yesterday's
+      if (occurrence > now) {
+        occurrence.setDate(occurrence.getDate() - 1);
+      }
+
+      return occurrence;
+    } else if (scheduleType === "weekly") {
+      const dayOfWeek = scheduleConfig.dayOfWeek ?? 0;
+      const hour = scheduleConfig.hour ?? 0;
+      const minute = scheduleConfig.minute ?? 0;
+
+      const occurrence = new Date(now);
+      occurrence.setHours(hour, minute, 0, 0);
+
+      const currentDay = now.getDay();
+      let daysBack = currentDay - dayOfWeek;
+
+      if (daysBack < 0) {
+        daysBack += 7; // target day was earlier this week (wrap to last week)
+      }
+
+      occurrence.setDate(now.getDate() - daysBack);
+
+      // If we ended up in the future (same day but time hasn't passed yet),
+      // go back one full week.
+      if (occurrence > now) {
+        occurrence.setDate(occurrence.getDate() - 7);
+      }
+
+      return occurrence;
+    } else if (scheduleType === "monthly") {
+      const dayOfMonth = scheduleConfig.dayOfMonth ?? 1;
+      const hour = scheduleConfig.hour ?? 0;
+      const minute = scheduleConfig.minute ?? 0;
+
+      const occurrence = new Date(now);
+      occurrence.setDate(dayOfMonth);
+      occurrence.setHours(hour, minute, 0, 0);
+
+      // If this month's occurrence is still in the future, use last month's
+      if (occurrence > now) {
+        occurrence.setMonth(occurrence.getMonth() - 1);
+        // Handle edge cases (e.g. day 31 in a 30-day month)
+        if (occurrence.getDate() !== dayOfMonth) {
+          occurrence.setDate(0); // last day of the month before
+        }
+      }
+
+      return occurrence;
+    }
+
+    return null;
+  } catch (error) {
+    getLogger().error("Error calculating last occurrence time:", error);
+    return null;
+  }
+}
 
 class RoleScheduler {
   constructor(client) {
@@ -188,32 +266,17 @@ class RoleScheduler {
     }
 
     try {
-      // Calculate next execution time
-      const nextExecution = getNextExecutionTime(scheduleConfig, scheduleType);
-
-      if (!nextExecution) {
-        return false;
-      }
-
-      // Check if it's time to execute (allow 5 minute window)
-      const timeDiff = now.getTime() - nextExecution.getTime();
-      const windowMs = 5 * 60 * 1000; // 5 minutes
-
-      // Check if we haven't executed recently (avoid duplicate executions)
-      const lastExecutedAt = schedule.lastExecutedAt
-        ? new Date(schedule.lastExecutedAt)
-        : null;
-      const minIntervalMs = 60000; // 1 minute minimum between executions
-
-      if (
-        lastExecutedAt &&
-        now.getTime() - lastExecutedAt.getTime() < minIntervalMs
-      ) {
-        return false;
-      }
-
       // For custom intervals, check based on last execution time
       if (scheduleType === "custom") {
+        const lastExecutedAt = schedule.lastExecutedAt
+          ? new Date(schedule.lastExecutedAt)
+          : null;
+        const minIntervalMs = 60000; // 1 minute minimum between executions
+
+        if (lastExecutedAt && now.getTime() - lastExecutedAt.getTime() < minIntervalMs) {
+          return false;
+        }
+
         if (!lastExecutedAt) {
           // First execution - execute now if enough time has passed since creation
           const createdAt = new Date(schedule.createdAt);
@@ -226,8 +289,38 @@ class RoleScheduler {
         return now.getTime() >= nextExecutionTime;
       }
 
-      // For daily, weekly, monthly - check if within execution window
-      return timeDiff >= 0 && timeDiff <= windowMs;
+      // For daily, weekly, monthly - calculate the most recent past occurrence
+      // and check if we're within the execution window and haven't run since then.
+      const lastOccurrence = getLastOccurrenceTime(scheduleConfig, scheduleType, now);
+
+      if (!lastOccurrence) {
+        return false;
+      }
+
+      const windowMs = 5 * 60 * 1000; // 5 minutes
+
+      // We must be within the execution window after the last scheduled occurrence
+      const timeSinceOccurrence = now.getTime() - lastOccurrence.getTime();
+      if (timeSinceOccurrence < 0 || timeSinceOccurrence > windowMs) {
+        return false;
+      }
+
+      // Check we haven't already executed this occurrence
+      const lastExecutedAt = schedule.lastExecutedAt
+        ? new Date(schedule.lastExecutedAt)
+        : null;
+      const minIntervalMs = 60000; // 1 minute minimum between executions
+
+      if (lastExecutedAt && now.getTime() - lastExecutedAt.getTime() < minIntervalMs) {
+        return false;
+      }
+
+      // Ensure the last execution was before this occurrence (not for a previous cycle)
+      if (lastExecutedAt && lastExecutedAt >= lastOccurrence) {
+        return false;
+      }
+
+      return true;
     } catch (error) {
       this.logger.error(
         `Error checking if recurring schedule should execute:`,

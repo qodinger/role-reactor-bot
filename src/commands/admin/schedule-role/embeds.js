@@ -150,9 +150,9 @@ export function createScheduleListEmbed(
   // Group schedules into a cleaner format
   for (const schedule of schedules) {
     const scheduleType =
-      schedule.type ||
+      schedule.scheduleType ||
       (schedule.active !== undefined ? "recurring" : "one-time");
-    const isRecurring = scheduleType === "recurring";
+    const isRecurring = scheduleType !== "one-time";
 
     // Determine status
     let statusText = "";
@@ -198,7 +198,7 @@ export function createScheduleListEmbed(
     const actionText = schedule.action === "assign" ? "Assign" : "Remove";
 
     embed.addFields({
-      name: `${statusColor} ${actionText} • ${scheduleType === "recurring" ? "Recurring" : "One-time"}`,
+      name: `${statusColor} ${actionText} • ${isRecurring ? "Recurring" : "One-time"}`,
       value: `**ID:** \`${schedule.id}\`\n**Status:** ${statusText}\n**Users:** ${usersCount}\n**Schedule:** ${scheduleText}`,
       inline: false,
     });
@@ -211,7 +211,7 @@ export function createScheduleListEmbed(
  * Create the schedule view embed
  */
 export function createScheduleViewEmbed(schedule, scheduleType, guild, client) {
-  const isRecurring = scheduleType === "recurring";
+  const isRecurring = scheduleType !== "one-time";
   const action = schedule.action === "assign" ? "Assign" : "Remove";
 
   // Determine status

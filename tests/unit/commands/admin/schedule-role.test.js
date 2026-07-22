@@ -782,3 +782,141 @@ describe("Schedule Role - Schedule Parsing", () => {
     });
   });
 });
+
+import { createScheduleListEmbed, createScheduleViewEmbed, createScheduleEmbed } from "../../../../src/commands/admin/schedule-role/embeds.js";
+
+describe("Schedule Role - Embeds Generation", () => {
+  const mockGuild = {
+    name: "Test Guild",
+    roles: {
+      cache: {
+        get: (id) => ({
+          id,
+          name: "Test Role",
+          toString: () => `<@&${id}>`,
+          iconURL: () => "https://example.com/icon.png"
+        })
+      }
+    }
+  };
+
+  const mockClient = {
+    user: {
+      displayAvatarURL: () => "https://example.com/avatar.png"
+    }
+  };
+
+  describe("createScheduleListEmbed", () => {
+    it("should correctly identify and format a weekly recurring schedule as Recurring", () => {
+      const schedule = {
+        id: "weekly-123",
+        guildId: "guild1",
+        action: "assign",
+        roleId: "role1",
+        userIds: ["user1"],
+        scheduleType: "weekly",
+        scheduleConfig: { type: "weekly", dayOfWeek: 2, hour: 10, minute: 0 },
+        active: true,
+        cancelled: false,
+        createdAt: new Date().toISOString()
+      };
+
+      const embed = createScheduleListEmbed([schedule], mockGuild, 1, 1, 1, mockClient);
+      
+      const field = embed.data.fields.find(f => f.name.includes("weekly-123") || f.value.includes("weekly-123"));
+      
+      expect(field).toBeDefined();
+      // "Recurring" string should be present in the field name
+      expect(field.name).toContain("Recurring");
+      expect(field.name).not.toContain("One-time");
+      // Status should be Active, not Pending
+      expect(field.value).toContain("Active");
+    });
+
+    it("should correctly identify a one-time schedule", () => {
+      const schedule = {
+        id: "onetime-123",
+        guildId: "guild1",
+        action: "assign",
+        roleId: "role1",
+        userIds: ["user1"],
+        scheduleType: "one-time",
+        scheduledAt: new Date(Date.now() + 86400000).toISOString(), // Tomorrow
+        executed: false,
+        cancelled: false,
+        createdAt: new Date().toISOString()
+      };
+
+      const embed = createScheduleListEmbed([schedule], mockGuild, 1, 1, 1, mockClient);
+      
+      const field = embed.data.fields.find(f => f.value.includes("onetime-123"));
+      
+      expect(field).toBeDefined();
+      expect(field.name).toContain("One-time");
+      expect(field.name).not.toContain("Recurring");
+      expect(field.value).toContain("Pending");
+    });
+  });
+
+  describe("createScheduleViewEmbed", () => {
+    it("should correctly format a monthly recurring schedule as Recurring", () => {
+      const schedule = {
+        id: "monthly-123",
+        guildId: "guild1",
+        action: "remove",
+        roleId: "role1",
+        userIds: ["user1", "user2"],
+        scheduleType: "monthly",
+        scheduleConfig: { type: "monthly", dayOfMonth: 15, hour: 12, minute: 30 },
+        active: true,
+        cancelled: false,
+        createdBy: "admin1",
+        createdAt: new Date().toISOString()
+      };
+
+      const embed = createScheduleViewEmbed(schedule, "monthly", mockGuild, mockClient);
+      
+      // Description should contain "Recurring"
+      expect(embed.data.description).toContain("Recurring");
+      expect(embed.data.description).not.toContain("One-time");
+
+      const infoField = embed.data.fields.find(f => f.name === "Schedule Information");
+      expect(infoField.value).toContain("**Type:** Recurring");
+      expect(infoField.value).toContain("**Status:** Active");
+
+      // Should have "Recurring Schedule" details field instead of "One-time Schedule"
+      const detailsField = embed.data.fields.find(f => f.name === "Recurring Schedule");
+      expect(detailsField).toBeDefined();
+      expect(embed.data.fields.find(f => f.name === "One-time Schedule")).toBeUndefined();
+    });
+
+    it("should correctly format a one-time schedule", () => {
+      const schedule = {
+        id: "onetime-456",
+        guildId: "guild1",
+        action: "assign",
+        roleId: "role1",
+        userIds: ["user1"],
+        scheduleType: "one-time",
+        scheduledAt: new Date(Date.now() + 86400000).toISOString(),
+        executed: false,
+        cancelled: false,
+        createdBy: "admin1",
+        createdAt: new Date().toISOString()
+      };
+
+      const embed = createScheduleViewEmbed(schedule, "one-time", mockGuild, mockClient);
+      
+      expect(embed.data.description).toContain("One-time");
+      
+      const infoField = embed.data.fields.find(f => f.name === "Schedule Information");
+      expect(infoField.value).toContain("**Type:** One-time");
+      expect(infoField.value).toContain("**Status:** Pending");
+
+      const detailsField = embed.data.fields.find(f => f.name === "One-time Schedule");
+      expect(detailsField).toBeDefined();
+      // Should not show <t:NaN:F>
+      expect(detailsField.value).not.toContain("NaN");
+    });
+  });
+});
