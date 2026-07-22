@@ -36,15 +36,16 @@ A powerful Discord bot that helps you manage your server with role management, A
 - **🎁 Giveaway System**: Full-featured giveaways with bonus entries, claim periods, requirements, and rerolling
 - **🎉 Welcome System**: Auto-welcome new members with customizable messages and auto-role assignment
 - **👋 Goodbye System**: Auto-goodbye messages when members leave with customizable placeholders
-- **🛡️ Auto-Mod System**: Automatic content filtering with bad words, links, spam, mention spam, and invite link filters
+<!-- - **🛡️ Auto-Mod System**: Automatic content filtering with bad words, links, spam, mention spam, and invite link filters -->
 - **🛡️ Moderation System**: Bulk timeout, warn, ban, kick, purge, and history tracking (up to 15 users at once)
+- **⭐ Starboard System**: Highlight the best messages in your server with a community-driven hall of fame
 - **🎫 Ticket System**: Complete support ticket system with panels, transcripts, and lifecycle management
 - **🎙️ Voice Control**: Automatically manage users in voice channels based on roles (disconnect, mute, deafen, move)
 - **📊 XP System**: Configurable experience system with level progression and leaderboards
 - **📊 Poll System**: Create and manage native Discord polls with interactive forms
 - **💎 Core Credit System**: Credit-based economy with crypto payment integration and Pro Engine upgrades
 - **🗳️ Voting Rewards**: Earn Core Credits automatically by voting for the bot on top.gg
-- **🎨 AI Avatar Generation**: AI-powered avatar generation with multiple style options
+<!-- - **🎨 AI Avatar Generation**: AI-powered avatar generation with multiple style options -->
 - **🔔 Notification System**: Web dashboard notifications for balance, purchases, and Pro Engine status
 - **📈 Health Monitoring**: Built-in health checks and performance metrics
 - **📝 Structured Logging**: Enterprise-grade logging with file output
@@ -227,8 +228,9 @@ Upgrade your server with the **Pro Engine** for enhanced limits and features:
 | Role Reactions     | 10 emojis, 3 menus | **20 emojis, 8 menus** |
 | XP Rewards         | 5 (Stack)          | **Unlimited**           |
 | Ticket Transcripts | Text               | **HTML/JSON**           |
-| Auto-Mod Filters   | 5                  | **7 advanced**          |
+<!-- | Auto-Mod Filters   | 5                  | **7 advanced**          | -->
 
+<!--
 ### Auto-Mod Pro Features:
 
 - Domain Allowlisting (whitelist trusted domains)
@@ -237,6 +239,7 @@ Upgrade your server with the **Pro Engine** for enhanced limits and features:
 - Per-Channel Filtering
 - Analytics & Statistics
 - Export Moderation Logs
+-->
 
 See [Core Energy Guide](./docs/CORE_ENERGY.md) for details on activation and pricing.
 
