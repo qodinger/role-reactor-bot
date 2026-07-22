@@ -203,11 +203,11 @@ export async function handleTimeout(interaction, client) {
         );
         await targetUser.send({ embeds: [dmEmbed] });
         logger.debug(
-          `📧 Sent timeout DM to ${targetUser.tag} (${targetUser.id})`,
+          `📧 Sent timeout DM to ${targetUser.username} (${targetUser.id})`,
         );
       } catch (dmError) {
         logger.debug(
-          `${EMOJIS.MODERATION.WARN} Could not send timeout DM to ${targetUser.tag} (${targetUser.id}): ${dmError.message}`,
+          `${EMOJIS.MODERATION.WARN} Could not send timeout DM to ${targetUser.username} (${targetUser.id}): ${dmError.message}`,
         );
       }
 
@@ -222,7 +222,7 @@ export async function handleTimeout(interaction, client) {
       await interaction.editReply({ embeds: [embed] });
 
       logger.info(
-        `${EMOJIS.MODERATION.TIMEOUT} User ${targetUser.tag} (${targetUser.id}) timed out by ${interaction.user.tag} (${interaction.user.id}) for ${formatDuration(durationValidation.milliseconds)} - Reason: ${reason}`,
+        `${EMOJIS.MODERATION.TIMEOUT} User ${targetUser.username} (${targetUser.id}) timed out by ${interaction.user.username} (${interaction.user.id}) for ${formatDuration(durationValidation.milliseconds)} - Reason: ${reason}`,
       );
       return;
     }
@@ -295,7 +295,7 @@ export async function handleTimeout(interaction, client) {
           await user.send({ embeds: [dmEmbed] });
         } catch (dmError) {
           logger.debug(
-            `Failed to send timeout DM to ${user.tag}: ${dmError.message}`,
+            `Failed to send timeout DM to ${user.username}: ${dmError.message}`,
           );
         }
 
@@ -322,7 +322,7 @@ export async function handleTimeout(interaction, client) {
 
     await interaction.editReply({ embeds: [embed] });
     logger.info(
-      `${EMOJIS.MODERATION.TIMEOUT} Timeout: ${results.success.length} succeeded, ${results.failed.length} failed by ${interaction.user.tag} (${interaction.user.id})`,
+      `${EMOJIS.MODERATION.TIMEOUT} Timeout: ${results.success.length} succeeded, ${results.failed.length} failed by ${interaction.user.username} (${interaction.user.id})`,
     );
   } catch (error) {
     logger.error("Error handling timeout:", error);
@@ -416,11 +416,11 @@ export async function handleWarn(interaction, client) {
         );
         await targetUser.send({ embeds: [dmEmbed] });
         logger.debug(
-          `📧 Sent warning DM to ${targetUser.tag} (${targetUser.id})`,
+          `📧 Sent warning DM to ${targetUser.username} (${targetUser.id})`,
         );
       } catch (dmError) {
         logger.debug(
-          `${EMOJIS.MODERATION.WARN} Could not send warning DM to ${targetUser.tag} (${targetUser.id}): ${dmError.message}`,
+          `${EMOJIS.MODERATION.WARN} Could not send warning DM to ${targetUser.username} (${targetUser.id}): ${dmError.message}`,
         );
       }
 
@@ -447,11 +447,11 @@ export async function handleWarn(interaction, client) {
           escalationAction = "kick";
           escalationMessage = `User was automatically kicked after reaching ${warnCount} warnings (threshold: ${kickAfterWarnings})`;
           logger.info(
-            `${EMOJIS.MODERATION.KICK} Auto-kicked ${targetUser.tag} (${targetUser.id}) after ${warnCount} warnings`,
+            `${EMOJIS.MODERATION.KICK} Auto-kicked ${targetUser.username} (${targetUser.id}) after ${warnCount} warnings`,
           );
         } catch (kickError) {
           logger.error(
-            `Failed to auto-kick ${targetUser.tag} after ${warnCount} warnings:`,
+            `Failed to auto-kick ${targetUser.username} after ${warnCount} warnings:`,
             kickError,
           );
         }
@@ -472,12 +472,12 @@ export async function handleWarn(interaction, client) {
             escalationAction = "timeout";
             escalationMessage = `User was automatically timed out for ${formatDuration(durationValidation.milliseconds)} after reaching ${warnCount} warnings (threshold: ${timeoutAfterWarnings})`;
             logger.info(
-              `${EMOJIS.MODERATION.TIMEOUT} Auto-timed out ${targetUser.tag} (${targetUser.id}) after ${warnCount} warnings`,
+              `${EMOJIS.MODERATION.TIMEOUT} Auto-timed out ${targetUser.username} (${targetUser.id}) after ${warnCount} warnings`,
             );
           }
         } catch (timeoutError) {
           logger.error(
-            `Failed to auto-timeout ${targetUser.tag} after ${warnCount} warnings:`,
+            `Failed to auto-timeout ${targetUser.username} after ${warnCount} warnings:`,
             timeoutError,
           );
         }
@@ -495,7 +495,7 @@ export async function handleWarn(interaction, client) {
       await interaction.editReply({ embeds: [embed] });
 
       logger.info(
-        `${EMOJIS.MODERATION.WARN} User ${targetUser.tag} (${targetUser.id}) warned by ${interaction.user.tag} (${interaction.user.id}) - Reason: ${reason} (Total warnings: ${warnCount})${escalationAction ? ` - Auto-${escalationAction} triggered` : ""}`,
+        `${EMOJIS.MODERATION.WARN} User ${targetUser.username} (${targetUser.id}) warned by ${interaction.user.username} (${interaction.user.id}) - Reason: ${reason} (Total warnings: ${warnCount})${escalationAction ? ` - Auto-${escalationAction} triggered` : ""}`,
       );
       return;
     }
@@ -587,7 +587,7 @@ export async function handleWarn(interaction, client) {
             await user.send({ embeds: [dmEmbed] });
           } catch (dmError) {
             logger.debug(
-              `Failed to send warning DM to ${user.tag}: ${dmError.message}`,
+              `Failed to send warning DM to ${user.username}: ${dmError.message}`,
             );
           }
 
@@ -600,10 +600,10 @@ export async function handleWarn(interaction, client) {
               );
               escalationNote = ` (auto-kicked at ${warnCount} warnings)`;
               logger.info(
-                `${EMOJIS.MODERATION.KICK} Auto-kicked ${user.tag} (${user.id}) after ${warnCount} warnings`,
+                `${EMOJIS.MODERATION.KICK} Auto-kicked ${user.username} (${user.id}) after ${warnCount} warnings`,
               );
             } catch (kickError) {
-              logger.error(`Failed to auto-kick ${user.tag}:`, kickError);
+              logger.error(`Failed to auto-kick ${user.username}:`, kickError);
             }
           } else if (
             timeoutAfterWarnings > 0 &&
@@ -619,11 +619,11 @@ export async function handleWarn(interaction, client) {
                 );
                 escalationNote = ` (auto-timed out at ${warnCount} warnings)`;
                 logger.info(
-                  `${EMOJIS.MODERATION.TIMEOUT} Auto-timed out ${user.tag} (${user.id}) after ${warnCount} warnings`,
+                  `${EMOJIS.MODERATION.TIMEOUT} Auto-timed out ${user.username} (${user.id}) after ${warnCount} warnings`,
                 );
               }
             } catch (timeoutError) {
-              logger.error(`Failed to auto-timeout ${user.tag}:`, timeoutError);
+              logger.error(`Failed to auto-timeout ${user.username}:`, timeoutError);
             }
           }
 
@@ -650,7 +650,7 @@ export async function handleWarn(interaction, client) {
 
       await interaction.editReply({ embeds: [embed] });
       logger.info(
-        `${EMOJIS.MODERATION.WARN} Warn: ${results.success.length} succeeded, ${results.failed.length} failed by ${interaction.user.tag} (${interaction.user.id})`,
+        `${EMOJIS.MODERATION.WARN} Warn: ${results.success.length} succeeded, ${results.failed.length} failed by ${interaction.user.username} (${interaction.user.id})`,
       );
     }
   } catch (error) {
@@ -754,7 +754,7 @@ export async function handleBan(interaction, client) {
           await executeWithRateLimitHandling(
             () =>
               interaction.guild.members.ban(user.id, {
-                reason: `${reason} (Ban by ${interaction.user.tag})`,
+                reason: `${reason} (Ban by ${interaction.user.username})`,
                 deleteMessageDays: deleteDays,
               }),
             3,
@@ -774,7 +774,7 @@ export async function handleBan(interaction, client) {
             await user.send({ embeds: [dmEmbed] });
           } catch (dmError) {
             logger.debug(
-              `Failed to send ban DM to ${user.tag}: ${dmError.message}`,
+              `Failed to send ban DM to ${user.username}: ${dmError.message}`,
             );
           }
 
@@ -803,7 +803,7 @@ export async function handleBan(interaction, client) {
 
       await interaction.editReply({ embeds: [embed] });
       logger.info(
-        `${EMOJIS.MODERATION.BAN} Ban: ${results.success.length} succeeded, ${results.failed.length} failed by ${interaction.user.tag} (${interaction.user.id})`,
+        `${EMOJIS.MODERATION.BAN} Ban: ${results.success.length} succeeded, ${results.failed.length} failed by ${interaction.user.username} (${interaction.user.id})`,
       );
       return;
     }
@@ -899,7 +899,7 @@ export async function handleKick(interaction, client) {
 
           // Execute kick with rate limit handling
           await executeWithRateLimitHandling(
-            () => member.kick(`${reason} (Kick by ${interaction.user.tag})`),
+            () => member.kick(`${reason} (Kick by ${interaction.user.username})`),
             3,
           );
 
@@ -920,7 +920,7 @@ export async function handleKick(interaction, client) {
             await user.send({ embeds: [dmEmbed] });
           } catch (dmError) {
             logger.debug(
-              `Failed to send kick DM to ${user.tag}: ${dmError.message}`,
+              `Failed to send kick DM to ${user.username}: ${dmError.message}`,
             );
           }
 
@@ -947,7 +947,7 @@ export async function handleKick(interaction, client) {
 
       await interaction.editReply({ embeds: [embed] });
       logger.info(
-        `${EMOJIS.MODERATION.KICK} Kick: ${results.success.length} succeeded, ${results.failed.length} failed by ${interaction.user.tag} (${interaction.user.id})`,
+        `${EMOJIS.MODERATION.KICK} Kick: ${results.success.length} succeeded, ${results.failed.length} failed by ${interaction.user.username} (${interaction.user.id})`,
       );
       return;
     }
@@ -1037,7 +1037,7 @@ export async function handleUnban(interaction, client) {
           () =>
             interaction.guild.members.unban(
               user.id,
-              `Unbanned by ${interaction.user.tag}`,
+              `Unbanned by ${interaction.user.username}`,
             ),
           3,
         );
@@ -1048,17 +1048,17 @@ export async function handleUnban(interaction, client) {
           userId: user.id,
           moderatorId: interaction.user.id,
           action: "unban",
-          reason: `Unbanned by ${interaction.user.tag}`,
+          reason: `Unbanned by ${interaction.user.username}`,
         });
 
         // Send DM notification to user (if possible)
         try {
           const dmEmbed = createUnbanDMEmbed(interaction.guild, caseId);
           await user.send({ embeds: [dmEmbed] });
-          logger.debug(`📧 Sent unban DM to ${user.tag} (${user.id})`);
+          logger.debug(`📧 Sent unban DM to ${user.username} (${user.id})`);
         } catch (dmError) {
           logger.debug(
-            `${EMOJIS.MODERATION.WARN} Could not send unban DM to ${user.tag} (${user.id}): ${dmError.message}`,
+            `${EMOJIS.MODERATION.WARN} Could not send unban DM to ${user.username} (${user.id}): ${dmError.message}`,
           );
         }
 
@@ -1080,13 +1080,13 @@ export async function handleUnban(interaction, client) {
       results.success.map(r => r.user),
       results.failed.map(r => ({ user: r.user, error: r.error })),
       null,
-      `Unbanned by ${interaction.user.tag}`,
+      `Unbanned by ${interaction.user.username}`,
     );
 
     await interaction.editReply({ embeds: [embed] });
 
     logger.info(
-      `${EMOJIS.MODERATION.UNBAN} Unban: ${results.success.length} succeeded, ${results.failed.length} failed by ${interaction.user.tag} (${interaction.user.id})`,
+      `${EMOJIS.MODERATION.UNBAN} Unban: ${results.success.length} succeeded, ${results.failed.length} failed by ${interaction.user.username} (${interaction.user.id})`,
     );
   } catch (error) {
     logger.error("Error handling unban:", error);
@@ -1181,7 +1181,7 @@ export async function handlePurge(interaction, _client) {
     await interaction.editReply({ embeds: [embed] });
 
     logger.info(
-      `🧹 ${deleted.size} message(s) purged in ${channel.name} (${channel.id}) by ${interaction.user.tag} (${interaction.user.id})${messages.size > deletableMessages.size ? ` (${messages.size - deletableMessages.size} skipped - too old)` : ""}`,
+      `🧹 ${deleted.size} message(s) purged in ${channel.name} (${channel.id}) by ${interaction.user.username} (${interaction.user.id})${messages.size > deletableMessages.size ? ` (${messages.size - deletableMessages.size} skipped - too old)` : ""}`,
     );
   } catch (error) {
     logger.error("Error handling purge:", error);
@@ -1228,7 +1228,7 @@ export async function handleHistory(interaction, client) {
         try {
           const user = await client.users.fetch(userId).catch(() => null);
           if (user) {
-            userMap.set(userId, user.tag);
+            userMap.set(userId, user.username);
           }
         } catch {
           // Keep user ID if fetch fails
@@ -1264,7 +1264,7 @@ export async function handleHistory(interaction, client) {
       });
 
       logger.info(
-        `📋 Server moderation history viewed by ${interaction.user.tag} (${interaction.user.id}) - ${history.length} total actions, ${warnCount} warnings`,
+        `📋 Server moderation history viewed by ${interaction.user.username} (${interaction.user.id}) - ${history.length} total actions, ${warnCount} warnings`,
       );
     } else {
       // Get moderation history for specific user
@@ -1273,7 +1273,7 @@ export async function handleHistory(interaction, client) {
       if (history.length === 0) {
         const embed = createModerationErrorEmbed(
           "No History Found",
-          `${targetUser.tag} has no moderation history.`,
+          `${targetUser.username} has no moderation history.`,
         );
         return interaction.editReply({ embeds: [embed] });
       }
@@ -1309,7 +1309,7 @@ export async function handleHistory(interaction, client) {
       });
 
       logger.info(
-        `📋 Moderation history viewed for ${targetUser.tag} (${targetUser.id}) by ${interaction.user.tag} (${interaction.user.id}) - ${history.length} total actions, ${warnCount} warnings`,
+        `📋 Moderation history viewed for ${targetUser.username} (${targetUser.id}) by ${interaction.user.username} (${interaction.user.id}) - ${history.length} total actions, ${warnCount} warnings`,
       );
     }
   } catch (error) {
@@ -1379,7 +1379,7 @@ export async function handleHistoryPagination(interaction, client) {
         try {
           const user = await client.users.fetch(userId).catch(() => null);
           if (user) {
-            userMap.set(userId, user.tag);
+            userMap.set(userId, user.username);
           }
         } catch {
           // Keep user ID if fetch fails
@@ -1414,7 +1414,7 @@ export async function handleHistoryPagination(interaction, client) {
       });
 
       logger.debug(
-        `📋 Server moderation history pagination: page ${currentPage}/${totalPages} by ${interaction.user.tag}`,
+        `📋 Server moderation history pagination: page ${currentPage}/${totalPages} by ${interaction.user.username}`,
       );
     } else {
       // User-specific history
@@ -1448,7 +1448,7 @@ export async function handleHistoryPagination(interaction, client) {
       if (history.length === 0) {
         const embed = createModerationErrorEmbed(
           "No History Found",
-          `${targetUser.tag} has no moderation history.`,
+          `${targetUser.username} has no moderation history.`,
         );
         await interaction.update({ embeds: [embed], components: [] });
         return;
@@ -1485,7 +1485,7 @@ export async function handleHistoryPagination(interaction, client) {
       });
 
       logger.debug(
-        `📋 Moderation history pagination: page ${currentPage}/${totalPages} for ${targetUser.tag} (${targetUser.id}) by ${interaction.user.tag}`,
+        `📋 Moderation history pagination: page ${currentPage}/${totalPages} for ${targetUser.username} (${targetUser.id}) by ${interaction.user.username}`,
       );
     }
   } catch (error) {
@@ -1563,7 +1563,7 @@ export async function handleRemoveWarn(interaction, _client) {
       .setColor(THEME.SUCCESS)
       .setTitle("Warning Removed")
       .setDescription(
-        `Warning **${caseId}** has been removed from **${targetUser.tag}**`,
+        `Warning **${caseId}** has been removed from **${targetUser.username}**`,
       )
       .addFields({
         name: "Remaining Warnings",
@@ -1576,7 +1576,7 @@ export async function handleRemoveWarn(interaction, _client) {
     await interaction.editReply({ embeds: [embed] });
 
     logger.info(
-      `🗑️ Warning ${caseId} removed from ${targetUser.tag} (${targetUser.id}) by ${interaction.user.tag} (${interaction.user.id}) - Remaining warnings: ${warnCount}`,
+      `🗑️ Warning ${caseId} removed from ${targetUser.username} (${targetUser.id}) by ${interaction.user.username} (${interaction.user.id}) - Remaining warnings: ${warnCount}`,
     );
   } catch (error) {
     logger.error("Error handling remove-warn:", error);
@@ -1611,7 +1611,7 @@ export async function handleListBans(interaction, _client) {
     const bansArray = Array.from(bans.values());
 
     // Sort by username for consistency
-    bansArray.sort((a, b) => a.user.tag.localeCompare(b.user.tag));
+    bansArray.sort((a, b) => a.user.username.localeCompare(b.user.username));
 
     // Create embed
     const embed = createBansListEmbed(bansArray, bansArray.length);
@@ -1619,7 +1619,7 @@ export async function handleListBans(interaction, _client) {
     await interaction.editReply({ embeds: [embed] });
 
     logger.info(
-      `📋 Banned users list viewed by ${interaction.user.tag} (${interaction.user.id}) - ${bansArray.length} total bans`,
+      `📋 Banned users list viewed by ${interaction.user.username} (${interaction.user.id}) - ${bansArray.length} total bans`,
     );
   } catch (error) {
     logger.error("Error handling list-bans:", error);
@@ -1656,7 +1656,7 @@ export async function handleListTimeouts(interaction, _client) {
     );
 
     const timedOutArray = Array.from(timedOutMembers.values());
-    timedOutArray.sort((a, b) => a.user.tag.localeCompare(b.user.tag));
+    timedOutArray.sort((a, b) => a.user.username.localeCompare(b.user.username));
 
     if (timedOutArray.length === 0) {
       const embed = new EmbedBuilder()
@@ -1675,7 +1675,7 @@ export async function handleListTimeouts(interaction, _client) {
       const timeRemaining = member.communicationDisabledUntil - new Date();
       const minutesLeft = Math.ceil(timeRemaining / 60000);
       embed.addFields({
-        name: member.user.tag,
+        name: member.user.username,
         value: `${minutesLeft} minute${minutesLeft !== 1 ? "s" : ""} remaining`,
         inline: true,
       });
@@ -1684,7 +1684,7 @@ export async function handleListTimeouts(interaction, _client) {
     await interaction.editReply({ embeds: [embed] });
 
     logger.info(
-      `⏱️ Timeouts list viewed by ${interaction.user.tag} - ${timedOutArray.length} timed out`,
+      `⏱️ Timeouts list viewed by ${interaction.user.username} - ${timedOutArray.length} timed out`,
     );
   } catch (error) {
     logger.error("Error handling list-timeouts:", error);

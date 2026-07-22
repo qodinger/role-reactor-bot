@@ -18,7 +18,7 @@ export function createTimeoutEmbed(targetUser, duration, reason, caseId) {
   return new EmbedBuilder()
     .setColor(THEME.SUCCESS)
     .setTitle("User Timed Out")
-    .setDescription(`**${targetUser.tag}** has been timed out`)
+    .setDescription(`**${targetUser.username}** has been timed out`)
     .addFields(
       {
         name: "Duration",
@@ -59,7 +59,7 @@ export function createWarnEmbed(
   const embed = new EmbedBuilder()
     .setColor(THEME.WARNING)
     .setTitle("User Warned")
-    .setDescription(`**${targetUser.tag}** has been warned`)
+    .setDescription(`**${targetUser.username}** has been warned`)
     .addFields(
       {
         name: "Reason",
@@ -103,7 +103,7 @@ export function createBanEmbed(targetUser, reason, deleteDays, caseId) {
   return new EmbedBuilder()
     .setColor(THEME.ERROR)
     .setTitle("User Banned")
-    .setDescription(`**${targetUser.tag}** has been banned`)
+    .setDescription(`**${targetUser.username}** has been banned`)
     .addFields(
       {
         name: "Reason",
@@ -136,7 +136,7 @@ export function createKickEmbed(targetUser, reason, caseId) {
   return new EmbedBuilder()
     .setColor(THEME.WARNING)
     .setTitle("User Kicked")
-    .setDescription(`**${targetUser.tag}** has been kicked`)
+    .setDescription(`**${targetUser.username}** has been kicked`)
     .addFields(
       {
         name: "Reason",
@@ -163,7 +163,7 @@ export function createUnbanEmbed(targetUser, caseId) {
   return new EmbedBuilder()
     .setColor(THEME.SUCCESS)
     .setTitle("User Unbanned")
-    .setDescription(`**${targetUser.tag}** has been unbanned`)
+    .setDescription(`**${targetUser.username}** has been unbanned`)
     .addFields({
       name: "Case ID",
       value: caseId,
@@ -227,7 +227,7 @@ export function createHistoryEmbed(
       .setTimestamp();
   } else {
     embed
-      .setTitle(`Moderation History: ${targetUser.tag}`)
+      .setTitle(`Moderation History: ${targetUser.username}`)
       .setThumbnail(targetUser.displayAvatarURL())
       .setFooter(UI_COMPONENTS.createFooter("Moderation"))
       .setTimestamp();
@@ -586,7 +586,7 @@ export function createBansListEmbed(bans, totalCount) {
       const reason = ban.reason || "No reason provided";
       const truncatedReason =
         reason.length > 50 ? `${reason.substring(0, 47)}...` : reason;
-      return `${index + 1}. **${user.tag}** (\`${user.id}\`)\n   Reason: ${truncatedReason}`;
+      return `${index + 1}. **${user.username}** (\`${user.id}\`)\n   Reason: ${truncatedReason}`;
     })
     .join("\n\n");
 
@@ -668,7 +668,7 @@ export function createBulkOperationEmbed(
   if (successfulUsers.length > 0) {
     const successList = successfulUsers
       .slice(0, 10)
-      .map(user => `• ${user.tag} (\`${user.id}\`)`)
+      .map(user => `• ${user.username} (\`${user.id}\`)`)
       .join("\n");
     const successValue =
       successfulUsers.length > 10
@@ -689,7 +689,7 @@ export function createBulkOperationEmbed(
       .map(({ user, error }) => {
         const truncatedError =
           error.length > 50 ? `${error.substring(0, 47)}...` : error;
-        return `• ${user.tag} (\`${user.id}\`) - ${truncatedError}`;
+        return `• ${user.username} (\`${user.id}\`) - ${truncatedError}`;
       })
       .join("\n");
     const failedValue =

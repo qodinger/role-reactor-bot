@@ -112,6 +112,8 @@ import {
   parseMultipleUsers,
 } from "../../../../src/commands/admin/moderation/utils.js";
 
+import { handleListTimeouts } from "../../../../src/commands/admin/moderation/handlers.js";
+
 describe("Moderation - Core Functionality", () => {
   describe("canModerateMember", () => {
     test("should allow moderating when moderator has higher role", () => {
@@ -802,5 +804,156 @@ describe("Moderation - Core Functionality", () => {
       expect(result.validUsers[0].member).toBe(member);
       expect(mockClient.users.fetch).toHaveBeenCalled();
     });
+  });
+});
+
+/**
+ * Helper: create a Discord Collection-like object from an array of [key, member] pairs.
+ * Discord Collections extend Map and add .filter() which returns another Collection.
+ */
+function makeCollection(members) {
+  const map = new Map(members);
+  const addHelpers = m => {
+    m.filter = fn => {
+      const result = new Map();
+      for (const [key, value] of m) {
+        if (fn(value)) result.set(key, value);
+      }
+      return addHelpers(result);
+    };
+    return m;
+  };
+  return addHelpers(map);
+}
+
+describe("Moderation - handleListTimeouts", () => {
+  let interaction;
+
+  beforeEach(() => {
+    // Base interaction mock
+    interaction = {
+      guild: {
+        members: {
+          me: {
+            permissions: {
+              has: vi.fn().mockReturnValue(true),
+            },
+          },
+          fetch: vi.fn(),
+        },
+      },
+      user: {
+        tag: "TestMod#0001",
+      },
+      editReply: vi.fn().mockResolvedValue({}),
+    };
+  });
+
+  test("should reply with error embed when bot lacks ModerateMembers permission", async () => {
+    interaction.guild.members.me.permissions.has.mockReturnValue(false);
+
+    await handleListTimeouts(interaction, null);
+
+    expect(interaction.editReply).toHaveBeenCalledOnce();
+    const call = interaction.editReply.mock.calls[0][0];
+    expect(call.embeds).toBeDefined();
+    expect(call.embeds).toHaveLength(1);
+    const embedData = call.embeds[0].data ?? call.embeds[0].toJSON?.() ?? {};
+    expect(JSON.stringify(embedData)).toMatch(/permission/i);
+  });
+
+  test("should reply with 'No Active Timeouts' embed when no members are timed out", async () => {
+    interaction.guild.members.fetch.mockResolvedValue(makeCollection([]));
+
+    await handleListTimeouts(interaction, null);
+
+    expect(interaction.editReply).toHaveBeenCalledOnce();
+    const call = interaction.editReply.mock.calls[0][0];
+    expect(call.embeds).toBeDefined();
+    const embed = call.embeds[0];
+    const data = embed.data ?? embed.toJSON?.() ?? {};
+    expect(JSON.stringify(data)).toMatch(/No Active Timeouts/i);
+  });
+
+  test("should reply with timed out members list when members are timed out", async () => {
+    const futureDate = new Date(Date.now() + 10 * 60 * 1000); // 10 min from now
+    const mockMembers = makeCollection([
+      ["user1", { user: { username: "Alpha" }, communicationDisabledUntil: futureDate }],
+      ["user2", { user: { username: "Beta"  }, communicationDisabledUntil: futureDate }],
+    ]);
+
+    interaction.guild.members.fetch.mockResolvedValue(mockMembers);
+
+    await handleListTimeouts(interaction, null);
+
+    expect(interaction.editReply).toHaveBeenCalledOnce();
+    const call = interaction.editReply.mock.calls[0][0];
+    expect(call.embeds).toBeDefined();
+    const embedJson = JSON.stringify(
+      call.embeds[0].data ?? call.embeds[0].toJSON?.() ?? {},
+    );
+    expect(embedJson).toMatch(/Active Timeouts \(2\)/);
+    expect(embedJson).toMatch(/Alpha/);
+    expect(embedJson).toMatch(/Beta/);
+  });
+
+  test("should filter out members whose timeout has already expired", async () => {
+    const pastDate = new Date(Date.now() - 60 * 1000); // 1 min ago (expired)
+    const futureDate = new Date(Date.now() + 60 * 1000); // 1 min from now (active)
+
+    const mockMembers = makeCollection([
+      ["expired", { user: { username: "Expired" }, communicationDisabledUntil: pastDate }],
+      ["active",  { user: { username: "Active"  }, communicationDisabledUntil: futureDate }],
+      ["none",    { user: { username: "Clean"   }, communicationDisabledUntil: null }],
+    ]);
+
+    interaction.guild.members.fetch.mockResolvedValue(mockMembers);
+
+    await handleListTimeouts(interaction, null);
+
+    const call = interaction.editReply.mock.calls[0][0];
+    const embedJson = JSON.stringify(
+      call.embeds[0].data ?? call.embeds[0].toJSON?.() ?? {},
+    );
+    expect(embedJson).toMatch(/Active Timeouts \(1\)/);
+    expect(embedJson).toMatch(/Active/);
+    expect(embedJson).not.toMatch(/Expired/);
+    expect(embedJson).not.toMatch(/Clean/);
+  });
+
+  test("should reply with error embed when guild.members.fetch throws", async () => {
+    interaction.guild.members.fetch.mockRejectedValue(
+      new Error("Fetch failed"),
+    );
+
+    await handleListTimeouts(interaction, null);
+
+    expect(interaction.editReply).toHaveBeenCalledOnce();
+    const call = interaction.editReply.mock.calls[0][0];
+    expect(call.embeds).toBeDefined();
+    const embedJson = JSON.stringify(
+      call.embeds[0].data ?? call.embeds[0].toJSON?.() ?? {},
+    );
+    expect(embedJson).toMatch(/List Timeouts Failed/i);
+  });
+
+  test("should sort timed out members alphabetically by tag", async () => {
+    const futureDate = new Date(Date.now() + 10 * 60 * 1000);
+    const mockMembers = makeCollection([
+      ["c", { user: { username: "Zeta"  }, communicationDisabledUntil: futureDate }],
+      ["a", { user: { username: "Alpha" }, communicationDisabledUntil: futureDate }],
+      ["b", { user: { username: "Milo"  }, communicationDisabledUntil: futureDate }],
+    ]);
+
+    interaction.guild.members.fetch.mockResolvedValue(mockMembers);
+
+    await handleListTimeouts(interaction, null);
+
+    const call = interaction.editReply.mock.calls[0][0];
+    const fields =
+      call.embeds[0].data?.fields ?? call.embeds[0].toJSON?.()?.fields ?? [];
+    expect(fields[0].name).toBe("Alpha");
+    expect(fields[1].name).toBe("Milo");
+    expect(fields[2].name).toBe("Zeta");
   });
 });
