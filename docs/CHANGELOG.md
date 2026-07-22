@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Image Tools**: Credits and free daily quota are now automatically refunded if image processing fails after a charge has been made, ensuring users are never billed for unsuccessful operations.
 - **Schedule Role**: Fixed an issue where recurring schedules (`weekly`, `monthly`) failed to execute because of incorrect execution time comparisons.
 - **Schedule Role**: Fixed a display bug where recurring schedules appeared as one-time "Pending" schedules and showed `<t:NaN:F>` in the view command.
 
