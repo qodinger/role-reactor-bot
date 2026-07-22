@@ -8,7 +8,7 @@ import { getDatabaseManager } from "../../utils/storage/databaseManager.js";
 import { getLogger } from "../../utils/logger.js";
 
 export class StarboardManager {
-  static async handleReaction(reaction, user) {
+  static async handleReaction(reaction, _user) {
     const logger = getLogger();
 
     try {
@@ -70,7 +70,7 @@ export class StarboardManager {
             if (starboardMsg) {
               await starboardMsg.delete();
             }
-          } catch (error) {
+          } catch (_error) {
             // Message might already be deleted
           }
           await db.starboardMessages.deleteMessageMapping(guildId, message.id);
@@ -96,7 +96,7 @@ export class StarboardManager {
           if (starboardMsg) {
             await starboardMsg.edit({ content, embeds: [embed], components });
           }
-        } catch (error) {
+        } catch (_error) {
           // If the message was deleted from the starboard, create a new one
           const newMsg = await starboardChannel.send({
             content,
@@ -130,7 +130,7 @@ export class StarboardManager {
     }
   }
 
-  static async buildStarboardEmbed(message, starCount, emoji) {
+  static async buildStarboardEmbed(message, starCount, _emoji) {
     // Dynamic heat-map color: gold → orange → red as star count grows
     const color =
       starCount >= 10 ? 0xe74c3c : starCount >= 5 ? 0xe67e22 : 0xfee75c;

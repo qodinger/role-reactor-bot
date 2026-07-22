@@ -23,7 +23,7 @@ export async function execute(interaction) {
     }
 
     const guildId = interaction.guild.id;
-    let settings = await db.starboardSettings.getSettings(guildId);
+    const settings = await db.starboardSettings.getSettings(guildId);
 
     if (subcommand === "setup") {
       const channel = interaction.options.getChannel("channel");
