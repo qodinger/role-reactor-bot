@@ -6,6 +6,7 @@ import {
 } from "../utils/discord/roleMappingManager.js";
 import { getLogger } from "../utils/logger.js";
 import { getCachedMember } from "../utils/discord/roleManager.js";
+import { StarboardManager } from "../features/starboard/StarboardManager.js";
 
 export const name = Events.MessageReactionAdd;
 
@@ -32,6 +33,11 @@ export async function execute(reaction, user, client) {
     if (user.bot) {
       return;
     }
+
+    // Process starboard reactions (fire and forget)
+    StarboardManager.handleReaction(reaction, user).catch(err => {
+      logger.error("Error in StarboardManager.handleReaction:", err);
+    });
 
     // Get member using cached method to reduce API calls
     const member = await getCachedMember(guild, user.id);
