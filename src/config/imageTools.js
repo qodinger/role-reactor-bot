@@ -49,7 +49,7 @@ const IMAGE_TOOLS = {
     description: "Increase image resolution with AI",
     processor: "iloveapi",
     iloveapiCredits: 20,
-    userCores: 5,
+    userCores: 3,
     freeDaily: false,
     allowedTypes: ["image/jpeg", "image/png", "image/webp"],
     maxFileSizeMB: 10,
