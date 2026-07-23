@@ -118,9 +118,9 @@ export async function processUserList(usersString, interaction, options = {}) {
   const guild = interaction.guild;
   const client = interaction.client;
 
-  // Split by comma, semicolon, or spaces
+  // Split by any combination of whitespace, comma, or semicolon
   const userList = usersString
-    .split(/[,;]|\s+/)
+    .split(/[\s,;]+/)
     .map(user => user.trim())
     .filter(user => user.length > 0);
 
@@ -219,7 +219,28 @@ export async function processUserList(usersString, interaction, options = {}) {
           invalidItems.push(item);
         }
       } else {
-        invalidItems.push(item);
+        // 4. Plain text username / display name (e.g. "@iRIS", "iRIS", "Lara✨#9577")
+        const raw = item.replace(/^@/, "");
+        const discriminatorMatch = raw.match(/^(.+)#(\d{4})$/);
+        const searchName = (discriminatorMatch ? discriminatorMatch[1] : raw).toLowerCase();
+        const searchDiscriminator = discriminatorMatch ? discriminatorMatch[2] : null;
+
+        // Search existing cache — no fetch needed
+        const found = guild.members.cache.find(m => {
+          if (m.user.bot) return false;
+          if (searchDiscriminator && m.user.discriminator !== searchDiscriminator) return false;
+          return (
+            m.user.username.toLowerCase() === searchName ||
+            m.displayName.toLowerCase() === searchName ||
+            m.user.globalName?.toLowerCase() === searchName
+          );
+        });
+
+        if (found) {
+          validUsers.set(found.id, found.user);
+        } else {
+          invalidItems.push(item);
+        }
       }
     }
   }

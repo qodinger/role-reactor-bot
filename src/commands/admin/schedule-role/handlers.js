@@ -1,10 +1,7 @@
 import dedent from "dedent";
+import { PermissionFlagsBits } from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
-import {
-  botHasRequiredPermissions,
-  getMissingBotPermissions,
-  formatPermissionName,
-} from "../../../utils/discord/permissions.js";
+import { formatPermissionName } from "../../../utils/discord/permissions.js";
 import {
   errorEmbed,
   successEmbed,
@@ -39,9 +36,14 @@ export async function handleCreate(interaction, client, deferred = false) {
   const logger = getLogger();
 
   try {
-    // Validate bot permissions
-    if (!botHasRequiredPermissions(interaction.guild)) {
-      const missingPermissions = getMissingBotPermissions(interaction.guild);
+    // Validate bot permissions needed for scheduling roles
+    const REQUIRED_PERMISSIONS = [PermissionFlagsBits.ManageRoles];
+    const botMember = interaction.guild.members.me;
+    const missingPermissions = botMember
+      ? REQUIRED_PERMISSIONS.filter(perm => !botMember.permissions.has(perm))
+      : REQUIRED_PERMISSIONS;
+
+    if (missingPermissions.length > 0) {
       const permissionNames = missingPermissions
         .map(formatPermissionName)
         .join(", ");

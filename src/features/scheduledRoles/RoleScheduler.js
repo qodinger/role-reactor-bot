@@ -99,7 +99,7 @@ class RoleScheduler {
     this.recurringInterval = null;
     this.isRunning = false;
     this.lastCheckTime = 0;
-    this.checkCooldown = 30000; // 30 seconds between checks (reduced for faster execution)
+    this.checkCooldown = 5000; // 5 seconds between checks to allow 10s intervals
   }
 
   start() {
@@ -111,26 +111,26 @@ class RoleScheduler {
     this.logger.info("🕐 Starting role scheduler...");
     this.isRunning = true;
 
-    // Check for one-time schedules every 30 seconds for faster execution
+    // Check for one-time schedules every 10 seconds for faster execution
     this.interval = setInterval(async () => {
       try {
         await this.executeDueSchedules();
       } catch (error) {
         this.logger.error("❌ Error in role scheduler (one-time)", error);
       }
-    }, 30000).unref(); // 30 seconds
+    }, 10000).unref(); // 10 seconds
 
-    // Check for recurring schedules every 5 minutes
+    // Check for recurring schedules every 10 seconds
     this.recurringInterval = setInterval(async () => {
       try {
         await this.executeRecurringSchedules();
       } catch (error) {
         this.logger.error("❌ Error in role scheduler (recurring)", error);
       }
-    }, 300000).unref(); // 5 minutes
+    }, 10000).unref(); // 10 seconds
 
     this.logger.success(
-      "✅ Role scheduler started (one-time: every 30s, recurring: every 5min)",
+      "✅ Role scheduler started (checks every 10s for exact timing)",
     );
     this.logger.info("🕐 Running initial schedule check...");
     this.executeDueSchedules();
