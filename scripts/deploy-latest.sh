@@ -78,7 +78,7 @@ deploy_latest() {
     
     # Step 2: Stop and remove existing containers
     print_status "Stopping existing containers..."
-    docker-compose -f docker-compose.prod.yml down 2>/dev/null || true
+    docker compose -f docker-compose.prod.yml down 2>/dev/null || true
     docker stop role-reactor-bot 2>/dev/null || true
     docker rm role-reactor-bot 2>/dev/null || true
     
@@ -109,7 +109,7 @@ deploy_latest() {
     
     # Step 5: Build fresh image with latest code
     print_status "Building fresh Docker image (version: $NEW_VERSION)..."
-    docker-compose -f docker-compose.prod.yml build --no-cache --pull
+    docker compose -f docker-compose.prod.yml build --no-cache --pull
     
     # Step 6: Verify the image contains the correct version
     print_status "Verifying image version..."
@@ -119,7 +119,7 @@ deploy_latest() {
         print_warning "Version mismatch detected! Docker: $DOCKER_VERSION, Expected: $NEW_VERSION"
         print_status "Rebuilding with absolute no-cache..."
         docker system prune -f
-        docker-compose -f docker-compose.prod.yml build --no-cache --pull
+        docker compose -f docker-compose.prod.yml build --no-cache --pull
         DOCKER_VERSION=$(docker run --rm --entrypoint="" role-reactor-bot_role-reactor-bot cat package.json | grep -o '"version": *"[^"]*"' | grep -o '"[^"]*"$' | tr -d '"' 2>/dev/null || echo "unknown")
     fi
     
@@ -133,7 +133,7 @@ deploy_latest() {
     
     # Step 7: Start the new container
     print_status "Starting new container..."
-    docker-compose -f docker-compose.prod.yml up -d
+    docker compose -f docker-compose.prod.yml up -d
     
     # Step 8: Wait for container to be ready
     print_status "Waiting for container to start..."
