@@ -26,6 +26,12 @@ export async function execute(message, client) {
       return;
     }
 
+    // Skip processing during startup flood — Discord replays cached messages
+    // from while the bot was offline. Drop them for the first 5s after ready.
+    if (client.readyAt && Date.now() - client.readyAt.getTime() < 5000) {
+      return;
+    }
+
     // Check if bot is mentioned via explicit ping or reply (ignores @everyone/@here and role mentions)
     const isBotMentioned = message.mentions.users.has(client.user.id);
 
@@ -98,6 +104,7 @@ export async function execute(message, client) {
         // Ignore errors (e.g., no permission to send typing)
       });
 
+      /** @type {import('discord.js').Message | null} */
       let replyMessage = null;
 
       // Declare streaming variables outside try block for cleanup in catch
@@ -388,7 +395,6 @@ export async function execute(message, client) {
               client,
               {
                 userId: message.author.id,
-                channelId: message.channelId, // Share channel session with /chat
                 coreUserData,
                 user: message.author,
                 channel: message.channel,

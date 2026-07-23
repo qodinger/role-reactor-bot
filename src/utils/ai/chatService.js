@@ -409,6 +409,7 @@ export class ChatService {
    * @param {import('discord.js').Client} client - Discord client
    * @param {Object} options - Additional options
    * @param {string} [options.userId] - User ID for rate limiting
+   * @param {string} [options.channelId] - Channel ID for shared per-channel session history
    * @param {Object} [options.coreUserData] - Core user data for priority
    * @param {import('discord.js').User} [options.user] - User object (required for command execution)
    * @param {import('discord.js').Channel} [options.channel] - Channel object (required for command execution)
@@ -555,6 +556,7 @@ export class ChatService {
    * @param {Object} options - Additional options
    * @param {Function} [options.onChunk] - Callback for each chunk (fullText: string) => void
    * @param {string} [options.userId] - User ID for rate limiting
+   * @param {string} [options.channelId] - Channel ID for shared per-channel session history
    * @param {Object} [options.coreUserData] - Core user data for priority
    * @param {import('discord.js').User} [options.user] - User object (required for command execution)
    * @param {import('discord.js').Channel} [options.channel] - Channel object (required for command execution)
