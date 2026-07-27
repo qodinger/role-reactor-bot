@@ -438,6 +438,8 @@ class Config {
         "https://buymeacoffee.com/rolereactor",
       buymeacoffeeWebhookSecret:
         process.env.BUYMEACOFFEE_WEBHOOK_SECRET || null,
+      buymeacoffeeApiToken:
+        process.env.BUYMEACOFFEE_API_TOKEN || null,
     };
   }
 
