@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { getLogger } from "../utils/logger.js";
 import { formatCoreCredits } from "../utils/ai/aiCreditManager.js";
 import { config } from "../config/config.js";
@@ -6,23 +7,79 @@ import { emojiConfig } from "../config/emojis.js";
 const logger = getLogger();
 
 /**
+ * Verify BMAC webhook signature using HMAC-SHA256
+ * @param {string} rawBody - Raw request body string
+ * @param {string} signature - Signature from x-signature-sha256 header
+ * @param {string} secret - Webhook signing secret
+ * @returns {boolean} True if signature is valid
+ */
+function verifyBMACSignature(rawBody, signature, secret) {
+  if (!signature) {
+    logger.warn("⚠️ BMAC webhook: Missing x-signature-sha256 header");
+    return false;
+  }
+  if (!secret) {
+    logger.warn("⚠️ BMAC webhook: No BUYMEACOFFEE_WEBHOOK_SECRET configured");
+    return false;
+  }
+  try {
+    const expected = crypto
+      .createHmac("sha256", secret)
+      .update(rawBody)
+      .digest("hex");
+    const sigBuffer = Buffer.from(signature, "utf8");
+    const expBuffer = Buffer.from(expected, "utf8");
+    if (sigBuffer.length !== expBuffer.length) return false;
+    return crypto.timingSafeEqual(sigBuffer, expBuffer);
+  } catch (error) {
+    logger.error("❌ BMAC webhook: Signature verification error:", error);
+    return false;
+  }
+}
+
+/**
  * Handle Buy Me a Coffee Payment Webhook
  *
- * BMAC sends:
- *   - `supporter_name` → donor's name from "Name or @yoursocial" field
- *   - `message`        → "Say something nice..." field (contains our unique code)
- *   - `amount`         → donation amount in fiat
- *   - `currency`       → currency code
+ * BMAC sends an event envelope per the OpenAPI spec:
+ *   { event_id, type, live_mode, created, attempt, data: { ... } }
  *
- * We extract the unique code from `message`, look up the Discord user,
+ * For donation events, data contains:
+ *   - `supporter_name` → donor's name
+ *   - `support_note`   → "Say something nice..." field (contains our RR-XXXXXX code)
+ *   - `amount`         → total payment amount
+ *   - `currency`       → currency code
+ *   - `transaction_id` → Stripe PaymentIntent ID
+ *   - `id`             → BMAC payment ID
+ *
+ * We extract the unique code from `support_note`, look up the Discord user,
  * and credit cores based on the amount paid.
  */
 export async function handleBMACWebhook(req, res) {
-  const payload = req.body.response || req.body || {};
-  const amount = payload.amount || req.body.amount;
-  const supporterName = payload.supporter_name || req.body.supporter_name || payload.support_name || req.body.support_name || "";
-  const currency = payload.currency || req.body.currency || "USD";
-  const rawMessage = payload.message || req.body.message || payload.support_note || req.body.support_note || payload.support_message || req.body.support_message || "";
+  // Verify webhook signature
+  const signature = req.headers["x-signature-sha256"];
+  const secret = config.payments.buymeacoffeeWebhookSecret;
+  if (secret && !verifyBMACSignature(req.rawBody || "", signature, secret)) {
+    logger.warn("⚠️ BMAC webhook: Invalid signature - rejecting request");
+    return res.status(401).json({ status: "error", message: "Unauthorized" });
+  }
+
+  const body = req.body || {};
+  const eventType = body.type || "unknown";
+  const eventId = body.event_id;
+  const data = body.data || {};
+
+  // Only process donation events (one-time payments)
+  if (eventType !== "donation.created") {
+    logger.debug(`BMAC webhook: ignoring event type "${eventType}" (event_id: ${eventId})`);
+    return res.status(200).json({ status: "ignored", message: `Event type "${eventType}" not handled` });
+  }
+
+  const amount = data.amount;
+  const supporterName = data.supporter_name || "";
+  const currency = data.currency || "USD";
+  const supportNote = data.support_note || "";
+  const transactionId = data.transaction_id || null;
+  const bmacPaymentId = data.id || null;
 
   // 1. Validate amount
   const paymentAmount = parseFloat(amount);
@@ -39,14 +96,14 @@ export async function handleBMACWebhook(req, res) {
       .json({ status: "error", message: "Amount too high" });
   }
 
-  // 2. Extract and validate code from any text field
-  const textToSearch = `${rawMessage} ${supporterName}`.toUpperCase();
+  // 2. Extract and validate code from support_note, then supporter_name
+  const textToSearch = `${supportNote} ${supporterName}`.toUpperCase();
   const codeMatch = textToSearch.match(/RR-[A-Z0-9]{6}/);
   const code = codeMatch ? codeMatch[0] : "";
 
   if (!code) {
     logger.debug(
-      `BMAC webhook: no valid code found in payload fields: "${textToSearch.substring(0, 50)}"`
+      `BMAC webhook: no valid code found (event_id: ${eventId}, supporter: "${supporterName}")`
     );
     
     // Save to unclaimed payments database
@@ -59,15 +116,18 @@ export async function handleBMACWebhook(req, res) {
         const db = dbManager.connectionManager.db;
         await db.collection("unclaimed_payments").insertOne({
           provider: "buymeacoffee",
+          bmacPaymentId,
+          transactionId,
           amount: paymentAmount,
-          currency: currency || "USD",
+          currency,
           supporterName: supporterName || "Anonymous",
-          rawMessage,
+          supportNote,
+          eventId,
           timestamp: new Date(),
-          payload: req.body,
+          payload: body,
           status: "unclaimed"
         });
-        logger.info(`💾 Saved unclaimed BMAC payment of $${paymentAmount} from ${supporterName || "Anonymous"}`);
+        logger.info(`💾 Saved unclaimed BMAC payment of $${paymentAmount} from ${supporterName || "Anonymous"} (event_id: ${eventId})`);
       }
     } catch (e) {
       logger.error("Failed to save unclaimed payment:", e);
@@ -178,10 +238,12 @@ export async function handleBMACWebhook(req, res) {
         code,
         type: "payment",
         fiatAmount: paymentAmount,
-        currency: currency || "USD",
+        currency,
         cores: coresToAdd,
         provider: "buymeacoffee",
         supporterName,
+        transactionId,
+        bmacPaymentId,
         timestamp: new Date().toISOString(),
         processed: true,
       });
@@ -202,8 +264,10 @@ export async function handleBMACWebhook(req, res) {
             usedAt: new Date(),
             paymentData: {
               amount: paymentAmount,
-              currency: currency || "USD",
+              currency,
               supporterName,
+              transactionId,
+              bmacPaymentId,
             },
           },
         },
@@ -226,12 +290,14 @@ export async function handleBMACWebhook(req, res) {
         type: "one_time",
         status: "completed",
         amount: paymentAmount,
-        currency: currency || "USD",
+        currency,
         coresGranted: result.coresToAdd,
         supporterName,
         metadata: {
           code,
           supporterName,
+          transactionId,
+          bmacPaymentId,
           raw_amount: amount,
         },
       });
