@@ -102,23 +102,19 @@ async function main() {
       );
     }
 
-    // Check BMAC API token expiry
+    // Check BMAC API connectivity
     try {
       const { bmacClient } = await import("./utils/payments/bmac.js");
       if (bmacClient.enabled) {
-        const daysLeft = bmacClient.getDaysUntilExpiry();
-        if (daysLeft !== null) {
-          if (daysLeft <= 0) {
-            logger.error("❌ BMAC API token EXPIRED — regenerate at https://developers.buymeacoffee.com");
-          } else if (daysLeft <= 30) {
-            logger.warn(`⚠️ BMAC API token expires in ${daysLeft} days — regenerate at https://developers.buymeacoffee.com`);
-          } else {
-            logger.info(`✅ BMAC API token valid (${daysLeft} days until expiry)`);
-          }
+        const status = await bmacClient.checkTokenStatus();
+        if (status.valid) {
+          logger.info(`✅ BMAC API connected (${status.supporterCount} supporters)`);
+        } else {
+          logger.warn(`⚠️ BMAC API unreachable: ${status.error}`);
         }
       }
     } catch (error) {
-      logger.debug("BMAC token check skipped:", error.message);
+      logger.debug("BMAC API check skipped:", error.message);
     }
 
     // Create Discord client

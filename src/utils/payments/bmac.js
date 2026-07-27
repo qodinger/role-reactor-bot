@@ -7,6 +7,8 @@ const logger = getLogger();
  * Buy Me a Coffee API Client
  * Handles fetching supporters, subscriptions, and extras from BMAC API
  * API docs: https://developers.buymeacoffee.com/
+ *
+ * BMAC Personal Access Tokens do NOT expire — they remain valid until manually revoked.
  */
 export class BMACClient {
   constructor() {
@@ -40,7 +42,7 @@ export class BMACClient {
     });
 
     if (response.status === 401) {
-      throw new Error("BMAC API token expired or invalid — regenerate at https://developers.buymeacoffee.com");
+      throw new Error("BMAC API token invalid — regenerate at https://developers.buymeacoffee.com");
     }
 
     if (response.status === 429) {
@@ -98,7 +100,7 @@ export class BMACClient {
    * Get paginated subscriptions
    * @param {Object} params
    * @param {number} [params.page=1] - Page number
-   * @param {string} [params.status] - Filter by status (active, cancelled, paused)
+   * @param {string} [params.status] - Filter by status (all, active, inactive)
    * @returns {Promise<Object>} Paginated subscription list
    */
   async getSubscriptions({ page = 1, status } = {}) {
@@ -110,7 +112,7 @@ export class BMACClient {
   /**
    * Get all subscriptions (handles pagination automatically)
    * @param {Object} params
-   * @param {string} [params.status] - Filter by status
+   * @param {string} [params.status] - Filter by status (all, active, inactive)
    * @returns {Promise<Array>} All subscriptions
    */
   async getAllSubscriptions({ status } = {}) {
@@ -141,7 +143,7 @@ export class BMACClient {
 
   /**
    * Check if token is valid by making a test request
-   * @returns {Promise<Object>} Token info and expiry status
+   * @returns {Promise<Object>} Token status info
    */
   async checkTokenStatus() {
     try {
@@ -149,43 +151,13 @@ export class BMACClient {
       return {
         valid: true,
         supporterCount: result.total || 0,
-        expiresAt: this.getTokenExpiry(),
       };
     } catch (error) {
       return {
         valid: false,
         error: error.message,
-        expiresAt: this.getTokenExpiry(),
       };
     }
-  }
-
-  /**
-   * Decode JWT to get expiry date (no verification — read-only)
-   * @returns {Date|null} Expiry date or null if token is not a JWT
-   */
-  getTokenExpiry() {
-    if (!this.apiToken) return null;
-    try {
-      const parts = this.apiToken.split(".");
-      if (parts.length !== 3) return null;
-      const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString());
-      return payload.exp ? new Date(payload.exp * 1000) : null;
-    } catch {
-      return null;
-    }
-  }
-
-  /**
-   * Get days until token expires
-   * @returns {number|null} Days until expiry, or null if unknown
-   */
-  getDaysUntilExpiry() {
-    const expiry = this.getTokenExpiry();
-    if (!expiry) return null;
-    const now = new Date();
-    const diffMs = expiry.getTime() - now.getTime();
-    return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
   }
 }
 
