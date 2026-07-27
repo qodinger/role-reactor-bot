@@ -1,0 +1,680 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Buy Me a Coffee — Webhook Events",
+    "version": "1.0.0",
+    "description": "This specification describes the HTTP requests that Buy Me a Coffee sends to your endpoint when events occur on a creator's page. Configure webhooks from your Buy Me a Coffee dashboard under Integrations → Webhooks.\n\n## How it works\n\nWhen an event fires, Buy Me a Coffee sends an HTTP POST to the URL you configured. The request body is a JSON object described by the `WebhookEvent` schema. You must respond with a 2xx status within 15 seconds.\n\n## Signature verification\n\nEvery request includes an `x-signature-sha256` header. Verify it before processing the payload:\n\n1. Read the raw request body as a UTF-8 string.\n2. Compute `HMAC-SHA256(rawBody, signingSecret)` — your signing secret is shown on the webhook detail page.\n3. Compare the hex digest to the value in `x-signature-sha256`. Use a constant-time comparison to prevent timing attacks.\n\n```js\n// Node.js\nconst crypto = require('crypto');\nfunction verify(rawBody, secret, signature) {\n  const expected = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');\n  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));\n}\n```\n\n```python\n# Python\nimport hmac, hashlib\ndef verify(raw_body, secret, signature):\n    expected = hmac.new(secret.encode(), raw_body, hashlib.sha256).hexdigest()\n    return hmac.compare_digest(expected, signature)\n```\n\n```php\n// PHP\nfunction verify(string $rawBody, string $secret, string $signature): bool {\n    return hash_equals(hash_hmac('sha256', $rawBody, $secret), $signature);\n}\n```\n\n## Retry policy\n\nIf your endpoint does not return 2xx, Buy Me a Coffee retries up to 4 times with increasing delays (15, 30, 45, and 60 minutes). Each retry increments the `attempt` field in the payload. After 10 consecutive failures the webhook is automatically disabled."
+  },
+  "webhooks": {
+    "donation.created": {
+      "post": {
+        "summary": "A supporter buys a coffee (one-time payment)",
+        "requestBody": { "$ref": "#/components/requestBodies/DonationEvent" },
+        "responses": { "200": { "description": "Acknowledge the event" } }
+      }
+    },
+    "donation.refunded": {
+      "post": {
+        "summary": "A one-time payment is refunded",
+        "requestBody": { "$ref": "#/components/requestBodies/DonationEvent" },
+        "responses": { "200": { "description": "Acknowledge the event" } }
+      }
+    },
+    "extra_purchase.created": {
+      "post": {
+        "summary": "A shop item is purchased",
+        "requestBody": { "$ref": "#/components/requestBodies/ExtraEvent" },
+        "responses": { "200": { "description": "Acknowledge the event" } }
+      }
+    },
+    "extra_purchase.updated": {
+      "post": {
+        "summary": "A shop order is updated",
+        "requestBody": { "$ref": "#/components/requestBodies/ExtraEvent" },
+        "responses": { "200": { "description": "Acknowledge the event" } }
+      }
+    },
+    "extra_purchase.refunded": {
+      "post": {
+        "summary": "A shop order is refunded",
+        "requestBody": { "$ref": "#/components/requestBodies/ExtraEvent" },
+        "responses": { "200": { "description": "Acknowledge the event" } }
+      }
+    },
+    "commission_order.created": {
+      "post": {
+        "summary": "A commission order is placed",
+        "requestBody": { "$ref": "#/components/requestBodies/CommissionEvent" },
+        "responses": { "200": { "description": "Acknowledge the event" } }
+      }
+    },
+    "commission_order.refunded": {
+      "post": {
+        "summary": "A commission order is refunded",
+        "requestBody": { "$ref": "#/components/requestBodies/CommissionEvent" },
+        "responses": { "200": { "description": "Acknowledge the event" } }
+      }
+    },
+    "wishlist_payment.created": {
+      "post": {
+        "summary": "A wishlist item is funded",
+        "requestBody": { "$ref": "#/components/requestBodies/WishlistEvent" },
+        "responses": { "200": { "description": "Acknowledge the event" } }
+      }
+    },
+    "wishlist_payment.refunded": {
+      "post": {
+        "summary": "A wishlist payment is refunded",
+        "requestBody": { "$ref": "#/components/requestBodies/WishlistEvent" },
+        "responses": { "200": { "description": "Acknowledge the event" } }
+      }
+    },
+    "membership.started": {
+      "post": {
+        "summary": "A membership subscription begins",
+        "requestBody": { "$ref": "#/components/requestBodies/MembershipEvent" },
+        "responses": { "200": { "description": "Acknowledge the event" } }
+      }
+    },
+    "membership.updated": {
+      "post": {
+        "summary": "A membership subscription is updated",
+        "requestBody": { "$ref": "#/components/requestBodies/MembershipEvent" },
+        "responses": { "200": { "description": "Acknowledge the event" } }
+      }
+    },
+    "membership.cancelled": {
+      "post": {
+        "summary": "A membership subscription is cancelled",
+        "requestBody": { "$ref": "#/components/requestBodies/MembershipEvent" },
+        "responses": { "200": { "description": "Acknowledge the event" } }
+      }
+    },
+    "membership.paused": {
+      "post": {
+        "summary": "A membership subscription is paused",
+        "requestBody": { "$ref": "#/components/requestBodies/MembershipEvent" },
+        "responses": { "200": { "description": "Acknowledge the event" } }
+      }
+    },
+    "recurring_donation.started": {
+      "post": {
+        "summary": "A monthly support begins",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/RecurringDonationEvent"
+        },
+        "responses": { "200": { "description": "Acknowledge the event" } }
+      }
+    },
+    "recurring_donation.updated": {
+      "post": {
+        "summary": "A monthly support is updated",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/RecurringDonationEvent"
+        },
+        "responses": { "200": { "description": "Acknowledge the event" } }
+      }
+    },
+    "recurring_donation.cancelled": {
+      "post": {
+        "summary": "A monthly support is cancelled",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/RecurringDonationEvent"
+        },
+        "responses": { "200": { "description": "Acknowledge the event" } }
+      }
+    }
+  },
+  "components": {
+    "requestBodies": {
+      "DonationEvent": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                { "$ref": "#/components/schemas/EventEnvelope" },
+                {
+                  "properties": {
+                    "type": {
+                      "enum": ["donation.created", "donation.refunded"]
+                    },
+                    "data": { "$ref": "#/components/schemas/DonationData" }
+                  }
+                }
+              ]
+            },
+            "example": {
+              "event_id": 1234,
+              "type": "donation.created",
+              "live_mode": true,
+              "created": 1719825600,
+              "attempt": 1,
+              "data": {
+                "id": 98765,
+                "object": "payment",
+                "transaction_id": "pi_3QxxxxxYyyyyy",
+                "status": "succeeded",
+                "refunded": "false",
+                "amount": 15.0,
+                "coffee_count": 3,
+                "coffee_price": 5.0,
+                "currency": "USD",
+                "total_amount_charged": 15.0,
+                "application_fee": 0.75,
+                "supporter_name": "Alex",
+                "supporter_name_type": "default",
+                "supporter_id": 42,
+                "supporter_email": "alex@example.com",
+                "support_note": "Keep up the great work!",
+                "note_hidden": "false",
+                "support_type": "Supporter",
+                "message": "Alex bought 3 coffees",
+                "created_at": 1719825600,
+                "refunded_at": null
+              }
+            }
+          }
+        }
+      },
+      "ExtraEvent": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                { "$ref": "#/components/schemas/EventEnvelope" },
+                {
+                  "properties": {
+                    "type": {
+                      "enum": [
+                        "extra_purchase.created",
+                        "extra_purchase.updated",
+                        "extra_purchase.refunded"
+                      ]
+                    },
+                    "data": { "$ref": "#/components/schemas/ExtraData" }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      "CommissionEvent": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                { "$ref": "#/components/schemas/EventEnvelope" },
+                {
+                  "properties": {
+                    "type": {
+                      "enum": [
+                        "commission_order.created",
+                        "commission_order.refunded"
+                      ]
+                    },
+                    "data": { "$ref": "#/components/schemas/CommissionData" }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      "WishlistEvent": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                { "$ref": "#/components/schemas/EventEnvelope" },
+                {
+                  "properties": {
+                    "type": {
+                      "enum": [
+                        "wishlist_payment.created",
+                        "wishlist_payment.refunded"
+                      ]
+                    },
+                    "data": { "$ref": "#/components/schemas/WishlistData" }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      "MembershipEvent": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                { "$ref": "#/components/schemas/EventEnvelope" },
+                {
+                  "properties": {
+                    "type": {
+                      "enum": [
+                        "membership.started",
+                        "membership.updated",
+                        "membership.cancelled",
+                        "membership.paused"
+                      ]
+                    },
+                    "data": { "$ref": "#/components/schemas/MembershipData" }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      "RecurringDonationEvent": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                { "$ref": "#/components/schemas/EventEnvelope" },
+                {
+                  "properties": {
+                    "type": {
+                      "enum": [
+                        "recurring_donation.started",
+                        "recurring_donation.updated",
+                        "recurring_donation.cancelled"
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/RecurringDonationData"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "headers": {
+      "x-signature-sha256": {
+        "description": "HMAC-SHA256 hex digest of the raw request body, keyed with your webhook's signing secret. Always verify this before processing.",
+        "required": true,
+        "schema": { "type": "string", "example": "a1b2c3d4e5f6..." }
+      },
+      "User-Agent": {
+        "description": "Identifies the sender",
+        "schema": { "type": "string", "example": "BMC-HTTPS-ROBOT" }
+      }
+    },
+    "schemas": {
+      "EventType": {
+        "type": "string",
+        "enum": [
+          "donation.created",
+          "donation.refunded",
+          "extra_purchase.created",
+          "extra_purchase.updated",
+          "extra_purchase.refunded",
+          "commission_order.created",
+          "commission_order.refunded",
+          "wishlist_payment.created",
+          "wishlist_payment.refunded",
+          "membership.started",
+          "membership.updated",
+          "membership.cancelled",
+          "membership.paused",
+          "recurring_donation.started",
+          "recurring_donation.updated",
+          "recurring_donation.cancelled"
+        ]
+      },
+      "EventEnvelope": {
+        "type": "object",
+        "description": "Outer wrapper present on every event. The `data` field contains event-specific fields.",
+        "required": [
+          "event_id",
+          "type",
+          "live_mode",
+          "created",
+          "attempt",
+          "data"
+        ],
+        "properties": {
+          "event_id": {
+            "type": "integer",
+            "description": "Unique ID for this delivery attempt. Always 1 for test events sent from the dashboard.",
+            "example": 1234
+          },
+          "type": { "$ref": "#/components/schemas/EventType" },
+          "live_mode": {
+            "type": "boolean",
+            "description": "false when the event was triggered by the Send test event button in the dashboard.",
+            "example": true
+          },
+          "created": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix timestamp of when the event was created.",
+            "example": 1719825600
+          },
+          "attempt": {
+            "type": "integer",
+            "description": "Delivery attempt number. Starts at 1 and increments on each retry.",
+            "example": 1
+          },
+          "data": {
+            "type": "object",
+            "description": "Event-specific payload. See per-event schemas."
+          }
+        }
+      },
+      "SupporterFields": {
+        "type": "object",
+        "description": "Common supporter identity fields shared across payment and subscription events.",
+        "properties": {
+          "supporter_name": { "type": "string", "example": "Alex" },
+          "supporter_name_type": { "type": "string", "example": "default" },
+          "supporter_id": { "type": "integer", "example": 42 },
+          "supporter_email": {
+            "type": "string",
+            "format": "email",
+            "example": "alex@example.com"
+          },
+          "support_note": {
+            "type": "string",
+            "nullable": true,
+            "example": "Keep up the great work!"
+          },
+          "note_hidden": { "type": "string", "enum": ["true", "false"] }
+        }
+      },
+      "DonationData": {
+        "allOf": [
+          { "$ref": "#/components/schemas/SupporterFields" },
+          {
+            "type": "object",
+            "description": "Payload for donation.created and donation.refunded.",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "description": "Unique payment ID",
+                "example": 98765
+              },
+              "object": { "type": "string", "enum": ["payment"] },
+              "transaction_id": {
+                "type": "string",
+                "description": "Stripe PaymentIntent ID",
+                "example": "pi_3QxxxxxYyyyyy"
+              },
+              "status": { "type": "string", "enum": ["succeeded", "refunded"] },
+              "refunded": { "type": "string", "enum": ["true", "false"] },
+              "amount": {
+                "type": "number",
+                "description": "Total payment amount",
+                "example": 15.0
+              },
+              "coffee_count": { "type": "integer", "example": 3 },
+              "coffee_price": { "type": "number", "example": 5.0 },
+              "currency": { "type": "string", "example": "USD" },
+              "total_amount_charged": { "type": "number", "example": 15.0 },
+              "application_fee": { "type": "number", "example": 0.75 },
+              "support_type": { "type": "string", "enum": ["Supporter"] },
+              "message": {
+                "type": "string",
+                "description": "Human-readable summary",
+                "example": "Alex bought 3 coffees"
+              },
+              "created_at": {
+                "type": "integer",
+                "format": "int64",
+                "example": 1719825600
+              },
+              "refunded_at": {
+                "type": "integer",
+                "format": "int64",
+                "nullable": true
+              }
+            }
+          }
+        ]
+      },
+      "ExtraData": {
+        "allOf": [
+          { "$ref": "#/components/schemas/SupporterFields" },
+          {
+            "type": "object",
+            "description": "Payload for extra_purchase.* events.",
+            "properties": {
+              "id": { "type": "integer" },
+              "object": { "type": "string", "enum": ["payment"] },
+              "transaction_id": { "type": "string" },
+              "status": { "type": "string", "enum": ["succeeded", "refunded"] },
+              "refunded": { "type": "string", "enum": ["true", "false"] },
+              "amount": { "type": "number" },
+              "coffee_count": { "type": "integer" },
+              "coffee_price": { "type": "number" },
+              "currency": { "type": "string" },
+              "total_amount_charged": { "type": "number" },
+              "application_fee": { "type": "number" },
+              "support_type": { "type": "string", "enum": ["Extra"] },
+              "message": { "type": "string" },
+              "created_at": { "type": "integer", "format": "int64" },
+              "refunded_at": {
+                "type": "integer",
+                "format": "int64",
+                "nullable": true
+              },
+              "extras": {
+                "type": "array",
+                "description": "One entry per shop item in the order.",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "integer" },
+                    "object": { "type": "string", "enum": ["extra"] },
+                    "title": { "type": "string" },
+                    "description": { "type": "string" },
+                    "amount": { "type": "number" },
+                    "quantity": { "type": "integer" },
+                    "currency": { "type": "string" },
+                    "extra_question": { "type": "string", "nullable": true },
+                    "question_answers": {
+                      "type": "array",
+                      "items": { "type": "string" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "CommissionData": {
+        "allOf": [
+          { "$ref": "#/components/schemas/SupporterFields" },
+          {
+            "type": "object",
+            "description": "Payload for commission_order.* events.",
+            "properties": {
+              "id": { "type": "integer" },
+              "object": { "type": "string", "enum": ["payment"] },
+              "transaction_id": { "type": "string" },
+              "status": { "type": "string", "enum": ["succeeded", "refunded"] },
+              "refunded": { "type": "string", "enum": ["true", "false"] },
+              "amount": { "type": "number" },
+              "coffee_count": { "type": "integer" },
+              "coffee_price": { "type": "number" },
+              "currency": { "type": "string" },
+              "total_amount_charged": { "type": "number" },
+              "application_fee": { "type": "number" },
+              "support_type": { "type": "string", "enum": ["Commission"] },
+              "message": { "type": "string" },
+              "created_at": { "type": "integer", "format": "int64" },
+              "refunded_at": {
+                "type": "integer",
+                "format": "int64",
+                "nullable": true
+              },
+              "commission": {
+                "type": "object",
+                "properties": {
+                  "id": { "type": "integer" },
+                  "object": { "type": "string", "enum": ["commission"] },
+                  "name": { "type": "string" },
+                  "description": { "type": "string" },
+                  "shipping_price": { "type": "number" },
+                  "addons": { "type": "array", "items": {} },
+                  "amount": { "type": "number" },
+                  "discount_amount": { "type": "number" },
+                  "total_order_amount": { "type": "number" },
+                  "refund_reason": { "type": "string", "nullable": true },
+                  "additional_info": { "type": "string", "nullable": true },
+                  "shipping_address": { "type": "object", "nullable": true },
+                  "attachments": {
+                    "type": "array",
+                    "items": { "type": "string", "format": "uri" }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "WishlistData": {
+        "allOf": [
+          { "$ref": "#/components/schemas/SupporterFields" },
+          {
+            "type": "object",
+            "description": "Payload for wishlist_payment.* events.",
+            "properties": {
+              "id": { "type": "integer" },
+              "object": { "type": "string", "enum": ["payment"] },
+              "transaction_id": { "type": "string" },
+              "status": { "type": "string", "enum": ["succeeded", "refunded"] },
+              "refunded": { "type": "string", "enum": ["true", "false"] },
+              "amount": { "type": "number" },
+              "coffee_count": { "type": "integer" },
+              "coffee_price": { "type": "number" },
+              "currency": { "type": "string" },
+              "total_amount_charged": { "type": "number" },
+              "application_fee": { "type": "number" },
+              "support_type": { "type": "string", "enum": ["Wishlist"] },
+              "message": { "type": "string" },
+              "created_at": { "type": "integer", "format": "int64" },
+              "refunded_at": {
+                "type": "integer",
+                "format": "int64",
+                "nullable": true
+              },
+              "wishlist": {
+                "type": "object",
+                "properties": {
+                  "id": { "type": "integer" },
+                  "object": { "type": "string", "enum": ["wishlist"] },
+                  "title": { "type": "string" },
+                  "description": { "type": "string" },
+                  "price": { "type": "number" },
+                  "total_paid": { "type": "number" },
+                  "completed": { "type": "boolean" }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "SubscriptionFields": {
+        "type": "object",
+        "description": "Common fields shared between membership and monthly support events.",
+        "properties": {
+          "id": { "type": "integer", "description": "Unique subscription ID" },
+          "psp_id": {
+            "type": "string",
+            "description": "Stripe subscription ID",
+            "example": "sub_1Xxxxxxxxx"
+          },
+          "duration_type": { "type": "string", "enum": ["month", "year"] },
+          "status": {
+            "type": "string",
+            "enum": ["active", "canceled", "paused"]
+          },
+          "canceled": { "type": "string", "enum": ["true", "false"] },
+          "cancel_at_period_end": {
+            "type": "string",
+            "enum": ["true", "false"]
+          },
+          "paused": { "type": "string", "enum": ["true", "false"] },
+          "paused_at": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "paused_until": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "unpaused_at": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "paused_by": {
+            "type": "string",
+            "enum": ["member", "creator"],
+            "nullable": true
+          },
+          "supporter_name": { "type": "string" },
+          "supporter_name_type": { "type": "string" },
+          "supporter_id": { "type": "integer" },
+          "supporter_email": { "type": "string", "format": "email" },
+          "supporter_feedback": { "type": "string", "nullable": true },
+          "support_note": { "type": "string", "nullable": true },
+          "note_hidden": { "type": "boolean" },
+          "amount": { "type": "number" },
+          "currency": { "type": "string", "example": "USD" },
+          "started_at": { "type": "integer", "format": "int64" },
+          "canceled_at": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "current_period_start": { "type": "integer", "format": "int64" },
+          "current_period_end": { "type": "integer", "format": "int64" }
+        }
+      },
+      "MembershipData": {
+        "allOf": [
+          { "$ref": "#/components/schemas/SubscriptionFields" },
+          {
+            "type": "object",
+            "description": "Payload for membership.* events. Includes the membership level the subscriber signed up for.",
+            "properties": {
+              "object": { "type": "string", "enum": ["membership"] },
+              "membership_level_id": { "type": "integer" },
+              "membership_level_name": {
+                "type": "string",
+                "example": "Gold supporter"
+              }
+            }
+          }
+        ]
+      },
+      "RecurringDonationData": {
+        "allOf": [
+          { "$ref": "#/components/schemas/SubscriptionFields" },
+          {
+            "type": "object",
+            "description": "Payload for recurring_donation.* events (monthly support). Same structure as membership events but without membership level fields.",
+            "properties": {
+              "object": { "type": "string", "enum": ["recurring_donation"] }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

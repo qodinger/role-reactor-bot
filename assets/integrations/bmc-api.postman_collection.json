@@ -1,0 +1,213 @@
+{
+  "info": {
+    "_postman_id": "98f2f22f-de55-4d73-befe-9768f608b5b2",
+    "name": "Buy Me a Coffee API",
+    "description": "### 🌟 **Buy Me a Coffee API Documentation** 🌟\n\n---\n\n### 🚀 **Introduction**\n\nStart building exciting apps using the **Buy Me a Coffee API**!  \nOur OAuth-based API uses RESTful principles and returns JSON for every request, including errors.\n\n🔑 **Getting Started**:\n\n1. Create an access token from the [Developer&nbsp;Dashboard](https://developers.buymeacoffee.com/).\n    \n2. Note: Due to security concerns, **in-browser requests** (e.g., browser extensions, client-side JavaScript) are currently not supported.\n    \n\n---\n\n### 🔒 **Authentication**\n\nWe use **token-based authentication** to ensure secure access.\n\n1. **Login** to the Buy Me a Coffee [Developer&nbsp;Dashboard](https://developers.buymeacoffee.com/).\n    \n    - If already logged in, you'll be redirected automatically.\n        \n2. Click the **\"Generate My Token\"** button.\n    \n3. Provide a name for your token and click **\"Generate\"**.\n    \n4. Copy and **store the token securely**.\n    \n\n💡 **Tip**: You can generate multiple tokens for different apps. Analytics for tokens and other advanced features are coming soon!\n\n---\n\n### 📜 **Scopes**\n\nCurrently, the API offers **read-only** access to users' public information and products.\n\n| Scope | Description |\n| --- | --- |\n| **read-only** | Grants read-only access to public data. |\n\n✍️ **Write permissions** are under development and will be available soon. Stay tuned by joining our [creator&nbsp;community](https://www.buymeacoffee.com/).\n\n---\n\n### ⚠️ **API Errors**\n\nThe API uses **HTTP status codes** to communicate request statuses. Here's a quick reference:\n\n| Status Code | Description |\n| --- | --- |\n| **200 OK** | Everything worked as expected. |\n| **400 Bad Request** | Missing or invalid parameters. |\n| **401 Unauthorized** | Access token is invalid or missing. |\n| **402 Request Failed** | Parameters were valid, but the request failed. |\n| **404 Not Found** | The requested resource does not exist. |\n| **500-504 Server Errors** | Something went wrong on our end. |\n\n---\n\n### 🛠 **Sample Error Response**\n\nIn case of an error, the API returns detailed JSON responses.\n\n``` json\n{\n  \"error_code\": 45,\n  \"reason\": \"Requested attribute is not retrievable for the user\"\n}\n\n ```\n\n---\n\nFeel free to explore and integrate the **Buy Me a Coffee API** into your applications. Happy coding! 🎉",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "36243865",
+    "_collection_link": "https://go.postman.co/collection/39244238-98f2f22f-de55-4d73-befe-9768f608b5b2?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "All Supporters",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{ACCESS_TOKEN}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "https://developers.buymeacoffee.com/api/v1/subscriptions?status={{status}}",
+          "protocol": "https",
+          "host": [
+            "developers",
+            "buymeacoffee",
+            "com"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "subscriptions"
+          ],
+          "query": [
+            {
+              "key": "status",
+              "value": "{{status}}",
+              "description": "Filter by status: active, inactive, or all"
+            }
+          ]
+        },
+        "description": "Fetch all members with active, inactive, or all statuses."
+      },
+      "response": []
+    },
+    {
+      "name": "Member by ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{ACCESS_TOKEN}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "https://developers.buymeacoffee.com/api/v1/subscriptions/{{id}}",
+          "protocol": "https",
+          "host": [
+            "developers",
+            "buymeacoffee",
+            "com"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "subscriptions",
+            "{{id}}"
+          ]
+        },
+        "description": "Fetch detailed membership information by ID."
+      },
+      "response": []
+    },
+    {
+      "name": "All One-time Supporters",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{ACCESS_TOKEN}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "https://developers.buymeacoffee.com/api/v1/supporters",
+          "protocol": "https",
+          "host": [
+            "developers",
+            "buymeacoffee",
+            "com"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "supporters"
+          ]
+        },
+        "description": "Fetch all one-time supporters along with their messages and transaction details."
+      },
+      "response": []
+    },
+    {
+      "name": "One-time Supporter by ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{ACCESS_TOKEN}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "https://developers.buymeacoffee.com/api/v1/supporters/{{id}}",
+          "protocol": "https",
+          "host": [
+            "developers",
+            "buymeacoffee",
+            "com"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "supporters",
+            "{{id}}"
+          ]
+        },
+        "description": "Fetch detailed information about a one-time supporter by their unique ID."
+      },
+      "response": []
+    },
+    {
+      "name": "All Extra Purchases",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{ACCESS_TOKEN}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "https://developers.buymeacoffee.com/api/v1/extras",
+          "protocol": "https",
+          "host": [
+            "developers",
+            "buymeacoffee",
+            "com"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "extras"
+          ]
+        },
+        "description": "Retrieve a list of all extra purchases made by your supporters."
+      },
+      "response": []
+    },
+    {
+      "name": "Extra Purchase by ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{ACCESS_TOKEN}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "https://developers.buymeacoffee.com/api/v1/extras/{{id}}",
+          "protocol": "https",
+          "host": [
+            "developers",
+            "buymeacoffee",
+            "com"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "extras",
+            "{{id}}"
+          ]
+        },
+        "description": "Fetch detailed information about a specific extra purchase by its unique ID."
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "ACCESS_TOKEN",
+      "value": "",
+      "description": "Your API access token for authentication."
+    },
+    {
+      "key": "status",
+      "value": "active",
+      "description": "Specify the status for filtering members (active, inactive, all)."
+    },
+    {
+      "key": "id",
+      "value": "",
+      "description": "Unique identifier for a specific record (membership, supporter, or extra)."
+    }
+  ]
+}
