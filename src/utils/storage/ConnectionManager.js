@@ -351,6 +351,26 @@ export class ConnectionManager {
         .collection("recent_command_users")
         .createIndex({ userId: 1, timestamp: 1 });
 
+      // BMAC payment indexes
+      await this.db
+        .collection("unclaimed_payments")
+        .createIndex({ bmacPaymentId: 1 });
+      await this.db
+        .collection("unclaimed_payments")
+        .createIndex({ status: 1 });
+      await this.db
+        .collection("unclaimed_payments")
+        .createIndex({ timestamp: -1 });
+      await this.db
+        .collection("pending_codes")
+        .createIndex({ code: 1 }, { unique: true });
+      await this.db
+        .collection("pending_codes")
+        .createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }); // Auto-delete expired codes
+      await this.db
+        .collection("payments")
+        .createIndex({ bmacPaymentId: 1 }, { sparse: true });
+
       this.logger.success("✅ Database indexes created successfully");
     } catch (error) {
       this.logger.warn("⚠️ Index creation failed (non-critical)", error);
