@@ -33,6 +33,7 @@ export async function apiListUsers(req, res) {
         { discordId: { $regex: search, $options: "i" } },
         { username: { $regex: search, $options: "i" } },
         { globalName: { $regex: search, $options: "i" } },
+        { emailNormalized: { $regex: search, $options: "i" } },
       ];
     }
 

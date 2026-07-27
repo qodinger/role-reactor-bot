@@ -176,6 +176,7 @@ export class UserRepository extends BaseRepository {
         const normalizedEmail = email.toLowerCase().trim();
         updateData.emailHash = this.hashEmail(normalizedEmail);
         updateData.email = await this.encryptPII(normalizedEmail);
+        updateData.emailNormalized = normalizedEmail;
       }
 
       // Encrypt and store tokens if provided
