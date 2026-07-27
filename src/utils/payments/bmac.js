@@ -1,7 +1,4 @@
-import { getLogger } from "../logger.js";
 import { config } from "../../config/config.js";
-
-const logger = getLogger();
 
 /**
  * Buy Me a Coffee API Client
