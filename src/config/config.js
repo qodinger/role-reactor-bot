@@ -293,6 +293,15 @@ class Config {
         features: ["Priority processing", "Dedicated support"],
         popular: false,
       },
+      $100: {
+        name: "Premium",
+        baseCores: 1800,
+        bonusCores: 400,
+        description: "Best value for serious creators",
+        estimatedUsage: "~4,400 image edits or 440 upscales",
+        features: ["Priority processing", "Dedicated support", "Early access"],
+        popular: false,
+      },
     };
 
     const packages = Object.fromEntries(
