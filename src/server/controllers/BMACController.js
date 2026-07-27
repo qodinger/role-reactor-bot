@@ -128,3 +128,79 @@ export async function apiGenerateBMACCode(req, res) {
     });
   }
 }
+
+/**
+ * API: Check Buy Me a Coffee code status
+ *
+ * Returns whether the user's most recent pending code has been matched
+ * to a donation and their Cores have been credited.
+ *
+ * GET /api/v1/payments/buymeacoffee/code-status
+ * Requires: internalAuth middleware
+ */
+export async function apiCheckBMACCodeStatus(req, res) {
+  try {
+    const userId = req.user?.id || req.session?.discordUser?.id;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+    }
+
+    const { getDatabaseManager } = await import(
+      "../../utils/storage/databaseManager.js"
+    );
+    const dbManager = await getDatabaseManager();
+    if (!dbManager?.connectionManager?.db) {
+      return res.status(500).json({
+        success: false,
+        message: "Database not available",
+      });
+    }
+    const db = dbManager.connectionManager.db;
+    const pendingCodes = db.collection("pending_codes");
+
+    // Find the most recent code for this user
+    const latestCode = await pendingCodes
+      .find({ discordId: userId })
+      .sort({ createdAt: -1 })
+      .limit(1)
+      .next();
+
+    if (!latestCode) {
+      return res.status(200).json({
+        success: true,
+        data: { status: "no_code" },
+      });
+    }
+
+    if (latestCode.used) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          status: "credited",
+          code: latestCode.code,
+          usedAt: latestCode.usedAt,
+          paymentData: latestCode.paymentData,
+        },
+      });
+    }
+
+    const isExpired = new Date(latestCode.expiresAt) < new Date();
+    return res.status(200).json({
+      success: true,
+      data: {
+        status: isExpired ? "expired" : "pending",
+        code: latestCode.code,
+        expiresAt: latestCode.expiresAt,
+      },
+    });
+  } catch (error) {
+    logger.error("❌ Failed to check BMAC code status:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to check code status",
+    });
+  }
+}

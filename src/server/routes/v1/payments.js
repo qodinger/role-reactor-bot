@@ -5,7 +5,7 @@ import {
   apiGetAdminActionLogs,
 } from "../../controllers/PaymentAdminController.js";
 import { apiCreatePayment } from "../../controllers/PaymentProcessingController.js";
-import { apiGenerateBMACCode } from "../../controllers/BMACController.js";
+import { apiGenerateBMACCode, apiCheckBMACCodeStatus } from "../../controllers/BMACController.js";
 
 import { internalAuth } from "../../middleware/internalAuth.js";
 import { requireAuth } from "../../middleware/authentication.js";
@@ -35,5 +35,8 @@ router.post("/create", internalAuth, apiCreatePayment);
 
 // Buy Me a Coffee code generation - requires internal auth
 router.post("/buymeacoffee/generate-code", internalAuth, apiGenerateBMACCode);
+
+// Buy Me a Coffee code status check - requires internal auth
+router.get("/buymeacoffee/code-status", internalAuth, apiCheckBMACCodeStatus);
 
 export default router;

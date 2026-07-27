@@ -18,7 +18,11 @@ const logger = getLogger();
  * and credit cores based on the amount paid.
  */
 export async function handleBMACWebhook(req, res) {
-  const { message, amount, supporter_name: supporterName, currency } = req.body;
+  const payload = req.body.response || req.body || {};
+  const amount = payload.amount || req.body.amount;
+  const supporterName = payload.supporter_name || req.body.supporter_name || payload.support_name || req.body.support_name || "";
+  const currency = payload.currency || req.body.currency || "USD";
+  const rawMessage = payload.message || req.body.message || payload.support_note || req.body.support_note || payload.support_message || req.body.support_message || "";
 
   // 1. Validate amount
   const paymentAmount = parseFloat(amount);
@@ -35,15 +39,43 @@ export async function handleBMACWebhook(req, res) {
       .json({ status: "error", message: "Amount too high" });
   }
 
-  // 2. Extract and validate code from message field
-  const code = (message || "").trim().toUpperCase();
-  if (!code.startsWith("RR-") || code.length !== 9) {
+  // 2. Extract and validate code from any text field
+  const textToSearch = `${rawMessage} ${supporterName}`.toUpperCase();
+  const codeMatch = textToSearch.match(/RR-[A-Z0-9]{6}/);
+  const code = codeMatch ? codeMatch[0] : "";
+
+  if (!code) {
     logger.debug(
-      `BMAC webhook: no valid code in message "${(message || "").substring(0, 20)}"`,
+      `BMAC webhook: no valid code found in payload fields: "${textToSearch.substring(0, 50)}"`
     );
+    
+    // Save to unclaimed payments database
+    try {
+      const { getDatabaseManager } = await import(
+        "../utils/storage/databaseManager.js"
+      );
+      const dbManager = await getDatabaseManager();
+      if (dbManager?.connectionManager?.db) {
+        const db = dbManager.connectionManager.db;
+        await db.collection("unclaimed_payments").insertOne({
+          provider: "buymeacoffee",
+          amount: paymentAmount,
+          currency: currency || "USD",
+          supporterName: supporterName || "Anonymous",
+          rawMessage,
+          timestamp: new Date(),
+          payload: req.body,
+          status: "unclaimed"
+        });
+        logger.info(`💾 Saved unclaimed BMAC payment of $${paymentAmount} from ${supporterName || "Anonymous"}`);
+      }
+    } catch (e) {
+      logger.error("Failed to save unclaimed payment:", e);
+    }
+
     return res
       .status(200)
-      .json({ status: "ignored", message: "No valid code" });
+      .json({ status: "ignored_but_saved", message: "No valid code, saved to unclaimed_payments" });
   }
 
   // 3. Look up code in pending_codes collection
