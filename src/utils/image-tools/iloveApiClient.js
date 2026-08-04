@@ -78,9 +78,7 @@ export class ILoveApiClient {
     const apiTool = TOOL_MAP[tool];
     if (!apiTool) throw new Error(`Unknown tool: ${tool}`);
 
-    const response = await this.#request(
-      `${ILOVEAPI_BASE}/start/${apiTool}`,
-    );
+    const response = await this.#request(`${ILOVEAPI_BASE}/start/${apiTool}`);
 
     if (!response.ok) {
       const text = await response.text();
@@ -183,14 +181,11 @@ export class ILoveApiClient {
    * @returns {Promise<Buffer>} Processed image buffer
    */
   async download(server, task) {
-    const response = await fetch(
-      `https://${server}/v1/download/${task}`,
-      {
-        headers: {
-          Authorization: `Bearer ${await this.#getToken()}`,
-        },
+    const response = await fetch(`https://${server}/v1/download/${task}`, {
+      headers: {
+        Authorization: `Bearer ${await this.#getToken()}`,
       },
-    );
+    });
 
     if (!response.ok) {
       throw new Error(`Download failed: ${response.status}`);

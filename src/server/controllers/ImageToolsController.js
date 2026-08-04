@@ -103,7 +103,8 @@ export async function apiProcessImage(req, res) {
     let options = {};
     if (optionsRaw) {
       try {
-        options = typeof optionsRaw === "string" ? JSON.parse(optionsRaw) : optionsRaw;
+        options =
+          typeof optionsRaw === "string" ? JSON.parse(optionsRaw) : optionsRaw;
       } catch {
         const { statusCode, response } = createErrorResponse(
           "Invalid options JSON",
@@ -131,7 +132,10 @@ export async function apiProcessImage(req, res) {
         freeRemaining = freeResult.remaining;
       } else {
         // Quota exhausted — fall back to charging cores
-        const deduction = await checkAndDeductSpecificCredits(userId, creditCost);
+        const deduction = await checkAndDeductSpecificCredits(
+          userId,
+          creditCost,
+        );
         if (!deduction.success) {
           const { statusCode, response } = createErrorResponse(
             "Insufficient credits",
@@ -179,7 +183,12 @@ export async function apiProcessImage(req, res) {
       }
     } else {
       // Use iLoveAPI for AI operations
-      result = await processImage(tool, file.buffer, file.originalname, options);
+      result = await processImage(
+        tool,
+        file.buffer,
+        file.originalname,
+        options,
+      );
     }
 
     // Return the processed file
@@ -208,7 +217,7 @@ export async function apiProcessImage(req, res) {
           options,
           isFree: creditsDeducted === 0,
           creditsDeducted,
-          status: "success"
+          status: "success",
         });
       }
     } catch (logError) {
@@ -222,7 +231,11 @@ export async function apiProcessImage(req, res) {
     // Refund credits or free tier quota if the processing failed
     try {
       if (creditsDeducted > 0) {
-        await refundAICredits(userId, creditsDeducted, "Image tool processing failed");
+        await refundAICredits(
+          userId,
+          creditsDeducted,
+          "Image tool processing failed",
+        );
       } else if (toolConfig?.freeDaily) {
         // If it was free and we consumed a free tier
         await refundFreeTier(userId);
@@ -238,7 +251,12 @@ export async function apiProcessImage(req, res) {
         if (storageManager) {
           let parsedOptions = {};
           if (req.body.options) {
-             try { parsedOptions = typeof req.body.options === "string" ? JSON.parse(req.body.options) : req.body.options; } catch(_e){}
+            try {
+              parsedOptions =
+                typeof req.body.options === "string"
+                  ? JSON.parse(req.body.options)
+                  : req.body.options;
+            } catch (_e) {}
           }
           await storageManager.logImageToolUsage({
             userId,
@@ -247,7 +265,7 @@ export async function apiProcessImage(req, res) {
             isFree: false, // Don't care much since it failed
             creditsDeducted: 0,
             status: "failed",
-            error: error.message
+            error: error.message,
           });
         }
       }
@@ -287,7 +305,12 @@ export async function apiGetImageToolsConfig(req, res) {
       };
     }
 
-    return res.json(createSuccessResponse({ tools: configs, freeDailyQuota: FREE_DAILY_QUOTA }));
+    return res.json(
+      createSuccessResponse({
+        tools: configs,
+        freeDailyQuota: FREE_DAILY_QUOTA,
+      }),
+    );
   } catch (error) {
     logger.error("Failed to get image tools config:", error);
     const { statusCode, response } = createErrorResponse(
@@ -308,7 +331,10 @@ export async function apiGetFreeQuota(req, res) {
   try {
     const userId = req.user?.id;
     if (!userId) {
-      const { statusCode, response } = createErrorResponse("Unauthorized: User ID required", 401);
+      const { statusCode, response } = createErrorResponse(
+        "Unauthorized: User ID required",
+        401,
+      );
       return res.status(statusCode).json(response);
     }
 
@@ -316,8 +342,10 @@ export async function apiGetFreeQuota(req, res) {
     return res.json(createSuccessResponse(quota));
   } catch (error) {
     logger.error("Failed to get free quota:", error);
-    const { statusCode, response } = createErrorResponse("Failed to retrieve quota", 500);
+    const { statusCode, response } = createErrorResponse(
+      "Failed to retrieve quota",
+      500,
+    );
     return res.status(statusCode).json(response);
   }
 }
-

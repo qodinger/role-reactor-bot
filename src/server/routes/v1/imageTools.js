@@ -27,7 +27,11 @@ const upload = multer({
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error("Unsupported file type. Upload JPG, PNG, GIF, WebP, or HEIC."));
+      cb(
+        new Error(
+          "Unsupported file type. Upload JPG, PNG, GIF, WebP, or HEIC.",
+        ),
+      );
     }
   },
 });
@@ -39,11 +43,6 @@ router.get("/config", apiRateLimiter, apiGetImageToolsConfig);
 router.get("/free-quota", apiRateLimiter, apiGetFreeQuota);
 
 // POST /api/v1/image-tools/process — Process an image
-router.post(
-  "/process",
-  apiRateLimiter,
-  upload.single("file"),
-  apiProcessImage,
-);
+router.post("/process", apiRateLimiter, upload.single("file"), apiProcessImage);
 
 export default router;

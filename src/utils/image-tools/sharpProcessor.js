@@ -116,7 +116,7 @@ export async function compressImage(inputBuffer, filename, options = {}) {
   }
 
   const buffer = await pipeline.toBuffer();
-  
+
   // Custom filename since we might have forced a format
   const base = filename.replace(/\.[^.]+$/, "");
   const outputFilename = `${base}_compressed.${outputExt}`;

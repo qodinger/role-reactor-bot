@@ -53,11 +53,11 @@ export async function checkAndConsumeFreeTier(userId) {
           date,
           // TTL: expire 48 hours after midnight of the tracked day
           expiresAt: new Date(
-            new Date(date + "T00:00:00Z").getTime() + 48 * 60 * 60 * 1000
+            new Date(date + "T00:00:00Z").getTime() + 48 * 60 * 60 * 1000,
           ),
         },
       },
-      { upsert: true, returnDocument: "after" }
+      { upsert: true, returnDocument: "after" },
     );
 
     const doc = result?.value ?? result; // driver v5 vs v6 compat
@@ -67,19 +67,24 @@ export async function checkAndConsumeFreeTier(userId) {
     if (count > FREE_DAILY_QUOTA) {
       // Revert the increment since they weren't allowed
       await col.updateOne({ _id: doc._id }, { $inc: { count: -1 } });
-      logger.warn(`[FreeQuota] Quota exhausted for ${userId}. (Count was ${count})`);
+      logger.warn(
+        `[FreeQuota] Quota exhausted for ${userId}. (Count was ${count})`,
+      );
       return { allowed: false, wasFree: false, remaining: 0 };
     }
 
     const remaining = Math.max(0, FREE_DAILY_QUOTA - count);
 
     logger.debug(
-      `[FreeQuota] userId=${userId} date=${date} count=${count} remaining=${remaining}`
+      `[FreeQuota] userId=${userId} date=${date} count=${count} remaining=${remaining}`,
     );
 
     return { allowed: true, wasFree: true, remaining };
   } catch (error) {
-    logger.error(`[FreeQuota] Error checking free tier for ${userId}:`, error?.message);
+    logger.error(
+      `[FreeQuota] Error checking free tier for ${userId}:`,
+      error?.message,
+    );
     return { allowed: false, wasFree: false, remaining: 0 };
   }
 }
@@ -125,13 +130,13 @@ export async function refundFreeTier(userId) {
   try {
     const col = await getCollection();
     const date = todayUTC();
-    
+
     // Only decrement if count is greater than 0
     const result = await col.updateOne(
       { userId, date, count: { $gt: 0 } },
-      { $inc: { count: -1 } }
+      { $inc: { count: -1 } },
     );
-    
+
     if (result.modifiedCount > 0) {
       logger.debug(`[FreeQuota] Refunded 1 free operation for ${userId}`);
       return true;

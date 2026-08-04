@@ -86,7 +86,9 @@ export async function upscaleImage(fileBuffer, filename, opts = {}) {
  */
 export async function processImage(tool, fileBuffer, filename, options = {}) {
   if (tool !== "upscale") {
-    throw new Error(`processImage in imageTools.js only supports upscale. Use sharpProcessor.js for resize/compress/convert.`);
+    throw new Error(
+      `processImage in imageTools.js only supports upscale. Use sharpProcessor.js for resize/compress/convert.`,
+    );
   }
 
   logger.debug(`Processing image with ${tool}`, {
