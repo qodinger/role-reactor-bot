@@ -39,6 +39,15 @@ describe("Premium Command", () => {
 
     mockInteraction = createMockInteraction({
       reply: vi.fn().mockResolvedValue(undefined),
+      options: {
+        getString: vi.fn().mockReturnValue(null),
+        getInteger: vi.fn().mockReturnValue(null),
+        getBoolean: vi.fn().mockReturnValue(null),
+        getUser: vi.fn().mockReturnValue(null),
+        getRole: vi.fn().mockReturnValue(null),
+        getChannel: vi.fn().mockReturnValue(null),
+        getSubcommand: vi.fn().mockReturnValue("display"),
+      },
     });
 
     mockClient = createMockClient();

@@ -43,7 +43,7 @@ For those who need higher capacity immediately, Cores can be obtained via the **
 
 ## 🏗️ Pro Engine (Guild-Wide Upgrade)
 
-The **Pro Engine** is the ultimate upgrade for your Discord server. When activated, it unlocks advanced automation, higher limits across all features, and priority performance.
+The **Pro Engine** is the ultimate upgrade for your Discord server. When activated, it unlocks advanced automation and higher limits across server-management features.
 
 ### 💰 Activation & Cost
 
@@ -60,13 +60,15 @@ When **one person** fuels the Pro Engine, **everyone** in the server wins. The f
 | **Giveaway Entries**   | 2,500             | **50,000**                    |
 | **Giveaway Winners**   | 5                 | **20**                        |
 | **Scheduled Roles**    | 25 active slots   | **500 active slots**          |
+| **Ticket Panels**      | 3 panels          | **10 panels**                 |
 | **Ticket Capacity**    | 50 monthly        | **500 monthly**               |
 | **Transcript Type**    | Markdown          | **Rich HTML Layout**          |
 | **Transcript Storage** | 30 Days           | **Unlimited**                 |
 | **Bulk Actions**       | 25 users          | **250 users**                 |
 | **Level Rewards**      | 5 (Stack)         | **Unlimited (Replace/Stack)** |
-| **Role Reaction Menus**| 3                 | **8**                         |
+| **Role Reaction Menus**| 5                 | **15**                        |
 | **Role Reaction Emojis**| 10               | **20**                        |
+| **Custom Commands**    | Not available     | **25 commands**               |
 
 ---
 
@@ -95,6 +97,17 @@ The system is designed to be frictionless for server managers:
 2.  **Grace Period (🚨 3 Days)**: If the payer runs out of Cores, the Pro Engine **remains active** for a **3-day grace period**.
     - The payer will receive a DM notification to top up.
     - If no Cores are added by the end of the grace period, the guild is automatically downgraded to the Free Tier.
+
+## 🎁 Free Trial
+
+Every server gets one **7-day free trial** of Pro Engine. No Cores are deducted during the trial.
+
+- **How to activate:** Visit the Web Dashboard and click "Start Free Trial" for your server.
+- **Limit:** One trial per server, ever.
+- **What's included:** All Pro Engine benefits at full limits for 7 days.
+- **After the trial:** The server reverts to Free Tier limits unless Pro Engine is purchased.
+
+---
 
 ## ❓ FAQ
 

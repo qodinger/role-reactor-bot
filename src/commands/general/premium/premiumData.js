@@ -13,7 +13,7 @@ export const PREMIUM_FEATURES = [
     command: "schedule-role",
     name: "Scheduled Roles",
     emoji: "📅",
-    free: "5 active schedules",
+    free: "25 active schedules",
     pro: "500 active schedules",
   },
   {
@@ -28,14 +28,14 @@ export const PREMIUM_FEATURES = [
     name: "Role Bundles",
     emoji: "📦",
     free: "5 roles per bundle",
-    pro: "15 roles per bundle",
+    pro: "20 roles per bundle",
   },
   {
     command: "role-reactions",
     name: "Role Reactions",
     emoji: "⭐",
-    free: "10 emojis, 3 menus",
-    pro: "20 emojis, 8 menus",
+    free: "10 emojis, 5 menus",
+    pro: "20 emojis, 15 menus",
   },
   {
     command: "xp",
@@ -55,7 +55,14 @@ export const PREMIUM_FEATURES = [
     command: "ticket",
     name: "Ticketing",
     emoji: "🎫",
-    free: "3 panels, 50 tickets/month, 7-day transcripts",
+    free: "3 panels, 50 tickets/month, 30-day transcripts",
     pro: "10 panels, 500 tickets/month, unlimited transcripts (HTML/JSON)",
+  },
+  {
+    command: "custom-commands",
+    name: "Custom Commands",
+    emoji: "🔧",
+    free: "Not available",
+    pro: "25 custom commands",
   },
 ];
