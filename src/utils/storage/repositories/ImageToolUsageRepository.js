@@ -27,11 +27,14 @@ export class ImageToolUsageRepository extends BaseRepository {
       await this.collection.createIndex({ tool: 1 });
       await this.collection.createIndex(
         { timestamp: 1 },
-        { expireAfterSeconds: 60 * 60 * 24 * 90 } // 90 days
+        { expireAfterSeconds: 60 * 60 * 24 * 90 }, // 90 days
       );
       this.logger.debug("ImageToolUsageRepository indexes ensured");
     } catch (error) {
-      this.logger.warn("Failed to ensure ImageToolUsageRepository indexes", error);
+      this.logger.warn(
+        "Failed to ensure ImageToolUsageRepository indexes",
+        error,
+      );
     }
   }
 
@@ -47,7 +50,15 @@ export class ImageToolUsageRepository extends BaseRepository {
    * @param {string} [usageData.error] - Optional error message if failed
    * @returns {Promise<void>}
    */
-  async logUsage({ userId, tool, options, isFree, creditsDeducted, status, error }) {
+  async logUsage({
+    userId,
+    tool,
+    options,
+    isFree,
+    creditsDeducted,
+    status,
+    error,
+  }) {
     try {
       await this.collection.insertOne({
         userId,
@@ -62,7 +73,7 @@ export class ImageToolUsageRepository extends BaseRepository {
     } catch (insertError) {
       this.logger.error(
         `Error recording image tool usage for user ${userId}, tool ${tool}:`,
-        insertError
+        insertError,
       );
     }
   }
@@ -73,29 +84,31 @@ export class ImageToolUsageRepository extends BaseRepository {
    */
   async getUsageStatsByTool() {
     try {
-      return await this.collection.aggregate([
-        {
-          $group: {
-            _id: "$tool",
-            count: { $sum: 1 },
-            successCount: {
-              $sum: { $cond: [{ $eq: ["$status", "success"] }, 1, 0] }
+      return await this.collection
+        .aggregate([
+          {
+            $group: {
+              _id: "$tool",
+              count: { $sum: 1 },
+              successCount: {
+                $sum: { $cond: [{ $eq: ["$status", "success"] }, 1, 0] },
+              },
+              failedCount: {
+                $sum: { $cond: [{ $eq: ["$status", "failed"] }, 1, 0] },
+              },
+              freeCount: {
+                $sum: { $cond: ["$isFree", 1, 0] },
+              },
+              paidCount: {
+                $sum: { $cond: ["$isFree", 0, 1] },
+              },
+              totalCreditsDeducted: { $sum: "$creditsDeducted" },
+              lastUsed: { $max: "$timestamp" },
             },
-            failedCount: {
-              $sum: { $cond: [{ $eq: ["$status", "failed"] }, 1, 0] }
-            },
-            freeCount: {
-              $sum: { $cond: ["$isFree", 1, 0] }
-            },
-            paidCount: {
-              $sum: { $cond: ["$isFree", 0, 1] }
-            },
-            totalCreditsDeducted: { $sum: "$creditsDeducted" },
-            lastUsed: { $max: "$timestamp" }
-          }
-        },
-        { $sort: { count: -1 } }
-      ]).toArray();
+          },
+          { $sort: { count: -1 } },
+        ])
+        .toArray();
     } catch (error) {
       this.logger.error("Error getting image tool usage stats:", error);
       return [];

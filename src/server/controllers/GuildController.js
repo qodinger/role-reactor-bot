@@ -123,6 +123,29 @@ function serializeDates(value) {
   return value;
 }
 
+const EDITABLE_GUILD_SETTING_FIELDS = new Set([
+  "experienceSystem",
+  "disabledCommands",
+  "levelRewards",
+  "levelRewardMode",
+]);
+
+function pickEditableGuildSettings(updates) {
+  const editableUpdates = {};
+
+  if (!updates || typeof updates !== "object" || Array.isArray(updates)) {
+    return editableUpdates;
+  }
+
+  for (const [key, value] of Object.entries(updates)) {
+    if (EDITABLE_GUILD_SETTING_FIELDS.has(key)) {
+      editableUpdates[key] = value;
+    }
+  }
+
+  return editableUpdates;
+}
+
 /**
  * Get guild settings and available commands
  */
@@ -381,6 +404,24 @@ export async function apiUpdateGuildSettings(req, res) {
   logRequest(`Update guild settings: ${guildId}`, req);
 
   try {
+    const editableUpdates = pickEditableGuildSettings(updates);
+    const hasWelcomeUpdate =
+      updates?.welcomeSystem &&
+      typeof updates.welcomeSystem === "object" &&
+      !Array.isArray(updates.welcomeSystem);
+
+    if (!hasWelcomeUpdate && Object.keys(editableUpdates).length === 0) {
+      return res
+        .status(400)
+        .json(
+          createErrorResponse(
+            "No editable guild settings provided",
+            400,
+            "Only dashboard-editable guild settings can be updated through this endpoint.",
+          ).response,
+        );
+    }
+
     const { getDatabaseManager } = await import(
       "../../utils/storage/databaseManager.js"
     );
@@ -389,7 +430,7 @@ export async function apiUpdateGuildSettings(req, res) {
 
     // Handle welcome system settings separately
     let welcomeSettings = null;
-    if (updates.welcomeSystem) {
+    if (hasWelcomeUpdate) {
       if (dbManager.welcomeSettings) {
         // Map the API format to the database format
         const welcomeUpdates = {
@@ -404,19 +445,15 @@ export async function apiUpdateGuildSettings(req, res) {
         await dbManager.welcomeSettings.set(guildId, welcomeUpdates);
         welcomeSettings = welcomeUpdates;
       }
-      // Remove welcomeSystem from the main settings update
-      // eslint-disable-next-line no-unused-vars
-      const { welcomeSystem: _welcomeSystem, ...otherUpdates } = updates;
-      Object.assign(updates, otherUpdates);
     }
 
     const newSettings = {
       ...existingSettings,
-      ...updates,
+      ...editableUpdates,
       updatedAt: new Date(),
     };
 
-    if (updates.disabledCommands) {
+    if (editableUpdates.disabledCommands) {
       const { getPremiumManager } = await import(
         "../../features/premium/PremiumManager.js"
       );

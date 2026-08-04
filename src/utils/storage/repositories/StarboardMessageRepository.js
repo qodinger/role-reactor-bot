@@ -10,7 +10,10 @@ export class StarboardMessageRepository extends BaseRepository {
     const cached = this.cache.get(cacheKey);
     if (cached) return cached;
 
-    const result = await this.collection.findOne({ guildId, originalMessageId });
+    const result = await this.collection.findOne({
+      guildId,
+      originalMessageId,
+    });
     if (result) {
       this.cache.set(cacheKey, result);
     }

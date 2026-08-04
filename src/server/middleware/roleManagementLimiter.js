@@ -22,12 +22,17 @@ export const roleManagementLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req, _res) => keyGenerator(req, "unknown"),
-  handler: (req, _res) => {
+  handler: (req, res) => {
     logger.warn("Rate limit exceeded for role management", {
       userId: req.user?.id,
       ip: req.ip,
       path: req.path,
       method: req.method,
+    });
+    res.status(429).json({
+      status: "error",
+      message: "Too many role management operations, please try again later",
+      statusCode: 429,
     });
   },
   validate: { xForwardedForHeader: false },
@@ -48,12 +53,17 @@ export const guildSettingsLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req, _res) => keyGenerator(req, "unknown"),
-  handler: (req, _res) => {
+  handler: (req, res) => {
     logger.warn("Rate limit exceeded for guild settings", {
       userId: req.user?.id,
       ip: req.ip,
       path: req.path,
       method: req.method,
+    });
+    res.status(429).json({
+      status: "error",
+      message: "Too many settings modifications, please try again later",
+      statusCode: 429,
     });
   },
   validate: { xForwardedForHeader: false },
@@ -73,12 +83,17 @@ export const customCommandLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req, _res) => keyGenerator(req, "unknown"),
-  handler: (req, _res) => {
+  handler: (req, res) => {
     logger.warn("Rate limit exceeded for custom commands", {
       userId: req.user?.id,
       ip: req.ip,
       path: req.path,
       method: req.method,
+    });
+    res.status(429).json({
+      status: "error",
+      message: "Too many custom command operations, please try again later",
+      statusCode: 429,
     });
   },
   validate: { xForwardedForHeader: false },
@@ -99,12 +114,17 @@ export const premiumActivationLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req, _res) => keyGenerator(req, "unknown"),
-  handler: (req, _res) => {
+  handler: (req, res) => {
     logger.warn("Rate limit exceeded for premium activation", {
       userId: req.user?.id,
       ip: req.ip,
       path: req.path,
       method: req.method,
+    });
+    res.status(429).json({
+      status: "error",
+      message: "Too many premium feature activations, please try again later",
+      statusCode: 429,
     });
   },
   validate: { xForwardedForHeader: false },

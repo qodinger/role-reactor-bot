@@ -37,6 +37,7 @@ import {
 } from "../../controllers/GuildCustomCommandController.js";
 import { internalAuth } from "../../middleware/internalAuth.js";
 import { requireAuth } from "../../middleware/authentication.js";
+import { requireAdmin } from "../../middleware/userAuthorization.js";
 import {
   requireGuildPermission,
   requireGuildMembership,
@@ -54,29 +55,41 @@ const router = express.Router();
 router.post("/check", internalAuth, apiCheckGuilds);
 
 // List all guilds (internal only - for admin dashboard)
-router.get("/", internalAuth, requireAuth, apiListGuilds);
+router.get("/", internalAuth, requireAuth, requireAdmin, apiListGuilds);
 
 // Guild history (internal only - for admin dashboard)
-router.get("/history", internalAuth, requireAuth, async (req, res) => {
-  try {
-    const { getStorageManager } = await import(
-      "../../../utils/storage/storageManager.js"
-    );
-    const storage = await getStorageManager();
-    if (!storage?.dbManager?.guildHistory) {
-      return res
-        .status(503)
-        .json({ success: false, error: "Guild history not available" });
+router.get(
+  "/history",
+  internalAuth,
+  requireAuth,
+  requireAdmin,
+  async (req, res) => {
+    try {
+      const { getStorageManager } = await import(
+        "../../../utils/storage/storageManager.js"
+      );
+      const storage = await getStorageManager();
+      if (!storage?.dbManager?.guildHistory) {
+        return res
+          .status(503)
+          .json({ success: false, error: "Guild history not available" });
+      }
+      const guilds = await storage.dbManager.guildHistory.getAll();
+      res.json({ success: true, data: guilds });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
     }
-    const guilds = await storage.dbManager.guildHistory.getAll();
-    res.json({ success: true, data: guilds });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+  },
+);
 
 // Guild details for admin (bypasses membership check)
-router.get("/:guildId/details", internalAuth, requireAuth, apiGetGuildSettings);
+router.get(
+  "/:guildId/details",
+  internalAuth,
+  requireAuth,
+  requireAdmin,
+  apiGetGuildSettings,
+);
 
 // Settings - requires guild permission (internal auth verifies website request)
 router.get(
