@@ -39,7 +39,9 @@ export class BMACClient {
     });
 
     if (response.status === 401) {
-      throw new Error("BMAC API token invalid — regenerate at https://developers.buymeacoffee.com");
+      throw new Error(
+        "BMAC API token invalid — regenerate at https://developers.buymeacoffee.com",
+      );
     }
 
     if (response.status === 429) {

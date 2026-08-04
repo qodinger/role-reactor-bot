@@ -118,13 +118,28 @@ async function initializeMiddleware() {
 
       // Use MongoDB session store for persistence across restarts
       if (process.env.MONGODB_URI) {
-        sessionConfig.store = new MongoStore({
-          mongoUrl: process.env.MONGODB_URI,
-          collectionName: "sessions",
-          ttl: SESSION_TIMEOUT_MS / 1000,
-          autoRemove: "native",
-          touchAfter: 24 * 3600,
-        });
+        // Reuse the application's shared MongoClient to avoid a second connection pool
+        const { getStorageManager } = await import(
+          "../utils/storage/databaseManager.js"
+        ).catch(() => ({}));
+        const storageManager = await getStorageManager?.().catch(() => null);
+        const sharedClient = storageManager?.connectionManager?.client;
+
+        sessionConfig.store = sharedClient
+          ? new MongoStore({
+              client: sharedClient,
+              collectionName: "sessions",
+              ttl: SESSION_TIMEOUT_MS / 1000,
+              autoRemove: "native",
+              touchAfter: 24 * 3600,
+            })
+          : new MongoStore({
+              mongoUrl: process.env.MONGODB_URI,
+              collectionName: "sessions",
+              ttl: SESSION_TIMEOUT_MS / 1000,
+              autoRemove: "native",
+              touchAfter: 24 * 3600,
+            });
         logger.info(
           `✅ Session middleware enabled with MongoDB store (timeout: ${SESSION_TIMEOUT_MS / 1000 / 60} min)`,
         );

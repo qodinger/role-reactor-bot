@@ -5,7 +5,10 @@ import {
   apiGetAdminActionLogs,
 } from "../../controllers/PaymentAdminController.js";
 import { apiCreatePayment } from "../../controllers/PaymentProcessingController.js";
-import { apiGenerateBMACCode, apiCheckBMACCodeStatus } from "../../controllers/BMACController.js";
+import {
+  apiGenerateBMACCode,
+  apiCheckBMACCodeStatus,
+} from "../../controllers/BMACController.js";
 
 import { internalAuth } from "../../middleware/internalAuth.js";
 import { requireAuth } from "../../middleware/authentication.js";

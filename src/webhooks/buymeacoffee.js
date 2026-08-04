@@ -70,8 +70,13 @@ export async function handleBMACWebhook(req, res) {
 
   // Only process donation events (one-time payments)
   if (eventType !== "donation.created") {
-    logger.debug(`BMAC webhook: ignoring event type "${eventType}" (event_id: ${eventId})`);
-    return res.status(200).json({ status: "ignored", message: `Event type "${eventType}" not handled` });
+    logger.debug(
+      `BMAC webhook: ignoring event type "${eventType}" (event_id: ${eventId})`,
+    );
+    return res.status(200).json({
+      status: "ignored",
+      message: `Event type "${eventType}" not handled`,
+    });
   }
 
   const amount = data.amount;
@@ -103,9 +108,9 @@ export async function handleBMACWebhook(req, res) {
 
   if (!code) {
     logger.debug(
-      `BMAC webhook: no valid code found (event_id: ${eventId}, supporter: "${supporterName}")`
+      `BMAC webhook: no valid code found (event_id: ${eventId}, supporter: "${supporterName}")`,
     );
-    
+
     // Save to unclaimed payments database
     try {
       const { getDatabaseManager } = await import(
@@ -125,17 +130,20 @@ export async function handleBMACWebhook(req, res) {
           eventId,
           timestamp: new Date(),
           payload: body,
-          status: "unclaimed"
+          status: "unclaimed",
         });
-        logger.info(`💾 Saved unclaimed BMAC payment of $${paymentAmount} from ${supporterName || "Anonymous"} (event_id: ${eventId})`);
+        logger.info(
+          `💾 Saved unclaimed BMAC payment of $${paymentAmount} from ${supporterName || "Anonymous"} (event_id: ${eventId})`,
+        );
       }
     } catch (e) {
       logger.error("Failed to save unclaimed payment:", e);
     }
 
-    return res
-      .status(200)
-      .json({ status: "ignored_but_saved", message: "No valid code, saved to unclaimed_payments" });
+    return res.status(200).json({
+      status: "ignored_but_saved",
+      message: "No valid code, saved to unclaimed_payments",
+    });
   }
 
   // 3. Look up code in pending_codes collection
