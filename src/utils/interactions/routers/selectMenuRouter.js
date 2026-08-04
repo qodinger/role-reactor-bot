@@ -18,6 +18,15 @@ export async function routeSelectMenuInteraction(interaction, _client) {
   if (customId.startsWith("t_")) return;
 
   try {
+    // Handle custom command select menus
+    if (customId.startsWith("cc_select_")) {
+      const { handleCustomCommandSelectMenu } = await import(
+        "../../core/CustomCommandExecutor.js"
+      );
+      await handleCustomCommandSelectMenu(interaction);
+      return;
+    }
+
     // Handle poll creation select menus
     if (customId.startsWith("poll_") && customId.endsWith("_select")) {
       // Check if interaction is already acknowledged

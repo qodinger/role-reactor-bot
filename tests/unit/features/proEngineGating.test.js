@@ -1,4 +1,13 @@
 import { describe, test, expect } from "vitest";
+import {
+  FREE_TIER as PREMIUM_FREE_TIER,
+  PRO_TIER,
+} from "../../../src/features/premium/config.js";
+import {
+  FREE_TIER as TICKET_FREE_TIER,
+  PRO_ENGINE as TICKET_PRO_ENGINE,
+} from "../../../src/features/ticketing/config.js";
+import { PREMIUM_FEATURES } from "../../../src/commands/general/premium/premiumData.js";
 
 /**
  * Comprehensive Pro Engine Feature Gating Tests
@@ -120,6 +129,27 @@ describe("Pro Engine - Feature Registry", () => {
     expect(ids).toContain("xp");
     expect(ids).toContain("giveaway");
     expect(ids).toContain("ticket");
+  });
+});
+
+describe("Pro Engine - Benefit Copy Matches Runtime Config", () => {
+  test("scheduled roles advertise the same free and pro limits used by handlers", () => {
+    expect(PREMIUM_FREE_TIER.SCHEDULE_MAX_ACTIVE).toBe(25);
+    expect(PRO_TIER.SCHEDULE_MAX_ACTIVE).toBe(500);
+  });
+
+  test("ticket panel benefits match the ticketing runtime config", () => {
+    expect(TICKET_FREE_TIER.MAX_PANELS).toBe(3);
+    expect(TICKET_PRO_ENGINE.MAX_PANELS).toBe(10);
+  });
+
+  test("/premium copy advertises the runtime ticket transcript retention", () => {
+    const ticketFeature = PREMIUM_FEATURES.find(
+      feature => feature.command === "ticket",
+    );
+
+    expect(TICKET_FREE_TIER.TRANSCRIPT_RETENTION_DAYS).toBe(30);
+    expect(ticketFeature.free).toContain("30-day transcripts");
   });
 });
 

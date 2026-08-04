@@ -27,11 +27,35 @@ async function getCustomCommandRepo() {
   return dbManager.customCommands;
 }
 
-async function checkPremium(guildId) {
+async function checkCustomCommandLimit(guildId) {
   const { getPremiumManager } = await import(
     "../../features/premium/PremiumManager.js"
   );
-  return getPremiumManager().isFeatureActive(guildId, "pro_engine");
+  const { PRO_TIER } = await import("../../features/premium/config.js");
+
+  const isPremium = await getPremiumManager().isFeatureActive(
+    guildId,
+    "pro_engine",
+  );
+  if (!isPremium) {
+    return {
+      isPremium: false,
+      currentCount: 0,
+      maxCommands: 0,
+      canCreate: false,
+    };
+  }
+
+  const repo = await getCustomCommandRepo();
+  const currentCount = await repo.countByGuild(guildId);
+  const maxCommands = PRO_TIER.CUSTOM_COMMANDS_MAX;
+
+  return {
+    isPremium: true,
+    currentCount,
+    maxCommands,
+    canCreate: currentCount < maxCommands,
+  };
 }
 
 /**
@@ -51,15 +75,6 @@ export async function apiGetCustomCommands(req, res) {
   }
 
   try {
-    const isPremium = await checkPremium(guildId);
-    if (!isPremium) {
-      const { statusCode, response } = createErrorResponse(
-        "Pro Engine is required to use custom commands",
-        403,
-      );
-      return res.status(statusCode).json(response);
-    }
-
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 10));
 
@@ -103,10 +118,17 @@ export async function apiCreateCustomCommand(req, res) {
   }
 
   try {
-    const isPremium = await checkPremium(guildId);
-    if (!isPremium) {
+    const limit = await checkCustomCommandLimit(guildId);
+    if (!limit.isPremium) {
       const { statusCode, response } = createErrorResponse(
         "Pro Engine is required to use custom commands",
+        403,
+      );
+      return res.status(statusCode).json(response);
+    }
+    if (!limit.canCreate) {
+      const { statusCode, response } = createErrorResponse(
+        `Custom command limit reached (${limit.currentCount}/${limit.maxCommands}). Please remove an existing command to create a new one.`,
         403,
       );
       return res.status(statusCode).json(response);
@@ -556,15 +578,6 @@ export async function apiUpdateCustomCommand(req, res) {
   logRequest(`Update custom command ${commandId} for guild ${guildId}`, req);
 
   try {
-    const isPremium = await checkPremium(guildId);
-    if (!isPremium) {
-      const { statusCode, response } = createErrorResponse(
-        "Pro Engine is required to use custom commands",
-        403,
-      );
-      return res.status(statusCode).json(response);
-    }
-
     const repo = await getCustomCommandRepo();
     const existing = await repo.getById(guildId, commandId);
     if (!existing) {
@@ -765,15 +778,6 @@ export async function apiDeleteCustomCommand(req, res) {
   logRequest(`Delete custom command ${commandId} for guild ${guildId}`, req);
 
   try {
-    const isPremium = await checkPremium(guildId);
-    if (!isPremium) {
-      const { statusCode, response } = createErrorResponse(
-        "Pro Engine is required to use custom commands",
-        403,
-      );
-      return res.status(statusCode).json(response);
-    }
-
     const repo = await getCustomCommandRepo();
     const existing = await repo.getById(guildId, commandId);
     if (!existing) {
@@ -845,15 +849,6 @@ export async function apiSyncCustomCommands(req, res) {
   }
 
   try {
-    const isPremium = await checkPremium(guildId);
-    if (!isPremium) {
-      const { statusCode, response } = createErrorResponse(
-        "Pro Engine is required to use custom commands",
-        403,
-      );
-      return res.status(statusCode).json(response);
-    }
-
     const client = getDiscordClient();
     if (!client) {
       const { statusCode, response } = createErrorResponse(
@@ -1024,19 +1019,26 @@ export async function apiDuplicateCustomCommand(req, res) {
   }
 
   try {
-    const isPremium = await checkPremium(guildId);
-    if (!isPremium) {
+    const sourceLimit = await checkCustomCommandLimit(guildId);
+    if (!sourceLimit.isPremium) {
       const { statusCode, response } = createErrorResponse(
-        "Pro Engine is required to use custom commands",
+        "Pro Engine is required to duplicate custom commands",
         403,
       );
       return res.status(statusCode).json(response);
     }
 
-    const targetPremium = await checkPremium(targetGuildId);
-    if (!targetPremium) {
+    const targetLimit = await checkCustomCommandLimit(targetGuildId);
+    if (!targetLimit.isPremium) {
       const { statusCode, response } = createErrorResponse(
         "Target server does not have Pro Engine active",
+        403,
+      );
+      return res.status(statusCode).json(response);
+    }
+    if (!targetLimit.canCreate) {
+      const { statusCode, response } = createErrorResponse(
+        `Target server custom command limit reached (${targetLimit.currentCount}/${targetLimit.maxCommands})`,
         403,
       );
       return res.status(statusCode).json(response);

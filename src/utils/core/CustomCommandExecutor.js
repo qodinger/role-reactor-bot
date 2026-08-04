@@ -8,6 +8,7 @@ import {
 } from "discord.js";
 import { getLogger } from "../logger.js";
 import { getCommandRateLimiter } from "../rateLimit/commandRateLimiter.js";
+import { PRO_TIER } from "../../features/premium/config.js";
 
 export class CustomCommandExecutor {
   constructor() {
@@ -30,7 +31,8 @@ export class CustomCommandExecutor {
     const { getPremiumManager } = await import(
       "../../features/premium/PremiumManager.js"
     );
-    const isPremium = await getPremiumManager().isFeatureActive(
+    const premiumManager = getPremiumManager();
+    const isPremium = await premiumManager.isFeatureActive(
       interaction.guildId,
       "pro_engine",
     );
@@ -38,6 +40,17 @@ export class CustomCommandExecutor {
       await interaction.reply({
         content:
           "❌ Custom commands require **Pro Engine** to be active in this server.",
+        flags: [MessageFlags.Ephemeral],
+      });
+      return true;
+    }
+
+    const commandCount = await dbManager.customCommands.countByGuild(
+      interaction.guildId,
+    );
+    if (commandCount >= PRO_TIER.CUSTOM_COMMANDS_MAX) {
+      await interaction.reply({
+        content: `❌ You've reached the **${PRO_TIER.CUSTOM_COMMANDS_MAX} custom commands** limit for Pro Engine.\n\nPlease remove an existing command to create a new one.`,
         flags: [MessageFlags.Ephemeral],
       });
       return true;
@@ -470,5 +483,100 @@ export class CustomCommandExecutor {
     }
 
     return true;
+  }
+}
+
+/**
+ * Handle button clicks on custom command responses.
+ * Custom command buttons use the prefix "cc_{commandId}_{label}".
+ * Currently acknowledges the click — extend with action logic as needed.
+ * @param {import('discord.js').ButtonInteraction} interaction
+ */
+export async function handleCustomCommandButton(interaction) {
+  const logger = getLogger();
+  const { customId } = interaction;
+
+  try {
+    const parts = customId.split("_");
+    if (parts.length < 3) {
+      logger.debug(`Invalid custom command button customId: ${customId}`);
+      return;
+    }
+
+    const commandId = parts[1];
+    const { getDatabaseManager } = await import(
+      "../storage/databaseManager.js"
+    );
+    const dbManager = await getDatabaseManager();
+    if (!dbManager?.customCommands) return;
+
+    const command = await dbManager.customCommands.getById(
+      interaction.guildId,
+      commandId,
+    );
+    if (!command || !command.enabled) {
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({
+          content: "❌ This button is no longer available.",
+          flags: [MessageFlags.Ephemeral],
+        });
+      }
+      return;
+    }
+
+    logger.debug(
+      `Custom command button clicked: ${customId} on command ${command.name}`,
+    );
+  } catch (error) {
+    logger.error(`Error handling custom command button ${customId}:`, error);
+  }
+}
+
+/**
+ * Handle select menu interactions on custom command responses.
+ * Custom command select menus use the prefix "cc_select_{commandId}".
+ * Currently acknowledges the selection — extend with action logic as needed.
+ * @param {import('discord.js').AnySelectMenuInteraction} interaction
+ */
+export async function handleCustomCommandSelectMenu(interaction) {
+  const logger = getLogger();
+  const { customId } = interaction;
+
+  try {
+    const parts = customId.split("_");
+    if (parts.length < 3) {
+      logger.debug(`Invalid custom command select menu customId: ${customId}`);
+      return;
+    }
+
+    const commandId = parts[2];
+    const { getDatabaseManager } = await import(
+      "../storage/databaseManager.js"
+    );
+    const dbManager = await getDatabaseManager();
+    if (!dbManager?.customCommands) return;
+
+    const command = await dbManager.customCommands.getById(
+      interaction.guildId,
+      commandId,
+    );
+    if (!command || !command.enabled) {
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({
+          content: "❌ This menu is no longer available.",
+          flags: [MessageFlags.Ephemeral],
+        });
+      }
+      return;
+    }
+
+    logger.debug(
+      `Custom command select menu used: ${customId} on command ${command.name}`,
+    );
+  } catch (error) {
+    logger.error(
+      `Error handling custom command select menu ${customId}:`,
+      error,
+    );
   }
 }
