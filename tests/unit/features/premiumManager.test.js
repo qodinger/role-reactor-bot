@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { FREE_TIER } from "../../../src/features/premium/config.js";
 
 // ─── Mock Dependencies ──────────────────────────────────────────────────────
 
@@ -570,7 +571,6 @@ describe("PremiumManager", () => {
 
   describe("pro downgrade cleanup", () => {
     it("pauses excess scheduled roles beyond the free limit", async () => {
-      // Free limit = 5, so if there are 30 active schedules, 25 should be paused
       const schedules = Array.from({ length: 30 }, (_, i) => ({
         id: `sched_${i}`,
         executed: false,
@@ -587,8 +587,9 @@ describe("PremiumManager", () => {
 
       await pm.disableFeature("g1", "pro_engine");
 
-      // 30 - 5 = 25 schedules should be cancelled
-      expect(db.scheduledRoles.update).toHaveBeenCalledTimes(25);
+      expect(db.scheduledRoles.update).toHaveBeenCalledTimes(
+        schedules.length - FREE_TIER.SCHEDULE_MAX_ACTIVE,
+      );
       for (const call of db.scheduledRoles.update.mock.calls) {
         expect(call[1]).toEqual(
           expect.objectContaining({

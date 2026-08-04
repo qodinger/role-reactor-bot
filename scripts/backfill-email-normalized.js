@@ -67,10 +67,7 @@ async function backfill(dryRun = true) {
     // Find users with email but no emailNormalized
     const cursor = users.find({
       email: { $exists: true, $ne: null },
-      $or: [
-        { emailNormalized: { $exists: false } },
-        { emailNormalized: null },
-      ],
+      $or: [{ emailNormalized: { $exists: false } }, { emailNormalized: null }],
     });
 
     const toBackfill = [];
@@ -87,9 +84,11 @@ async function backfill(dryRun = true) {
 
     if (dryRun) {
       console.log("🔍 DRY RUN — would backfill:");
-      toBackfill.forEach((u) => {
+      toBackfill.forEach(u => {
         const decrypted = decryptToken(u.email);
-        const normalized = decrypted ? decrypted.toLowerCase().trim() : "(decrypt failed)";
+        const normalized = decrypted
+          ? decrypted.toLowerCase().trim()
+          : "(decrypt failed)";
         console.log(`   ${u.username || u.discordId}: ${normalized}`);
       });
       console.log(`\nRun with --commit to apply.`);
@@ -103,7 +102,9 @@ async function backfill(dryRun = true) {
       try {
         const decrypted = decryptToken(user.email);
         if (!decrypted || !decrypted.includes("@")) {
-          console.log(`   ⚠️  Skipped ${user.discordId} — decrypt failed or invalid`);
+          console.log(
+            `   ⚠️  Skipped ${user.discordId} — decrypt failed or invalid`,
+          );
           failed++;
           continue;
         }

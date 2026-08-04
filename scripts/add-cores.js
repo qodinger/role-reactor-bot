@@ -1,5 +1,5 @@
-import { addCoreCredits } from '../src/utils/ai/aiCreditManager.js';
-import { getStorageManager } from '../src/utils/storage/storageManager.js';
+import { addCoreCredits } from "../src/utils/ai/aiCreditManager.js";
+import { getStorageManager } from "../src/utils/storage/storageManager.js";
 
 async function main() {
   const userId = process.argv[2];
@@ -14,14 +14,16 @@ async function main() {
   await getStorageManager();
 
   console.log(`Adding ${amount} cores to user ${userId}...`);
-  const result = await addCoreCredits(userId, amount, 'manual_admin');
-  
+  const result = await addCoreCredits(userId, amount, "manual_admin");
+
   if (result.success) {
-    console.log(`✅ Successfully added cores! New balance: ${result.newBalance}`);
+    console.log(
+      `✅ Successfully added cores! New balance: ${result.newBalance}`,
+    );
   } else {
     console.error(`❌ Failed to add cores: ${result.error}`);
   }
-  
+
   process.exit(0);
 }
 

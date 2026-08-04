@@ -41,7 +41,7 @@ describe("TicketManager", () => {
   describe("Configuration", () => {
     it("should initialize with correct free tier limits", () => {
       expect(FREE_TIER.MAX_TICKETS_PER_MONTH).toBe(50);
-      expect(FREE_TIER.MAX_PANELS).toBe(1);
+      expect(FREE_TIER.MAX_PANELS).toBe(3);
       expect(FREE_TIER.MAX_CATEGORIES).toBe(3);
       expect(FREE_TIER.TRANSCRIPT_RETENTION_DAYS).toBe(30);
     });
