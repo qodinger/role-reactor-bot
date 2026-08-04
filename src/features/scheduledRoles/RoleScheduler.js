@@ -273,25 +273,38 @@ class RoleScheduler {
           : null;
         const minIntervalMs = 60000; // 1 minute minimum between executions
 
-        if (lastExecutedAt && now.getTime() - lastExecutedAt.getTime() < minIntervalMs) {
+        if (
+          lastExecutedAt &&
+          now.getTime() - lastExecutedAt.getTime() < minIntervalMs
+        ) {
           return false;
         }
 
         if (!lastExecutedAt) {
           // First execution - execute now if enough time has passed since creation
           const createdAt = new Date(schedule.createdAt);
-          const intervalMs = (scheduleConfig.intervalMinutes || scheduleConfig.interval || 60) * 60 * 1000;
+          const intervalMs =
+            (scheduleConfig.intervalMinutes || scheduleConfig.interval || 60) *
+            60 *
+            1000;
           return now.getTime() - createdAt.getTime() >= intervalMs;
         }
 
-        const intervalMs = (scheduleConfig.intervalMinutes || scheduleConfig.interval || 60) * 60 * 1000;
+        const intervalMs =
+          (scheduleConfig.intervalMinutes || scheduleConfig.interval || 60) *
+          60 *
+          1000;
         const nextExecutionTime = lastExecutedAt.getTime() + intervalMs;
         return now.getTime() >= nextExecutionTime;
       }
 
       // For daily, weekly, monthly - calculate the most recent past occurrence
       // and check if we're within the execution window and haven't run since then.
-      const lastOccurrence = getLastOccurrenceTime(scheduleConfig, scheduleType, now);
+      const lastOccurrence = getLastOccurrenceTime(
+        scheduleConfig,
+        scheduleType,
+        now,
+      );
 
       if (!lastOccurrence) {
         return false;
@@ -311,7 +324,10 @@ class RoleScheduler {
         : null;
       const minIntervalMs = 60000; // 1 minute minimum between executions
 
-      if (lastExecutedAt && now.getTime() - lastExecutedAt.getTime() < minIntervalMs) {
+      if (
+        lastExecutedAt &&
+        now.getTime() - lastExecutedAt.getTime() < minIntervalMs
+      ) {
         return false;
       }
 

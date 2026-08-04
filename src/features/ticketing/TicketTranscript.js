@@ -3,6 +3,7 @@ import { getPremiumManager } from "../premium/PremiumManager.js";
 import { getLogger } from "../../utils/logger.js";
 import { FREE_TIER, PRO_ENGINE } from "./config.js";
 import dedent from "dedent";
+import { randomBytes } from "crypto";
 
 const logger = getLogger();
 
@@ -93,8 +94,10 @@ export class TicketTranscript {
             ).toISOString()
           : null;
 
-      // Generate transcript ID
-      const transcriptId = `TRS-${guildId}-${ticketId.split("-").pop()}`;
+      // Generate transcript ID with an unguessable suffix for public links.
+      const ticketSuffix = ticketId.split("-").pop();
+      const transcriptToken = randomBytes(12).toString("hex");
+      const transcriptId = `TRS-${guildId}-${ticketSuffix}-${transcriptToken}`;
 
       // Save transcript
       const transcript = await this.storage.createTicketTranscript({
