@@ -20,7 +20,7 @@ Following the modular pattern established by other admin commands:
 - **`index.js`**: Command definition using SlashCommandBuilder, permission validation, metadata, and main execution flow.
 - **`handlers.js`**: Core business logic, database operations, and interaction processing for configuring the starboard settings.
 
-*(Note: The actual background event listening and embed building logic resides in `src/features/starboard/StarboardManager.js` and `src/events/messageReactionAdd.js`)*
+_(Note: The actual background event listening and embed building logic resides in `src/features/starboard/StarboardManager.js` and `src/events/messageReactionAdd.js`)_
 
 ## Subcommands
 

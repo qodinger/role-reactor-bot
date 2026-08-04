@@ -1,14 +1,18 @@
 import { MessageFlags } from "discord.js";
 import { getDatabaseManager } from "../../../utils/storage/databaseManager.js";
 import { getLogger } from "../../../utils/logger.js";
-import { successEmbed, errorEmbed, infoEmbed } from "../../../utils/discord/responseMessages.js";
+import {
+  successEmbed,
+  errorEmbed,
+  infoEmbed,
+} from "../../../utils/discord/responseMessages.js";
 
 const logger = getLogger();
 
 export async function execute(interaction) {
   try {
     const subcommand = interaction.options.getSubcommand();
-    
+
     // Use MessageFlags.Ephemeral per project convention
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
@@ -18,7 +22,7 @@ export async function execute(interaction) {
         errorEmbed({
           title: "Database Error",
           description: "Database connection failed. Please try again later.",
-        })
+        }),
       );
     }
 
@@ -28,7 +32,8 @@ export async function execute(interaction) {
     if (subcommand === "setup") {
       const channel = interaction.options.getChannel("channel");
       let emoji = interaction.options.getString("emoji") || settings.emoji;
-      const threshold = interaction.options.getInteger("threshold") || settings.threshold;
+      const threshold =
+        interaction.options.getInteger("threshold") || settings.threshold;
 
       // Clean up custom emoji format if they passed it in <a:name:id> or <:name:id> format
       if (emoji.startsWith("<") && emoji.endsWith(">")) {
@@ -52,51 +57,63 @@ export async function execute(interaction) {
           fields: [
             { name: "Channel", value: `<#${channel.id}>`, inline: true },
             { name: "Emoji", value: emoji, inline: true },
-            { name: "Threshold", value: `${threshold} reactions`, inline: true }
-          ]
-        })
+            {
+              name: "Threshold",
+              value: `${threshold} reactions`,
+              inline: true,
+            },
+          ],
+        }),
       );
-      logger.info(`⭐ Starboard setup by ${interaction.user.username} in guild ${guildId}`);
-
+      logger.info(
+        `⭐ Starboard setup by ${interaction.user.username} in guild ${guildId}`,
+      );
     } else if (subcommand === "enable") {
       if (!settings.channelId) {
         return interaction.editReply(
           errorEmbed({
             title: "Setup Required",
-            description: "You must run `/starboard setup` before enabling the starboard."
-          })
+            description:
+              "You must run `/starboard setup` before enabling the starboard.",
+          }),
         );
       }
 
       await db.starboardSettings.updateSettings(guildId, { enabled: true });
-      
+
       await interaction.editReply(
         successEmbed({
           title: "⭐ Starboard Enabled",
-          description: `The starboard is now active in <#${settings.channelId}>.`
-        })
+          description: `The starboard is now active in <#${settings.channelId}>.`,
+        }),
       );
-      logger.info(`⭐ Starboard enabled by ${interaction.user.username} in guild ${guildId}`);
-
+      logger.info(
+        `⭐ Starboard enabled by ${interaction.user.username} in guild ${guildId}`,
+      );
     } else if (subcommand === "disable") {
       await db.starboardSettings.updateSettings(guildId, { enabled: false });
-      
+
       await interaction.editReply(
         infoEmbed({
           title: "⭐ Starboard Disabled",
-          description: "The starboard has been disabled. Existing starboard messages will remain, but new ones will not be posted."
-        })
+          description:
+            "The starboard has been disabled. Existing starboard messages will remain, but new ones will not be posted.",
+        }),
       );
-      logger.info(`⭐ Starboard disabled by ${interaction.user.username} in guild ${guildId}`);
+      logger.info(
+        `⭐ Starboard disabled by ${interaction.user.username} in guild ${guildId}`,
+      );
     }
-
   } catch (error) {
     logger.error("Error executing starboard command:", error);
-    await interaction.editReply(
-      errorEmbed({
-        title: "Command Failed",
-        description: "An error occurred while configuring the starboard. Please try again."
-      })
-    ).catch(() => {});
+    await interaction
+      .editReply(
+        errorEmbed({
+          title: "Command Failed",
+          description:
+            "An error occurred while configuring the starboard. Please try again.",
+        }),
+      )
+      .catch(() => {});
   }
 }

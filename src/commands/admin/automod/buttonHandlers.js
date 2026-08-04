@@ -822,7 +822,11 @@ async function parseNumber(value, defaultValue = 0) {
   return isNaN(num) ? defaultValue : num;
 }
 
-export async function showActionSelectMenu(interaction, filterName, currentAction) {
+export async function showActionSelectMenu(
+  interaction,
+  filterName,
+  currentAction,
+) {
   const {
     ActionRowBuilder,
     StringSelectMenuBuilder,
@@ -1309,7 +1313,9 @@ export async function handleAutomodStatsModal(interaction) {
     );
 
     const dbManager = await getDatabaseManager();
-    const analytics = await dbManager.automod.getAnalytics(interaction.guild.id);
+    const analytics = await dbManager.automod.getAnalytics(
+      interaction.guild.id,
+    );
 
     const { EmbedBuilder } = await import("discord.js");
     const { THEME } = await import("../../../config/theme.js");
@@ -1529,7 +1535,10 @@ export async function handleAutomodActionSelect(interaction) {
     const dbManager = await getDatabaseManager();
     const settings = await dbManager.automod.getByGuild(interaction.guild.id);
 
-    const filterName = interaction.customId.replace("automod_action_select_", "");
+    const filterName = interaction.customId.replace(
+      "automod_action_select_",
+      "",
+    );
     const selectedAction = interaction.values[0];
 
     const filterMap = {

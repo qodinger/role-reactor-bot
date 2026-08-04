@@ -112,8 +112,7 @@ export const metadata = {
     },
     {
       name: `Permissions`,
-      value:
-        "• **Manage Server** permission required for all automod commands",
+      value: "• **Manage Server** permission required for all automod commands",
       inline: false,
     },
     {
@@ -440,7 +439,9 @@ export const data = new SlashCommandBuilder()
           .addStringOption(option =>
             option
               .setName("domains")
-              .setDescription("Domains to allow (e.g., youtube.com,discord.com)")
+              .setDescription(
+                "Domains to allow (e.g., youtube.com,discord.com)",
+              )
               .setRequired(true),
           ),
       )

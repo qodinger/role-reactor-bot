@@ -16,8 +16,16 @@ export const disabled = false;
 export const metadata = {
   name: "starboard",
   category: "admin",
-  description: "Highlight the best messages in your server with a community-driven hall of fame",
-  keywords: ["starboard", "star", "highlight", "hall of fame", "best messages", "featured"],
+  description:
+    "Highlight the best messages in your server with a community-driven hall of fame",
+  keywords: [
+    "starboard",
+    "star",
+    "highlight",
+    "hall of fame",
+    "best messages",
+    "featured",
+  ],
   emoji: "⭐",
   helpFields: [
     {
@@ -59,13 +67,13 @@ export const data = new SlashCommandBuilder()
         option
           .setName("channel")
           .setDescription("The channel to post starboard messages in")
-          .setRequired(true)
+          .setRequired(true),
       )
       .addStringOption(option =>
         option
           .setName("emoji")
           .setDescription("The emoji to use for starring (default: ⭐)")
-          .setRequired(false)
+          .setRequired(false),
       )
       .addIntegerOption(option =>
         option
@@ -73,18 +81,16 @@ export const data = new SlashCommandBuilder()
           .setDescription("Number of reactions required to post (default: 3)")
           .setMinValue(1)
           .setMaxValue(100)
-          .setRequired(false)
-      )
+          .setRequired(false),
+      ),
   )
   .addSubcommand(subcommand =>
-    subcommand
-      .setName("enable")
-      .setDescription("Enable the starboard feature")
+    subcommand.setName("enable").setDescription("Enable the starboard feature"),
   )
   .addSubcommand(subcommand =>
     subcommand
       .setName("disable")
-      .setDescription("Disable the starboard feature")
+      .setDescription("Disable the starboard feature"),
   );
 
 export { execute };

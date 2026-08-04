@@ -1,5 +1,8 @@
 import { getDatabaseManager } from "../../../utils/storage/databaseManager.js";
-import { errorEmbed, successEmbed } from "../../../utils/discord/responseMessages.js";
+import {
+  errorEmbed,
+  successEmbed,
+} from "../../../utils/discord/responseMessages.js";
 import { getPremiumManager } from "../../../features/premium/PremiumManager.js";
 import { createAutomodSettingsEmbed } from "./embeds.js";
 import { createAutomodSettingsComponents } from "./components.js";

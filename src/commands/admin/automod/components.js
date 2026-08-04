@@ -23,12 +23,7 @@ export function createAutomodSettingsComponents(settings) {
         "🔗",
         settings.links?.enabled,
       ),
-      createToggle(
-        "automod_spam_toggle",
-        "Spam",
-        "🔄",
-        settings.spam?.enabled,
-      ),
+      createToggle("automod_spam_toggle", "Spam", "🔄", settings.spam?.enabled),
     ),
     new ActionRowBuilder().addComponents(
       createToggle(

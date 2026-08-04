@@ -8,12 +8,42 @@ export function createAutomodSettingsEmbed(
   client = null,
 ) {
   const filters = [
-    { key: "badWords", label: "Bad Words", emoji: "🚫", description: "Block inappropriate language" },
-    { key: "links", label: "Links", emoji: "🔗", description: "Block URLs in messages" },
-    { key: "spam", label: "Spam", emoji: "🔄", description: "Detect repeated messages" },
-    { key: "mentionSpam", label: "Mentions", emoji: "📣", description: "Block mass mentions" },
-    { key: "inviteLink", label: "Invites", emoji: "📩", description: "Block Discord invite links" },
-    { key: "capsLock", label: "Caps", emoji: "🔠", description: "Block ALL CAPS messages" },
+    {
+      key: "badWords",
+      label: "Bad Words",
+      emoji: "🚫",
+      description: "Block inappropriate language",
+    },
+    {
+      key: "links",
+      label: "Links",
+      emoji: "🔗",
+      description: "Block URLs in messages",
+    },
+    {
+      key: "spam",
+      label: "Spam",
+      emoji: "🔄",
+      description: "Detect repeated messages",
+    },
+    {
+      key: "mentionSpam",
+      label: "Mentions",
+      emoji: "📣",
+      description: "Block mass mentions",
+    },
+    {
+      key: "inviteLink",
+      label: "Invites",
+      emoji: "📩",
+      description: "Block Discord invite links",
+    },
+    {
+      key: "capsLock",
+      label: "Caps",
+      emoji: "🔠",
+      description: "Block ALL CAPS messages",
+    },
   ];
 
   const activeCount = filters.filter(f => settings[f.key]?.enabled).length;
@@ -96,7 +126,10 @@ export function createAutomodSettingsEmbed(
     const rolePreview =
       roles.length <= 3
         ? roles.map(r => `<@&${r}>`).join(", ")
-        : `${roles.slice(0, 2).map(r => `<@&${r}>`).join(", ")} +${roles.length - 2} more`;
+        : `${roles
+            .slice(0, 2)
+            .map(r => `<@&${r}>`)
+            .join(", ")} +${roles.length - 2} more`;
     settingsRows.push({
       name: "Ignored Roles",
       value: `${EMOJIS.FEATURES.ROLES} ${rolePreview}`,
@@ -109,7 +142,10 @@ export function createAutomodSettingsEmbed(
     const channelPreview =
       channels.length <= 3
         ? channels.map(c => `<#${c}>`).join(", ")
-        : `${channels.slice(0, 2).map(c => `<#${c}>`).join(", ")} +${channels.length - 2} more`;
+        : `${channels
+            .slice(0, 2)
+            .map(c => `<#${c}>`)
+            .join(", ")} +${channels.length - 2} more`;
     settingsRows.push({
       name: "Ignored Channels",
       value: `${EMOJIS.UI.CHANNELS} ${channelPreview}`,

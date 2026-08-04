@@ -5,7 +5,6 @@ import {
   ActionRowBuilder,
 } from "discord.js";
 
-
 /**
  * Create bad words configuration modal
  * @param {Object} currentSettings - Current bad words settings

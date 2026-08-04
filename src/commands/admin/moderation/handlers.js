@@ -623,7 +623,10 @@ export async function handleWarn(interaction, client) {
                 );
               }
             } catch (timeoutError) {
-              logger.error(`Failed to auto-timeout ${user.username}:`, timeoutError);
+              logger.error(
+                `Failed to auto-timeout ${user.username}:`,
+                timeoutError,
+              );
             }
           }
 
@@ -899,7 +902,8 @@ export async function handleKick(interaction, client) {
 
           // Execute kick with rate limit handling
           await executeWithRateLimitHandling(
-            () => member.kick(`${reason} (Kick by ${interaction.user.username})`),
+            () =>
+              member.kick(`${reason} (Kick by ${interaction.user.username})`),
             3,
           );
 
@@ -1656,7 +1660,9 @@ export async function handleListTimeouts(interaction, _client) {
     );
 
     const timedOutArray = Array.from(timedOutMembers.values());
-    timedOutArray.sort((a, b) => a.user.username.localeCompare(b.user.username));
+    timedOutArray.sort((a, b) =>
+      a.user.username.localeCompare(b.user.username),
+    );
 
     if (timedOutArray.length === 0) {
       const embed = new EmbedBuilder()
