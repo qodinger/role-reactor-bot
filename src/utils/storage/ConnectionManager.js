@@ -25,13 +25,17 @@ export class ConnectionManager {
   async _connect() {
     let timeoutId = null;
     try {
+      // Close old client before reconnecting to prevent orphaned connections
+      if (this.client) {
+        await this.client.close().catch(() => {});
+      }
       this.logger.info("🔌 Attempting to connect to MongoDB...");
       this.client = new MongoClient(this.config.uri, {
         ...this.config.options,
         // Enhanced connection pooling - optimized for resource efficiency
         // Lower minPoolSize reduces compute usage on MongoDB Atlas Flex tier
-        maxPoolSize: Math.max(2, this.config.options.maxPoolSize || 20),
-        minPoolSize: Math.max(2, this.config.options.minPoolSize || 2),
+        maxPoolSize: Math.max(2, this.config.options.maxPoolSize || 5),
+        minPoolSize: Math.max(1, this.config.options.minPoolSize || 1),
         maxIdleTimeMS: Math.max(
           60000,
           this.config.options.maxIdleTimeMS || 60000,
@@ -54,7 +58,7 @@ export class ConnectionManager {
         // Enhanced reconnection options
         heartbeatFrequencyMS: 10000,
         // Add connection optimization
-        maxConnecting: Math.max(5, this.config.options.maxConnecting || 5),
+        maxConnecting: Math.max(2, this.config.options.maxConnecting || 2),
         // Connection pool monitoring
         monitorCommands: true,
         serverApi: {
@@ -355,9 +359,7 @@ export class ConnectionManager {
       await this.db
         .collection("unclaimed_payments")
         .createIndex({ bmacPaymentId: 1 });
-      await this.db
-        .collection("unclaimed_payments")
-        .createIndex({ status: 1 });
+      await this.db.collection("unclaimed_payments").createIndex({ status: 1 });
       await this.db
         .collection("unclaimed_payments")
         .createIndex({ timestamp: -1 });

@@ -36,6 +36,12 @@ class BotContext {
     if (this.client) {
       this.client.destroy();
     }
+    // Close MongoDB connection to release pool connections
+    const { getStorageManager } = await import(
+      "../storage/databaseManager.js"
+    ).catch(() => ({}));
+    const storageManager = await getStorageManager?.().catch(() => null);
+    await storageManager?.close().catch(() => {});
   }
 }
 

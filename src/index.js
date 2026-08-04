@@ -108,7 +108,9 @@ async function main() {
       if (bmacClient.enabled) {
         const status = await bmacClient.checkTokenStatus();
         if (status.valid) {
-          logger.info(`✅ BMAC API connected (${status.supporterCount} supporters)`);
+          logger.info(
+            `✅ BMAC API connected (${status.supporterCount} supporters)`,
+          );
         } else {
           logger.warn(`⚠️ BMAC API unreachable: ${status.error}`);
         }

@@ -97,8 +97,8 @@ class Config {
         // Connection pool settings - optimized for resource efficiency on MongoDB Atlas Flex
         // Lower minPoolSize = lower resource usage = better efficiency
         // Can be overridden via MONGODB_MIN_POOL_SIZE and MONGODB_MAX_POOL_SIZE env vars
-        maxPoolSize: parseInt(process.env.MONGODB_MAX_POOL_SIZE || "20", 10),
-        minPoolSize: parseInt(process.env.MONGODB_MIN_POOL_SIZE || "2", 10), // Reduced from 5 to 2 for efficiency
+        maxPoolSize: parseInt(process.env.MONGODB_MAX_POOL_SIZE || "5", 10),
+        minPoolSize: parseInt(process.env.MONGODB_MIN_POOL_SIZE || "1", 10),
         maxIdleTimeMS: 60000,
         serverSelectionTimeoutMS: 30000, // Increased for DNS resolution
         connectTimeoutMS: 30000, // Increased for DNS resolution
@@ -109,7 +109,7 @@ class Config {
         // Enhanced reconnection options
         heartbeatFrequencyMS: 10000,
         // Add connection optimization
-        maxConnecting: parseInt(process.env.MONGODB_MAX_CONNECTING || "5", 10), // Limit concurrent connection attempts
+        maxConnecting: parseInt(process.env.MONGODB_MAX_CONNECTING || "2", 10),
         serverApi: {
           version: "1",
           strict: false,
@@ -447,8 +447,7 @@ class Config {
         "https://buymeacoffee.com/rolereactor",
       buymeacoffeeWebhookSecret:
         process.env.BUYMEACOFFEE_WEBHOOK_SECRET || null,
-      buymeacoffeeApiToken:
-        process.env.BUYMEACOFFEE_API_TOKEN || null,
+      buymeacoffeeApiToken: process.env.BUYMEACOFFEE_API_TOKEN || null,
     };
   }
 
