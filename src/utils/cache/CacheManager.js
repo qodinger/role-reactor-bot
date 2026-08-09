@@ -41,6 +41,18 @@ export class CacheManager {
     this.accessOrder = [];
   }
 
+  /**
+   * Invalidate all cache entries whose keys start with the given prefix
+   * @param {string} prefix
+   */
+  invalidatePrefix(prefix) {
+    for (const key of this.cache.keys()) {
+      if (key.startsWith(prefix)) {
+        this.delete(key);
+      }
+    }
+  }
+
   updateAccessOrder(key) {
     this.removeFromAccessOrder(key);
     this.accessOrder.push(key);

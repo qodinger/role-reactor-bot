@@ -54,7 +54,7 @@ export async function handleWelcomeConfigModal(interaction) {
     }
 
     const sanitizedMessage = inputValidation.sanitized;
-    const validation = validateWelcomeMessage(sanitizedMessage);
+    const validation = await validateWelcomeMessage(sanitizedMessage);
 
     if (!validation.valid) {
       return interaction.editReply({

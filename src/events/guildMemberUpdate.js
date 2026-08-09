@@ -1,6 +1,8 @@
 import { Events, PermissionFlagsBits } from "discord.js";
 import { getLogger } from "../utils/logger.js";
 import { getStorageManager } from "../utils/storage/storageManager.js";
+import { getDatabaseManager } from "../utils/storage/databaseManager.js";
+import { fireEventTriggers } from "../utils/core/CustomEventExecutor.js";
 
 /**
  * Handle guild member updates (including role changes)
@@ -23,6 +25,37 @@ export async function execute(oldMember, newMember, _client) {
     const addedRoles = Array.from(newRoleIds).filter(
       roleId => !oldRoleIds.has(roleId),
     );
+
+    // Find removed roles
+    const removedRoles = Array.from(oldRoleIds).filter(
+      roleId => !newRoleIds.has(roleId),
+    );
+
+    // Phase 6: Event Triggers for roles
+    const dbManager = await getDatabaseManager();
+    const eventContext = {
+      guild: newMember.guild,
+      member: newMember,
+      user: newMember.user,
+      client: _client,
+      dbManager,
+    };
+
+    if (addedRoles.length > 0) {
+      try {
+        await fireEventTriggers(newMember.guild.id, "role_add", eventContext);
+      } catch (triggerError) {
+        logger.error(`Error firing role_add triggers:`, triggerError);
+      }
+    }
+
+    if (removedRoles.length > 0) {
+      try {
+        await fireEventTriggers(newMember.guild.id, "role_remove", eventContext);
+      } catch (triggerError) {
+        logger.error(`Error firing role_remove triggers:`, triggerError);
+      }
+    }
 
     if (addedRoles.length === 0) return;
 
@@ -154,6 +187,13 @@ export async function execute(oldMember, newMember, _client) {
       if (!targetChannel) {
         logger.warn(
           `Cannot move ${newMember.user.tag} - target channel ${targetChannelId} not found (may have been deleted)`,
+        );
+        return;
+      }
+
+      if (!targetChannel.isVoiceBased()) {
+        logger.warn(
+          `Cannot move ${newMember.user.tag} - target channel ${targetChannel.name} is not a voice channel`,
         );
         return;
       }

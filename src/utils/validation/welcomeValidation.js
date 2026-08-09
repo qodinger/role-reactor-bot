@@ -17,9 +17,9 @@ export function isValidChannelId(channelId) {
 /**
  * Validate welcome message with sanitization
  * @param {string} message
- * @returns {{ valid: boolean, sanitized: string, error?: string, warning?: string }}
+ * @returns {Promise<{ valid: boolean, sanitized: string, error?: string, warning?: string }>}
  */
-export function validateWelcomeMessage(message) {
+export async function validateWelcomeMessage(message) {
   if (typeof message !== "string") {
     return { valid: false, sanitized: "", error: "Message must be a string" };
   }
@@ -30,7 +30,7 @@ export function validateWelcomeMessage(message) {
   }
 
   // Sanitize the message
-  const { InputSanitizer, InputValidator } = require("./inputValidation.js");
+  const { InputSanitizer, InputValidator } = await import("./inputValidation.js");
   const sanitized = InputSanitizer.sanitize(message);
 
   // Check for malicious content
@@ -72,10 +72,10 @@ export function validateWelcomeMessage(message) {
 /**
  * Validate welcome message (legacy support)
  * @param {string} message
- * @returns {boolean}
+ * @returns {Promise<boolean>}
  */
-export function isValidMessage(message) {
-  return validateWelcomeMessage(message).valid;
+export async function isValidMessage(message) {
+  return (await validateWelcomeMessage(message)).valid;
 }
 
 /**
@@ -92,15 +92,15 @@ export function isValidBoolean(value) {
 /**
  * Validate role input
  * @param {string} roleInput
- * @returns {{ valid: boolean, sanitized: string, error?: string }}
+ * @returns {Promise<{ valid: boolean, sanitized: string, error?: string }>}
  */
-export function validateRole(roleInput) {
+export async function validateRole(roleInput) {
   if (!roleInput || typeof roleInput !== "string") {
     return { valid: true, sanitized: "" }; // Optional field
   }
 
   // Sanitize the input
-  const { InputSanitizer } = require("./inputValidation.js");
+  const { InputSanitizer } = await import("./inputValidation.js");
   const sanitized = InputSanitizer.sanitize(roleInput);
 
   // Check if it's a role mention <@&123456789>
@@ -128,23 +128,23 @@ export function validateRole(roleInput) {
 /**
  * Validate role input (legacy support)
  * @param {string} roleInput
- * @returns {boolean}
+ * @returns {Promise<boolean>}
  */
-export function isValidRole(roleInput) {
-  return validateRole(roleInput).valid;
+export async function isValidRole(roleInput) {
+  return (await validateRole(roleInput)).valid;
 }
 
 /**
  * Validate and sanitize channel ID
  * @param {string} channelId
- * @returns {{ valid: boolean, sanitized: string, error?: string }}
+ * @returns {Promise<{ valid: boolean, sanitized: string, error?: string }>}
  */
-export function validateChannelId(channelId) {
+export async function validateChannelId(channelId) {
   if (!channelId || typeof channelId !== "string") {
     return { valid: false, sanitized: "", error: "Channel ID is required" };
   }
 
-  const { InputSanitizer } = require("./inputValidation.js");
+  const { InputSanitizer } = await import("./inputValidation.js");
   const sanitized = InputSanitizer.sanitize(channelId);
 
   // Extract ID from mention format <#123456789> or use as-is

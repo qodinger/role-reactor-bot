@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Role Reactor Bot is a Discord bot built with Discord.js v14 and Node.js 22. It uses ES modules throughout (`"type": "module"` in package.json). The API server runs on port 3030 and is proxied via Caddy on a self-hosted VPS.
+Role Reactor Bot is a Discord bot built with Discord.js v14 and Node.js 22. It uses ES modules throughout (`"type": "module"` in package.json). The API server runs on port 3030 and is proxied via nginx on a self-hosted VPS.
 
 ## Tech Stack
 
@@ -12,7 +12,7 @@ Role Reactor Bot is a Discord bot built with Discord.js v14 and Node.js 22. It u
 - **Package manager:** pnpm 9.9.0 — always use `pnpm`, never `npm` or `yarn`
 - **Testing:** Vitest
 - **Linting/Formatting:** ESLint + Prettier
-- **Deployment:** Docker (multi-stage) + Caddy reverse proxy on VPS
+- **Deployment:** Docker (multi-stage) + nginx reverse proxy on VPS
 
 ## Key Commands
 
@@ -79,18 +79,19 @@ tests/                  # Vitest test files
 
 ### Docker (recommended for multi-service)
 ```
-Internet → Caddy (SSL, api.rolereactor.xyz) → Docker network → role-reactor-bot:3030
+Internet → nginx (SSL, api.rolereactor.xyz) → 127.0.0.1:3030 → Docker container
 ```
 
 ### PM2 (lightweight, single-app)
 ```
-Internet → Caddy (SSL, api.rolereactor.xyz) → PM2 → role-reactor-bot:3030
+Internet → nginx (SSL, api.rolereactor.xyz) → 127.0.0.1:3030 → PM2 process
 ```
 
-- Port 3030 is NOT exposed to the host — Caddy proxies internally
-- SSL is automatic via Caddy + Let's Encrypt
+- Port 3030 is exposed to `127.0.0.1` only (not publicly) — nginx proxies to it
+- SSL is via Let's Encrypt certificates managed by nginx
+- Both deployments use the same `nginx.conf` reverse proxy configuration
 - Environment variables come from the host `.env` file, never baked into the image
-- `docker-compose.prod.yml` runs both `caddy` and `role-reactor-bot` services
+- `docker-compose.prod.yml` exposes port 3030 to host for nginx to proxy to
 
 ### PM2 Notes
 - Use `ecosystem.config.cjs` for configuration

@@ -4,6 +4,7 @@ import {
   processGoodbyeMessage,
   createGoodbyeEmbed,
 } from "../utils/discord/goodbyeUtils.js";
+import { fireEventTriggers } from "../utils/core/CustomEventExecutor.js";
 
 import { getAnalyticsManager } from "../features/analytics/AnalyticsManager.js";
 
@@ -27,6 +28,19 @@ export async function execute(member) {
 
     // Get database manager and goodbye settings
     const dbManager = await getDatabaseManager();
+
+    // Phase 6: Event Triggers — fire independently of goodbye system
+    try {
+      await fireEventTriggers(member.guild.id, "member_leave", {
+        guild: member.guild,
+        member,
+        user: member.user,
+        client: member.client,
+        dbManager,
+      });
+    } catch (triggerError) {
+      logger.error(`Error firing member_leave triggers:`, triggerError);
+    }
 
     // Check if goodbye settings repository is available
     if (!dbManager.goodbyeSettings) {

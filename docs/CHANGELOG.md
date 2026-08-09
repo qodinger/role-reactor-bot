@@ -9,8 +9,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-<!-- - **Auto-Moderation System**: Keep your server safe automatically — for free. Six filters are available: bad words, link blocking, spam detection, mention spam, invite link blocking, and caps lock. Each filter can be set to delete the message, warn the user, kick, or ban. -->
-
 ### Fixed
 
 ## [1.8.0] - 2026-07-23

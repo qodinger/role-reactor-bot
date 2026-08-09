@@ -5,6 +5,7 @@ import {
   createWelcomeEmbed,
   assignAutoRole,
 } from "../utils/discord/welcomeUtils.js";
+import { fireEventTriggers } from "../utils/core/CustomEventExecutor.js";
 
 import { getAnalyticsManager } from "../features/analytics/AnalyticsManager.js";
 
@@ -27,6 +28,19 @@ export async function execute(member) {
 
     // Get database manager and welcome settings
     const dbManager = await getDatabaseManager();
+
+    // Phase 6: Event Triggers — fire independently of welcome system
+    try {
+      await fireEventTriggers(member.guild.id, "member_join", {
+        guild: member.guild,
+        member,
+        user: member.user,
+        client: member.client,
+        dbManager,
+      });
+    } catch (triggerError) {
+      logger.error(`Error firing member_join triggers:`, triggerError);
+    }
 
     // Check if welcome settings repository is available
     if (!dbManager.welcomeSettings) {
