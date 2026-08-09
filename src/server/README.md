@@ -15,7 +15,8 @@ src/server/
 │   ├── CorePricingController.js
 │   ├── GuildAnalyticsController.js
 │   ├── GuildController.js
-│   ├── GuildCustomCommandController.js
+│   ├── GuildCustomEventTriggerController.js
+│   ├── GuildCustomVariableController.js
 │   ├── GuildLeaderboardController.js
 │   ├── GuildPremiumController.js
 │   ├── GuildRoleMappingController.js

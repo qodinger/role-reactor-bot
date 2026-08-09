@@ -68,7 +68,6 @@ When **one person** fuels the Pro Engine, **everyone** in the server wins. The f
 | **Level Rewards**      | 5 (Stack)         | **Unlimited (Replace/Stack)** |
 | **Role Reaction Menus**| 5                 | **15**                        |
 | **Role Reaction Emojis**| 10               | **20**                        |
-| **Custom Commands**    | Not available     | **25 commands**               |
 
 ---
 
