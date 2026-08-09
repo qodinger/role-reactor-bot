@@ -36,7 +36,6 @@ export const PremiumFeatures = {
       "Advanced Auto-Mod (domain allowlist, caps lock, wildcard/regex, per-channel, analytics, export)",
       "Role Reactions (20 emojis, 15 menus)",
       "Role Bundles (20 roles per bundle)",
-      "Custom Commands (25 commands)",
     ],
   },
 };
@@ -63,6 +62,10 @@ export const FREE_TIER = {
   ROLE_BUNDLE_MAX_ROLES: 5,
   ROLE_REACTION_MAX_EMOJIS: 10,
   ROLE_REACTION_MAX_MESSAGES: 5,
+  // Custom Variables & Event Triggers
+  CUSTOM_VARIABLES_MAX: 10,
+  CUSTOM_EVENT_TRIGGERS_MAX: 5,
+  CUSTOM_EVENT_TYPES: ["member_join", "member_leave"],
   // Ticketing
   TICKET_MAX_PANELS: 3,
   TICKET_MAX_TICKETS_PER_MONTH: 50,
@@ -79,7 +82,10 @@ export const PRO_TIER = {
   ROLE_BUNDLE_MAX_ROLES: 20, // 4x free tier
   ROLE_REACTION_MAX_EMOJIS: 20, // Discord's hard limit
   ROLE_REACTION_MAX_MESSAGES: 15, // 3x free tier
-  CUSTOM_COMMANDS_MAX: 25, // Pro-only
+  // Custom Variables & Event Triggers
+  CUSTOM_VARIABLES_MAX: 100,
+  CUSTOM_EVENT_TRIGGERS_MAX: 50,
+  CUSTOM_EVENT_TYPES: ["all"],
   // Ticketing
   TICKET_MAX_PANELS: 10,
   TICKET_MAX_TICKETS_PER_MONTH: 500,

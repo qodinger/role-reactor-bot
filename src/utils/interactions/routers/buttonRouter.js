@@ -36,15 +36,6 @@ export async function routeButtonInteraction(interaction, _client) {
     // Handle button interactions
     // Route based on customId patterns
 
-    // Handle custom command buttons
-    if (customId.startsWith("cc_")) {
-      const { handleCustomCommandButton } = await import(
-        "../../core/CustomCommandExecutor.js"
-      );
-      await handleCustomCommandButton(interaction);
-      return;
-    }
-
     // Handle Imagine regenerate and upscale buttons
     if (
       customId.startsWith("imagine_regenerate_") ||

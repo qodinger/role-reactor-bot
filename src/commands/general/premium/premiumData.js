@@ -58,11 +58,4 @@ export const PREMIUM_FEATURES = [
     free: "3 panels, 50 tickets/month, 30-day transcripts",
     pro: "10 panels, 500 tickets/month, unlimited transcripts (HTML/JSON)",
   },
-  {
-    command: "custom-commands",
-    name: "Custom Commands",
-    emoji: "🔧",
-    free: "Not available",
-    pro: "25 custom commands",
-  },
 ];

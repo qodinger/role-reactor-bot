@@ -63,15 +63,7 @@ describe("Pro Engine Benefits", () => {
     });
   });
 
-  describe("Pro tier has Custom Commands limit", () => {
-    it("CUSTOM_COMMANDS_MAX is defined and > 0", () => {
-      expect(PRO_TIER.CUSTOM_COMMANDS_MAX).toBeGreaterThan(0);
-    });
 
-    it("FREE_TIER does not have CUSTOM_COMMANDS_MAX (Pro-only feature)", () => {
-      expect(FREE_TIER.CUSTOM_COMMANDS_MAX).toBeUndefined();
-    });
-  });
 
   describe("Transcript retention — pro is unlimited (-1)", () => {
     it("free has 30-day retention", () => {
@@ -131,11 +123,13 @@ describe("Pro Engine Benefits", () => {
       "ROLE_BUNDLE_MAX_ROLES",
       "ROLE_REACTION_MAX_EMOJIS",
       "ROLE_REACTION_MAX_MESSAGES",
+      "CUSTOM_VARIABLES_MAX",
+      "CUSTOM_EVENT_TRIGGERS_MAX",
+      "CUSTOM_EVENT_TYPES",
       "TICKET_MAX_PANELS",
       "TICKET_MAX_TICKETS_PER_MONTH",
       "TICKET_TRANSCRIPT_DAYS",
     ];
-
     const expectedProKeys = [
       "LEVEL_REWARDS_MAX",
       "GIVEAWAY_MAX_ACTIVE",
@@ -146,7 +140,9 @@ describe("Pro Engine Benefits", () => {
       "ROLE_BUNDLE_MAX_ROLES",
       "ROLE_REACTION_MAX_EMOJIS",
       "ROLE_REACTION_MAX_MESSAGES",
-      "CUSTOM_COMMANDS_MAX",
+      "CUSTOM_VARIABLES_MAX",
+      "CUSTOM_EVENT_TRIGGERS_MAX",
+      "CUSTOM_EVENT_TYPES",
       "TICKET_MAX_PANELS",
       "TICKET_MAX_TICKETS_PER_MONTH",
       "TICKET_TRANSCRIPT_DAYS",
@@ -173,7 +169,6 @@ describe("Pro Engine Benefits", () => {
       "xp",
       "giveaway",
       "ticket",
-      "custom-commands",
     ];
 
     it("PREMIUM_FEATURES contains all expected commands", () => {
@@ -275,12 +270,6 @@ describe("Pro Engine Benefits", () => {
       const row = table.find(r => r.feature === "Role Reaction Emojis");
       expect(row.free).toBe(String(FREE_TIER.ROLE_REACTION_MAX_EMOJIS));
       expect(row.pro).toBe(String(PRO_TIER.ROLE_REACTION_MAX_EMOJIS));
-    });
-
-    it("Custom Commands matches config", () => {
-      const row = table.find(r => r.feature === "Custom Commands");
-      expect(row.free).toBe("Not available");
-      expect(row.pro).toContain(String(PRO_TIER.CUSTOM_COMMANDS_MAX));
     });
   });
 
@@ -390,15 +379,6 @@ describe("Pro Engine Benefits", () => {
       );
     });
 
-    it("custom-commands display matches config", () => {
-      const f = findFeature("custom-commands");
-      expect(f).toBeDefined();
-      expect(f.free).toBe("Not available");
-      expect(extractNumber(f.pro, /(\d+) custom/)).toBe(
-        PRO_TIER.CUSTOM_COMMANDS_MAX,
-      );
-    });
-
     it("xp display matches config", () => {
       const f = findFeature("xp");
       expect(f).toBeDefined();
@@ -425,11 +405,6 @@ describe("Pro Engine Benefits", () => {
       expect(includes).toContain(
         `${PRO_TIER.ROLE_BUNDLE_MAX_ROLES} roles per bundle`,
       );
-    });
-
-    it("mentions Custom Commands with correct limit", () => {
-      expect(includes).toContain("custom commands");
-      expect(includes).toContain(`${PRO_TIER.CUSTOM_COMMANDS_MAX} commands`);
     });
 
     it("mentions Ticket capacity", () => {

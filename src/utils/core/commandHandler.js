@@ -3,7 +3,7 @@ import { getEventHandler } from "./eventHandler.js";
 import { getLogger } from "../logger.js";
 import { getExperienceManager } from "../../features/experience/ExperienceManager.js";
 import { getCommandRateLimiter } from "../rateLimit/commandRateLimiter.js";
-import { CustomCommandExecutor } from "./CustomCommandExecutor.js";
+
 
 /**
  * @typedef {import('discord.js').Client & { commands?: Collection<string, any> }} ExtendedClient
@@ -549,16 +549,6 @@ class CommandHandler {
    * // User receives "Unknown command" message
    */
   async handleUnknownCommand(interaction) {
-    // Check if this is a guild custom command before giving up
-    if (interaction.guildId) {
-      try {
-        const handled = await this._executeCustomCommand(interaction);
-        if (handled) return;
-      } catch (error) {
-        this.logger.error("Failed to check custom commands", error);
-      }
-    }
-
     try {
       if (!interaction.replied && !interaction.deferred) {
         await interaction.reply({
@@ -569,15 +559,6 @@ class CommandHandler {
     } catch (error) {
       this.logger.error("Failed to handle unknown command", error);
     }
-  }
-
-  /**
-   * Executes a custom command for the guild, if one exists.
-   * Returns true if the interaction was handled, false otherwise.
-   */
-  async _executeCustomCommand(interaction) {
-    const executor = new CustomCommandExecutor();
-    return executor.execute(interaction);
   }
 
   /**

@@ -30,3 +30,5 @@ export { RecentCommandUsersRepository } from "./RecentCommandUsersRepository.js"
 export { StarboardSettingsRepository } from "./StarboardSettingsRepository.js";
 export { StarboardMessageRepository } from "./StarboardMessageRepository.js";
 export { ImageToolUsageRepository } from "./ImageToolUsageRepository.js";
+export { CustomVariableRepository } from "./CustomVariableRepository.js";
+export { CustomEventTriggerRepository } from "./CustomEventTriggerRepository.js";

@@ -112,34 +112,6 @@ describe("API Security Tests", () => {
     });
   });
 
-  describe("Custom Commands Endpoints Security", () => {
-    it("should reject custom command creation without authentication", async () => {
-      const response = await request(app)
-        .post(`${API_BASE}/guilds/${testGuildId}/custom-commands`)
-        .send({
-          name: "test",
-          response: "test response",
-        });
-
-      expect(response.status).toBeLessThan(500);
-      expect([401, 403, 404]).toContain(response.status);
-    });
-
-    it("should reject custom command creation with only internal API key", async () => {
-      const internalKey = process.env.INTERNAL_API_KEY || "test-key";
-
-      const response = await request(app)
-        .post(`${API_BASE}/guilds/${testGuildId}/custom-commands`)
-        .set("Authorization", `Bearer ${internalKey}`)
-        .send({
-          name: "test",
-          response: "test response",
-        });
-
-      expect(response.status).toBeLessThan(500);
-      expect([401, 403, 404]).toContain(response.status);
-    });
-  });
 
   describe("Premium Endpoints Security", () => {
     it("should reject premium activation without authentication", async () => {

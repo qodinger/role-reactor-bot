@@ -69,35 +69,7 @@ export const guildSettingsLimiter = rateLimit({
   validate: { xForwardedForHeader: false },
 });
 
-/**
- * Rate limiter for custom command operations
- */
-export const customCommandLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 30, // Limit each user to 30 custom command operations per 15 minutes
-  message: {
-    status: "error",
-    message: "Too many custom command operations, please try again later",
-    statusCode: 429,
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-  keyGenerator: (req, _res) => keyGenerator(req, "unknown"),
-  handler: (req, res) => {
-    logger.warn("Rate limit exceeded for custom commands", {
-      userId: req.user?.id,
-      ip: req.ip,
-      path: req.path,
-      method: req.method,
-    });
-    res.status(429).json({
-      status: "error",
-      message: "Too many custom command operations, please try again later",
-      statusCode: 429,
-    });
-  },
-  validate: { xForwardedForHeader: false },
-});
+
 
 /**
  * Rate limiter for premium feature activation

@@ -28,13 +28,18 @@ import {
 } from "../../controllers/GuildRoleMappingController.js";
 import { apiGetGuildAnalytics } from "../../controllers/GuildAnalyticsController.js";
 import {
-  apiGetCustomCommands,
-  apiCreateCustomCommand,
-  apiUpdateCustomCommand,
-  apiDeleteCustomCommand,
-  apiSyncCustomCommands,
-  apiDuplicateCustomCommand,
-} from "../../controllers/GuildCustomCommandController.js";
+  apiListEventTriggers,
+  apiCreateEventTrigger,
+  apiUpdateEventTrigger,
+  apiDeleteEventTrigger,
+} from "../../controllers/GuildCustomEventTriggerController.js";
+import {
+  apiListVariables,
+  apiCreateVariable,
+  apiUpdateVariable,
+  apiDeleteVariable,
+} from "../../controllers/GuildCustomVariableController.js";
+
 import { internalAuth } from "../../middleware/internalAuth.js";
 import { requireAuth } from "../../middleware/authentication.js";
 import { requireAdmin } from "../../middleware/userAuthorization.js";
@@ -45,7 +50,6 @@ import {
 import {
   roleManagementLimiter,
   guildSettingsLimiter,
-  customCommandLimiter,
   premiumActivationLimiter,
 } from "../../middleware/roleManagementLimiter.js";
 
@@ -208,53 +212,56 @@ router.patch(
 router.get("/public-leaderboards", apiGetPublicLeaderboards);
 router.get("/:guildId/leaderboard", apiGuildLeaderboard);
 
-// Custom Commands - requires guild permission for modifications
+// Custom Variables - requires guild permission
 router.get(
-  "/:guildId/custom-commands",
+  "/:guildId/variables",
   internalAuth,
-  requireAuth,
-  requireGuildMembership,
-  apiGetCustomCommands,
+  requireGuildPermission,
+  apiListVariables,
 );
 router.post(
-  "/:guildId/custom-commands",
+  "/:guildId/variables",
   internalAuth,
-  requireAuth,
   requireGuildPermission,
-  customCommandLimiter,
-  apiCreateCustomCommand,
-);
-router.post(
-  "/:guildId/custom-commands/sync",
-  internalAuth,
-  requireAuth,
-  requireGuildPermission,
-  customCommandLimiter,
-  apiSyncCustomCommands,
-);
-router.post(
-  "/:guildId/custom-commands/:commandId/duplicate",
-  internalAuth,
-  requireAuth,
-  requireGuildPermission,
-  customCommandLimiter,
-  apiDuplicateCustomCommand,
+  apiCreateVariable,
 );
 router.patch(
-  "/:guildId/custom-commands/:commandId",
+  "/:guildId/variables/:variableId",
   internalAuth,
-  requireAuth,
   requireGuildPermission,
-  customCommandLimiter,
-  apiUpdateCustomCommand,
+  apiUpdateVariable,
 );
 router.delete(
-  "/:guildId/custom-commands/:commandId",
+  "/:guildId/variables/:variableId",
   internalAuth,
-  requireAuth,
   requireGuildPermission,
-  customCommandLimiter,
-  apiDeleteCustomCommand,
+  apiDeleteVariable,
+);
+
+// Event Triggers - requires guild permission
+router.get(
+  "/:guildId/event-triggers",
+  internalAuth,
+  requireGuildPermission,
+  apiListEventTriggers,
+);
+router.post(
+  "/:guildId/event-triggers",
+  internalAuth,
+  requireGuildPermission,
+  apiCreateEventTrigger,
+);
+router.patch(
+  "/:guildId/event-triggers/:triggerId",
+  internalAuth,
+  requireGuildPermission,
+  apiUpdateEventTrigger,
+);
+router.delete(
+  "/:guildId/event-triggers/:triggerId",
+  internalAuth,
+  requireGuildPermission,
+  apiDeleteEventTrigger,
 );
 
 // Welcome System - Test endpoint
