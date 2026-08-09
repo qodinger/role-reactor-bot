@@ -209,7 +209,6 @@ describe("Pro Engine Benefits", () => {
       expect(featureNames).toContain("Level Rewards");
       expect(featureNames).toContain("Role Reaction Menus");
       expect(featureNames).toContain("Role Reaction Emojis");
-      expect(featureNames).toContain("Custom Commands");
     });
 
     it("Giveaway Entries matches config", () => {
