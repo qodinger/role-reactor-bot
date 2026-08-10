@@ -177,7 +177,7 @@ Internet → Caddy (SSL + api.rolereactor.xyz) → Docker container:3030
 
 ```bash
 # Deploy latest version (pulls, builds, and starts)
-pnpm run deploy:latest
+pnpm run docker:deploy
 
 # View logs
 pnpm run docker:logs

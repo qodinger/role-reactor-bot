@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Role Reactor Bot - Full VPS Setup Script
-# Run this on a fresh Ubuntu/Debian VPS to set up everything from scratch
+# Role Reactor Bot - Full VPS Setup
+# Run once on a fresh Ubuntu/Debian VPS to set up everything from scratch
 
 set -e
 
@@ -12,10 +12,10 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-log() { echo -e "${BLUE}[$(date +'%H:%M:%S')]${NC} $1"; }
-success() { echo -e "${GREEN}[✓]${NC} $1"; }
-warning() { echo -e "${YELLOW}[!]${NC} $1"; }
-error() { echo -e "${RED}[✗]${NC} $1"; exit 1; }
+info()    { echo -e "${BLUE}[INFO]${NC} $1"; }
+success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
+warn()    { echo -e "${YELLOW}[WARN]${NC} $1"; }
+error()   { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
 
 # Check if running as root
 if [[ $EUID -ne 0 ]]; then
@@ -26,85 +26,99 @@ DOMAIN="api.rolereactor.xyz"
 EMAIL="sengphachanh.dev@gmail.com"
 APP_DIR="/root/projects/role-reactor-bot"
 
-echo ""
-echo "╔═══════════════════════════════════════════════════════════════╗"
-echo "║       Role Reactor Bot - Full VPS Setup (PM2 + Nginx)       ║"
-echo "╚═══════════════════════════════════════════════════════════════╝"
-echo ""
+show_banner() {
+    echo ""
+    echo "╭─────────────────────────────────────────────────────────────╮"
+    echo "│       Role Reactor Bot - Full VPS Setup (PM2 + Nginx)      │"
+    echo "╰─────────────────────────────────────────────────────────────╯"
+    echo ""
+}
 
-# 1. System updates
-log "Updating system packages..."
-apt update && apt upgrade -y
-success "System updated"
+show_usage() {
+    echo "Usage: sudo $0 [options]"
+    echo ""
+    echo "Options:"
+    echo "  -h, --help     Show this help message"
+    echo ""
+    echo "This script will:"
+    echo "  1.  Update system packages"
+    echo "  2.  Install Node.js 22, pnpm, PM2"
+    echo "  3.  Install nginx and certbot"
+    echo "  4.  Clone the repository"
+    echo "  5.  Configure nginx reverse proxy with SSL"
+    echo "  6.  Start the bot with PM2"
+    echo "  7.  Configure firewall"
+}
 
-# 2. Install Node.js 22
-log "Installing Node.js 22..."
-if ! command -v node &> /dev/null; then
-    curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
-    apt install -y nodejs
-fi
-success "Node.js $(node -v) installed"
+setup() {
+    show_banner
 
-# 3. Install pnpm
-log "Installing pnpm..."
-if ! command -v pnpm &> /dev/null; then
-    npm install -g pnpm@9.9.0
-fi
-success "pnpm $(pnpm -v) installed"
+    # System updates
+    info "Updating system packages..."
+    apt update && apt upgrade -y
+    success "System updated"
 
-# 4. Install PM2
-log "Installing PM2..."
-if ! command -v pm2 &> /dev/null; then
-    npm install -g pm2
-fi
-success "PM2 installed"
+    # Install Node.js 22
+    info "Installing Node.js 22..."
+    if ! command -v node &> /dev/null; then
+        curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+        apt install -y nodejs
+    fi
+    success "Node.js $(node -v) installed"
 
-# 5. Install Nginx
-log "Installing Nginx..."
-if ! command -v nginx &> /dev/null; then
-    apt install -y nginx
-    systemctl enable nginx
-    systemctl start nginx
-fi
-success "Nginx installed"
+    # Install pnpm
+    info "Installing pnpm..."
+    if ! command -v pnpm &> /dev/null; then
+        npm install -g pnpm@9.9.0
+    fi
+    success "pnpm $(pnpm -v) installed"
 
-# 6. Install Certbot
-log "Installing Certbot..."
-if ! command -v certbot &> /dev/null; then
-    apt install -y certbot python3-certbot-nginx
-fi
-success "Certbot installed"
+    # Install PM2
+    info "Installing PM2..."
+    if ! command -v pm2 &> /dev/null; then
+        npm install -g pm2
+    fi
+    success "PM2 installed"
 
-# 7. Create app directory
-log "Setting up application directory..."
-mkdir -p $APP_DIR
-mkdir -p $APP_DIR/logs
-mkdir -p $APP_DIR/data
+    # Install Nginx
+    info "Installing nginx..."
+    if ! command -v nginx &> /dev/null; then
+        apt install -y nginx
+        systemctl enable nginx
+        systemctl start nginx
+    fi
+    success "nginx installed"
 
-# 8. Clone or copy the bot
-if [ ! -d "$APP_DIR/.git" ]; then
-    log "Cloning repository..."
-    cd /opt
-    git clone https://github.com/rolereactor/role-reactor-bot.git role-reactor-bot
-    cd role-reactor-bot
-else
-    log "Repository exists, pulling latest..."
-    cd $APP_DIR
-    git pull origin main
-fi
-success "Code ready"
+    # Install Certbot
+    info "Installing certbot..."
+    if ! command -v certbot &> /dev/null; then
+        apt install -y certbot python3-certbot-nginx
+    fi
+    success "certbot installed"
 
-# 9. Install dependencies
-log "Installing npm dependencies..."
-cd $APP_DIR
-pnpm install --prod
-success "Dependencies installed"
+    # Create app directory
+    info "Setting up application directory..."
+    mkdir -p "$APP_DIR/logs" "$APP_DIR/data"
 
-# 10. Create .env file if it doesn't exist
-if [ ! -f "$APP_DIR/.env" ]; then
-    warning ".env file not found!"
-    echo "Creating .env template..."
-    cat > $APP_DIR/.env << 'EOF'
+    # Clone or update repository
+    if [ ! -d "$APP_DIR/.git" ]; then
+        info "Cloning repository..."
+        git clone https://github.com/rolereactor/role-reactor-bot.git "$APP_DIR"
+    else
+        info "Repository exists, pulling latest..."
+        cd "$APP_DIR" && git pull origin main
+    fi
+    success "Code ready"
+
+    # Install dependencies
+    info "Installing dependencies..."
+    cd "$APP_DIR" && pnpm install --prod
+    success "Dependencies installed"
+
+    # Create .env file if missing
+    if [ ! -f "$APP_DIR/.env" ]; then
+        warn ".env file not found — creating template..."
+        cat > "$APP_DIR/.env" << 'EOF'
 # Discord Bot
 DISCORD_TOKEN=your_discord_bot_token_here
 DISCORD_CLIENT_ID=your_client_id_here
@@ -121,46 +135,21 @@ NODE_ENV=production
 OPENAI_API_KEY=your_openai_key_here
 DEEPSEEK_API_KEY=your_deepseek_key_here
 EOF
-    warning "Please edit $APP_DIR/.env with your actual values!"
-fi
+        warn "Please edit $APP_DIR/.env with your actual values!"
+    fi
 
-# 11. Setup PM2 ecosystem config
-log "Setting up PM2 configuration..."
-cat > $APP_DIR/ecosystem.config.cjs << 'EOF'
-module.exports = {
-  apps: [{
-    name: 'role-reactor-bot',
-    script: 'src/index.js',
-    node_args: '--max-old-space-size=256',
-    instances: 1,
-    exec_mode: 'fork',
-    env: {
-      NODE_ENV: 'production',
-      PORT: 3030,
-    },
-    max_memory_restart: '200M',
-    log_file: './logs/pm2-combined.log',
-    out_file: './logs/pm2-out.log',
-    error_file: './logs/pm2-error.log',
-    log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-    merge_logs: true,
-    autorestart: true,
-    watch: false,
-    max_restarts: 10,
-    min_uptime: '10s',
-    kill_timeout: 5000,
-  }],
-};
-EOF
-success "PM2 config created"
+    # Setup nginx
+    info "Configuring nginx reverse proxy..."
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
-# 12. Setup Nginx (without SSL first)
-log "Configuring Nginx..."
-cat > /etc/nginx/sites-available/rolereactor << EOF
+    if [ -f "$PROJECT_DIR/nginx.conf" ]; then
+        cp "$PROJECT_DIR/nginx.conf" /etc/nginx/sites-available/rolereactor
+    else
+        cat > /etc/nginx/sites-available/rolereactor << EOF
 server {
     listen 80;
     server_name $DOMAIN;
-    
     location / {
         proxy_pass http://127.0.0.1:3030;
         proxy_http_version 1.1;
@@ -174,60 +163,71 @@ server {
     }
 }
 EOF
+    fi
 
-ln -sf /etc/nginx/sites-available/rolereactor /etc/nginx/sites-enabled/
-rm -f /etc/nginx/sites-enabled/default
-nginx -t && systemctl reload nginx
-success "Nginx configured"
+    ln -sf /etc/nginx/sites-available/rolereactor /etc/nginx/sites-enabled/
+    rm -f /etc/nginx/sites-enabled/default
 
-# 13. Setup SSL with Certbot
-log "Setting up SSL certificate..."
-certbot --nginx -d $DOMAIN --non-interactive --agree-tos --email $EMAIL || warning "SSL setup failed - you may need to run certbot manually"
+    if nginx -t 2>/dev/null; then
+        systemctl reload nginx
+        success "nginx configured: $DOMAIN → localhost:3030"
+    else
+        warn "nginx config test failed"
+    fi
 
-# 14. Start the bot with PM2
-log "Starting bot with PM2..."
-cd $APP_DIR
-pm2 start ecosystem.config.cjs --env production
-pm2 save
-success "Bot started"
+    # Setup SSL
+    info "Setting up SSL certificate..."
+    certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos --email "$EMAIL" || warn "SSL setup failed — run certbot manually"
 
-# 15. Setup PM2 startup script
-log "Configuring PM2 to start on boot..."
-pm2 startup systemd -u root --hp /root | tail -1 | bash || warning "PM2 startup configured - reboot to verify"
-success "PM2 startup configured"
+    # Start bot with PM2
+    info "Starting bot with PM2..."
+    cd "$APP_DIR"
+    pm2 start ecosystem.config.cjs --env production
+    pm2 save
+    success "Bot started"
 
-# 16. Open firewall ports
-log "Configuring firewall..."
-if command -v ufw &> /dev/null; then
-    ufw allow 'Nginx Full'
-    ufw allow 22/tcp
-    ufw --force enable
-    success "Firewall configured"
-else
-    warning "UFW not installed - ensure ports 80, 443, 22 are open"
-fi
+    # PM2 startup on boot
+    info "Configuring PM2 to start on boot..."
+    pm2 startup systemd -u root --hp /root | tail -1 | bash || warn "PM2 startup configured — reboot to verify"
+    success "PM2 startup configured"
 
-# 17. Final status
-echo ""
-echo "╔═══════════════════════════════════════════════════════════════╗"
-echo "║                    Setup Complete!                          ║"
-echo "╚═══════════════════════════════════════════════════════════════╝"
-echo ""
-echo -e "${GREEN}Bot URL:${NC} https://$DOMAIN"
-echo -e "${GREEN}App Dir:${NC} $APP_DIR"
-echo ""
-echo "PM2 Commands:"
-echo "  pm2 status          # Check bot status"
-echo "  pm2 logs            # View logs"
-echo "  pm2 restart all     # Restart bot"
-echo "  pm2 monit           # Monitor resources"
-echo ""
-echo "Nginx Commands:"
-echo "  sudo nginx -t       # Test config"
-echo "  sudo systemctl reload nginx"
-echo ""
-echo -e "${YELLOW}NEXT STEPS:${NC}"
-echo "1. Edit $APP_DIR/.env with your actual tokens"
-echo "2. Restart bot: pm2 restart role-reactor-bot"
-echo "3. Check logs: pm2 logs role-reactor-bot"
-echo ""
+    # Firewall
+    info "Configuring firewall..."
+    if command -v ufw &> /dev/null; then
+        ufw allow 'Nginx Full'
+        ufw allow 22/tcp
+        ufw --force enable
+        success "Firewall configured"
+    else
+        warn "UFW not installed — ensure ports 80, 443, 22 are open"
+    fi
+
+    # Show status
+    sleep 2
+    pm2 status
+
+    echo ""
+    echo "╭─────────────────────────────────────────────────────────────╮"
+    echo "│                    Setup Complete!                         │"
+    echo "│  URL:   https://$DOMAIN                                   │"
+    echo "│  Dir:   $APP_DIR                                          │"
+    echo "│  Bot:   pm2 status                                        │"
+    echo "│  Logs:  pm2 logs role-reactor-bot                         │"
+    echo "╰─────────────────────────────────────────────────────────────╯"
+    echo ""
+    echo "Next steps:"
+    echo "  1. Edit $APP_DIR/.env with your actual tokens"
+    echo "  2. Restart: pm2 restart role-reactor-bot"
+    echo "  3. Logs: pm2 logs role-reactor-bot"
+    echo ""
+}
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -h|--help)  show_usage; exit 0 ;;
+        *) error "Unknown option: $1"; show_usage; exit 1 ;;
+    esac
+done
+
+setup

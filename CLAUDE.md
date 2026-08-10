@@ -12,7 +12,7 @@ Role Reactor Bot is a Discord bot built with Discord.js v14 and Node.js 22. It u
 - **Package manager:** pnpm 9.9.0 — always use `pnpm`, never `npm` or `yarn`
 - **Testing:** Vitest
 - **Linting/Formatting:** ESLint + Prettier
-- **Deployment:** Docker (multi-stage) + nginx reverse proxy on VPS
+- **Deployment:** Docker (multi-stage) or PM2 + nginx reverse proxy on VPS
 
 ## Key Commands
 
@@ -25,9 +25,7 @@ pnpm lint:fix               # ESLint with auto-fix
 pnpm format                 # Prettier
 pnpm run deploy:dev         # Deploy slash commands to dev guild
 pnpm run deploy:prod        # Deploy slash commands globally
-pnpm run docker:dev         # Start dev Docker environment
-pnpm run docker:prod        # Start production Docker environment
-pnpm run deploy:latest      # Pull + rebuild + deploy latest on VPS
+pnpm run docker:deploy        # Docker: pull + rebuild + deploy on VPS
 
 # PM2 (lightweight alternative)
 pnpm run pm2:setup          # Initial PM2 setup on fresh VPS
