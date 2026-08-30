@@ -428,7 +428,7 @@ export class PaymentRepository extends BaseRepository {
           $group: {
             _id: null,
             totalVotes: { $sum: 1 },
-            totalCoresGranted: { $sum: "$coresGranted" },
+            totalSparksGranted: { $sum: "$sparksGranted" },
             uniqueVoters: { $addToSet: "$discordId" },
           },
         },
@@ -436,7 +436,7 @@ export class PaymentRepository extends BaseRepository {
           $project: {
             _id: 0,
             totalVotes: 1,
-            totalCoresGranted: 1,
+            totalSparksGranted: 1,
             uniqueVoters: { $size: "$uniqueVoters" },
           },
         },
@@ -457,7 +457,7 @@ export class PaymentRepository extends BaseRepository {
 
       const votes = votesResults[0] || {
         totalVotes: 0,
-        totalCoresGranted: 0,
+        totalSparksGranted: 0,
         uniqueVoters: 0,
       };
 

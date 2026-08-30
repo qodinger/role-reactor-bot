@@ -629,7 +629,7 @@ describe("PaymentRepository", () => {
         byProvider: [],
         votes: {
           totalVotes: 0,
-          totalCoresGranted: 0,
+          totalSparksGranted: 0,
           uniqueVoters: 0,
         },
       });
