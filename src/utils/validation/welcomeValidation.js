@@ -30,7 +30,9 @@ export async function validateWelcomeMessage(message) {
   }
 
   // Sanitize the message
-  const { InputSanitizer, InputValidator } = await import("./inputValidation.js");
+  const { InputSanitizer, InputValidator } = await import(
+    "./inputValidation.js"
+  );
   const sanitized = InputSanitizer.sanitize(message);
 
   // Check for malicious content

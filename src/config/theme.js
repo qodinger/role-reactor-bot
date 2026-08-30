@@ -41,6 +41,13 @@ export const THEME = {
   MEDIUM_USAGE: 0x93c5fd, // Soft blue
   LOW_USAGE: 0x9ca3af, // Soft gray
 
+  // Twitch/streaming colors
+  TWITCH: 0x9146ff, // Twitch purple
+  TWITCH_GREEN: 0x00ae86, // Twitch green (follows)
+  TWITCH_PINK: 0xff69b4, // Hot pink (subs)
+  TWITCH_GOLD: 0xffd700, // Gold (gift subs)
+  TWITCH_RED: 0xff4500, // Orange-red (raids)
+
   // Interactive states (softer)
   HOVER: 0xa5b4fc, // Soft indigo
   ACTIVE: 0x818cf8, // Softer indigo

@@ -336,6 +336,19 @@ async function main() {
         logger.error("❌ Failed to start premium scheduler:", error);
       }
 
+      // Initialize Streaming Manager
+      try {
+        const { getStreamingManager } = await import(
+          "./features/streaming/StreamingManager.js"
+        );
+        const streamingManager = getStreamingManager(client);
+        ctx.streamingManager = streamingManager;
+        await streamingManager.init();
+        logger.info("✅ Streaming Manager initialized");
+      } catch (error) {
+        logger.error("❌ Failed to initialize Streaming Manager:", error);
+      }
+
       // Native Discord polls handle their own UI updates automatically
 
       // Start poll cleanup scheduler (runs every 6 hours)

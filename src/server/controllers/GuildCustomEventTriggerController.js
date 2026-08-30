@@ -71,10 +71,15 @@ function validateActions(actions) {
     if (action.type === "channel" && !action.channelId) {
       return "Channel action requires channelId. Use 'text' type for replies without a target channel.";
     }
-    if ((action.type === "text" || action.type === "dm" || action.type === "channel") && !action.content) {
+    if (
+      (action.type === "text" ||
+        action.type === "dm" ||
+        action.type === "channel") &&
+      !action.content
+    ) {
       return "Text/DM/channel action requires content";
     }
-    if (action.type === "variable" && (!action.variableName)) {
+    if (action.type === "variable" && !action.variableName) {
       return "Variable action requires variableName";
     }
   }
@@ -93,7 +98,10 @@ export async function apiListEventTriggers(req, res) {
     const triggers = await repo.getByGuild(guildId);
     res.json(createSuccessResponse({ triggers }));
   } catch (error) {
-    logger.error(`❌ Error listing event triggers for guild ${guildId}:`, error);
+    logger.error(
+      `❌ Error listing event triggers for guild ${guildId}:`,
+      error,
+    );
     const { statusCode, response } = createErrorResponse(
       "Failed to retrieve event triggers",
       500,
