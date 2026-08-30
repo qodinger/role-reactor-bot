@@ -129,7 +129,7 @@ export async function apiClaimReferralCode(req, res) {
       return res.status(statusCode).json(response);
     }
 
-    const result = await dbManager.referrals.claimCode(userId, code.trim());
+    const result = await dbManager.referrals.claimCode(userId, code.trim(), dbManager.coreCredits);
 
     if (!result.success) {
       const { statusCode, response } = createErrorResponse(

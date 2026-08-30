@@ -37,13 +37,15 @@ export class CoreCreditsRepository extends BaseRepository {
   async getByUserId(userId) {
     try {
       const cached = this.cache.get(`core_credits_${userId}`);
-      if (cached) return cached;
+      if (cached) return { sparks: 0, credits: 0, ...cached };
 
       const userData = await this.collection.findOne({ userId });
       if (userData) {
-        this.cache.set(`core_credits_${userId}`, userData);
+        const fullData = { sparks: 0, credits: 0, ...userData };
+        this.cache.set(`core_credits_${userId}`, fullData);
+        return fullData;
       }
-      return userData;
+      return null;
     } catch (error) {
       this.logger.error(`Failed to get core credits for user ${userId}`, error);
       return null;
@@ -53,7 +55,7 @@ export class CoreCreditsRepository extends BaseRepository {
   async setByUserId(userId, userData) {
     try {
       // Ensure userId is included in the document
-      const document = { ...userData, userId };
+      const document = { sparks: 0, ...userData, userId };
 
       const result = await this.collection.replaceOne({ userId }, document, {
         upsert: true,
@@ -90,6 +92,28 @@ export class CoreCreditsRepository extends BaseRepository {
       return result.acknowledged;
     } catch (error) {
       this.logger.error(`Failed to update credits for user ${userId}`, error);
+      return false;
+    }
+  }
+
+  async updateSparks(userId, sparksChange) {
+    try {
+      const roundedChange = Math.round(sparksChange * 100) / 100;
+
+      const result = await this.collection.updateOne(
+        { userId },
+        {
+          $inc: { sparks: roundedChange },
+          $set: { lastUpdated: new Date().toISOString() },
+        },
+        { upsert: true },
+      );
+
+      this.cache.clear();
+
+      return result.acknowledged;
+    } catch (error) {
+      this.logger.error(`Failed to update sparks for user ${userId}`, error);
       return false;
     }
   }

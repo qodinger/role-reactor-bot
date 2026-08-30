@@ -110,7 +110,7 @@ export class ReferralRepository extends BaseRepository {
     }
   }
 
-  async claimCode(refereeId, referralCode) {
+  async claimCode(refereeId, referralCode, coreCreditsRepo = null) {
     try {
       const code = referralCode.trim().toUpperCase();
 
@@ -165,9 +165,18 @@ export class ReferralRepository extends BaseRepository {
         return { success: false, error: "You have already used a referral code." };
       }
 
+      // Grant instant 25 Sparks welcome gift to referee
+      if (coreCreditsRepo && typeof coreCreditsRepo.updateSparks === "function") {
+        try {
+          await coreCreditsRepo.updateSparks(refereeId, 25);
+        } catch (err) {
+          this.logger.error(`Failed to grant welcome sparks to referee ${refereeId}`, err);
+        }
+      }
+
       return {
         success: true,
-        message: "Referral code applied! Complete a purchase of $10 or more to get +10% bonus Cores.",
+        message: "Referral code applied! You received +25 Sparks ⚡ welcome bonus. Complete a purchase of $10+ for +10% bonus Cores!",
         referrerUserId: referrerDoc.userId,
       };
     } catch (error) {

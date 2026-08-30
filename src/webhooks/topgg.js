@@ -248,11 +248,11 @@ async function processVote(vote, client) {
     }
   }
 
-  // Reward user with 1 Core Credit
-  const REWARD_AMOUNT = 1;
+  // Reward user with 5 Sparks per vote
+  const REWARD_AMOUNT = 5;
 
-  // Use the repository's updateCredits to increment the `credits` field consistently
-  await dbManager.coreCredits.updateCredits(userId, REWARD_AMOUNT);
+  // Credit 5 Sparks for voting
+  await dbManager.coreCredits.updateSparks(userId, REWARD_AMOUNT);
 
   // Update vote metadata separately
   await dbManager.coreCredits.collection.updateOne(
