@@ -319,6 +319,26 @@ export async function handleBMACWebhook(req, res) {
       );
     }
 
+    // 9.5. Process ongoing referral bonus if eligible ($10+ minimum)
+    try {
+      const { getDatabaseManager } = await import(
+        "../utils/storage/databaseManager.js"
+      );
+      const dbManager = await getDatabaseManager();
+      if (dbManager?.referrals) {
+        await dbManager.referrals.processPurchaseBonus({
+          refereeId: userId,
+          paymentId: bmacPaymentId || transactionId || `bmac_${code}`,
+          purchaseAmount: paymentAmount,
+          coresGranted: result.coresToAdd,
+          coreCreditsRepo: dbManager.coreCredits,
+          paymentRepo: dbManager.payments,
+        });
+      }
+    } catch (refError) {
+      logger.error(`Failed to process referral bonus for ${userId} (BMAC):`, refError);
+    }
+
     // 10. Create in-app notification
     try {
       const { getDatabaseManager } = await import(

@@ -38,6 +38,7 @@ import {
   TwitchChatFiltersRepository,
   TwitchQuoteRepository,
   TwitchTimerRepository,
+  ReferralRepository,
 } from "./repositories/index.js";
 import { CacheManager } from "../cache/CacheManager.js";
 import { QueryCache } from "../cache/QueryCache.js";
@@ -97,6 +98,7 @@ class DatabaseManager {
     this.streamConnections = null;
     this.streamBotAccount = null;
     this.twitchCommands = null;
+    this.referrals = null;
     // Initialize connection manager asynchronously (non-blocking)
     this._initializeConnectionManager().catch(err => {
       this.logger?.warn(
@@ -222,6 +224,11 @@ class DatabaseManager {
         );
         this.users = new UserRepository(db, this.cacheManager, this.logger);
         this.payments = new PaymentRepository(
+          db,
+          this.cacheManager,
+          this.logger,
+        );
+        this.referrals = new ReferralRepository(
           db,
           this.cacheManager,
           this.logger,
