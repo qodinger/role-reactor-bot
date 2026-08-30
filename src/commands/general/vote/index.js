@@ -24,7 +24,7 @@ export const metadata = {
   name: "vote",
   category: "general",
   description: "Vote for the bot on top.gg and get rewards!",
-  keywords: ["vote", "top.gg", "rewards", "cores", "support", "premium"],
+  keywords: ["vote", "top.gg", "rewards", "sparks", "cores", "support"],
   emoji: "🗳️",
   helpFields: [
     {
@@ -35,7 +35,7 @@ export const metadata = {
     {
       name: "What It Does",
       value:
-        "Shows your voting status on top.gg and a direct link to vote. Each vote earns you 1 Core (premium currency).",
+        "Shows your voting status on top.gg and a direct link to vote. Each vote earns you +5 Sparks ⚡.",
       inline: false,
     },
     {
@@ -47,7 +47,7 @@ export const metadata = {
     {
       name: "Rewards",
       value:
-        "• **1 Core** per vote\n• Vote once every 12 hours\n• Use Cores for AI image generation and premium features",
+        "• **+5 Sparks ⚡** per vote\n• Vote once every 12 hours\n• Use Sparks ⚡ for free AI tools & rewards",
       inline: false,
     },
   ],
@@ -74,7 +74,6 @@ export const data = new SlashCommandBuilder()
 export async function execute(interaction) {
   try {
     const isPublic = interaction.options.getBoolean("public") || false;
-    const { customEmojis } = emojiConfig;
 
     // Bot's top.gg page from config
     const voteLink = config.externalLinks.vote;
@@ -92,7 +91,7 @@ export async function execute(interaction) {
     const fields = [
       {
         name: "🎁 Vote Reward",
-        value: `**${customEmojis.core} 1** per vote`,
+        value: `⚡ **5 Sparks** per vote`,
         inline: true,
       },
       {
@@ -117,7 +116,7 @@ export async function execute(interaction) {
         "1. Click the button below to visit top.gg\n" +
         "2. Log in with your Discord account\n" +
         "3. Click the shiny **Vote** button\n" +
-        `4. You'll automatically receive **1** ${customEmojis.core}\n` +
+        "4. You'll automatically receive **+5 Sparks ⚡**\n" +
         "5. Come back in 12 hours to do it again!",
       inline: false,
     });

@@ -449,9 +449,12 @@ export async function apiManageUserCores(req, res) {
       );
     }
 
+    const targetCurrency = (req.body.target || req.body.currency || "cores").toLowerCase();
+    const isSparks = targetCurrency === "sparks";
+
     // Get current balance
     const credits = await dbManager.coreCredits.getByUserId(userId);
-    const currentBalance = Math.round((credits?.credits || 0) * 100) / 100;
+    const currentBalance = Math.round(((isSparks ? credits?.sparks : credits?.credits) || 0) * 100) / 100;
     let newBalance = currentBalance;
 
     switch (action) {
@@ -474,13 +477,14 @@ export async function apiManageUserCores(req, res) {
     }
 
     // Set new balance
-    await dbManager.coreCredits.updateCredits(
-      userId,
-      newBalance - currentBalance,
-    );
+    const change = newBalance - currentBalance;
+    if (isSparks) {
+      await dbManager.coreCredits.updateSparks(userId, change);
+    } else {
+      await dbManager.coreCredits.updateCredits(userId, change);
+    }
 
     // Log transaction
-    const change = newBalance - currentBalance;
     if (change !== 0 && dbManager.payments) {
       await dbManager.payments.create({
         paymentId: `admin_adjust_${userId}_${Date.now()}`,
@@ -489,12 +493,13 @@ export async function apiManageUserCores(req, res) {
         type: "adjustment",
         status: "completed",
         amount: 0,
-        currency: "USD",
-        coresGranted: change,
+        currency: isSparks ? "SPARKS" : "CORES",
+        [isSparks ? "sparksGranted" : "coresGranted"]: change,
         tier: "admin_action",
         metadata: {
           reason: reason || "Admin manual adjustment",
           action,
+          targetCurrency,
           originalAmount: amount,
           previousBalance: currentBalance,
           newBalance: newBalance,
@@ -503,7 +508,7 @@ export async function apiManageUserCores(req, res) {
       });
 
       logger.info(
-        `🔧 Admin adjusted cores for ${userId}: ${currentBalance} -> ${newBalance} (${reason || "No reason"})`,
+        `🔧 Admin adjusted ${isSparks ? "sparks" : "cores"} for ${userId}: ${currentBalance} -> ${newBalance} (${reason || "No reason"})`,
       );
 
       // Send DM Notification
@@ -513,32 +518,22 @@ export async function apiManageUserCores(req, res) {
           const user = await client.users.fetch(userId);
           if (user) {
             const embed = {
-              title: "Core Balance Updated",
+              title: `${isSparks ? "Sparks ⚡" : "Core 🔮"} Balance Updated`,
               color: change > 0 ? 0x00ff00 : 0xff0000,
-              description: `An administrator has updated your Core balance.`,
+              description: `An administrator has updated your ${isSparks ? "Sparks ⚡" : "Core 🔮"} balance.`,
               fields: [
                 {
-                  name: "Type",
-                  value: change > 0 ? "Bonus Received" : "Debited",
-                  inline: true,
-                },
-                {
-                  name: "Amount",
-                  value: `${change > 0 ? "+" : ""}${change} Cores`,
+                  name: "Adjustment",
+                  value: `${change > 0 ? "+" : ""}${change} ${isSparks ? "Sparks ⚡" : "Cores 🔮"}`,
                   inline: true,
                 },
                 {
                   name: "New Balance",
-                  value: `${newBalance} Cores`,
+                  value: `${newBalance} ${isSparks ? "Sparks ⚡" : "Cores 🔮"}`,
                   inline: true,
                 },
               ],
-              timestamp: new Date().toISOString(),
-              footer: {
-                text: "Role Reactor System",
-              },
             };
-
             if (reason) {
               embed.fields.push({
                 name: "Reason",
@@ -546,13 +541,12 @@ export async function apiManageUserCores(req, res) {
                 inline: false,
               });
             }
-
             await user.send({ embeds: [embed] });
           }
         }
       } catch (dmError) {
         logger.warn(
-          `Failed to send DM to ${userId} regarding core update: ${dmError.message}`,
+          `Failed to send DM to ${userId} regarding balance update: ${dmError.message}`,
         );
       }
 
@@ -562,14 +556,16 @@ export async function apiManageUserCores(req, res) {
           await dbManager.notifications.create({
             userId,
             type: "admin_adjustment",
-            title: change > 0 ? "Cores Received!" : "Cores Deducted",
-            message: `${change > 0 ? "+" : ""}${change} Cores. ${reason || "Admin adjustment"}. New balance: ${newBalance} Cores.`,
+            title: `${isSparks ? "Sparks ⚡" : "Cores 🔮"} ${change > 0 ? "Received!" : "Deducted"}`,
+            message: `${change > 0 ? "+" : ""}${change} ${isSparks ? "Sparks ⚡" : "Cores 🔮"}. ${reason || "Admin adjustment"}. New balance: ${newBalance}.`,
             icon: "admin",
-            metadata: { change, newBalance, reason },
+            metadata: { change, newBalance, reason, targetCurrency },
           });
         }
-      } catch (_e) {
-        /* non-critical */
+      } catch (notifErr) {
+        logger.warn(
+          `Failed to create in-app notification for ${userId}: ${notifErr.message}`,
+        );
       }
     }
 
