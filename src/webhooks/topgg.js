@@ -367,41 +367,96 @@ async function processVote(vote, client) {
 }
 
 /**
- * Check if a user has voted recently
+ * Query top.gg API to check if a user has voted in the last 12 hours.
+ * This is the authoritative source — works even without webhooks reaching this server.
+ * @param {string} userId - Discord user ID
+ * @param {string} botId - Bot ID on top.gg
+ * @returns {Promise<boolean|null>} true=voted, false=not voted, null=API unavailable
+ */
+async function checkTopggVoteApi(userId, botId) {
+  const token = process.env.TOPGG_API_TOKEN;
+  if (!token) return null;
+
+  try {
+    const res = await fetch(
+      `https://top.gg/api/bots/${botId}/check?userId=${userId}`,
+      {
+        headers: { Authorization: token },
+        signal: AbortSignal.timeout(5000), // 5s timeout
+      }
+    );
+    if (!res.ok) return null;
+    const data = /** @type {{ voted: number }} */ (await res.json());
+    return data.voted === 1;
+  } catch (err) {
+    logger.warn(`⚠️ top.gg API check failed for ${userId}: ${err.message}`);
+    return null;
+  }
+}
+
+/**
+ * Check if a user has voted recently.
+ * Uses top.gg API as source of truth when TOPGG_API_TOKEN is configured,
+ * with DB as fallback for totalVotes and timestamps.
  * @param {string} userId - Discord user ID
  * @returns {Promise<Object>} Vote status
  */
 export async function getVoteStatus(userId) {
   try {
     const COOLDOWN_MS = 12 * 60 * 60 * 1000; // 12 hours
+    const BOT_ID = process.env.DISCORD_CLIENT_ID || "1392714201558159431";
 
-    const dbManager = await getDatabaseManager();
-    const userCredits = await dbManager.coreCredits?.collection.findOne({
-      userId,
-    });
+    // Query DB and top.gg API in parallel for best performance
+    const [dbResult, topggVoted] = await Promise.all([
+      getDatabaseManager().then(db =>
+        db.coreCredits?.collection.findOne({ userId })
+      ),
+      checkTopggVoteApi(userId, BOT_ID),
+    ]);
 
-    if (!userCredits || !userCredits.lastVote) {
+    const userCredits = dbResult;
+    const totalVotes = userCredits?.totalVotes || 0;
+    const lastVote = userCredits?.lastVote ?? null;
+
+    // top.gg API is authoritative for whether the user has voted in the 12h window
+    if (topggVoted !== null) {
+      const hasVoted = topggVoted;
+      const canVote = !hasVoted;
+      const nextVote =
+        canVote || !lastVote
+          ? null
+          : new Date(lastVote + COOLDOWN_MS);
+
+      return {
+        hasVoted,
+        canVote,
+        lastVote: lastVote ? new Date(lastVote) : null,
+        nextVote,
+        totalVotes,
+      };
+    }
+
+    // Fallback: use DB lastVote timestamp if top.gg API is unavailable
+    if (!lastVote) {
       return {
         hasVoted: false,
         canVote: true,
         lastVote: null,
         nextVote: null,
-        totalVotes: 0,
+        totalVotes,
       };
     }
 
-    const timeSinceVote = Date.now() - userCredits.lastVote;
+    const timeSinceVote = Date.now() - lastVote;
     const canVote = timeSinceVote >= COOLDOWN_MS;
-    const nextVote = canVote
-      ? null
-      : new Date(userCredits.lastVote + COOLDOWN_MS);
+    const nextVote = canVote ? null : new Date(lastVote + COOLDOWN_MS);
 
     return {
       hasVoted: true,
       canVote,
-      lastVote: new Date(userCredits.lastVote),
+      lastVote: new Date(lastVote),
       nextVote,
-      totalVotes: userCredits.totalVotes || 0,
+      totalVotes,
     };
   } catch (error) {
     logger.error("Error getting vote status:", error);

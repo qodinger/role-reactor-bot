@@ -659,3 +659,25 @@ export async function apiMyInfo(req, res) {
     return res.status(statusCode).json(response);
   }
 }
+
+/**
+ * Get Top.gg vote status and cooldown info for a user
+ */
+export async function apiUserVoteStatus(req, res) {
+  logRequest(logger, "User vote status", req);
+
+  try {
+    const userId = req.params.userId;
+    const { getVoteStatus } = await import("../../webhooks/topgg.js");
+    const voteStatus = await getVoteStatus(userId);
+
+    return res.json(createSuccessResponse(voteStatus));
+  } catch (error) {
+    logger.error("Failed to get vote status:", error);
+    const { statusCode, response } = createErrorResponse(
+      "Failed to get vote status",
+      500,
+    );
+    return res.status(statusCode).json(response);
+  }
+}

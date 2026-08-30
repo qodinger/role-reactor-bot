@@ -10,6 +10,7 @@ import {
   apiSetUserRole,
   apiSyncUser,
   apiManageUserCores,
+  apiUserVoteStatus,
 } from "../../controllers/UserController.js";
 import {
   apiGetNotifications,
@@ -34,6 +35,7 @@ router.post("/sync", internalAuth, apiSyncUser);
 router.get("/me", internalAuth, requireAuth, apiMyInfo);
 router.get("/:userId/balance", internalAuth, requireOwnUser, apiUserBalance);
 router.get("/:userId/payments", internalAuth, requireOwnUser, apiUserPayments);
+router.get("/:userId/vote-status", internalAuth, requireOwnUser, apiUserVoteStatus);
 
 // Notification routes - require internal auth + user can only access their own notifications
 router.get(

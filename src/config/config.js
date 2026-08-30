@@ -4,6 +4,12 @@ import { WEBSITE_URL, API_URL } from "./domains.js";
 
 // Load environment variables
 dotenv.config();
+// Overlay the environment-specific file (.env.development / .env.production / etc.)
+// so dev config actually takes effect, per project conventions.
+dotenv.config({
+  path: `.env.${process.env.NODE_ENV || "development"}`,
+  override: true,
+});
 
 /**
  * Configuration management class following Discord API best practices
@@ -200,6 +206,71 @@ class Config {
     }
 
     return baseConfig;
+  }
+
+  /**
+   * Get Twitch streaming integration configuration
+   * @returns {Object} Twitch configuration object
+   */
+  get twitch() {
+    return {
+      clientId: process.env.TWITCH_CLIENT_ID || "",
+      clientSecret: process.env.TWITCH_CLIENT_SECRET || "",
+      enabled: process.env.TWITCH_STREAMING_ENABLED === "true",
+      redirectUri: process.env.TWITCH_REDIRECT_URI || "",
+      scopes: [
+        "user:read:email",
+        "user:read:chat",
+        "user:write:chat",
+        "channel:bot",
+        "channel:read:subscriptions",
+        "moderator:read:followers",
+        "channel:manage:broadcast",
+        "channel:manage:polls",
+        "channel:manage:predictions",
+        "channel:manage:redemptions",
+        "moderator:manage:banned_users",
+        "moderator:manage:chat_messages",
+        "moderator:read:chatters",
+      ],
+      // Scopes requested when the dedicated RoleReactor bot account authorizes.
+      // These let the bot send chat as itself (a separate account from the
+      // broadcaster, e.g. twitch.tv/rolereactor — NO Verified Bot Program needed).
+      botScopes: ["user:bot", "user:write:chat", "user:read:chat"],
+      // Dedicated bot-account identity. Preferred from env so the bot can post
+      // chat as itself (sender_id) without requiring the DB doc from /stream
+      // bot-connect. If unset, getStreamBotAccount falls back to the DB doc.
+      botUserId: process.env.TWITCH_BOT_USER_ID || "",
+      botLogin: process.env.TWITCH_BOT_LOGIN || "",
+      botAccessToken: process.env.TWITCH_BOT_ACCESS_TOKEN || "",
+      botRefreshToken: process.env.TWITCH_BOT_REFRESH_TOKEN || "",
+    };
+  }
+
+  /**
+   * Get YouTube configuration
+   * @returns {Object} YouTube configuration object
+   */
+  get youtube() {
+    return {
+      clientId: process.env.YOUTUBE_CLIENT_ID || "",
+      clientSecret: process.env.YOUTUBE_CLIENT_SECRET || "",
+      enabled: process.env.YOUTUBE_STREAMING_ENABLED === "true",
+      redirectUri: process.env.YOUTUBE_REDIRECT_URI || "",
+    };
+  }
+
+  /**
+   * Get Kick configuration
+   * @returns {Object} Kick configuration object
+   */
+  get kick() {
+    return {
+      clientId: process.env.KICK_CLIENT_ID || "",
+      clientSecret: process.env.KICK_CLIENT_SECRET || "",
+      enabled: process.env.KICK_STREAMING_ENABLED === "true",
+      redirectUri: process.env.KICK_REDIRECT_URI || "",
+    };
   }
 
   /**
@@ -504,6 +575,7 @@ class Config {
       features: this.features,
       payments: this.payments,
       botInfo: this.botInfo,
+      twitch: this.twitch,
     };
   }
 

@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-### Fixed
+- **Live Reactor (Twitch Integration)**: Connect your Twitch channel directly to Discord! Broadcast go-live alerts, relay Twitch chat in real-time, set up automated chat timers, create custom stream commands, and run quotes for your community.
 
 ## [1.8.0] - 2026-07-23
 
