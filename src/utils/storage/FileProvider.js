@@ -587,14 +587,18 @@ export class FileProvider {
 
   async getCoreCredits(userId) {
     const data = await this.read("core_credit");
-    return data[userId] || null;
+    const userDoc = data[userId] || null;
+    if (userDoc) {
+      return { sparks: 0, credits: 0, ...userDoc };
+    }
+    return null;
   }
 
   async setCoreCredits(userId, userData) {
     const filePath = this._getFilePath("core_credit");
     return writeQueue.enqueue(filePath, async () => {
       const data = await this.read("core_credit");
-      data[userId] = userData;
+      data[userId] = { sparks: 0, ...userData };
       return this._writeRaw(filePath, data);
     });
   }
@@ -604,9 +608,22 @@ export class FileProvider {
     return writeQueue.enqueue(filePath, async () => {
       const data = await this.read("core_credit");
       if (!data[userId]) {
-        data[userId] = { credits: 0, lastUpdated: new Date().toISOString() };
+        data[userId] = { credits: 0, sparks: 0, lastUpdated: new Date().toISOString() };
       }
       data[userId].credits = (data[userId].credits || 0) + creditsChange;
+      data[userId].lastUpdated = new Date().toISOString();
+      return this._writeRaw(filePath, data);
+    });
+  }
+
+  async updateSparks(userId, sparksChange) {
+    const filePath = this._getFilePath("core_credit");
+    return writeQueue.enqueue(filePath, async () => {
+      const data = await this.read("core_credit");
+      if (!data[userId]) {
+        data[userId] = { credits: 0, sparks: 0, lastUpdated: new Date().toISOString() };
+      }
+      data[userId].sparks = (data[userId].sparks || 0) + sparksChange;
       data[userId].lastUpdated = new Date().toISOString();
       return this._writeRaw(filePath, data);
     });
