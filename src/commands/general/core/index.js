@@ -55,7 +55,25 @@ export const data = new SlashCommandBuilder()
   .addSubcommand(subcommand =>
     subcommand
       .setName("balance")
-      .setDescription("Check your current Core balance and tier status"),
+      .setDescription("Check your current Core balance and Sparks status"),
+  )
+  .addSubcommand(subcommand =>
+    subcommand
+      .setName("gift")
+      .setDescription("Gift Paid Cores to another user (10% transfer tax)")
+      .addUserOption(option =>
+        option
+          .setName("user")
+          .setDescription("The user to gift Cores to")
+          .setRequired(true),
+      )
+      .addNumberOption(option =>
+        option
+          .setName("amount")
+          .setDescription("Amount of Paid Cores to gift (min 1 Core)")
+          .setRequired(true)
+          .setMinValue(1),
+      ),
   )
   .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages);
 

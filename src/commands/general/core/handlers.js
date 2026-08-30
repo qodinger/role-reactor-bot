@@ -7,10 +7,12 @@ import {
 import { getLogger } from "../../../utils/logger.js";
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 import { config } from "../../../config/config.js";
+import { getDatabaseManager } from "../../../utils/storage/DatabaseProvider.js";
 import {
   createBalanceEmbed,
   createErrorEmbed,
   createValidationErrorEmbed,
+  createGiftSuccessEmbed,
 } from "./embeds.js";
 import {
   getUserData,
@@ -21,6 +23,7 @@ import {
 import {
   validateCoreCommandInputs,
   validateBalanceInputs,
+  validateGiftInputs,
   validateInteractionState,
   validateCommandPermissions,
 } from "./validation.js";
@@ -82,6 +85,10 @@ export async function execute(interaction, _client) {
     switch (subcommand) {
       case "balance":
         await handleBalance(interaction);
+        break;
+
+      case "gift":
+        await handleGift(interaction);
         break;
 
       default: {
@@ -177,6 +184,84 @@ async function handleBalance(interaction) {
     const errorEmbed = createErrorEmbed(
       "Balance Check Failed",
       "There was an error checking your Core balance. Please try again.",
+      interaction.client.user.displayAvatarURL(),
+    );
+
+    await interaction.editReply({ embeds: [errorEmbed] });
+  }
+}
+
+/**
+ * Handles the gift subcommand to transfer Paid Cores to another user with 10% tax
+ * @param {import("discord.js").ChatInputCommandInteraction} interaction - The interaction object
+ */
+async function handleGift(interaction) {
+  const perfContext = createPerformanceContext(
+    "core gift",
+    interaction.user.username,
+    interaction.user.id,
+  );
+
+  try {
+    const giftValidation = validateGiftInputs(interaction);
+    if (!giftValidation.valid) {
+      const errEmbed = createValidationErrorEmbed(
+        giftValidation.errors,
+        interaction.client,
+      );
+      await interaction.editReply({ embeds: [errEmbed] });
+      return;
+    }
+
+    const { targetUser, amount } = giftValidation.data;
+    const senderUserId = interaction.user.id;
+    const targetUserId = targetUser.id;
+
+    const dbManager = getDatabaseManager();
+    const senderData = await dbManager.coreCredits.getByUserId(senderUserId);
+    const senderCredits = senderData?.credits || 0;
+
+    if (senderCredits < amount) {
+      const errEmbed = createErrorEmbed(
+        "Insufficient Cores",
+        `You currently have **${senderCredits.toFixed(2)} Paid Cores 🔮**, but tried to gift **${amount.toFixed(2)} Cores**.\n\n*(Note: Sparks ⚡ are reward points and cannot be gifted).*`,
+        interaction.client.user.displayAvatarURL(),
+      );
+      await interaction.editReply({ embeds: [errEmbed] });
+      return;
+    }
+
+    // 10% Deflationary Transfer Tax calculation
+    const taxAmount = Math.round(amount * 0.10 * 100) / 100;
+    const netAmount = Math.round((amount - taxAmount) * 100) / 100;
+
+    // Atomic Balance Transfers
+    await dbManager.coreCredits.updateCredits(senderUserId, -amount);
+    await dbManager.coreCredits.updateCredits(targetUserId, netAmount);
+
+    const giftEmbed = createGiftSuccessEmbed({
+      senderUser: interaction.user,
+      targetUser,
+      grossAmount: amount,
+      taxAmount,
+      netAmount,
+      client: interaction.client,
+    });
+
+    await interaction.editReply({ embeds: [giftEmbed] });
+
+    logger.info(
+      `Core gift executed: ${interaction.user.username} sent ${amount} Cores to ${targetUser.username} (${taxAmount} tax burned, ${netAmount} received)`,
+    );
+  } catch (error) {
+    handleCoreError(error, "core gift", {
+      userId: perfContext.userId,
+      username: perfContext.username,
+    });
+
+    const errorEmbed = createErrorEmbed(
+      "Transfer Failed",
+      "An error occurred while transferring Cores. Please try again.",
       interaction.client.user.displayAvatarURL(),
     );
 
