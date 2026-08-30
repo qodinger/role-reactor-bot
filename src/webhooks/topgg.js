@@ -277,7 +277,7 @@ async function processVote(vote, client) {
         status: "completed",
         amount: 0,
         currency: "CORES",
-        coresGranted: REWARD_AMOUNT,
+        sparksGranted: REWARD_AMOUNT,
         tier: "vote_reward",
         metadata: {
           username: username || null,
@@ -292,7 +292,7 @@ async function processVote(vote, client) {
   }
 
   logger.info(
-    `✅ top.gg: Rewarded ${userId} with ${REWARD_AMOUNT} Core (Total votes: ${(userCredits?.totalVotes || 0) + 1})`,
+    `✅ top.gg: Rewarded ${userId} with ${REWARD_AMOUNT} Sparks ⚡ (Total votes: ${(userCredits?.totalVotes || 0) + 1})`,
   );
 
   // Create in-app notification
@@ -302,10 +302,10 @@ async function processVote(vote, client) {
         userId,
         type: "vote_reward",
         title: "Vote Reward Received!",
-        message: `+${REWARD_AMOUNT} Core credited for voting on top.gg`,
+        message: `+${REWARD_AMOUNT} Sparks ⚡ credited for voting on top.gg`,
         icon: "vote",
         metadata: {
-          coresGranted: REWARD_AMOUNT,
+          sparksGranted: REWARD_AMOUNT,
           totalVotes: (userCredits?.totalVotes || 0) + 1,
         },
       });
@@ -338,7 +338,7 @@ async function processVote(vote, client) {
         .addFields(
           {
             name: "🎁 Reward",
-            value: `✅ **${customEmojis.core} ${REWARD_AMOUNT}** added to your balance!`,
+            value: `✅ **⚡ ${REWARD_AMOUNT} Sparks** added to your balance!`,
             inline: false,
           },
           {
@@ -347,8 +347,8 @@ async function processVote(vote, client) {
             inline: false,
           },
           {
-            name: "💡 Use Your Core",
-            value: `Use ${getMentionableCommand(discordClient, "core")} to check your balance and see what you can do with your ${customEmojis.core}!`,
+            name: "💡 Check Your Balance",
+            value: `Use ${getMentionableCommand(discordClient, "core")} to check your Cores 🔮 & Sparks ⚡ balance!`,
             inline: false,
           },
         )
