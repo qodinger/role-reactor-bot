@@ -25,7 +25,9 @@ const dataFetcher = {
       if (!member) {
         try {
           member = await guild.members.fetch(options.user_id);
-        } catch (_e) {}
+        } catch (e) {
+          logger.debug(`Failed to fetch member ${options.user_id}: ${e.message}`);
+        }
       }
     } else if (options.username) {
       member = guild.members.cache.find(
@@ -38,7 +40,9 @@ const dataFetcher = {
             limit: 1,
           });
           member = members.first();
-        } catch (_e) {}
+        } catch (e) {
+          logger.debug(`Failed to search members by username "${options.username}": ${e.message}`);
+        }
       }
     }
     if (!member) return `Member not found.`;
@@ -54,7 +58,9 @@ const dataFetcher = {
       if (!role) {
         try {
           role = await guild.roles.fetch(options.role_id);
-        } catch (_e) {}
+        } catch (e) {
+          logger.debug(`Failed to fetch role ${options.role_id}: ${e.message}`);
+        }
       }
     } else if (options.role_name) {
       role = guild.roles.cache.find(
@@ -66,7 +72,9 @@ const dataFetcher = {
           role = guild.roles.cache.find(
             r => r.name.toLowerCase() === options.role_name.toLowerCase(),
           );
-        } catch (_e) {}
+        } catch (e) {
+          logger.debug(`Failed to fetch roles: ${e.message}`);
+        }
       }
     }
     if (!role) return `Role not found.`;
@@ -79,7 +87,9 @@ const dataFetcher = {
       if (!channel) {
         try {
           channel = await guild.channels.fetch(options.channel_id);
-        } catch (_e) {}
+        } catch (e) {
+          logger.debug(`Failed to fetch channel ${options.channel_id}: ${e.message}`);
+        }
       }
     } else if (options.channel_name) {
       channel = guild.channels.cache.find(
@@ -91,7 +101,9 @@ const dataFetcher = {
           channel = guild.channels.cache.find(
             c => c.name.toLowerCase() === options.channel_name.toLowerCase(),
           );
-        } catch (_e) {}
+        } catch (e) {
+          logger.debug(`Failed to fetch channels: ${e.message}`);
+        }
       }
     }
     if (!channel) return `Channel not found.`;
@@ -104,7 +116,9 @@ const dataFetcher = {
       if (!role) {
         try {
           role = await guild.roles.fetch(options.role_id);
-        } catch (_e) {}
+        } catch (e) {
+          logger.debug(`Failed to fetch role ${options.role_id}: ${e.message}`);
+        }
       }
     } else if (options.role_name) {
       role = guild.roles.cache.find(
@@ -581,7 +595,9 @@ export class ActionExecutor {
       // Timeout — remove components so channel doesn't stay cluttered
       try {
         await msg.edit({ components: [] });
-      } catch (_e) {}
+      } catch (e) {
+        logger.debug(`Failed to edit timeout message: ${e.message}`);
+      }
       return "No selection made (timed out after 60 seconds)";
     }
   }

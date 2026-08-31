@@ -29,11 +29,12 @@ export async function apiListUsers(req, res) {
     const filter = {};
     if (role) filter.role = role;
     if (search) {
+      const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       filter.$or = [
-        { discordId: { $regex: search, $options: "i" } },
-        { username: { $regex: search, $options: "i" } },
-        { globalName: { $regex: search, $options: "i" } },
-        { emailNormalized: { $regex: search, $options: "i" } },
+        { discordId: { $regex: escaped, $options: "i" } },
+        { username: { $regex: escaped, $options: "i" } },
+        { globalName: { $regex: escaped, $options: "i" } },
+        { emailNormalized: { $regex: escaped, $options: "i" } },
       ];
     }
 
@@ -328,6 +329,7 @@ export async function apiSetUserRole(req, res) {
 
 /**
  * Sync user data from Discord OAuth (called by website)
+ * Only allows syncing the authenticated user's own data unless internalAuth sets X-User-ID.
  */
 export async function apiSyncUser(req, res) {
   logRequest(logger, "Sync user", req);
@@ -357,6 +359,22 @@ export async function apiSyncUser(req, res) {
       return res.status(statusCode).json(response);
     }
 
+    // IDOR protection: only allow syncing your own data, unless called via internalAuth (admin)
+    const callerId = req.user?.id;
+    const isInternal = req.headers["x-user-id"] && req.headers["authorization"];
+    if (!isInternal && callerId && callerId !== id) {
+      const { statusCode, response } = createErrorResponse(
+        "Forbidden: cannot sync another user's data",
+        403,
+      );
+      return res.status(statusCode).json(response);
+    }
+
+    // Sanitize: never accept arbitrary tokens from untrusted callers
+    const safeTokens = isInternal
+      ? { accessToken, refreshToken }
+      : { accessToken: null, refreshToken: null };
+
     const user = await storage.dbManager.users.upsertFromDiscordOAuth({
       discordId: id,
       username,
@@ -364,8 +382,7 @@ export async function apiSyncUser(req, res) {
       globalName,
       avatar,
       email,
-      accessToken,
-      refreshToken,
+      ...safeTokens,
     });
 
     return res.json(

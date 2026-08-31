@@ -106,29 +106,33 @@ export async function handleTopggVote(req, res, client) {
     // Parse vote data from request body
     const webhookData = req.body;
 
-    // Verify signature if secret is configured
-    if (WEBHOOK_SECRET) {
-      const isValid = verifyWebhookSignature({
-        secret: WEBHOOK_SECRET,
-        signature: signature,
-        body: webhookData,
-        rawBody: rawBody,
-      });
-
-      if (!isValid) {
-        logger.warn("⚠️ top.gg webhook: Invalid signature - rejecting request");
-        return res.status(401).json({
-          success: false,
-          message: "Unauthorized - Invalid signature",
-        });
-      }
-
-      logger.debug("✅ top.gg webhook: Signature verified successfully");
-    } else {
-      logger.warn(
-        "⚠️ top.gg webhook: Skipping signature verification (no secret configured)",
+    // Verify signature — reject if secret not configured
+    if (!WEBHOOK_SECRET) {
+      logger.error(
+        "⚠️ top.gg webhook: TOPGG_WEBHOOK_AUTH not configured — rejecting request",
       );
+      return res.status(500).json({
+        success: false,
+        message: "Webhook not configured",
+      });
     }
+
+    const isValid = verifyWebhookSignature({
+      secret: WEBHOOK_SECRET,
+      signature: signature,
+      body: webhookData,
+      rawBody: rawBody,
+    });
+
+    if (!isValid) {
+      logger.warn("⚠️ top.gg webhook: Invalid signature - rejecting request");
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized - Invalid signature",
+      });
+    }
+
+    logger.debug("✅ top.gg webhook: Signature verified successfully");
 
     // Handle different top.gg webhook formats
     const parsedVote = parseVoteData(webhookData);

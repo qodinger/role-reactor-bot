@@ -23,14 +23,12 @@ export function errorHandler(error, req, res, _next) {
     timestamp: new Date().toISOString(),
   });
 
-  // Don't expose internal error details in production
-  const isDevelopment = process.env.NODE_ENV === "development";
-
+  // Never expose internal error details to clients
   const { statusCode, response } = createErrorResponse(
     "Internal server error",
     500,
-    isDevelopment ? error.message : null,
-    isDevelopment ? error.stack : null,
+    null,
+    null,
   );
 
   res.status(statusCode).json({
@@ -128,13 +126,10 @@ export function notFoundHandler(req, res) {
   const { statusCode, response } = createErrorResponse(
     "Endpoint not found",
     404,
-    `The requested endpoint ${req.method} ${req.url} does not exist`,
   );
 
   res.status(statusCode).json({
     ...response,
     requestId,
-    url: req.url,
-    method: req.method,
   });
 }

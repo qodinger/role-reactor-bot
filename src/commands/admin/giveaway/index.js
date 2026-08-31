@@ -2,12 +2,15 @@
  * Giveaway Command - Main entry point
  * @module commands/admin/giveaway/index
  */
+const logger = getLogger();
 
 import {
   SlashCommandBuilder,
   PermissionFlagsBits,
   MessageFlags,
 } from "discord.js";
+import { getLogger } from "../../../utils/logger.js";
+import { FREE_TIER, PRO_TIER } from "../../../features/premium/config.js";
 import {
   handleCreate,
   handleList,
@@ -63,7 +66,7 @@ export const metadata = {
     {
       name: `Tier Limitations`,
       value:
-        "Free Tier safely supports up to **2,500 active entries**, **5 simultaneous Winners**, and **3 Active Giveaways**. Upgrade to Pro Engine to safely host massive server events supporting **50,000 Entries** and up to **20 simultaneous Winners** with automatic DMs!",
+        `Free Tier safely supports up to **${FREE_TIER.GIVEAWAY_MAX_ENTRIES.toLocaleString()} active entries**, **${FREE_TIER.GIVEAWAY_MAX_WINNERS} simultaneous Winners**, and **${FREE_TIER.GIVEAWAY_MAX_ACTIVE} Active Giveaways**. Upgrade to Pro Engine to safely host massive server events supporting **${PRO_TIER.GIVEAWAY_MAX_ENTRIES.toLocaleString()} Entries** and up to **${PRO_TIER.GIVEAWAY_MAX_WINNERS} simultaneous Winners** with automatic DMs!`,
       inline: false,
     },
   ],
@@ -309,13 +312,20 @@ export const command = {
           });
       }
     } catch (error) {
-      console.error("Giveaway command error:", error);
+      logger.error("Giveaway command error:", error);
 
-      if (!interaction.replied && !interaction.deferred) {
-        await interaction.reply({
-          content: "An error occurred while processing this command.",
-          flags: [MessageFlags.Ephemeral],
-        });
+      const errorContent = "An error occurred while processing this command.";
+      try {
+        if (interaction.replied || interaction.deferred) {
+          await interaction.editReply({ content: errorContent });
+        } else {
+          await interaction.reply({
+            content: errorContent,
+            flags: [MessageFlags.Ephemeral],
+          });
+        }
+      } catch {
+        /* interaction may have expired */
       }
     }
   },
@@ -324,4 +334,3 @@ export const command = {
 // Export data and execute for command loader compatibility
 export const { data } = command;
 export const { execute } = command;
-export default command;

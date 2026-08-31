@@ -86,9 +86,18 @@ router.get(
     try {
       const { code, state } = req.query;
 
-      // Verify state (CSRF protection)
-      if (state !== req.session.oauthState) {
+      // Verify state (CSRF protection) using constant-time comparison
+      const expectedState = req.session.oauthState;
+      const stateValid =
+        expectedState &&
+        state.length === expectedState.length &&
+        crypto.timingSafeEqual(
+          Buffer.from(state, "utf8"),
+          Buffer.from(expectedState, "utf8"),
+        );
+      if (!stateValid) {
         logger.warn("Invalid OAuth state - possible CSRF attack");
+        delete req.session.oauthState;
         return res
           .status(400)
           .json(createErrorResponse("Invalid state parameter", 400).response);

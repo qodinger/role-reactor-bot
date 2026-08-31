@@ -55,10 +55,18 @@ function verifyBMACSignature(rawBody, signature, secret) {
  * and credit cores based on the amount paid.
  */
 export async function handleBMACWebhook(req, res) {
-  // Verify webhook signature
+  // Verify webhook signature — reject if secret not configured
   const signature = req.headers["x-signature-sha256"];
   const secret = config.payments.buymeacoffeeWebhookSecret;
-  if (secret && !verifyBMACSignature(req.rawBody || "", signature, secret)) {
+  if (!secret) {
+    logger.error(
+      "⚠️ BMAC webhook: BUYMEACOFFEE_WEBHOOK_SECRET not configured — rejecting request",
+    );
+    return res
+      .status(500)
+      .json({ status: "error", message: "Webhook not configured" });
+  }
+  if (!verifyBMACSignature(req.rawBody || "", signature, secret)) {
     logger.warn("⚠️ BMAC webhook: Invalid signature - rejecting request");
     return res.status(401).json({ status: "error", message: "Unauthorized" });
   }

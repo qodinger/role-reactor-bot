@@ -125,8 +125,7 @@ export class StarboardManager {
         });
       }
     } catch (error) {
-      console.error("StarboardManager error:", error);
-      logger.error("Error handling starboard reaction:", error);
+      logger.error("StarboardManager error:", error);
     }
   }
 

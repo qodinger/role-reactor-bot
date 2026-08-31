@@ -44,7 +44,12 @@ export function encryptToken(plaintext) {
 
   const encryptionKey = getEncryptionKey();
   if (!encryptionKey) {
-    // Return as-is if no encryption key (development mode)
+    if (process.env.NODE_ENV === "production") {
+      logger.error(
+        "TOKEN_ENCRYPTION_KEY not set in production — refusing to store tokens in plaintext",
+      );
+      return null;
+    }
     logger.debug("Token stored without encryption (no key configured)");
     return plaintext;
   }

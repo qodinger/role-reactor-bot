@@ -11,7 +11,7 @@ const logger = getLogger();
  * @param {import('express').Response} res - Express response object
  * @param {import('express').NextFunction} next - Express next function
  */
-export function requireGuildPermission(req, res, next) {
+export async function requireGuildPermission(req, res, next) {
   const { guildId } = req.params;
 
   if (!guildId) {
@@ -44,40 +44,38 @@ export function requireGuildPermission(req, res, next) {
   }
 
   // Check if user has permission in the guild
-  checkUserGuildPermission(req.user.id, guildId)
-    .then(hasPermission => {
-      if (!hasPermission) {
-        logger.warn("Forbidden access attempt to guild management", {
-          userId: req.user.id,
-          guildId,
-          path: req.path,
-          method: req.method,
-        });
-        const { response } = createErrorResponse(
-          "Insufficient permissions",
-          403,
-          "You don't have permission to manage roles in this server",
-        );
-        return res.status(403).json(response);
-      }
-
-      // Attach guild info to request for downstream handlers
-      req.guildId = guildId;
-      next();
-    })
-    .catch(error => {
-      logger.error("Error checking guild permission", {
+  try {
+    const hasPermission = await checkUserGuildPermission(req.user.id, guildId);
+    if (!hasPermission) {
+      logger.warn("Forbidden access attempt to guild management", {
         userId: req.user.id,
         guildId,
-        error: error.message,
+        path: req.path,
+        method: req.method,
       });
       const { response } = createErrorResponse(
-        "Failed to verify permissions",
-        500,
-        error.message,
+        "Insufficient permissions",
+        403,
+        "You don't have permission to manage roles in this server",
       );
-      res.status(500).json(response);
+      return res.status(403).json(response);
+    }
+
+    // Attach guild info to request for downstream handlers
+    req.guildId = guildId;
+    next();
+  } catch (error) {
+    logger.error("Error checking guild permission", {
+      userId: req.user.id,
+      guildId,
+      error: error.message,
     });
+    const { response } = createErrorResponse(
+      "Failed to verify permissions",
+      500,
+    );
+    res.status(500).json(response);
+  }
 }
 
 /**
@@ -171,7 +169,7 @@ async function checkUserGuildPermission(userId, guildId) {
  * @param {import('express').Response} res - Express response object
  * @param {import('express').NextFunction} next - Express next function
  */
-export function requireGuildMembership(req, res, next) {
+export async function requireGuildMembership(req, res, next) {
   const { guildId } = req.params;
 
   if (!guildId) {
@@ -192,33 +190,31 @@ export function requireGuildMembership(req, res, next) {
     return res.status(401).json(response);
   }
 
-  checkUserGuildMembership(req.user.id, guildId)
-    .then(isMember => {
-      if (!isMember) {
-        const { response } = createErrorResponse(
-          "Guild membership required",
-          403,
-          "You must be a member of this server to access this resource",
-        );
-        return res.status(403).json(response);
-      }
-
-      req.guildId = guildId;
-      next();
-    })
-    .catch(error => {
-      logger.error("Error checking guild membership", {
-        userId: req.user.id,
-        guildId,
-        error: error.message,
-      });
+  try {
+    const isMember = await checkUserGuildMembership(req.user.id, guildId);
+    if (!isMember) {
       const { response } = createErrorResponse(
-        "Failed to verify membership",
-        500,
-        error.message,
+        "Guild membership required",
+        403,
+        "You must be a member of this server to access this resource",
       );
-      res.status(500).json(response);
+      return res.status(403).json(response);
+    }
+
+    req.guildId = guildId;
+    next();
+  } catch (error) {
+    logger.error("Error checking guild membership", {
+      userId: req.user.id,
+      guildId,
+      error: error.message,
     });
+    const { response } = createErrorResponse(
+      "Failed to verify membership",
+      500,
+    );
+    res.status(500).json(response);
+  }
 }
 
 /**

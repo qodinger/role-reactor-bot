@@ -12,9 +12,12 @@ import {
   MessageFlags,
 } from "discord.js";
 import { getVoteStatus } from "../../../webhooks/topgg.js";
+import { getLogger } from "../../../utils/logger.js";
 import config from "../../../config/config.js";
 import { emojiConfig } from "../../../config/emojis.js";
 import { THEME, UI_COMPONENTS } from "../../../config/theme.js";
+
+const logger = getLogger();
 
 // ============================================================================
 // COMMAND METADATA
@@ -148,7 +151,7 @@ export async function execute(interaction) {
       ephemeral: !isPublic,
     });
   } catch (error) {
-    console.error("Vote command error:", error);
+    logger.error("Vote command error:", error);
 
     if (!interaction.replied && !interaction.deferred) {
       const errorEmbed = new EmbedBuilder()

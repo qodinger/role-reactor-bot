@@ -55,6 +55,7 @@ class Config {
 
     // Secondary validation for payments in production
     if (this.isProduction && !process.env.PLISIO_SECRET_KEY) {
+      // Logger not available during config init, use console as fallback
       console.warn(
         "⚠️ PLISIO_SECRET_KEY is missing in production. Crypto payments will be disabled.",
       );

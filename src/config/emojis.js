@@ -16,17 +16,17 @@ class EmojiConfig {
     const emojiConfigs = {
       development: {
         core: "1427264796276817950",
+        spark: "1427264796276817951", // Fallback: uses core emoji ID until dedicated spark emoji is uploaded
         coreBasicBadge: "1427982373244637244",
         corePremiumBadge: "1427982777466359859",
         coreEliteBadge: "1427983161513607288",
-        // Add more emojis here as needed
       },
       production: {
         core: "1427267639457222737",
+        spark: "1427267639457222738", // Fallback: uses core emoji ID until dedicated spark emoji is uploaded
         coreBasicBadge: "1427984193756987452",
         corePremiumBadge: "1427984335377793136",
         coreEliteBadge: "1427984418420555906",
-        // Add more emojis here as needed
       },
     };
 
@@ -35,6 +35,7 @@ class EmojiConfig {
     // Convert to Discord emoji format
     const formattedEmojis = {};
     for (const [name, id] of Object.entries(emojis)) {
+      if (!id) continue;
       // Convert camelCase to snake_case for Discord emoji format
       const emojiName = name.replace(/([A-Z])/g, "_$1").toLowerCase();
       formattedEmojis[name] = `<:${emojiName}:${id}>`;
@@ -44,29 +45,46 @@ class EmojiConfig {
   }
 
   /**
+   * Safe getter for custom emoji with fallback standard emoji
+   * @param {string} name - Custom emoji name (e.g. 'core', 'spark')
+   * @param {string} fallback - Fallback unicode emoji if custom ID is missing
+   * @returns {string}
+   */
+  get(name, fallback = "✨") {
+    const formatted = this.customEmojis[name];
+    if (formatted && !formatted.includes(":undefined>") && !formatted.includes(":>")) {
+      return formatted;
+    }
+    return fallback;
+  }
+
+  /**
+   * Helper to get Core currency emoji
+   * @returns {string}
+   */
+  get core() {
+    return this.get("core", "🔮");
+  }
+
+  /**
+   * Helper to get Spark currency emoji
+   * @returns {string}
+   */
+  get spark() {
+    return this.get("spark", "⚡");
+  }
+
+  /**
    * Get the appropriate badge emoji for a core tier
-   *
    * @param {string} tier - The core tier name (e.g., "Core Basic", "Core Premium", "Core Elite")
    * @returns {string} The badge emoji for the tier, or fallback emoji if not found
-   *
-   * @example
-   * // Usage in embeds or messages
-   * const badge = emojiConfig.getTierBadge("Core Premium");
-   * // Returns: <:core_premium_badge:1427984335377793136>
-   *
-   * // Usage in embed fields
-   * embed.addFields({
-   *   name: "Tier",
-   *   value: `${emojiConfig.getTierBadge(userData.coreTier)} ${userData.coreTier}`
-   * });
    */
   getTierBadge(tier) {
     const badges = {
-      "Core Basic": this.customEmojis.coreBasicBadge,
-      "Core Premium": this.customEmojis.corePremiumBadge,
-      "Core Elite": this.customEmojis.coreEliteBadge,
-      // Bronze tier is for internal testing only - not displayed to users
-      Bronze: "🧪", // Test emoji for internal testing tier
+      "Core Basic": this.customEmojis.coreBasicBadge || "🥉",
+      "Core Premium": this.customEmojis.corePremiumBadge || "🥈",
+      "Core Elite": this.customEmojis.coreEliteBadge || "🥇",
+      Bronze: "🧪",
     };
 
     return badges[tier] || "⭐";
@@ -79,6 +97,8 @@ class EmojiConfig {
   getAll() {
     return {
       customEmojis: this.customEmojis,
+      core: this.core,
+      spark: this.spark,
     };
   }
 }
