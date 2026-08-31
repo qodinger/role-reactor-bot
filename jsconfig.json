@@ -19,7 +19,7 @@
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
     "lib": ["ES2022"],
-    "typeRoots": [],
+    "typeRoots": ["./node_modules/@types"],
     "types": []
   },
   "include": ["src/**/*.js", "src/**/*.d.ts", "scripts/**/*.js"],

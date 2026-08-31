@@ -42,6 +42,8 @@ import configRouter from "./routes/v1/config.js";
 import healthRouter from "./routes/v1/health.js";
 import transcriptsRouter from "./routes/v1/transcripts.js";
 import imageToolsRouter from "./routes/v1/imageTools.js";
+import streamRouter from "./routes/v1/stream.js";
+import streamApiRouter from "./routes/v1/streamApi.js";
 
 // Import services
 import { SupportersService } from "./services/supporters/SupportersService.js";
@@ -281,6 +283,14 @@ function initializeRoutes() {
     app.use("/auth", apiRateLimiter, authRoutes);
     logger.info("✅ Discord OAuth routes enabled");
   }
+
+  // Register streaming OAuth callback routes (public, no internal auth)
+  app.use(`${API_PREFIX}/stream`, streamRouter);
+  logger.info("✅ Streaming OAuth routes enabled");
+
+  // Register streaming management API routes (internal auth + guild permission)
+  app.use(`${API_PREFIX}/stream`, streamApiRouter);
+  logger.info("✅ Streaming API routes enabled");
 
   // Register SupportersService (always available)
   const supportersService = new SupportersService();

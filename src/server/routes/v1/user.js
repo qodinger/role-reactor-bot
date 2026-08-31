@@ -10,6 +10,7 @@ import {
   apiSetUserRole,
   apiSyncUser,
   apiManageUserCores,
+  apiUserVoteStatus,
 } from "../../controllers/UserController.js";
 import {
   apiGetNotifications,
@@ -17,6 +18,10 @@ import {
   apiMarkAsRead,
   apiMarkAllAsRead,
 } from "../../controllers/NotificationController.js";
+import {
+  apiGetUserReferral,
+  apiClaimReferralCode,
+} from "../../controllers/ReferralController.js";
 
 import { internalAuth } from "../../middleware/internalAuth.js";
 import { requireAuth } from "../../middleware/authentication.js";
@@ -32,8 +37,11 @@ const router = express.Router();
 // Note: /sync doesn't use requireOwnUser since user ID comes from X-User-ID header (set by internalAuth)
 router.post("/sync", internalAuth, apiSyncUser);
 router.get("/me", internalAuth, requireAuth, apiMyInfo);
+router.get("/referral", internalAuth, apiGetUserReferral);
+router.post("/referral/claim", internalAuth, apiClaimReferralCode);
 router.get("/:userId/balance", internalAuth, requireOwnUser, apiUserBalance);
 router.get("/:userId/payments", internalAuth, requireOwnUser, apiUserPayments);
+router.get("/:userId/vote-status", internalAuth, requireOwnUser, apiUserVoteStatus);
 
 // Notification routes - require internal auth + user can only access their own notifications
 router.get(

@@ -12,7 +12,7 @@ Role Reactor Bot is a Discord bot built with Discord.js v14 and Node.js 22. It u
 - **Package manager:** pnpm 9.9.0 — always use `pnpm`, never `npm` or `yarn`
 - **Testing:** Vitest
 - **Linting/Formatting:** ESLint + Prettier
-- **Deployment:** Docker (multi-stage) + nginx reverse proxy on VPS
+- **Deployment:** Docker (multi-stage) or PM2 + nginx reverse proxy on VPS
 
 ## Key Commands
 
@@ -25,9 +25,7 @@ pnpm lint:fix               # ESLint with auto-fix
 pnpm format                 # Prettier
 pnpm run deploy:dev         # Deploy slash commands to dev guild
 pnpm run deploy:prod        # Deploy slash commands globally
-pnpm run docker:dev         # Start dev Docker environment
-pnpm run docker:prod        # Start production Docker environment
-pnpm run deploy:latest      # Pull + rebuild + deploy latest on VPS
+pnpm run docker:deploy        # Docker: pull + rebuild + deploy on VPS
 
 # PM2 (lightweight alternative)
 pnpm run pm2:setup          # Initial PM2 setup on fresh VPS
@@ -107,12 +105,6 @@ Internet → nginx (SSL, api.rolereactor.xyz) → 127.0.0.1:3030 → PM2 process
 - **Error handling** — always handle errors at command/event boundaries; let utilities throw
 - **MongoDB** — use helpers in `src/utils/storage/` rather than direct collection access
 - **Command structure** — each command exports `{ data, execute }` where `data` is a `SlashCommandBuilder`
-
-## Known Pre-existing Test Failures
-
-`tests/unit/utils/security/sessionSecurity.test.js` has **3 failing tests** (`globalThis.crypto.getRandomValues` is undefined in the Vitest environment). These are **not caused by code changes** — they were failing before any of our work. Do not investigate unless specifically asked to fix them.
-
-Expected result: `3 failed | 1184 passed` (or similar passing count).
 
 ## Behavioral Guidelines
 

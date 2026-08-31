@@ -11,7 +11,7 @@ import {
   getUsersCorePriority,
   sortByCorePriority,
   logPriorityDistribution,
-} from "../../commands/general/core/utils.js";
+} from "../../commands/general/balance/utils.js";
 
 /**
  * Calculate the most recent past occurrence of a recurring schedule.

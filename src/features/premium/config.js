@@ -26,13 +26,13 @@ export const PremiumFeatures = {
     period: "week",
     periodDays: 7,
     includes: [
-      "10x Ticket Capacity (500/month, 10 panels)",
+      "5x Ticket Capacity (250/month, 10 panels)",
       "Advanced Ticket Automation & HTML Transcripts",
       "Unlimited Transcript Storage (Free: 30 days)",
       "Unlimited Level-Up Rewards & 'Replace Role' Mode",
-      "High-Capacity Giveaways (Up to 50,000 entries & 20 winners)",
-      "20x Scheduled Role Capacity (500 active slots)",
-      "10x Bulk Action Capacity (250 users per action)",
+      "High-Capacity Giveaways (Up to 10,000 entries & 10 winners)",
+      "4x Scheduled Role Capacity (100 active slots)",
+      "4x Bulk Action Capacity (100 users per action)",
       "Advanced Auto-Mod (domain allowlist, caps lock, wildcard/regex, per-channel, analytics, export)",
       "Role Reactions (20 emojis, 15 menus)",
       "Role Bundles (20 roles per bundle)",
@@ -75,10 +75,10 @@ export const FREE_TIER = {
 export const PRO_TIER = {
   LEVEL_REWARDS_MAX: -1, // Unlimited
   GIVEAWAY_MAX_ACTIVE: 20, // 6x free tier
-  GIVEAWAY_MAX_ENTRIES: 50000, // Balanced for VPS safety (Reduced from 100k)
-  GIVEAWAY_MAX_WINNERS: 20, // 4x free tier
-  SCHEDULE_MAX_ACTIVE: 500, // 20x free tier
-  BULK_ACTION_MAX_MEMBERS: 250, // 10x free tier
+  GIVEAWAY_MAX_ENTRIES: 10000, // Balanced for RAM safety & smooth shuffles (Reduced from 50k)
+  GIVEAWAY_MAX_WINNERS: 10, // Prevents Discord DM rate-limiting (Reduced from 20)
+  SCHEDULE_MAX_ACTIVE: 100, // Keeps timer loop lightweight on VPS (Reduced from 500)
+  BULK_ACTION_MAX_MEMBERS: 100, // Prevents Discord API rate-limit 429 errors (Reduced from 250)
   ROLE_BUNDLE_MAX_ROLES: 20, // 4x free tier
   ROLE_REACTION_MAX_EMOJIS: 20, // Discord's hard limit
   ROLE_REACTION_MAX_MESSAGES: 15, // 3x free tier
@@ -88,6 +88,6 @@ export const PRO_TIER = {
   CUSTOM_EVENT_TYPES: ["all"],
   // Ticketing
   TICKET_MAX_PANELS: 10,
-  TICKET_MAX_TICKETS_PER_MONTH: 500,
+  TICKET_MAX_TICKETS_PER_MONTH: 250, // Balanced database quota (Reduced from 500)
   TICKET_TRANSCRIPT_DAYS: -1, // Unlimited
 };

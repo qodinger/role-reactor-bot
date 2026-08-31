@@ -64,8 +64,8 @@ A powerful Discord bot that helps you manage your server with role management, A
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/rolereactor/role-reactor-bot.git
-   cd role-reactor-bot
+   git clone https://github.com/rolereactor/bot.git
+   cd bot
    ```
 
 2. **Install dependencies**
@@ -159,7 +159,7 @@ Required Discord bot permissions:
 
 ### Getting Help
 
-- Check the [GitHub Issues](https://github.com/rolereactor/role-reactor-bot/issues) for known problems
+- Check the [GitHub Issues](https://github.com/rolereactor/bot/issues) for known problems
 - Join our [Support Server](https://discord.gg/D8tYkU75Ry) for real-time help
 - Review the [Deployment Guide](./docs/setup/deployment.md) for setup issues
 
@@ -177,7 +177,7 @@ Internet → Caddy (SSL + api.rolereactor.xyz) → Docker container:3030
 
 ```bash
 # Deploy latest version (pulls, builds, and starts)
-pnpm run deploy:latest
+pnpm run docker:deploy
 
 # View logs
 pnpm run docker:logs
@@ -218,14 +218,14 @@ Upgrade your server with the **Pro Engine** for enhanced limits and features:
 
 | Feature            | Free Tier          | Pro Engine ✨           |
 | :----------------- | :----------------- | :---------------------- |
-| Giveaway Entries   | 2,500              | **50,000**              |
-| Giveaway Winners   | 5                  | **20**                  |
+| Giveaway Entries   | 2,500              | **10,000**              |
+| Giveaway Winners   | 5                  | **10**                  |
 | Giveaway Active    | 3                  | **20**                  |
-| Scheduled Roles    | 25 active          | **500 active**          |
-| Temp Roles         | 25 active          | **500 active**          |
-| Temp Roles Bulk    | 25 users           | **250 users**           |
-| Role Bundles       | 5 roles            | **15 roles**            |
-| Role Reactions     | 10 emojis, 3 menus | **20 emojis, 8 menus** |
+| Scheduled Roles    | 25 active          | **100 active**          |
+| Temp Roles         | 25 active          | **100 active**          |
+| Temp Roles Bulk    | 25 users           | **100 users**           |
+| Role Bundles       | 5 roles            | **20 roles**            |
+| Role Reactions     | 10 emojis, 5 menus | **20 emojis, 15 menus** |
 | XP Rewards         | 5 (Stack)          | **Unlimited**           |
 | Ticket Transcripts | Text               | **HTML/JSON**           |
 <!-- | Auto-Mod Filters   | 5                  | **7 advanced**          | -->

@@ -105,6 +105,7 @@ export async function apiPricing(req, res) {
           requestedUserId,
           isFirstPurchase: !hasPayments,
           currentCredits: Math.round((userData?.credits || 0) * 100) / 100,
+          sparks: Math.round((userData?.sparks || 0) * 100) / 100,
           eligibleForFirstPurchaseBonus: !hasPayments,
           hasActivePro,
         };
@@ -192,6 +193,7 @@ export async function apiUserBalance(req, res) {
         createSuccessResponse({
           requestedUserId: requestedUserId,
           credits: 0,
+          sparks: 0,
           hasAccount: false,
           paymentHistory: { crypto: 0 },
         }),
@@ -202,6 +204,7 @@ export async function apiUserBalance(req, res) {
       createSuccessResponse({
         requestedUserId: requestedUserId,
         credits: Math.round((userData.credits || 0) * 100) / 100, // Round to 2 decimal places
+        sparks: Math.round((userData.sparks || 0) * 100) / 100,
         hasAccount: true,
         lastUpdated: userData.lastUpdated || null,
         paymentHistory: {

@@ -202,4 +202,104 @@ export class GuildSettingsRepository extends BaseRepository {
       return false;
     }
   }
+
+  /**
+   * Get Guild Core Vault data for a guild
+   * @param {string} guildId - Guild ID
+   * @returns {Promise<{balance: number, history: Array<{userId: string, username: string, amount: number, timestamp: string}>}>}
+   */
+  async getVaultData(guildId) {
+    try {
+      const settings = await this.getByGuild(guildId);
+      const vault = settings?.coreVault || {};
+      return {
+        balance: Math.round((vault.balance || 0) * 100) / 100,
+        history: vault.history || [],
+      };
+    } catch (error) {
+      this.logger.error(`Failed to get vault data for guild ${guildId}`, error);
+      return { balance: 0, history: [] };
+    }
+  }
+
+  /**
+   * Deposit Cores into a guild's Core Vault
+   * @param {string} guildId - Guild ID
+   * @param {string} userId - User ID who is depositing
+   * @param {number} amount - Amount of Cores to deposit
+   * @param {string} username - Username of the depositor
+   * @returns {Promise<{success: boolean, newBalance: number}>}
+   */
+  async depositVaultCores(guildId, userId, amount, username) {
+    try {
+      const roundedAmount = Math.round(amount * 100) / 100;
+      if (roundedAmount <= 0) return { success: false, newBalance: 0 };
+
+      const timestamp = new Date().toISOString();
+      const historyEntry = {
+        userId,
+        username: username || "Anonymous",
+        amount: roundedAmount,
+        timestamp,
+      };
+
+      const result = await this.collection.findOneAndUpdate(
+        { guildId },
+        {
+          $inc: { "coreVault.balance": roundedAmount },
+          $push: {
+            "coreVault.history": {
+              $each: [historyEntry],
+              $slice: -50,
+            },
+          },
+          $set: { updatedAt: new Date() },
+          $setOnInsert: { createdAt: new Date() },
+        },
+        { upsert: true, returnDocument: "after" },
+      );
+
+      const newBalance = Math.round((result?.coreVault?.balance || roundedAmount) * 100) / 100;
+      if (this.cache) this.cache.clear();
+
+      return { success: true, newBalance };
+    } catch (error) {
+      this.logger.error(`Failed to deposit vault cores for guild ${guildId}`, error);
+      return { success: false, newBalance: 0 };
+    }
+  }
+
+  /**
+   * Deduct Cores from a guild's Core Vault (e.g. for Pro Engine renewal)
+   * @param {string} guildId - Guild ID
+   * @param {number} amount - Amount to deduct
+   * @returns {Promise<{success: boolean, newBalance: number}>}
+   */
+  async deductVaultCores(guildId, amount) {
+    try {
+      const roundedAmount = Math.round(amount * 100) / 100;
+      const vaultData = await this.getVaultData(guildId);
+      if (vaultData.balance < roundedAmount) {
+        return { success: false, newBalance: vaultData.balance };
+      }
+
+      const result = await this.collection.findOneAndUpdate(
+        { guildId },
+        {
+          $inc: { "coreVault.balance": -roundedAmount },
+          $set: { updatedAt: new Date() },
+        },
+        { returnDocument: "after" },
+      );
+
+      const newBalance = Math.round((result?.coreVault?.balance || 0) * 100) / 100;
+      if (this.cache) this.cache.clear();
+
+      return { success: true, newBalance };
+    } catch (error) {
+      this.logger.error(`Failed to deduct vault cores for guild ${guildId}`, error);
+      return { success: false, newBalance: 0 };
+    }
+  }
 }
+

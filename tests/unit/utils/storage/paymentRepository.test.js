@@ -626,6 +626,12 @@ describe("PaymentRepository", () => {
         totalRevenue: 0,
         totalCores: 0,
         uniqueUsers: 0,
+        byProvider: [],
+        votes: {
+          totalVotes: 0,
+          totalSparksGranted: 0,
+          uniqueVoters: 0,
+        },
       });
     });
 

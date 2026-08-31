@@ -14,25 +14,13 @@ The bot container is not exposed directly to the host — Caddy proxies to it vi
 
 ## Development
 
-### Start
+For local development, use nodemon directly:
 
 ```bash
-pnpm run docker:dev
+pnpm run dev
 ```
 
-This mounts your source code into the container for hot reload. The bot restarts automatically on file changes.
-
-### Logs
-
-```bash
-pnpm run docker:dev:logs
-```
-
-### Stop
-
-```bash
-pnpm run docker:dev:down
-```
+This provides hot reload without Docker overhead. For Docker-based development, run `docker compose -f docker-compose.dev.yml up -d` manually.
 
 ---
 
@@ -68,7 +56,7 @@ pnpm run docker:dev:down
 pnpm run docker:prod
 
 # Update to latest version
-pnpm run deploy:latest
+pnpm run docker:deploy
 ```
 
 Caddy fetches and renews the SSL certificate automatically on first startup. No certbot or cron jobs needed.
@@ -85,7 +73,7 @@ pnpm run docker:prod:logs
 
 ```bash
 # Container status
-pnpm run docker:status
+docker ps | grep role-reactor-bot
 
 # Health endpoint (from VPS — not exposed externally)
 curl http://localhost:3030/health
@@ -126,13 +114,13 @@ docker exec role-reactor-bot printenv | grep DISCORD
 ### Build cache issues
 
 ```bash
-pnpm run deploy:latest:force
+pnpm run docker:deploy
 ```
 
 ### Restart
 
 ```bash
-pnpm run docker:restart
+docker restart role-reactor-bot
 ```
 
 ---

@@ -16,14 +16,14 @@ class EmojiConfig {
     const emojiConfigs = {
       development: {
         core: "1427264796276817950",
-        spark: "1427264796276817951", // Fallback: uses core emoji ID until dedicated spark emoji is uploaded
+        spark: "", // TODO: Upload spark_icon.png to dev server and paste ID here
         coreBasicBadge: "1427982373244637244",
         corePremiumBadge: "1427982777466359859",
         coreEliteBadge: "1427983161513607288",
       },
       production: {
         core: "1427267639457222737",
-        spark: "1427267639457222738", // Fallback: uses core emoji ID until dedicated spark emoji is uploaded
+        spark: "", // TODO: Upload spark_icon.png to prod server and paste ID here
         coreBasicBadge: "1427984193756987452",
         corePremiumBadge: "1427984335377793136",
         coreEliteBadge: "1427984418420555906",

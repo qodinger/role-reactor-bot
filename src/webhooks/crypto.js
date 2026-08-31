@@ -257,6 +257,26 @@ async function processCryptoPayment(
       );
     }
 
+    // Process ongoing referral bonus if eligible ($10+ minimum)
+    try {
+      const { getDatabaseManager } = await import(
+        "../utils/storage/databaseManager.js"
+      );
+      const dbManager = await getDatabaseManager();
+      if (dbManager?.referrals) {
+        await dbManager.referrals.processPurchaseBonus({
+          refereeId: userId,
+          paymentId: paymentId,
+          purchaseAmount: paymentAmount,
+          coresGranted: coresToAdd,
+          coreCreditsRepo: dbManager.coreCredits,
+          paymentRepo: dbManager.payments,
+        });
+      }
+    } catch (refError) {
+      logger.error(`Failed to process referral bonus for ${userId}:`, refError);
+    }
+
     logger.info(
       `✅ Added ${coresToAdd} Cores to user ${userId} via Crypto ($${paymentAmount} ${sourceCurrency || "USD"} / ${cryptoAmt} ${currency})`,
     );

@@ -11,7 +11,9 @@ const logger = getLogger();
 /**
  * Require authentication middleware
  * Checks session-based auth OR accepts req.user set from internalAuth (X-User-ID header)
- * @returns {Function} Express middleware
+ * @param {import('express').Request} req - Express request object
+ * @param {import('express').Response} res - Express response object
+ * @param {import('express').NextFunction} next - Express next function
  */
 export function requireAuth(req, res, next) {
   // If req.user is already set from internalAuth (X-User-ID header), skip session check
@@ -44,7 +46,9 @@ export function requireAuth(req, res, next) {
 /**
  * Optional authentication middleware
  * Attaches user info if authenticated, but doesn't require it
- * @returns {Function} Express middleware
+ * @param {import('express').Request} req - Express request object
+ * @param {import('express').Response} res - Express response object
+ * @param {import('express').NextFunction} next - Express next function
  */
 export function optionalAuth(req, res, next) {
   if (req.session && req.session.discordUser) {
@@ -57,7 +61,7 @@ export function optionalAuth(req, res, next) {
 /**
  * Require specific user role/permission
  * @param {Function} checkPermission - Function to check permission (userId, permission) => boolean
- * @returns {Function} Express middleware
+ * @returns {import('express').RequestHandler} Express middleware
  */
 export function requirePermission(checkPermission) {
   return (req, res, next) => {

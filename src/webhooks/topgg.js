@@ -252,19 +252,43 @@ async function processVote(vote, client) {
     }
   }
 
-  // Reward user with 1 Core Credit
-  const REWARD_AMOUNT = 1;
+  // Calculate Vote Streak (36h grace window to maintain streak)
+  const STREAK_WINDOW_MS = 36 * 60 * 60 * 1000;
+  let voteStreak = 1;
+  if (userCredits && userCredits.lastVote) {
+    const timeSinceLastVote = Date.now() - userCredits.lastVote;
+    if (timeSinceLastVote <= STREAK_WINDOW_MS) {
+      voteStreak = (userCredits.voteStreak || 1) + 1;
+    } else {
+      voteStreak = 1; // Expired, reset
+    }
+  }
 
-  // Use the repository's updateCredits to increment the `credits` field consistently
-  await dbManager.coreCredits.updateCredits(userId, REWARD_AMOUNT);
+  // Tightly balanced reward scaling (Hard Cap at 8 Sparks max):
+  // Streak 1-2: 5 Sparks
+  // Streak 3-6: 6 Sparks
+  // Streak 7-13: 7 Sparks
+  // Streak 14+: 8 Sparks (Max Cap)
+  let REWARD_AMOUNT = 5;
+  if (voteStreak >= 14) {
+    REWARD_AMOUNT = 8;
+  } else if (voteStreak >= 7) {
+    REWARD_AMOUNT = 7;
+  } else if (voteStreak >= 3) {
+    REWARD_AMOUNT = 6;
+  }
 
-  // Update vote metadata separately
+  // Credit Sparks for voting
+  await dbManager.coreCredits.updateSparks(userId, REWARD_AMOUNT);
+
+  // Update vote metadata and streak
   await dbManager.coreCredits.collection.updateOne(
     { userId },
     {
       $set: {
         lastVote: Date.now(),
         totalVotes: (userCredits?.totalVotes || 0) + 1,
+        voteStreak: voteStreak,
       },
     },
     { upsert: true },
@@ -281,11 +305,12 @@ async function processVote(vote, client) {
         status: "completed",
         amount: 0,
         currency: "CORES",
-        coresGranted: REWARD_AMOUNT,
+        sparksGranted: REWARD_AMOUNT,
         tier: "vote_reward",
         metadata: {
           username: username || null,
           totalVotes: (userCredits?.totalVotes || 0) + 1,
+          voteStreak: voteStreak,
         },
       });
     } catch (txError) {
@@ -296,7 +321,7 @@ async function processVote(vote, client) {
   }
 
   logger.info(
-    `✅ top.gg: Rewarded ${userId} with ${REWARD_AMOUNT} Core (Total votes: ${(userCredits?.totalVotes || 0) + 1})`,
+    `✅ top.gg: Rewarded ${userId} with ${REWARD_AMOUNT} Sparks ⚡ (Streak: ${voteStreak}, Total votes: ${(userCredits?.totalVotes || 0) + 1})`,
   );
 
   // Create in-app notification
@@ -306,10 +331,10 @@ async function processVote(vote, client) {
         userId,
         type: "vote_reward",
         title: "Vote Reward Received!",
-        message: `+${REWARD_AMOUNT} Core credited for voting on top.gg`,
+        message: `+${REWARD_AMOUNT} Sparks ⚡ credited for voting on top.gg`,
         icon: "vote",
         metadata: {
-          coresGranted: REWARD_AMOUNT,
+          sparksGranted: REWARD_AMOUNT,
           totalVotes: (userCredits?.totalVotes || 0) + 1,
         },
       });
@@ -327,11 +352,9 @@ async function processVote(vote, client) {
       const discordUser = await discordClient.users.fetch(userId);
 
       const { EmbedBuilder } = await import("discord.js");
-      const { emojiConfig } = await import("../config/emojis.js");
       const { getMentionableCommand } = await import(
         "../utils/commandUtils.js"
       );
-      const { customEmojis } = emojiConfig;
 
       const thankYouEmbed = new EmbedBuilder()
         .setTitle("🎉 Thanks for Voting!")
@@ -342,7 +365,7 @@ async function processVote(vote, client) {
         .addFields(
           {
             name: "🎁 Reward",
-            value: `✅ **${customEmojis.core} ${REWARD_AMOUNT}** added to your balance!`,
+            value: `✅ **⚡ ${REWARD_AMOUNT} Sparks** added! *(Vote Streak: ${voteStreak} 🔥)*`,
             inline: false,
           },
           {
@@ -351,8 +374,8 @@ async function processVote(vote, client) {
             inline: false,
           },
           {
-            name: "💡 Use Your Core",
-            value: `Use ${getMentionableCommand(discordClient, "core")} to check your balance and see what you can do with your ${customEmojis.core}!`,
+            name: "💡 Check Your Balance",
+            value: `Use ${getMentionableCommand(discordClient, "balance")} to check your Cores 🔮 & Sparks ⚡ balance!`,
             inline: false,
           },
         )
@@ -371,41 +394,105 @@ async function processVote(vote, client) {
 }
 
 /**
- * Check if a user has voted recently
+ * Query top.gg API to check if a user has voted in the last 12 hours.
+ * This is the authoritative source — works even without webhooks reaching this server.
+ * @param {string} userId - Discord user ID
+ * @param {string} botId - Bot ID on top.gg
+ * @returns {Promise<boolean|null>} true=voted, false=not voted, null=API unavailable
+ */
+async function checkTopggVoteApi(userId, botId) {
+  const token = process.env.TOPGG_API_TOKEN;
+  if (!token) return null;
+
+  try {
+    const res = await fetch(
+      `https://top.gg/api/bots/${botId}/check?userId=${userId}`,
+      {
+        headers: { Authorization: token },
+        signal: AbortSignal.timeout(5000), // 5s timeout
+      }
+    );
+    if (!res.ok) return null;
+    const data = /** @type {{ voted: number }} */ (await res.json());
+    return data.voted === 1;
+  } catch (err) {
+    logger.warn(`⚠️ top.gg API check failed for ${userId}: ${err.message}`);
+    return null;
+  }
+}
+
+/**
+ * Check if a user has voted recently.
+ * Uses top.gg API as source of truth when TOPGG_API_TOKEN is configured,
+ * with DB as fallback for totalVotes and timestamps.
  * @param {string} userId - Discord user ID
  * @returns {Promise<Object>} Vote status
  */
 export async function getVoteStatus(userId) {
   try {
     const COOLDOWN_MS = 12 * 60 * 60 * 1000; // 12 hours
+    const BOT_ID = process.env.DISCORD_CLIENT_ID || "1392714201558159431";
 
-    const dbManager = await getDatabaseManager();
-    const userCredits = await dbManager.coreCredits?.collection.findOne({
-      userId,
-    });
+    // Query DB and top.gg API in parallel for best performance
+    const [dbResult, topggVoted] = await Promise.all([
+      getDatabaseManager().then(db =>
+        db.coreCredits?.collection.findOne({ userId })
+      ),
+      checkTopggVoteApi(userId, BOT_ID),
+    ]);
 
-    if (!userCredits || !userCredits.lastVote) {
+    const userCredits = dbResult;
+    const totalVotes = userCredits?.totalVotes || 0;
+    const lastVote = userCredits?.lastVote ?? null;
+
+    const STREAK_WINDOW_MS = 36 * 60 * 60 * 1000;
+    const isStreakActive = userCredits?.lastVote
+      ? Date.now() - userCredits.lastVote <= STREAK_WINDOW_MS
+      : false;
+    const voteStreak = isStreakActive ? (userCredits?.voteStreak || 0) : 0;
+
+    // top.gg API is authoritative for whether the user has voted in the 12h window
+    if (topggVoted !== null) {
+      const hasVoted = topggVoted;
+      const canVote = !hasVoted;
+      const nextVote =
+        canVote || !lastVote
+          ? null
+          : new Date(lastVote + COOLDOWN_MS);
+
+      return {
+        hasVoted,
+        canVote,
+        lastVote: lastVote ? new Date(lastVote) : null,
+        nextVote,
+        totalVotes,
+        voteStreak,
+      };
+    }
+
+    // Fallback: use DB lastVote timestamp if top.gg API is unavailable
+    if (!lastVote) {
       return {
         hasVoted: false,
         canVote: true,
         lastVote: null,
         nextVote: null,
-        totalVotes: 0,
+        totalVotes,
+        voteStreak: 0,
       };
     }
 
-    const timeSinceVote = Date.now() - userCredits.lastVote;
+    const timeSinceVote = Date.now() - lastVote;
     const canVote = timeSinceVote >= COOLDOWN_MS;
-    const nextVote = canVote
-      ? null
-      : new Date(userCredits.lastVote + COOLDOWN_MS);
+    const nextVote = canVote ? null : new Date(lastVote + COOLDOWN_MS);
 
     return {
       hasVoted: true,
       canVote,
-      lastVote: new Date(userCredits.lastVote),
+      lastVote: new Date(lastVote),
       nextVote,
-      totalVotes: userCredits.totalVotes || 0,
+      totalVotes,
+      voteStreak,
     };
   } catch (error) {
     logger.error("Error getting vote status:", error);

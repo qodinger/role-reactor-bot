@@ -32,6 +32,13 @@ import {
   ImageToolUsageRepository,
   CustomVariableRepository,
   CustomEventTriggerRepository,
+  StreamConnectionRepository,
+  StreamBotAccountRepository,
+  TwitchCommandRepository,
+  TwitchChatFiltersRepository,
+  TwitchQuoteRepository,
+  TwitchTimerRepository,
+  ReferralRepository,
 } from "./repositories/index.js";
 import { CacheManager } from "../cache/CacheManager.js";
 import { QueryCache } from "../cache/QueryCache.js";
@@ -88,6 +95,10 @@ class DatabaseManager {
     this.imageToolUsage = null;
     this.customVariables = null;
     this.customEventTriggers = null;
+    this.streamConnections = null;
+    this.streamBotAccount = null;
+    this.twitchCommands = null;
+    this.referrals = null;
     // Initialize connection manager asynchronously (non-blocking)
     this._initializeConnectionManager().catch(err => {
       this.logger?.warn(
@@ -217,6 +228,11 @@ class DatabaseManager {
           this.cacheManager,
           this.logger,
         );
+        this.referrals = new ReferralRepository(
+          db,
+          this.cacheManager,
+          this.logger,
+        );
         this.commandUsage = new CommandUsageRepository(
           db,
           this.cacheManager,
@@ -294,6 +310,36 @@ class DatabaseManager {
           this.logger,
         );
         this.customEventTriggers = new CustomEventTriggerRepository(
+          db,
+          this.cacheManager,
+          this.logger,
+        );
+        this.streamConnections = new StreamConnectionRepository(
+          db,
+          this.cacheManager,
+          this.logger,
+        );
+        this.streamBotAccount = new StreamBotAccountRepository(
+          db,
+          this.cacheManager,
+          this.logger,
+        );
+        this.twitchCommands = new TwitchCommandRepository(
+          db,
+          this.cacheManager,
+          this.logger,
+        );
+        this.twitchChatFilters = new TwitchChatFiltersRepository(
+          db,
+          this.cacheManager,
+          this.logger,
+        );
+        this.twitchQuotes = new TwitchQuoteRepository(
+          db,
+          this.cacheManager,
+          this.logger,
+        );
+        this.twitchTimers = new TwitchTimerRepository(
           db,
           this.cacheManager,
           this.logger,

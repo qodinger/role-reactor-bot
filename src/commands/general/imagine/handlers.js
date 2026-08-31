@@ -32,16 +32,15 @@ import {
   analyzeNSFWContent,
   getPromptSuggestions,
 } from "../../../utils/ai/promptIntelligence.js";
-import { modelManager } from "../../../utils/ai/providers/comfyui/modelManager.js";
 
 /**
  * Get preferred provider for NSFW content generation
- * Prefers ComfyUI/RunPod for detailed control and permissive content policies
+ * Prefers RunPod for detailed control and permissive content policies
  * @returns {string|null} Preferred provider or null for auto-selection
  */
 function getPreferredNSFWProvider() {
-  // For NSFW: prefer ComfyUI (self-hosted, most control) > RunPod (serverless ComfyUI)
-  return null; // Let the system auto-select from ComfyUI/RunPod based on availability
+  // For NSFW: prefer RunPod (serverless) for detailed control
+  return null; // Let the system auto-select based on availability
 }
 
 /**
@@ -74,10 +73,9 @@ export async function handleImagineCommand(interaction, _client) {
   const model = selectedModel || "anything";
   const aspectRatio = selectedAspectRatio || inlineAspectRatio;
 
-  // Use model manager to resolve actual hardware settings based on flags
-  const modelSettings = modelManager.parseModelFlags(promptOption);
-  const stepsOverride = modelSettings.defaultSettings.steps;
-  const cfgOverride = modelSettings.defaultSettings.cfg;
+  // Use default model settings
+  const stepsOverride = 30;
+  const cfgOverride = 7;
 
   // Safety tolerance: 6 = most permissive (default for Stability AI)
   const safetyTolerance = 6;

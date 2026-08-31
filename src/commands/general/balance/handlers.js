@@ -7,10 +7,14 @@ import {
 import { getLogger } from "../../../utils/logger.js";
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 import { config } from "../../../config/config.js";
+import { getDatabaseManager } from "../../../utils/storage/databaseManager.js";
 import {
   createBalanceEmbed,
   createErrorEmbed,
   createValidationErrorEmbed,
+  createSendSuccessEmbed,
+  createSendConfirmationEmbed,
+  createSendCancelledEmbed,
 } from "./embeds.js";
 import {
   getUserData,
@@ -21,6 +25,7 @@ import {
 import {
   validateCoreCommandInputs,
   validateBalanceInputs,
+  validateSendInputs,
   validateInteractionState,
   validateCommandPermissions,
 } from "./validation.js";
@@ -28,7 +33,7 @@ import {
 const logger = getLogger();
 
 /**
- * Main execution function for the /core command
+ * Main execution function for the /balance command
  * @param {import("discord.js").ChatInputCommandInteraction} interaction - The interaction object
  * @param {import("discord.js").Client} _client - The Discord client (unused)
  */
@@ -80,8 +85,12 @@ export async function execute(interaction, _client) {
     );
 
     switch (subcommand) {
-      case "balance":
+      case "check":
         await handleBalance(interaction);
+        break;
+
+      case "send":
+        await handleSend(interaction);
         break;
 
       default: {
@@ -97,11 +106,11 @@ export async function execute(interaction, _client) {
 
     logOperationDuration(
       perfContext.startTime,
-      "Core command",
+      "Balance command",
       perfContext.username,
     );
   } catch (error) {
-    handleCoreError(error, "core command", {
+    handleCoreError(error, "balance command", {
       userId: perfContext.userId,
       username: perfContext.username,
     });
@@ -177,6 +186,163 @@ async function handleBalance(interaction) {
     const errorEmbed = createErrorEmbed(
       "Balance Check Failed",
       "There was an error checking your Core balance. Please try again.",
+      interaction.client.user.displayAvatarURL(),
+    );
+
+    await interaction.editReply({ embeds: [errorEmbed] });
+  }
+}
+
+/**
+ * Handles the send subcommand to transfer Paid Cores to another user with 10% tax
+ * @param {import("discord.js").ChatInputCommandInteraction} interaction - The interaction object
+ */
+async function handleSend(interaction) {
+  const perfContext = createPerformanceContext(
+    "core send",
+    interaction.user.username,
+    interaction.user.id,
+  );
+
+  try {
+    const sendValidation = validateSendInputs(interaction);
+    if (!sendValidation.valid) {
+      const errEmbed = createValidationErrorEmbed(
+        sendValidation.errors,
+        interaction.client,
+      );
+      await interaction.editReply({ embeds: [errEmbed] });
+      return;
+    }
+
+    const { targetUser, amount } = sendValidation.data;
+    const senderUserId = interaction.user.id;
+    const targetUserId = targetUser.id;
+
+    const dbManager = await getDatabaseManager();
+    const senderData = await dbManager.coreCredits.getByUserId(senderUserId);
+    const senderCredits = senderData?.credits || 0;
+
+    if (senderCredits < amount) {
+      const errEmbed = createErrorEmbed(
+        "Insufficient Cores",
+        `You currently have **${senderCredits.toFixed(2)} Paid Cores 🔮**, but tried to send **${amount.toFixed(2)} Cores**.\n\n*(Note: Sparks ⚡ are reward points and cannot be sent).*`,
+        interaction.client.user.displayAvatarURL(),
+      );
+      await interaction.editReply({ embeds: [errEmbed] });
+      return;
+    }
+
+    // 10% Deflationary Transfer Tax calculation
+    const taxAmount = Math.round(amount * 0.10 * 100) / 100;
+    const netAmount = Math.round((amount - taxAmount) * 100) / 100;
+
+    const confirmEmbed = createSendConfirmationEmbed({
+      targetUser,
+      grossAmount: amount,
+      taxAmount,
+      netAmount,
+      client: interaction.client,
+    });
+
+    const confirmCustomId = `send_confirm_${interaction.id}`;
+    const cancelCustomId = `send_cancel_${interaction.id}`;
+
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(confirmCustomId)
+        .setLabel("Confirm Transfer")
+        .setStyle(ButtonStyle.Success)
+        .setEmoji("✅"),
+      new ButtonBuilder()
+        .setCustomId(cancelCustomId)
+        .setLabel("Cancel")
+        .setStyle(ButtonStyle.Danger)
+        .setEmoji("❌"),
+    );
+
+    const message = await interaction.editReply({
+      embeds: [confirmEmbed],
+      components: [(row)],
+    });
+
+    try {
+      const confirmation = await message.awaitMessageComponent({
+        filter: (i) => {
+          if (i.user.id !== interaction.user.id) {
+            i.reply({
+              content: "You cannot confirm or cancel someone else's transfer.",
+              flags: MessageFlags.Ephemeral,
+            });
+            return false;
+          }
+          return i.customId === confirmCustomId || i.customId === cancelCustomId;
+        },
+        time: 60000,
+      });
+
+      if (confirmation.customId === cancelCustomId) {
+        await confirmation.update({
+          embeds: [createSendCancelledEmbed("You cancelled the Core transfer.", interaction.client)],
+          components: [],
+        });
+        return;
+      }
+
+      // Re-verify sender balance before executing transfer
+      const freshSenderData = await dbManager.coreCredits.getByUserId(senderUserId);
+      const freshCredits = freshSenderData?.credits || 0;
+      if (freshCredits < amount) {
+        await confirmation.update({
+          embeds: [
+            createErrorEmbed(
+              "Insufficient Cores",
+              `Your balance changed. You currently have **${freshCredits.toFixed(2)} Paid Cores 🔮**, but tried to send **${amount.toFixed(2)} Cores**.`,
+              interaction.client.user.displayAvatarURL(),
+            ),
+          ],
+          components: [],
+        });
+        return;
+      }
+
+      // Atomic Balance Transfers
+      await dbManager.coreCredits.updateCredits(senderUserId, -amount);
+      await dbManager.coreCredits.updateCredits(targetUserId, netAmount);
+
+      const sendEmbed = createSendSuccessEmbed({
+        senderUser: interaction.user,
+        targetUser,
+        grossAmount: amount,
+        taxAmount,
+        netAmount,
+        client: interaction.client,
+      });
+
+      await confirmation.update({
+        embeds: [sendEmbed],
+        components: [],
+      });
+
+      logger.info(
+        `Core send executed: ${interaction.user.username} sent ${amount} Cores to ${targetUser.username} (${taxAmount} tax burned, ${netAmount} received)`,
+      );
+    } catch (_timeoutError) {
+      // Handle 60s timeout
+      await interaction.editReply({
+        embeds: [createSendCancelledEmbed("Confirmation timed out (60 seconds expired). No Cores were transferred.", interaction.client)],
+        components: [],
+      });
+    }
+  } catch (error) {
+    handleCoreError(error, "core send", {
+      userId: perfContext.userId,
+      username: perfContext.username,
+    });
+
+    const errorEmbed = createErrorEmbed(
+      "Transfer Failed",
+      "An error occurred while transferring Cores. Please try again.",
       interaction.client.user.displayAvatarURL(),
     );
 

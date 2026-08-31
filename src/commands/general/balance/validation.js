@@ -29,7 +29,7 @@ export function validateCoreCommandInputs(interaction) {
   }
 
   // Validate subcommand
-  const validSubcommands = ["balance"];
+  const validSubcommands = ["check", "send"];
   const subcommand = interaction.options?.getSubcommand();
   if (!subcommand) {
     errors.push("Subcommand is required");
@@ -70,6 +70,41 @@ export function validateBalanceInputs(interaction) {
     errors,
     data: {
       user: interaction.user,
+    },
+  };
+}
+
+/**
+ * Validates send subcommand inputs
+ * @param {Object} interaction - Discord interaction object
+ * @returns {Object} Validation result
+ */
+export function validateSendInputs(interaction) {
+  const errors = [];
+  const senderUser = interaction.user;
+  const targetUser = interaction.options?.getUser("user");
+  const amount = interaction.options?.getNumber("cores");
+
+  if (!targetUser) {
+    errors.push("Target user is required");
+  } else if (targetUser.id === senderUser.id) {
+    errors.push("You cannot send Cores to yourself");
+  } else if (targetUser.bot) {
+    errors.push("You cannot send Cores to bot accounts");
+  }
+
+  if (amount === undefined || amount === null || isNaN(amount)) {
+    errors.push("Valid amount is required");
+  } else if (amount < 1) {
+    errors.push("Minimum amount is 1 Core");
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+    data: {
+      targetUser,
+      amount,
     },
   };
 }
@@ -138,7 +173,7 @@ export function createValidationErrorEmbed(errors, client) {
     ],
     timestamp: new Date().toISOString(),
     footer: {
-      text: "Core Command • Input Validation",
+      text: "Balance Command • Input Validation",
       icon_url: client.user.displayAvatarURL(),
     },
   };

@@ -1,9 +1,16 @@
 import dotenv from "dotenv";
 import { getAIFeatureCosts, getAvatarContentFilter } from "./ai.js";
 import { WEBSITE_URL, API_URL } from "./domains.js";
+import { validateEnv } from "./envSchema.js";
 
 // Load environment variables
 dotenv.config();
+// Overlay the environment-specific file (.env.development / .env.production / etc.)
+// so dev config actually takes effect, per project conventions.
+dotenv.config({
+  path: `.env.${process.env.NODE_ENV || "development"}`,
+  override: true,
+});
 
 /**
  * Configuration management class following Discord API best practices
@@ -13,6 +20,18 @@ class Config {
     // Don't validate on construction - allow lazy validation
     // This allows the config to be imported even if env vars aren't set yet
     this._validated = false;
+    this._env = null;
+  }
+
+  /**
+   * Get validated environment (lazy, cached after first call)
+   * @returns {ReturnType<typeof validateEnv>}
+   */
+  get env() {
+    if (!this._env) {
+      this._env = validateEnv();
+    }
+    return this._env;
   }
 
   /**
@@ -44,14 +63,7 @@ class Config {
    * @throws {Error} If required environment variables are missing
    */
   validateRequiredEnvVars() {
-    const requiredVars = ["DISCORD_TOKEN", "DISCORD_CLIENT_ID"];
-    const missingVars = requiredVars.filter(varName => !process.env[varName]);
-
-    if (missingVars.length > 0) {
-      throw new Error(
-        `Missing required environment variables: ${missingVars.join(", ")}`,
-      );
-    }
+    void this.env; // triggers zod validation (throws if required vars missing)
 
     // Secondary validation for payments in production
     if (this.isProduction && !process.env.PLISIO_SECRET_KEY) {
@@ -204,6 +216,71 @@ class Config {
   }
 
   /**
+   * Get Twitch streaming integration configuration
+   * @returns {Object} Twitch configuration object
+   */
+  get twitch() {
+    return {
+      clientId: process.env.TWITCH_CLIENT_ID || "",
+      clientSecret: process.env.TWITCH_CLIENT_SECRET || "",
+      enabled: process.env.TWITCH_STREAMING_ENABLED === "true",
+      redirectUri: process.env.TWITCH_REDIRECT_URI || "",
+      scopes: [
+        "user:read:email",
+        "user:read:chat",
+        "user:write:chat",
+        "channel:bot",
+        "channel:read:subscriptions",
+        "moderator:read:followers",
+        "channel:manage:broadcast",
+        "channel:manage:polls",
+        "channel:manage:predictions",
+        "channel:manage:redemptions",
+        "moderator:manage:banned_users",
+        "moderator:manage:chat_messages",
+        "moderator:read:chatters",
+      ],
+      // Scopes requested when the dedicated RoleReactor bot account authorizes.
+      // These let the bot send chat as itself (a separate account from the
+      // broadcaster, e.g. twitch.tv/rolereactor — NO Verified Bot Program needed).
+      botScopes: ["user:bot", "user:write:chat", "user:read:chat"],
+      // Dedicated bot-account identity. Preferred from env so the bot can post
+      // chat as itself (sender_id) without requiring the DB doc from /stream
+      // bot-connect. If unset, getStreamBotAccount falls back to the DB doc.
+      botUserId: process.env.TWITCH_BOT_USER_ID || "",
+      botLogin: process.env.TWITCH_BOT_LOGIN || "",
+      botAccessToken: process.env.TWITCH_BOT_ACCESS_TOKEN || "",
+      botRefreshToken: process.env.TWITCH_BOT_REFRESH_TOKEN || "",
+    };
+  }
+
+  /**
+   * Get YouTube configuration
+   * @returns {Object} YouTube configuration object
+   */
+  get youtube() {
+    return {
+      clientId: process.env.YOUTUBE_CLIENT_ID || "",
+      clientSecret: process.env.YOUTUBE_CLIENT_SECRET || "",
+      enabled: process.env.YOUTUBE_STREAMING_ENABLED === "true",
+      redirectUri: process.env.YOUTUBE_REDIRECT_URI || "",
+    };
+  }
+
+  /**
+   * Get Kick configuration
+   * @returns {Object} Kick configuration object
+   */
+  get kick() {
+    return {
+      clientId: process.env.KICK_CLIENT_ID || "",
+      clientSecret: process.env.KICK_CLIENT_SECRET || "",
+      enabled: process.env.KICK_STREAMING_ENABLED === "true",
+      redirectUri: process.env.KICK_REDIRECT_URI || "",
+    };
+  }
+
+  /**
    * Parse developers from environment variable
    * @returns {string[]} Array of developer IDs
    */
@@ -237,7 +314,7 @@ class Config {
       name: process.env.BOT_NAME || "Role Reactor Bot",
       website: WEBSITE_URL,
       guide: `${WEBSITE_URL}/docs`,
-      github: "https://github.com/rolereactor/role-reactor-bot",
+      github: "https://github.com/rolereactor/bot",
       support: "https://discord.gg/D8tYkU75Ry",
       sponsor: `${WEBSITE_URL}/sponsor`,
       vote:
@@ -505,6 +582,7 @@ class Config {
       features: this.features,
       payments: this.payments,
       botInfo: this.botInfo,
+      twitch: this.twitch,
     };
   }
 

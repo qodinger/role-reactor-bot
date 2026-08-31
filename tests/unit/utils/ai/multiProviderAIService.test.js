@@ -18,7 +18,6 @@ const makeConfig = (overrides = {}) => ({
   providers: {
     openrouter: { enabled: true, apiKey: "or-key", name: "OpenRouter" },
     stability: { enabled: true, apiKey: "stab-key", name: "Stability" },
-    comfyui: { enabled: true, name: "ComfyUI" },
     runpod: {
       enabled: true,
       apiKey: "rp-key",
@@ -83,7 +82,6 @@ const makeProviderClass = (name) =>
 
 const MockOpenRouterProvider = makeProviderClass("openrouter");
 const MockStabilityProvider = makeProviderClass("stability");
-const MockComfyUIProvider = makeProviderClass("comfyui");
 const MockRunPodProvider = makeProviderClass("runpod");
 const MockCivitaiProvider = makeProviderClass("civitai");
 
@@ -92,9 +90,6 @@ vi.mock("../../../../src/utils/ai/providers/openRouterProvider.js", () => ({
 }));
 vi.mock("../../../../src/utils/ai/providers/stabilityProvider.js", () => ({
   StabilityProvider: MockStabilityProvider,
-}));
-vi.mock("../../../../src/utils/ai/providers/comfyUIProvider.js", () => ({
-  ComfyUIProvider: MockComfyUIProvider,
 }));
 vi.mock(
   "../../../../src/utils/ai/providers/runpodServerlessProvider.js",
@@ -144,12 +139,6 @@ describe("MultiProviderAIService", () => {
       generateText: mockGenerateText,
       generateTextStreaming: mockGenerateTextStreaming,
     }));
-    MockComfyUIProvider.mockImplementation(() => ({
-      _name: "comfyui",
-      generateImage: mockGenerateImage,
-      generateText: mockGenerateText,
-      generateTextStreaming: mockGenerateTextStreaming,
-    }));
     MockRunPodProvider.mockImplementation(() => ({
       _name: "runpod",
       generateImage: mockGenerateImage,
@@ -180,13 +169,12 @@ describe("MultiProviderAIService", () => {
   // ── 1. Initialization ──────────────────────────────────────────────────────
 
   describe("constructor — provider initialization", () => {
-    it("initialises all 5 provider instances", () => {
+    it("initialises all 4 provider instances", () => {
       const keys = Object.keys(service.providers);
       expect(keys).toEqual(
         expect.arrayContaining([
           "openrouter",
           "stability",
-          "comfyui",
           "runpod",
           "civitai",
         ]),
@@ -197,8 +185,8 @@ describe("MultiProviderAIService", () => {
       expect(service.providers.civitai).toBeDefined();
     });
 
-    it("creates exactly 5 providers (no extras)", () => {
-      expect(Object.keys(service.providers)).toHaveLength(5);
+    it("creates exactly 4 providers (no extras)", () => {
+      expect(Object.keys(service.providers)).toHaveLength(4);
     });
   });
 
@@ -250,7 +238,6 @@ describe("MultiProviderAIService", () => {
       for (const key of [
         "openrouter",
         "stability",
-        "comfyui",
         "runpod",
         "civitai",
       ]) {
@@ -306,7 +293,7 @@ describe("MultiProviderAIService", () => {
       ).rejects.toThrow(/temporarily disabled/i);
     });
 
-    it("throws when provider has no apiKey (non-comfyui)", async () => {
+    it("throws when provider has no apiKey", async () => {
       // Remove apiKey from stability
       service.config.providers.stability = {
         enabled: true,
@@ -585,7 +572,7 @@ describe("MultiProviderAIService", () => {
 
       const { enabledProviders } = service.getConfig();
       expect(enabledProviders).toEqual(
-        expect.arrayContaining(["openrouter", "comfyui", "civitai"]),
+        expect.arrayContaining(["openrouter", "civitai"]),
       );
       expect(enabledProviders).not.toContain("stability");
       expect(enabledProviders).not.toContain("runpod");
@@ -597,7 +584,6 @@ describe("MultiProviderAIService", () => {
         expect.arrayContaining([
           "openrouter",
           "stability",
-          "comfyui",
           "runpod",
           "civitai",
         ]),

@@ -69,8 +69,6 @@ export const guildSettingsLimiter = rateLimit({
   validate: { xForwardedForHeader: false },
 });
 
-
-
 /**
  * Rate limiter for premium feature activation
  * Very restrictive to prevent abuse

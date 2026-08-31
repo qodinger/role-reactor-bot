@@ -26,13 +26,13 @@ vi.mock("src/config/config.js", () => ({
   default: { externalLinks: { website: "https://rolereactor.xyz" } },
 }));
 
-vi.mock("src/commands/general/core/embeds.js", () => ({
+vi.mock("src/commands/general/balance/embeds.js", () => ({
   createBalanceEmbed: vi.fn().mockReturnValue({ data: { title: "Balance" } }),
   createErrorEmbed: vi.fn().mockReturnValue({ data: { title: "Error" } }),
   createValidationErrorEmbed: vi.fn().mockReturnValue({ data: { title: "Validation Error" } }),
 }));
 
-vi.mock("src/commands/general/core/utils.js", () => ({
+vi.mock("src/commands/general/balance/utils.js", () => ({
   getUserData: vi.fn().mockResolvedValue({ credits: 10, userId: "user123" }),
   handleCoreError: vi.fn(),
   logOperationDuration: vi.fn(),
@@ -44,7 +44,7 @@ vi.mock("src/commands/general/core/utils.js", () => ({
 }));
 
 // All validations pass by default — individual tests override via the mock directly
-vi.mock("src/commands/general/core/validation.js", () => ({
+vi.mock("src/commands/general/balance/validation.js", () => ({
   validateCoreCommandInputs: vi.fn().mockReturnValue({
     valid: true,
     data: { subcommand: "balance" },
@@ -62,7 +62,7 @@ vi.mock("src/utils/storage/databaseManager.js", () => ({
   }),
 }));
 
-import { execute } from "../../../../src/commands/general/core/handlers.js";
+import { execute } from "../../../../src/commands/general/balance/handlers.js";
 
 describe("Core Command", () => {
   let mockInteraction;

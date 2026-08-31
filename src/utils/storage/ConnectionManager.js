@@ -239,6 +239,25 @@ export class ConnectionManager {
         );
       }
 
+      // Drop old non-unique referrals.refereeId_1 index so it can be recreated
+      // with unique:true, sparse:true by ReferralRepository._ensureIndexes()
+      try {
+        const referralsCollection = this.db.collection("referrals");
+        const referralIndexes = await referralsCollection
+          .listIndexes()
+          .toArray();
+        for (const index of referralIndexes) {
+          if (index.name === "referrals.refereeId_1" && !index.unique) {
+            this.logger.info(
+              `Dropping old non-unique index: ${index.name} from referrals`,
+            );
+            await referralsCollection.dropIndex("referrals.refereeId_1");
+          }
+        }
+      } catch (error) {
+        this.logger.debug("No old referrals indexes to drop:", error.message);
+      }
+
       this.logger.info("✅ Old indexes and data cleanup completed");
     } catch (error) {
       this.logger.warn("⚠️ Old index cleanup failed (non-critical)", error);

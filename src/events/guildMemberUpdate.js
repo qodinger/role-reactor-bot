@@ -51,7 +51,11 @@ export async function execute(oldMember, newMember, _client) {
 
     if (removedRoles.length > 0) {
       try {
-        await fireEventTriggers(newMember.guild.id, "role_remove", eventContext);
+        await fireEventTriggers(
+          newMember.guild.id,
+          "role_remove",
+          eventContext,
+        );
       } catch (triggerError) {
         logger.error(`Error firing role_remove triggers:`, triggerError);
       }

@@ -156,6 +156,10 @@ export class DatabaseProvider {
     return this.dbManager.coreCredits.updateCredits(userId, creditsChange);
   }
 
+  async updateSparks(userId, sparksChange) {
+    return this.dbManager.coreCredits.updateSparks(userId, sparksChange);
+  }
+
   async deleteCoreCredits(userId) {
     return this.dbManager.coreCredits.deleteByUserId(userId);
   }

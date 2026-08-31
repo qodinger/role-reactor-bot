@@ -3,7 +3,6 @@ import { performanceMonitor } from "./performanceMonitor.js";
 import { ProviderManager } from "./providers/providerManager.js";
 import { OpenRouterProvider } from "./providers/openRouterProvider.js";
 import { StabilityProvider } from "./providers/stabilityProvider.js";
-import { ComfyUIProvider } from "./providers/comfyUIProvider.js";
 import { RunPodServerlessProvider } from "./providers/runpodServerlessProvider.js";
 import { CivitaiProvider } from "./providers/civitaiProvider.js";
 import { AI_STATUS_MESSAGES } from "./statusMessages.js";
@@ -55,7 +54,6 @@ async function loadConfig() {
       providers: {
         openrouter: { enabled: false },
         stability: { enabled: false },
-        comfyui: { enabled: false },
       },
       features: {
         aiChat: { enabled: false },
@@ -71,7 +69,7 @@ async function loadConfig() {
 }
 
 /**
- * Multi-provider AI service supporting OpenRouter, Stability AI, and ComfyUI
+ * Multi-provider AI service supporting OpenRouter, Stability AI, and RunPod
  */
 export class MultiProviderAIService {
   constructor() {
@@ -80,7 +78,6 @@ export class MultiProviderAIService {
       providers: {
         openrouter: { enabled: false },
         stability: { enabled: false },
-        comfyui: { enabled: false },
         runpod: { enabled: false },
       },
       features: {
@@ -96,7 +93,6 @@ export class MultiProviderAIService {
     this.providers = {
       openrouter: new OpenRouterProvider(this.config.providers.openrouter),
       stability: new StabilityProvider(this.config.providers.stability),
-      comfyui: new ComfyUIProvider(this.config.providers.comfyui || {}),
       runpod: new RunPodServerlessProvider(this.config.providers.runpod || {}),
       civitai: new CivitaiProvider(this.config.providers.civitai || {}),
     };
@@ -116,7 +112,6 @@ export class MultiProviderAIService {
           runpod: new RunPodServerlessProvider(
             this.config.providers?.runpod || {},
           ),
-          comfyui: new ComfyUIProvider(this.config.providers?.comfyui || {}),
           civitai: new CivitaiProvider(this.config.providers?.civitai || {}),
         };
       })
@@ -162,7 +157,7 @@ export class MultiProviderAIService {
 
   /**
    * Get a specific provider instance
-   * @param {string} providerName - Name of the provider (comfyui, stability, etc.)
+   * @param {string} providerName - Name of the provider (stability, runpod, etc.)
    * @returns {Promise<Object|null>} Provider instance or null if not found
    */
   async getProvider(providerName) {
@@ -181,7 +176,6 @@ export class MultiProviderAIService {
         runpod: new RunPodServerlessProvider(
           this.config.providers?.runpod || {},
         ),
-        comfyui: new ComfyUIProvider(this.config.providers?.comfyui || {}),
         civitai: new CivitaiProvider(this.config.providers?.civitai || {}),
       };
     }
@@ -215,7 +209,6 @@ export class MultiProviderAIService {
         runpod: new RunPodServerlessProvider(
           this.config.providers?.runpod || {},
         ),
-        comfyui: new ComfyUIProvider(this.config.providers?.comfyui || {}),
         civitai: new CivitaiProvider(this.config.providers?.civitai || {}),
       };
     }
@@ -275,12 +268,8 @@ export class MultiProviderAIService {
       );
     }
 
-    // API key is optional for self-hosted providers (e.g., ComfyUI)
-    if (
-      targetProvider !== "selfhosted" &&
-      targetProvider !== "comfyui" &&
-      !providerConfig.apiKey
-    ) {
+    // API key is optional for self-hosted providers
+    if (targetProvider !== "selfhosted" && !providerConfig.apiKey) {
       throw new Error(
         `The ${providerConfig.name} service is not properly configured. This feature is temporarily unavailable.`,
       );
@@ -300,11 +289,7 @@ export class MultiProviderAIService {
       );
     }
 
-    if (
-      currentProvider !== "selfhosted" &&
-      currentProvider !== "comfyui" &&
-      !currentProviderConfig.apiKey
-    ) {
+    if (currentProvider !== "selfhosted" && !currentProviderConfig.apiKey) {
       throw new Error(
         `The configured AI provider '${currentProvider}' is missing API key. Please configure the API key.`,
       );

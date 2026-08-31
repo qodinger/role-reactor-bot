@@ -4,7 +4,6 @@ import { getLogger } from "../logger.js";
 import { getExperienceManager } from "../../features/experience/ExperienceManager.js";
 import { getCommandRateLimiter } from "../rateLimit/commandRateLimiter.js";
 
-
 /**
  * @typedef {import('discord.js').Client & { commands?: Collection<string, any> }} ExtendedClient
  * @typedef {import('discord.js').CommandInteraction<any> & { _handled?: boolean }} ExtendedInteraction
@@ -394,8 +393,12 @@ class CommandHandler {
     const eventHandler = getEventHandler();
 
     try {
-      // Check if interaction is already handled
-      if (interaction.replied || interaction.deferred || interaction._handled) {
+      // Check if interaction is already handled.
+      // Note: `deferred` is intentionally NOT treated as "already handled" — deferring
+      // is just an acknowledgment, not execution. Commands (and the interactionCreate
+      // handler) may defer early to beat Discord's 3s window before execute() runs.
+      // True duplicate-execution prevention is handled by InteractionManager.activeInteractions.
+      if (interaction.replied || interaction._handled) {
         this.logger.warn(
           `⚠️ Interaction already handled for command: ${commandName}`,
         );

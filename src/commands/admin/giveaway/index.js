@@ -2,14 +2,12 @@
  * Giveaway Command - Main entry point
  * @module commands/admin/giveaway/index
  */
-const logger = getLogger();
 
 import {
   SlashCommandBuilder,
   PermissionFlagsBits,
   MessageFlags,
 } from "discord.js";
-import { getLogger } from "../../../utils/logger.js";
 import { FREE_TIER, PRO_TIER } from "../../../features/premium/config.js";
 import {
   handleCreate,
@@ -312,20 +310,13 @@ export const command = {
           });
       }
     } catch (error) {
-      logger.error("Giveaway command error:", error);
+      console.error("Giveaway command error:", error);
 
-      const errorContent = "An error occurred while processing this command.";
-      try {
-        if (interaction.replied || interaction.deferred) {
-          await interaction.editReply({ content: errorContent });
-        } else {
-          await interaction.reply({
-            content: errorContent,
-            flags: [MessageFlags.Ephemeral],
-          });
-        }
-      } catch {
-        /* interaction may have expired */
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({
+          content: "An error occurred while processing this command.",
+          flags: [MessageFlags.Ephemeral],
+        });
       }
     }
   },
@@ -334,3 +325,4 @@ export const command = {
 // Export data and execute for command loader compatibility
 export const { data } = command;
 export const { execute } = command;
+export default command;

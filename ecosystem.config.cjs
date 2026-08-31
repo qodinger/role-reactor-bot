@@ -10,8 +10,8 @@ module.exports = {
         NODE_ENV: 'production',
         PORT: 3030,
       },
-      // Restart on memory limit
-      max_memory_restart: '200M',
+      // Restart on memory limit (set higher than max-old-space-size to avoid restarts during normal operation)
+      max_memory_restart: '350M',
       // Logging
       log_file: './logs/pm2-combined.log',
       out_file: './logs/pm2-out.log',

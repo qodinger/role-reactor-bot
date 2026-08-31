@@ -76,7 +76,7 @@ pnpm run deploy:prod
 ### Development
 
 ```bash
-pnpm run docker:dev
+pnpm run dev
 ```
 
 ### Production

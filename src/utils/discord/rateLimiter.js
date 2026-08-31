@@ -2,7 +2,7 @@ import { getLogger } from "../logger.js";
 import {
   getCoreRateLimitMultiplier,
   getUserCorePriority,
-} from "../../commands/general/core/utils.js";
+} from "../../commands/general/balance/utils.js";
 import { CORE_STATUS } from "../../config/index.js";
 
 class RateLimit {

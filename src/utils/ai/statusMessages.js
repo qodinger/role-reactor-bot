@@ -76,16 +76,11 @@ export const AI_STATUS_MESSAGES = {
   SELFHOSTED_GENERATING: "Generating image...",
   SELFHOSTED_PROCESSING: "Processing generated image...",
 
-  // ComfyUI provider steps
-  COMFYUI_SENDING: "Sending generation request...",
-  COMFYUI_GENERATING: "Generating image...",
-  COMFYUI_QUEUED: "Image generation queued, waiting for completion...",
-  COMFYUI_PROCESSING: "Processing generated image...",
-  COMFYUI_LOADING_MODEL: "Loading AI model...",
-  COMFYUI_PROCESSING_PROMPT: "Processing prompt...",
-  COMFYUI_PREPARING_CANVAS: "Preparing canvas...",
-  COMFYUI_DECODING: "Decoding image...",
-  COMFYUI_FINALIZING: "Finalizing image...",
+  // RunPod provider steps
+  RUNPOD_SENDING: "Sending generation request...",
+  RUNPOD_GENERATING: "Generating image...",
+  RUNPOD_QUEUED: "Image generation queued, waiting for completion...",
+  RUNPOD_PROCESSING: "Processing generated image...",
 
   // Multi-provider service steps
   MULTIPROVIDER_INITIALIZING: "Initializing image generation...",

@@ -14,7 +14,7 @@
  *
  * PROVIDER SAFETY LEVELS:
  * - "safe": Only generates safe content (Stability AI, OpenRouter)
- * - "mixed": Can generate both safe and NSFW content (ComfyUI, RunPod)
+ * - "mixed": Can generate both safe and NSFW content (RunPod)
  * - Providers with "mixed" safety are NEVER used for safe content requests
  *
  * Easy control over which provider/model each feature uses
@@ -59,8 +59,8 @@ export function getAIModels() {
       // NSFW Image Generation (/imagine command with --nsfw flag)
       imagineNSFW: {
         enabled: true,
-        provider: "auto", // Auto-select: RunPod if available, otherwise ComfyUI
-        model: "AnythingXL_xl.safetensors", // Default model for ComfyUI
+        provider: "auto", // Auto-select: RunPod if available
+        model: "AnythingXL_xl.safetensors", // Default model
         allowNSFWProviders: true, // Allow NSFW providers for NSFW content
       },
     },
@@ -148,80 +148,6 @@ export function getAIModels() {
         },
       },
 
-      comfyui: {
-        enabled: true, // Enable ComfyUI for NSFW content generation
-        name: "ComfyUI (Self-Hosted)",
-        baseUrl: process.env.COMFYUI_API_URL || "http://127.0.0.1:8188",
-        apiKey: process.env.COMFYUI_API_KEY || null, // Optional for self-hosted
-        capabilities: ["image"], // Image generation only
-        safetyLevel: "nsfw", // NSFW ONLY - no safe content generation
-
-        // Model configurations with flags for easy selection
-        models: {
-          image: {
-            // Anime/Manga Style Models
-            "animagine-xl-4.0-opt.safetensors": {
-              name: "Animagine XL 4.0",
-              type: "anime",
-              style: "anime",
-              nsfw: true,
-              quality: "excellent",
-              speed: "medium",
-              flags: ["anime", "manga", "2d", "stylized", "nsfw", "character"],
-              description:
-                "High-quality anime model with superior character knowledge",
-            },
-
-            "AnythingXL_xl.safetensors": {
-              name: "Anything XL",
-              type: "anime",
-              style: "anime",
-              nsfw: true,
-              quality: "high",
-              speed: "medium",
-              flags: ["anime", "manga", "2d", "stylized", "nsfw"],
-              description: "High-quality anime/manga style model",
-            },
-
-            // Realistic Models
-            "realismEngineSDXL_v30VAE.safetensors": {
-              name: "Realism Engine SDXL",
-              type: "realistic",
-              style: "photorealistic",
-              nsfw: true,
-              quality: "high",
-              speed: "slow",
-              flags: ["realistic", "photorealistic", "3d", "nsfw"],
-              description: "Photorealistic image generation",
-            },
-
-            // Furry/Anthropomorphic Models
-            "ponyDiffusionV6XL_v6StartWithThisOne.safetensors": {
-              name: "Pony Diffusion V6 XL",
-              type: "furry",
-              style: "anthropomorphic",
-              nsfw: true,
-              quality: "high",
-              speed: "medium",
-              flags: ["furry", "anthropomorphic", "pony", "nsfw"],
-              description: "Anthropomorphic and furry art generation",
-            },
-
-            // Artistic Models
-            "deliberate_v2.safetensors": {
-              name: "Deliberate V2",
-              type: "artistic",
-              style: "artistic",
-              nsfw: true,
-              quality: "high",
-              speed: "fast",
-              flags: ["artistic", "creative", "versatile", "nsfw"],
-              description: "Versatile artistic style model",
-            },
-          },
-        },
-      },
-
       runpod: {
         enabled: process.env.RUNPOD_ENABLED === "true", // Enable via environment variable
         name: "RunPod Serverless",
@@ -239,10 +165,9 @@ export function getAIModels() {
           maxRetries: 3,
         },
 
-        // Same model configurations as ComfyUI (since RunPod runs ComfyUI)
+        // Model configurations
         models: {
           image: {
-            // Use same model configs as ComfyUI
             "AnythingXL_xl.safetensors": {
               name: "Anything XL",
               type: "anime",
@@ -377,9 +302,6 @@ export function getAIFeatureCosts() {
           parseFloat(process.env.PRICE_STABILITY_LARGE_TURBO) || 5.0,
         "sd3.5-medium": parseFloat(process.env.PRICE_STABILITY_MEDIUM) || 4.0,
         "sd3.5-flash": parseFloat(process.env.PRICE_STABILITY_FLASH) || 5.0,
-      },
-      comfyui: {
-        default: parseFloat(process.env.PRICE_COMFYUI_DEFAULT) || 0.08,
       },
       runpod: {
         default: parseFloat(process.env.PRICE_RUNPOD_DEFAULT) || 0.79,

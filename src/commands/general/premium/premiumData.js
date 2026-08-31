@@ -14,14 +14,14 @@ export const PREMIUM_FEATURES = [
     name: "Scheduled Roles",
     emoji: "📅",
     free: "25 active schedules",
-    pro: "500 active schedules",
+    pro: "100 active schedules",
   },
   {
     command: "temp-roles",
     name: "Temporary Roles",
     emoji: "⏰",
     free: "25 active, 25 bulk actions",
-    pro: "500 active, 250 bulk actions",
+    pro: "100 active, 100 bulk actions",
   },
   {
     command: "role-bundle",
@@ -49,13 +49,13 @@ export const PREMIUM_FEATURES = [
     name: "Giveaways",
     emoji: "🎁",
     free: "2,500 entries, 5 winners, 3 active",
-    pro: "50,000 entries, 20 winners, 20 active",
+    pro: "10,000 entries, 10 winners, 20 active",
   },
   {
     command: "ticket",
     name: "Ticketing",
     emoji: "🎫",
     free: "3 panels, 50 tickets/month, 30-day transcripts",
-    pro: "10 panels, 500 tickets/month, unlimited transcripts (HTML/JSON)",
+    pro: "10 panels, 250 tickets/month, unlimited transcripts (HTML/JSON)",
   },
 ];
