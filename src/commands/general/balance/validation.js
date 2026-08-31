@@ -29,7 +29,7 @@ export function validateCoreCommandInputs(interaction) {
   }
 
   // Validate subcommand
-  const validSubcommands = ["balance", "gift"];
+  const validSubcommands = ["check", "send"];
   const subcommand = interaction.options?.getSubcommand();
   if (!subcommand) {
     errors.push("Subcommand is required");
@@ -75,28 +75,28 @@ export function validateBalanceInputs(interaction) {
 }
 
 /**
- * Validates gift subcommand inputs
+ * Validates send subcommand inputs
  * @param {Object} interaction - Discord interaction object
  * @returns {Object} Validation result
  */
-export function validateGiftInputs(interaction) {
+export function validateSendInputs(interaction) {
   const errors = [];
   const senderUser = interaction.user;
   const targetUser = interaction.options?.getUser("user");
-  const amount = interaction.options?.getNumber("amount");
+  const amount = interaction.options?.getNumber("cores");
 
   if (!targetUser) {
     errors.push("Target user is required");
   } else if (targetUser.id === senderUser.id) {
-    errors.push("You cannot gift Cores to yourself");
+    errors.push("You cannot send Cores to yourself");
   } else if (targetUser.bot) {
-    errors.push("You cannot gift Cores to bot accounts");
+    errors.push("You cannot send Cores to bot accounts");
   }
 
   if (amount === undefined || amount === null || isNaN(amount)) {
     errors.push("Valid amount is required");
   } else if (amount < 1) {
-    errors.push("Minimum gift amount is 1 Core");
+    errors.push("Minimum amount is 1 Core");
   }
 
   return {
@@ -173,7 +173,7 @@ export function createValidationErrorEmbed(errors, client) {
     ],
     timestamp: new Date().toISOString(),
     footer: {
-      text: "Core Command • Input Validation",
+      text: "Balance Command • Input Validation",
       icon_url: client.user.displayAvatarURL(),
     },
   };

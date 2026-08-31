@@ -105,6 +105,7 @@ export async function apiPricing(req, res) {
           requestedUserId,
           isFirstPurchase: !hasPayments,
           currentCredits: Math.round((userData?.credits || 0) * 100) / 100,
+          sparks: Math.round((userData?.sparks || 0) * 100) / 100,
           eligibleForFirstPurchaseBonus: !hasPayments,
           hasActivePro,
         };

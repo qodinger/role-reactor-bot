@@ -79,7 +79,7 @@ vi.mock("src/utils/storage/storageManager.js", () => ({
 }));
 
 // Mock Core utils to prevent MongoDB connections
-vi.mock("src/commands/general/core/utils.js", () => ({
+vi.mock("src/commands/general/balance/utils.js", () => ({
   getUserCorePriority: vi.fn().mockResolvedValue({
     hasCore: false,
     tier: null,

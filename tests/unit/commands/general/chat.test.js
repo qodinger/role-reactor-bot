@@ -48,7 +48,7 @@ vi.mock("src/utils/ai/aiCreditManager.js", () => ({
   deductAICredits: vi.fn().mockResolvedValue({ success: true }),
 }));
 
-vi.mock("src/commands/general/core/utils.js", () => ({
+vi.mock("src/commands/general/balance/utils.js", () => ({
   getUserData: vi.fn().mockResolvedValue({ credits: 5, userId: "user123" }),
 }));
 

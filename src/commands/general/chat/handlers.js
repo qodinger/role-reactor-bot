@@ -3,7 +3,7 @@ import { getLogger } from "../../../utils/logger.js";
 import { chatService } from "../../../utils/ai/chatService.js";
 import { THEME, EMOJIS } from "../../../config/theme.js";
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";
-import { getUserData } from "../../general/core/utils.js";
+import { getUserData } from "../../general/balance/utils.js";
 import {
   checkAICredits,
   getAICreditInfo,

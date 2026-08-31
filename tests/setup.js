@@ -8,9 +8,13 @@ import { vi } from "vitest";
 // vi.spyOn(console, 'log').mockImplementation(() => {});
 
 // Polyfill WebCrypto for Node 18 in Vitest's sandboxed environment
-if (!globalThis.crypto) {
+if (!globalThis.crypto?.getRandomValues) {
   const { webcrypto } = await import("node:crypto");
-  globalThis.crypto = webcrypto;
+  if (!globalThis.crypto) {
+    globalThis.crypto = webcrypto;
+  } else if (!globalThis.crypto.getRandomValues) {
+    globalThis.crypto.getRandomValues = webcrypto.getRandomValues.bind(webcrypto);
+  }
 }
 
 process.env.NODE_ENV = "test";

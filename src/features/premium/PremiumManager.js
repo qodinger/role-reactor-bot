@@ -577,6 +577,42 @@ export class PremiumManager {
     now,
     counts,
   ) {
+    // 1. Check if Guild Core Vault can cover renewal
+    let vaultRenewed = false;
+    if (db.guildSettings && typeof db.guildSettings.getVaultData === "function") {
+      const vaultData = await db.guildSettings.getVaultData(guildId);
+      if (vaultData.balance >= feature.cost) {
+        const deductRes = await db.guildSettings.deductVaultCores(guildId, feature.cost);
+        if (deductRes.success) {
+          vaultRenewed = true;
+        }
+      }
+    }
+
+    if (vaultRenewed) {
+      const nextDate = new Date(sub.nextDeductionDate);
+      nextDate.setDate(nextDate.getDate() + feature.periodDays);
+
+      sub.lastDeductionDate = now;
+      sub.nextDeductionDate = nextDate;
+      sub.cost = feature.cost;
+      await db.guildSettings.set(guildId, settings);
+
+      await this._logTransaction(db, {
+        guildId,
+        userId: sub.payerUserId || "vault",
+        featureId,
+        featureName: feature.name,
+        type: "vault_renewal",
+        amount: -feature.cost,
+      });
+
+      counts.renewed++;
+      logger.info(`✅ Renewed feature ${featureId} for guild ${guildId} using Guild Core Vault`);
+      return;
+    }
+
+    // 2. Fallback to individual payer balance
     const credits = await db.coreCredits.getByUserId(sub.payerUserId);
     const balance = Math.round((credits?.credits || 0) * 100) / 100;
 
@@ -631,6 +667,83 @@ export class PremiumManager {
         });
         counts.disabled++;
       }
+    }
+  }
+
+  /**
+   * Deposit Cores from a user's personal balance into a Guild's Core Vault
+   * Available to ALL community members.
+   * @param {string} guildId - Discord guild ID
+   * @param {string} userId - User ID depositing Cores
+   * @param {number} amount - Number of Cores to deposit
+   * @param {string} [username] - Depositor username
+   * @returns {Promise<{success: boolean, message: string, newVaultBalance?: number}>}
+   */
+  async depositToGuildVault(guildId, userId, amount, username = "Anonymous") {
+    const roundedAmount = Math.round(amount * 100) / 100;
+    if (roundedAmount <= 0) {
+      return { success: false, message: "Deposit amount must be greater than 0 Cores." };
+    }
+
+    try {
+      const storage = await getStorageManager();
+      if (!storage.dbManager) {
+        return { success: false, message: "Database connection required." };
+      }
+      const db = storage.dbManager;
+
+      // Check user balance
+      const creditData = await db.coreCredits.getByUserId(userId);
+      const balance = Math.round((creditData?.credits || 0) * 100) / 100;
+      if (balance < roundedAmount) {
+        return {
+          success: false,
+          message: `Insufficient Cores. You have **${balance.toFixed(2)} Cores**, but tried to deposit **${roundedAmount.toFixed(2)} Cores**.`,
+        };
+      }
+
+      // Deduct from user
+      const deducted = await db.coreCredits.updateCredits(userId, -roundedAmount);
+      if (!deducted) {
+        return { success: false, message: "Failed to deduct Cores from your balance." };
+      }
+
+      // Deposit into Guild Vault
+      const depositRes = await db.guildSettings.depositVaultCores(
+        guildId,
+        userId,
+        roundedAmount,
+        username,
+      );
+
+      if (!depositRes.success) {
+        // Rollback user credits if vault deposit fails
+        await db.coreCredits.updateCredits(userId, roundedAmount);
+        return { success: false, message: "Failed to update Guild Core Vault." };
+      }
+
+      // Log transaction
+      await this._logTransaction(db, {
+        guildId,
+        userId,
+        featureId: "pro_engine",
+        featureName: "Guild Core Vault Deposit",
+        type: "vault_deposit",
+        amount: -roundedAmount,
+      });
+
+      logger.info(
+        `🏛️ Guild Vault deposit: ${username} (${userId}) deposited ${roundedAmount} Cores to guild ${guildId}. New Vault Balance: ${depositRes.newBalance}`,
+      );
+
+      return {
+        success: true,
+        message: `Successfully deposited **${roundedAmount.toFixed(2)} Cores** into the Guild Core Vault!`,
+        newVaultBalance: depositRes.newBalance,
+      };
+    } catch (error) {
+      logger.error(`Failed to deposit to Guild Vault for guild ${guildId}:`, error);
+      return { success: false, message: "An internal error occurred." };
     }
   }
 

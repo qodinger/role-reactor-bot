@@ -1,5 +1,6 @@
 // Enhanced theme configuration for improved UX/UI
 import { ButtonStyle } from "discord.js";
+import { emojiConfig } from "./emojis.js";
 
 export const THEME = {
   // Primary brand colors (softened)
@@ -152,6 +153,31 @@ export const EMOJIS = {
     ERROR: "❌",
     WARNING: "⚠️",
     INFO: "ℹ️",
+  },
+
+  // Economy & Currency
+  CURRENCY: {
+    get CORE() {
+      return emojiConfig.core;
+    },
+    get SPARK() {
+      return emojiConfig.spark;
+    },
+    VAULT: "🏛️",
+    FUEL: "⛽",
+    TRANSFER: "📤",
+    BURN: "🔥",
+  },
+
+  // Engine System
+  ENGINE: {
+    ACTIVE: "⚡",
+    FREE: "⚙️",
+    VAULT: "🏛️",
+    FUEL: "⛽",
+    CONFIRM: "⛽",
+    SUCCESS: "🚀",
+    CANCEL: "✖️",
   },
 
   // Command categories

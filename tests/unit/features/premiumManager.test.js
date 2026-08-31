@@ -840,4 +840,67 @@ describe("PremiumManager", () => {
       ).resolves.toBeUndefined();
     });
   });
+
+  describe("Guild Core Vault (Multi-Payer Fueling)", () => {
+    it("depositToGuildVault deducts Cores from user and deposits to vault", async () => {
+      db.coreCredits.getByUserId.mockResolvedValue({ credits: 50 });
+      db.coreCredits.updateCredits.mockResolvedValue(true);
+      db.guildSettings.depositVaultCores = vi.fn().mockResolvedValue({
+        success: true,
+        newBalance: 20,
+      });
+
+      const res = await pm.depositToGuildVault("g1", "u1", 20, "Alex");
+
+      expect(res.success).toBe(true);
+      expect(res.newVaultBalance).toBe(20);
+      expect(db.coreCredits.updateCredits).toHaveBeenCalledWith("u1", -20);
+      expect(db.guildSettings.depositVaultCores).toHaveBeenCalledWith("g1", "u1", 20, "Alex");
+    });
+
+    it("depositToGuildVault fails if user balance is insufficient", async () => {
+      db.coreCredits.getByUserId.mockResolvedValue({ credits: 5 });
+
+      const res = await pm.depositToGuildVault("g1", "u1", 20, "Alex");
+
+      expect(res.success).toBe(false);
+      expect(res.message).toContain("Insufficient Cores");
+      expect(db.coreCredits.updateCredits).not.toHaveBeenCalled();
+    });
+
+    it("processRenewals uses Vault balance before user balance if available", async () => {
+      const pastDate = new Date();
+      pastDate.setDate(pastDate.getDate() - 1);
+
+      db.guildSettings.collection = {
+        find: vi.fn().mockReturnValue({
+          toArray: vi.fn().mockResolvedValue([
+            {
+              guildId: "g1",
+              premiumFeatures: {
+                pro_engine: {
+                  active: true,
+                  payerUserId: "u1",
+                  nextDeductionDate: pastDate,
+                  cost: 20,
+                  period: "week",
+                },
+              },
+            },
+          ]),
+        }),
+      };
+
+      db.guildSettings.getVaultData = vi.fn().mockResolvedValue({ balance: 40, history: [] });
+      db.guildSettings.deductVaultCores = vi.fn().mockResolvedValue({ success: true, newBalance: 20 });
+      db.guildSettings.set = vi.fn().mockResolvedValue(true);
+
+      await pm.processRenewals();
+
+      expect(db.guildSettings.deductVaultCores).toHaveBeenCalledWith("g1", 20);
+      // User's personal balance should NOT be charged when Vault covers it
+      expect(db.coreCredits.updateCredits).not.toHaveBeenCalled();
+    });
+  });
 });
+

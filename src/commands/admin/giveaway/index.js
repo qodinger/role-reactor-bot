@@ -8,6 +8,7 @@ import {
   PermissionFlagsBits,
   MessageFlags,
 } from "discord.js";
+import { FREE_TIER, PRO_TIER } from "../../../features/premium/config.js";
 import {
   handleCreate,
   handleList,
@@ -63,7 +64,7 @@ export const metadata = {
     {
       name: `Tier Limitations`,
       value:
-        "Free Tier safely supports up to **2,500 active entries**, **5 simultaneous Winners**, and **3 Active Giveaways**. Upgrade to Pro Engine to safely host massive server events supporting **50,000 Entries** and up to **20 simultaneous Winners** with automatic DMs!",
+        `Free Tier safely supports up to **${FREE_TIER.GIVEAWAY_MAX_ENTRIES.toLocaleString()} active entries**, **${FREE_TIER.GIVEAWAY_MAX_WINNERS} simultaneous Winners**, and **${FREE_TIER.GIVEAWAY_MAX_ACTIVE} Active Giveaways**. Upgrade to Pro Engine to safely host massive server events supporting **${PRO_TIER.GIVEAWAY_MAX_ENTRIES.toLocaleString()} Entries** and up to **${PRO_TIER.GIVEAWAY_MAX_WINNERS} simultaneous Winners** with automatic DMs!`,
       inline: false,
     },
   ],

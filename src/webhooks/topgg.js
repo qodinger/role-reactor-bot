@@ -248,19 +248,43 @@ async function processVote(vote, client) {
     }
   }
 
-  // Reward user with 5 Sparks per vote
-  const REWARD_AMOUNT = 5;
+  // Calculate Vote Streak (36h grace window to maintain streak)
+  const STREAK_WINDOW_MS = 36 * 60 * 60 * 1000;
+  let voteStreak = 1;
+  if (userCredits && userCredits.lastVote) {
+    const timeSinceLastVote = Date.now() - userCredits.lastVote;
+    if (timeSinceLastVote <= STREAK_WINDOW_MS) {
+      voteStreak = (userCredits.voteStreak || 1) + 1;
+    } else {
+      voteStreak = 1; // Expired, reset
+    }
+  }
 
-  // Credit 5 Sparks for voting
+  // Tightly balanced reward scaling (Hard Cap at 8 Sparks max):
+  // Streak 1-2: 5 Sparks
+  // Streak 3-6: 6 Sparks
+  // Streak 7-13: 7 Sparks
+  // Streak 14+: 8 Sparks (Max Cap)
+  let REWARD_AMOUNT = 5;
+  if (voteStreak >= 14) {
+    REWARD_AMOUNT = 8;
+  } else if (voteStreak >= 7) {
+    REWARD_AMOUNT = 7;
+  } else if (voteStreak >= 3) {
+    REWARD_AMOUNT = 6;
+  }
+
+  // Credit Sparks for voting
   await dbManager.coreCredits.updateSparks(userId, REWARD_AMOUNT);
 
-  // Update vote metadata separately
+  // Update vote metadata and streak
   await dbManager.coreCredits.collection.updateOne(
     { userId },
     {
       $set: {
         lastVote: Date.now(),
         totalVotes: (userCredits?.totalVotes || 0) + 1,
+        voteStreak: voteStreak,
       },
     },
     { upsert: true },
@@ -282,6 +306,7 @@ async function processVote(vote, client) {
         metadata: {
           username: username || null,
           totalVotes: (userCredits?.totalVotes || 0) + 1,
+          voteStreak: voteStreak,
         },
       });
     } catch (txError) {
@@ -292,7 +317,7 @@ async function processVote(vote, client) {
   }
 
   logger.info(
-    `✅ top.gg: Rewarded ${userId} with ${REWARD_AMOUNT} Sparks ⚡ (Total votes: ${(userCredits?.totalVotes || 0) + 1})`,
+    `✅ top.gg: Rewarded ${userId} with ${REWARD_AMOUNT} Sparks ⚡ (Streak: ${voteStreak}, Total votes: ${(userCredits?.totalVotes || 0) + 1})`,
   );
 
   // Create in-app notification
@@ -323,11 +348,9 @@ async function processVote(vote, client) {
       const discordUser = await discordClient.users.fetch(userId);
 
       const { EmbedBuilder } = await import("discord.js");
-      const { emojiConfig } = await import("../config/emojis.js");
       const { getMentionableCommand } = await import(
         "../utils/commandUtils.js"
       );
-      const { customEmojis } = emojiConfig;
 
       const thankYouEmbed = new EmbedBuilder()
         .setTitle("🎉 Thanks for Voting!")
@@ -338,7 +361,7 @@ async function processVote(vote, client) {
         .addFields(
           {
             name: "🎁 Reward",
-            value: `✅ **⚡ ${REWARD_AMOUNT} Sparks** added to your balance!`,
+            value: `✅ **⚡ ${REWARD_AMOUNT} Sparks** added! *(Vote Streak: ${voteStreak} 🔥)*`,
             inline: false,
           },
           {
@@ -348,7 +371,7 @@ async function processVote(vote, client) {
           },
           {
             name: "💡 Check Your Balance",
-            value: `Use ${getMentionableCommand(discordClient, "core")} to check your Cores 🔮 & Sparks ⚡ balance!`,
+            value: `Use ${getMentionableCommand(discordClient, "balance")} to check your Cores 🔮 & Sparks ⚡ balance!`,
             inline: false,
           },
         )
@@ -418,6 +441,12 @@ export async function getVoteStatus(userId) {
     const totalVotes = userCredits?.totalVotes || 0;
     const lastVote = userCredits?.lastVote ?? null;
 
+    const STREAK_WINDOW_MS = 36 * 60 * 60 * 1000;
+    const isStreakActive = userCredits?.lastVote
+      ? Date.now() - userCredits.lastVote <= STREAK_WINDOW_MS
+      : false;
+    const voteStreak = isStreakActive ? (userCredits?.voteStreak || 0) : 0;
+
     // top.gg API is authoritative for whether the user has voted in the 12h window
     if (topggVoted !== null) {
       const hasVoted = topggVoted;
@@ -433,6 +462,7 @@ export async function getVoteStatus(userId) {
         lastVote: lastVote ? new Date(lastVote) : null,
         nextVote,
         totalVotes,
+        voteStreak,
       };
     }
 
@@ -444,6 +474,7 @@ export async function getVoteStatus(userId) {
         lastVote: null,
         nextVote: null,
         totalVotes,
+        voteStreak: 0,
       };
     }
 
@@ -457,6 +488,7 @@ export async function getVoteStatus(userId) {
       lastVote: new Date(lastVote),
       nextVote,
       totalVotes,
+      voteStreak,
     };
   } catch (error) {
     logger.error("Error getting vote status:", error);

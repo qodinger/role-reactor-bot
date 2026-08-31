@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import { validateGiftInputs } from "../../../src/commands/general/core/validation.js";
+import { describe, it, expect } from "vitest";
+import { validateSendInputs } from "../../../src/commands/general/balance/validation.js";
 
-describe("core gift Command Validation & Tax Logic", () => {
-  describe("validateGiftInputs", () => {
-    it("blocks self-gifting", () => {
+describe("core send Command Validation & Tax Logic", () => {
+  describe("validateSendInputs", () => {
+    it("blocks self-sending", () => {
       const mockInteraction = {
         user: { id: "user_123" },
         options: {
@@ -12,12 +12,12 @@ describe("core gift Command Validation & Tax Logic", () => {
         },
       };
 
-      const result = validateGiftInputs(mockInteraction);
+      const result = validateSendInputs(mockInteraction);
       expect(result.valid).toBe(false);
-      expect(result.errors).toContain("You cannot gift Cores to yourself");
+      expect(result.errors).toContain("You cannot send Cores to yourself");
     });
 
-    it("blocks gifting to bot accounts", () => {
+    it("blocks sending to bot accounts", () => {
       const mockInteraction = {
         user: { id: "user_123" },
         options: {
@@ -26,9 +26,9 @@ describe("core gift Command Validation & Tax Logic", () => {
         },
       };
 
-      const result = validateGiftInputs(mockInteraction);
+      const result = validateSendInputs(mockInteraction);
       expect(result.valid).toBe(false);
-      expect(result.errors).toContain("You cannot gift Cores to bot accounts");
+      expect(result.errors).toContain("You cannot send Cores to bot accounts");
     });
 
     it("blocks amounts less than 1 Core", () => {
@@ -40,12 +40,12 @@ describe("core gift Command Validation & Tax Logic", () => {
         },
       };
 
-      const result = validateGiftInputs(mockInteraction);
+      const result = validateSendInputs(mockInteraction);
       expect(result.valid).toBe(false);
-      expect(result.errors).toContain("Minimum gift amount is 1 Core");
+      expect(result.errors).toContain("Minimum amount is 1 Core");
     });
 
-    it("validates successful gift inputs", () => {
+    it("validates successful send inputs", () => {
       const mockInteraction = {
         user: { id: "user_123" },
         options: {
@@ -54,7 +54,7 @@ describe("core gift Command Validation & Tax Logic", () => {
         },
       };
 
-      const result = validateGiftInputs(mockInteraction);
+      const result = validateSendInputs(mockInteraction);
       expect(result.valid).toBe(true);
       expect(result.data.amount).toBe(20);
     });

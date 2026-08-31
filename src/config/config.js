@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 import { getAIFeatureCosts, getAvatarContentFilter } from "./ai.js";
 import { WEBSITE_URL, API_URL } from "./domains.js";
+import { validateEnv } from "./envSchema.js";
 
 // Load environment variables
 dotenv.config();
@@ -19,6 +20,18 @@ class Config {
     // Don't validate on construction - allow lazy validation
     // This allows the config to be imported even if env vars aren't set yet
     this._validated = false;
+    this._env = null;
+  }
+
+  /**
+   * Get validated environment (lazy, cached after first call)
+   * @returns {ReturnType<typeof validateEnv>}
+   */
+  get env() {
+    if (!this._env) {
+      this._env = validateEnv();
+    }
+    return this._env;
   }
 
   /**
@@ -50,14 +63,7 @@ class Config {
    * @throws {Error} If required environment variables are missing
    */
   validateRequiredEnvVars() {
-    const requiredVars = ["DISCORD_TOKEN", "DISCORD_CLIENT_ID"];
-    const missingVars = requiredVars.filter(varName => !process.env[varName]);
-
-    if (missingVars.length > 0) {
-      throw new Error(
-        `Missing required environment variables: ${missingVars.join(", ")}`,
-      );
-    }
+    void this.env; // triggers zod validation (throws if required vars missing)
 
     // Secondary validation for payments in production
     if (this.isProduction && !process.env.PLISIO_SECRET_KEY) {

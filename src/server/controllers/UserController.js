@@ -396,9 +396,9 @@ export async function apiManageUserCores(req, res) {
 
   logRequest(logger, `Manage cores for ${userId}: ${action} ${amount}`, req);
 
-  if (!userId || !action || amount === undefined) {
+  if (!userId || typeof userId !== "string" || !action || amount === undefined) {
     const { statusCode, response } = createErrorResponse(
-      "Missing required fields: userId, action, amount",
+      "Missing or invalid required fields: userId, action, amount",
       400,
     );
     return res.status(statusCode).json(response);

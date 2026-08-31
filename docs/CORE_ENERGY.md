@@ -57,14 +57,14 @@ When **one person** fuels the Pro Engine, **everyone** in the server wins. The f
 
 | Feature                | Free Tier         | Pro Engine ✨                 |
 | :--------------------- | :---------------- | :---------------------------- |
-| **Giveaway Entries**   | 2,500             | **50,000**                    |
-| **Giveaway Winners**   | 5                 | **20**                        |
-| **Scheduled Roles**    | 25 active slots   | **500 active slots**          |
+| **Giveaway Entries**   | 2,500             | **10,000**                    |
+| **Giveaway Winners**   | 5                 | **10**                        |
+| **Scheduled Roles**    | 25 active slots   | **100 active slots**          |
 | **Ticket Panels**      | 3 panels          | **10 panels**                 |
-| **Ticket Capacity**    | 50 monthly        | **500 monthly**               |
+| **Ticket Capacity**    | 50 monthly        | **250 monthly**               |
 | **Transcript Type**    | Markdown          | **Rich HTML Layout**          |
 | **Transcript Storage** | 30 Days           | **Unlimited**                 |
-| **Bulk Actions**       | 25 users          | **250 users**                 |
+| **Bulk Actions**       | 25 users          | **100 users**                 |
 | **Level Rewards**      | 5 (Stack)         | **Unlimited (Replace/Stack)** |
 | **Role Reaction Menus**| 5                 | **15**                        |
 | **Role Reaction Emojis**| 10               | **20**                        |

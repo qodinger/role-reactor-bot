@@ -99,7 +99,7 @@ export async function handleAssign(interaction, client, deferred) {
         description: `This server has reached the maximum of **${maxActiveSchedules} active temporary/scheduled roles**.`,
         solution: isPro
           ? "Please wait for existing roles to expire or cancel them before assigning new ones."
-          : `Upgrade to **${CORE_STATUS.PRO.emoji} Pro Engine** for up to 500 active slots! Enable it on our **[website](${WEBSITE_URL})** using Cores. You can purchase Cores on the site or earn them for free with /vote.`,
+          : `Upgrade to **${CORE_STATUS.PRO.emoji} Pro Engine** for up to ${PRO_TIER.SCHEDULE_MAX_ACTIVE} active slots! Enable it on our **[website](${WEBSITE_URL})** using Cores. You can purchase Cores on the site or earn them for free with /vote.`,
       });
 
       return deferred

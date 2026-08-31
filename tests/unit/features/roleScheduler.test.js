@@ -26,7 +26,7 @@ vi.mock("../../../src/features/scheduledRoles/RoleExecutor.js", () => ({
   getRoleExecutor: vi.fn(),
 }));
 
-vi.mock("../../../src/commands/general/core/utils.js", () => ({
+vi.mock("../../../src/commands/general/balance/utils.js", () => ({
   getUsersCorePriority: vi.fn().mockResolvedValue({ hasCore: false, maxTier: null, priority: 0 }),
   sortByCorePriority: vi.fn(),
   logPriorityDistribution: vi.fn(),

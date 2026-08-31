@@ -13,7 +13,6 @@ import {
 } from "discord.js";
 import { getVoteStatus } from "../../../webhooks/topgg.js";
 import config from "../../../config/config.js";
-import { emojiConfig } from "../../../config/emojis.js";
 import { THEME, UI_COMPONENTS } from "../../../config/theme.js";
 
 // ============================================================================
@@ -45,9 +44,9 @@ export const metadata = {
       inline: false,
     },
     {
-      name: "Rewards",
+      name: "Rewards & Streaks",
       value:
-        "• **+5 Sparks ⚡** per vote\n• Vote once every 12 hours\n• Use Sparks ⚡ for free AI tools & rewards",
+        "• **Base Vote:** +5 Sparks ⚡\n• **3-Vote Streak:** +6 Sparks ⚡\n• **7-Vote Streak:** +7 Sparks ⚡\n• **14+ Streak (Max):** +8 Sparks ⚡ 🔥\n• Vote once every 12 hours (36h grace period)",
       inline: false,
     },
   ],
@@ -88,10 +87,21 @@ export async function execute(interaction) {
       cooldownText = "✅ **Ready to vote!**";
     }
 
+    const streak = voteStatus.voteStreak || 0;
+    let nextReward = 5;
+    if (streak >= 13) nextReward = 8;
+    else if (streak >= 6) nextReward = 7;
+    else if (streak >= 2) nextReward = 6;
+
     const fields = [
       {
-        name: "🎁 Vote Reward",
-        value: `⚡ **5 Sparks** per vote`,
+        name: "🎁 Next Vote Reward",
+        value: `⚡ **+${nextReward} Sparks**`,
+        inline: true,
+      },
+      {
+        name: "🔥 Vote Streak",
+        value: streak > 0 ? `**${streak} Votes**` : "No Active Streak",
         inline: true,
       },
       {
@@ -101,7 +111,6 @@ export async function execute(interaction) {
       },
     ];
 
-    // If they have voted at least once, show their total votes
     if (voteStatus.totalVotes > 0) {
       fields.push({
         name: "📈 Your Total Votes",
@@ -111,24 +120,37 @@ export async function execute(interaction) {
     }
 
     fields.push({
-      name: "💡 How It Works",
+      name: "💡 Streak Bonuses & How It Works",
       value:
+        "• **Day 1-2:** +5 Sparks ⚡ per vote\n" +
+        "• **3-Vote Streak:** +6 Sparks ⚡ per vote\n" +
+        "• **7-Vote Streak:** +7 Sparks ⚡ per vote\n" +
+        "• **14+ Streak (Max):** +8 Sparks ⚡ per vote\n\n" +
         "1. Click the button below to visit top.gg\n" +
-        "2. Log in with your Discord account\n" +
-        "3. Click the shiny **Vote** button\n" +
-        "4. You'll automatically receive **+5 Sparks ⚡**\n" +
-        "5. Come back in 12 hours to do it again!",
+        "2. Log in and click **Vote**\n" +
+        "3. Your Sparks ⚡ and Streak 🔥 update automatically!",
       inline: false,
     });
 
     const embed = new EmbedBuilder()
       .setTitle("🗳️ Vote for Role Reactor!")
       .setColor(THEME.PRIMARY)
+      .setAuthor(
+        UI_COMPONENTS.createAuthor(
+          interaction.user.username,
+          interaction.user.displayAvatarURL(),
+        ),
+      )
       .setDescription(
         `Support the bot by voting on top.gg! Every vote helps us grow and directly rewards you.`,
       )
       .addFields(fields)
-      .setFooter(UI_COMPONENTS.createFooter("Vote"))
+      .setFooter(
+        UI_COMPONENTS.createFooter(
+          "Daily Voting Rewards",
+          interaction.client?.user?.displayAvatarURL(),
+        ),
+      )
       .setTimestamp();
 
     const buttonRow = /** @type {any} */ (
