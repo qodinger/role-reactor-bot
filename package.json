@@ -1,8 +1,8 @@
 {
   "type": "module",
-  "name": "role-reactor-bot",
+  "name": "bot",
   "version": "1.8.0",
-  "description": "A powerful Discord bot that helps you manage your server with role management, AI features, moderation tools, and community engagement features. Perfect for communities of all sizes.",
+  "description": "Discord bot for server management with role assignment, AI image generation, and community engagement features.",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
@@ -34,16 +34,6 @@
     "pm2:status": "pm2 status",
     "pm2:monit": "pm2 monit"
   },
-  "keywords": [
-    "discord",
-    "bot",
-    "discord-js",
-    "role-management",
-    "ai",
-    "automation",
-    "server-management",
-    "moderation"
-  ],
   "author": {
     "name": "tyecode",
     "email": "sengphachanh.dev@gmail.com",
@@ -52,12 +42,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/rolereactor/role-reactor-bot.git"
+    "url": "https://github.com/rolereactor/bot.git"
   },
   "bugs": {
-    "url": "https://github.com/rolereactor/role-reactor-bot/issues"
+    "url": "https://github.com/rolereactor/bot/issues"
   },
-  "homepage": "https://github.com/rolereactor/role-reactor-bot#readme",
+  "homepage": "https://rolereactor.xyz",
   "engines": {
     "node": ">=22.0.0",
     "pnpm": ">=9.9.0"

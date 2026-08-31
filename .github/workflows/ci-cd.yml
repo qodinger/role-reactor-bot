@@ -138,4 +138,4 @@ jobs:
       - name: Image info
         run: |
           echo "Built image: ${{ steps.meta.outputs.tags }}"
-          echo "Docker build complete. Pull image with: docker pull qodinger/role-reactor-bot:dev"
+          echo "Docker build complete. Pull image with: docker pull qodinger/bot:dev"

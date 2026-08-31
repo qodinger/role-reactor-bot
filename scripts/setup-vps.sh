@@ -103,7 +103,7 @@ setup() {
     # Clone or update repository
     if [ ! -d "$APP_DIR/.git" ]; then
         info "Cloning repository..."
-        git clone https://github.com/rolereactor/role-reactor-bot.git "$APP_DIR"
+        git clone https://github.com/rolereactor/bot.git "$APP_DIR"
     else
         info "Repository exists, pulling latest..."
         cd "$APP_DIR" && git pull origin main
