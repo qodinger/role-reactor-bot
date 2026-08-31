@@ -7,7 +7,7 @@ const fetch = globalThis.fetch;
 
 /**
  * RunPod Serverless Provider
- * Uses RunPod Serverless API for ComfyUI image generation
+ * Uses RunPod Serverless API for image generation
  * API Docs: https://docs.runpod.io/serverless/endpoints/send-requests
  */
 export class RunPodServerlessProvider {
@@ -35,7 +35,7 @@ export class RunPodServerlessProvider {
   }
 
   /**
-   * Build ComfyUI workflow JSON
+   * Build workflow JSON
    * Uses the universal 2-stage workflow (base + refine)
    */
   buildWorkflow(
@@ -149,7 +149,7 @@ export class RunPodServerlessProvider {
    */
   async submitJob(workflow, progressCallback = null) {
     if (progressCallback) {
-      progressCallback(AI_STATUS_MESSAGES.COMFYUI_SENDING);
+      progressCallback(AI_STATUS_MESSAGES.RUNPOD_SENDING);
     }
 
     try {
@@ -161,7 +161,7 @@ export class RunPodServerlessProvider {
         );
       }
 
-      // RunPod Worker ComfyUI expects just the workflow object directly
+      // RunPod Worker expects just the workflow object directly
       const response = await fetch(`${this.apiUrl}/run`, {
         method: "POST",
         headers: {
@@ -209,7 +209,7 @@ export class RunPodServerlessProvider {
     let queueStartTime = null;
 
     if (progressCallback) {
-      progressCallback(AI_STATUS_MESSAGES.COMFYUI_QUEUED);
+      progressCallback(AI_STATUS_MESSAGES.RUNPOD_QUEUED);
     }
 
     while (Date.now() - startTime < maxWaitTime) {
@@ -233,7 +233,7 @@ export class RunPodServerlessProvider {
 
         if (currentStatus === "COMPLETED") {
           if (progressCallback) {
-            progressCallback(AI_STATUS_MESSAGES.COMFYUI_PROCESSING);
+            progressCallback(AI_STATUS_MESSAGES.RUNPOD_PROCESSING);
           }
           return data;
         } else if (currentStatus === "FAILED") {
@@ -291,7 +291,7 @@ export class RunPodServerlessProvider {
         throw new Error("No output in job data");
       }
 
-      // RunPod Worker ComfyUI returns image URL in output.message
+      // RunPod Worker returns image URL in output.message
       if (output.message && typeof output.message === "string") {
         // Check if it's a URL (RunPod Worker format)
         if (
@@ -306,7 +306,7 @@ export class RunPodServerlessProvider {
         }
       }
 
-      // Check for direct image URL (some ComfyUI handlers return this)
+      // Check for direct image URL (some handlers return this)
       if (output.image_url) {
         return output.image_url;
       }

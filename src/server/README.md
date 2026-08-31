@@ -63,7 +63,6 @@ src/server/
 ├── services/
 │   ├── BaseService.js      # Base service class for all API services
 │   ├── ServiceRegistry.js  # Service registry for dynamic discovery
-│   ├── comfyui/            # ComfyUI integration service
 │   ├── payments/           # Payments service
 │   ├── supporters/         # Supporters service
 │   └── example/            # Example service implementation

@@ -5,7 +5,6 @@ class BotContext {
     this.tempRoleScheduler = null;
     this.pollCleanupInterval = null;
     this.giveawayManager = null;
-    this.stopComfyUIRecovery = null;
     this.premiumScheduler = null;
     this.rpsCleanupStop = null;
     this.wyrCleanupStop = null;
@@ -24,9 +23,6 @@ class BotContext {
     }
     if (this.giveawayManager) {
       this.giveawayManager.destroy();
-    }
-    if (this.stopComfyUIRecovery) {
-      this.stopComfyUIRecovery();
     }
     if (this.rpsCleanupStop) {
       this.rpsCleanupStop();

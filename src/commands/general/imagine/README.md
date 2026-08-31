@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `/imagine` command lets developers turn detailed text prompts into AI-generated artwork directly inside Discord. It uses ComfyUI with animagine and anything models for high-quality image generation.
+The `/imagine` command lets developers turn detailed text prompts into AI-generated artwork directly inside Discord. It uses multiple AI providers (Stability AI, RunPod, Civitai) with animagine and anything models for high-quality image generation.
 
 ## File Structure
 
@@ -121,7 +121,7 @@ Both models use optimal settings automatically (animagine: 28 steps, CFG 5.0; an
 
 - Model: `animagine` (best quality)
 - Aspect ratio: `1:1` (square)
-- Provider: ComfyUI with automatic model selection
+- Provider: Auto-select based on availability (Stability AI, RunPod, Civitai)
 
 ## Implementation Notes
 
@@ -134,7 +134,7 @@ Both models use optimal settings automatically (animagine: 28 steps, CFG 5.0; an
 ## Dependencies
 
 - Discord.js
-- ComfyUI provider integration
+- AI provider integration (Stability AI, RunPod, Civitai)
 - Theme configuration for colors and styling
 - Concurrency manager for request queueing
 - Storage manager for generation history

@@ -34,26 +34,6 @@ export const PROVIDER_PROMPTS = {
     `,
   },
 
-  // ComfyUI - Fallback for avatar generation
-  comfyui: {
-    base: dedent`
-      {characterDescription}, masterpiece, best quality, ultra detailed,
-      detailed character design, professional anime art style, clean line art, vibrant colors,
-      expressive eyes, detailed facial features, perfect anatomy, studio quality, sharp focus,
-      professional digital art, detailed shading, soft lighting, beautiful composition
-    `,
-    suffix: ", anime style, manga style, detailed, professional art",
-    negative: dedent`
-      blurry, low quality, distorted, deformed, ugly, low resolution, pixelated, grainy, noisy,
-      bad anatomy, bad proportions, extra limbs, missing limbs, malformed hands, malformed feet,
-      extra fingers, missing fingers, fused fingers, long neck, bad hands, bad feet,
-      multiple heads, multiple faces, double exposure, out of focus, motion blur,
-      watermark, text, signature, jpeg artifacts, compression artifacts,
-      realistic, photorealistic, 3d render, cgi, computer generated, artificial, fake,
-      cartoon, western animation, disney style, pixar style,
-      oversaturated, undersaturated, low contrast, high contrast, dark, too bright, overexposed, underexposed
-    `,
-  },
 };
 
 // Legacy support for backward compatibility
