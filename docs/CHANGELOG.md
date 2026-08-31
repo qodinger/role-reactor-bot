@@ -9,7 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Live Reactor (Twitch Integration)**: Connect your Twitch channel directly to Discord! Broadcast go-live alerts, relay Twitch chat in real-time, set up automated chat timers, create custom stream commands, and run quotes for your community.
+- **Live Reactor (Twitch Integration)**: Connect your Twitch channel to Discord with go-live alerts, real-time chat relay, customizable timers, stream commands, and quote system—perfect for streamers and communities.
+- **Dual-Balance Economy**: Earn **Sparks** ⚡ through voting, referrals, and activity; purchase **Cores** for premium features. Two separate currencies make it clear which rewards are earned vs. purchased.
+- **Core Gifting**: Transfer Cores to members using `/core gift` (a 10% transfer tax applies). Share your premium currency with your community and watch engagement grow.
+- **Referral System**: Invite new members and earn rewards when they join. Grow your server while earning credits—a win-win referral flow.
+
+### Changed
+
+- **Vote Rewards Clarity**: Voting for the bot now explicitly grants **+5 Sparks** (earned currency). Members can see exactly what they get every 12 hours.
+- **Streamlined Balance Tracking**: Core and Sparks balances are now tracked separately and reliably across the dashboard and bot commands.
+
+### Fixed
+
+- **Premium Subscription Reliability**: Fixed issues where subscription status and renewal logic were inconsistent between the web dashboard and Discord commands.
+- **Balance Update Accuracy**: Resolved naming mismatches and missing balance updates so credits appear instantly and correctly when earned or purchased.
 
 ## [1.8.0] - 2026-07-23
 
