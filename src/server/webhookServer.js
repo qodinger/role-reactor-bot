@@ -41,6 +41,7 @@ import logsRouter from "./routes/v1/logs.js";
 import configRouter from "./routes/v1/config.js";
 import healthRouter from "./routes/v1/health.js";
 import transcriptsRouter from "./routes/v1/transcripts.js";
+import ticketsRouter from "./routes/v1/tickets.js";
 import imageToolsRouter from "./routes/v1/imageTools.js";
 import streamRouter from "./routes/v1/stream.js";
 import streamApiRouter from "./routes/v1/streamApi.js";
@@ -262,6 +263,7 @@ function initializeRoutes() {
 
   // Internal guilds endpoints (auth required)
   app.use(`${API_PREFIX}/guilds`, internalAuth, guildsRouter);
+  app.use(`${API_PREFIX}/guilds`, internalAuth, ticketsRouter);
   app.use(`${API_PREFIX}/payments`, internalAuth, paymentsRouter);
   app.use(`${API_PREFIX}/user`, internalAuth, userRouter);
   app.use(`${API_PREFIX}/commands`, internalAuth, commandsRouter);
