@@ -23,6 +23,11 @@ export const AI_STATUS_MESSAGES = {
   // Action processing
   PROCESSING_REQUEST: "🤔 Processing your request...",
 
+  // Agent tool progress (web_search / data fetch flows)
+  SEARCHING_WEB: "🔍 Searching the web...",
+  FETCHING_SERVER_DATA: "📊 Checking server data...",
+  SYNTHESIZING_FINDINGS: "🤔 Putting together what I found...",
+
   // Message thinking (for messageCreate event)
   THINKING_ABOUT_MESSAGE: "Thinking about your message...",
 

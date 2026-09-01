@@ -4,6 +4,7 @@ import {
   TOOL_DEFINITIONS,
   translateToolCallsToActions,
 } from "../toolDefinitions.js";
+import { AI_STATUS_MESSAGES } from "../statusMessages.js";
 import { systemPromptBuilder } from "../systemPromptBuilder.js";
 import { conversationManager } from "../conversationManager.js";
 import { checkAICredits } from "../aiCreditManager.js";
@@ -69,8 +70,28 @@ export async function processActionsAndReQuery(
   let responseSuppressed = false;
   let depth = 0;
 
+  const emitStatus = async text => {
+    if (context.onStatus) {
+      try {
+        await context.onStatus(text);
+      } catch (_e) {
+        // status is best-effort UI feedback — never break the flow
+      }
+    }
+  };
+
   while (currentActions.length > 0 && guild) {
     try {
+      // Show what the tools are about to do (slow web/data steps)
+      const typeSet = new Set(currentActions.map(a => a.type));
+      if (typeSet.has("web_search")) {
+        await emitStatus(AI_STATUS_MESSAGES.SEARCHING_WEB);
+      } else if (
+        ["fetch_channels", "fetch_roles", "fetch_all"].some(t => typeSet.has(t))
+      ) {
+        await emitStatus(AI_STATUS_MESSAGES.FETCHING_SERVER_DATA);
+      }
+
       // Execute actions and collect results (results stay index-aligned with actions)
       const actionResult = await executeStructuredActions(
         currentActions,
@@ -121,6 +142,7 @@ export async function processActionsAndReQuery(
         return { finalResponse: response, responseSuppressed };
       }
       depth++;
+      await emitStatus(AI_STATUS_MESSAGES.SYNTHESIZING_FINDINGS);
 
       // Re-query with updated context; continue looping with any new actions
       const reQueryResult = await executeReQuery(
@@ -240,18 +262,26 @@ export async function executeReQuery(
   // Build follow-up prompt with action results
   let followUpPrompt = await getFollowUpPromptTemplate();
   if (actionResults && actionResults.length > 0) {
-    const errorResults = actionResults.filter(
-      r =>
-        r.startsWith("Error:") ||
-        r.startsWith("Command Error:") ||
-        r.includes("Failed to execute") ||
-        r.includes("Cannot"),
-    );
+    const isError = r =>
+      r.startsWith("Error:") ||
+      r.startsWith("Command Error:") ||
+      r.startsWith("Web search failed") ||
+      r.startsWith("Web search error") ||
+      r.startsWith("Web search blocked") ||
+      r.includes("not configured") ||
+      r.startsWith("No web results") ||
+      r.startsWith("No members found") ||
+      r.startsWith("No selection") ||
+      r.includes("Failed to execute") ||
+      r.includes("Cannot");
+
+    const errorResults = actionResults.filter(isError);
     const successResults = actionResults.filter(
       r =>
-        r.startsWith("Success:") ||
-        r.startsWith("Command Result:") ||
-        (!errorResults.includes(r) && r.includes("successfully")),
+        !errorResults.includes(r) &&
+        (r.startsWith("Success:") ||
+          r.startsWith("Command Result:") ||
+          r.includes("successfully")),
     );
     const dataResults = actionResults.filter(
       r =>
@@ -259,15 +289,30 @@ export async function executeReQuery(
         !successResults.includes(r) &&
         (r.startsWith("Data:") || r.startsWith("Found:")),
     );
+    // Anything the model produced that fits no known prefix (e.g. raw tool
+    // output like "Fetched all channels", or unexpected strings) must still
+    // reach the model — dropping it would make the AI hallucinate the result.
+    const otherResults = actionResults.filter(
+      r =>
+        !errorResults.includes(r) &&
+        !successResults.includes(r) &&
+        !dataResults.includes(r),
+    );
 
     if (errorResults.length > 0) {
-      followUpPrompt += `\n\n**IMPORTANT - Action Results (Errors Occurred):**\n${errorResults.map(r => `- ${r}`).join("\n")}\n\n**You MUST inform the user about these errors.** Explain what went wrong and what data is available (if any).`;
-    } else if (successResults.length > 0) {
+      followUpPrompt += `\n\n**IMPORTANT - Action Results (Errors/Failures Occurred):**\n${errorResults.map(r => `- ${r}`).join("\n")}\n\n**The tool did NOT succeed.** You MUST inform the user honestly about what failed (e.g. web search unavailable/no results). Do NOT fabricate results as if the search worked — answer from what you genuinely know and clearly say you could not verify it live.`;
+    }
+
+    if (successResults.length > 0) {
       followUpPrompt += `\n\n**Action Results (Success):**\n${successResults.map(r => `- ${r}`).join("\n")}\n\n**You can mention this success to the user if relevant.**`;
     }
 
     if (dataResults.length > 0) {
       followUpPrompt += `\n\n**Data Retrieved:**\n${dataResults.map(r => `- ${r}`).join("\n")}\n\n**Incorporate this information cleanly into your answer.**`;
+    }
+
+    if (otherResults.length > 0) {
+      followUpPrompt += `\n\n**Other Action Results:**\n${otherResults.map(r => `- ${r}`).join("\n")}\n\n**Reflect these outcomes accurately in your answer.**`;
     }
   }
 
@@ -321,7 +366,14 @@ export async function executeReQuery(
     logger.warn(
       `Re-query failed or timed out for user ${userId}: ${error.message}`,
     );
-    followUpResult = { text: finalResponse };
+    // Synthesis failed — the initial text may read like an intro promising a
+    // lookup; append an honest footer so the user isn't left with a dangling
+    // "let me search that for you…" and no answer.
+    followUpResult = {
+      text: finalResponse
+        ? `${finalResponse}\n\n_I couldn't finish verifying that live — the above may be out of date._`
+        : "I couldn't complete that — something went wrong while checking. Please try again.",
+    };
   }
 
   // Structured tool_calls path (preferred): return actions for the loop to execute

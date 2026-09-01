@@ -225,6 +225,7 @@ export async function processAIResponse(
     client: options.client,
     user: options.user,
     channel: options.channel,
+    onStatus: options.onStatus,
     userId,
     guildId,
     userMessage,

@@ -281,6 +281,9 @@ export async function execute(message, client) {
             queuePosition = null,
           ) => {
             if (!messageDeleted) {
+              // Refresh the typing indicator on each status change — Discord's
+              // sendTyping expires after ~10s, and multi-step tool flows run longer
+              await message.channel.sendTyping().catch(() => {});
               await updateStatusMessage(status, null, requestId, queuePosition);
             }
           };
