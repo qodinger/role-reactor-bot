@@ -579,6 +579,9 @@ export class ActionExecutor {
         }
       }
 
+      case "reset_chat":
+        return await ActionExecutor.executeResetChat(guild, channel, user);
+
       case "show_component":
         return await ActionExecutor.executeShowComponent(action, channel, user);
 
@@ -607,6 +610,50 @@ export class ActionExecutor {
         logger.warn(`Unknown action type: ${action.type}`);
         return `Unknown action type: ${action.type}`;
       }
+    }
+  }
+
+  /**
+   * Clear the conversation memory for this channel (or the user's DM session).
+   * Guild channels require Manage Messages; DMs always clear the user's own session.
+   * @param {import('discord.js').Guild} guild
+   * @param {import('discord.js').Channel} channel
+   * @param {import('discord.js').User} user
+   * @returns {Promise<string>}
+   */
+  static async executeResetChat(guild, channel, user) {
+    if (!guild) {
+      return "Error: use /chat-reset to clear the conversation in DMs.";
+    }
+    if (!channel) {
+      return "Error: reset_chat requires a channel context";
+    }
+    try {
+      const member =
+        guild.members.cache.get(user?.id) ||
+        (await guild.members.fetch(user.id).catch(() => null));
+      if (!member || !member.permissions.has("ManageMessages")) {
+        return "Error: resetting the conversation requires the Manage Messages permission.";
+      }
+    } catch (_e) {
+      return "Error: could not verify your permissions for this action.";
+    }
+
+    try {
+      const { conversationManager } = await import("./conversationManager.js");
+      const sessionId = `ch_${channel.id}`;
+      await conversationManager.clearHistory(sessionId, null);
+      ActionExecutor.logAuditAction(
+        "reset_chat",
+        { type: "reset_chat" },
+        user,
+        guild,
+        `Conversation cleared for channel ${channel.id}`,
+        true,
+      );
+      return "Success: The conversation history for this channel was cleared.";
+    } catch (error) {
+      return `Error: Failed to reset the conversation: ${error.message}`;
     }
   }
 

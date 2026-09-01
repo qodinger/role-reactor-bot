@@ -62,6 +62,15 @@ export const ACTION_REGISTRY = {
     requiresOptions: false,
     description: "Fetch all server data (members, channels, roles)",
   },
+  reset_chat: {
+    type: "reset_chat",
+    category: ACTION_CATEGORIES.DATA_FETCH,
+    requiresGuild: false,
+    triggersReQuery: true,
+    requiresOptions: false,
+    description:
+      "Clear this channel's conversation memory (requires Manage Messages)",
+  },
 
   // ============================================================================
   // DATA RETRIEVAL ACTIONS (Read-Only, No Re-Query)

@@ -257,6 +257,15 @@ export const TOOL_DEFINITIONS = [
       parameters: { type: "object", properties: {} },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "reset_chat",
+      description:
+        "Clear this channel's conversation memory so the chat starts fresh. ONLY call when the user explicitly asks to start over, forget the conversation, or reset the chat. Do NOT use for other kinds of 'reset' (levels, polls, roles).",
+      parameters: { type: "object", properties: {} },
+    },
+  },
 ];
 
 /**
@@ -300,7 +309,11 @@ export function translateToolCallsToActions(toolCalls) {
       }
 
       // Argument-free actions
-      if (["fetch_channels", "fetch_roles", "fetch_all"].includes(name)) {
+      if (
+        ["fetch_channels", "fetch_roles", "fetch_all", "reset_chat"].includes(
+          name,
+        )
+      ) {
         return { type: name };
       }
 

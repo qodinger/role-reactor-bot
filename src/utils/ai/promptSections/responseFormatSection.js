@@ -45,7 +45,8 @@ async function buildDynamicActionsList(guild, client, permissions = {}) {
     actionsList += `**Server Data Refresh (mods/admins only):**\n`;
     actionsList += `- "fetch_channels" — refresh channel list\n`;
     actionsList += `- "fetch_roles" — refresh role list\n`;
-    actionsList += `- "fetch_all" — refresh all server data\n\n`;
+    actionsList += `- "fetch_all" — refresh all server data\n`;
+    actionsList += `- "reset_chat" — clear this channel's conversation memory (only if the user explicitly asks to start over)\n\n`;
   }
 
   // Command execution
