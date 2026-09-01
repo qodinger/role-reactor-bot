@@ -2,7 +2,7 @@ import { Events } from "discord.js";
 import { getLogger } from "../utils/logger.js";
 import { getExperienceManager } from "../features/experience/ExperienceManager.js";
 import { chatService } from "../utils/ai/index.js";
-import { getUserData } from "../commands/general/core/utils.js";
+import { getUserData } from "../commands/general/balance/utils.js";
 import { checkAICredits } from "../utils/ai/aiCreditManager.js";
 import { EMOJIS } from "../config/theme.js";
 import { AI_STATUS_MESSAGES } from "../utils/ai/statusMessages.js";
@@ -281,6 +281,9 @@ export async function execute(message, client) {
             queuePosition = null,
           ) => {
             if (!messageDeleted) {
+              // Refresh the typing indicator on each status change — Discord's
+              // sendTyping expires after ~10s, and multi-step tool flows run longer
+              await message.channel.sendTyping().catch(() => {});
               await updateStatusMessage(status, null, requestId, queuePosition);
             }
           };

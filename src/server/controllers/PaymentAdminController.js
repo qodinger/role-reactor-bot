@@ -46,6 +46,12 @@ export async function apiPaymentStats(req, res) {
           totalCoresGranted: stats.totalCores,
           uniqueCustomers: stats.uniqueUsers,
         },
+        votes: stats.votes || {
+          totalVotes: 0,
+          totalCoresGranted: 0,
+          uniqueVoters: 0,
+        },
+        byProvider: stats.byProvider || [],
         recentPayments: recentPayments.map(p => ({
           paymentId: p.paymentId,
           discordId: p.discordId,

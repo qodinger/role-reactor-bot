@@ -8,7 +8,7 @@ import { BUTTON_STYLES } from "../../../config/theme.js";
 export async function createSupportButtons() {
   // Load config with fallback
   let links = {
-    support: process.env.SUPPORT_SERVER_URL || "https://discord.gg/example",
+    support: process.env.SUPPORT_SERVER_URL || "",
   };
 
   try {

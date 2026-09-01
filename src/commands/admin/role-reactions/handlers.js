@@ -1,3 +1,4 @@
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
 import {
   errorEmbed,
@@ -251,13 +252,20 @@ export async function handleSetup(interaction, client) {
     );
 
     // Send success response
-    await interaction.editReply(
-      roleCreatedEmbed({
-        messageUrl: message.url,
-        roleCount: validRoles.length,
-        channelId: interaction.channel.id,
-      }),
+    const setupResponse = roleCreatedEmbed({
+      messageUrl: message.url,
+      roleCount: validRoles.length,
+      channelId: interaction.channel.id,
+    });
+    setupResponse.components.push(
+      new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setLabel("Open Dashboard")
+          .setStyle(ButtonStyle.Link)
+          .setURL(`https://rolereactor.xyz/dashboard/${interaction.guild.id}`),
+      ),
     );
+    await interaction.editReply(setupResponse);
 
     logger.debug("Role-reaction setup completed successfully");
   } catch (error) {
@@ -641,14 +649,21 @@ export async function handleUpdate(interaction) {
     const { roleUpdatedEmbed } = await import(
       "../../../utils/discord/responseMessages.js"
     );
-    await interaction.editReply(
-      roleUpdatedEmbed({
-        updates: Object.keys(updates).join(", "),
-        changeCount: Object.keys(updates).length,
-        messageUrl: message.url,
-        channelId: mapping.channelId,
-      }),
+    const updateResponse = roleUpdatedEmbed({
+      updates: Object.keys(updates).join(", "),
+      changeCount: Object.keys(updates).length,
+      messageUrl: message.url,
+      channelId: mapping.channelId,
+    });
+    updateResponse.components.push(
+      new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setLabel("Open Dashboard")
+          .setStyle(ButtonStyle.Link)
+          .setURL(`https://rolereactor.xyz/dashboard/${interaction.guild.id}`),
+      ),
     );
+    await interaction.editReply(updateResponse);
 
     logger.debug("Role-reaction update completed successfully");
   } catch (error) {

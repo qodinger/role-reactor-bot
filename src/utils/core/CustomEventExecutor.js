@@ -125,7 +125,9 @@ async function executeEventActions(actions, context) {
         case "dm": {
           const targetUserId = action.targetUserId ?? user?.id ?? member?.id;
           if (!targetUserId || !client) break;
-          const dmUser = await client.users.fetch(targetUserId).catch(() => null);
+          const dmUser = await client.users
+            .fetch(targetUserId)
+            .catch(() => null);
           if (!dmUser) break;
           const text = await replaceEventVars(action.content ?? "", context);
           await dmUser.send(text).catch(() => {});
@@ -135,8 +137,7 @@ async function executeEventActions(actions, context) {
         case "variable": {
           if (!dbManager?.customVariables || !guild) break;
           const userId = user?.id ?? member?.id ?? null;
-          const targetId =
-            action.scope === "user" ? userId : null;
+          const targetId = action.scope === "user" ? userId : null;
 
           if (action.variableAction === "increment") {
             await dbManager.customVariables.incrementValue(

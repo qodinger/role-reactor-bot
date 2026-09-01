@@ -510,6 +510,7 @@ export class ChatService {
                 user: options.user,
                 channel: options.channel,
                 wantsDetail,
+                onStatus,
               },
               sessionGuildId,
             );

@@ -224,7 +224,9 @@ export async function apiUpdateVariable(req, res) {
 
     await repo.update(guildId, variableId, updateData);
 
-    logger.info(`✅ Custom variable '${existing.name}' updated for guild ${guildId}`);
+    logger.info(
+      `✅ Custom variable '${existing.name}' updated for guild ${guildId}`,
+    );
     res.json(
       createSuccessResponse({
         message: `Variable '${existing.name}' updated successfully`,

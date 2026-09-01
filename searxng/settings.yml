@@ -1,0 +1,18 @@
+use_default_settings: true
+
+server:
+  # This instance is internal-only (docker network, no host port) and is
+  # fronted by the bot's own concurrency/rate controls — the limiter needs
+  # valkey/redis, so it stays off.
+  limiter: false
+  image_proxy: false
+  method: GET
+
+search:
+  # json is required for the bot's /search?format=json API calls
+  formats:
+    - html
+    - json
+
+ui:
+  static_use_hash: true

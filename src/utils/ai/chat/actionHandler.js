@@ -1,5 +1,10 @@
 import { actionExecutor } from "../actionExecutor.js";
 import { actionTriggersReQuery } from "../actionRegistry.js";
+import {
+  TOOL_DEFINITIONS,
+  translateToolCallsToActions,
+} from "../toolDefinitions.js";
+import { AI_STATUS_MESSAGES } from "../statusMessages.js";
 import { systemPromptBuilder } from "../systemPromptBuilder.js";
 import { conversationManager } from "../conversationManager.js";
 import { checkAICredits } from "../aiCreditManager.js";
@@ -60,54 +65,104 @@ export async function processActionsAndReQuery(
   const { guild, client, user, channel, userId, guildId } = context;
   const { addToHistory } = services;
 
-  let actionResults = [];
+  let currentActions = actions;
+  let response = finalResponse;
+  let responseSuppressed = false;
+  let depth = 0;
 
-  if (actions.length === 0 || !guild) {
-    return { finalResponse, responseSuppressed: false };
-  }
+  const emitStatus = async text => {
+    if (context.onStatus) {
+      try {
+        await context.onStatus(text);
+      } catch (_e) {
+        // status is best-effort UI feedback — never break the flow
+      }
+    }
+  };
 
-  try {
-    // Execute actions and collect results
-    const actionResult = await executeStructuredActions(
-      actions,
-      guild,
-      client,
-      user,
-      channel,
-    );
-    actionResults = actionResult.results;
+  while (currentActions.length > 0 && guild) {
+    try {
+      // Show what the tools are about to do (slow web/data steps)
+      const typeSet = new Set(currentActions.map(a => a.type));
+      if (typeSet.has("fetch_page")) {
+        await emitStatus(AI_STATUS_MESSAGES.READING_PAGE);
+      } else if (typeSet.has("web_search")) {
+        await emitStatus(AI_STATUS_MESSAGES.SEARCHING_WEB);
+      } else if (
+        ["fetch_channels", "fetch_roles", "fetch_all"].some(t => typeSet.has(t))
+      ) {
+        await emitStatus(AI_STATUS_MESSAGES.FETCHING_SERVER_DATA);
+      }
 
-    // Check if any actions trigger re-query
-    const fetchActions = actions.filter(a => actionTriggersReQuery(a.type));
+      // Execute actions and collect results (results stay index-aligned with actions)
+      const actionResult = await executeStructuredActions(
+        currentActions,
+        guild,
+        client,
+        user,
+        channel,
+      );
+      const results = actionResult.results;
 
-    if (fetchActions.length > 0) {
-      // Execute re-query with updated context
+      const reQueryActions = [];
+      const reQueryResults = [];
+      const otherActions = [];
+      const otherResults = [];
+      currentActions.forEach((a, i) => {
+        if (actionTriggersReQuery(a.type)) {
+          reQueryActions.push(a);
+          reQueryResults.push(results[i]);
+        } else {
+          otherActions.push(a);
+          otherResults.push(results[i]);
+        }
+      });
+
+      // Process non-re-query actions (commands, read-only data) in this iteration
+      if (otherActions.length > 0) {
+        const sub = await processNonFetchActions(
+          otherActions,
+          otherResults,
+          response,
+          userId,
+          guildId,
+          addToHistory,
+        );
+        response = sub.finalResponse;
+        responseSuppressed = sub.responseSuppressed;
+      }
+
+      if (reQueryActions.length === 0) {
+        return { finalResponse: response, responseSuppressed };
+      }
+
+      // Loop guard: stop re-querying once the configured depth is exhausted
+      if (depth >= MAX_ACTION_LOOP_DEPTH) {
+        logger.warn(
+          `[processActionsAndReQuery] ⚠️ Max action loop depth (${MAX_ACTION_LOOP_DEPTH}) reached; further re-query actions are ignored.`,
+        );
+        return { finalResponse: response, responseSuppressed };
+      }
+      depth++;
+      await emitStatus(AI_STATUS_MESSAGES.SYNTHESIZING_FINDINGS);
+
+      // Re-query with updated context; continue looping with any new actions
       const reQueryResult = await executeReQuery(
-        fetchActions,
-        actionResults,
-        finalResponse,
+        reQueryActions,
+        reQueryResults,
+        response,
         context,
         services,
       );
-      return {
-        finalResponse: reQueryResult.finalResponse,
-        responseSuppressed: false,
-      };
-    } else {
-      // Process non-fetch actions
-      return await processNonFetchActions(
-        actions,
-        actionResults,
-        finalResponse,
-        userId,
-        guildId,
-        addToHistory,
-      );
+      response = reQueryResult.finalResponse;
+      currentActions = reQueryResult.actions || [];
+    } catch (error) {
+      logger.error("Error executing structured actions:", error);
+      return { finalResponse: response, responseSuppressed };
     }
-  } catch (error) {
-    logger.error("Error executing structured actions:", error);
-    return { finalResponse, responseSuppressed: false };
   }
+
+  return { finalResponse: response, responseSuppressed };
 }
 
 /**
@@ -117,7 +172,7 @@ export async function processActionsAndReQuery(
  * @param {string} finalResponse - Current AI response
  * @param {Object} context - Context object
  * @param {Object} services - Services object
- * @returns {Promise<{finalResponse: string}>}
+ * @returns {Promise<{finalResponse: string, actions: Array}>}
  */
 export async function executeReQuery(
   fetchActions,
@@ -177,15 +232,12 @@ export async function executeReQuery(
     guildId,
   );
 
-  // Build messages array with updated context
+  // Build messages array with updated context.
+  // Note: the provider prepends config.systemMessage, so we don't push it here
+  // (previously the system prompt was sent twice, doubling token cost).
   const updatedMessages = [];
   const hasSystemMessage =
     updatedHistory.length > 0 && updatedHistory[0]?.role === "system";
-  updatedMessages.push({
-    role: "system",
-    content: updatedSystemMessage,
-  });
-
   const startIndex = hasSystemMessage ? 1 : 0;
   for (let i = startIndex; i < updatedHistory.length; i++) {
     updatedMessages.push({
@@ -212,18 +264,26 @@ export async function executeReQuery(
   // Build follow-up prompt with action results
   let followUpPrompt = await getFollowUpPromptTemplate();
   if (actionResults && actionResults.length > 0) {
-    const errorResults = actionResults.filter(
-      r =>
-        r.startsWith("Error:") ||
-        r.startsWith("Command Error:") ||
-        r.includes("Failed to execute") ||
-        r.includes("Cannot"),
-    );
+    const isError = r =>
+      r.startsWith("Error:") ||
+      r.startsWith("Command Error:") ||
+      r.startsWith("Web search failed") ||
+      r.startsWith("Web search error") ||
+      r.startsWith("Web search blocked") ||
+      r.includes("not configured") ||
+      r.startsWith("No web results") ||
+      r.startsWith("No members found") ||
+      r.startsWith("No selection") ||
+      r.includes("Failed to execute") ||
+      r.includes("Cannot");
+
+    const errorResults = actionResults.filter(isError);
     const successResults = actionResults.filter(
       r =>
-        r.startsWith("Success:") ||
-        r.startsWith("Command Result:") ||
-        (!errorResults.includes(r) && r.includes("successfully")),
+        !errorResults.includes(r) &&
+        (r.startsWith("Success:") ||
+          r.startsWith("Command Result:") ||
+          r.includes("successfully")),
     );
     const dataResults = actionResults.filter(
       r =>
@@ -231,15 +291,30 @@ export async function executeReQuery(
         !successResults.includes(r) &&
         (r.startsWith("Data:") || r.startsWith("Found:")),
     );
+    // Anything the model produced that fits no known prefix (e.g. raw tool
+    // output like "Fetched all channels", or unexpected strings) must still
+    // reach the model — dropping it would make the AI hallucinate the result.
+    const otherResults = actionResults.filter(
+      r =>
+        !errorResults.includes(r) &&
+        !successResults.includes(r) &&
+        !dataResults.includes(r),
+    );
 
     if (errorResults.length > 0) {
-      followUpPrompt += `\n\n**IMPORTANT - Action Results (Errors Occurred):**\n${errorResults.map(r => `- ${r}`).join("\n")}\n\n**You MUST inform the user about these errors.** Explain what went wrong and what data is available (if any).`;
-    } else if (successResults.length > 0) {
+      followUpPrompt += `\n\n**IMPORTANT - Action Results (Errors/Failures Occurred):**\n${errorResults.map(r => `- ${r}`).join("\n")}\n\n**The tool did NOT succeed.** You MUST inform the user honestly about what failed (e.g. web search unavailable/no results). Do NOT fabricate results as if the search worked — answer from what you genuinely know and clearly say you could not verify it live.`;
+    }
+
+    if (successResults.length > 0) {
       followUpPrompt += `\n\n**Action Results (Success):**\n${successResults.map(r => `- ${r}`).join("\n")}\n\n**You can mention this success to the user if relevant.**`;
     }
 
     if (dataResults.length > 0) {
       followUpPrompt += `\n\n**Data Retrieved:**\n${dataResults.map(r => `- ${r}`).join("\n")}\n\n**Incorporate this information cleanly into your answer.**`;
+    }
+
+    if (otherResults.length > 0) {
+      followUpPrompt += `\n\n**Other Action Results:**\n${otherResults.map(r => `- ${r}`).join("\n")}\n\n**Reflect these outcomes accurately in your answer.**`;
     }
   }
 
@@ -269,6 +344,7 @@ export async function executeReQuery(
       temperature: 0.7,
       maxTokens: reQueryMaxTokens,
       forceJson: true,
+      tools: TOOL_DEFINITIONS,
     },
   });
 
@@ -292,38 +368,44 @@ export async function executeReQuery(
     logger.warn(
       `Re-query failed or timed out for user ${userId}: ${error.message}`,
     );
-    followUpResult = { text: finalResponse };
+    // Synthesis failed — the initial text may read like an intro promising a
+    // lookup; append an honest footer so the user isn't left with a dangling
+    // "let me search that for you…" and no answer.
+    followUpResult = {
+      text: finalResponse
+        ? `${finalResponse}\n\n_I couldn't finish verifying that live — the above may be out of date._`
+        : "I couldn't complete that — something went wrong while checking. Please try again.",
+    };
+  }
+
+  // Structured tool_calls path (preferred): return actions for the loop to execute
+  if (followUpResult?.toolCalls?.length > 0) {
+    logger.debug(
+      `[generateResponse] Re-query returned ${followUpResult.toolCalls.length} tool call(s)`,
+    );
+    return {
+      finalResponse: followUpResult.text || finalResponse,
+      actions: translateToolCallsToActions(followUpResult.toolCalls),
+    };
   }
 
   const followUpResponse =
     followUpResult?.text || followUpResult?.response || finalResponse;
 
-  // Parse follow-up response
+  // Parse follow-up response (legacy JSON path)
   const followUpParsed = parseAIResponse(followUpResponse);
   if (followUpParsed.success) {
-    finalResponse = followUpParsed.message;
-
-    // SAFEGUARD: Check if re-query response contains actions that would trigger another re-query
-    const followUpActions = followUpParsed.actions;
-    const followUpReQueryActions = followUpActions.filter(a =>
-      actionTriggersReQuery(a.type),
-    );
-
-    if (followUpReQueryActions.length > 0) {
-      logger.warn(
-        `[generateResponse] ⚠️ Re-query response contains actions that would trigger another re-query (${followUpReQueryActions.map(a => a.type).join(", ")}). Ignoring to prevent infinite loops. Max depth: ${MAX_ACTION_LOOP_DEPTH}.`,
-      );
-    }
-
     logger.debug(`[generateResponse] Follow-up response generated`);
-  } else {
-    logger.warn(
-      `[generateResponse] Follow-up response parse failed - using raw response`,
-    );
-    finalResponse = followUpResponse;
+    return {
+      finalResponse: followUpParsed.message,
+      actions: followUpParsed.actions || [],
+    };
   }
 
-  return { finalResponse };
+  logger.warn(
+    `[generateResponse] Follow-up response parse failed - using raw response`,
+  );
+  return { finalResponse: followUpResponse, actions: [] };
 }
 
 /**

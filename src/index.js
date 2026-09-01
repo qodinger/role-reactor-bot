@@ -4,20 +4,13 @@ import "../scripts/load-env.js";
 import { Collection } from "discord.js";
 import path from "path";
 import { fileURLToPath } from "url";
+import { getLogger } from "./utils/logger.js";
 import { getStorageManager } from "./utils/storage/storageManager.js";
 import { getPerformanceMonitor } from "./utils/monitoring/performanceMonitor.js";
-
-/**
- * @typedef {import('discord.js').Client & { commands?: Collection<string, any> }} ExtendedClient
- */
-
-import { getLogger } from "./utils/logger.js";
-import { getScheduler as getRoleExpirationScheduler } from "./features/temporaryRoles/RoleExpirationScheduler.js";
 import { getHealthCheckRunner } from "./utils/monitoring/healthCheck.js";
 import { getCommandHandler } from "./utils/core/commandHandler.js";
 import { getBotContext } from "./utils/core/BotContext.js";
 import { getVersion } from "./utils/discord/version.js";
-import { startWebhookServer, setClient } from "./server/index.js";
 import { setupErrorHandlers } from "./init/errorHandlers.js";
 import {
   waitForDockerStartup,
@@ -26,6 +19,7 @@ import {
 import { createClient } from "./init/createClient.js";
 import { loadCommands } from "./init/loadCommands.js";
 import { loadEvents } from "./init/loadEvents.js";
+import { startServices } from "./init/startServices.js";
 import { pricingService } from "./utils/ai/pricingService.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -36,7 +30,7 @@ setupErrorHandlers();
 
 /**
  * Performs a graceful shutdown of the bot
- * @param {ExtendedClient} client
+ * @param {import('discord.js').Client & { commands?: Collection<string, any> }} client
  */
 async function gracefulShutdown(client) {
   const logger = getLogger();
@@ -55,6 +49,10 @@ async function gracefulShutdown(client) {
   }
 }
 
+/**
+ * Validate configuration via zod schema.
+ * Throws if DISCORD_TOKEN or DISCORD_CLIENT_ID are missing.
+ */
 async function validateEnvironment() {
   const logger = getLogger();
   const configModule = await import("./config/config.js").catch(() => null);
@@ -73,318 +71,159 @@ async function validateEnvironment() {
   }
 }
 
+/**
+ * Initialize core systems (storage, pricing, BMAC) before login.
+ */
+async function initCoreSystems() {
+  const logger = getLogger();
+
+  await getStorageManager();
+  getPerformanceMonitor();
+  getHealthCheckRunner();
+
+  // Pricing service
+  try {
+    await pricingService.initialize();
+    logger.info("✅ Pricing service initialized with real-time model costs");
+  } catch (error) {
+    logger.warn(
+      "⚠️ Pricing service failed to initialize, using fallback costs:",
+      error.message,
+    );
+  }
+
+  // BMAC API connectivity
+  try {
+    const { bmacClient } = await import("./utils/payments/bmac.js");
+    if (bmacClient.enabled) {
+      const status = await bmacClient.checkTokenStatus();
+      if (status.valid) {
+        logger.info(
+          `✅ BMAC API connected (${status.supporterCount} supporters)`,
+        );
+      } else {
+        logger.warn(`⚠️ BMAC API unreachable: ${status.error}`);
+      }
+    }
+  } catch (error) {
+    logger.debug("BMAC API check skipped:", error.message);
+  }
+}
+
+/**
+ * Load commands with Docker retry logic.
+ */
+async function loadCommandsWithRetry(client) {
+  const logger = getLogger();
+  const commandsPath = path.join(__dirname, "commands");
+  const eventsPath = path.join(__dirname, "events");
+
+  await loadCommands(client, commandsPath);
+  await loadEvents(client, eventsPath);
+
+  if (!isDockerEnvironment()) return;
+
+  const commandHandler = getCommandHandler();
+  const debugInfo = commandHandler.getAllCommandsDebug();
+
+  if (debugInfo.synchronized) return;
+
+  logger.warn("🐳 Docker: Command collections not synchronized, retrying...");
+  await new Promise(resolve => {
+    setTimeout(resolve, 3000);
+  });
+  await loadCommands(client, commandsPath);
+
+  const retryDebugInfo = commandHandler.getAllCommandsDebug();
+  if (retryDebugInfo.synchronized) {
+    logger.info("✅ Docker: Command synchronization successful after retry");
+  } else {
+    logger.warn("⚠️ Docker: Command synchronization still failed after retry");
+  }
+}
+
+/**
+ * Login to Discord with retry logic.
+ */
+async function loginWithRetry(client) {
+  const logger = getLogger();
+  const maxAttempts = 3;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      logger.info(
+        `🔌 Attempting to connect to Discord (attempt ${attempt}/${maxAttempts})...`,
+      );
+
+      const configModule = await import("./config/config.js").catch(() => null);
+      const config = configModule?.default || configModule || {};
+      const token =
+        config.discord?.token ||
+        process.env.DISCORD_TOKEN ||
+        process.env.BOT_TOKEN;
+
+      if (!token) {
+        throw new Error(
+          "Discord token not found. Set DISCORD_TOKEN or BOT_TOKEN environment variable, or provide it in config.js",
+        );
+      }
+
+      await client.login(token);
+      return; // Success
+    } catch (error) {
+      logger.warn(`⚠️ Login attempt ${attempt} failed:`, error.message);
+
+      if (attempt >= maxAttempts) {
+        throw new Error(
+          `Failed to connect to Discord after ${maxAttempts} attempts: ${error.message}`,
+        );
+      }
+
+      logger.info("⏳ Waiting 5 seconds before retry...");
+      await new Promise(resolve => {
+        setTimeout(resolve, 5000);
+      });
+    }
+  }
+}
+
 async function main() {
   const logger = getLogger();
-  /** @type {ExtendedClient|null} */
   let client = null;
-  try {
-    // Wait for Docker environment to stabilize
-    await waitForDockerStartup();
 
+  try {
+    await waitForDockerStartup();
     await validateEnvironment();
     logger.info(`🚀 Starting Role Reactor Bot v${getVersion()}...`);
 
-    // Health server functionality is now part of the unified API server
+    await initCoreSystems();
 
-    // Initialize core systems
-    await getStorageManager();
-    const performanceMonitor = getPerformanceMonitor();
-    const healthCheckRunner = getHealthCheckRunner();
-
-    // Initialize pricing service (fetches OpenRouter model costs)
-    try {
-      await pricingService.initialize();
-      logger.info("✅ Pricing service initialized with real-time model costs");
-    } catch (error) {
-      logger.warn(
-        "⚠️ Pricing service failed to initialize, using fallback costs:",
-        error.message,
-      );
-    }
-
-    // Check BMAC API connectivity
-    try {
-      const { bmacClient } = await import("./utils/payments/bmac.js");
-      if (bmacClient.enabled) {
-        const status = await bmacClient.checkTokenStatus();
-        if (status.valid) {
-          logger.info(
-            `✅ BMAC API connected (${status.supporterCount} supporters)`,
-          );
-        } else {
-          logger.warn(`⚠️ BMAC API unreachable: ${status.error}`);
-        }
-      }
-    } catch (error) {
-      logger.debug("BMAC API check skipped:", error.message);
-    }
-
-    // Create Discord client
     client = await createClient();
     client.commands = new Collection();
 
-    // Load commands and events
-    const commandsPath = path.join(__dirname, "commands");
-    const eventsPath = path.join(__dirname, "events");
+    await loadCommandsWithRetry(client);
+    await loginWithRetry(client);
 
-    // Initialize core components
-    await loadCommands(client, commandsPath);
-    await loadEvents(client, eventsPath);
-
-    // In Docker environments, retry command loading if there are synchronization issues
-    if (isDockerEnvironment()) {
-      const commandHandler = getCommandHandler();
-      const debugInfo = commandHandler.getAllCommandsDebug();
-
-      if (!debugInfo.synchronized) {
-        logger.warn(
-          "🐳 Docker: Command collections not synchronized, retrying...",
-        );
-
-        // Wait a bit more for Docker to stabilize
-        await new Promise(resolve => {
-          setTimeout(resolve, 3000);
-        });
-
-        // Retry command loading
-        await loadCommands(client, commandsPath);
-
-        const retryDebugInfo = commandHandler.getAllCommandsDebug();
-        if (retryDebugInfo.synchronized) {
-          logger.info(
-            "✅ Docker: Command synchronization successful after retry",
-          );
-        } else {
-          logger.warn(
-            "⚠️ Docker: Command synchronization still failed after retry",
-          );
-        }
-      }
-    }
-
-    // Start the bot with retry logic
-    let loginAttempts = 0;
-    const maxLoginAttempts = 3;
-
-    while (loginAttempts < maxLoginAttempts) {
-      try {
-        logger.info(
-          `🔌 Attempting to connect to Discord (attempt ${loginAttempts + 1}/${maxLoginAttempts})...`,
-        );
-        // Load config for token
-        const configModule = await import("./config/config.js").catch(
-          () => null,
-        );
-        const config = configModule?.default || configModule || {};
-        const token =
-          config.discord?.token ||
-          process.env.DISCORD_TOKEN ||
-          process.env.BOT_TOKEN;
-
-        if (!token) {
-          throw new Error(
-            "Discord token not found. Set DISCORD_TOKEN or BOT_TOKEN environment variable, or provide it in config.js",
-          );
-        }
-
-        await client.login(token);
-        break; // Success, exit the retry loop
-      } catch (error) {
-        loginAttempts++;
-        logger.warn(`⚠️ Login attempt ${loginAttempts} failed:`, error.message);
-
-        if (loginAttempts >= maxLoginAttempts) {
-          throw new Error(
-            `Failed to connect to Discord after ${maxLoginAttempts} attempts: ${error.message}`,
-          );
-        }
-
-        // Wait before retrying
-        logger.info(`⏳ Waiting 5 seconds before retry...`);
-        await new Promise(resolve => {
-          setTimeout(resolve, 5000);
-        });
-      }
-    }
-
-    // Setup shutdown handlers
+    // Shutdown handlers
     const shutdown = () => gracefulShutdown(client);
     process.on("SIGTERM", shutdown);
     process.on("SIGINT", shutdown);
 
-    // Add error handling for Discord connection issues
-    client.on("error", error => {
-      logger.error("❌ Discord client error:", error);
-    });
+    client.on("error", error =>
+      logger.error("❌ Discord client error:", error),
+    );
+    client.on("disconnect", () =>
+      logger.warn("⚠️ Discord client disconnected"),
+    );
+    client.on("reconnecting", () =>
+      logger.info("🔄 Discord client reconnecting..."),
+    );
 
-    client.on("disconnect", () => {
-      logger.warn("⚠️ Discord client disconnected");
-    });
-
-    client.on("reconnecting", () => {
-      logger.info("🔄 Discord client reconnecting...");
-    });
-
-    client.once("clientReady", async () => {
-      logger.success(`✅ ${client.user.tag} v${getVersion()} is ready!`);
-
-      // Fetch application commands for mentionable commands </command:id>
-      try {
-        await client.application.commands.fetch();
-
-        // Lazy load guild commands on first use instead of all at startup
-        // Commands are fetched per-guild when needed via interactionCreate handler
-        logger.debug("✅ Application commands fetched for clickable mentions");
-      } catch (error) {
-        logger.warn(
-          "⚠️ Failed to fetch application commands for clickable mentions:",
-          error.message,
-        );
-      }
-
-      // Start webhook server for crypto payment integration
-      try {
-        await startWebhookServer();
-        // Set Discord client for API endpoints
-        setClient(client);
-      } catch (error) {
-        logger.error("❌ Failed to start webhook server:", error);
-        // Continue bot operation even if webhook server fails
-      }
-
-      // Start role scheduler for scheduled role assignments/removals
-      const ctx = getBotContext();
-      const roleScheduler = (
-        await import("./features/scheduledRoles/RoleScheduler.js")
-      ).getScheduler(client);
-      ctx.roleScheduler = roleScheduler;
-      roleScheduler.start();
-
-      // Start automatic cleanup for generation history
-      import("./commands/general/avatar/utils/generationHistory.js")
-        .then(({ GenerationHistory }) => {
-          GenerationHistory.startAutoCleanup();
-        })
-        .catch(error => {
-          logger.warn(
-            "Failed to start generation history cleanup:",
-            error.message,
-          );
-        });
-
-      // Start temporary role expiration scheduler
-      const tempRoleScheduler = getRoleExpirationScheduler(client);
-      ctx.tempRoleScheduler = tempRoleScheduler;
-      tempRoleScheduler.start();
-
-      // Start ticketing system cleanup scheduler
-      try {
-        const { startTicketCleanup } = await import(
-          "./events/ticketing/ticketCleanup.js"
-        );
-        startTicketCleanup(client);
-        logger.info("✅ Ticketing system cleanup started");
-      } catch (error) {
-        logger.error("❌ Failed to start ticket cleanup:", error);
-      }
-
-      // Initialize Giveaway Manager
-      try {
-        const giveawayManager = (
-          await import("./features/giveaway/GiveawayManager.js")
-        ).default;
-        ctx.giveawayManager = giveawayManager;
-        await giveawayManager.init();
-        giveawayManager.client = client;
-
-        // Setup giveaway event listeners
-        const { setupGiveawayEvents } = await import("./events/giveaway.js");
-        setupGiveawayEvents(giveawayManager, client);
-
-        logger.info("✅ Giveaway Manager initialized");
-      } catch (error) {
-        logger.error("❌ Failed to initialize Giveaway Manager:", error);
-      }
-
-      // Initialize Role Bundle Manager
-      try {
-        const roleBundleManager = (
-          await import("./features/rolebundles/RoleBundleManager.js")
-        ).default;
-        await roleBundleManager.init();
-      } catch (error) {
-        logger.error("❌ Failed to initialize Role Bundle Manager:", error);
-      }
-
-      // Start Premium Feature scheduler (handles Cores consumption for features)
-      try {
-        const { getPremiumFeatureScheduler } = await import(
-          "./features/premium/PremiumFeatureScheduler.js"
-        );
-        const { getPremiumManager } = await import(
-          "./features/premium/PremiumManager.js"
-        );
-        const premiumScheduler = getPremiumFeatureScheduler();
-        ctx.premiumScheduler = premiumScheduler;
-
-        // Set client for DM notifications
-        const premiumManager = getPremiumManager();
-        premiumManager.setClient(client);
-
-        premiumScheduler.start();
-      } catch (error) {
-        logger.error("❌ Failed to start premium scheduler:", error);
-      }
-
-      // Native Discord polls handle their own UI updates automatically
-
-      // Start poll cleanup scheduler (runs every 6 hours)
-      if (ctx.pollCleanupInterval) {
-        clearInterval(ctx.pollCleanupInterval);
-      }
-      const POLL_CLEANUP_INTERVAL_MS =
-        parseInt(process.env.POLL_CLEANUP_INTERVAL_MS) || 6 * 60 * 60 * 1000;
-      ctx.pollCleanupInterval = setInterval(async () => {
-        try {
-          const storageManager = await getStorageManager();
-          const cleanedCount = await storageManager.cleanupEndedPolls();
-          if (cleanedCount > 0) {
-            logger.info(`🧹 Poll cleanup: Removed ${cleanedCount} ended polls`);
-          }
-        } catch (error) {
-          logger.error("❌ Poll cleanup failed:", error);
-        }
-      }, POLL_CLEANUP_INTERVAL_MS).unref();
-
-      healthCheckRunner.run(client);
-
-      // Start automatic ComfyUI job recovery system
-      try {
-        const { multiProviderAIService } = await import(
-          "./utils/ai/multiProviderAIService.js"
-        );
-        const { startAutomaticRecovery, stopAutomaticRecovery } = await import(
-          "./utils/ai/providers/comfyui/startupRecovery.js"
-        );
-
-        const comfyuiProvider =
-          await multiProviderAIService.getProvider("comfyui");
-        if (comfyuiProvider) {
-          logger.info("🔄 Starting automatic ComfyUI job recovery system...");
-          await startAutomaticRecovery(comfyuiProvider, client);
-
-          ctx.stopComfyUIRecovery = stopAutomaticRecovery;
-        }
-      } catch (error) {
-        logger.error("❌ ComfyUI automatic recovery failed to start:", error);
-        // Continue bot operation even if recovery fails
-      }
-      performanceMonitor.startMonitoring();
-    });
+    // All subsystem initialization happens here
+    client.once("clientReady", () => startServices(client));
   } catch (error) {
     logger.error("❌ Bot startup failed:", error);
 
-    // Cleanup on startup failure
     if (client) {
       try {
         client.destroy();
@@ -392,8 +231,6 @@ async function main() {
         logger.error("Error destroying client:", destroyError);
       }
     }
-
-    // Health server is now part of the unified API server
 
     process.exit(1);
   }

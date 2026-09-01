@@ -86,7 +86,7 @@ describe('Chat Prompts Configuration', () => {
   describe('Critical Rules Content', () => {
     it('should contain essential command usage rules', () => {
       expect(criticalRules).toContain('Command Usage Rules');
-      expect(criticalRules).toContain('JSON format');
+      expect(criticalRules).toContain('tool');
       expect(criticalRules).toContain('plain text/markdown format');
     });
 
@@ -284,7 +284,7 @@ describe('Chat Prompts Configuration', () => {
       
       // Should consistently use command terminology
       expect(allPrompts).toContain('execute_command');
-      expect(allPrompts).toContain('JSON format');
+      expect(allPrompts).toContain('tool');
       expect(allPrompts).toContain('plain text');
     });
 
@@ -297,7 +297,7 @@ describe('Chat Prompts Configuration', () => {
       
       // Should consistently use command terminology
       expect(allPrompts).toContain('execute_command');
-      expect(allPrompts).toContain('JSON format');
+      expect(allPrompts).toContain('tool');
       expect(allPrompts).toContain('plain text');
       
       // Should emphasize bot identity over AI identity

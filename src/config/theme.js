@@ -1,5 +1,6 @@
 // Enhanced theme configuration for improved UX/UI
 import { ButtonStyle } from "discord.js";
+import { emojiConfig } from "./emojis.js";
 
 export const THEME = {
   // Primary brand colors (softened)
@@ -40,6 +41,13 @@ export const THEME = {
   HIGH_USAGE: 0xfecaca, // Soft pink
   MEDIUM_USAGE: 0x93c5fd, // Soft blue
   LOW_USAGE: 0x9ca3af, // Soft gray
+
+  // Twitch/streaming colors
+  TWITCH: 0x9146ff, // Twitch purple
+  TWITCH_GREEN: 0x00ae86, // Twitch green (follows)
+  TWITCH_PINK: 0xff69b4, // Hot pink (subs)
+  TWITCH_GOLD: 0xffd700, // Gold (gift subs)
+  TWITCH_RED: 0xff4500, // Orange-red (raids)
 
   // Interactive states (softer)
   HOVER: 0xa5b4fc, // Soft indigo
@@ -145,6 +153,31 @@ export const EMOJIS = {
     ERROR: "❌",
     WARNING: "⚠️",
     INFO: "ℹ️",
+  },
+
+  // Economy & Currency
+  CURRENCY: {
+    get CORE() {
+      return emojiConfig.core;
+    },
+    get SPARK() {
+      return emojiConfig.spark;
+    },
+    VAULT: "🏛️",
+    FUEL: "⛽",
+    TRANSFER: "📤",
+    BURN: "🔥",
+  },
+
+  // Engine System
+  ENGINE: {
+    ACTIVE: "⚡",
+    FREE: "⚙️",
+    VAULT: "🏛️",
+    FUEL: "⛽",
+    CONFIRM: "⛽",
+    SUCCESS: "🚀",
+    CANCEL: "✖️",
   },
 
   // Command categories

@@ -28,10 +28,7 @@ export class ProviderManager {
     const provider = this.config.providers[providerKey];
     if (!provider || !provider.enabled) return false;
 
-    // Self-hosted providers (ComfyUI) don't require API key
-    if (providerKey === "comfyui") return true;
-
-    // RunPod requires both API key and endpoint ID
+    // Self-hosted providers don't require API key
     if (providerKey === "runpod") {
       return !!(provider.apiKey && provider.endpointId);
     }
@@ -84,9 +81,9 @@ export class ProviderManager {
 
     // Handle "auto" provider selection with fallbacks
     if (feature.provider === "auto") {
-      // For NSFW content, try Civitai first, then RunPod, then ComfyUI (never Stability)
+      // For NSFW content, try Civitai first, then RunPod (never Stability)
       if (isNSFW) {
-        const fallbackOrder = ["civitai", "runpod", "comfyui"];
+        const fallbackOrder = ["civitai", "runpod"];
         for (const providerKey of fallbackOrder) {
           if (
             this.isProviderAvailable(providerKey) &&

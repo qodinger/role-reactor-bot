@@ -11,7 +11,7 @@ function truncatePrompt(prompt) {
 
 /**
  * Create error embed for avatar generation failures
- * @param {import('discord.js').CommandInteraction} interaction
+ * @param {import('discord.js').ChatInputCommandInteraction} interaction
  * @param {string} title - Error title
  * @param {string} description - Error description
  * @returns {import('discord.js').EmbedBuilder}
@@ -32,7 +32,7 @@ export function createErrorEmbed(interaction, title, description) {
 
 /**
  * Create warning embed for avatar generation warnings
- * @param {import('discord.js').CommandInteraction} interaction
+ * @param {import('discord.js').ChatInputCommandInteraction} interaction
  * @param {string} title - Warning title
  * @param {string} description - Warning description
  * @returns {import('discord.js').EmbedBuilder}
@@ -67,7 +67,7 @@ function formatArtStyleName(artStyle) {
 
 /**
  * Create loading embed for avatar generation
- * @param {import('discord.js').CommandInteraction} interaction - The interaction
+ * @param {import('discord.js').ChatInputCommandInteraction} interaction - The interaction
  * @param {string} prompt - User's prompt
  * @param {string} [artStyle] - Selected art style (optional)
  * @param {string} [status] - Current status message (optional)
@@ -122,10 +122,10 @@ export function createLoadingEmbed(
 
 /**
  * Create success embed for avatar generation
- * @param {import('discord.js').CommandInteraction} interaction
+ * @param {import('discord.js').ChatInputCommandInteraction} interaction
  * @param {string} prompt - User's prompt
  * @param {string|null} artStyle - Selected art style
- * @param {Object|null} deductionBreakdown - Credit deduction breakdown
+ * @param {Object|null} _deductionBreakdown - Credit deduction breakdown
  * @param {boolean} _isNSFW - Whether the content is NSFW (unused)
  * @returns {import('discord.js').EmbedBuilder}
  */
@@ -164,7 +164,7 @@ export function createSuccessEmbed(
 
 /**
  * Create Core insufficient embed
- * @param {import('discord.js').CommandInteraction} interaction
+ * @param {import('discord.js').ChatInputCommandInteraction} interaction
  * @param {Object} userData - User Core data
  * @param {number} creditsNeeded - Cores needed for generation
  * @param {string} prompt - User's prompt
@@ -185,7 +185,7 @@ export function createCoreEmbed(interaction, userData, creditsNeeded, prompt) {
     .addFields([
       {
         name: "Get Cores",
-        value: `Buy Core packages with crypto • Use \`/core pricing\``,
+        value: `Buy Core packages with crypto • Use \`/balance check\``,
         inline: false,
       },
     ])

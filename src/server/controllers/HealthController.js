@@ -1,8 +1,11 @@
 import os from "os";
+import { getLogger } from "../../utils/logger.js";
 import {
   createSuccessResponse,
   createErrorResponse,
 } from "../utils/responseHelpers.js";
+
+const logger = getLogger();
 
 // API Metrics - shared across middleware and health controller
 export const apiMetrics = {
@@ -60,7 +63,7 @@ export async function apiGetHealth(req, res) {
         }
       }
     } catch (dbError) {
-      console.warn("Health check DB ping failed:", dbError.message);
+      logger.warn("Health check DB ping failed:", dbError.message);
     }
 
     // API metrics
@@ -96,15 +99,9 @@ export async function apiGetHealth(req, res) {
       }),
     );
   } catch (error) {
-    console.error("Health check error:", error);
+    logger.error("Health check error:", error);
     return res
       .status(500)
-      .json(
-        createErrorResponse(
-          "Failed to retrieve health metrics",
-          500,
-          error.message,
-        ),
-      );
+      .json(createErrorResponse("Failed to retrieve health metrics", 500));
   }
 }

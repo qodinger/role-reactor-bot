@@ -139,7 +139,13 @@ export async function apiCommandUsage(req, res) {
     if (dbManager?.commandUsage) {
       const dbStats = await dbManager.commandUsage.getAllStats();
       commandArray = dbStats
-        .filter(s => !disabledCommands.has(s.name))
+        .filter(
+          s =>
+            s.name &&
+            typeof s.name === "string" &&
+            s.name.trim() !== "" &&
+            !disabledCommands.has(s.name),
+        )
         .map(s => ({
           name: s.name,
           count: s.count,

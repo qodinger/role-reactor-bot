@@ -45,8 +45,8 @@ Thank you for your interest in contributing to Role Reactor Bot! This document p
 
 ```bash
 # Clone the repository
-git clone https://github.com/rolereactor/role-reactor-bot.git
-cd role-reactor-bot
+git clone https://github.com/rolereactor/bot.git
+cd bot
 
 # Install dependencies
 pnpm install

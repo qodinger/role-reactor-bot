@@ -20,9 +20,10 @@ export const MAX_SYSTEM_CACHE_SIZE = 500;
 // Follow-up query timeout
 export const FOLLOW_UP_QUERY_TIMEOUT = 30000; // 30 seconds for follow-up queries
 
-// Action loop depth - max re-queries before stopping (prevents infinite loops)
+// Action loop depth - max re-queries per request (prevents infinite loops).
+// 2 allows e.g. get IDs → execute command → answer, without runaway cost.
 export const MAX_ACTION_LOOP_DEPTH =
-  parseInt(process.env.AI_MAX_ACTION_LOOP_DEPTH) || 1; // Default: 1 re-query (2 API calls total)
+  parseInt(process.env.AI_MAX_ACTION_LOOP_DEPTH) || 2;
 
 // Performance monitoring constants
 export const PERFORMANCE_METRICS_ENABLED = true;

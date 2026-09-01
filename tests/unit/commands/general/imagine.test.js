@@ -94,14 +94,6 @@ vi.mock("../../../../src/commands/general/imagine/utils/generationHistory.js", (
   },
 }));
 
-vi.mock("../../../../src/utils/ai/providers/comfyui/modelManager.js", () => ({
-  modelManager: {
-    getModel: vi.fn().mockReturnValue(null),
-    isAvailable: vi.fn().mockReturnValue(false),
-    parseModelFlags: vi.fn().mockReturnValue({ defaultSettings: { steps: 20, cfg: 7 } }),
-  },
-}));
-
 import { handleImagineCommand } from "../../../../src/commands/general/imagine/handlers.js";
 
 describe("Imagine Command", () => {

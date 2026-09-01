@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import rateLimit from "express-rate-limit";
 import { getLogger } from "../../utils/logger.js";
 
@@ -103,13 +104,14 @@ export const apiRateLimiter = rateLimit({
         ? apiKey.substring(7)
         : apiKey;
 
-      // Use timing-safe comparison logic if possible, or direct string compare
-      // For now, direct compare is fine for rate limiter skip logic
-      if (providedKey === internalKey) {
+      if (
+        providedKey.length === internalKey.length &&
+        crypto.timingSafeEqual(
+          Buffer.from(providedKey, "utf8"),
+          Buffer.from(internalKey, "utf8"),
+        )
+      ) {
         return true;
-      } else {
-        // Debug logging for mismatched keys (only in dev/debug mode ideally, but useful here)
-        // logger.debug(`Rate limit skip failed: Valid key provided? ${!!providedKey}, Match? ${providedKey === internalKey}`);
       }
     }
 

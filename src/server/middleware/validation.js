@@ -15,7 +15,7 @@ const logger = getLogger();
 /**
  * Validate request body against schema with enhanced security
  * @param {Object} schema - Validation schema
- * @returns {Function} Express middleware
+ * @returns {import('express').RequestHandler} Express middleware
  */
 export function validateBody(schema) {
   return (req, res, next) => {
@@ -169,7 +169,7 @@ export function validateBody(schema) {
 /**
  * Validate query parameters with sanitization
  * @param {Object} schema - Validation schema
- * @returns {Function} Express middleware
+ * @returns {import('express').RequestHandler} Express middleware
  */
 export function validateQuery(schema) {
   return (req, res, next) => {
@@ -263,7 +263,7 @@ export function validateQuery(schema) {
 /**
  * Validate URL parameters with sanitization
  * @param {Object} schema - Validation schema
- * @returns {Function} Express middleware
+ * @returns {import('express').RequestHandler} Express middleware
  */
 export function validateParams(schema) {
   return (req, res, next) => {
@@ -292,7 +292,11 @@ export function validateParams(schema) {
               }
             }
 
-            if (pattern && !new RegExp(pattern).test(value)) {
+            if (
+              pattern &&
+              typeof value === "string" &&
+              !new RegExp(pattern).test(value)
+            ) {
               errors.push(`Parameter ${field} does not match required pattern`);
             }
 

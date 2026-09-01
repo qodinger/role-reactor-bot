@@ -94,7 +94,7 @@ const mockGetUserCorePriority = vi.fn().mockResolvedValue({
 });
 const mockGetCoreRateLimitMultiplier = vi.fn().mockReturnValue(1.0);
 
-vi.mock("src/commands/general/core/utils.js", () => ({
+vi.mock("src/commands/general/balance/utils.js", () => ({
   getUserCorePriority: mockGetUserCorePriority,
   getCoreRateLimitMultiplier: mockGetCoreRateLimitMultiplier,
 }));

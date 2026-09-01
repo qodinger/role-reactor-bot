@@ -41,7 +41,7 @@ function getPackageData() {
   } catch (error) {
     logger.error("Failed to read package.json", error);
     return {
-      name: "role-reactor-bot",
+      name: "bot",
       version: "Unknown",
       description:
         "A powerful Discord bot that helps you manage your server with role management, AI features, moderation tools, and community engagement features. Perfect for communities of all sizes.",

@@ -109,7 +109,7 @@ describe("Usage-Based Credit Deduction System", () => {
       expect(costs.providerCosts.stability["sd3.5-large-turbo"]).toBe(5.0);
       expect(costs.providerCosts.stability["sd3.5-large"]).toBe(8.0);
       expect(costs.providerCosts.openrouter["openai/gpt-4o-mini"]).toBe(0.08);
-      expect(costs.providerCosts.comfyui.default).toBe(0.08);
+      expect(costs.providerCosts.runpod.default).toBe(0.79);
 
       // Token-based pricing configuration
       expect(costs.tokenPricing).toBeDefined();
@@ -647,7 +647,6 @@ describe("Usage-Based Credit Deduction System", () => {
         },
         { provider: "stability", model: "sd3.5-large", expectedCost: 8.0 },
         { provider: "stability", model: "sd3.5-medium", expectedCost: 4.0 },
-        { provider: "comfyui", model: "any-model", expectedCost: 0.08 },
         { provider: "runpod", model: "any-model", expectedCost: 0.79 },
       ];
 

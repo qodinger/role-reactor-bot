@@ -1,4 +1,10 @@
-import { PermissionFlagsBits, MessageFlags } from "discord.js";
+import {
+  PermissionFlagsBits,
+  MessageFlags,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+} from "discord.js";
 import { getTicketPanel } from "../../../../features/ticketing/TicketPanel.js";
 import { getTicketManager } from "../../../../features/ticketing/TicketManager.js";
 import {
@@ -134,6 +140,14 @@ export async function handleSetup(interaction) {
           `**Channel:** ${channel}`,
         "Panel Created",
         interaction.client,
+      ),
+    ],
+    components: [
+      new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setLabel("Open Dashboard")
+          .setStyle(ButtonStyle.Link)
+          .setURL(`https://rolereactor.xyz/dashboard/${interaction.guildId}`),
       ),
     ],
   });

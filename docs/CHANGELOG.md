@@ -9,7 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Live Reactor (Twitch Integration)**: Connect your Twitch channel to Discord with go-live alerts, real-time chat relay, customizable timers, stream commands, and quote system—perfect for streamers and communities.
+- **Dual-Balance Economy**: Earn **Sparks** ⚡ through voting, referrals, and activity; purchase **Cores** for premium features. Two separate currencies make it clear which rewards are earned vs. purchased.
+- **Core Gifting**: Transfer Cores to members using `/core gift` (a 10% transfer tax applies). Share your premium currency with your community and watch engagement grow.
+- **Referral System**: Invite new members and earn rewards when they join. Grow your server while earning credits—a win-win referral flow.
+- **Ticket Management Dashboard**: Build and manage ticket panels from the web dashboard—create, edit, and refresh panels, organize category buttons, and configure staff roles, transcript channels, auto-close, and ticket messages without leaving the browser.
+- **Goodbye System Dashboard**: Configure goodbye messages, channels, and settings from the web dashboard with the same ease as the welcome system.
+
+### Changed
+
+- **Vote Rewards Clarity**: Voting for the bot now explicitly grants **+5 Sparks** (earned currency). Members can see exactly what they get every 12 hours.
+- **Streamlined Balance Tracking**: Core and Sparks balances are now tracked separately and reliably across the dashboard and bot commands.
+
 ### Fixed
+
+- **Premium Subscription Reliability**: Fixed issues where subscription status and renewal logic were inconsistent between the web dashboard and Discord commands.
+- **Balance Update Accuracy**: Resolved naming mismatches and missing balance updates so credits appear instantly and correctly when earned or purchased.
 
 ## [1.8.0] - 2026-07-23
 
@@ -521,27 +536,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Role categories and organization.
 - Comprehensive error handling and rate limiting.
 
-[Unreleased]: https://github.com/rolereactor/role-reactor-bot/compare/v1.7.1...HEAD
-[1.7.1]: https://github.com/rolereactor/role-reactor-bot/compare/v1.7.0...v1.7.1
-[1.7.0]: https://github.com/rolereactor/role-reactor-bot/compare/v1.6.3...v1.7.0
-[1.6.3]: https://github.com/rolereactor/role-reactor-bot/compare/v1.6.2...v1.6.3
-[1.6.2]: https://github.com/rolereactor/role-reactor-bot/compare/v1.6.1...v1.6.2
-[1.6.1]: https://github.com/rolereactor/role-reactor-bot/compare/v1.6.0...v1.6.1
-[1.6.0]: https://github.com/rolereactor/role-reactor-bot/compare/v1.5.0...v1.6.0
-[1.5.0]: https://github.com/rolereactor/role-reactor-bot/compare/v1.4.0...v1.5.0
-[1.4.0]: https://github.com/rolereactor/role-reactor-bot/compare/v1.3.1...v1.4.0
-[1.3.1]: https://github.com/rolereactor/role-reactor-bot/compare/v1.3.0...v1.3.1
-[1.3.0]: https://github.com/rolereactor/role-reactor-bot/compare/v1.2.0...v1.3.0
-[1.2.0]: https://github.com/rolereactor/role-reactor-bot/compare/v1.1.0...v1.2.0
-[1.1.0]: https://github.com/rolereactor/role-reactor-bot/compare/v1.0.2...v1.1.0
-[1.0.2]: https://github.com/rolereactor/role-reactor-bot/compare/v1.0.1...v1.0.2
-[1.0.1]: https://github.com/rolereactor/role-reactor-bot/compare/v1.0.0...v1.0.1
-[1.0.0]: https://github.com/rolereactor/role-reactor-bot/compare/v0.4.1...v1.0.0
-[0.4.1]: https://github.com/rolereactor/role-reactor-bot/compare/v0.4.0...v0.4.1
-[0.4.0]: https://github.com/rolereactor/role-reactor-bot/compare/v0.3.1...v0.4.0
-[0.3.1]: https://github.com/rolereactor/role-reactor-bot/compare/v0.3.0...v0.3.1
-[0.3.0]: https://github.com/rolereactor/role-reactor-bot/compare/v0.2.2...v0.3.0
-[0.2.2]: https://github.com/rolereactor/role-reactor-bot/compare/v0.2.1...v0.2.2
-[0.2.1]: https://github.com/rolereactor/role-reactor-bot/compare/v0.2.0...v0.2.1
-[0.2.0]: https://github.com/rolereactor/role-reactor-bot/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/rolereactor/role-reactor-bot/releases/tag/v0.1.0
+[Unreleased]: https://github.com/rolereactor/bot/compare/v1.8.0...HEAD
+[1.8.0]: https://github.com/rolereactor/bot/compare/v1.7.1...v1.8.0
+[1.7.1]: https://github.com/rolereactor/bot/compare/v1.7.0...v1.7.1
+[1.7.0]: https://github.com/rolereactor/bot/compare/v1.6.3...v1.7.0
+[1.6.3]: https://github.com/rolereactor/bot/compare/v1.6.2...v1.6.3
+[1.6.2]: https://github.com/rolereactor/bot/compare/v1.6.1...v1.6.2
+[1.6.1]: https://github.com/rolereactor/bot/compare/v1.6.0...v1.6.1
+[1.6.0]: https://github.com/rolereactor/bot/compare/v1.5.0...v1.6.0
+[1.5.0]: https://github.com/rolereactor/bot/compare/v1.4.0...v1.5.0
+[1.4.0]: https://github.com/rolereactor/bot/compare/v1.3.1...v1.4.0
+[1.3.1]: https://github.com/rolereactor/bot/compare/v1.3.0...v1.3.1
+[1.3.0]: https://github.com/rolereactor/bot/compare/v1.2.0...v1.3.0
+[1.2.0]: https://github.com/rolereactor/bot/compare/v1.1.0...v1.2.0
+[1.1.0]: https://github.com/rolereactor/bot/compare/v1.0.2...v1.1.0
+[1.0.2]: https://github.com/rolereactor/bot/compare/v1.0.1...v1.0.2
+[1.0.1]: https://github.com/rolereactor/bot/compare/v1.0.0...v1.0.1
+[1.0.0]: https://github.com/rolereactor/bot/compare/v0.4.1...v1.0.0
+[0.4.1]: https://github.com/rolereactor/bot/compare/v0.4.0...v0.4.1
+[0.4.0]: https://github.com/rolereactor/bot/compare/v0.3.1...v0.4.0
+[0.3.1]: https://github.com/rolereactor/bot/compare/v0.3.0...v0.3.1
+[0.3.0]: https://github.com/rolereactor/bot/compare/v0.2.2...v0.3.0
+[0.2.2]: https://github.com/rolereactor/bot/compare/v0.2.1...v0.2.2
+[0.2.1]: https://github.com/rolereactor/bot/compare/v0.2.0...v0.2.1
+[0.2.0]: https://github.com/rolereactor/bot/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/rolereactor/bot/releases/tag/v0.1.0

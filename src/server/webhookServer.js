@@ -41,7 +41,10 @@ import logsRouter from "./routes/v1/logs.js";
 import configRouter from "./routes/v1/config.js";
 import healthRouter from "./routes/v1/health.js";
 import transcriptsRouter from "./routes/v1/transcripts.js";
+import ticketsRouter from "./routes/v1/tickets.js";
 import imageToolsRouter from "./routes/v1/imageTools.js";
+import streamRouter from "./routes/v1/stream.js";
+import streamApiRouter from "./routes/v1/streamApi.js";
 
 // Import services
 import { SupportersService } from "./services/supporters/SupportersService.js";
@@ -260,6 +263,7 @@ function initializeRoutes() {
 
   // Internal guilds endpoints (auth required)
   app.use(`${API_PREFIX}/guilds`, internalAuth, guildsRouter);
+  app.use(`${API_PREFIX}/guilds`, internalAuth, ticketsRouter);
   app.use(`${API_PREFIX}/payments`, internalAuth, paymentsRouter);
   app.use(`${API_PREFIX}/user`, internalAuth, userRouter);
   app.use(`${API_PREFIX}/commands`, internalAuth, commandsRouter);
@@ -281,6 +285,14 @@ function initializeRoutes() {
     app.use("/auth", apiRateLimiter, authRoutes);
     logger.info("✅ Discord OAuth routes enabled");
   }
+
+  // Register streaming OAuth callback routes (public, no internal auth)
+  app.use(`${API_PREFIX}/stream`, streamRouter);
+  logger.info("✅ Streaming OAuth routes enabled");
+
+  // Register streaming management API routes (internal auth + guild permission)
+  app.use(`${API_PREFIX}/stream`, streamApiRouter);
+  logger.info("✅ Streaming API routes enabled");
 
   // Register SupportersService (always available)
   const supportersService = new SupportersService();

@@ -55,10 +55,18 @@ function verifyBMACSignature(rawBody, signature, secret) {
  * and credit cores based on the amount paid.
  */
 export async function handleBMACWebhook(req, res) {
-  // Verify webhook signature
+  // Verify webhook signature — reject if secret not configured
   const signature = req.headers["x-signature-sha256"];
   const secret = config.payments.buymeacoffeeWebhookSecret;
-  if (secret && !verifyBMACSignature(req.rawBody || "", signature, secret)) {
+  if (!secret) {
+    logger.error(
+      "⚠️ BMAC webhook: BUYMEACOFFEE_WEBHOOK_SECRET not configured — rejecting request",
+    );
+    return res
+      .status(500)
+      .json({ status: "error", message: "Webhook not configured" });
+  }
+  if (!verifyBMACSignature(req.rawBody || "", signature, secret)) {
     logger.warn("⚠️ BMAC webhook: Invalid signature - rejecting request");
     return res.status(401).json({ status: "error", message: "Unauthorized" });
   }
@@ -316,6 +324,29 @@ export async function handleBMACWebhook(req, res) {
       logger.error(
         `Failed to log BMAC payment to payments collection:`,
         logError,
+      );
+    }
+
+    // 9.5. Process ongoing referral bonus if eligible ($10+ minimum)
+    try {
+      const { getDatabaseManager } = await import(
+        "../utils/storage/databaseManager.js"
+      );
+      const dbManager = await getDatabaseManager();
+      if (dbManager?.referrals) {
+        await dbManager.referrals.processPurchaseBonus({
+          refereeId: userId,
+          paymentId: bmacPaymentId || transactionId || `bmac_${code}`,
+          purchaseAmount: paymentAmount,
+          coresGranted: result.coresToAdd,
+          coreCreditsRepo: dbManager.coreCredits,
+          paymentRepo: dbManager.payments,
+        });
+      }
+    } catch (refError) {
+      logger.error(
+        `Failed to process referral bonus for ${userId} (BMAC):`,
+        refError,
       );
     }
 

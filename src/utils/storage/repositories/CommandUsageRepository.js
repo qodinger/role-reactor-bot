@@ -23,6 +23,13 @@ export class CommandUsageRepository extends BaseRepository {
    * @returns {Promise<void>}
    */
   async recordUsage(commandName, userId, guildId, duration) {
+    if (
+      !commandName ||
+      typeof commandName !== "string" ||
+      !commandName.trim()
+    ) {
+      return;
+    }
     try {
       await this.collection.updateOne(
         { commandName },
@@ -53,14 +60,23 @@ export class CommandUsageRepository extends BaseRepository {
    */
   async getAllStats() {
     try {
-      const stats = await this.collection.find({}).toArray();
-      return stats.map(s => ({
-        name: s.commandName,
-        count: s.count,
-        avgDuration: s.count > 0 ? s.totalDuration / s.count : 0,
-        lastUsed: s.lastUsed,
-        uniqueUsers: s.users ? s.users.length : 0,
-      }));
+      const stats = await this.collection
+        .find({ commandName: { $exists: true, $type: "string", $ne: "" } })
+        .toArray();
+      return stats
+        .filter(
+          s =>
+            s.commandName &&
+            typeof s.commandName === "string" &&
+            s.commandName.trim() !== "",
+        )
+        .map(s => ({
+          name: s.commandName,
+          count: s.count || 0,
+          avgDuration: s.count > 0 ? s.totalDuration / s.count : 0,
+          lastUsed: s.lastUsed,
+          uniqueUsers: s.users ? s.users.length : 0,
+        }));
     } catch (error) {
       this.logger.error("Error getting all command stats:", error);
       return [];

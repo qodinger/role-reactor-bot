@@ -345,7 +345,7 @@ export class PaymentRepository extends BaseRepository {
   /**
    * Providers that represent real revenue (actual money received)
    */
-  static REVENUE_PROVIDERS = ["plisio"];
+  static REVENUE_PROVIDERS = ["plisio", "buymeacoffee", "stripe", "paypal"];
 
   /**
    * Providers that are internal/system transactions (no real money)
@@ -404,16 +404,75 @@ export class PaymentRepository extends BaseRepository {
         },
       ];
 
-      const results = await this.collection.aggregate(pipeline).toArray();
+      const byProviderPipeline = [
+        { $match: matchStage },
+        {
+          $group: {
+            _id: "$provider",
+            revenue: { $sum: "$amount" },
+            paymentsCount: { $sum: 1 },
+            coresGranted: { $sum: "$coresGranted" },
+          },
+        },
+        { $sort: { revenue: -1 } },
+      ];
 
-      return (
-        results[0] || {
-          totalPayments: 0,
-          totalRevenue: 0,
-          totalCores: 0,
-          uniqueUsers: 0,
-        }
-      );
+      const votesPipeline = [
+        {
+          $match: {
+            status: "completed",
+            provider: { $in: ["top.gg", "vote_topgg", "vote_reward"] },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            totalVotes: { $sum: 1 },
+            totalSparksGranted: { $sum: "$sparksGranted" },
+            uniqueVoters: { $addToSet: "$discordId" },
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            totalVotes: 1,
+            totalSparksGranted: 1,
+            uniqueVoters: { $size: "$uniqueVoters" },
+          },
+        },
+      ];
+
+      const [results, byProviderResults, votesResults] = await Promise.all([
+        this.collection.aggregate(pipeline).toArray(),
+        this.collection.aggregate(byProviderPipeline).toArray(),
+        this.collection.aggregate(votesPipeline).toArray(),
+      ]);
+
+      const byProvider = byProviderResults.map(p => ({
+        provider: p._id,
+        revenue: p.revenue,
+        paymentsCount: p.paymentsCount,
+        coresGranted: p.coresGranted,
+      }));
+
+      const votes = votesResults[0] || {
+        totalVotes: 0,
+        totalSparksGranted: 0,
+        uniqueVoters: 0,
+      };
+
+      const baseStats = results[0] || {
+        totalPayments: 0,
+        totalRevenue: 0,
+        totalCores: 0,
+        uniqueUsers: 0,
+      };
+
+      return {
+        ...baseStats,
+        byProvider,
+        votes,
+      };
     } catch (error) {
       this.logger.error("Failed to get global payment stats", error);
       return {
@@ -421,6 +480,7 @@ export class PaymentRepository extends BaseRepository {
         totalRevenue: 0,
         totalCores: 0,
         uniqueUsers: 0,
+        byProvider: [],
       };
     }
   }

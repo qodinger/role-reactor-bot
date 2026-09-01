@@ -97,6 +97,21 @@ export async function executeCommandProgrammatically({
     guild,
   );
   if (!isAllowed) {
+    // Distinguish "no such subcommand" from "not permitted" so the AI can
+    // self-correct instead of retrying the same call
+    const cfg = (await getAllowedCommands(client))[parsedCommandName];
+    if (
+      cfg &&
+      cfg.allowed &&
+      parsedSubcommand &&
+      Array.isArray(cfg.subcommands) &&
+      !cfg.subcommands.includes(parsedSubcommand) &&
+      !cfg.subcommands.includes(parsedSubcommand.replace(/\s+/g, " "))
+    ) {
+      throw new Error(
+        `Command "${parsedCommandName}" has no subcommand "${parsedSubcommand}". Valid subcommands: ${cfg.subcommands.join(", ")}. Choose one of these or ask the user to clarify.`,
+      );
+    }
     const executableCommands = await getExecutableCommands(client, user, guild);
     const validCommandsList = executableCommands.map(c => c.name).join(", ");
     throw new Error(

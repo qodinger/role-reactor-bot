@@ -1,6 +1,6 @@
 /**
- * Formal tool definitions for Claude models (OpenAI-compatible format used by OpenRouter).
- * When passed to the API, Claude uses structured tool_use instead of outputting raw JSON,
+ * Formal tool definitions for tool-calling models (OpenAI-compatible format used by OpenRouter).
+ * When passed to the API, the model uses structured tool_calls instead of outputting raw JSON,
  * which eliminates the fragile JSON-parsing / regex-fallback path.
  */
 
@@ -91,7 +91,7 @@ export const TOOL_DEFINITIONS = [
     function: {
       name: "web_search",
       description:
-        "Search the web for real-time or current information. Use when the user asks about something that may have changed recently, current events, or when you're unsure about up-to-date facts.",
+        "Search the web for real-time or current information. Use when the user asks about something that may have changed recently, current events, or when you're unsure about up-to-date facts. For profile or site-specific lookups (e.g. a user's GitHub, a project docs page), use a site: filter in the query like 'site:github.com <name>'.",
       parameters: {
         type: "object",
         properties: {
@@ -107,6 +107,25 @@ export const TOOL_DEFINITIONS = [
           },
         },
         required: ["query"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "fetch_page",
+      description:
+        "Fetch a web page by URL and return its readable text content. Use AFTER web_search when a snippet is not enough — e.g. 'read this page', 'what does their site say', summarizing docs/articles the user linked. Cannot read pages that require login or render everything in JavaScript.",
+      parameters: {
+        type: "object",
+        properties: {
+          url: {
+            type: "string",
+            description:
+              "Absolute http(s) URL of the page to read (e.g. https://example.com/about).",
+          },
+        },
+        required: ["url"],
       },
     },
   },
@@ -221,6 +240,51 @@ export const TOOL_DEFINITIONS = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "get_role_reaction_messages",
+      description:
+        "List role reaction messages in this server (returns message_id values needed by role-reactions update/delete commands).",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_scheduled_roles",
+      description:
+        "List pending scheduled role assignments (returns schedule_id values needed by view/cancel operations).",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_polls",
+      description:
+        "List active polls in this server (returns poll_id values needed by poll end/delete commands).",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_moderation_history",
+      description:
+        "List recent moderation cases (returns case_id values needed by remove-warn). Requires moderator permissions.",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "reset_chat",
+      description:
+        "Clear this channel's conversation memory so the chat starts fresh. ONLY call when the user explicitly asks to start over, forget the conversation, or reset the chat. Do NOT use for other kinds of 'reset' (levels, polls, roles).",
+      parameters: { type: "object", properties: {} },
+    },
+  },
 ];
 
 /**
@@ -264,7 +328,11 @@ export function translateToolCallsToActions(toolCalls) {
       }
 
       // Argument-free actions
-      if (["fetch_channels", "fetch_roles", "fetch_all"].includes(name)) {
+      if (
+        ["fetch_channels", "fetch_roles", "fetch_all", "reset_chat"].includes(
+          name,
+        )
+      ) {
         return { type: name };
       }
 

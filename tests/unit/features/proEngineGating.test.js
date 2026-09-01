@@ -135,7 +135,7 @@ describe("Pro Engine - Feature Registry", () => {
 describe("Pro Engine - Benefit Copy Matches Runtime Config", () => {
   test("scheduled roles advertise the same free and pro limits used by handlers", () => {
     expect(PREMIUM_FREE_TIER.SCHEDULE_MAX_ACTIVE).toBe(25);
-    expect(PRO_TIER.SCHEDULE_MAX_ACTIVE).toBe(500);
+    expect(PRO_TIER.SCHEDULE_MAX_ACTIVE).toBe(100);
   });
 
   test("ticket panel benefits match the ticketing runtime config", () => {
@@ -183,7 +183,7 @@ describe("Pro Engine - Scheduled Roles Limits", () => {
   test("FREE tier should allow 25 active schedules", () => {
     const result = checkLimitAccess("schedule_role", 25, false, {
       free: 25,
-      pro: 500,
+      pro: 100,
     });
     expect(result.accessible).toBe(true);
     expect(result.tier).toBe("FREE");
@@ -192,16 +192,16 @@ describe("Pro Engine - Scheduled Roles Limits", () => {
   test("FREE tier should reject 26+ active schedules", () => {
     const result = checkLimitAccess("schedule_role", 26, false, {
       free: 25,
-      pro: 500,
+      pro: 100,
     });
     expect(result.accessible).toBe(false);
     expect(result.upgradeRequired).toBe(true);
   });
 
-  test("PRO tier should allow 500 active schedules", () => {
-    const result = checkLimitAccess("schedule_role", 500, true, {
+  test("PRO tier should allow 100 active schedules", () => {
+    const result = checkLimitAccess("schedule_role", 100, true, {
       free: 25,
-      pro: 500,
+      pro: 100,
     });
     expect(result.accessible).toBe(true);
     expect(result.tier).toBe("PRO");
@@ -212,15 +212,15 @@ describe("Pro Engine - Temporary Roles Limits", () => {
   test("FREE tier should allow 25 active temp roles", () => {
     const result = checkLimitAccess("temp_roles", 25, false, {
       free: 25,
-      pro: 500,
+      pro: 100,
     });
     expect(result.accessible).toBe(true);
   });
 
-  test("PRO tier should allow 500 active temp roles", () => {
-    const result = checkLimitAccess("temp_roles", 500, true, {
+  test("PRO tier should allow 100 active temp roles", () => {
+    const result = checkLimitAccess("temp_roles", 100, true, {
       free: 25,
-      pro: 500,
+      pro: 100,
     });
     expect(result.accessible).toBe(true);
     expect(result.tier).toBe("PRO");

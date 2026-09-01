@@ -345,7 +345,7 @@ export class AvatarService {
   async buildAnimePrompt(
     userPrompt,
     styleOptions = {},
-    provider = "comfyui",
+    provider = "stability",
     isNSFW = false,
   ) {
     const config = await loadPromptConfig();
@@ -363,13 +363,10 @@ export class AvatarService {
     const providerConfig = config.PROVIDER_PROMPTS?.[provider];
     if (!providerConfig) {
       logger.warn(
-        `Provider ${provider} not found in PROVIDER_PROMPTS, falling back to comfyui`,
+        `Provider ${provider} not found in PROVIDER_PROMPTS, falling back to stability`,
       );
     }
-    const finalConfig =
-      providerConfig ||
-      config.PROVIDER_PROMPTS.comfyui ||
-      config.PROVIDER_PROMPTS.stability;
+    const finalConfig = providerConfig || config.PROVIDER_PROMPTS.stability;
 
     // Get negative prompt based on content type
     const negativePrompt = getAvatarNegativePrompt(isNSFW);
@@ -434,14 +431,14 @@ export class AvatarService {
 
       prompt += ` ${finalConfig.suffix}`;
     } else {
-      // ComfyUI/Stability AI uses comma-separated format - art style goes first
+      // Stability AI uses comma-separated format - art style goes first
       const artStylePart = enhancements.artStyle
         ? enhancements.artStyle.toLowerCase().includes("chibi")
           ? `${enhancements.artStyle}, CHIBI CHARACTER`
           : enhancements.artStyle
         : null;
 
-      // Enhance color and mood styles for ComfyUI/Stability AI
+      // Enhance color and mood styles for Stability AI
       const enhancedColorStyle = enhancements.colorStyle
         ? enhancements.colorStyle.toLowerCase().includes("vibrant") ||
           enhancements.colorStyle.toLowerCase().includes("neon")
@@ -605,5 +602,5 @@ export const generateAvatar = (
 export const buildAnimePrompt = (
   userPrompt,
   styleOptions,
-  provider = "comfyui",
+  provider = "stability",
 ) => avatarService.buildAnimePrompt(userPrompt, styleOptions, provider);

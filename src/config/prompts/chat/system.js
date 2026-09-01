@@ -14,7 +14,7 @@ export const criticalRules = dedent`
   ### Command Usage Rules
   - Use commands exactly as shown in Available Commands section
   - Format: /command subcommand option:value
-  - **When executing commands:** Use JSON format with actions array
+  - **When executing commands:** Call the matching tool (e.g. \`execute_command\`) — never describe the action in text instead of calling it
   - **When NOT executing commands:** Use plain text/markdown format
   - Command details are injected automatically when mentioned
   - Use actual data from Server Information - never invent

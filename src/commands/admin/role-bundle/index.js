@@ -2,8 +2,10 @@
  * Role Bundle Commands - Manage reusable role bundles
  * @module commands/admin/role-bundle/index
  */
+const logger = getLogger();
 
 import { SlashCommandBuilder, MessageFlags } from "discord.js";
+import { getLogger } from "../../../utils/logger.js";
 import {
   handleCreate,
   handleDelete,
@@ -140,13 +142,20 @@ export const command = {
           });
       }
     } catch (error) {
-      console.error("Role bundle command error:", error);
+      logger.error("Role bundle command error:", error);
 
-      if (!interaction.replied && !interaction.deferred) {
-        await interaction.reply({
-          content: "An error occurred while processing this command.",
-          flags: [MessageFlags.Ephemeral],
-        });
+      const errorContent = "An error occurred while processing this command.";
+      try {
+        if (interaction.replied || interaction.deferred) {
+          await interaction.editReply({ content: errorContent });
+        } else {
+          await interaction.reply({
+            content: errorContent,
+            flags: [MessageFlags.Ephemeral],
+          });
+        }
+      } catch {
+        /* interaction may have expired */
       }
     }
   },
@@ -155,4 +164,3 @@ export const command = {
 // Export data and execute for command loader compatibility
 export const { data } = command;
 export const { execute } = command;
-export default command;

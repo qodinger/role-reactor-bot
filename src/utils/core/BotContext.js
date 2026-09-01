@@ -5,10 +5,10 @@ class BotContext {
     this.tempRoleScheduler = null;
     this.pollCleanupInterval = null;
     this.giveawayManager = null;
-    this.stopComfyUIRecovery = null;
     this.premiumScheduler = null;
     this.rpsCleanupStop = null;
     this.wyrCleanupStop = null;
+    this.streamingManager = null;
   }
 
   async shutdown() {
@@ -24,14 +24,14 @@ class BotContext {
     if (this.giveawayManager) {
       this.giveawayManager.destroy();
     }
-    if (this.stopComfyUIRecovery) {
-      this.stopComfyUIRecovery();
-    }
     if (this.rpsCleanupStop) {
       this.rpsCleanupStop();
     }
     if (this.wyrCleanupStop) {
       this.wyrCleanupStop();
+    }
+    if (this.streamingManager) {
+      await this.streamingManager.shutdown();
     }
     if (this.client) {
       this.client.destroy();

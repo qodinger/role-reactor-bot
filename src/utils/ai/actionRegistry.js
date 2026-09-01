@@ -62,6 +62,15 @@ export const ACTION_REGISTRY = {
     requiresOptions: false,
     description: "Fetch all server data (members, channels, roles)",
   },
+  reset_chat: {
+    type: "reset_chat",
+    category: ACTION_CATEGORIES.DATA_FETCH,
+    requiresGuild: false,
+    triggersReQuery: true,
+    requiresOptions: false,
+    description:
+      "Clear this channel's conversation memory (requires Manage Messages)",
+  },
 
   // ============================================================================
   // DATA RETRIEVAL ACTIONS (Read-Only, No Re-Query)
@@ -106,7 +115,7 @@ export const ACTION_REGISTRY = {
     type: "get_role_reaction_messages",
     category: ACTION_CATEGORIES.DATA_RETRIEVE,
     requiresGuild: true,
-    triggersReQuery: false,
+    triggersReQuery: true,
     requiresOptions: false,
     description: "Get role reaction message IDs",
   },
@@ -114,7 +123,7 @@ export const ACTION_REGISTRY = {
     type: "get_scheduled_roles",
     category: ACTION_CATEGORIES.DATA_RETRIEVE,
     requiresGuild: true,
-    triggersReQuery: false,
+    triggersReQuery: true,
     requiresOptions: false,
     description: "Get scheduled role data",
   },
@@ -122,7 +131,7 @@ export const ACTION_REGISTRY = {
     type: "get_polls",
     category: ACTION_CATEGORIES.DATA_RETRIEVE,
     requiresGuild: true,
-    triggersReQuery: false,
+    triggersReQuery: true,
     requiresOptions: false,
     description: "Get poll data",
   },
@@ -130,7 +139,7 @@ export const ACTION_REGISTRY = {
     type: "get_moderation_history",
     category: ACTION_CATEGORIES.DATA_RETRIEVE,
     requiresGuild: true,
-    triggersReQuery: false,
+    triggersReQuery: true,
     requiresOptions: false,
     description: "Get moderation history",
   },
@@ -160,6 +169,16 @@ export const ACTION_REGISTRY = {
     requiresOptions: true,
     requiredOptions: ["query"],
     description: "Search the web for current information",
+  },
+  fetch_page: {
+    type: "fetch_page",
+    category: ACTION_CATEGORIES.WEB,
+    requiresGuild: false,
+    triggersReQuery: true,
+    requiresOptions: true,
+    requiredOptions: ["url"],
+    description:
+      "Fetch a public web page and return its readable text (SSRF-guarded)",
   },
 
   // ============================================================================
