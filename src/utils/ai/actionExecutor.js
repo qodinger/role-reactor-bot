@@ -26,7 +26,9 @@ const dataFetcher = {
         try {
           member = await guild.members.fetch(options.user_id);
         } catch (e) {
-          logger.debug(`Failed to fetch member ${options.user_id}: ${e.message}`);
+          logger.debug(
+            `Failed to fetch member ${options.user_id}: ${e.message}`,
+          );
         }
       }
     } else if (options.username) {
@@ -41,7 +43,9 @@ const dataFetcher = {
           });
           member = members.first();
         } catch (e) {
-          logger.debug(`Failed to search members by username "${options.username}": ${e.message}`);
+          logger.debug(
+            `Failed to search members by username "${options.username}": ${e.message}`,
+          );
         }
       }
     }
@@ -88,7 +92,9 @@ const dataFetcher = {
         try {
           channel = await guild.channels.fetch(options.channel_id);
         } catch (e) {
-          logger.debug(`Failed to fetch channel ${options.channel_id}: ${e.message}`);
+          logger.debug(
+            `Failed to fetch channel ${options.channel_id}: ${e.message}`,
+          );
         }
       }
     } else if (options.channel_name) {

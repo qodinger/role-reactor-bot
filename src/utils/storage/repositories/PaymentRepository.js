@@ -448,7 +448,7 @@ export class PaymentRepository extends BaseRepository {
         this.collection.aggregate(votesPipeline).toArray(),
       ]);
 
-      const byProvider = byProviderResults.map((p) => ({
+      const byProvider = byProviderResults.map(p => ({
         provider: p._id,
         revenue: p.revenue,
         paymentsCount: p.paymentsCount,

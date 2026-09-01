@@ -27,7 +27,8 @@ const premiumManager = new PremiumManager();
 export async function execute(interaction, client) {
   if (!interaction.guildId) {
     await interaction.reply({
-      content: "❌ The `/engine` command can only be used inside a Discord server.",
+      content:
+        "❌ The `/engine` command can only be used inside a Discord server.",
       flags: MessageFlags.Ephemeral,
     });
     return;
@@ -63,15 +64,23 @@ export async function execute(interaction, client) {
   } catch (error) {
     // [10062] = Unknown interaction (expired token). Nothing we can do — swallow silently.
     if (error?.code === 10062) {
-      logger.warn(`/engine interaction expired before response (${subcommand})`);
+      logger.warn(
+        `/engine interaction expired before response (${subcommand})`,
+      );
       return;
     }
     logger.error(`Error in /engine command (${subcommand}):`, error);
     const errorMsg = "An unexpected error occurred while processing `/engine`.";
     if (interaction.deferred || interaction.replied) {
-      await interaction.editReply({ content: `❌ ${errorMsg}`, components: [] });
+      await interaction.editReply({
+        content: `❌ ${errorMsg}`,
+        components: [],
+      });
     } else {
-      await interaction.reply({ content: `❌ ${errorMsg}`, flags: MessageFlags.Ephemeral });
+      await interaction.reply({
+        content: `❌ ${errorMsg}`,
+        flags: MessageFlags.Ephemeral,
+      });
     }
   }
 }
@@ -188,7 +197,9 @@ async function handleFuel(interaction, client) {
   // Collect button response (30 second timeout)
   try {
     const confirmation = await response.awaitMessageComponent({
-      filter: (i) => i.user.id === userId && (i.customId === confirmId || i.customId === cancelId),
+      filter: i =>
+        i.user.id === userId &&
+        (i.customId === confirmId || i.customId === cancelId),
       componentType: ComponentType.Button,
       time: 30000,
     });
@@ -246,10 +257,14 @@ async function handleFuel(interaction, client) {
   } catch (_e) {
     // Collector timed out or failed
     const cancelEmbed = createFuelCancelledEmbed(interaction.user, client);
-    cancelEmbed.setDescription("⏱️ Confirmation timed out. Deposit was not processed.");
-    await interaction.editReply({
-      embeds: [cancelEmbed],
-      components: [],
-    }).catch(() => {});
+    cancelEmbed.setDescription(
+      "⏱️ Confirmation timed out. Deposit was not processed.",
+    );
+    await interaction
+      .editReply({
+        embeds: [cancelEmbed],
+        components: [],
+      })
+      .catch(() => {});
   }
 }

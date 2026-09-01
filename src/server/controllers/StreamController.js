@@ -4,9 +4,7 @@ import {
   createErrorResponse,
 } from "../utils/responseHelpers.js";
 import { logRequest } from "../utils/apiShared.js";
-import {
-  generateAuthUrl,
-} from "../../features/streaming/utils/oauth.js";
+import { generateAuthUrl } from "../../features/streaming/utils/oauth.js";
 import { DEFAULT_STREAM_CONFIG } from "../../features/streaming/utils/streamConfig.js";
 import { getStreamBotAccount } from "../../features/streaming/utils/streamBotAccount.js";
 import { GLOBAL_DEFAULT_TWITCH_COMMANDS } from "../../features/streaming/utils/defaultCommands.js";

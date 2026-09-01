@@ -413,7 +413,12 @@ export async function apiManageUserCores(req, res) {
 
   logRequest(logger, `Manage cores for ${userId}: ${action} ${amount}`, req);
 
-  if (!userId || typeof userId !== "string" || !action || amount === undefined) {
+  if (
+    !userId ||
+    typeof userId !== "string" ||
+    !action ||
+    amount === undefined
+  ) {
     const { statusCode, response } = createErrorResponse(
       "Missing or invalid required fields: userId, action, amount",
       400,
@@ -466,12 +471,18 @@ export async function apiManageUserCores(req, res) {
       );
     }
 
-    const targetCurrency = (req.body.target || req.body.currency || "cores").toLowerCase();
+    const targetCurrency = (
+      req.body.target ||
+      req.body.currency ||
+      "cores"
+    ).toLowerCase();
     const isSparks = targetCurrency === "sparks";
 
     // Get current balance
     const credits = await dbManager.coreCredits.getByUserId(userId);
-    const currentBalance = Math.round(((isSparks ? credits?.sparks : credits?.credits) || 0) * 100) / 100;
+    const currentBalance =
+      Math.round(((isSparks ? credits?.sparks : credits?.credits) || 0) * 100) /
+      100;
     let newBalance = currentBalance;
 
     switch (action) {

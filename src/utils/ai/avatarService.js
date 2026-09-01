@@ -366,9 +366,7 @@ export class AvatarService {
         `Provider ${provider} not found in PROVIDER_PROMPTS, falling back to stability`,
       );
     }
-    const finalConfig =
-      providerConfig ||
-      config.PROVIDER_PROMPTS.stability;
+    const finalConfig = providerConfig || config.PROVIDER_PROMPTS.stability;
 
     // Get negative prompt based on content type
     const negativePrompt = getAvatarNegativePrompt(isNSFW);

@@ -156,7 +156,7 @@ router.get("/callback/twitch", async (req, res) => {
       "http://localhost:8080";
 
     return res.redirect(
-      `${targetDomain}/dashboard/${guildId}/live-reactor?connected=twitch`
+      `${targetDomain}/dashboard/${guildId}/live-reactor?connected=twitch`,
     );
   } catch (err) {
     logger.error("Twitch OAuth callback failed", err);
@@ -165,7 +165,7 @@ router.get("/callback/twitch", async (req, res) => {
       process.env.BOT_WEBSITE_URL ||
       "http://localhost:8080";
     return res.redirect(
-      `${targetDomain}/dashboard/${guildId}/live-reactor?error=${encodeURIComponent(err.message || "Twitch authorization failed")}`
+      `${targetDomain}/dashboard/${guildId}/live-reactor?error=${encodeURIComponent(err.message || "Twitch authorization failed")}`,
     );
   }
 });
@@ -196,7 +196,12 @@ router.get("/callback/bot", async (req, res) => {
       .send(renderErrorPage(String(errorDescription || error)));
   }
 
-  if (!code || !state || typeof code !== "string" || typeof state !== "string") {
+  if (
+    !code ||
+    !state ||
+    typeof code !== "string" ||
+    typeof state !== "string"
+  ) {
     logger.error("Twitch bot OAuth callback missing code/state");
     return res
       .type("html")

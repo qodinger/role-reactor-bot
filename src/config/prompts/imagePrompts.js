@@ -33,7 +33,6 @@ export const PROVIDER_PROMPTS = {
       overexposed, underexposed
     `,
   },
-
 };
 
 // Legacy support for backward compatibility

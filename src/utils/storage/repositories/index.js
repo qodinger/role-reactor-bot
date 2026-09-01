@@ -39,4 +39,3 @@ export { TwitchChatFiltersRepository } from "./TwitchChatFiltersRepository.js";
 export { TwitchQuoteRepository } from "./TwitchQuoteRepository.js";
 export { TwitchTimerRepository } from "./TwitchTimerRepository.js";
 export { ReferralRepository } from "./ReferralRepository.js";
-

@@ -41,7 +41,12 @@ router.get("/referral", internalAuth, apiGetUserReferral);
 router.post("/referral/claim", internalAuth, apiClaimReferralCode);
 router.get("/:userId/balance", internalAuth, requireOwnUser, apiUserBalance);
 router.get("/:userId/payments", internalAuth, requireOwnUser, apiUserPayments);
-router.get("/:userId/vote-status", internalAuth, requireOwnUser, apiUserVoteStatus);
+router.get(
+  "/:userId/vote-status",
+  internalAuth,
+  requireOwnUser,
+  apiUserVoteStatus,
+);
 
 // Notification routes - require internal auth + user can only access their own notifications
 router.get(

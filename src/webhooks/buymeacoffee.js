@@ -344,7 +344,10 @@ export async function handleBMACWebhook(req, res) {
         });
       }
     } catch (refError) {
-      logger.error(`Failed to process referral bonus for ${userId} (BMAC):`, refError);
+      logger.error(
+        `Failed to process referral bonus for ${userId} (BMAC):`,
+        refError,
+      );
     }
 
     // 10. Create in-app notification

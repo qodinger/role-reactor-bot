@@ -102,11 +102,6 @@ export async function apiGetHealth(req, res) {
     logger.error("Health check error:", error);
     return res
       .status(500)
-      .json(
-        createErrorResponse(
-          "Failed to retrieve health metrics",
-          500,
-        ),
-      );
+      .json(createErrorResponse("Failed to retrieve health metrics", 500));
   }
 }

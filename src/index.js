@@ -129,16 +129,16 @@ async function loadCommandsWithRetry(client) {
   if (debugInfo.synchronized) return;
 
   logger.warn("🐳 Docker: Command collections not synchronized, retrying...");
-  await new Promise(resolve => { setTimeout(resolve, 3000); });
+  await new Promise(resolve => {
+    setTimeout(resolve, 3000);
+  });
   await loadCommands(client, commandsPath);
 
   const retryDebugInfo = commandHandler.getAllCommandsDebug();
   if (retryDebugInfo.synchronized) {
     logger.info("✅ Docker: Command synchronization successful after retry");
   } else {
-    logger.warn(
-      "⚠️ Docker: Command synchronization still failed after retry",
-    );
+    logger.warn("⚠️ Docker: Command synchronization still failed after retry");
   }
 }
 
@@ -155,9 +155,7 @@ async function loginWithRetry(client) {
         `🔌 Attempting to connect to Discord (attempt ${attempt}/${maxAttempts})...`,
       );
 
-      const configModule = await import("./config/config.js").catch(
-        () => null,
-      );
+      const configModule = await import("./config/config.js").catch(() => null);
       const config = configModule?.default || configModule || {};
       const token =
         config.discord?.token ||
@@ -182,7 +180,9 @@ async function loginWithRetry(client) {
       }
 
       logger.info("⏳ Waiting 5 seconds before retry...");
-      await new Promise(resolve => { setTimeout(resolve, 5000); });
+      await new Promise(resolve => {
+        setTimeout(resolve, 5000);
+      });
     }
   }
 }
@@ -209,7 +209,9 @@ async function main() {
     process.on("SIGTERM", shutdown);
     process.on("SIGINT", shutdown);
 
-    client.on("error", error => logger.error("❌ Discord client error:", error));
+    client.on("error", error =>
+      logger.error("❌ Discord client error:", error),
+    );
     client.on("disconnect", () =>
       logger.warn("⚠️ Discord client disconnected"),
     );

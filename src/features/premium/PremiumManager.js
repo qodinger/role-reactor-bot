@@ -579,10 +579,16 @@ export class PremiumManager {
   ) {
     // 1. Check if Guild Core Vault can cover renewal
     let vaultRenewed = false;
-    if (db.guildSettings && typeof db.guildSettings.getVaultData === "function") {
+    if (
+      db.guildSettings &&
+      typeof db.guildSettings.getVaultData === "function"
+    ) {
       const vaultData = await db.guildSettings.getVaultData(guildId);
       if (vaultData.balance >= feature.cost) {
-        const deductRes = await db.guildSettings.deductVaultCores(guildId, feature.cost);
+        const deductRes = await db.guildSettings.deductVaultCores(
+          guildId,
+          feature.cost,
+        );
         if (deductRes.success) {
           vaultRenewed = true;
         }
@@ -608,7 +614,9 @@ export class PremiumManager {
       });
 
       counts.renewed++;
-      logger.info(`✅ Renewed feature ${featureId} for guild ${guildId} using Guild Core Vault`);
+      logger.info(
+        `✅ Renewed feature ${featureId} for guild ${guildId} using Guild Core Vault`,
+      );
       return;
     }
 
@@ -682,7 +690,10 @@ export class PremiumManager {
   async depositToGuildVault(guildId, userId, amount, username = "Anonymous") {
     const roundedAmount = Math.round(amount * 100) / 100;
     if (roundedAmount <= 0) {
-      return { success: false, message: "Deposit amount must be greater than 0 Cores." };
+      return {
+        success: false,
+        message: "Deposit amount must be greater than 0 Cores.",
+      };
     }
 
     try {
@@ -703,9 +714,15 @@ export class PremiumManager {
       }
 
       // Deduct from user
-      const deducted = await db.coreCredits.updateCredits(userId, -roundedAmount);
+      const deducted = await db.coreCredits.updateCredits(
+        userId,
+        -roundedAmount,
+      );
       if (!deducted) {
-        return { success: false, message: "Failed to deduct Cores from your balance." };
+        return {
+          success: false,
+          message: "Failed to deduct Cores from your balance.",
+        };
       }
 
       // Deposit into Guild Vault
@@ -719,7 +736,10 @@ export class PremiumManager {
       if (!depositRes.success) {
         // Rollback user credits if vault deposit fails
         await db.coreCredits.updateCredits(userId, roundedAmount);
-        return { success: false, message: "Failed to update Guild Core Vault." };
+        return {
+          success: false,
+          message: "Failed to update Guild Core Vault.",
+        };
       }
 
       // Log transaction
@@ -742,7 +762,10 @@ export class PremiumManager {
         newVaultBalance: depositRes.newBalance,
       };
     } catch (error) {
-      logger.error(`Failed to deposit to Guild Vault for guild ${guildId}:`, error);
+      logger.error(
+        `Failed to deposit to Guild Vault for guild ${guildId}:`,
+        error,
+      );
       return { success: false, message: "An internal error occurred." };
     }
   }

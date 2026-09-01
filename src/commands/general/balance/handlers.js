@@ -234,7 +234,7 @@ async function handleSend(interaction) {
     }
 
     // 10% Deflationary Transfer Tax calculation
-    const taxAmount = Math.round(amount * 0.10 * 100) / 100;
+    const taxAmount = Math.round(amount * 0.1 * 100) / 100;
     const netAmount = Math.round((amount - taxAmount) * 100) / 100;
 
     const confirmEmbed = createSendConfirmationEmbed({
@@ -263,12 +263,12 @@ async function handleSend(interaction) {
 
     const message = await interaction.editReply({
       embeds: [confirmEmbed],
-      components: [(row)],
+      components: [row],
     });
 
     try {
       const confirmation = await message.awaitMessageComponent({
-        filter: (i) => {
+        filter: i => {
           if (i.user.id !== interaction.user.id) {
             i.reply({
               content: "You cannot confirm or cancel someone else's transfer.",
@@ -276,21 +276,29 @@ async function handleSend(interaction) {
             });
             return false;
           }
-          return i.customId === confirmCustomId || i.customId === cancelCustomId;
+          return (
+            i.customId === confirmCustomId || i.customId === cancelCustomId
+          );
         },
         time: 60000,
       });
 
       if (confirmation.customId === cancelCustomId) {
         await confirmation.update({
-          embeds: [createSendCancelledEmbed("You cancelled the Core transfer.", interaction.client)],
+          embeds: [
+            createSendCancelledEmbed(
+              "You cancelled the Core transfer.",
+              interaction.client,
+            ),
+          ],
           components: [],
         });
         return;
       }
 
       // Re-verify sender balance before executing transfer
-      const freshSenderData = await dbManager.coreCredits.getByUserId(senderUserId);
+      const freshSenderData =
+        await dbManager.coreCredits.getByUserId(senderUserId);
       const freshCredits = freshSenderData?.credits || 0;
       if (freshCredits < amount) {
         await confirmation.update({
@@ -330,7 +338,12 @@ async function handleSend(interaction) {
     } catch (_timeoutError) {
       // Handle 60s timeout
       await interaction.editReply({
-        embeds: [createSendCancelledEmbed("Confirmation timed out (60 seconds expired). No Cores were transferred.", interaction.client)],
+        embeds: [
+          createSendCancelledEmbed(
+            "Confirmation timed out (60 seconds expired). No Cores were transferred.",
+            interaction.client,
+          ),
+        ],
         components: [],
       });
     }

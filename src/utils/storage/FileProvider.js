@@ -608,7 +608,11 @@ export class FileProvider {
     return writeQueue.enqueue(filePath, async () => {
       const data = await this.read("core_credit");
       if (!data[userId]) {
-        data[userId] = { credits: 0, sparks: 0, lastUpdated: new Date().toISOString() };
+        data[userId] = {
+          credits: 0,
+          sparks: 0,
+          lastUpdated: new Date().toISOString(),
+        };
       }
       data[userId].credits = (data[userId].credits || 0) + creditsChange;
       data[userId].lastUpdated = new Date().toISOString();
@@ -621,7 +625,11 @@ export class FileProvider {
     return writeQueue.enqueue(filePath, async () => {
       const data = await this.read("core_credit");
       if (!data[userId]) {
-        data[userId] = { credits: 0, sparks: 0, lastUpdated: new Date().toISOString() };
+        data[userId] = {
+          credits: 0,
+          sparks: 0,
+          lastUpdated: new Date().toISOString(),
+        };
       }
       data[userId].sparks = (data[userId].sparks || 0) + sparksChange;
       data[userId].lastUpdated = new Date().toISOString();

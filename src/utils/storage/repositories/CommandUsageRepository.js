@@ -23,7 +23,11 @@ export class CommandUsageRepository extends BaseRepository {
    * @returns {Promise<void>}
    */
   async recordUsage(commandName, userId, guildId, duration) {
-    if (!commandName || typeof commandName !== "string" || !commandName.trim()) {
+    if (
+      !commandName ||
+      typeof commandName !== "string" ||
+      !commandName.trim()
+    ) {
       return;
     }
     try {
@@ -60,8 +64,13 @@ export class CommandUsageRepository extends BaseRepository {
         .find({ commandName: { $exists: true, $type: "string", $ne: "" } })
         .toArray();
       return stats
-        .filter((s) => s.commandName && typeof s.commandName === "string" && s.commandName.trim() !== "")
-        .map((s) => ({
+        .filter(
+          s =>
+            s.commandName &&
+            typeof s.commandName === "string" &&
+            s.commandName.trim() !== "",
+        )
+        .map(s => ({
           name: s.commandName,
           count: s.count || 0,
           avgDuration: s.count > 0 ? s.totalDuration / s.count : 0,

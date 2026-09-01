@@ -19,7 +19,10 @@ export class ReferralRepository extends BaseRepository {
     try {
       await this.collection.createIndex({ userId: 1 }, { unique: true });
       await this.collection.createIndex({ referralCode: 1 }, { unique: true });
-      await this.collection.createIndex({ "referrals.refereeId": 1 }, { unique: true, sparse: true });
+      await this.collection.createIndex(
+        { "referrals.refereeId": 1 },
+        { unique: true, sparse: true },
+      );
       this.logger.debug("ReferralRepository indexes ensured");
     } catch (error) {
       this.logger.warn("Failed to ensure ReferralRepository indexes", error);
@@ -42,7 +45,10 @@ export class ReferralRepository extends BaseRepository {
       const doc = await this.collection.findOne({ referralCode: code });
       return doc;
     } catch (error) {
-      this.logger.error(`Failed to get referral by code ${referralCode}`, error);
+      this.logger.error(
+        `Failed to get referral by code ${referralCode}`,
+        error,
+      );
       return null;
     }
   }
@@ -70,7 +76,12 @@ export class ReferralRepository extends BaseRepository {
         // Doc exists but has no referralCode — patch it in place
         await this.collection.updateOne(
           { userId },
-          { $set: { referralCode: newCode, updatedAt: new Date().toISOString() } }
+          {
+            $set: {
+              referralCode: newCode,
+              updatedAt: new Date().toISOString(),
+            },
+          },
         );
       } else {
         // Brand new user — create the full document
@@ -86,7 +97,7 @@ export class ReferralRepository extends BaseRepository {
         await this.collection.updateOne(
           { userId },
           { $setOnInsert: newDoc },
-          { upsert: true }
+          { upsert: true },
         );
       }
 
@@ -105,7 +116,10 @@ export class ReferralRepository extends BaseRepository {
       });
       return doc;
     } catch (error) {
-      this.logger.error(`Failed to find referral by refereeId ${refereeId}`, error);
+      this.logger.error(
+        `Failed to find referral by refereeId ${refereeId}`,
+        error,
+      );
       return null;
     }
   }
@@ -157,40 +171,62 @@ export class ReferralRepository extends BaseRepository {
         {
           $push: { referrals: newRefereeEntry },
           $set: { updatedAt: new Date().toISOString() },
-        }
+        },
       );
 
       if (result.matchedCount === 0) {
         // Document was matched by another concurrent request first
-        return { success: false, error: "You have already used a referral code." };
+        return {
+          success: false,
+          error: "You have already used a referral code.",
+        };
       }
 
       // Grant instant 25 Sparks welcome gift to referee
-      if (coreCreditsRepo && typeof coreCreditsRepo.updateSparks === "function") {
+      if (
+        coreCreditsRepo &&
+        typeof coreCreditsRepo.updateSparks === "function"
+      ) {
         try {
           await coreCreditsRepo.updateSparks(refereeId, 25);
         } catch (err) {
-          this.logger.error(`Failed to grant welcome sparks to referee ${refereeId}`, err);
+          this.logger.error(
+            `Failed to grant welcome sparks to referee ${refereeId}`,
+            err,
+          );
         }
       }
 
       return {
         success: true,
-        message: "Referral code applied! You received +25 Sparks ⚡ welcome bonus. Complete a purchase of $10+ for +10% bonus Cores!",
+        message:
+          "Referral code applied! You received +25 Sparks ⚡ welcome bonus. Complete a purchase of $10+ for +10% bonus Cores!",
         referrerUserId: referrerDoc.userId,
       };
     } catch (error) {
-      this.logger.error(`Failed to claim referral code ${referralCode} for referee ${refereeId}`, error);
+      this.logger.error(
+        `Failed to claim referral code ${referralCode} for referee ${refereeId}`,
+        error,
+      );
       return { success: false, error: "Internal server error." };
     }
   }
 
-
-  async processPurchaseBonus({ refereeId, paymentId, purchaseAmount, coresGranted, coreCreditsRepo, paymentRepo }) {
+  async processPurchaseBonus({
+    refereeId,
+    paymentId,
+    purchaseAmount,
+    coresGranted,
+    coreCreditsRepo,
+    paymentRepo,
+  }) {
     try {
       const MINIMUM_PURCHASE = 10; // $10 minimum
       if (purchaseAmount < MINIMUM_PURCHASE) {
-        return { processed: false, reason: "Purchase below minimum threshold of $10" };
+        return {
+          processed: false,
+          reason: "Purchase below minimum threshold of $10",
+        };
       }
 
       const referrerDoc = await this.findByRefereeId(refereeId);
@@ -199,7 +235,7 @@ export class ReferralRepository extends BaseRepository {
       }
 
       const refereeEntryIndex = referrerDoc.referrals.findIndex(
-        (r) => r.refereeId === refereeId
+        r => r.refereeId === refereeId,
       );
       if (refereeEntryIndex === -1) {
         return { processed: false, reason: "Referee record not found" };
@@ -208,7 +244,11 @@ export class ReferralRepository extends BaseRepository {
       const refereeEntry = referrerDoc.referrals[refereeEntryIndex];
 
       // Idempotency check: verify paymentId hasn't already been processed for this referral
-      if (paymentId && Array.isArray(refereeEntry.processedPayments) && refereeEntry.processedPayments.includes(paymentId)) {
+      if (
+        paymentId &&
+        Array.isArray(refereeEntry.processedPayments) &&
+        refereeEntry.processedPayments.includes(paymentId)
+      ) {
         return { processed: false, reason: "Payment bonus already processed" };
       }
 
@@ -216,9 +256,10 @@ export class ReferralRepository extends BaseRepository {
 
       // Calculate bonuses
       const REFERRER_RATE = 0.15; // 15% ongoing
-      const REFEREE_RATE = 0.10;  // 10% welcome bonus (1st purchase only)
+      const REFEREE_RATE = 0.1; // 10% welcome bonus (1st purchase only)
 
-      const referrerBonusCores = Math.round(coresGranted * REFERRER_RATE * 100) / 100;
+      const referrerBonusCores =
+        Math.round(coresGranted * REFERRER_RATE * 100) / 100;
       let refereeBonusCores = 0;
       if (isFirstPurchase) {
         refereeBonusCores = Math.round(coresGranted * REFEREE_RATE * 100) / 100;
@@ -226,7 +267,10 @@ export class ReferralRepository extends BaseRepository {
 
       // Grant Cores to Referrer
       if (referrerBonusCores > 0 && coreCreditsRepo) {
-        await coreCreditsRepo.updateCredits(referrerDoc.userId, referrerBonusCores);
+        await coreCreditsRepo.updateCredits(
+          referrerDoc.userId,
+          referrerBonusCores,
+        );
         if (paymentRepo) {
           await paymentRepo.createPayment({
             userId: referrerDoc.userId,
@@ -260,14 +304,20 @@ export class ReferralRepository extends BaseRepository {
 
       // Update Referral Document
       const now = new Date().toISOString();
-      const updatedTotalPurchased = (refereeEntry.totalPurchased || 0) + purchaseAmount;
-      const updatedReferrerBonus = (refereeEntry.referrerBonusEarned || 0) + referrerBonusCores;
-      const updatedRefereeBonus = (refereeEntry.refereeBonusEarned || 0) + refereeBonusCores;
+      const updatedTotalPurchased =
+        (refereeEntry.totalPurchased || 0) + purchaseAmount;
+      const updatedReferrerBonus =
+        (refereeEntry.referrerBonusEarned || 0) + referrerBonusCores;
+      const updatedRefereeBonus =
+        (refereeEntry.refereeBonusEarned || 0) + refereeBonusCores;
 
       const updateFields = {
-        [`referrals.${refereeEntryIndex}.totalPurchased`]: updatedTotalPurchased,
-        [`referrals.${refereeEntryIndex}.referrerBonusEarned`]: updatedReferrerBonus,
-        [`referrals.${refereeEntryIndex}.refereeBonusEarned`]: updatedRefereeBonus,
+        [`referrals.${refereeEntryIndex}.totalPurchased`]:
+          updatedTotalPurchased,
+        [`referrals.${refereeEntryIndex}.referrerBonusEarned`]:
+          updatedReferrerBonus,
+        [`referrals.${refereeEntryIndex}.refereeBonusEarned`]:
+          updatedRefereeBonus,
         [`referrals.${refereeEntryIndex}.status`]: "qualified",
         [`referrals.${refereeEntryIndex}.lastPurchaseAt`]: now,
         updatedAt: now,
@@ -290,11 +340,11 @@ export class ReferralRepository extends BaseRepository {
 
       await this.collection.updateOne(
         { userId: referrerDoc.userId },
-        updateOps
+        updateOps,
       );
 
       this.logger.info(
-        `REFERRAL_BONUS_PROCESSED: Referrer ${referrerDoc.userId} earned +${referrerBonusCores} Cores, Referee ${refereeId} earned +${refereeBonusCores} Cores for $${purchaseAmount} purchase.`
+        `REFERRAL_BONUS_PROCESSED: Referrer ${referrerDoc.userId} earned +${referrerBonusCores} Cores, Referee ${refereeId} earned +${refereeBonusCores} Cores for $${purchaseAmount} purchase.`,
       );
 
       return {
@@ -305,7 +355,10 @@ export class ReferralRepository extends BaseRepository {
         isFirstPurchase,
       };
     } catch (error) {
-      this.logger.error(`Error processing referral bonus for referee ${refereeId}:`, error);
+      this.logger.error(
+        `Error processing referral bonus for referee ${refereeId}:`,
+        error,
+      );
       return { processed: false, error: error.message };
     }
   }

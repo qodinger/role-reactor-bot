@@ -292,7 +292,11 @@ export function validateParams(schema) {
               }
             }
 
-            if (pattern && typeof value === "string" && !new RegExp(pattern).test(value)) {
+            if (
+              pattern &&
+              typeof value === "string" &&
+              !new RegExp(pattern).test(value)
+            ) {
               errors.push(`Parameter ${field} does not match required pattern`);
             }
 

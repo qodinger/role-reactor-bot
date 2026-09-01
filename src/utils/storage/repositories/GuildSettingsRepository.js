@@ -259,12 +259,16 @@ export class GuildSettingsRepository extends BaseRepository {
         { upsert: true, returnDocument: "after" },
       );
 
-      const newBalance = Math.round((result?.coreVault?.balance || roundedAmount) * 100) / 100;
+      const newBalance =
+        Math.round((result?.coreVault?.balance || roundedAmount) * 100) / 100;
       if (this.cache) this.cache.clear();
 
       return { success: true, newBalance };
     } catch (error) {
-      this.logger.error(`Failed to deposit vault cores for guild ${guildId}`, error);
+      this.logger.error(
+        `Failed to deposit vault cores for guild ${guildId}`,
+        error,
+      );
       return { success: false, newBalance: 0 };
     }
   }
@@ -292,14 +296,17 @@ export class GuildSettingsRepository extends BaseRepository {
         { returnDocument: "after" },
       );
 
-      const newBalance = Math.round((result?.coreVault?.balance || 0) * 100) / 100;
+      const newBalance =
+        Math.round((result?.coreVault?.balance || 0) * 100) / 100;
       if (this.cache) this.cache.clear();
 
       return { success: true, newBalance };
     } catch (error) {
-      this.logger.error(`Failed to deduct vault cores for guild ${guildId}`, error);
+      this.logger.error(
+        `Failed to deduct vault cores for guild ${guildId}`,
+        error,
+      );
       return { success: false, newBalance: 0 };
     }
   }
 }
-

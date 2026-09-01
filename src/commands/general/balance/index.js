@@ -25,7 +25,8 @@ export const metadata = {
     },
     {
       name: `What You Need`,
-      value: "• `/balance check` - No parameters\n• `/balance send` - Target user & amount of Cores",
+      value:
+        "• `/balance check` - No parameters\n• `/balance send` - Target user & amount of Cores",
       inline: false,
     },
     {
@@ -35,7 +36,8 @@ export const metadata = {
     },
     {
       name: `What You'll See`,
-      value: "Your Paid Cores & Reward Sparks balance, or send Cores to another user.",
+      value:
+        "Your Paid Cores & Reward Sparks balance, or send Cores to another user.",
       inline: false,
     },
   ],
@@ -60,7 +62,9 @@ export const data = new SlashCommandBuilder()
   .addSubcommand(subcommand =>
     subcommand
       .setName("send")
-      .setDescription("Send Paid Cores to another user (10% burn tax applies, Sparks cannot be sent)")
+      .setDescription(
+        "Send Paid Cores to another user (10% burn tax applies, Sparks cannot be sent)",
+      )
       .addUserOption(option =>
         option
           .setName("user")

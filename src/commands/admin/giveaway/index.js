@@ -63,8 +63,7 @@ export const metadata = {
     },
     {
       name: `Tier Limitations`,
-      value:
-        `Free Tier safely supports up to **${FREE_TIER.GIVEAWAY_MAX_ENTRIES.toLocaleString()} active entries**, **${FREE_TIER.GIVEAWAY_MAX_WINNERS} simultaneous Winners**, and **${FREE_TIER.GIVEAWAY_MAX_ACTIVE} Active Giveaways**. Upgrade to Pro Engine to safely host massive server events supporting **${PRO_TIER.GIVEAWAY_MAX_ENTRIES.toLocaleString()} Entries** and up to **${PRO_TIER.GIVEAWAY_MAX_WINNERS} simultaneous Winners** with automatic DMs!`,
+      value: `Free Tier safely supports up to **${FREE_TIER.GIVEAWAY_MAX_ENTRIES.toLocaleString()} active entries**, **${FREE_TIER.GIVEAWAY_MAX_WINNERS} simultaneous Winners**, and **${FREE_TIER.GIVEAWAY_MAX_ACTIVE} Active Giveaways**. Upgrade to Pro Engine to safely host massive server events supporting **${PRO_TIER.GIVEAWAY_MAX_ENTRIES.toLocaleString()} Entries** and up to **${PRO_TIER.GIVEAWAY_MAX_WINNERS} simultaneous Winners** with automatic DMs!`,
       inline: false,
     },
   ],

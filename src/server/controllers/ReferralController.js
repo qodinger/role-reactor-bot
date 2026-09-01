@@ -22,7 +22,7 @@ export async function apiGetUserReferral(req, res) {
       const { statusCode, response } = createErrorResponse(
         "Authentication required",
         401,
-        "User ID missing"
+        "User ID missing",
       );
       return res.status(statusCode).json(response);
     }
@@ -36,7 +36,7 @@ export async function apiGetUserReferral(req, res) {
       const { statusCode, response } = createErrorResponse(
         "Database error",
         500,
-        "Referral repository unavailable"
+        "Referral repository unavailable",
       );
       return res.status(statusCode).json(response);
     }
@@ -45,11 +45,13 @@ export async function apiGetUserReferral(req, res) {
 
     const totalInvites = doc.referrals ? doc.referrals.length : 0;
     const qualifiedInvites = doc.referrals
-      ? doc.referrals.filter((r) => r.status === "qualified").length
+      ? doc.referrals.filter(r => r.status === "qualified").length
       : 0;
 
-    const referralsList = (doc.referrals || []).map((ref) => ({
-      refereeIdMasked: ref.refereeId ? `${ref.refereeId.slice(0, 4)}...${ref.refereeId.slice(-4)}` : "Unknown",
+    const referralsList = (doc.referrals || []).map(ref => ({
+      refereeIdMasked: ref.refereeId
+        ? `${ref.refereeId.slice(0, 4)}...${ref.refereeId.slice(-4)}`
+        : "Unknown",
       status: ref.status,
       totalPurchased: ref.totalPurchased || 0,
       referrerBonusEarned: ref.referrerBonusEarned || 0,
@@ -79,7 +81,7 @@ export async function apiGetUserReferral(req, res) {
     const { statusCode, response } = createErrorResponse(
       "Failed to get referral information",
       500,
-      error.message
+      error.message,
     );
     return res.status(statusCode).json(response);
   }
@@ -101,7 +103,7 @@ export async function apiClaimReferralCode(req, res) {
       const { statusCode, response } = createErrorResponse(
         "Authentication required",
         401,
-        "User ID missing"
+        "User ID missing",
       );
       return res.status(statusCode).json(response);
     }
@@ -110,7 +112,7 @@ export async function apiClaimReferralCode(req, res) {
       const { statusCode, response } = createErrorResponse(
         "Invalid referral code",
         400,
-        "Code is required"
+        "Code is required",
       );
       return res.status(statusCode).json(response);
     }
@@ -124,18 +126,22 @@ export async function apiClaimReferralCode(req, res) {
       const { statusCode, response } = createErrorResponse(
         "Database error",
         500,
-        "Referral repository unavailable"
+        "Referral repository unavailable",
       );
       return res.status(statusCode).json(response);
     }
 
-    const result = await dbManager.referrals.claimCode(userId, code.trim(), dbManager.coreCredits);
+    const result = await dbManager.referrals.claimCode(
+      userId,
+      code.trim(),
+      dbManager.coreCredits,
+    );
 
     if (!result.success) {
       const { statusCode, response } = createErrorResponse(
         result.error || "Failed to claim referral code",
         400,
-        result.error
+        result.error,
       );
       return res.status(statusCode).json(response);
     }
@@ -144,14 +150,14 @@ export async function apiClaimReferralCode(req, res) {
       createSuccessResponse({
         message: result.message,
         referrerUserId: result.referrerUserId,
-      })
+      }),
     );
   } catch (error) {
     logger.error("❌ Error claiming referral code:", error);
     const { statusCode, response } = createErrorResponse(
       "Failed to claim referral code",
       500,
-      error.message
+      error.message,
     );
     return res.status(statusCode).json(response);
   }

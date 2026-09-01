@@ -154,7 +154,8 @@ export function createVaultEmbed({ guild, vaultData, client }) {
     const contributorTotals = {};
     for (const entry of history) {
       const name = entry.username || "Anonymous";
-      contributorTotals[name] = (contributorTotals[name] || 0) + (entry.amount || 0);
+      contributorTotals[name] =
+        (contributorTotals[name] || 0) + (entry.amount || 0);
     }
 
     const sortedSponsors = Object.entries(contributorTotals)
@@ -163,7 +164,8 @@ export function createVaultEmbed({ guild, vaultData, client }) {
 
     const sponsorList = sortedSponsors
       .map(([name, amount], index) => {
-        const medal = index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : "🎖️";
+        const medal =
+          index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : "🎖️";
         return `${medal} **${name}**: ${amount.toFixed(2)} Cores`;
       })
       .join("\n");
@@ -176,7 +178,8 @@ export function createVaultEmbed({ guild, vaultData, client }) {
   } else {
     embed.addFields({
       name: "🏆 Top Community Sponsors",
-      value: "No contributions yet. Be the first to fuel this server with `/engine fuel`!",
+      value:
+        "No contributions yet. Be the first to fuel this server with `/engine fuel`!",
       inline: false,
     });
   }
@@ -206,10 +209,7 @@ export function createFuelConfirmationEmbed({
     .setColor(THEME.PRIMARY)
     .setTitle(`${EMOJIS.ENGINE.CONFIRM} Confirm Guild Vault Fueling`)
     .setAuthor(
-      UI_COMPONENTS.createAuthor(
-        user.username,
-        user.displayAvatarURL(),
-      ),
+      UI_COMPONENTS.createAuthor(user.username, user.displayAvatarURL()),
     )
     .setDescription(
       `Deposit **${amount.toFixed(2)} Cores ${coreEmoji}** into the **${guild.name}** Guild Vault?`,
@@ -258,10 +258,7 @@ export function createFuelCancelledEmbed(user, client) {
     .setColor(THEME.SECONDARY)
     .setTitle(`${EMOJIS.STATUS.ERROR} Fueling Cancelled`)
     .setAuthor(
-      UI_COMPONENTS.createAuthor(
-        user.username,
-        user.displayAvatarURL(),
-      ),
+      UI_COMPONENTS.createAuthor(user.username, user.displayAvatarURL()),
     )
     .setDescription("No Cores were deducted from your personal balance.")
     .setTimestamp()
@@ -282,7 +279,13 @@ export function createFuelCancelledEmbed(user, client) {
  * @param {number} params.newVaultBalance
  * @param {import("discord.js").Client} params.client
  */
-export function createFuelSuccessEmbed({ guild, user, amount, newVaultBalance, client }) {
+export function createFuelSuccessEmbed({
+  guild,
+  user,
+  amount,
+  newVaultBalance,
+  client,
+}) {
   const weeksFunded = (newVaultBalance / 20).toFixed(1);
   const coreEmoji = emojiConfig.core;
 
@@ -290,10 +293,7 @@ export function createFuelSuccessEmbed({ guild, user, amount, newVaultBalance, c
     .setColor(THEME.SUCCESS)
     .setTitle(`${EMOJIS.ENGINE.SUCCESS} Guild Vault Fueled!`)
     .setAuthor(
-      UI_COMPONENTS.createAuthor(
-        user.username,
-        user.displayAvatarURL(),
-      ),
+      UI_COMPONENTS.createAuthor(user.username, user.displayAvatarURL()),
     )
     .setDescription(
       `**${user.username}** deposited **${amount.toFixed(2)} Cores ${coreEmoji}** into the Guild Core Reserve for **${guild.name}**!`,

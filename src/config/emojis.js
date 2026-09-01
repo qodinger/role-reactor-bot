@@ -52,7 +52,11 @@ class EmojiConfig {
    */
   get(name, fallback = "✨") {
     const formatted = this.customEmojis[name];
-    if (formatted && !formatted.includes(":undefined>") && !formatted.includes(":>")) {
+    if (
+      formatted &&
+      !formatted.includes(":undefined>") &&
+      !formatted.includes(":>")
+    ) {
       return formatted;
     }
     return fallback;

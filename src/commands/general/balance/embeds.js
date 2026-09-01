@@ -202,9 +202,7 @@ export function createErrorEmbed(title, description, avatarURL) {
     .setTitle(`${EMOJIS.STATUS.ERROR} ${title}`)
     .setDescription(description)
     .setTimestamp()
-    .setFooter(
-      UI_COMPONENTS.createFooter("Balance Command Error", avatarURL),
-    );
+    .setFooter(UI_COMPONENTS.createFooter("Balance Command Error", avatarURL));
 }
 
 /**
