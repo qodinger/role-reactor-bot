@@ -91,7 +91,7 @@ export const TOOL_DEFINITIONS = [
     function: {
       name: "web_search",
       description:
-        "Search the web for real-time or current information. Use when the user asks about something that may have changed recently, current events, or when you're unsure about up-to-date facts.",
+        "Search the web for real-time or current information. Use when the user asks about something that may have changed recently, current events, or when you're unsure about up-to-date facts. For profile or site-specific lookups (e.g. a user's GitHub, a project docs page), use a site: filter in the query like 'site:github.com <name>'.",
       parameters: {
         type: "object",
         properties: {

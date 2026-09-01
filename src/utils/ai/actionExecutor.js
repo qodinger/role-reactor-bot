@@ -749,7 +749,7 @@ export class ActionExecutor {
   }
 
   /**
-   * Search the web: self-hosted SearXNG first, Serper.dev (Google SERP) fallback.
+   * Search the web: Serper.dev (real Google) first, self-hosted SearXNG fallback.
    * @param {Object} action
    * @returns {Promise<string>}
    */
@@ -803,90 +803,99 @@ export class ActionExecutor {
     const serperKey = process.env.SERPER_API_KEY;
 
     if (!searxngUrl && !serperKey) {
-      return "Web search is not configured (set SEARXNG_URL or SERPER_API_KEY)";
+      return "Web search is not configured (set SERPER_API_KEY or SEARXNG_URL)";
     }
 
-    // Primary: self-hosted SearXNG (no quota, no key)
-    if (searxngUrl) {
+    // Quality-first order: Serper = real Google SERP (correct rankings, cheap);
+    // SearXNG = free but scraping-based, so it misses obvious #1 hits.
+    const engines = [];
+    if (serperKey)
+      engines.push({ name: "Serper", run: ActionExecutor.searchViaSerper });
+    if (searxngUrl)
+      engines.push({ name: "SearXNG", run: ActionExecutor.searchViaSearxng });
+
+    let lastError = "no engines configured";
+    for (const engine of engines) {
       try {
-        const url = new URL(searxngUrl);
-        url.searchParams.set("q", query);
-        url.searchParams.set("format", "json");
-        url.searchParams.set("categories", "general");
-
-        const response = await fetch(url.toString(), {
-          headers: { Accept: "application/json" },
-          signal: AbortSignal.timeout(10_000),
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          const results = (data.results || [])
-            .filter(r => r.title && r.url)
-            .slice(0, count);
-
-          if (results.length) {
-            const formatted = results
-              .map((r, i) =>
-                `${i + 1}. **${r.title}**\n   ${r.url}\n   ${r.content ?? ""}`.trim(),
-              )
-              .join("\n\n");
-            logger.debug(`[web_search] SearXNG: ${results.length} result(s)`);
-            return `Data: Web search results for "${query}":\n\n${formatted}`;
-          }
-          logger.debug("[web_search] SearXNG returned no results");
-        } else {
-          logger.warn(
-            `[web_search] SearXNG HTTP ${response.status} — trying Serper fallback`,
+        const results = await engine.run(query, count);
+        if (results.length > 0) {
+          const formatted = results
+            .map((r, i) =>
+              `${i + 1}. **${r.title}**\n   ${r.url}\n   ${r.snippet ?? ""}`.trim(),
+            )
+            .join("\n\n");
+          logger.debug(
+            `[web_search] ${engine.name}: ${results.length} result(s)`,
           );
+          return `Data: Web search results for "${query}":\n\n${formatted}`;
         }
+        lastError = "no results";
+        logger.debug(
+          `[web_search] ${engine.name}: no results, trying next engine`,
+        );
       } catch (err) {
+        lastError = err.message;
         logger.warn(
-          `[web_search] SearXNG error (${err.message}) — trying Serper fallback`,
+          `[web_search] ${engine.name} error (${err.message}) — trying next engine`,
         );
       }
     }
 
-    // Fallback (or primary): Serper.dev — Google SERP API
-    if (!serperKey) {
-      return `No web results found for: "${query}"`;
+    return `Web search unavailable for "${query}" (${lastError}). Tell the user you could not check the web right now — do NOT fabricate results.`;
+  }
+
+  /**
+   * Serper.dev — real Google SERP. Returns [{title, url, snippet}].
+   * @param {string} query
+   * @param {number} count
+   */
+  static async searchViaSerper(query, count) {
+    const response = await fetch("https://google.serper.dev/search", {
+      method: "POST",
+      headers: {
+        "X-API-KEY": process.env.SERPER_API_KEY,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ q: query, num: count }),
+      signal: AbortSignal.timeout(10_000),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
     }
 
-    try {
-      const response = await fetch("https://google.serper.dev/search", {
-        method: "POST",
-        headers: {
-          "X-API-KEY": serperKey,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ q: query, num: count }),
-        signal: AbortSignal.timeout(10_000),
-      });
+    const data = await response.json();
+    return (data.organic || [])
+      .filter(r => r.title && r.link)
+      .slice(0, count)
+      .map(r => ({ title: r.title, url: r.link, snippet: r.snippet }));
+  }
 
-      if (!response.ok) {
-        return `Web search failed: HTTP ${response.status}`;
-      }
+  /**
+   * SearXNG — self-hosted metasearch (free, degraded ranking).
+   * @param {string} query
+   * @param {number} count
+   */
+  static async searchViaSearxng(query, count) {
+    const url = new URL(process.env.SEARXNG_URL);
+    url.searchParams.set("q", query);
+    url.searchParams.set("format", "json");
+    url.searchParams.set("categories", "general");
 
-      const data = await response.json();
-      const webResults = (data.organic || [])
-        .filter(r => r.title && r.link)
-        .slice(0, count);
+    const response = await fetch(url.toString(), {
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(10_000),
+    });
 
-      if (!webResults.length) {
-        return `No web results found for: "${query}"`;
-      }
-
-      const formatted = webResults
-        .map((r, i) =>
-          `${i + 1}. **${r.title}**\n   ${r.link}\n   ${r.snippet ?? ""}`.trim(),
-        )
-        .join("\n\n");
-
-      return `Data: Web search results for "${query}":\n\n${formatted}`;
-    } catch (err) {
-      logger.warn(`[web_search] Serper error: ${err.message}`);
-      return `Web search error: ${err.message}`;
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
     }
+
+    const data = await response.json();
+    return (data.results || [])
+      .filter(r => r.title && r.url)
+      .slice(0, count)
+      .map(r => ({ title: r.title, url: r.url, snippet: r.content }));
   }
 
   /**

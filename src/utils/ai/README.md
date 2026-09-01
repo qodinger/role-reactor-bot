@@ -26,7 +26,7 @@ messageCreate (@mention / reply)                 chatService.generateResponse(St
            ├─ execute_command     ── commandExecutor runs the slash command
            │                         via mock interaction (permissions enforced here)
            ├─ show_component      ── Discord buttons/select, waits for choice
-           └─ web_search          ── SearXNG (SEARXNG_URL) → Serper.dev fallback
+           └─ web_search          ── Serper.dev (real Google) → SearXNG fallback
 ```
 
 **Security model: the model proposes, code disposes.** Tool calls are validated by `actionRegistry.js`, permission-checked in `actionExecutor.js` / `commandExecutor/commandValidator.js` (admin commands need admin perms + a ✅ confirmation button; `AI_ADMIN_COMMAND_BLOCKLIST` is never executable). The LLM has no authority of its own.
@@ -70,8 +70,8 @@ Feature/provider config lives in **`src/config/ai.js`** (`getAIModels()`), not `
 ```env
 OPENROUTER_API_KEY=...        # chat + text (required for AI chat)
 STABILITY_API_KEY=...         # safe image generation
-SERPER_API_KEY=...            # web_search fallback (Google SERP via serper.dev)
-SEARXNG_URL=http://searxng:8080/search  # web_search primary (self-hosted, see docker-compose.prod.yml)
+SERPER_API_KEY=...            # web_search primary (real Google SERP via serper.dev)
+SEARXNG_URL=http://searxng:8080/search  # web_search fallback (self-hosted, see docker-compose.prod.yml)
 SEARXNG_SECRET=...            # random secret for the searxng container
 RUNPOD_ENABLED=true RUNPOD_API_KEY=... RUNPOD_ENDPOINT_ID=...   # optional NSFW images
 CIVITAI_ENABLED=true CIVITAI_API_KEY=...                        # optional NSFW images
