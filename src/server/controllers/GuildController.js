@@ -247,6 +247,9 @@ export async function apiGetGuildSettings(req, res) {
             period: proSubscription.period,
             lastDeductionDate:
               proSubscription.lastDeductionDate || proSubscription.activatedAt,
+            isTrial: !!proSubscription.isTrial,
+            trialUsed: !!proSubscription.trialUsed,
+            trialEndsAt: proSubscription.trialEndsAt || null,
           }
         : null,
       availableCommands: commandDetails,
