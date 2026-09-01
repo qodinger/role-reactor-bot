@@ -170,6 +170,16 @@ export const ACTION_REGISTRY = {
     requiredOptions: ["query"],
     description: "Search the web for current information",
   },
+  fetch_page: {
+    type: "fetch_page",
+    category: ACTION_CATEGORIES.WEB,
+    requiresGuild: false,
+    triggersReQuery: true,
+    requiresOptions: true,
+    requiredOptions: ["url"],
+    description:
+      "Fetch a public web page and return its readable text (SSRF-guarded)",
+  },
 
   // ============================================================================
   // COMMAND EXECUTION

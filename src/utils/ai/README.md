@@ -27,6 +27,8 @@ messageCreate (@mention / reply)                 chatService.generateResponse(St
            │                         via mock interaction (permissions enforced here)
            ├─ show_component      ── Discord buttons/select, waits for choice
            └─ web_search          ── Serper.dev (real Google) → SearXNG fallback
+           └─ fetch_page          ── read a URL's text (SSRF-guarded: no
+                                      private IPs/metadata/localhost hops)
 ```
 
 **Security model: the model proposes, code disposes.** Tool calls are validated by `actionRegistry.js`, permission-checked in `actionExecutor.js` / `commandExecutor/commandValidator.js` (admin commands need admin perms + a ✅ confirmation button; `AI_ADMIN_COMMAND_BLOCKLIST` is never executable). The LLM has no authority of its own.

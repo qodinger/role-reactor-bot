@@ -113,6 +113,25 @@ export const TOOL_DEFINITIONS = [
   {
     type: "function",
     function: {
+      name: "fetch_page",
+      description:
+        "Fetch a web page by URL and return its readable text content. Use AFTER web_search when a snippet is not enough — e.g. 'read this page', 'what does their site say', summarizing docs/articles the user linked. Cannot read pages that require login or render everything in JavaScript.",
+      parameters: {
+        type: "object",
+        properties: {
+          url: {
+            type: "string",
+            description:
+              "Absolute http(s) URL of the page to read (e.g. https://example.com/about).",
+          },
+        },
+        required: ["url"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "fetch_channels",
       description:
         "Refresh the server's channel list from Discord API. Use when the channel data in context may be stale.",

@@ -84,7 +84,9 @@ export async function processActionsAndReQuery(
     try {
       // Show what the tools are about to do (slow web/data steps)
       const typeSet = new Set(currentActions.map(a => a.type));
-      if (typeSet.has("web_search")) {
+      if (typeSet.has("fetch_page")) {
+        await emitStatus(AI_STATUS_MESSAGES.READING_PAGE);
+      } else if (typeSet.has("web_search")) {
         await emitStatus(AI_STATUS_MESSAGES.SEARCHING_WEB);
       } else if (
         ["fetch_channels", "fetch_roles", "fetch_all"].some(t => typeSet.has(t))

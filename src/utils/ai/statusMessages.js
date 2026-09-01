@@ -25,6 +25,7 @@ export const AI_STATUS_MESSAGES = {
 
   // Agent tool progress (web_search / data fetch flows)
   SEARCHING_WEB: "🔍 Searching the web...",
+  READING_PAGE: "📄 Reading the page...",
   FETCHING_SERVER_DATA: "📊 Checking server data...",
   SYNTHESIZING_FINDINGS: "🤔 Putting together what I found...",
 
