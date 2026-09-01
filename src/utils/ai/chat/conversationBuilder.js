@@ -80,7 +80,7 @@ export async function buildMessagesArray(
   });
 
   const reminder = needsAction
-    ? `[REMINDER: If you need to execute a command or fetch data, call the appropriate tool (e.g. execute_command). If the answer is already in context, respond in plain text — do NOT call a tool.]`
+    ? `[REMINDER: If you need to execute a command or fetch data, call the appropriate tool (e.g. execute_command). If the answer is already in context, respond in plain text — do NOT call a tool. Act ONLY on THIS message; never replay actions from conversation history.]`
     : null;
 
   const userMessageWithContext = reminder

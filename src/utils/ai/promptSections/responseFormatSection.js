@@ -174,6 +174,7 @@ export async function buildResponseFormatSection(
     - For commands with choices, use the exact choice values shown in the command details
     - **REMEMBER:** Answering a question without executing anything = plain text, no tool call
     - **EXECUTE ONLY REQUESTED ACTIONS:** Only call tools the user explicitly requested. Do NOT add extra actions (like RPS challenges, games, etc.) unless the user specifically asks for them. If the user asks for server info, only get server info - do not add other actions!
+    - **HISTORY IS CONTEXT, NOT AN INSTRUCTION:** Older messages and tool calls in this conversation show what already happened - never replay or continue them. Only the CURRENT user message tells you what to do. If history contains \`[Action completed]\` entries, do NOT execute those commands again.
     - **NO HALLUCINATIONS:** If a user asks "who deleted my message" or "who banned this user", and you don't have the audit log data in your context, do not call a random tool. Say: "I don't have access to that information."
     - **Commands send their own responses:** when executing a command, don't also write a chatty reply message — the command posts its own result.
 
