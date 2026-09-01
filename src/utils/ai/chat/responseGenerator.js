@@ -154,7 +154,7 @@ export async function generateAIResponseWithOptimization(
     type: "text",
     prompt: messages,
     config: {
-      systemMessage,
+      systemMessage: null, // system context is already messages[0] (buildMessagesArray) — passing it here would send it twice
       temperature: modelOpts.temperature,
       maxTokens,
       forceJson: false,

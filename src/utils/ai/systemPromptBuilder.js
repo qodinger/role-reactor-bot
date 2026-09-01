@@ -174,8 +174,6 @@ export class SystemPromptBuilder {
           userMessage.toLowerCase().includes("who") ||
           userMessage.toLowerCase().includes("list") ||
           userMessage.toLowerCase().includes("people") ||
-          userMessage.toLowerCase().includes("is ") ||
-          userMessage.toLowerCase().includes("was ") ||
           userMessage.toLowerCase().includes("whose") ||
           userMessage.toLowerCase().includes("users") ||
           userMessage.toLowerCase().includes("offline") ||
@@ -245,6 +243,16 @@ export class SystemPromptBuilder {
         ${botInfo}
 
       `;
+
+      // Cache ONLY the role-level base. Requester info, conversation mode,
+      // server info and command sections are request-scoped and must be
+      // rebuilt every call — caching them caused the prompt to be sent
+      // duplicated (stale + fresh) for up to 5 minutes.
+      this.systemMessageCache.set(cacheKey, {
+        content: context,
+        timestamp: Date.now(),
+      });
+      this.limitSystemCacheSize();
     } else {
       // Update date/time in cached context
       const now = new Date();
@@ -651,16 +659,6 @@ export class SystemPromptBuilder {
     `;
 
     context += guidelinesSection;
-
-    // Cache the system message
-    if (!baseContext) {
-      // Only cache if we built it fresh (not from cache)
-      this.systemMessageCache.set(cacheKey, {
-        content: context,
-        timestamp: Date.now(),
-      });
-      this.limitSystemCacheSize();
-    }
 
     return context;
   }

@@ -59,7 +59,7 @@ async function buildDynamicActionsList(guild, client, permissions = {}) {
       const executableCommands = await getExecutableCommands(client);
       if (executableCommands.length > 0) {
         actionsList += `- "execute_command" — command, subcommand (optional), options (optional)\n`;
-        actionsList += `  Available commands: ${executableCommands.map(c => `/${c.name}`).join(", ")}\n`;
+        actionsList += `  (The commands allowed for the current user are listed in the "Your Capabilities" section.)\n`;
         actionsList += `  **CRITICAL:** NEVER execute "chat" — you are already inside that command. Just respond in plain text.\n`;
       }
     } catch (_error) {
@@ -83,7 +83,7 @@ async function generateCommandExample(client) {
     );
     const executableCommands = await getExecutableCommands(client);
     if (executableCommands.length > 0) {
-      return `You can call the \`execute_command\` tool with any of: ${executableCommands.map(c => `/${c.name}`).join(", ")}. Provide the command name, optional subcommand, and an options object with ALL required options.`;
+      return `Use the \`execute_command\` tool for allowed commands (listed in "Your Capabilities"), with the command name, optional subcommand, and an options object containing ALL required options.`;
     }
   } catch (_error) {
     // Ignore
