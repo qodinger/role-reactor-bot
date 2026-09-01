@@ -41,7 +41,7 @@ export class TicketPanelRepository extends BaseRepository {
         panelId: panelData.panelId,
         guildId: panelData.guildId,
 
-        messageId: panelData.messageId || null,
+        ...(panelData.messageId ? { messageId: panelData.messageId } : {}),
         channelId: panelData.channelId || null,
 
         title: panelData.title || "Support Tickets",
