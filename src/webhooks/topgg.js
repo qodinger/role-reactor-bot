@@ -11,6 +11,9 @@ import crypto from "crypto";
 
 const logger = getLogger();
 
+// Guards against concurrent retroactive reward claims (missed-webhook self-heal)
+const claimingVoteRewards = new Set();
+
 // Get webhook secret from environment
 const WEBHOOK_SECRET = process.env.TOPGG_WEBHOOK_AUTH;
 
@@ -410,7 +413,7 @@ async function checkTopggVoteApi(userId, botId) {
       {
         headers: { Authorization: token },
         signal: AbortSignal.timeout(5000), // 5s timeout
-      }
+      },
     );
     if (!res.ok) return null;
     const data = /** @type {{ voted: number }} */ (await res.json());
@@ -436,12 +439,39 @@ export async function getVoteStatus(userId) {
     // Query DB and top.gg API in parallel for best performance
     const [dbResult, topggVoted] = await Promise.all([
       getDatabaseManager().then(db =>
-        db.coreCredits?.collection.findOne({ userId })
+        db.coreCredits?.collection.findOne({ userId }),
       ),
       checkTopggVoteApi(userId, BOT_ID),
     ]);
 
-    const userCredits = dbResult;
+    let userCredits = dbResult;
+
+    // Self-heal missed webhooks: top.gg says the user voted within the last 12h,
+    // but our DB shows no reward was credited for that window. Credit it now.
+    if (topggVoted === true) {
+      const timeSinceLastVote = userCredits?.lastVote
+        ? Date.now() - userCredits.lastVote
+        : Infinity;
+      if (timeSinceLastVote >= COOLDOWN_MS && !claimingVoteRewards.has(userId)) {
+        claimingVoteRewards.add(userId);
+        try {
+          logger.info(
+            `🩹 top.gg: Retroactively crediting missed vote reward for ${userId}`,
+          );
+          await processVote({ user: userId, username: null }, null);
+          userCredits = await getDatabaseManager().then(db =>
+            db.coreCredits?.collection.findOne({ userId }),
+          );
+        } catch (healError) {
+          logger.error(
+            `❌ top.gg: Retroactive vote reward failed for ${userId}: ${healError.message}`,
+          );
+        } finally {
+          claimingVoteRewards.delete(userId);
+        }
+      }
+    }
+
     const totalVotes = userCredits?.totalVotes || 0;
     const lastVote = userCredits?.lastVote ?? null;
 
@@ -449,16 +479,14 @@ export async function getVoteStatus(userId) {
     const isStreakActive = userCredits?.lastVote
       ? Date.now() - userCredits.lastVote <= STREAK_WINDOW_MS
       : false;
-    const voteStreak = isStreakActive ? (userCredits?.voteStreak || 0) : 0;
+    const voteStreak = isStreakActive ? userCredits?.voteStreak || 0 : 0;
 
     // top.gg API is authoritative for whether the user has voted in the 12h window
     if (topggVoted !== null) {
       const hasVoted = topggVoted;
       const canVote = !hasVoted;
       const nextVote =
-        canVote || !lastVote
-          ? null
-          : new Date(lastVote + COOLDOWN_MS);
+        canVote || !lastVote ? null : new Date(lastVote + COOLDOWN_MS);
 
       return {
         hasVoted,
