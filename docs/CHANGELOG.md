@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dual-Balance Economy**: Earn **Sparks** ⚡ through voting, referrals, and activity; purchase **Cores** for premium features. Two separate currencies make it clear which rewards are earned vs. purchased.
 - **Core Gifting**: Transfer Cores to members using `/core gift` (a 10% transfer tax applies). Share your premium currency with your community and watch engagement grow.
 - **Referral System**: Invite new members and earn rewards when they join. Grow your server while earning credits—a win-win referral flow.
+- **Ticket Management Dashboard**: Build and manage ticket panels from the web dashboard—create, edit, and refresh panels, organize category buttons, and configure staff roles, transcript channels, auto-close, and ticket messages without leaving the browser.
+- **Goodbye System Dashboard**: Configure goodbye messages, channels, and settings from the web dashboard with the same ease as the welcome system.
 
 ### Changed
 
@@ -534,7 +536,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Role categories and organization.
 - Comprehensive error handling and rate limiting.
 
-[Unreleased]: https://github.com/rolereactor/bot/compare/v1.7.1...HEAD
+[Unreleased]: https://github.com/rolereactor/bot/compare/v1.8.0...HEAD
+[1.8.0]: https://github.com/rolereactor/bot/compare/v1.7.1...v1.8.0
 [1.7.1]: https://github.com/rolereactor/bot/compare/v1.7.0...v1.7.1
 [1.7.0]: https://github.com/rolereactor/bot/compare/v1.6.3...v1.7.0
 [1.6.3]: https://github.com/rolereactor/bot/compare/v1.6.2...v1.6.3
