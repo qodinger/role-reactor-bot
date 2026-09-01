@@ -135,6 +135,18 @@ export async function handleTicketCreate(interaction, customId) {
       });
     }
 
+    if (panel.settings?.enabled === false) {
+      return interaction.editReply({
+        embeds: [
+          createErrorEmbed(
+            "This ticket panel is currently disabled. Please try again later or contact an administrator.",
+            "Panel Disabled",
+            interaction.client,
+          ),
+        ],
+      });
+    }
+
     // Get next ticket number from atomic counter (peek only, actual increment happens in TicketManager.createTicket)
     const settings =
       await ticketManager.storage.dbManager.guildSettings.getByGuild(guildId);
