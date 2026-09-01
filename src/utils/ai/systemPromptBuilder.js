@@ -113,7 +113,7 @@ export class SystemPromptBuilder {
     guild,
     client,
     userMessage = "",
-    locale = "en-US",
+    _locale = "en-US",
     requester = null,
     options = {},
   ) {
@@ -215,23 +215,10 @@ export class SystemPromptBuilder {
       const contextSection = this.buildContextSection(guild);
       const botInfo = await serverInfoGatherer.getBotInfo(client);
 
-      // Add user-specific date/time if locale provided
-      const now = new Date();
-      const userDateTime = now.toLocaleString(locale, {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        hour: "numeric",
-        minute: "numeric",
-        second: "numeric",
-        timeZoneName: "short",
-      });
-
+      // NOTE: no date/time here — it lives in each user message (per-user
+      // locale) and a changing prefix would break DeepSeek prompt caching.
       context = dedent`
         # Role Reactor Bot
-
-        [Current Date and Time for User: ${userDateTime}]
 
         ${responseFormat}
 
@@ -253,23 +240,6 @@ export class SystemPromptBuilder {
         timestamp: Date.now(),
       });
       this.limitSystemCacheSize();
-    } else {
-      // Update date/time in cached context
-      const now = new Date();
-      const userDateTime = now.toLocaleString(locale, {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        hour: "numeric",
-        minute: "numeric",
-        second: "numeric",
-        timeZoneName: "short",
-      });
-      context = context.replace(
-        /\[Current Date and Time for User: .*?\]/,
-        `[Current Date and Time for User: ${userDateTime}]`,
-      );
     }
 
     // Add requester information if available (for commands that need to target the requester)
