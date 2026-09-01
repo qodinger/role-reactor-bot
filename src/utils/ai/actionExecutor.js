@@ -7,7 +7,11 @@ import {
 } from "discord.js";
 import { getLogger } from "../logger.js";
 import dns from "node:dns/promises";
+import dnsCb from "node:dns";
 import net from "node:net";
+import http from "node:http";
+import https from "node:https";
+import axios from "axios";
 import {
   ACTION_CATEGORIES,
   getActionConfig,
@@ -934,9 +938,43 @@ export class ActionExecutor {
   }
 
   /**
+   * Only allow default ports — blocks poking at internal services on :3030, :8080, etc.
+   */
+  static isAllowedPort(url) {
+    return url.port === "" || url.port === "80" || url.port === "443";
+  }
+
+  /**
+   * HTTP(S) agents that re-check every resolved address AT CONNECT TIME.
+   * This closes the DNS-rebinding gap: a pre-flight check could pass with a
+   * public record and the real connection could resolve to 127.0.0.1 — the
+   * guarded lookup runs inside the actual socket connect, so it cannot be
+   * raced.
+   */
+  static createGuardedAgents() {
+    const guardedLookup = (hostname, options, callback) => {
+      // NOTE: callback-style dns (node:dns) — dns/promises ignores the
+      // callback and would hang the socket connect forever.
+      dnsCb.lookup(hostname, options, (err, address, family) => {
+        if (err) return callback(err);
+        const list = Array.isArray(address) ? address : [{ address, family }];
+        if (list.some(a => ActionExecutor.isPrivateAddress(a.address))) {
+          return callback(new Error("SSRF_BLOCKED: private address"));
+        }
+        callback(null, address, family);
+      });
+    };
+    return {
+      httpAgent: new http.Agent({ lookup: guardedLookup }),
+      httpsAgent: new https.Agent({ lookup: guardedLookup }),
+    };
+  }
+
+  /**
    * Fetch a public web page and return readable text (max ~6k chars).
-   * Guards: http(s) only, DNS-resolved addresses must be public,
-   * manual redirect walk (max 3) with same check per hop, size-capped body.
+   * Guards: http(s) on default ports only, private-range rejection at
+   * pre-flight AND at socket connect (anti DNS-rebinding), manual redirect
+   * walk (max 3, all guards re-applied per hop), 512KB body cap.
    */
   static async executeFetchPage(action) {
     const rawUrl = action.options?.url;
@@ -951,9 +989,13 @@ export class ActionExecutor {
     if (!["http:", "https:"].includes(current.protocol)) {
       return "fetch_page: only http(s) URLs are allowed";
     }
+    if (!ActionExecutor.isAllowedPort(current)) {
+      return "fetch_page: only standard web ports (80/443) are allowed";
+    }
 
     const MAX_HOPS = 3;
     const MAX_BODY_BYTES = 512_000;
+    const agents = ActionExecutor.createGuardedAgents();
     let res = null;
     let finalUrl = current;
 
@@ -961,24 +1003,45 @@ export class ActionExecutor {
       const blocked = await ActionExecutor.assertPublicHost(finalUrl);
       if (blocked) {
         logger.warn(
-          `[fetch_page] Blocked request to private/internal host: ${finalUrl.hostname}`,
+          `[fetch_page] Blocked request to private/internal host: ${finalUrl.hostname} (${blocked})`,
         );
         return "fetch_page: that address is not publicly reachable and was blocked for safety.";
       }
+      if (!ActionExecutor.isAllowedPort(finalUrl)) {
+        return "fetch_page: redirect to a non-standard port was blocked";
+      }
 
-      res = await fetch(finalUrl.toString(), {
-        redirect: "manual",
-        headers: {
-          "User-Agent":
-            "RoleReactorBot/1.8 (+https://rolereactor.xyz) link-unfurling",
-          Accept: "text/html,application/xhtml+xml,text/plain;q=0.9",
-        },
-        signal: AbortSignal.timeout(10_000),
-      }).catch(err => {
+      try {
+        res = await axios.get(finalUrl.toString(), {
+          timeout: 10_000,
+          maxRedirects: 0, // we walk redirects ourselves to re-run every guard
+          responseType: "text",
+          transitional: { silentJSONParsing: false },
+          maxContentLength: MAX_BODY_BYTES,
+          maxBodyLength: MAX_BODY_BYTES,
+          httpAgent: agents.httpAgent,
+          httpsAgent: agents.httpsAgent,
+          headers: {
+            "User-Agent":
+              "RoleReactorBot/1.8 (+https://rolereactor.xyz) link-unfurling",
+            Accept: "text/html,application/xhtml+xml,text/plain;q=0.9",
+          },
+          validateStatus: () => true,
+        });
+      } catch (err) {
+        if (String(err.message).includes("SSRF_BLOCKED")) {
+          logger.warn(
+            `[fetch_page] DNS-rebinding block at connect time for ${finalUrl.hostname}`,
+          );
+          return "fetch_page: that address resolved to a private/internal host and was blocked.";
+        }
+        if (err.code === "ERR_FR_MAX_CONTENT_LENGTH_EXCEEDED") {
+          return "fetch_page: page is too large to read";
+        }
         throw new Error(`fetch failed: ${err.message}`);
-      });
+      }
 
-      const location = res.headers.get("location");
+      const location = res.headers["location"];
       if ([301, 302, 303, 307, 308].includes(res.status) && location) {
         if (hop === MAX_HOPS) return "fetch_page: too many redirects";
         finalUrl = new URL(location, finalUrl);
@@ -990,17 +1053,19 @@ export class ActionExecutor {
       break;
     }
 
-    const contentType = res.headers.get("content-type") || "";
-    if (!res.ok) {
+    const contentType = res.headers["content-type"] || "";
+    if (res.status < 200 || res.status >= 300) {
       return `Web page fetch failed: HTTP ${res.status}. The page may need login or may not exist.`;
     }
     if (!/text\/html|text\/plain|application\/xhtml/.test(contentType)) {
       return `fetch_page: unsupported content type (${contentType.split(";")[0] || "unknown"}) — only HTML/text pages can be read.`;
     }
 
-    // Size-capped read
-    const text = await ActionExecutor.readBodyCapped(res, MAX_BODY_BYTES);
-    const readable = ActionExecutor.htmlToText(text);
+    const body =
+      typeof res.data === "string"
+        ? res.data
+        : Buffer.from(res.data ?? "").toString("utf8");
+    const readable = ActionExecutor.htmlToText(body);
     if (!readable) {
       return `Page at ${finalUrl.toString()} has no readable text content (likely a JavaScript-rendered page).`;
     }
@@ -1035,25 +1100,6 @@ export class ActionExecutor {
     } catch {
       return "DNS lookup failed";
     }
-  }
-
-  static async readBodyCapped(res, maxBytes) {
-    if (!res.body) return "";
-    const reader = res.body.getReader();
-    const chunks = [];
-    let total = 0;
-    while (total < maxBytes) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      chunks.push(value);
-      total += value.length;
-    }
-    try {
-      reader.cancel().catch(() => {});
-    } catch {
-      /* ignore */
-    }
-    return Buffer.concat(chunks.map(c => Buffer.from(c))).toString("utf8");
   }
 
   /** Minimal HTML → readable text (no deps). */
