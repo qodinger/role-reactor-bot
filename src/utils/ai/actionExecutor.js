@@ -798,12 +798,59 @@ export class ActionExecutor {
     // Log every search for audit purposes
     logger.info(`[web_search] Query: "${query}"`);
 
-    const apiKey = process.env.BRAVE_SEARCH_API_KEY;
-    if (!apiKey) {
-      return "Web search is not configured (BRAVE_SEARCH_API_KEY not set)";
+    const count = Math.min(parseInt(action.options?.count ?? 5, 10), 10);
+    const searxngUrl = process.env.SEARXNG_URL;
+    const braveKey = process.env.BRAVE_SEARCH_API_KEY;
+
+    if (!searxngUrl && !braveKey) {
+      return "Web search is not configured (set SEARXNG_URL or BRAVE_SEARCH_API_KEY)";
     }
 
-    const count = Math.min(parseInt(action.options?.count ?? 5, 10), 10);
+    // Primary: self-hosted SearXNG (no quota, no key)
+    if (searxngUrl) {
+      try {
+        const url = new URL(searxngUrl);
+        url.searchParams.set("q", query);
+        url.searchParams.set("format", "json");
+        url.searchParams.set("categories", "general");
+
+        const response = await fetch(url.toString(), {
+          headers: { Accept: "application/json" },
+          signal: AbortSignal.timeout(10_000),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const results = (data.results || [])
+            .filter(r => r.title && r.url)
+            .slice(0, count);
+
+          if (results.length) {
+            const formatted = results
+              .map((r, i) =>
+                `${i + 1}. **${r.title}**\n   ${r.url}\n   ${r.content ?? ""}`.trim(),
+              )
+              .join("\n\n");
+            logger.debug(`[web_search] SearXNG: ${results.length} result(s)`);
+            return `Data: Web search results for "${query}":\n\n${formatted}`;
+          }
+          logger.debug("[web_search] SearXNG returned no results");
+        } else {
+          logger.warn(
+            `[web_search] SearXNG HTTP ${response.status} — trying Brave fallback`,
+          );
+        }
+      } catch (err) {
+        logger.warn(
+          `[web_search] SearXNG error (${err.message}) — trying Brave fallback`,
+        );
+      }
+    }
+
+    // Fallback (or primary): Brave Search API
+    if (!braveKey) {
+      return `No web results found for: "${query}"`;
+    }
 
     try {
       const url = new URL("https://api.search.brave.com/res/v1/web/search");
@@ -815,7 +862,7 @@ export class ActionExecutor {
         headers: {
           Accept: "application/json",
           "Accept-Encoding": "gzip",
-          "X-Subscription-Token": apiKey,
+          "X-Subscription-Token": braveKey,
         },
         signal: AbortSignal.timeout(10_000),
       });

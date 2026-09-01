@@ -12,12 +12,43 @@ services:
       - .env.production
     environment:
       - NODE_ENV=production
+      - SEARXNG_URL=http://searxng:8080/search
     ports:
       - "127.0.0.1:3030:3030"
     # Port is exposed locally to the host for Nginx to proxy to
     networks:
       - role-reactor-prod
     # Healthcheck is defined in the Dockerfile
+    depends_on:
+      - searxng
+
+  # SearXNG — self-hosted metasearch for the AI web_search tool.
+  # Internal network only: no host port mapping, so it is unreachable
+  # from outside the docker network (the bot talks to it via http://searxng:8080).
+  searxng:
+    image: searxng/searxng:latest
+    container_name: role-reactor-searxng
+    restart: unless-stopped
+    volumes:
+      - ./searxng:/etc/searxng:rw
+    environment:
+      - SEARXNG_BASE_URL=http://localhost:8080/
+      - SEARXNG_SECRET=${SEARXNG_SECRET:-change-me-in-env}
+    expose:
+      - "8080"
+    networks:
+      - role-reactor-prod
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 
 networks:
