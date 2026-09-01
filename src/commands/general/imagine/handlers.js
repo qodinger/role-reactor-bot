@@ -411,18 +411,24 @@ export async function handleImagineCommand(interaction, _client) {
       });
     }
 
-    // Add regenerate button
-    const { ActionRowBuilder } = await import("discord.js");
-    const components = [
-      new ActionRowBuilder().addComponents(
-        createRegenerateButton(currentAspectRatio).components[0],
-      ),
-    ];
+    // Add regenerate button + dashboard link button
+    const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = await import(
+      "discord.js"
+    );
+    const regenerateRow = new ActionRowBuilder().addComponents(
+      createRegenerateButton(currentAspectRatio).components[0],
+    );
+    const dashboardRow = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setLabel("More Image Tools")
+        .setURL("https://rolereactor.xyz/dashboard/image-tools")
+        .setStyle(ButtonStyle.Link),
+    );
 
     await interaction.editReply({
       embeds: [successEmbed],
       files: [attachment],
-      components,
+      components: [regenerateRow, dashboardRow],
     });
 
     logger.info(
