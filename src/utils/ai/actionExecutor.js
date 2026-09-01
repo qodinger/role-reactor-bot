@@ -749,7 +749,7 @@ export class ActionExecutor {
   }
 
   /**
-   * Search the web via Brave Search API.
+   * Search the web: self-hosted SearXNG first, Serper.dev (Google SERP) fallback.
    * @param {Object} action
    * @returns {Promise<string>}
    */
@@ -800,10 +800,10 @@ export class ActionExecutor {
 
     const count = Math.min(parseInt(action.options?.count ?? 5, 10), 10);
     const searxngUrl = process.env.SEARXNG_URL;
-    const braveKey = process.env.BRAVE_SEARCH_API_KEY;
+    const serperKey = process.env.SERPER_API_KEY;
 
-    if (!searxngUrl && !braveKey) {
-      return "Web search is not configured (set SEARXNG_URL or BRAVE_SEARCH_API_KEY)";
+    if (!searxngUrl && !serperKey) {
+      return "Web search is not configured (set SEARXNG_URL or SERPER_API_KEY)";
     }
 
     // Primary: self-hosted SearXNG (no quota, no key)
@@ -837,33 +837,29 @@ export class ActionExecutor {
           logger.debug("[web_search] SearXNG returned no results");
         } else {
           logger.warn(
-            `[web_search] SearXNG HTTP ${response.status} — trying Brave fallback`,
+            `[web_search] SearXNG HTTP ${response.status} — trying Serper fallback`,
           );
         }
       } catch (err) {
         logger.warn(
-          `[web_search] SearXNG error (${err.message}) — trying Brave fallback`,
+          `[web_search] SearXNG error (${err.message}) — trying Serper fallback`,
         );
       }
     }
 
-    // Fallback (or primary): Brave Search API
-    if (!braveKey) {
+    // Fallback (or primary): Serper.dev — Google SERP API
+    if (!serperKey) {
       return `No web results found for: "${query}"`;
     }
 
     try {
-      const url = new URL("https://api.search.brave.com/res/v1/web/search");
-      url.searchParams.set("q", query);
-      url.searchParams.set("count", String(count));
-      url.searchParams.set("result_filter", "web");
-
-      const response = await fetch(url.toString(), {
+      const response = await fetch("https://google.serper.dev/search", {
+        method: "POST",
         headers: {
-          Accept: "application/json",
-          "Accept-Encoding": "gzip",
-          "X-Subscription-Token": braveKey,
+          "X-API-KEY": serperKey,
+          "Content-Type": "application/json",
         },
+        body: JSON.stringify({ q: query, num: count }),
         signal: AbortSignal.timeout(10_000),
       });
 
@@ -872,7 +868,9 @@ export class ActionExecutor {
       }
 
       const data = await response.json();
-      const webResults = data?.web?.results ?? [];
+      const webResults = (data.organic || [])
+        .filter(r => r.title && r.link)
+        .slice(0, count);
 
       if (!webResults.length) {
         return `No web results found for: "${query}"`;
@@ -880,13 +878,13 @@ export class ActionExecutor {
 
       const formatted = webResults
         .map((r, i) =>
-          `${i + 1}. **${r.title}**\n   ${r.url}\n   ${r.description ?? ""}`.trim(),
+          `${i + 1}. **${r.title}**\n   ${r.link}\n   ${r.snippet ?? ""}`.trim(),
         )
         .join("\n\n");
 
       return `Data: Web search results for "${query}":\n\n${formatted}`;
     } catch (err) {
-      logger.warn(`[web_search] Error: ${err.message}`);
+      logger.warn(`[web_search] Serper error: ${err.message}`);
       return `Web search error: ${err.message}`;
     }
   }

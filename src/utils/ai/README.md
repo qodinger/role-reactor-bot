@@ -26,27 +26,27 @@ messageCreate (@mention / reply)                 chatService.generateResponse(St
            ├─ execute_command     ── commandExecutor runs the slash command
            │                         via mock interaction (permissions enforced here)
            ├─ show_component      ── Discord buttons/select, waits for choice
-           └─ web_search          ── Brave API (BRAVE_SEARCH_API_KEY)
+           └─ web_search          ── SearXNG (SEARXNG_URL) → Serper.dev fallback
 ```
 
 **Security model: the model proposes, code disposes.** Tool calls are validated by `actionRegistry.js`, permission-checked in `actionExecutor.js` / `commandExecutor/commandValidator.js` (admin commands need admin perms + a ✅ confirmation button; `AI_ADMIN_COMMAND_BLOCKLIST` is never executable). The LLM has no authority of its own.
 
 ## Key Modules
 
-| Module | Role |
-|---|---|
-| `chatService.js` | Orchestrator: credits, context, generation, actions |
-| `chat/` | Split logic: `actionHandler` (loop + re-query), `responseGenerator`, `responseProcessor` (legacy JSON fallback parser), `conversationBuilder`, `streamingHelpers`, `preparationHelpers` |
-| `multiProviderAIService.js` + `providers/` | Feature-based provider routing (OpenRouter text/images, Stability, RunPod, Civitai) |
-| `toolDefinitions.js` | Native tool schemas (OpenAI format) + `translateToolCallsToActions` |
-| `actionRegistry.js` | Single source of truth for actions: category, guild requirement, `triggersReQuery`, options validation |
-| `actionExecutor.js` | Executes actions with permission gating; `DATA_RETRIEVE` runs in parallel |
-| `commandExecutor/` | Programmatic slash-command execution via `mockInteraction.js` |
-| `systemPromptBuilder.js` + `promptSections/` + `src/config/prompts/chat/` | Prompt assembly |
-| `commandDiscoverer.js` | Discovers commands/options for prompts; detects mentioned commands for on-demand injection |
-| `conversationManager.js` + `memory/` | History + rolling summaries (see Storage) |
-| `aiCreditManager.js`, `costMonitor.js`, `pricingService.js`, `dynamicPricing.js` | Core-credit billing per API call |
-| `concurrencyManager.js` | Per-user request queue |
+| Module                                                                           | Role                                                                                                                                                                                    |
+| -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `chatService.js`                                                                 | Orchestrator: credits, context, generation, actions                                                                                                                                     |
+| `chat/`                                                                          | Split logic: `actionHandler` (loop + re-query), `responseGenerator`, `responseProcessor` (legacy JSON fallback parser), `conversationBuilder`, `streamingHelpers`, `preparationHelpers` |
+| `multiProviderAIService.js` + `providers/`                                       | Feature-based provider routing (OpenRouter text/images, Stability, RunPod, Civitai)                                                                                                     |
+| `toolDefinitions.js`                                                             | Native tool schemas (OpenAI format) + `translateToolCallsToActions`                                                                                                                     |
+| `actionRegistry.js`                                                              | Single source of truth for actions: category, guild requirement, `triggersReQuery`, options validation                                                                                  |
+| `actionExecutor.js`                                                              | Executes actions with permission gating; `DATA_RETRIEVE` runs in parallel                                                                                                               |
+| `commandExecutor/`                                                               | Programmatic slash-command execution via `mockInteraction.js`                                                                                                                           |
+| `systemPromptBuilder.js` + `promptSections/` + `src/config/prompts/chat/`        | Prompt assembly                                                                                                                                                                         |
+| `commandDiscoverer.js`                                                           | Discovers commands/options for prompts; detects mentioned commands for on-demand injection                                                                                              |
+| `conversationManager.js` + `memory/`                                             | History + rolling summaries (see Storage)                                                                                                                                               |
+| `aiCreditManager.js`, `costMonitor.js`, `pricingService.js`, `dynamicPricing.js` | Core-credit billing per API call                                                                                                                                                        |
+| `concurrencyManager.js`                                                          | Per-user request queue                                                                                                                                                                  |
 
 ## Memory / Storage
 
@@ -70,7 +70,9 @@ Feature/provider config lives in **`src/config/ai.js`** (`getAIModels()`), not `
 ```env
 OPENROUTER_API_KEY=...        # chat + text (required for AI chat)
 STABILITY_API_KEY=...         # safe image generation
-BRAVE_SEARCH_API_KEY=...      # web_search tool (empty = tool reports "not configured")
+SERPER_API_KEY=...            # web_search fallback (Google SERP via serper.dev)
+SEARXNG_URL=http://searxng:8080/search  # web_search primary (self-hosted, see docker-compose.prod.yml)
+SEARXNG_SECRET=...            # random secret for the searxng container
 RUNPOD_ENABLED=true RUNPOD_API_KEY=... RUNPOD_ENDPOINT_ID=...   # optional NSFW images
 CIVITAI_ENABLED=true CIVITAI_API_KEY=...                        # optional NSFW images
 
@@ -86,7 +88,7 @@ AI_AUDIT_LOGGING=false            # [AI_AUDIT] log lines (on by default)
 ## Adding a New Action/Tool (checklist)
 
 1. Add entry to `ACTION_REGISTRY` (`actionRegistry.js`) — category + `triggersReQuery` + required options.
-2. Add matching schema to `TOOL_DEFINITIONS` (`toolDefinitions.js`) — keep descriptions *when-to-use* style.
+2. Add matching schema to `TOOL_DEFINITIONS` (`toolDefinitions.js`) — keep descriptions _when-to-use_ style.
 3. Implement in `actionExecutor.js` — `executeDataRetrieveAction` for parallel lookups, `executeSequentialAction` for everything with side effects. **Permission-check here, never trust the model.**
 4. If it maps to a bot command, prefer `execute_command` over a bespoke action.
 5. Update `translateToolCallsToActions` if the argument shape is special.
@@ -100,6 +102,6 @@ AI_AUDIT_LOGGING=false            # [AI_AUDIT] log lines (on by default)
 ## Gotchas
 
 - Prompt bloat: never add per-second/per-request dynamic content to the system prompt base — it breaks DeepSeek prefix caching (date/time lives in the user message for this reason).
-- The legacy JSON `{message, actions}` path (`responseProcessor.js`) is a *fallback* only; new models should rely on tool calls.
+- The legacy JSON `{message, actions}` path (`responseProcessor.js`) is a _fallback_ only; new models should rely on tool calls.
 - System prompt sent exactly once: it lives in `messages[0]` (buildMessagesArray); providers must not receive it again via `config.systemMessage` on the main path.
 - `entry points`: chat is mention-based; `/chat` and `/imagine` commands are intentionally `disabled = true`.

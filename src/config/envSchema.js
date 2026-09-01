@@ -131,7 +131,7 @@ const envSchema = z
 
     // ── AI API Keys ───────────────────────────────────────────
     OPENROUTER_API_KEY: z.string().optional(),
-    BRAVE_SEARCH_API_KEY: z.string().optional(),
+    SERPER_API_KEY: z.string().optional(),
     STABILITY_API_KEY: z.string().optional(),
     RUNPOD_API_KEY: z.string().optional(),
     RUNPOD_ENDPOINT_ID: z.string().optional(),
