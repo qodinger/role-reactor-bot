@@ -1,6 +1,6 @@
 /**
- * Formal tool definitions for Claude models (OpenAI-compatible format used by OpenRouter).
- * When passed to the API, Claude uses structured tool_use instead of outputting raw JSON,
+ * Formal tool definitions for tool-calling models (OpenAI-compatible format used by OpenRouter).
+ * When passed to the API, the model uses structured tool_calls instead of outputting raw JSON,
  * which eliminates the fragile JSON-parsing / regex-fallback path.
  */
 
@@ -219,6 +219,42 @@ export const TOOL_DEFINITIONS = [
           },
         },
       },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_role_reaction_messages",
+      description:
+        "List role reaction messages in this server (returns message_id values needed by role-reactions update/delete commands).",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_scheduled_roles",
+      description:
+        "List pending scheduled role assignments (returns schedule_id values needed by view/cancel operations).",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_polls",
+      description:
+        "List active polls in this server (returns poll_id values needed by poll end/delete commands).",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_moderation_history",
+      description:
+        "List recent moderation cases (returns case_id values needed by remove-warn). Requires moderator permissions.",
+      parameters: { type: "object", properties: {} },
     },
   },
 ];

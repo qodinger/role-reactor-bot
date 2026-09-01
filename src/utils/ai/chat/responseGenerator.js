@@ -3,7 +3,6 @@ import { getLogger } from "../../logger.js";
 import { AI_STATUS_MESSAGES } from "../statusMessages.js";
 import {
   TOOL_DEFINITIONS,
-  isClaudeModel,
   translateToolCallsToActions,
 } from "../toolDefinitions.js";
 
@@ -146,9 +145,10 @@ export async function generateAIResponseWithOptimization(
     `[AI] Request ${requestId}: ${messages.length} messages, ${JSON.stringify(messages).length} chars`,
   );
 
-  // Pass tool definitions for Claude models so the AI uses structured tool_use
+  // Pass tool definitions for all models so the AI uses structured tool_calls
   // instead of outputting raw JSON — eliminates silent JSON-parsing failures.
-  const tools = isClaudeModel(currentModel) ? TOOL_DEFINITIONS : undefined;
+  // The JSON-in-text path remains as fallback for models that ignore tools.
+  const tools = TOOL_DEFINITIONS;
 
   const result = await aiService.generate({
     type: "text",
@@ -194,7 +194,7 @@ export async function processAIResponse(
   let actions;
 
   if (result.toolCalls && result.toolCalls.length > 0) {
-    // Structured tool_use path (Claude models via OpenRouter) — no JSON parsing needed
+    // Structured tool_calls path (tool-calling models via OpenRouter) — no JSON parsing needed
     logger.debug(
       `[AI] tool_use response: ${result.toolCalls.length} tool call(s) for user ${userId || "unknown"}`,
     );

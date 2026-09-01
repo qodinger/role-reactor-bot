@@ -10,7 +10,7 @@ import { THEME, UI_COMPONENTS } from "../../../config/theme.js";
 
 const logger = getLogger();
 
-export const disabled = true;
+export const disabled = false;
 
 // ============================================================================
 // COMMAND METADATA
@@ -31,7 +31,7 @@ export const metadata = {
     {
       name: "What it does",
       value:
-        "Wipes the shared AI conversation history for this channel. The next `/chat` message starts a fresh session. Has no effect in DMs (DM sessions are already per-user).",
+        "Wipes the shared AI conversation history for this channel. The next @-mention of the bot starts a fresh session. Has no effect in DMs (DM sessions are already per-user).",
       inline: false,
     },
     {
@@ -74,7 +74,7 @@ export async function execute(interaction) {
           .setColor(THEME.SUCCESS)
           .setTitle("🗑️ Conversation Reset")
           .setDescription(
-            "The AI conversation history for this channel has been cleared.\nThe next `/chat` message will start a fresh session.",
+            "The AI conversation history for this channel has been cleared.\nThe next @-mention of me will start a fresh session.",
           )
           .setFooter(
             UI_COMPONENTS.createFooter(

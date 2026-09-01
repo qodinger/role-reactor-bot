@@ -273,9 +273,10 @@ export class ActionExecutor {
    * Execute a single DATA_RETRIEVE action. Used for parallel execution.
    * @param {Object} action
    * @param {import('discord.js').Guild} guild
+   * @param {import('discord.js').User} user
    * @returns {Promise<string>} Result string
    */
-  static async executeDataRetrieveAction(action, guild) {
+  static async executeDataRetrieveAction(action, guild, user) {
     if (!guild) return `${action.type} requires a server context`;
 
     try {
@@ -313,6 +314,91 @@ export class ActionExecutor {
             )
             .join("\n");
           return `Found: ${members.length} member(s) with that role:\n${list}`;
+        }
+        case "get_role_reaction_messages": {
+          const { getDatabaseManager } = await import(
+            "../storage/databaseManager.js"
+          );
+          const db = await getDatabaseManager();
+          const allMappings = await db.roleMappings.getAll();
+          const mappings = Object.entries(allMappings || {}).filter(
+            ([, m]) => m.guildId === guild.id,
+          );
+          if (!mappings.length)
+            return "No role reaction messages in this server";
+          const list = mappings
+            .slice(0, 25)
+            .map(([messageId, m]) => {
+              const roleNames = Object.values(m.roles || {})
+                .flat()
+                .map(r => (typeof r === "object" ? (r.roleId ?? r.id) : r))
+                .join(", ");
+              return `- message_id: ${messageId}, channel_id: ${m.channelId}${roleNames ? `, roles: ${roleNames}` : ""}`;
+            })
+            .join("\n");
+          return `Found: ${mappings.length} role reaction message(s):\n${list}`;
+        }
+        case "get_scheduled_roles": {
+          const { getDatabaseManager } = await import(
+            "../storage/databaseManager.js"
+          );
+          const db = await getDatabaseManager();
+          const schedules = await db.scheduledRoles.getByGuild(guild.id);
+          const entries = Object.entries(schedules || {}).filter(
+            ([, s]) => !s.executed && s.status !== "cancelled",
+          );
+          if (!entries.length)
+            return "No pending scheduled roles in this server";
+          const list = entries
+            .slice(0, 25)
+            .map(([id, s]) => {
+              const when = s.startTime || s.scheduledAt || s.time || "unknown";
+              return `- schedule_id: ${id}, role_id: ${s.roleId ?? "unknown"}, user_id: ${s.userId ?? s.targetUserId ?? "unknown"}, starts: ${new Date(when).toString ? new Date(when).toString() : when}`;
+            })
+            .join("\n");
+          return `Found: ${entries.length} pending schedule(s):\n${list}`;
+        }
+        case "get_polls": {
+          const { getDatabaseManager } = await import(
+            "../storage/databaseManager.js"
+          );
+          const db = await getDatabaseManager();
+          const polls = await db.polls.getByGuild(guild.id);
+          const entries = Object.entries(polls || {}).filter(
+            ([, p]) => !p.ended && !p.deleted,
+          );
+          if (!entries.length) return "No active polls in this server";
+          const list = entries
+            .slice(0, 25)
+            .map(([id, p]) => {
+              const question = String(p.question || p.description || "")
+                .substring(0, 80)
+                .replace(/\n/g, " ");
+              return `- poll_id: ${id}, message_id: ${p.messageId ?? "unknown"}, question: "${question}"`;
+            })
+            .join("\n");
+          return `Found: ${entries.length} active poll(s):\n${list}`;
+        }
+        case "get_moderation_history": {
+          if (!(await ActionExecutor.hasModOrAdminPermissions(user, guild))) {
+            return "Error: get_moderation_history requires moderator or administrator permissions.";
+          }
+          const { getDatabaseManager } = await import(
+            "../storage/databaseManager.js"
+          );
+          const db = await getDatabaseManager();
+          const logs = await db.moderationLogs.getByGuild(guild.id);
+          if (!logs?.length) return "No moderation history for this server";
+          const list = logs
+            .slice(0, 25)
+            .map(l => {
+              const ts = l.timestamp
+                ? new Date(l.timestamp).toISOString().slice(0, 10)
+                : "unknown";
+              return `- case_id: ${l.caseId ?? l._id}, action: ${l.action}, user: ${l.userId}, moderator: ${l.moderatorId ?? "unknown"}, date: ${ts}, reason: ${String(l.reason || "none").substring(0, 80)}`;
+            })
+            .join("\n");
+          return `Found: ${logs.length} case(s) (latest ${Math.min(logs.length, 25)} shown):\n${list}`;
         }
         default:
           return `Unknown DATA_RETRIEVE action: ${action.type}`;
@@ -390,6 +476,7 @@ export class ActionExecutor {
           results[index] = await ActionExecutor.executeDataRetrieveAction(
             action,
             guild,
+            user,
           );
         }),
       );
@@ -412,7 +499,13 @@ export class ActionExecutor {
       }
     }
 
-    return { results: results.filter(r => r !== null), commandResponses: [] };
+    // Keep results index-aligned with actions (callers zip actions↔results)
+    return {
+      results: results.map(
+        (r, i) => r ?? `Action ${actions[i]?.type ?? i} produced no result`,
+      ),
+      commandResponses: [],
+    };
   }
 
   /**

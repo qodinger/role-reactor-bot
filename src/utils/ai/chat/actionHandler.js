@@ -1,5 +1,9 @@
 import { actionExecutor } from "../actionExecutor.js";
 import { actionTriggersReQuery } from "../actionRegistry.js";
+import {
+  TOOL_DEFINITIONS,
+  translateToolCallsToActions,
+} from "../toolDefinitions.js";
 import { systemPromptBuilder } from "../systemPromptBuilder.js";
 import { conversationManager } from "../conversationManager.js";
 import { checkAICredits } from "../aiCreditManager.js";
@@ -60,54 +64,81 @@ export async function processActionsAndReQuery(
   const { guild, client, user, channel, userId, guildId } = context;
   const { addToHistory } = services;
 
-  let actionResults = [];
+  let currentActions = actions;
+  let response = finalResponse;
+  let responseSuppressed = false;
+  let depth = 0;
 
-  if (actions.length === 0 || !guild) {
-    return { finalResponse, responseSuppressed: false };
-  }
+  while (currentActions.length > 0 && guild) {
+    try {
+      // Execute actions and collect results (results stay index-aligned with actions)
+      const actionResult = await executeStructuredActions(
+        currentActions,
+        guild,
+        client,
+        user,
+        channel,
+      );
+      const results = actionResult.results;
 
-  try {
-    // Execute actions and collect results
-    const actionResult = await executeStructuredActions(
-      actions,
-      guild,
-      client,
-      user,
-      channel,
-    );
-    actionResults = actionResult.results;
+      const reQueryActions = [];
+      const reQueryResults = [];
+      const otherActions = [];
+      const otherResults = [];
+      currentActions.forEach((a, i) => {
+        if (actionTriggersReQuery(a.type)) {
+          reQueryActions.push(a);
+          reQueryResults.push(results[i]);
+        } else {
+          otherActions.push(a);
+          otherResults.push(results[i]);
+        }
+      });
 
-    // Check if any actions trigger re-query
-    const fetchActions = actions.filter(a => actionTriggersReQuery(a.type));
+      // Process non-re-query actions (commands, read-only data) in this iteration
+      if (otherActions.length > 0) {
+        const sub = await processNonFetchActions(
+          otherActions,
+          otherResults,
+          response,
+          userId,
+          guildId,
+          addToHistory,
+        );
+        response = sub.finalResponse;
+        responseSuppressed = sub.responseSuppressed;
+      }
 
-    if (fetchActions.length > 0) {
-      // Execute re-query with updated context
+      if (reQueryActions.length === 0) {
+        return { finalResponse: response, responseSuppressed };
+      }
+
+      // Loop guard: stop re-querying once the configured depth is exhausted
+      if (depth >= MAX_ACTION_LOOP_DEPTH) {
+        logger.warn(
+          `[processActionsAndReQuery] ⚠️ Max action loop depth (${MAX_ACTION_LOOP_DEPTH}) reached; further re-query actions are ignored.`,
+        );
+        return { finalResponse: response, responseSuppressed };
+      }
+      depth++;
+
+      // Re-query with updated context; continue looping with any new actions
       const reQueryResult = await executeReQuery(
-        fetchActions,
-        actionResults,
-        finalResponse,
+        reQueryActions,
+        reQueryResults,
+        response,
         context,
         services,
       );
-      return {
-        finalResponse: reQueryResult.finalResponse,
-        responseSuppressed: false,
-      };
-    } else {
-      // Process non-fetch actions
-      return await processNonFetchActions(
-        actions,
-        actionResults,
-        finalResponse,
-        userId,
-        guildId,
-        addToHistory,
-      );
+      response = reQueryResult.finalResponse;
+      currentActions = reQueryResult.actions || [];
+    } catch (error) {
+      logger.error("Error executing structured actions:", error);
+      return { finalResponse: response, responseSuppressed };
     }
-  } catch (error) {
-    logger.error("Error executing structured actions:", error);
-    return { finalResponse, responseSuppressed: false };
   }
+
+  return { finalResponse: response, responseSuppressed };
 }
 
 /**
@@ -117,7 +148,7 @@ export async function processActionsAndReQuery(
  * @param {string} finalResponse - Current AI response
  * @param {Object} context - Context object
  * @param {Object} services - Services object
- * @returns {Promise<{finalResponse: string}>}
+ * @returns {Promise<{finalResponse: string, actions: Array}>}
  */
 export async function executeReQuery(
   fetchActions,
@@ -177,15 +208,12 @@ export async function executeReQuery(
     guildId,
   );
 
-  // Build messages array with updated context
+  // Build messages array with updated context.
+  // Note: the provider prepends config.systemMessage, so we don't push it here
+  // (previously the system prompt was sent twice, doubling token cost).
   const updatedMessages = [];
   const hasSystemMessage =
     updatedHistory.length > 0 && updatedHistory[0]?.role === "system";
-  updatedMessages.push({
-    role: "system",
-    content: updatedSystemMessage,
-  });
-
   const startIndex = hasSystemMessage ? 1 : 0;
   for (let i = startIndex; i < updatedHistory.length; i++) {
     updatedMessages.push({
@@ -269,6 +297,7 @@ export async function executeReQuery(
       temperature: 0.7,
       maxTokens: reQueryMaxTokens,
       forceJson: true,
+      tools: TOOL_DEFINITIONS,
     },
   });
 
@@ -295,35 +324,34 @@ export async function executeReQuery(
     followUpResult = { text: finalResponse };
   }
 
+  // Structured tool_calls path (preferred): return actions for the loop to execute
+  if (followUpResult?.toolCalls?.length > 0) {
+    logger.debug(
+      `[generateResponse] Re-query returned ${followUpResult.toolCalls.length} tool call(s)`,
+    );
+    return {
+      finalResponse: followUpResult.text || finalResponse,
+      actions: translateToolCallsToActions(followUpResult.toolCalls),
+    };
+  }
+
   const followUpResponse =
     followUpResult?.text || followUpResult?.response || finalResponse;
 
-  // Parse follow-up response
+  // Parse follow-up response (legacy JSON path)
   const followUpParsed = parseAIResponse(followUpResponse);
   if (followUpParsed.success) {
-    finalResponse = followUpParsed.message;
-
-    // SAFEGUARD: Check if re-query response contains actions that would trigger another re-query
-    const followUpActions = followUpParsed.actions;
-    const followUpReQueryActions = followUpActions.filter(a =>
-      actionTriggersReQuery(a.type),
-    );
-
-    if (followUpReQueryActions.length > 0) {
-      logger.warn(
-        `[generateResponse] ⚠️ Re-query response contains actions that would trigger another re-query (${followUpReQueryActions.map(a => a.type).join(", ")}). Ignoring to prevent infinite loops. Max depth: ${MAX_ACTION_LOOP_DEPTH}.`,
-      );
-    }
-
     logger.debug(`[generateResponse] Follow-up response generated`);
-  } else {
-    logger.warn(
-      `[generateResponse] Follow-up response parse failed - using raw response`,
-    );
-    finalResponse = followUpResponse;
+    return {
+      finalResponse: followUpParsed.message,
+      actions: followUpParsed.actions || [],
+    };
   }
 
-  return { finalResponse };
+  logger.warn(
+    `[generateResponse] Follow-up response parse failed - using raw response`,
+  );
+  return { finalResponse: followUpResponse, actions: [] };
 }
 
 /**

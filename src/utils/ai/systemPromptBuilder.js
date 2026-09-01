@@ -537,10 +537,10 @@ export class SystemPromptBuilder {
 
           context += dedent`
             **Command Usage Format:**
-            - Use action format: {"type": "execute_command", "command": "command-name", "subcommand": "subcommand-name", "options": {...}}
+            - Call the \`execute_command\` tool with: command, optional subcommand, and an options object
             - For commands with subcommands, you MUST include the subcommand
             - Options should match the command's expected format (see detailed command info when mentioned)
-            - Example: {"type": "execute_command", "command": "role-reactions", "subcommand": "setup", "options": {"title": "Roles", "description": "Choose roles", "roles": "✅:Member"}}
+            - Example: call \`execute_command\` with { command: "role-reactions", subcommand: "setup", options: { title: "Roles", description: "Choose roles", roles: "✅:Member" } }
 
           `;
           // Dynamically generate ID requirements from discovered commands
@@ -553,9 +553,9 @@ export class SystemPromptBuilder {
               idParamName,
               actionName,
             } of dataFetchingCommands) {
-              context += `- **${commandName}:** Use "${actionName}" to get ${idParamName} for operations\n`;
+              context += `- **${commandName}:** Call \`${actionName}\` first to get ${idParamName} for operations\n`;
             }
-            context += `- Example: First use {"type": "get_role_reaction_messages"} to get IDs, then use the ID in the command\n\n`;
+            context += `- Example: First call the \`get_role_reaction_messages\` tool to get IDs, then use a real ID in the next command call\n\n`;
           }
           context += dedent`
             **IMPORTANT - Command Details:**
