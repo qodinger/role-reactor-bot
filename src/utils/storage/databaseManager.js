@@ -41,18 +41,7 @@ import {
   ReferralRepository,
 } from "./repositories/index.js";
 import { CacheManager } from "../cache/CacheManager.js";
-import { QueryCache } from "../cache/QueryCache.js";
 import { ConnectionManager } from "./ConnectionManager.js";
-
-const queryCache = new QueryCache();
-
-// Cleanup caches every 5 minutes
-setInterval(
-  () => {
-    queryCache.clear();
-  },
-  5 * 60 * 1000,
-).unref();
 
 class DatabaseManager {
   constructor() {

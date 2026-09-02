@@ -4,6 +4,7 @@ import {
   decrementRoleUsage,
 } from "../utils/discord/roleMappingManager.js";
 import { getLogger } from "../utils/logger.js";
+import { getCachedMember } from "../utils/discord/roleManager.js";
 import { StarboardManager } from "../features/starboard/StarboardManager.js";
 
 export const name = Events.MessageReactionRemove;
@@ -36,12 +37,6 @@ export async function execute(reaction, user, client) {
     StarboardManager.handleReaction(reaction, user).catch(err => {
       logger.error("Error in StarboardManager.handleReaction:", err);
     });
-
-    // Get member
-    const member = await guild.members.fetch(user.id);
-    if (!member) {
-      return;
-    }
 
     // Note: Poll reactions are now handled by Discord's native poll system
     // This event handler only processes role assignment reactions
@@ -101,6 +96,12 @@ export async function execute(reaction, user, client) {
     }
 
     if (roleIds.length === 0) {
+      return;
+    }
+
+    // Get member using cached method to reduce API calls
+    const member = await getCachedMember(guild, user.id);
+    if (!member) {
       return;
     }
 

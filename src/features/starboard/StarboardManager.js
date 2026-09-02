@@ -12,26 +12,19 @@ export class StarboardManager {
     const logger = getLogger();
 
     try {
-      if (reaction.partial) {
-        await reaction.fetch();
-      }
-
       const message = reaction.message;
-      if (message.partial) {
-        await message.fetch();
-      }
-
-      if (!message.guild) return;
+      // guildId is present on partials; guild on cached full messages
+      const guildId = message.guildId || message.guild?.id;
+      if (!guildId) return;
 
       const db = await getDatabaseManager();
       if (!db || !db.starboardSettings) return;
 
-      const guildId = message.guild.id;
       const settings = await db.starboardSettings.getSettings(guildId);
 
       if (!settings || !settings.enabled || !settings.channelId) return;
 
-      // Determine the reaction emoji string to match
+      // Determine the reaction emoji string to match (available on partials)
       const reactionEmojiStr = reaction.emoji.id
         ? `<:${reaction.emoji.name}:${reaction.emoji.id}>`
         : reaction.emoji.name;
@@ -40,6 +33,16 @@ export class StarboardManager {
 
       // Ignore messages sent in the starboard channel itself
       if (message.channel.id === settings.channelId) return;
+
+      // Only fetch full reaction/message data once we know this is a star
+      if (reaction.partial) {
+        await reaction.fetch();
+      }
+      if (message.partial) {
+        await message.fetch();
+      }
+
+      if (!message.guild) return;
 
       // Ignore bot messages by default for starboard
       if (message.author.bot) return;

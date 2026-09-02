@@ -35,17 +35,10 @@ export async function createClient() {
     RoleManager: 100,
   };
 
-  const defaultRateLimits = {
-    rest: {
-      globalLimit: 50,
-      userLimit: 10,
-      guildLimit: 20,
-    },
-    ws: {
-      heartbeatInterval: 41250,
-      maxReconnectAttempts: 5,
-      reconnectDelay: 1000,
-    },
+  const defaultRestOptions = {
+    timeout: 15000,
+    retries: 3,
+    offset: 750,
   };
 
   const client = new Client({
@@ -54,29 +47,10 @@ export async function createClient() {
     makeCache: Options.cacheWithLimits(
       config.cacheLimits || defaultCacheLimits,
     ),
-    rest: {
-      ...(config.rateLimits?.rest || defaultRateLimits.rest),
-      globalLimit:
-        config.rateLimits?.rest?.globalLimit ||
-        defaultRateLimits.rest.globalLimit,
-      userLimit:
-        config.rateLimits?.rest?.userLimit || defaultRateLimits.rest.userLimit,
-      guildLimit:
-        config.rateLimits?.rest?.guildLimit ||
-        defaultRateLimits.rest.guildLimit,
-    },
-    ws: {
-      ...(config.rateLimits?.ws || defaultRateLimits.ws),
-      heartbeatInterval:
-        config.rateLimits?.ws?.heartbeatInterval ||
-        defaultRateLimits.ws.heartbeatInterval,
-      maxReconnectAttempts:
-        config.rateLimits?.ws?.maxReconnectAttempts ||
-        defaultRateLimits.ws.maxReconnectAttempts,
-      reconnectDelay:
-        config.rateLimits?.ws?.reconnectDelay ||
-        defaultRateLimits.ws.reconnectDelay,
-    },
+    // discord.js v14 REST options: timeout/retries/offset/globalBroadcast.
+    // Per-user/per-guild limits are enforced automatically by the built-in handler.
+    rest: config.rateLimits?.rest || defaultRestOptions,
+    ...(config.rateLimits?.ws ? { ws: config.rateLimits.ws } : {}),
   });
 
   client.rest.on("rateLimited", rateLimitInfo => {

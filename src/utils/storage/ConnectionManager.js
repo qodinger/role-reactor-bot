@@ -12,7 +12,6 @@ export class ConnectionManager {
     this.maxReconnectAttempts = 5;
     this.reconnectDelay = 2000;
     this.healthCheckInterval = null;
-    this.connectionPool = new Map(); // Connection pool for different operations
   }
 
   async connect() {
@@ -59,8 +58,6 @@ export class ConnectionManager {
         heartbeatFrequencyMS: 10000,
         // Add connection optimization
         maxConnecting: Math.max(2, this.config.options.maxConnecting || 2),
-        // Connection pool monitoring
-        monitorCommands: true,
         serverApi: {
           version: "1",
           strict: false,
@@ -271,126 +268,77 @@ export class ConnectionManager {
       // Drop old indexes that might conflict
       await this._dropOldIndexes();
 
-      await this.db
-        .collection("role_mappings")
-        .createIndex({ messageId: 1 }, { unique: true });
-      await this.db.collection("temporary_roles").createIndex({ expiresAt: 1 });
-      await this.db.collection("temporary_roles").createIndex({ guildId: 1 });
-      await this.db.collection("temporary_roles").createIndex({ roleId: 1 });
-      await this.db
-        .collection("welcome_settings")
-        .createIndex({ guildId: 1 }, { unique: true });
-      await this.db
-        .collection("user_experience")
-        .createIndex({ guildId: 1, userId: 1 }, { unique: true });
-      await this.db
-        .collection("polls")
-        .createIndex({ id: 1 }, { unique: true });
-      await this.db.collection("polls").createIndex({ guildId: 1 });
-      await this.db.collection("polls").createIndex({ createdAt: 1 });
-      await this.db
-        .collection("core_credits")
-        .createIndex({ userId: 1 }, { unique: true });
-      await this.db.collection("core_credits").createIndex({ lastUpdated: 1 });
-      await this.db
-        .collection("scheduled_roles")
-        .createIndex({ id: 1 }, { unique: true });
-      await this.db.collection("scheduled_roles").createIndex({ guildId: 1 });
-      await this.db
-        .collection("scheduled_roles")
-        .createIndex({ scheduledAt: 1 });
-      await this.db.collection("scheduled_roles").createIndex({ executed: 1 });
-      await this.db
-        .collection("recurring_schedules")
-        .createIndex({ id: 1 }, { unique: true });
-      await this.db
-        .collection("recurring_schedules")
-        .createIndex({ guildId: 1 });
-      await this.db
-        .collection("recurring_schedules")
-        .createIndex({ active: 1 });
-      await this.db
-        .collection("ai_conversations")
-        .createIndex({ userId: 1, guildId: 1 }, { unique: true });
-      await this.db
-        .collection("ai_conversations")
-        .createIndex({ lastActivity: 1 });
-      await this.db
-        .collection("avatar_jobs")
-        .createIndex({ jobId: 1 }, { unique: true });
-      await this.db.collection("avatar_jobs").createIndex({ userId: 1 });
-      await this.db.collection("avatar_jobs").createIndex({ createdAt: 1 });
-      await this.db.collection("avatar_jobs").createIndex({ expiresAt: 1 });
-      await this.db
-        .collection("imagine_jobs")
-        .createIndex({ jobId: 1 }, { unique: true });
-      await this.db.collection("imagine_jobs").createIndex({ userId: 1 });
-      await this.db.collection("imagine_jobs").createIndex({ createdAt: 1 });
-      await this.db.collection("imagine_jobs").createIndex({ expiresAt: 1 });
-      await this.db
-        .collection("command_usage")
-        .createIndex({ commandName: 1 }, { unique: true });
-      await this.db
-        .collection("guild_analytics")
-        .createIndex({ guildId: 1, date: 1 }, { unique: true });
-      await this.db.collection("moderation_logs").createIndex({ guildId: 1 });
-      await this.db.collection("moderation_logs").createIndex({ userId: 1 });
-      await this.db
-        .collection("moderation_logs")
-        .createIndex({ caseId: 1 }, { unique: true });
-      await this.db
-        .collection("moderation_logs")
-        .createIndex({ timestamp: -1 });
+      const indexSpecs = [
+        ["role_mappings", { messageId: 1 }, { unique: true }],
+        // Supports getByGuildPaginated ({guildId} + sort updatedAt)
+        ["role_mappings", { guildId: 1, updatedAt: -1 }, {}],
+        ["temporary_roles", { expiresAt: 1 }, {}],
+        ["temporary_roles", { guildId: 1 }, {}],
+        ["temporary_roles", { roleId: 1 }, {}],
+        ["welcome_settings", { guildId: 1 }, { unique: true }],
+        ["user_experience", { guildId: 1, userId: 1 }, { unique: true }],
+        ["polls", { id: 1 }, { unique: true }],
+        ["polls", { guildId: 1 }, {}],
+        ["polls", { createdAt: 1 }, {}],
+        ["core_credits", { userId: 1 }, { unique: true }],
+        ["core_credits", { lastUpdated: 1 }, {}],
+        ["scheduled_roles", { id: 1 }, { unique: true }],
+        ["scheduled_roles", { guildId: 1 }, {}],
+        ["scheduled_roles", { scheduledAt: 1 }, {}],
+        ["scheduled_roles", { executed: 1 }, {}],
+        ["recurring_schedules", { id: 1 }, { unique: true }],
+        ["recurring_schedules", { guildId: 1 }, {}],
+        ["recurring_schedules", { active: 1 }, {}],
+        ["ai_conversations", { userId: 1, guildId: 1 }, { unique: true }],
+        ["ai_conversations", { lastActivity: 1 }, {}],
+        ["avatar_jobs", { jobId: 1 }, { unique: true }],
+        ["avatar_jobs", { userId: 1 }, {}],
+        ["avatar_jobs", { createdAt: 1 }, {}],
+        ["avatar_jobs", { expiresAt: 1 }, {}],
+        ["imagine_jobs", { jobId: 1 }, { unique: true }],
+        ["imagine_jobs", { userId: 1 }, {}],
+        ["imagine_jobs", { createdAt: 1 }, {}],
+        ["imagine_jobs", { expiresAt: 1 }, {}],
+        ["command_usage", { commandName: 1 }, { unique: true }],
+        ["guild_analytics", { guildId: 1, date: 1 }, { unique: true }],
+        ["moderation_logs", { guildId: 1 }, {}],
+        ["moderation_logs", { userId: 1 }, {}],
+        ["moderation_logs", { caseId: 1 }, { unique: true }],
+        ["moderation_logs", { timestamp: -1 }, {}],
+        // Missing guild-scoped indexes
+        ["goodbye_settings", { guildId: 1 }, { unique: true }],
+        ["guild_automod", { guildId: 1 }, { unique: true }],
+        ["custom_commands", { guildId: 1 }, {}],
+        ["voice_control_roles", { guildId: 1 }, {}],
+        ["tickets", { guildId: 1 }, {}],
+        ["ticket_panels", { guildId: 1 }, {}],
+        ["ticket_transcripts", { guildId: 1 }, {}],
+        ["guild_count_history", { date: 1 }, { unique: true }],
+        ["guild_history", { guildId: 1 }, { unique: true }],
+        ["guild_history", { status: 1 }, {}],
+        // Recent command users indexes
+        [
+          "recent_command_users",
+          { timestamp: 1 },
+          { expireAfterSeconds: 604800 },
+        ], // 7 days TTL
+        ["recent_command_users", { userId: 1, timestamp: 1 }, {}],
+        // BMAC payment indexes
+        ["unclaimed_payments", { bmacPaymentId: 1 }, {}],
+        ["unclaimed_payments", { status: 1 }, {}],
+        ["unclaimed_payments", { timestamp: -1 }, {}],
+        ["pending_codes", { code: 1 }, { unique: true }],
+        // Auto-delete expired codes
+        ["pending_codes", { expiresAt: 1 }, { expireAfterSeconds: 0 }],
+        ["payments", { bmacPaymentId: 1 }, { sparse: true }],
+      ];
 
-      // Missing guild-scoped indexes
-      await this.db
-        .collection("goodbye_settings")
-        .createIndex({ guildId: 1 }, { unique: true });
-      await this.db
-        .collection("guild_automod")
-        .createIndex({ guildId: 1 }, { unique: true });
-      await this.db.collection("custom_commands").createIndex({ guildId: 1 });
-      await this.db
-        .collection("voice_control_roles")
-        .createIndex({ guildId: 1 });
-      await this.db.collection("tickets").createIndex({ guildId: 1 });
-      await this.db.collection("ticket_panels").createIndex({ guildId: 1 });
-      await this.db
-        .collection("ticket_transcripts")
-        .createIndex({ guildId: 1 });
-      await this.db
-        .collection("guild_count_history")
-        .createIndex({ date: 1 }, { unique: true });
-      await this.db
-        .collection("guild_history")
-        .createIndex({ guildId: 1 }, { unique: true });
-      await this.db.collection("guild_history").createIndex({ status: 1 });
-
-      // Recent command users indexes
-      await this.db
-        .collection("recent_command_users")
-        .createIndex({ timestamp: 1 }, { expireAfterSeconds: 604800 }); // 7 days TTL
-      await this.db
-        .collection("recent_command_users")
-        .createIndex({ userId: 1, timestamp: 1 });
-
-      // BMAC payment indexes
-      await this.db
-        .collection("unclaimed_payments")
-        .createIndex({ bmacPaymentId: 1 });
-      await this.db.collection("unclaimed_payments").createIndex({ status: 1 });
-      await this.db
-        .collection("unclaimed_payments")
-        .createIndex({ timestamp: -1 });
-      await this.db
-        .collection("pending_codes")
-        .createIndex({ code: 1 }, { unique: true });
-      await this.db
-        .collection("pending_codes")
-        .createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }); // Auto-delete expired codes
-      await this.db
-        .collection("payments")
-        .createIndex({ bmacPaymentId: 1 }, { sparse: true });
+      // createIndex is idempotent — run all in parallel on the pooled connection
+      await Promise.all(
+        indexSpecs.map(([collection, spec, options]) =>
+          this.db.collection(collection).createIndex(spec, options),
+        ),
+      );
 
       this.logger.success("✅ Database indexes created successfully");
     } catch (error) {
