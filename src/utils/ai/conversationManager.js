@@ -51,6 +51,9 @@ export class ConversationManager {
    * Initialize long-term memory (MongoDB or file storage) if available
    */
   async initLongTermMemory() {
+    if (this.longTermMemoryInitialized) return;
+    this.longTermMemoryInitialized = true;
+
     if (!this.useLongTermMemory) {
       logger.debug(
         "Long-term memory disabled via AI_USE_LONG_TERM_MEMORY=false",

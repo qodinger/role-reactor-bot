@@ -298,7 +298,6 @@ function initializeRoutes() {
   // Register SupportersService (always available)
   const supportersService = new SupportersService();
   serviceRegistry.registerService(supportersService.getRegistrationInfo());
-  logger.info("✅ Supporters service registered (BaseService)");
 
   // Register all services from registry (single registration point)
   const registeredServices = serviceRegistry.getAllServices();
