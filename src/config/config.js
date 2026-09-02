@@ -7,6 +7,9 @@ import { validateEnv } from "./envSchema.js";
 dotenv.config();
 // Overlay the environment-specific file (.env.development / .env.production / etc.)
 // so dev config actually takes effect, per project conventions.
+// NOTE: `override: true` clobbers any pre-set process.env vars here —
+// standalone scripts that must target a different DB must run with
+// NODE_ENV=test (no overlay file) to avoid silently using this cluster.
 dotenv.config({
   path: `.env.${process.env.NODE_ENV || "development"}`,
   override: true,
