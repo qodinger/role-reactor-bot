@@ -71,34 +71,41 @@ export function isDeveloper(userId) {
 
 /**
  * Checks if a member has administrator-level permissions.
- * @param {import("discord.js").GuildMember} member The guild member.
+ * Accepts GuildMember or the raw APIInteractionGuildMember shape that
+ * `interaction.member` may carry; falls back to false when permissions are
+ * not resolvable (runtime guard below).
+ * @param {import("discord.js").GuildMember | import("discord.js").APIInteractionGuildMember | null | undefined} member The guild member.
  * @returns {boolean}
  */
 export function hasAdminPermissions(member) {
   if (!member) return false;
 
-  // Check if permissions property exists and has the has method
-  if (!member.permissions || typeof member.permissions.has !== "function") {
+  // Duck-type check: interaction.member may carry raw API permissions (a
+  // string), which has no .has() — treat anything non-resolvable as denied.
+  /** @type {any} */
+  const permissions = member.permissions;
+  if (!permissions || typeof permissions.has !== "function") {
     return false;
   }
 
-  return member.permissions.has(PermissionFlagsBits.Administrator);
+  return permissions.has(PermissionFlagsBits.Administrator);
 }
 
 /**
  * Checks if a member has permission to manage roles.
- * @param {import("discord.js").GuildMember} member The guild member.
+ * @param {import("discord.js").GuildMember | import("discord.js").APIInteractionGuildMember | null | undefined} member The guild member.
  * @returns {boolean}
  */
 export function hasManageRolesPermission(member) {
   if (!member) return false;
 
-  // Check if permissions property exists and has the has method
-  if (!member.permissions || typeof member.permissions.has !== "function") {
+  /** @type {any} */
+  const permissions = member.permissions;
+  if (!permissions || typeof permissions.has !== "function") {
     return false;
   }
 
-  return member.permissions.has(PermissionFlagsBits.ManageRoles);
+  return permissions.has(PermissionFlagsBits.ManageRoles);
 }
 
 /**

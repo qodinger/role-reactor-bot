@@ -68,7 +68,7 @@ const API_PREFIX = serverConfig.metadata.apiPrefix;
 /**
  * Initialize server middleware
  */
-async function initializeMiddleware() {
+async function initializeMiddleware({ withSession = true } = {}) {
   // Configure Express to trust proxy headers (required for ngrok, reverse proxies, etc.)
   // Trust only the first proxy hop (most secure - prevents IP spoofing while allowing reverse proxies)
   // This allows express-rate-limit to correctly identify client IPs from X-Forwarded-For header
@@ -102,7 +102,7 @@ async function initializeMiddleware() {
     throw new Error(errorMessage);
   }
 
-  if (process.env.SESSION_SECRET) {
+  if (withSession && process.env.SESSION_SECRET) {
     try {
       const session = (await import("express-session")).default;
       const MongoStore = (await import("connect-mongo")).default;
@@ -269,7 +269,8 @@ function initializeRoutes() {
   app.use(`${API_PREFIX}/commands`, internalAuth, commandsRouter);
   app.use(`${API_PREFIX}/services`, internalAuth, servicesRouter);
   app.use(`${API_PREFIX}/docs`, internalAuth, docsRouter);
-  app.use(`${API_PREFIX}/stats`, internalAuth, statsRouter);
+  // Stats router declares its own per-route auth (public: /info, /pricing)
+  app.use(`${API_PREFIX}/stats`, statsRouter);
   app.use(`${API_PREFIX}/logs`, internalAuth, logsRouter);
   app.use(`${API_PREFIX}/config`, internalAuth, configRouter);
   app.use(`${API_PREFIX}/health`, healthRouter);
@@ -452,6 +453,25 @@ export async function startWebhookServer() {
  * @returns {import('express').Application} The Express app instance
  */
 export function getApp() {
+  return app;
+}
+
+/**
+ * Initialize the Express app (middleware + routes + error handling)
+ * without starting the HTTP listener. Used by integration tests so the
+ * app has real route wiring without needing a running server.
+ * @returns {Promise<import('express').Application>} The initialized Express app instance
+ */
+let appInitialized = false;
+export async function initAppForTests() {
+  if (!appInitialized) {
+    // Skip session middleware — it would try to connect to MongoDB.
+    // Route/auth wiring is what these tests exercise.
+    await initializeMiddleware({ withSession: false });
+    initializeRoutes();
+    initializeErrorHandling();
+    appInitialized = true;
+  }
   return app;
 }
 

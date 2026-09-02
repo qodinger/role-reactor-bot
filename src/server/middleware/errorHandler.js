@@ -5,13 +5,38 @@ const logger = getLogger();
 
 /**
  * Error handling middleware
- * @param {Error} error - The error object
+ * @param {Error & { type?: string, statusCode?: number, body?: unknown }} error - The error object
  * @param {import('../types.js').ExtendedRequest} req - Express request object
  * @param {import('express').Response} res - Express response object
  * @param {import('express').NextFunction} _next - Express next function (unused)
  */
 export function errorHandler(error, req, res, _next) {
   const requestId = req.requestId || "unknown";
+
+  // Body parse errors (malformed JSON) are client errors, not server errors
+  const isParseError =
+    error.type === "entity.parse.failed" ||
+    (error instanceof SyntaxError && "body" in error);
+
+  if (isParseError) {
+    logger.warn("⚠️ Malformed request body rejected", {
+      requestId,
+      url: req.url,
+      method: req.method,
+      ip: req.ip,
+    });
+
+    const { statusCode, response } = createErrorResponse(
+      "Malformed JSON in request body",
+      400,
+    );
+
+    return res.status(statusCode).json({
+      ...response,
+      requestId,
+    });
+  }
+
   logger.error("❌ API server error:", {
     requestId,
     error: error.message,
@@ -23,10 +48,16 @@ export function errorHandler(error, req, res, _next) {
     timestamp: new Date().toISOString(),
   });
 
+  // Respect explicit client-error status codes when set (e.g., by middleware)
+  const status =
+    Number.isInteger(error.statusCode) && error.statusCode >= 400 && error.statusCode < 500
+      ? error.statusCode
+      : 500;
+
   // Never expose internal error details to clients
   const { statusCode, response } = createErrorResponse(
-    "Internal server error",
-    500,
+    status === 400 ? "Bad request" : "Internal server error",
+    status,
     null,
     null,
   );

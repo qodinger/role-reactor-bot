@@ -29,15 +29,13 @@ export async function handleWelcomeConfigure(interaction) {
     }
 
     if (!hasAdminPermissions(interaction.member)) {
-      return interaction.editReply({
-        embeds: [
-          errorEmbed({
-            title: "Permission Denied",
-            description:
-              "You need administrator permissions to configure the welcome system.",
-          }),
-        ],
-      });
+      return interaction.editReply(
+        errorEmbed({
+          title: "Permission Denied",
+          description:
+            "You need administrator permissions to configure the welcome system.",
+        }),
+      );
     }
 
     const dbManager = await getDatabaseManager();
@@ -88,16 +86,13 @@ export async function handleWelcomeConfigureMessage(interaction) {
 
   try {
     if (!hasAdminPermissions(interaction.member)) {
-      return interaction.reply({
-        embeds: [
-          errorEmbed({
-            title: "Permission Denied",
-            description:
-              "You need administrator permissions to configure the welcome system.",
-          }),
-        ],
-        flags: MessageFlags.Ephemeral,
-      });
+      return interaction.reply(
+        errorEmbed({
+          title: "Permission Denied",
+          description:
+            "You need administrator permissions to configure the welcome system.",
+        }),
+      );
     }
 
     const dbManager = await getDatabaseManager();
@@ -144,16 +139,13 @@ export async function handleWelcomeSelectChannel(interaction) {
 
   try {
     if (!hasAdminPermissions(interaction.member)) {
-      return interaction.reply({
-        embeds: [
-          errorEmbed({
-            title: "Permission Denied",
-            description:
-              "You need administrator permissions to configure the welcome system.",
-          }),
-        ],
-        flags: MessageFlags.Ephemeral,
-      });
+      return interaction.reply(
+        errorEmbed({
+          title: "Permission Denied",
+          description:
+            "You need administrator permissions to configure the welcome system.",
+        }),
+      );
     }
 
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
@@ -192,7 +184,6 @@ export async function handleWelcomeSelectChannel(interaction) {
     await interaction.editReply({
       embeds: [embed],
       components,
-      flags: MessageFlags.Ephemeral,
     });
 
     logger.info(
@@ -203,16 +194,13 @@ export async function handleWelcomeSelectChannel(interaction) {
       `Error in handleWelcomeSelectChannel: ${error.message}`,
       error,
     );
-    await interaction.editReply({
-      embeds: [
-        errorEmbed({
-          title: "Configuration Error",
-          description:
-            "An error occurred while opening the welcome channel selection.",
-        }),
-      ],
-      flags: MessageFlags.Ephemeral,
-    });
+    await interaction.editReply(
+      errorEmbed({
+        title: "Configuration Error",
+        description:
+          "An error occurred while opening the welcome channel selection.",
+      }),
+    );
   }
 }
 
@@ -225,16 +213,13 @@ export async function handleWelcomeToggle(interaction) {
 
   try {
     if (!hasAdminPermissions(interaction.member)) {
-      return interaction.reply({
-        embeds: [
-          errorEmbed({
-            title: "Permission Denied",
-            description:
-              "You need administrator permissions to toggle the welcome system.",
-          }),
-        ],
-        flags: MessageFlags.Ephemeral,
-      });
+      return interaction.reply(
+        errorEmbed({
+          title: "Permission Denied",
+          description:
+            "You need administrator permissions to toggle the welcome system.",
+        }),
+      );
     }
 
     await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
@@ -245,16 +230,13 @@ export async function handleWelcomeToggle(interaction) {
     );
 
     if (!currentSettings.channelId) {
-      return interaction.editReply({
-        embeds: [
-          errorEmbed({
-            title: "No Channel Configured",
-            description:
-              "Please configure a welcome channel first before enabling the system.",
-          }),
-        ],
-        flags: MessageFlags.Ephemeral,
-      });
+      return interaction.editReply(
+        errorEmbed({
+          title: "No Channel Configured",
+          description:
+            "Please configure a welcome channel first before enabling the system.",
+        }),
+      );
     }
 
     const newSettings = {
@@ -311,16 +293,13 @@ export async function handleWelcomeReset(interaction) {
 
   try {
     if (!hasAdminPermissions(interaction.member)) {
-      return interaction.reply({
-        embeds: [
-          errorEmbed({
-            title: "Permission Denied",
-            description:
-              "You need administrator permissions to reset the welcome system.",
-          }),
-        ],
-        flags: MessageFlags.Ephemeral,
-      });
+      return interaction.reply(
+        errorEmbed({
+          title: "Permission Denied",
+          description:
+            "You need administrator permissions to reset the welcome system.",
+        }),
+      );
     }
 
     await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
@@ -384,16 +363,13 @@ export async function handleWelcomeTest(interaction) {
 
   try {
     if (!hasAdminPermissions(interaction.member)) {
-      return interaction.reply({
-        embeds: [
-          errorEmbed({
-            title: "Permission Denied",
-            description:
-              "You need administrator permissions to test the welcome system.",
-          }),
-        ],
-        flags: MessageFlags.Ephemeral,
-      });
+      return interaction.reply(
+        errorEmbed({
+          title: "Permission Denied",
+          description:
+            "You need administrator permissions to test the welcome system.",
+        }),
+      );
     }
 
     await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
@@ -404,16 +380,13 @@ export async function handleWelcomeTest(interaction) {
     );
 
     if (!settings.enabled || !settings.channelId) {
-      return interaction.editReply({
-        embeds: [
-          errorEmbed({
-            title: "System Not Configured",
-            description:
-              "The welcome system is not enabled or no channel is configured.",
-          }),
-        ],
-        flags: MessageFlags.Ephemeral,
-      });
+      return interaction.editReply(
+        errorEmbed({
+          title: "System Not Configured",
+          description:
+            "The welcome system is not enabled or no channel is configured.",
+        }),
+      );
     }
 
     // Get the welcome channel
@@ -421,16 +394,13 @@ export async function handleWelcomeTest(interaction) {
       settings.channelId,
     );
     if (!welcomeChannel) {
-      return interaction.editReply({
-        embeds: [
-          errorEmbed({
-            title: "Channel Not Found",
-            description:
-              "The configured welcome channel could not be found. Please reconfigure.",
-          }),
-        ],
-        flags: MessageFlags.Ephemeral,
-      });
+      return interaction.editReply(
+        errorEmbed({
+          title: "Channel Not Found",
+          description:
+            "The configured welcome channel could not be found. Please reconfigure.",
+        }),
+      );
     }
 
     // Check bot permissions in the welcome channel
@@ -438,32 +408,26 @@ export async function handleWelcomeTest(interaction) {
     const channelPermissions = welcomeChannel.permissionsFor(botMember);
 
     if (!channelPermissions.has("SendMessages")) {
-      return interaction.editReply({
-        embeds: [
-          errorEmbed({
-            title: "Permission Error",
-            description: `I don't have permission to send messages in ${welcomeChannel.toString()}`,
-            solution:
-              "Please grant me Send Messages permission in the welcome channel.",
-          }),
-        ],
-        flags: MessageFlags.Ephemeral,
-      });
+      return interaction.editReply(
+        errorEmbed({
+          title: "Permission Error",
+          description: `I don't have permission to send messages in ${welcomeChannel.toString()}`,
+          solution:
+            "Please grant me Send Messages permission in the welcome channel.",
+        }),
+      );
     }
 
     // If using embeds, also check for EmbedLinks permission
     if (settings.embedEnabled && !channelPermissions.has("EmbedLinks")) {
-      return interaction.editReply({
-        embeds: [
-          errorEmbed({
-            title: "Permission Error",
-            description: `I don't have permission to embed links in ${welcomeChannel.toString()}`,
-            solution:
-              "Please grant me Embed Links permission in the welcome channel.",
-          }),
-        ],
-        flags: MessageFlags.Ephemeral,
-      });
+      return interaction.editReply(
+        errorEmbed({
+          title: "Permission Error",
+          description: `I don't have permission to embed links in ${welcomeChannel.toString()}`,
+          solution:
+            "Please grant me Embed Links permission in the welcome channel.",
+        }),
+      );
     }
 
     // Use the actual interaction member for testing
@@ -580,31 +544,25 @@ export async function handleWelcomeEdit(interaction) {
 
   try {
     if (!hasAdminPermissions(interaction.member)) {
-      return interaction.reply({
-        embeds: [
-          errorEmbed({
-            title: "Permission Denied",
-            description:
-              "You need administrator permissions to view welcome settings.",
-          }),
-        ],
-        flags: MessageFlags.Ephemeral,
-      });
+      return interaction.reply(
+        errorEmbed({
+          title: "Permission Denied",
+          description:
+            "You need administrator permissions to view welcome settings.",
+        }),
+      );
     }
 
     await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
     const dbManager = await getDatabaseManager();
     if (!dbManager.welcomeSettings) {
-      return interaction.editReply({
-        embeds: [
-          errorEmbed({
-            title: "Database Error",
-            description: "Welcome settings repository is not available.",
-          }),
-        ],
-        flags: MessageFlags.Ephemeral,
-      });
+      return interaction.editReply(
+        errorEmbed({
+          title: "Database Error",
+          description: "Welcome settings repository is not available.",
+        }),
+      );
     }
 
     const settings = await dbManager.welcomeSettings.getByGuild(
@@ -738,16 +696,13 @@ export async function handleWelcomeClearRole(interaction) {
 
   try {
     if (!hasAdminPermissions(interaction.member)) {
-      return interaction.reply({
-        embeds: [
-          errorEmbed({
-            title: "Permission Denied",
-            description:
-              "You need administrator permissions to clear the welcome auto-role.",
-          }),
-        ],
-        flags: MessageFlags.Ephemeral,
-      });
+      return interaction.reply(
+        errorEmbed({
+          title: "Permission Denied",
+          description:
+            "You need administrator permissions to clear the welcome auto-role.",
+        }),
+      );
     }
     await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
@@ -821,16 +776,13 @@ export async function handleWelcomeConfigureRole(interaction) {
       logger.warn(
         `Permission denied for ${interaction.user.tag} in welcome configure role`,
       );
-      return interaction.reply({
-        embeds: [
-          errorEmbed({
-            title: "Permission Denied",
-            description:
-              "You need administrator permissions to configure the welcome auto-role.",
-          }),
-        ],
-        flags: MessageFlags.Ephemeral,
-      });
+      return interaction.reply(
+        errorEmbed({
+          title: "Permission Denied",
+          description:
+            "You need administrator permissions to configure the welcome auto-role.",
+        }),
+      );
     }
 
     logger.debug(`Deferring reply for welcome configure role`);

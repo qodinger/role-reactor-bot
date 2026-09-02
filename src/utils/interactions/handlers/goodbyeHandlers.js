@@ -32,16 +32,14 @@ export async function handleGoodbyeConfigure(interaction) {
 
     // Check permissions
     if (!hasAdminPermissions(interaction.member)) {
-      return interaction.editReply({
-        embeds: [
-          errorEmbed({
-            title: "Permission Denied",
-            description:
-              "You need Manage Server permissions to configure the goodbye system.",
-            solution: "Contact a server administrator for assistance.",
-          }),
-        ],
-      });
+      return interaction.editReply(
+        errorEmbed({
+          title: "Permission Denied",
+          description:
+            "You need Manage Server permissions to configure the goodbye system.",
+          solution: "Contact a server administrator for assistance.",
+        }),
+      );
     }
 
     // Get current settings
@@ -96,17 +94,14 @@ export async function handleGoodbyeConfigureMessage(interaction) {
   try {
     // Check permissions first before any interaction handling
     if (!hasAdminPermissions(interaction.member)) {
-      return interaction.reply({
-        embeds: [
-          errorEmbed({
-            title: "Permission Denied",
-            description:
-              "You need Manage Server permissions to configure the goodbye system.",
-            solution: "Contact a server administrator for assistance.",
-          }),
-        ],
-        flags: 64,
-      });
+      return interaction.reply(
+        errorEmbed({
+          title: "Permission Denied",
+          description:
+            "You need Manage Server permissions to configure the goodbye system.",
+          solution: "Contact a server administrator for assistance.",
+        }),
+      );
     }
 
     const dbManager = await getDatabaseManager();
@@ -133,18 +128,14 @@ export async function handleGoodbyeConfigureMessage(interaction) {
 
     // Only reply if we haven't already replied
     if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({
-        embeds: [
-          errorEmbed({
-            title: "Error",
-            description:
-              "Failed to display goodbye message configuration modal.",
-            solution:
-              "Please try again or contact support if the issue persists.",
-          }),
-        ],
-        flags: 64,
-      });
+      await interaction.reply(
+        errorEmbed({
+          title: "Error",
+          description: "Failed to display goodbye message configuration modal.",
+          solution:
+            "Please try again or contact support if the issue persists.",
+        }),
+      );
     }
   }
 }
@@ -172,15 +163,13 @@ export async function handleGoodbyeSelectChannel(interaction) {
       .slice(0, 25); // Discord limit
 
     if (textChannels.length === 0) {
-      return interaction.editReply({
-        embeds: [
-          errorEmbed({
-            title: "No Channels Available",
-            description: "No text channels found in this server.",
-            solution: "Create a text channel first, then try again.",
-          }),
-        ],
-      });
+      return interaction.editReply(
+        errorEmbed({
+          title: "No Channels Available",
+          description: "No text channels found in this server.",
+          solution: "Create a text channel first, then try again.",
+        }),
+      );
     }
 
     // Get current settings to set default selection
@@ -257,17 +246,14 @@ export async function handleGoodbyeSelectChannel(interaction) {
 
     // Only reply if we haven't already replied
     if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({
-        embeds: [
-          errorEmbed({
-            title: "Error",
-            description: "Failed to display channel configuration.",
-            solution:
-              "Please try again or contact support if the issue persists.",
-          }),
-        ],
-        flags: 64,
-      });
+      await interaction.reply(
+        errorEmbed({
+          title: "Error",
+          description: "Failed to display channel configuration.",
+          solution:
+            "Please try again or contact support if the issue persists.",
+        }),
+      );
     }
   }
 }

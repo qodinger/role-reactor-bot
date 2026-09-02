@@ -3,6 +3,9 @@
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
+    "paths": {
+      "ws": ["./src/types/ws.d.ts"]
+    },
     "allowJs": true,
     "checkJs": true,
     "noEmit": true,

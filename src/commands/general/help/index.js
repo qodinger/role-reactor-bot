@@ -133,24 +133,19 @@ async function handleGeneralHelp(interaction, deferred) {
 async function handleCommandError(interaction, _error) {
   try {
     if (interaction.deferred) {
-      await interaction.editReply({
-        embeds: [
-          errorEmbed({
-            title: "Unexpected Error",
-            description: "An unexpected error occurred. Please try again.",
-          }),
-        ],
-      });
+      await interaction.editReply(
+        errorEmbed({
+          title: "Unexpected Error",
+          description: "An unexpected error occurred. Please try again.",
+        }),
+      );
     } else {
-      await interaction.reply({
-        embeds: [
-          errorEmbed({
-            title: "Unexpected Error",
-            description: "An unexpected error occurred. Please try again.",
-          }),
-        ],
-        flags: MessageFlags.Ephemeral,
-      });
+      await interaction.reply(
+        errorEmbed({
+          title: "Unexpected Error",
+          description: "An unexpected error occurred. Please try again.",
+        }),
+      );
     }
   } catch (replyError) {
     const logger = getLogger();

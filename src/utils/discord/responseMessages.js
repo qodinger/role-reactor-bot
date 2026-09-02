@@ -91,6 +91,14 @@ const embedFactory = new EmbedFactory(THEME, EMOJIS);
 
 // --- Role Setup Responses ---
 
+/**
+ * Return shape of the response helpers below: a ready-to-send message
+ * options object (embed + Ephemeral flag). Pass these DIRECTLY to
+ * reply()/editReply()/followUp() — do NOT wrap them again in
+ * { embeds: [ helper(...) ] }, which would double-nest the payload.
+ * @typedef {import("discord.js").BaseMessageOptions & { flags: number }} MessagePayloadOptions
+ * @returns {MessagePayloadOptions}
+ */
 export function roleCreatedEmbed({ messageUrl, roleCount, channelId }) {
   const embed = embedFactory.create("SUCCESS", {
     title: "Role Setup Complete",
@@ -129,6 +137,9 @@ export function roleCreatedEmbed({ messageUrl, roleCount, channelId }) {
   };
 }
 
+/**
+ * @returns {MessagePayloadOptions}
+ */
 export function roleUpdatedEmbed({
   updates,
   changeCount = 0,
@@ -194,6 +205,9 @@ export function roleUpdatedEmbed({
   };
 }
 
+/**
+ * @returns {MessagePayloadOptions}
+ */
 export function roleDeletedEmbed({ messageId, rolesRemoved = 0 }) {
   const fields = [
     {
@@ -232,6 +246,9 @@ export function roleDeletedEmbed({ messageId, rolesRemoved = 0 }) {
 
 // --- Error and Status Responses ---
 
+/**
+ * @returns {MessagePayloadOptions}
+ */
 export function errorEmbed({
   title,
   description = "An error occurred. Please try again.",
@@ -264,6 +281,9 @@ export function errorEmbed({
   };
 }
 
+/**
+ * @returns {MessagePayloadOptions}
+ */
 export function infoEmbed({
   title,
   description = "Information",
@@ -292,6 +312,9 @@ export function infoEmbed({
   };
 }
 
+/**
+ * @returns {MessagePayloadOptions}
+ */
 export function permissionErrorEmbed({
   requiredPermissions,
   userPermissions = [],
@@ -315,6 +338,9 @@ export function permissionErrorEmbed({
   });
 }
 
+/**
+ * @returns {MessagePayloadOptions}
+ */
 export function processingEmbed({ action, estimatedTime = null }) {
   const fields = estimatedTime
     ? [
@@ -339,6 +365,9 @@ export function processingEmbed({ action, estimatedTime = null }) {
   };
 }
 
+/**
+ * @returns {MessagePayloadOptions}
+ */
 export function validationErrorEmbed({ errors, helpText = null }) {
   const errorList = errors
     .map((error, index) => `${index + 1}. ${error}`)
@@ -376,6 +405,9 @@ export function validationErrorEmbed({ errors, helpText = null }) {
 
 // --- General Responses ---
 
+/**
+ * @returns {MessagePayloadOptions}
+ */
 export function roleAssignedEmbed({
   roleName,
   userName,
@@ -408,6 +440,9 @@ export function roleAssignedEmbed({
   };
 }
 
+/**
+ * @returns {MessagePayloadOptions}
+ */
 export function roleStatsEmbed({
   guildName,
   totalRoles,
@@ -460,6 +495,9 @@ export function roleStatsEmbed({
   };
 }
 
+/**
+ * @returns {MessagePayloadOptions}
+ */
 export function successEmbed({
   title,
   description = "Operation completed successfully.",
@@ -488,6 +526,9 @@ export function successEmbed({
   };
 }
 
+/**
+ * @returns {MessagePayloadOptions}
+ */
 export function helpEmbed({
   commandName,
   description,

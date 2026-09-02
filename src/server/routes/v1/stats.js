@@ -12,7 +12,8 @@ import { internalAuth } from "../../middleware/internalAuth.js";
 const router = express.Router();
 
 router.get("/info", apiInfo);
-router.get("/global", apiStats);
+// Global stats expose server-wide numbers — internal only
+router.get("/global", internalAuth, apiStats);
 router.get("/usage", internalAuth, apiCommandUsage);
 router.get("/active-users", internalAuth, apiActiveUsers);
 router.get("/recent-users", internalAuth, apiRecentUsers);

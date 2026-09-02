@@ -1,4 +1,4 @@
-import { MessageFlags, SlashCommandBuilder } from "discord.js";
+import { SlashCommandBuilder } from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
 import { errorEmbed } from "../../../utils/discord/responseMessages.js";
 import { handleImagineCommand } from "./handlers.js";
@@ -157,26 +157,21 @@ async function deferInteraction(interaction) {
 async function handleCommandError(interaction, _error) {
   try {
     if (interaction.deferred) {
-      await interaction.editReply({
-        embeds: [
-          errorEmbed({
-            title: "Unexpected Error",
-            description:
-              "An unexpected error occurred while generating your image.",
-          }),
-        ],
-      });
+      await interaction.editReply(
+        errorEmbed({
+          title: "Unexpected Error",
+          description:
+            "An unexpected error occurred while generating your image.",
+        }),
+      );
     } else {
-      await interaction.reply({
-        embeds: [
-          errorEmbed({
-            title: "Unexpected Error",
-            description:
-              "An unexpected error occurred while generating your image.",
-          }),
-        ],
-        flags: MessageFlags.Ephemeral,
-      });
+      await interaction.reply(
+        errorEmbed({
+          title: "Unexpected Error",
+          description:
+            "An unexpected error occurred while generating your image.",
+        }),
+      );
     }
   } catch (replyError) {
     const logger = getLogger();

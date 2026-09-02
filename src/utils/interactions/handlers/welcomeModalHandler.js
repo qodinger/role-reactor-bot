@@ -18,16 +18,13 @@ export async function handleWelcomeConfigModal(interaction) {
   const logger = getLogger();
   try {
     if (!hasAdminPermissions(interaction.member)) {
-      return interaction.reply({
-        embeds: [
-          errorEmbed({
-            title: "Permission Denied",
-            description:
-              "You need administrator permissions to configure the welcome system.",
-          }),
-        ],
-        flags: MessageFlags.Ephemeral,
-      });
+      return interaction.reply(
+        errorEmbed({
+          title: "Permission Denied",
+          description:
+            "You need administrator permissions to configure the welcome system.",
+        }),
+      );
     }
 
     await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
@@ -57,17 +54,14 @@ export async function handleWelcomeConfigModal(interaction) {
     const validation = await validateWelcomeMessage(sanitizedMessage);
 
     if (!validation.valid) {
-      return interaction.editReply({
-        embeds: [
-          errorEmbed({
-            title: "Invalid Message",
-            description:
-              validation.error || "Please provide a valid welcome message.",
-            solution: "Remove any HTML or script content and try again.",
-          }),
-        ],
-        flags: MessageFlags.Ephemeral,
-      });
+      return interaction.editReply(
+        errorEmbed({
+          title: "Invalid Message",
+          description:
+            validation.error || "Please provide a valid welcome message.",
+          solution: "Remove any HTML or script content and try again.",
+        }),
+      );
     }
 
     const dbManager = await getDatabaseManager();
