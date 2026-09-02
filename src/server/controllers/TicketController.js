@@ -599,6 +599,7 @@ export async function apiCreatePanel(req, res) {
       createSuccessResponse({
         guildId,
         panel,
+        message: "Panel created successfully",
       }),
     );
   } catch (error) {
@@ -671,6 +672,7 @@ export async function apiDeletePanel(req, res) {
         panelId,
         deleted: true,
         messageDeleted,
+        message: "Panel deleted successfully",
       }),
     );
   } catch (error) {
@@ -737,6 +739,7 @@ export async function apiTogglePanel(req, res) {
       createSuccessResponse({
         guildId,
         panel: updated,
+        message: `Panel ${updated.settings.enabled ? "enabled" : "disabled"} successfully`,
       }),
     );
   } catch (error) {
@@ -877,6 +880,7 @@ export async function apiUpdatePanel(req, res) {
         guildId,
         panel,
         messageRefreshed,
+        message: "Panel updated successfully",
       }),
     );
   } catch (error) {
@@ -954,6 +958,7 @@ export async function apiRefreshPanel(req, res) {
         guildId,
         panelId,
         refreshed: true,
+        message: "Panel message refreshed successfully",
       }),
     );
   } catch (error) {

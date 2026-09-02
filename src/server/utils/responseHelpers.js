@@ -9,7 +9,7 @@
  */
 export function createSuccessResponse(data) {
   return {
-    status: "success",
+    success: true,
     ...data,
     timestamp: new Date().toISOString(),
   };
