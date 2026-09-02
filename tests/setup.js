@@ -22,6 +22,11 @@ process.env.DISCORD_TOKEN = "test-token";
 process.env.DISCORD_CLIENT_ID = "test-client-id";
 process.env.MONGODB_URI = "mongodb://localhost:27017/test";
 process.env.PORT = "3001";
+// Deterministic internal key so API tests don't depend on .env contents.
+// dotenv.config() does not override existing process.env values.
+if (!process.env.INTERNAL_API_KEY) {
+  process.env.INTERNAL_API_KEY = "test-internal-api-key";
+}
 
 global.testUtils = {
   createMockInteraction: (options = {}) => ({

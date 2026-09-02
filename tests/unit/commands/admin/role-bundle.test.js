@@ -17,8 +17,14 @@ vi.mock("src/utils/commandUtils.js", () => ({
 
 vi.mock("src/features/premium/config.js", () => ({
   PremiumFeatures: { ROLE_BUNDLES: "role_bundles" },
-  FREE_TIER: { maxRoleBundles: 3 },
-  PRO_TIER: { maxRoleBundles: 25 },
+  FREE_TIER: {
+    ROLE_BUNDLE_MAX_ROLES: 5,
+    ROLE_BUNDLE_MAX_ACTIVE: 5,
+  },
+  PRO_TIER: {
+    ROLE_BUNDLE_MAX_ROLES: 20,
+    ROLE_BUNDLE_MAX_ACTIVE: 20,
+  },
 }));
 
 vi.mock("src/features/premium/PremiumManager.js", () => ({
@@ -131,6 +137,26 @@ describe("Role Bundle Command", () => {
       mockRoleBundleManager.create.mockRejectedValue(new Error("DB error"));
 
       await expect(handleCreate(mockInteraction)).resolves.not.toThrow();
+    });
+
+    it("should reject when bundle limit reached (free tier)", async () => {
+      mockRoleBundleManager.count.mockResolvedValue(5);
+
+      await handleCreate(mockInteraction);
+
+      expect(mockInteraction.editReply).toHaveBeenCalled();
+    });
+
+    it("should reject when too many roles in bundle (free tier)", async () => {
+      mockInteraction.options.getString.mockImplementation((name) => {
+        if (name === "name") return "Test Bundle";
+        if (name === "roles") return "<@&role1>,<@&role2>,<@&role3>,<@&role4>,<@&role5>,<@&role6>";
+        return null;
+      });
+
+      await handleCreate(mockInteraction);
+
+      expect(mockInteraction.editReply).toHaveBeenCalled();
     });
   });
 

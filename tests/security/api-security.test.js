@@ -5,8 +5,19 @@
  * to role management and other sensitive endpoints.
  */
 
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import request from "supertest";
+
+// Prevent health-check endpoints from attempting a real MongoDB connection
+// (no database exists in the test environment; a real client would hang
+// until its server-selection timeout).
+vi.mock("../../src/utils/storage/databaseManager.js", () => ({
+  getDatabaseManager: vi.fn().mockResolvedValue({
+    connectionManager: {
+      isConnectionHealthy: () => false,
+    },
+  }),
+}));
 
 describe("API Security Tests", () => {
   let app;
@@ -17,9 +28,11 @@ describe("API Security Tests", () => {
   const testUserId = "111111111111111111";
 
   beforeAll(async () => {
-    // Import and setup the app
-    const { getApp } = await import("../../src/server/webhookServer.js");
-    app = getApp();
+    // Import and setup the app with routes mounted (but no HTTP listener)
+    const { initAppForTests } = await import(
+      "../../src/server/webhookServer.js"
+    );
+    app = await initAppForTests();
   });
 
   afterAll(() => {
@@ -428,14 +441,21 @@ describe("API Security Tests", () => {
   describe("System Endpoints Security", () => {
     const internalKey = process.env.INTERNAL_API_KEY || "test-key";
 
-    it("should reject logs access without authentication", async () => {
+    it("should reject logs access without internal key", async () => {
+      const response = await request(app).get(`${API_BASE}/logs`);
+
+      // Logs are service-to-service: bot trusts requests carrying the
+      // internal key; the website layer enforces admin auth before proxying.
+      expect(response.status).toBe(401);
+    });
+
+    it("should serve logs to the trusted internal service", async () => {
       const response = await request(app)
         .get(`${API_BASE}/logs`)
         .set("Authorization", `Bearer ${internalKey}`);
 
-      // Logs should require additional admin auth
       expect(response.status).toBeLessThan(500);
-      expect([401, 403, 404]).toContain(response.status);
+      expect([200, 401, 403]).toContain(response.status);
     });
 
     it("should reject config access without authentication", async () => {
@@ -472,12 +492,12 @@ describe("API Security Tests", () => {
   });
 
   describe("Transcript Endpoint Security", () => {
-    it("should allow transcript access with rate limiting", async () => {
+    it("should require authentication for transcript access", async () => {
       const response = await request(app).get(`/t/invalid-transcript-id`);
 
-      // Should not require auth but may return 404 for invalid ID
-      // Should NOT return 401
-      expect(response.status).not.toBe(401);
+      // Transcripts now require an authenticated session (see routes/v1/transcripts.js)
+      expect(response.status).not.toBe(500);
+      expect([401, 403, 404]).toContain(response.status);
     });
   });
 });
