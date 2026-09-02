@@ -48,6 +48,12 @@ function createMockCache() {
   return {
     get: (key) => store.get(key),
     set: (key, val) => store.set(key, val),
+    delete: (key) => store.delete(key),
+    invalidatePrefix: (prefix) => {
+      for (const key of store.keys()) {
+        if (key.startsWith(prefix)) store.delete(key);
+      }
+    },
     clear: () => store.clear(),
   };
 }

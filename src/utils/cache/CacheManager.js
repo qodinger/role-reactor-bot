@@ -1,44 +1,53 @@
 /**
  * Enhanced cache manager with TTL and size limits
+ * Uses Map insertion-order for O(1) LRU eviction
  */
 export class CacheManager {
   constructor(timeout = 5 * 60 * 1000, maxSize = 1000) {
     this.cache = new Map();
     this.timeout = timeout;
     this.maxSize = maxSize;
-    this.accessOrder = []; // Track access order for LRU eviction
   }
 
   get(key) {
     const cached = this.cache.get(key);
     if (!cached) return null;
 
-    if (Date.now() - cached.timestamp > this.timeout) {
-      this.delete(key);
+    if (Date.now() - cached.timestamp > cached.timeout) {
+      this.cache.delete(key);
       return null;
     }
 
-    this.updateAccessOrder(key);
+    // O(1) LRU touch: re-insert so the key becomes most-recently-used
+    this.cache.delete(key);
+    this.cache.set(key, cached);
     return cached.data;
   }
 
-  set(key, data) {
-    if (this.cache.size >= this.maxSize) {
+  /**
+   * @param {string} key
+   * @param {*} data
+   * @param {number} [ttl] Optional per-entry TTL in ms (defaults to manager timeout)
+   */
+  set(key, data, ttl) {
+    if (!this.cache.has(key) && this.cache.size >= this.maxSize) {
       this.evictOldest();
     }
 
-    this.cache.set(key, { data, timestamp: Date.now() });
-    this.updateAccessOrder(key);
+    this.cache.delete(key);
+    this.cache.set(key, {
+      data,
+      timestamp: Date.now(),
+      timeout: ttl || this.timeout,
+    });
   }
 
   delete(key) {
     this.cache.delete(key);
-    this.removeFromAccessOrder(key);
   }
 
   clear() {
     this.cache.clear();
-    this.accessOrder = [];
   }
 
   /**
@@ -48,26 +57,14 @@ export class CacheManager {
   invalidatePrefix(prefix) {
     for (const key of this.cache.keys()) {
       if (key.startsWith(prefix)) {
-        this.delete(key);
+        this.cache.delete(key);
       }
     }
   }
 
-  updateAccessOrder(key) {
-    this.removeFromAccessOrder(key);
-    this.accessOrder.push(key);
-  }
-
-  removeFromAccessOrder(key) {
-    const index = this.accessOrder.indexOf(key);
-    if (index !== -1) {
-      this.accessOrder.splice(index, 1);
-    }
-  }
-
   evictOldest() {
-    if (this.accessOrder.length > 0) {
-      const oldestKey = this.accessOrder.shift();
+    const oldestKey = this.cache.keys().next().value;
+    if (oldestKey !== undefined) {
       this.cache.delete(oldestKey);
     }
   }
@@ -78,8 +75,8 @@ export class CacheManager {
   cleanup() {
     const now = Date.now();
     for (const [key, cached] of this.cache.entries()) {
-      if (now - cached.timestamp > this.timeout) {
-        this.delete(key);
+      if (now - cached.timestamp > cached.timeout) {
+        this.cache.delete(key);
       }
     }
   }

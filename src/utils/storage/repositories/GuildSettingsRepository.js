@@ -26,10 +26,22 @@ export class GuildSettingsRepository extends BaseRepository {
     }
   }
 
+  _cacheKey(guildId) {
+    return `guild_settings:${guildId}`;
+  }
+
+  _invalidate(guildId) {
+    if (this.cache) this.cache.delete(this._cacheKey(guildId));
+  }
+
   async getByGuild(guildId) {
     try {
+      const cacheKey = this._cacheKey(guildId);
+      const cached = this.cache?.get(cacheKey);
+      if (cached) return structuredClone(cached);
+
       const settings = await this.collection.findOne({ guildId });
-      return (
+      const result =
         settings || {
           guildId,
           experienceSystem: {
@@ -52,8 +64,10 @@ export class GuildSettingsRepository extends BaseRepository {
           disabledCommands: [],
           createdAt: new Date(),
           updatedAt: new Date(),
-        }
-      );
+        };
+
+      this.cache?.set(cacheKey, result);
+      return result;
     } catch (error) {
       this.logger.error(
         `Failed to get guild settings for guild ${guildId}`,
@@ -73,7 +87,7 @@ export class GuildSettingsRepository extends BaseRepository {
         { $set: { ...safeSettings, guildId, updatedAt: new Date() } },
         { upsert: true },
       );
-      this.cache.clear();
+      this._invalidate(guildId);
     } catch (error) {
       this.logger.error(
         `Failed to set guild settings for guild ${guildId}`,
@@ -86,7 +100,7 @@ export class GuildSettingsRepository extends BaseRepository {
   async delete(guildId) {
     try {
       await this.collection.deleteOne({ guildId });
-      this.cache.clear();
+      this._invalidate(guildId);
     } catch (error) {
       this.logger.error(
         `Failed to delete guild settings for guild ${guildId}`,
@@ -107,6 +121,7 @@ export class GuildSettingsRepository extends BaseRepository {
         },
         { upsert: true, returnDocument: "after" },
       );
+      this._invalidate(guildId);
       // Navigate the dot path to get the value
       const parts = counterField.split(".");
       let value = result;
@@ -138,7 +153,7 @@ export class GuildSettingsRepository extends BaseRepository {
         },
         { upsert: true },
       );
-      if (this.cache) this.cache.clear();
+      this._invalidate(guildId);
       return true;
     } catch (error) {
       this.logger.error(
@@ -194,8 +209,8 @@ export class GuildSettingsRepository extends BaseRepository {
           { $set: { supporters: guildSupporters, updatedAt: new Date() } },
           { upsert: true },
         );
+        this._invalidate(guildId);
       }
-      this.cache.clear();
       return true;
     } catch (error) {
       this.logger.error("Failed to set supporters", error);
@@ -261,7 +276,7 @@ export class GuildSettingsRepository extends BaseRepository {
 
       const newBalance =
         Math.round((result?.coreVault?.balance || roundedAmount) * 100) / 100;
-      if (this.cache) this.cache.clear();
+      this._invalidate(guildId);
 
       return { success: true, newBalance };
     } catch (error) {
@@ -298,7 +313,7 @@ export class GuildSettingsRepository extends BaseRepository {
 
       const newBalance =
         Math.round((result?.coreVault?.balance || 0) * 100) / 100;
-      if (this.cache) this.cache.clear();
+      this._invalidate(guildId);
 
       return { success: true, newBalance };
     } catch (error) {

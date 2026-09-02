@@ -35,12 +35,12 @@ export class RoleMappingRepository extends BaseRepository {
       },
       { upsert: true },
     );
-    this.cache.clear();
+    this.cache.invalidatePrefix("role_mappings:");
   }
 
   async delete(messageId) {
     await this.collection.deleteOne({ messageId });
-    this.cache.clear();
+    this.cache.invalidatePrefix("role_mappings:");
   }
 
   async updatePartial(messageId, updates) {
@@ -48,7 +48,7 @@ export class RoleMappingRepository extends BaseRepository {
       { messageId },
       { $set: { ...updates, updatedAt: new Date() } },
     );
-    this.cache.clear();
+    this.cache.invalidatePrefix("role_mappings:");
   }
 
   async getByGuildPaginated(guildId, page = 1, limit = 4) {

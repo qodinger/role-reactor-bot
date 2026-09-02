@@ -11,6 +11,18 @@ export const name = Events.MessageCreate;
 
 const messageHistory = new Map();
 
+// Prune stale spam-tracking entries so the map doesn't grow unbounded
+const HISTORY_TTL = 60 * 1000;
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of messageHistory) {
+    const last = entry.messages[entry.messages.length - 1];
+    if (!last || now - last.time > HISTORY_TTL) {
+      messageHistory.delete(key);
+    }
+  }
+}, HISTORY_TTL).unref();
+
 export async function execute(message, client) {
   if (!message || !client) return;
 

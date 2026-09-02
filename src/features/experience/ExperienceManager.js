@@ -62,10 +62,26 @@ class ExperienceCache {
           lastUpdated: new Date(),
         };
 
+        // Carry over profile snapshot fields that only live in the in-memory copy
+        const cached = this.get(guildId, userId);
+        if (cached) {
+          if (cached.username) userData.username = cached.username;
+          if (cached.discriminator) userData.discriminator = cached.discriminator;
+          if (cached.avatarUrl) userData.avatarUrl = cached.avatarUrl;
+        }
+
         // Apply all updates for this user
         for (const update of updates) {
           userData.totalXP += update.xp;
           userData.lastUpdated = new Date();
+
+          if (update.messagesSentDelta) {
+            userData.messagesSent =
+              (userData.messagesSent || 0) + update.messagesSentDelta;
+          }
+          if (update.lastEarned) {
+            userData.lastEarned = update.lastEarned;
+          }
 
           // Process time filters for this update
           const now = new Date();
@@ -565,11 +581,15 @@ class ExperienceManager {
       }
     }
 
-    const userData = await this.getUserData(guildId, userId);
+    const cachedData = experienceCache.get(guildId, userId);
+    let lastEarned = null;
+    if (cachedData) {
+      lastEarned = cachedData.lastEarned ? new Date(cachedData.lastEarned) : null;
+    } else {
+      const userData = await this.getUserData(guildId, userId);
+      lastEarned = userData.lastEarned ? new Date(userData.lastEarned) : null;
+    }
     const now = new Date();
-    const lastEarned = userData.lastEarned
-      ? new Date(userData.lastEarned)
-      : null;
 
     // 60 second cooldown between XP gains
     const cooldownMs = 60 * 1000;
@@ -618,8 +638,16 @@ class ExperienceManager {
     const userData = await this.addXP(guildId, userId, xp, client);
 
     // Update last earned timestamp
-    userData.lastEarned = new Date();
+    const lastEarnedAt = new Date();
+    userData.lastEarned = lastEarnedAt;
     userData.messagesSent = (userData.messagesSent || 0) + 1;
+
+    // Keep the in-memory copy fresh so cooldown checks skip the DB
+    const cachedData = experienceCache.get(guildId, userId);
+    if (cachedData) {
+      cachedData.lastEarned = lastEarnedAt;
+      cachedData.messagesSent = (cachedData.messagesSent || 0) + 1;
+    }
 
     // Record daily message analytics (fire-and-forget)
     import("../analytics/AnalyticsManager.js")
@@ -629,7 +657,12 @@ class ExperienceManager {
         this.logger.debug("Analytics recording failed:", err.message),
       );
 
-    await this.storageManager.setUserExperience(guildId, userId, userData);
+    // Persisted by the batched writer in addXP — no direct write here
+    experienceCache.queueUpdate(guildId, userId, {
+      xp: 0,
+      lastEarned: lastEarnedAt,
+      messagesSentDelta: 1,
+    });
 
     return {
       xp,

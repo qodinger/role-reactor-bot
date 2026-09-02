@@ -63,7 +63,7 @@ export class CoreCreditsRepository extends BaseRepository {
 
       // Update cache
       this.cache.set(`core_credits_${userId}`, document);
-      this.cache.clear(); // Invalidate all cache
+      this.cache.delete("core_credits_all");
 
       return result.acknowledged;
     } catch (error) {
@@ -87,7 +87,8 @@ export class CoreCreditsRepository extends BaseRepository {
       );
 
       // Invalidate cache
-      this.cache.clear();
+      this.cache.delete(`core_credits_${userId}`);
+      this.cache.delete("core_credits_all");
 
       return result.acknowledged;
     } catch (error) {
@@ -109,7 +110,8 @@ export class CoreCreditsRepository extends BaseRepository {
         { upsert: true },
       );
 
-      this.cache.clear();
+      this.cache.delete(`core_credits_${userId}`);
+      this.cache.delete("core_credits_all");
 
       return result.acknowledged;
     } catch (error) {
@@ -123,7 +125,8 @@ export class CoreCreditsRepository extends BaseRepository {
       const result = await this.collection.deleteOne({ userId });
 
       // Invalidate cache
-      this.cache.clear();
+      this.cache.delete(`core_credits_${userId}`);
+      this.cache.delete("core_credits_all");
 
       return result.deletedCount > 0;
     } catch (error) {

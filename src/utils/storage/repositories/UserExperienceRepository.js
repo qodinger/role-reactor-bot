@@ -70,7 +70,7 @@ export class UserExperienceRepository extends BaseRepository {
         { $set: { ...userData, guildId, userId, updatedAt: new Date() } },
         { upsert: true },
       );
-      this.cache.clear();
+      this.cache.delete("user_experience_all");
     } catch (error) {
       this.logger.error(
         `Failed to set user experience for ${userId} in ${guildId}`,
@@ -83,7 +83,7 @@ export class UserExperienceRepository extends BaseRepository {
   async delete(guildId, userId) {
     try {
       await this.collection.deleteOne({ guildId, userId });
-      this.cache.clear();
+      this.cache.delete("user_experience_all");
     } catch (error) {
       this.logger.error(
         `Failed to delete user experience for ${userId} in ${guildId}`,

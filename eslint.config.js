@@ -25,6 +25,7 @@ export default [
         clearInterval: "readonly",
         URL: "readonly",
         URLSearchParams: "readonly",
+        structuredClone: "readonly",
         fetch: "readonly",
         AbortController: "readonly",
         AbortSignal: "readonly",

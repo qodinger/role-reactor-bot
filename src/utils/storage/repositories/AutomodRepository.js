@@ -16,8 +16,15 @@ export class AutomodRepository extends BaseRepository {
 
   async getByGuild(guildId) {
     try {
-      const settings = await this.collection.findOne({ guildId });
-      return settings || this.getDefaultSettings(guildId);
+      const cacheKey = `guild_automod:${guildId}`;
+      const cached = this.cache?.get(cacheKey);
+      if (cached) return structuredClone(cached);
+
+      const settings =
+        (await this.collection.findOne({ guildId })) ||
+        this.getDefaultSettings(guildId);
+      this.cache?.set(cacheKey, settings);
+      return settings;
     } catch (error) {
       this.logger.error(
         `Failed to get automod settings for guild ${guildId}`,
@@ -103,7 +110,7 @@ export class AutomodRepository extends BaseRepository {
         { $set: { ...settings, guildId, updatedAt: new Date() } },
         { upsert: true },
       );
-      this.cache.clear();
+      this.cache?.delete(`guild_automod:${guildId}`);
     } catch (error) {
       this.logger.error(
         `Failed to set automod settings for guild ${guildId}`,
@@ -120,7 +127,7 @@ export class AutomodRepository extends BaseRepository {
         { $set: { enabled, updatedAt: new Date() } },
         { upsert: true },
       );
-      this.cache.clear();
+      this.cache?.delete(`guild_automod:${guildId}`);
     } catch (error) {
       this.logger.error(
         `Failed to ${enabled ? "enable" : "disable"} automod for guild ${guildId}`,
@@ -133,7 +140,7 @@ export class AutomodRepository extends BaseRepository {
   async delete(guildId) {
     try {
       await this.collection.deleteOne({ guildId });
-      this.cache.clear();
+      this.cache?.delete(`guild_automod:${guildId}`);
     } catch (error) {
       this.logger.error(
         `Failed to delete automod settings for guild ${guildId}`,
@@ -156,7 +163,7 @@ export class AutomodRepository extends BaseRepository {
         { guildId },
         { $set: { ...update, updatedAt: new Date() } },
       );
-      this.cache.clear();
+      this.cache?.delete(`guild_automod:${guildId}`);
     } catch (error) {
       this.logger.error(
         `Failed to set channel settings for ${channelId} in guild ${guildId}`,
@@ -175,7 +182,7 @@ export class AutomodRepository extends BaseRepository {
           $set: { updatedAt: new Date() },
         },
       );
-      this.cache.clear();
+      this.cache?.delete(`guild_automod:${guildId}`);
     } catch (error) {
       this.logger.error(
         `Failed to delete channel settings for ${channelId} in guild ${guildId}`,
@@ -212,6 +219,7 @@ export class AutomodRepository extends BaseRepository {
           $set: { updatedAt: new Date() },
         },
       );
+      this.cache?.delete(`guild_automod:${guildId}`);
     } catch (error) {
       this.logger.error(
         `Failed to record violation for guild ${guildId}`,
@@ -242,7 +250,7 @@ export class AutomodRepository extends BaseRepository {
         { guildId },
         { $set: { logs: [], updatedAt: new Date() } },
       );
-      this.cache.clear();
+      this.cache?.delete(`guild_automod:${guildId}`);
     } catch (error) {
       this.logger.error(`Failed to clear logs for guild ${guildId}`, error);
       throw error;
