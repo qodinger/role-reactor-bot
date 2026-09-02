@@ -429,6 +429,12 @@ class CommandHandler {
               interaction.user.id,
               commandName,
               client,
+              {
+                channelId: interaction.channelId,
+                memberRoleIds: [
+                  ...(interaction.member?.roles?.cache?.keys() ?? []),
+                ],
+              },
             );
             this.logger.info(
               `✅ Pre-awarded command XP for ${interaction.user.tag} running ${commandName}`,
@@ -507,6 +513,12 @@ class CommandHandler {
               interaction.user.id,
               commandName,
               client,
+              {
+                channelId: interaction.channelId,
+                memberRoleIds: [
+                  ...(interaction.member?.roles?.cache?.keys() ?? []),
+                ],
+              },
             );
 
             if (xpData) {

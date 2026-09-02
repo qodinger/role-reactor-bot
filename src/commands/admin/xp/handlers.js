@@ -2,6 +2,7 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  ChannelType,
   MessageFlags,
 } from "discord.js";
 import { getLogger } from "../../../utils/logger.js";
@@ -1143,6 +1144,128 @@ export async function handleRewardsCommand(interaction, subcommand, _client) {
       errorEmbed({
         title: "Error",
         description: "Failed to process rewards command.",
+        solution: "Please try again or contact support if the issue persists.",
+      }),
+    );
+  }
+}
+
+/**
+ * Handle /xp no-xp subcommands — anti-farming exclusions
+ * @param {import('discord.js').CommandInteraction} interaction
+ * @param {string} subcommand
+ */
+export async function handleNoXpCommand(interaction, subcommand) {
+  const logger = getLogger();
+
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+  try {
+    const { EmbedBuilder } = await import("discord.js");
+    const dbManager = await getDatabaseManager();
+
+    if (!dbManager.guildSettings) {
+      return interaction.editReply(
+        errorEmbed({
+          title: "Database Error",
+          description: "Guild settings repository is not available.",
+        }),
+      );
+    }
+
+    const settings = await dbManager.guildSettings.getByGuild(
+      interaction.guild.id,
+    );
+    const exp = settings.experienceSystem || {};
+
+    if (subcommand === "list") {
+      const channels = (exp.noXpChannels || [])
+        .map(id => `<#${id}>`)
+        .join(", ");
+      const roles = (exp.noXpRoles || []).map(id => `<@&${id}>`).join(", ");
+
+      const embed = new EmbedBuilder()
+        .setTitle("🚫 No-XP Exclusions")
+        .setColor(THEME.PRIMARY)
+        .addFields(
+          {
+            name: "No-XP Channels",
+            value: channels || "_None — XP is earned in all channels_",
+          },
+          {
+            name: "No-XP Roles",
+            value: roles || "_None — XP is earned by all roles_",
+          },
+        )
+        .setFooter({
+          text: "Members in a no-XP role earn no XP anywhere. In a no-XP channel, no message/voice XP is awarded.",
+        })
+        .setTimestamp();
+
+      return interaction.editReply({ embeds: [embed] });
+    }
+
+    const isChannel = subcommand === "channel";
+    const action = interaction.options.getString("action");
+    const target = isChannel
+      ? interaction.options.getChannel("channel")
+      : interaction.options.getRole("role");
+
+    if (
+      isChannel &&
+      ![
+        ChannelType.GuildText,
+        ChannelType.GuildVoice,
+        ChannelType.GuildStageVoice,
+      ].includes(target.type)
+    ) {
+      return interaction.editReply(
+        errorEmbed({
+          title: "Invalid Channel",
+          description:
+            "Only text channels and voice channels can be added to the no-XP list.",
+        }),
+      );
+    }
+
+    const field = isChannel ? "noXpChannels" : "noXpRoles";
+    const current = new Set(exp[field] || []);
+
+    if (action === "add") {
+      current.add(target.id);
+    } else {
+      current.delete(target.id);
+    }
+
+    await updateXpSettings(
+      interaction.guild.id,
+      { [field]: [...current] },
+      dbManager,
+    );
+
+    const verb = action === "add" ? "Blocked" : "Unblocked";
+    const subject = isChannel ? "Channel" : "Role";
+    const embed = new EmbedBuilder()
+      .setTitle(`🚫 ${subject} ${verb}`)
+      .setDescription(
+        action === "add"
+          ? `${target} is now **excluded from XP**.${isChannel ? " Messages and voice time in this channel earn no XP." : " Members with this role earn no XP from any source."}`
+          : `${target} can earn XP again.`,
+      )
+      .setColor(action === "add" ? THEME.ERROR : THEME.SUCCESS)
+      .setTimestamp();
+
+    await interaction.editReply({ embeds: [embed] });
+
+    logger.info(
+      `XP no-xp ${field} ${action}: ${target.id} in guild ${interaction.guild.id} by ${interaction.user.tag}`,
+    );
+  } catch (error) {
+    logger.error("Error in no-xp command:", error);
+    await interaction.editReply(
+      errorEmbed({
+        title: "Error",
+        description: "Failed to update no-XP exclusions.",
         solution: "Please try again or contact support if the issue persists.",
       }),
     );

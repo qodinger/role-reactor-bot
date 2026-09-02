@@ -12,6 +12,12 @@ class BotContext {
   }
 
   async shutdown() {
+    // Persist any XP updates still inside the batch window before teardown
+    const { flushExperienceUpdates } = await import(
+      "../../features/experience/ExperienceManager.js"
+    ).catch(() => ({}));
+    await flushExperienceUpdates?.();
+
     if (this.tempRoleScheduler) {
       this.tempRoleScheduler.stop();
     }

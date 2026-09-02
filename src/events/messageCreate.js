@@ -751,6 +751,10 @@ export async function execute(message, client) {
       message.guild.id,
       message.author.id,
       client,
+      {
+        channelId: message.channel.id,
+        memberRoleIds: [...(message.member?.roles?.cache?.keys() ?? [])],
+      },
     );
   } catch (error) {
     logger.error("Error processing message:", error);

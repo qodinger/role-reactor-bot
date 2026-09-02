@@ -1,5 +1,6 @@
 import { getLogger } from "../../utils/logger.js";
 import { getStorageManager } from "../../utils/storage/storageManager.js";
+import { getBotContext } from "../../utils/core/BotContext.js";
 
 /**
  * Voice Chat XP Tracker
@@ -85,7 +86,7 @@ class VoiceTracker {
   }
 
   /**
-   * Process voice XP for all tracked users
+   * Process voice XP for all tracked users (anti-AFK filtered)
    */
   async processVoiceXP() {
     if (this.voiceUsers.size === 0) return;
@@ -94,6 +95,9 @@ class VoiceTracker {
       "../../utils/storage/databaseManager.js"
     );
     const dbManager = await getDatabaseManager();
+    const { getExperienceManager } = await import("./ExperienceManager.js");
+    const experienceManager = await getExperienceManager();
+    const client = getBotContext().client;
 
     for (const [key, userData] of this.voiceUsers.entries()) {
       const [guildId, userId] = key.split(":");
@@ -108,14 +112,28 @@ class VoiceTracker {
           continue;
         }
 
+        // Channel-level no-XP exclusion
+        const noXpChannels = guildSettings.experienceSystem.noXpChannels || [];
+        if (noXpChannels.includes(userData.channelId)) {
+          continue;
+        }
+
+        // Role-level no-XP exclusion
+        const noXpRoles = guildSettings.experienceSystem.noXpRoles || [];
+
+        // Anti-AFK: evaluate the user's CURRENT voice state
+        if (client && !this._isVoiceEngaged(guildId, userId, noXpRoles, client, guildSettings)) {
+          continue;
+        }
+
         // Check if enough time has passed since last XP award (5 minutes)
         const timeSinceLastXP = Date.now() - userData.lastXPAward;
         if (timeSinceLastXP < 5 * 60 * 1000) {
           continue;
         }
 
-        // Award voice XP
-        await this.awardVoiceXP(guildId, userId);
+        // Award voice XP (single-writer via ExperienceManager batcher)
+        await experienceManager.awardVoiceXP(guildId, userId);
 
         // Update last XP award time
         userData.lastXPAward = Date.now();
@@ -130,54 +148,44 @@ class VoiceTracker {
   }
 
   /**
-   * Award XP for voice chat participation
-   * @param {string} guildId - Discord guild ID
-   * @param {string} userId - Discord user ID
-   * @returns {Promise<object|null>} Awarded XP data or null if XP system disabled
+   * Whether a user counts as engaged voice activity (not deaf/muted,
+   * not holding an excluded role, and not alone in the channel)
+   * @param {string} guildId
+   * @param {string} userId
+   * @param {string[]} noXpRoles
+   * @param {import('discord.js').Client} client
+   * @param {object} guildSettings
+   * @returns {boolean}
    */
-  async awardVoiceXP(guildId, userId) {
-    const { getExperienceManager } = await import("./ExperienceManager.js");
-    const experienceManager = await getExperienceManager();
+  _isVoiceEngaged(guildId, userId, noXpRoles, client, guildSettings) {
+    const config = {
+      ignoreMuted: true,
+      ignoreDeafened: true,
+      minOthers: 1,
+      ...(guildSettings.experienceSystem.voiceXpSettings || {}),
+    };
 
-    // Check if XP system is enabled for this guild
-    const { getDatabaseManager } = await import(
-      "../../utils/storage/databaseManager.js"
-    );
-    const dbManager = await getDatabaseManager();
-    const guildSettings = await dbManager.guildSettings.getByGuild(guildId);
+    const guild = client.guilds.cache.get(guildId);
+    const member = guild?.members?.cache?.get(userId);
+    const voice = member?.voice;
+    if (!voice || !voice.channel) return false;
 
-    if (
-      !guildSettings.experienceSystem.enabled ||
-      !guildSettings.experienceSystem.voiceXP
-    ) {
-      return null;
+    if (noXpRoles.length > 0 && member.roles?.cache) {
+      for (const roleId of noXpRoles) {
+        if (member.roles.cache.has(roleId)) return false;
+      }
     }
 
-    // Award XP for voice participation (5 XP per 5 minutes)
-    const xp = 5;
-    const userData = await experienceManager.addXP(guildId, userId, xp);
+    // deafened (self or server) = not listening/speaking; muted = can't speak
+    if (config.ignoreMuted && voice.mute) return false;
+    if (config.ignoreDeafened && voice.deaf) return false;
 
-    // Update voice time
-    userData.voiceTime = (userData.voiceTime || 0) + 5; // 5 minutes
+    if (config.minOthers > 0) {
+      const humans = voice.channel.members.filter(m => !m.user.bot).size;
+      if (humans - 1 < config.minOthers) return false;
+    }
 
-    // Record daily voice analytics (fire-and-forget)
-    import("../analytics/AnalyticsManager.js")
-      .then(({ getAnalyticsManager }) => getAnalyticsManager())
-      .then(am => am.recordVoiceMinutes(guildId, 5))
-      .catch(() => {});
-
-    await this.storageManager.setUserExperience(guildId, userId, userData);
-
-    this.logger.debug(
-      `🎤 Awarded ${xp} voice XP to user ${userId} in guild ${guildId}`,
-    );
-
-    return {
-      xp,
-      newTotal: userData.totalXP,
-      newLevel: userData.level,
-      leveledUp: userData.leveledUp,
-    };
+    return true;
   }
 
   /**

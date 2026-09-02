@@ -568,12 +568,39 @@ class ExperienceManager {
   }
 
   /**
+   * Check whether XP earning is excluded by guild no-XP channels/roles
+   * @param {object} guildSettings - Guild settings document
+   * @param {{channelId?: string, memberRoleIds?: string[]}} [context]
+   * @returns {boolean} True if XP should be excluded
+   */
+  _isXpExcluded(guildSettings, context = {}) {
+    const exp = guildSettings?.experienceSystem || {};
+    const noXpRoles = exp.noXpRoles || [];
+    const noXpChannels = exp.noXpChannels || [];
+
+    if (
+      noXpRoles.length > 0 &&
+      Array.isArray(context.memberRoleIds) &&
+      context.memberRoleIds.some(roleId => noXpRoles.includes(roleId))
+    ) {
+      return true;
+    }
+
+    if (context.channelId && noXpChannels.includes(context.channelId)) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
    * Check if user can earn XP (cooldown system)
    * @param {string} guildId - Discord guild ID
    * @param {string} userId - Discord user ID
+   * @param {number} [cooldownSeconds=60] - Cooldown from guild settings
    * @returns {Promise<boolean>} Whether user can earn XP
    */
-  async canEarnXP(guildId, userId) {
+  async canEarnXP(guildId, userId, cooldownSeconds = 60) {
     await this.initialize();
 
     // Check if XP system is enabled for this guild
@@ -599,8 +626,7 @@ class ExperienceManager {
     }
     const now = new Date();
 
-    // 60 second cooldown between XP gains
-    const cooldownMs = 60 * 1000;
+    const cooldownMs = Math.max(0, cooldownSeconds ?? 60) * 1000;
 
     if (!lastEarned || now.getTime() - lastEarned.getTime() >= cooldownMs) {
       return true;
@@ -616,7 +642,7 @@ class ExperienceManager {
    * @param {import('discord.js').Client} [client] - Optional Discord client for level-up notifications
    * @returns {Promise<object|null>} Awarded XP data or null if cooldown active
    */
-  async awardMessageXP(guildId, userId, client = null) {
+  async awardMessageXP(guildId, userId, client = null, context = {}) {
     // Check if message XP is enabled for this guild
     const { getDatabaseManager } = await import(
       "../../utils/storage/databaseManager.js"
@@ -629,9 +655,18 @@ class ExperienceManager {
       if (!guildSettings.experienceSystem.messageXP) {
         return null;
       }
+      if (this._isXpExcluded(guildSettings, context)) {
+        return null;
+      }
     }
 
-    if (!(await this.canEarnXP(guildId, userId))) {
+    if (
+      !(await this.canEarnXP(
+        guildId,
+        userId,
+        guildSettings?.experienceSystem?.messageCooldown ?? 60,
+      ))
+    ) {
       return null;
     }
 
@@ -730,12 +765,68 @@ class ExperienceManager {
   }
 
   /**
+   * Award XP for engaged voice participation (called by VoiceTracker once
+   * per eligible interval). Persists exclusively through the batched writer.
+   * @param {string} guildId - Discord guild ID
+   * @param {string} userId - Discord user ID
+   * @returns {Promise<object|null>} Award info or null if XP disabled
+   */
+  async awardVoiceXP(guildId, userId) {
+    const { getDatabaseManager } = await import(
+      "../../utils/storage/databaseManager.js"
+    );
+    const dbManager = await getDatabaseManager();
+
+    if (dbManager.guildSettings) {
+      const guildSettings = await dbManager.guildSettings.getByGuild(guildId);
+      if (
+        !guildSettings.experienceSystem.enabled ||
+        !guildSettings.experienceSystem.voiceXP
+      ) {
+        return null;
+      }
+    }
+
+    const xp = 5;
+    const minutes = 5;
+    const userData = await this.addXP(guildId, userId, xp);
+
+    // Track voice time in memory and batch the persisted write
+    userData.voiceTime = (userData.voiceTime || 0) + minutes;
+    const cachedData = experienceCache.get(guildId, userId);
+    if (cachedData) {
+      cachedData.voiceTime = (cachedData.voiceTime || 0) + minutes;
+    }
+    experienceCache.queueUpdate(guildId, userId, {
+      xp: 0,
+      inc: { voiceTime: minutes },
+    });
+
+    // Record daily voice analytics (fire-and-forget)
+    import("../analytics/AnalyticsManager.js")
+      .then(({ getAnalyticsManager }) => getAnalyticsManager())
+      .then(am => am.recordVoiceMinutes(guildId, minutes))
+      .catch(() => {});
+
+    this.logger.debug(
+      `🎤 Awarded ${xp} voice XP to user ${userId} in guild ${guildId}`,
+    );
+
+    return {
+      xp,
+      minutes,
+      newTotal: userData.totalXP,
+      newLevel: userData.level,
+    };
+  }
+
+  /**
    * Check if user can earn command XP (cooldown system)
    * @param {string} guildId - Discord guild ID
    * @param {string} userId - Discord user ID
    * @returns {Promise<boolean>} Whether user can earn command XP
    */
-  async canEarnCommandXP(guildId, userId) {
+  async canEarnCommandXP(guildId, userId, cooldownSeconds = 30) {
     await this.initialize();
 
     // Check if XP system is enabled for this guild
@@ -766,7 +857,7 @@ class ExperienceManager {
     const now = new Date();
 
     // 30 second cooldown between command XP gains (shorter than message XP)
-    const cooldownMs = 30 * 1000;
+    const cooldownMs = Math.max(0, cooldownSeconds ?? 30) * 1000;
 
     if (
       !lastCommandEarned ||
@@ -785,7 +876,7 @@ class ExperienceManager {
    * @param {string} commandName - Name of the command used
    * @returns {Promise<object|null>} Awarded XP data or null if cooldown active
    */
-  async awardCommandXP(guildId, userId, commandName, client = null) {
+  async awardCommandXP(guildId, userId, commandName, client = null, context = {}) {
     this.logger.debug(
       `🎯 ExperienceManager: Awarding command XP for user ${userId} in guild ${guildId} for command ${commandName}`,
     );
@@ -802,10 +893,19 @@ class ExperienceManager {
       if (!guildSettings.experienceSystem.commandXP) {
         return null;
       }
+      if (this._isXpExcluded(guildSettings, context)) {
+        return null;
+      }
     }
 
     // Check cooldown and enabled status
-    if (!(await this.canEarnCommandXP(guildId, userId))) {
+    if (
+      !(await this.canEarnCommandXP(
+        guildId,
+        userId,
+        guildSettings?.experienceSystem?.commandCooldown ?? 30,
+      ))
+    ) {
       this.logger.debug(
         `⏰ User ${userId} is on cooldown for command XP or XP system is disabled`,
       );
@@ -860,6 +960,14 @@ class ExperienceManager {
     await this.initialize();
     return this.storageManager.getUserRank(guildId, userId);
   }
+
+  /**
+   * Immediately persist any XP updates still waiting in the batch window.
+   * Called during graceful shutdown so awards aren't lost on restart.
+   */
+  async flushPendingUpdates() {
+    await experienceCache.processBatchUpdates();
+  }
 }
 
 let experienceManager = null;
@@ -870,4 +978,17 @@ export async function getExperienceManager() {
     await experienceManager.initialize();
   }
   return experienceManager;
+}
+
+/**
+ * Flush any pending batched XP writes (for graceful shutdown).
+ * Never throws — safe to await during teardown.
+ */
+export async function flushExperienceUpdates() {
+  if (!experienceManager || !experienceManager.isInitialized) return;
+  try {
+    await experienceManager.flushPendingUpdates();
+  } catch (error) {
+    getLogger().error("Failed to flush pending XP updates:", error);
+  }
 }

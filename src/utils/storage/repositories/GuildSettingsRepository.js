@@ -59,6 +59,13 @@ export class GuildSettingsRepository extends BaseRepository {
             commandCooldown: 30,
             levelUpMessages: true,
             levelUpChannel: null,
+            noXpChannels: [],
+            noXpRoles: [],
+            voiceXpSettings: {
+              ignoreMuted: true,
+              ignoreDeafened: true,
+              minOthers: 1,
+            },
             // Level formula is fixed at 100 * level^1.5 - no longer configurable
           },
           disabledCommands: [],

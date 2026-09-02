@@ -162,6 +162,58 @@ export const data = new SlashCommandBuilder()
               ),
           ),
       ),
+  )
+  .addSubcommandGroup(group =>
+    group
+      .setName("no-xp")
+      .setDescription("Manage no-XP channels and roles (anti-farming)")
+      .addSubcommand(sub =>
+        sub
+          .setName("channel")
+          .setDescription("Add or remove a channel from the no-XP list")
+          .addStringOption(option =>
+            option
+              .setName("action")
+              .setDescription("Whether to add or remove the channel")
+              .setRequired(true)
+              .addChoices(
+                { name: "Add", value: "add" },
+                { name: "Remove", value: "remove" },
+              ),
+          )
+          .addChannelOption(option =>
+            option
+              .setName("channel")
+              .setDescription("The channel to block XP in")
+              .setRequired(true),
+          ),
+      )
+      .addSubcommand(sub =>
+        sub
+          .setName("role")
+          .setDescription("Add or remove a role from the no-XP list")
+          .addStringOption(option =>
+            option
+              .setName("action")
+              .setDescription("Whether to add or remove the role")
+              .setRequired(true)
+              .addChoices(
+                { name: "Add", value: "add" },
+                { name: "Remove", value: "remove" },
+              ),
+          )
+          .addRoleOption(option =>
+            option
+              .setName("role")
+              .setDescription("The role to block XP for")
+              .setRequired(true),
+          ),
+      )
+      .addSubcommand(sub =>
+        sub
+          .setName("list")
+          .setDescription("View all no-XP channels and roles"),
+      ),
   );
 
 // ============================================================================
@@ -190,6 +242,11 @@ export async function execute(interaction, client) {
     if (subcommandGroup === "rewards") {
       const { handleRewardsCommand } = await import("./handlers.js");
       return await handleRewardsCommand(interaction, subcommand, client);
+    }
+
+    if (subcommandGroup === "no-xp") {
+      const { handleNoXpCommand } = await import("./handlers.js");
+      return await handleNoXpCommand(interaction, subcommand);
     }
 
     switch (subcommand) {

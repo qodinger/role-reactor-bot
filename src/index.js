@@ -200,6 +200,9 @@ async function main() {
 
     client = await createClient();
     client.commands = new Collection();
+    // Expose the live client via context for interval-driven subsystems
+    // (e.g. VoiceTracker anti-AFK checks) that have no event payload.
+    getBotContext().client = client;
 
     await loadCommandsWithRetry(client);
     await loginWithRetry(client);
