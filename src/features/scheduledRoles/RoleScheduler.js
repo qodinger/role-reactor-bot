@@ -170,11 +170,13 @@ class RoleScheduler {
     this.logger.debug("🕐 Checking for due scheduled roles...");
 
     const dueSchedules = await databaseManager.scheduledRoles.findDue();
-    this.logger.info(`Found ${dueSchedules.length} due scheduled role(s).`);
 
     if (dueSchedules.length === 0) {
+      this.logger.debug("No due scheduled roles.");
       return;
     }
+
+    this.logger.info(`Found ${dueSchedules.length} due scheduled role(s).`);
 
     // Group by guild for efficient processing
     const guildGroups = new Map();
@@ -210,13 +212,15 @@ class RoleScheduler {
 
     const activeSchedules =
       await databaseManager.recurringSchedules.findActive();
+
+    if (activeSchedules.length === 0) {
+      this.logger.debug("No active recurring schedules.");
+      return;
+    }
+
     this.logger.info(
       `Found ${activeSchedules.length} active recurring schedule(s).`,
     );
-
-    if (activeSchedules.length === 0) {
-      return;
-    }
 
     const now = new Date();
 

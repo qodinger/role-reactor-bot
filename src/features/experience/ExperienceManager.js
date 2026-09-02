@@ -75,12 +75,13 @@ class ExperienceCache {
           userData.totalXP += update.xp;
           userData.lastUpdated = new Date();
 
-          if (update.messagesSentDelta) {
-            userData.messagesSent =
-              (userData.messagesSent || 0) + update.messagesSentDelta;
+          if (update.inc) {
+            for (const [field, delta] of Object.entries(update.inc)) {
+              userData[field] = (userData[field] || 0) + delta;
+            }
           }
-          if (update.lastEarned) {
-            userData.lastEarned = update.lastEarned;
+          if (update.set) {
+            Object.assign(userData, update.set);
           }
 
           // Process time filters for this update
@@ -660,8 +661,8 @@ class ExperienceManager {
     // Persisted by the batched writer in addXP — no direct write here
     experienceCache.queueUpdate(guildId, userId, {
       xp: 0,
-      lastEarned: lastEarnedAt,
-      messagesSentDelta: 1,
+      set: { lastEarned: lastEarnedAt },
+      inc: { messagesSent: 1 },
     });
 
     return {
@@ -702,7 +703,16 @@ class ExperienceManager {
     // Update roles earned
     userData.rolesEarned = (userData.rolesEarned || 0) + 1;
 
-    await this.storageManager.setUserExperience(guildId, userId, userData);
+    const cachedData = experienceCache.get(guildId, userId);
+    if (cachedData) {
+      cachedData.rolesEarned = (cachedData.rolesEarned || 0) + 1;
+    }
+
+    // Persisted by the batched writer in addXP — no direct write here
+    experienceCache.queueUpdate(guildId, userId, {
+      xp: 0,
+      inc: { rolesEarned: 1 },
+    });
 
     return {
       xp,
@@ -734,11 +744,19 @@ class ExperienceManager {
       }
     }
 
-    const userData = await this.getUserData(guildId, userId);
+    const cachedData = experienceCache.get(guildId, userId);
+    let lastCommandEarned = null;
+    if (cachedData) {
+      lastCommandEarned = cachedData.lastCommandEarned
+        ? new Date(cachedData.lastCommandEarned)
+        : null;
+    } else {
+      const userData = await this.getUserData(guildId, userId);
+      lastCommandEarned = userData.lastCommandEarned
+        ? new Date(userData.lastCommandEarned)
+        : null;
+    }
     const now = new Date();
-    const lastCommandEarned = userData.lastCommandEarned
-      ? new Date(userData.lastCommandEarned)
-      : null;
 
     // 30 second cooldown between command XP gains (shorter than message XP)
     const cooldownMs = 30 * 1000;
@@ -761,7 +779,7 @@ class ExperienceManager {
    * @returns {Promise<object|null>} Awarded XP data or null if cooldown active
    */
   async awardCommandXP(guildId, userId, commandName, client = null) {
-    this.logger.info(
+    this.logger.debug(
       `🎯 ExperienceManager: Awarding command XP for user ${userId} in guild ${guildId} for command ${commandName}`,
     );
 
@@ -781,7 +799,7 @@ class ExperienceManager {
 
     // Check cooldown and enabled status
     if (!(await this.canEarnCommandXP(guildId, userId))) {
-      this.logger.info(
+      this.logger.debug(
         `⏰ User ${userId} is on cooldown for command XP or XP system is disabled`,
       );
       return null;
@@ -793,8 +811,16 @@ class ExperienceManager {
     const userData = await this.addXP(guildId, userId, xp, client);
 
     // Update commands used and last command earned timestamp
+    const lastCommandEarnedAt = new Date();
     userData.commandsUsed = (userData.commandsUsed || 0) + 1;
-    userData.lastCommandEarned = new Date();
+    userData.lastCommandEarned = lastCommandEarnedAt;
+
+    // Keep the in-memory copy fresh so cooldown checks skip the DB
+    const cachedData = experienceCache.get(guildId, userId);
+    if (cachedData) {
+      cachedData.commandsUsed = (cachedData.commandsUsed || 0) + 1;
+      cachedData.lastCommandEarned = lastCommandEarnedAt;
+    }
 
     // Record daily command analytics (fire-and-forget)
     import("../analytics/AnalyticsManager.js")
@@ -802,7 +828,12 @@ class ExperienceManager {
       .then(am => am.recordCommand(guildId))
       .catch(() => {});
 
-    await this.storageManager.setUserExperience(guildId, userId, userData);
+    // Persisted by the batched writer in addXP — no direct write here
+    experienceCache.queueUpdate(guildId, userId, {
+      xp: 0,
+      set: { lastCommandEarned: lastCommandEarnedAt },
+      inc: { commandsUsed: 1 },
+    });
 
     return {
       xp,

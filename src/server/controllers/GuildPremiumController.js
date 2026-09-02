@@ -34,6 +34,7 @@ export async function apiResetPremium(req, res) {
       { guildId },
       { $unset: { premiumFeatures: "" } },
     );
+    db.guildSettings._invalidate(guildId);
 
     logger.info(`🔄 Premium state reset for guild ${guildId}`);
     res.json(

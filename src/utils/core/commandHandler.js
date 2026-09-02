@@ -498,7 +498,7 @@ class CommandHandler {
             }
 
             const experienceManager = await getExperienceManager();
-            this.logger.info(
+            this.logger.debug(
               `🎯 Attempting to award XP for command: ${commandName} by user: ${interaction.user.id} in guild: ${interaction.guild.id}`,
             );
 
@@ -510,7 +510,7 @@ class CommandHandler {
             );
 
             if (xpData) {
-              this.logger.info(
+              this.logger.debug(
                 `✅ Awarded ${xpData.xp} XP to user ${interaction.user.tag} (${interaction.user.id})`,
               );
               if (xpData.leveledUp) {
@@ -519,7 +519,7 @@ class CommandHandler {
                 );
               }
             } else {
-              this.logger.info(
+              this.logger.debug(
                 `⏰ User ${interaction.user.tag} is on cooldown for command XP`,
               );
             }

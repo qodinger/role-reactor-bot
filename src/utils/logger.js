@@ -171,16 +171,24 @@ export class Logger {
   }
 
   /**
-   * Writes a log message to the file.
+   * Writes a log message to the file via an async stream (non-blocking).
    * @param {string} message - The log message.
    */
   writeToFile(message) {
     try {
-      const logDir = path.dirname(this.logFile);
-      if (!fs.existsSync(logDir)) {
-        fs.mkdirSync(logDir, { recursive: true });
+      if (!this._fileStream || this._filePath !== this.logFile) {
+        const logDir = path.dirname(this.logFile);
+        if (!fs.existsSync(logDir)) {
+          fs.mkdirSync(logDir, { recursive: true });
+        }
+        this._fileStream = fs.createWriteStream(this.logFile, { flags: "a" });
+        this._fileStream.on("error", error => {
+          console.error("Failed to write to log file:", error);
+          this._fileStream = null;
+        });
+        this._filePath = this.logFile;
       }
-      fs.appendFileSync(this.logFile, `${message}\n`);
+      this._fileStream.write(`${message}\n`);
     } catch (error) {
       console.error("Failed to write to log file:", error);
     }

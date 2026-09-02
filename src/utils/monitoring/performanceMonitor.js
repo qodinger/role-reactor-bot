@@ -141,6 +141,8 @@ class PerformanceMonitor {
   }
 
   startMonitoring() {
+    if (this._monitoringStarted) return;
+    this._monitoringStarted = true;
     setInterval(() => this.recordMemoryUsage(), 30000).unref();
     setInterval(
       () => {

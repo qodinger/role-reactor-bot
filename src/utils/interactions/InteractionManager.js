@@ -235,7 +235,7 @@ export class InteractionManager {
       const commandHandler = getCommandHandler();
 
       await commandHandler.executeCommand(interaction, client);
-      this.logger.info(
+      this.logger.debug(
         `Command executed: ${interaction.commandName} by ${interaction.user.tag}`,
       );
     } catch (error) {

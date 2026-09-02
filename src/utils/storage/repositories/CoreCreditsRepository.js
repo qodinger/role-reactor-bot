@@ -36,15 +36,20 @@ export class CoreCreditsRepository extends BaseRepository {
 
   async getByUserId(userId) {
     try {
-      const cached = this.cache.get(`core_credits_${userId}`);
-      if (cached) return { sparks: 0, credits: 0, ...cached };
+      const cacheKey = `core_credits_${userId}`;
+      const cached = this.cache.get(cacheKey);
+      if (cached) {
+        return cached.__none ? null : { sparks: 0, credits: 0, ...cached };
+      }
 
       const userData = await this.collection.findOne({ userId });
       if (userData) {
         const fullData = { sparks: 0, credits: 0, ...userData };
-        this.cache.set(`core_credits_${userId}`, fullData);
+        this.cache.set(cacheKey, fullData);
         return fullData;
       }
+      // Negative cache (short TTL) so users without credits don't hit the DB per command
+      this.cache.set(cacheKey, { __none: true }, 60 * 1000);
       return null;
     } catch (error) {
       this.logger.error(`Failed to get core credits for user ${userId}`, error);

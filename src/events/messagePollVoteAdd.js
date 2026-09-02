@@ -8,7 +8,7 @@ export async function execute(pollVote, _client) {
 
   try {
     // Log poll vote
-    logger.info(
+    logger.debug(
       `✅ Poll vote added: ${pollVote.user.tag} voted on poll in ${pollVote.guild?.name || "DM"}`,
       {
         userId: pollVote.user.id,
