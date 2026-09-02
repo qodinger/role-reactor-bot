@@ -153,9 +153,10 @@ class GiveawayManager extends EventEmitter {
 
     try {
       const activeGiveaways = await this.collection
-        .find({
-          status: "active",
-        })
+        .find(
+          { status: "active" },
+          { projection: { guildId: 1, endTime: 1, status: 1 } },
+        )
         .toArray();
 
       // Group by guild for faster lookup
@@ -437,35 +438,62 @@ class GiveawayManager extends EventEmitter {
         };
       }
 
-      // Check if user already has entries
-      const existingEntry = giveaway.entries.find(e => e.userId === userId);
+      const now = new Date();
+      const incExistingFilter = {
+        _id: giveaway._id,
+        status: "active",
+        "entries.userId": userId,
+      };
+      const incExistingUpdate = {
+        $inc: { "entries.$.count": entries },
+        $set: { "entries.$.joinedAt": now, updatedAt: now },
+      };
 
-      if (existingEntry) {
-        existingEntry.count += entries;
-        existingEntry.joinedAt = new Date();
-      } else {
-        giveaway.entries.push({
-          userId,
-          count: entries,
-          joinedAt: new Date(),
-        });
-      }
-
-      await this.collection.updateOne(
-        { _id: giveaway._id },
-        {
-          $set: { entries: giveaway.entries, updatedAt: new Date() },
-        },
+      // Atomically increment if the user already has an entry — no whole-array rewrite
+      let updated = await this.collection.findOneAndUpdate(
+        incExistingFilter,
+        incExistingUpdate,
+        { returnDocument: "after" },
       );
 
-      const totalEntries = giveaway.entries.reduce(
+      if (!updated) {
+        // Otherwise push a new entry, guarded to only match if user still has none
+        updated = await this.collection.findOneAndUpdate(
+          {
+            _id: giveaway._id,
+            status: "active",
+            entries: { $not: { $elemMatch: { userId } } },
+          },
+          {
+            $push: { entries: { userId, count: entries, joinedAt: now } },
+            $set: { updatedAt: now },
+          },
+          { returnDocument: "after" },
+        );
+
+        if (!updated) {
+          // Lost a race with a concurrent entry by the same user — increment instead
+          updated = await this.collection.findOneAndUpdate(
+            incExistingFilter,
+            incExistingUpdate,
+            { returnDocument: "after" },
+          );
+        }
+      }
+
+      if (!updated) {
+        return { success: false, error: "Giveaway is not active" };
+      }
+
+      const userEntry = updated.entries.find(e => e.userId === userId);
+      const totalEntries = updated.entries.reduce(
         (sum, e) => sum + e.count,
         0,
       );
 
       return {
         success: true,
-        entries: existingEntry ? existingEntry.count : entries,
+        entries: userEntry ? userEntry.count : entries,
         totalEntries,
       };
     } catch (error) {
@@ -488,13 +516,9 @@ class GiveawayManager extends EventEmitter {
         return { success: false, error: "Giveaway not found" };
       }
 
-      const newEntries = giveaway.entries.filter(e => e.userId !== userId);
-
       await this.collection.updateOne(
         { _id: giveaway._id },
-        {
-          $set: { entries: newEntries, updatedAt: new Date() },
-        },
+        { $pull: { entries: { userId } }, $set: { updatedAt: new Date() } },
       );
 
       return { success: true };
