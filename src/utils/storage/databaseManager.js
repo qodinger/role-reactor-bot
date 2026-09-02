@@ -142,7 +142,12 @@ class DatabaseManager {
     try {
       await this._ensureConnectionManager();
       const db = await this.connectionManager.connect();
+      if (db === this._initializedDb) {
+        // Repositories already built for this connection — nothing to redo
+        return db;
+      }
       if (db) {
+        this._initializedDb = db;
         this.roleMappings = new RoleMappingRepository(
           db,
           this.cacheManager,
@@ -337,6 +342,7 @@ class DatabaseManager {
         this.logger.info(
           "✅ All database repositories initialized successfully",
         );
+        return db;
       } else {
         this.logger.error("❌ Failed to connect to database");
         throw new Error("Database connection failed");
