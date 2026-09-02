@@ -62,6 +62,13 @@ class ExperienceCache {
           lastUpdated: new Date(),
         };
 
+        // Normalize: the repository default uses `xp`, and a brand-new user
+        // has no persisted `totalXP` — without this the += below yields NaN
+        if (typeof userData.totalXP !== "number") {
+          userData.totalXP =
+            typeof userData.xp === "number" ? userData.xp : 0;
+        }
+
         // Carry over profile snapshot fields that only live in the in-memory copy
         const cached = this.get(guildId, userId);
         if (cached) {

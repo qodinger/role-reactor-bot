@@ -23,7 +23,7 @@ export class AutomodRepository extends BaseRepository {
       const settings =
         (await this.collection.findOne({ guildId })) ||
         this.getDefaultSettings(guildId);
-      this.cache?.set(cacheKey, settings);
+      this.cache?.set(cacheKey, structuredClone(settings));
       return settings;
     } catch (error) {
       this.logger.error(

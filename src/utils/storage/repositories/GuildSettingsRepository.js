@@ -66,7 +66,7 @@ export class GuildSettingsRepository extends BaseRepository {
           updatedAt: new Date(),
         };
 
-      this.cache?.set(cacheKey, result);
+      this.cache?.set(cacheKey, structuredClone(result));
       return result;
     } catch (error) {
       this.logger.error(
