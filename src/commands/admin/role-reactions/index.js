@@ -81,9 +81,9 @@ export const metadata = {
     {
       name: `Tier Limitations`,
       value: [
-        "• **Active Menus:** 3 Menus (Free) | 8 Menus (Pro Engine)",
-        "• **Emojis per Menu:** 10 Emojis (Free) | 20 Emojis (Pro Engine)",
-        "• **Roles per Array:** 5 Roles (Free) | 15 Roles (Pro Engine)",
+        "• **Active Menus:** 3 Menus (Free) | 15 Menus (Pro Engine)",
+        "• **Emojis per Menu:** 3 Emojis (Free) | 20 Emojis (Pro Engine)",
+        "• **Total Roles per Menu:** 3 Roles (Free) | 20 Roles (Pro Engine)",
       ].join("\n"),
       inline: false,
     },

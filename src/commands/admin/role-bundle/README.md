@@ -46,7 +46,7 @@ When defining the initial `roles` array when creating a bundle, standard formatt
 **Tier Limits:**
 
 - **Free Tier:** Maximum **5** uniquely mapped roles per bundle.
-- **Pro Engine:** Maximum **15** uniquely mapped roles per bundle.
+- **Pro Engine:** Maximum **20** uniquely mapped roles per bundle.
 
 ## Permissions Required
 

@@ -555,6 +555,23 @@ export async function processRoles(interaction, rolesString) {
     };
   }
 
+  // Check total roles limit across all emojis
+  const totalRoles = validRoles.reduce((sum, r) => sum + r.roleIds.length, 0);
+  const maxRolesPerMenu = isPro
+    ? PRO_TIER.ROLE_REACTION_MAX_ROLES
+    : FREE_TIER.ROLE_REACTION_MAX_ROLES;
+
+  if (totalRoles > maxRolesPerMenu) {
+    return {
+      success: false,
+      errors: [
+        `Total role limit exceeded. You have ${totalRoles} roles across all emojis, but the maximum is ${maxRolesPerMenu} roles per menu (${isPro ? "Pro" : "Free"} tier).`,
+      ],
+      validRoles: [],
+      roleMapping: {},
+    };
+  }
+
   if (validationErrors.length > 0) {
     return {
       success: false,

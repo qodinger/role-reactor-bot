@@ -39,6 +39,11 @@ import {
   apiUpdateVariable,
   apiDeleteVariable,
 } from "../../controllers/GuildCustomVariableController.js";
+import {
+  apiGetGuildRoleBundles,
+  apiCreateRoleBundle,
+  apiDeleteRoleBundle,
+} from "../../controllers/GuildRoleBundleController.js";
 
 import { internalAuth } from "../../middleware/internalAuth.js";
 import { requireAuth } from "../../middleware/authentication.js";
@@ -206,6 +211,28 @@ router.patch(
   requireGuildPermission,
   roleManagementLimiter,
   apiUpdateRoleReactions,
+);
+
+// Role Bundles - requires guild permission
+router.get(
+  "/:guildId/role-bundles",
+  internalAuth,
+  requireGuildPermission,
+  apiGetGuildRoleBundles,
+);
+router.post(
+  "/:guildId/role-bundles",
+  internalAuth,
+  requireGuildPermission,
+  roleManagementLimiter,
+  apiCreateRoleBundle,
+);
+router.delete(
+  "/:guildId/role-bundles/:bundleName",
+  internalAuth,
+  requireGuildPermission,
+  roleManagementLimiter,
+  apiDeleteRoleBundle,
 );
 
 // Leaderboard - public access

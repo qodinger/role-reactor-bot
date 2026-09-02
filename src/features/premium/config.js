@@ -60,8 +60,10 @@ export const FREE_TIER = {
   SCHEDULE_MAX_ACTIVE: 25,
   BULK_ACTION_MAX_MEMBERS: 25,
   ROLE_BUNDLE_MAX_ROLES: 5,
-  ROLE_REACTION_MAX_EMOJIS: 10,
-  ROLE_REACTION_MAX_MESSAGES: 5,
+  ROLE_BUNDLE_MAX_ACTIVE: 5,
+  ROLE_REACTION_MAX_EMOJIS: 3,
+  ROLE_REACTION_MAX_ROLES: 3, // Total roles across all emojis per menu
+  ROLE_REACTION_MAX_MESSAGES: 3,
   // Custom Variables & Event Triggers
   CUSTOM_VARIABLES_MAX: 10,
   CUSTOM_EVENT_TRIGGERS_MAX: 5,
@@ -80,7 +82,9 @@ export const PRO_TIER = {
   SCHEDULE_MAX_ACTIVE: 100, // Keeps timer loop lightweight on VPS (Reduced from 500)
   BULK_ACTION_MAX_MEMBERS: 100, // Prevents Discord API rate-limit 429 errors (Reduced from 250)
   ROLE_BUNDLE_MAX_ROLES: 20, // 4x free tier
+  ROLE_BUNDLE_MAX_ACTIVE: 20, // 4x free tier
   ROLE_REACTION_MAX_EMOJIS: 20, // Discord's hard limit
+  ROLE_REACTION_MAX_ROLES: 20, // Total roles across all emojis per menu
   ROLE_REACTION_MAX_MESSAGES: 15, // 3x free tier
   // Custom Variables & Event Triggers
   CUSTOM_VARIABLES_MAX: 100,

@@ -65,6 +65,33 @@ export async function handleCreate(interaction) {
       });
     }
 
+    // Check bundle limit
+    const currentBundles = await roleBundleManager.count(interaction.guild.id);
+    const maxBundles = isPro
+      ? PRO_TIER.ROLE_BUNDLE_MAX_ACTIVE
+      : FREE_TIER.ROLE_BUNDLE_MAX_ACTIVE;
+
+    if (currentBundles >= maxBundles) {
+      if (!isPro) {
+        return interaction.editReply(
+          upgradeLimitEmbed({
+            feature: "Role Bundles",
+            freeText: `${FREE_TIER.ROLE_BUNDLE_MAX_ACTIVE} bundles`,
+            proText: `${PRO_TIER.ROLE_BUNDLE_MAX_ACTIVE} bundles`,
+            client: interaction.client,
+          }),
+        );
+      }
+      return interaction.editReply({
+        embeds: [
+          createErrorEmbed(
+            "Maximum Bundles Reached",
+            `You have reached the maximum limit of **${maxBundles}** role bundles. Please delete an existing bundle first.`,
+          ),
+        ],
+      });
+    }
+
     // Parse roles from string
     const roles = parseRoles(rolesString, interaction.guild);
 

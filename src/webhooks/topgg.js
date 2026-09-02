@@ -452,7 +452,10 @@ export async function getVoteStatus(userId) {
       const timeSinceLastVote = userCredits?.lastVote
         ? Date.now() - userCredits.lastVote
         : Infinity;
-      if (timeSinceLastVote >= COOLDOWN_MS && !claimingVoteRewards.has(userId)) {
+      if (
+        timeSinceLastVote >= COOLDOWN_MS &&
+        !claimingVoteRewards.has(userId)
+      ) {
         claimingVoteRewards.add(userId);
         try {
           logger.info(

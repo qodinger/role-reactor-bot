@@ -45,13 +45,17 @@ class RoleBundleManager {
   async create(options) {
     try {
       const bundle = {
-        _id: options._id,
         guildId: options.guildId,
         name: options.name,
         roles: options.roles, // Array of { roleId, roleName }
         createdAt: new Date(),
         updatedAt: new Date(),
       };
+
+      // Only add _id if provided
+      if (options._id) {
+        bundle._id = options._id;
+      }
 
       await this.collection.insertOne(bundle);
       this.logger.info(
@@ -128,6 +132,20 @@ class RoleBundleManager {
       return bundle !== null;
     } catch (error) {
       this.logger.error("❌ Error checking bundle existence:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Count bundles for a guild
+   * @param {string} guildId - Guild ID
+   * @returns {Promise<number>}
+   */
+  async count(guildId) {
+    try {
+      return await this.collection.countDocuments({ guildId });
+    } catch (error) {
+      this.logger.error("❌ Error counting bundles:", error);
       throw error;
     }
   }

@@ -27,14 +27,14 @@ export const PREMIUM_FEATURES = [
     command: "role-bundle",
     name: "Role Bundles",
     emoji: "📦",
-    free: "5 roles per bundle",
-    pro: "20 roles per bundle",
+    free: "5 bundles, 5 roles each",
+    pro: "20 bundles, 20 roles each",
   },
   {
     command: "role-reactions",
     name: "Role Reactions",
     emoji: "⭐",
-    free: "10 emojis, 5 menus",
+    free: "3 emojis, 3 menus",
     pro: "20 emojis, 15 menus",
   },
   {

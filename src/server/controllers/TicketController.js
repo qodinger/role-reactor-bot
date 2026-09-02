@@ -360,14 +360,16 @@ export async function apiGetStaffStats(req, res) {
     const client = getDiscordClient();
 
     const staffStats = await Promise.all(
-      rawStats.slice(0, 10).map(async (stat) => {
+      rawStats.slice(0, 10).map(async stat => {
         let staffName = stat._id;
         if (client) {
           try {
             const user = await client.users.fetch(stat._id);
             if (user) staffName = user.displayName || user.username || stat._id;
           } catch (error) {
-            logger.debug(`Could not resolve staff user ${stat._id}: ${error.message}`);
+            logger.debug(
+              `Could not resolve staff user ${stat._id}: ${error.message}`,
+            );
           }
         }
         return {
@@ -438,18 +440,30 @@ export async function apiUpdateTicketSettings(req, res) {
     const settings = await storage.dbManager.guildSettings.getByGuild(guildId);
     settings.ticketSettings = settings.ticketSettings || {};
 
-    if (staffRoleId !== undefined) settings.ticketSettings.staffRoleId = staffRoleId;
-    if (transcriptChannelId !== undefined) settings.ticketSettings.transcriptChannelId = transcriptChannelId;
-    if (notificationChannelId !== undefined) settings.ticketSettings.notificationChannelId = notificationChannelId;
-    if (allowUserTranscripts !== undefined) settings.ticketSettings.allowUserTranscripts = allowUserTranscripts;
-    if (enabled !== undefined) settings.ticketSettings.enabled = Boolean(enabled);
-    if (autoCloseDays !== undefined) settings.ticketSettings.autoCloseDays = autoCloseDays;
-    if (maxTicketsPerUser !== undefined) settings.ticketSettings.maxTicketsPerUser = maxTicketsPerUser;
-    if (allowStaffClaim !== undefined) settings.ticketSettings.allowStaffClaim = allowStaffClaim;
-    if (allowUserClose !== undefined) settings.ticketSettings.allowUserClose = allowUserClose;
-    if (welcomeMessage !== undefined) settings.ticketSettings.welcomeMessage = welcomeMessage;
-    if (closeMessage !== undefined) settings.ticketSettings.closeMessage = closeMessage;
-    if (supportCategoryId !== undefined) settings.ticketSettings.supportCategoryId = supportCategoryId;
+    if (staffRoleId !== undefined)
+      settings.ticketSettings.staffRoleId = staffRoleId;
+    if (transcriptChannelId !== undefined)
+      settings.ticketSettings.transcriptChannelId = transcriptChannelId;
+    if (notificationChannelId !== undefined)
+      settings.ticketSettings.notificationChannelId = notificationChannelId;
+    if (allowUserTranscripts !== undefined)
+      settings.ticketSettings.allowUserTranscripts = allowUserTranscripts;
+    if (enabled !== undefined)
+      settings.ticketSettings.enabled = Boolean(enabled);
+    if (autoCloseDays !== undefined)
+      settings.ticketSettings.autoCloseDays = autoCloseDays;
+    if (maxTicketsPerUser !== undefined)
+      settings.ticketSettings.maxTicketsPerUser = maxTicketsPerUser;
+    if (allowStaffClaim !== undefined)
+      settings.ticketSettings.allowStaffClaim = allowStaffClaim;
+    if (allowUserClose !== undefined)
+      settings.ticketSettings.allowUserClose = allowUserClose;
+    if (welcomeMessage !== undefined)
+      settings.ticketSettings.welcomeMessage = welcomeMessage;
+    if (closeMessage !== undefined)
+      settings.ticketSettings.closeMessage = closeMessage;
+    if (supportCategoryId !== undefined)
+      settings.ticketSettings.supportCategoryId = supportCategoryId;
 
     await storage.dbManager.guildSettings.set(guildId, settings);
 
@@ -477,7 +491,8 @@ export async function apiUpdateTicketSettings(req, res) {
  */
 export async function apiCreatePanel(req, res) {
   const { guildId } = req.params;
-  const { channelId, title, description, categories, settings, styling } = req.body;
+  const { channelId, title, description, categories, settings, styling } =
+    req.body;
   logRequest(`Create panel: ${guildId}`, req);
 
   if (!channelId) {
@@ -659,7 +674,10 @@ export async function apiDeletePanel(req, res) {
       }),
     );
   } catch (error) {
-    logger.error(`Error deleting panel ${panelId} for guild ${guildId}:`, error);
+    logger.error(
+      `Error deleting panel ${panelId} for guild ${guildId}:`,
+      error,
+    );
     const { statusCode, response } = createErrorResponse(
       "Failed to delete ticket panel",
       500,
@@ -722,7 +740,10 @@ export async function apiTogglePanel(req, res) {
       }),
     );
   } catch (error) {
-    logger.error(`Error toggling panel ${panelId} for guild ${guildId}:`, error);
+    logger.error(
+      `Error toggling panel ${panelId} for guild ${guildId}:`,
+      error,
+    );
     const { statusCode, response } = createErrorResponse(
       "Failed to toggle ticket panel",
       500,
@@ -742,7 +763,11 @@ export async function apiUpdatePanel(req, res) {
   const { title, description, categories } = req.body;
   logRequest(`Update panel: ${guildId} / ${panelId}`, req);
 
-  if (title === undefined && description === undefined && categories === undefined) {
+  if (
+    title === undefined &&
+    description === undefined &&
+    categories === undefined
+  ) {
     const { statusCode, response } = createErrorResponse(
       "title, description, or categories is required",
       400,
@@ -837,10 +862,7 @@ export async function apiUpdatePanel(req, res) {
       if (client) {
         try {
           const guild = await client.guilds.fetch(guildId);
-          const refresh = await ticketPanel.refreshPanelMessage(
-            guild,
-            panelId,
-          );
+          const refresh = await ticketPanel.refreshPanelMessage(guild, panelId);
           messageRefreshed = refresh.success;
         } catch {
           messageRefreshed = false;
@@ -858,7 +880,10 @@ export async function apiUpdatePanel(req, res) {
       }),
     );
   } catch (error) {
-    logger.error(`Error updating panel ${panelId} for guild ${guildId}:`, error);
+    logger.error(
+      `Error updating panel ${panelId} for guild ${guildId}:`,
+      error,
+    );
     const { statusCode, response } = createErrorResponse(
       "Failed to update ticket panel",
       500,
@@ -932,7 +957,10 @@ export async function apiRefreshPanel(req, res) {
       }),
     );
   } catch (error) {
-    logger.error(`Error refreshing panel ${panelId} for guild ${guildId}:`, error);
+    logger.error(
+      `Error refreshing panel ${panelId} for guild ${guildId}:`,
+      error,
+    );
     const { statusCode, response } = createErrorResponse(
       "Failed to refresh panel message",
       500,
@@ -993,7 +1021,10 @@ function sanitizeCategories(raw) {
 
     let id =
       typeof cat.id === "string" && cat.id.trim()
-        ? cat.id.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-")
+        ? cat.id
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9-]+/g, "-")
         : `cat-${i + 1}`;
     while (usedIds.has(id)) id = `${id}-${i + 1}`;
     usedIds.add(id);
@@ -1002,7 +1033,9 @@ function sanitizeCategories(raw) {
       id,
       label,
       emoji:
-        typeof cat.emoji === "string" && cat.emoji.trim() ? cat.emoji.trim() : "📧",
+        typeof cat.emoji === "string" && cat.emoji.trim()
+          ? cat.emoji.trim()
+          : "📧",
       description: typeof cat.description === "string" ? cat.description : "",
       color: typeof cat.color === "number" ? cat.color : 0x5865f2,
     });

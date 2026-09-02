@@ -316,9 +316,22 @@ export class GuildHelper {
 
       // Preserve multi-role arrays if present
       if (typeof roleConfig === "object") {
-        if (roleConfig.roleIds?.length > 1) {
-          enrichedRoles[emoji].roleIds = roleConfig.roleIds;
-          enrichedRoles[emoji].roleNames = roleConfig.roleNames || [];
+        const roleIds = roleConfig.roleIds || (roleConfig.roleId ? [roleConfig.roleId] : []);
+        const roleNames = roleConfig.roleNames || (roleConfig.roleName ? [roleConfig.roleName] : []);
+
+        // Build roleColors array with actual Discord role colors
+        const roleColors = roleIds.map((id, i) => {
+          if (guild) {
+            const discordRole = guild.roles.cache.get(id);
+            if (discordRole) return discordRole.color;
+          }
+          return roleConfig.roleColors?.[i] || roleConfig.roleColor || 0;
+        });
+
+        if (roleIds.length > 0) {
+          enrichedRoles[emoji].roleIds = roleIds;
+          enrichedRoles[emoji].roleNames = roleNames;
+          enrichedRoles[emoji].roleColors = roleColors;
         }
       }
     }

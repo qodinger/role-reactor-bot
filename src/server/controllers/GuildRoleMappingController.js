@@ -171,6 +171,7 @@ function mergeReactionRoles(reactions) {
         emoji: r.emoji,
         roleIds: [],
         roleNames: [],
+        roleColors: [],
         roleId: r.roleId,
         roleName: r.roleName,
         roleColor: r.roleColor || 0,
@@ -181,9 +182,11 @@ function mergeReactionRoles(reactions) {
     if (r.roleIds?.length > 0) {
       group.roleIds.push(...r.roleIds);
       group.roleNames.push(...(r.roleNames || []));
+      group.roleColors.push(...(r.roleColors || r.roleIds.map(() => r.roleColor || 0)));
     } else if (r.roleId) {
       group.roleIds.push(r.roleId);
       group.roleNames.push(r.roleName || "");
+      group.roleColors.push(r.roleColor || 0);
     }
   }
 
@@ -194,6 +197,7 @@ function mergeReactionRoles(reactions) {
     const uniqueIds = new Set();
     const finalRoleIds = [];
     const finalRoleNames = [];
+    const finalRoleColors = [];
 
     for (let i = 0; i < group.roleIds.length; i++) {
       const id = group.roleIds[i];
@@ -201,19 +205,21 @@ function mergeReactionRoles(reactions) {
         uniqueIds.add(id);
         finalRoleIds.push(id);
         finalRoleNames.push(group.roleNames[i] || "");
+        finalRoleColors.push(group.roleColors[i] || group.roleColor || 0);
       }
     }
 
     const mapping = {
       roleId: finalRoleIds[0] || group.roleId,
       roleName: finalRoleNames[0] || group.roleName,
-      roleColor: group.roleColor || 0,
+      roleColor: finalRoleColors[0] || group.roleColor || 0,
       emoji: group.emoji,
     };
 
     if (finalRoleIds.length > 1) {
       mapping.roleIds = finalRoleIds;
       mapping.roleNames = finalRoleNames;
+      mapping.roleColors = finalRoleColors;
     }
 
     roleMapping[group.emoji] = mapping;
