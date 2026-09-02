@@ -1,4 +1,3 @@
-import { EMOJIS } from "../../../config/theme.js";
 import { getLogger } from "../../../utils/logger.js";
 import { createPingEmbed, createErrorEmbed } from "./embeds.js";
 import { calculateLatency, formatUptime } from "./utils.js";
@@ -7,14 +6,9 @@ export async function execute(interaction, client) {
   const logger = getLogger();
 
   try {
-    // Defer the reply to show we're processing
-    await interaction.deferReply({ ephemeral: false });
-
-    // Calculate latency
+    // Defer the reply — the round-trip itself is our REST latency measurement
     const sent = Date.now();
-    await interaction.editReply(
-      `${EMOJIS.STATUS.LOADING} Checking connection...`,
-    );
+    await interaction.deferReply();
     const latency = Date.now() - sent;
 
     // Get Discord API latency

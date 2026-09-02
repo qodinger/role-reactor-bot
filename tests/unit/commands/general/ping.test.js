@@ -52,16 +52,14 @@ describe("Ping Command", () => {
     it("should defer reply and respond with ping embed", async () => {
       await execute(mockInteraction, mockClient);
 
-      expect(mockInteraction.deferReply).toHaveBeenCalledWith({
-        ephemeral: false,
-      });
+      expect(mockInteraction.deferReply).toHaveBeenCalled();
       expect(mockInteraction.editReply).toHaveBeenCalled();
     });
 
-    it("should call editReply twice (loading then result)", async () => {
+    it("should call editReply once (single round-trip after defer)", async () => {
       await execute(mockInteraction, mockClient);
 
-      expect(mockInteraction.editReply).toHaveBeenCalledTimes(2);
+      expect(mockInteraction.editReply).toHaveBeenCalledTimes(1);
     });
 
     it("should handle errors gracefully and send error embed", async () => {

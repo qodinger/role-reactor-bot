@@ -218,7 +218,7 @@ class RoleScheduler {
       return;
     }
 
-    this.logger.info(
+    this.logger.debug(
       `Found ${activeSchedules.length} active recurring schedule(s).`,
     );
 
@@ -247,6 +247,12 @@ class RoleScheduler {
     // Sort schedules by Core member priority
     const prioritizedSchedules =
       await this.prioritizeSchedulesByCoreMembers(schedulesToExecute);
+
+    if (prioritizedSchedules.length > 0) {
+      this.logger.info(
+        `⚡ Executing ${prioritizedSchedules.length} recurring schedule(s).`,
+      );
+    }
 
     // Execute schedules in priority order
     for (const schedule of prioritizedSchedules) {

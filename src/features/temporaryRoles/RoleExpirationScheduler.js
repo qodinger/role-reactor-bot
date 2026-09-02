@@ -74,10 +74,10 @@ class RoleExpirationScheduler {
       return;
     }
 
-    this.logger.info("🕐 Running automatic temporary role cleanup...");
+    this.logger.debug("🕐 Running automatic temporary role cleanup...");
 
     const expiredRoles = await databaseManager.temporaryRoles.findExpired();
-    this.logger.info(
+    this.logger.debug(
       `Found ${expiredRoles.length} expired temporary role(s) in database.`,
     );
 
