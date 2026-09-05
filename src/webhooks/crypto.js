@@ -161,7 +161,7 @@ async function storePaymentRecord(body, discordId = null) {
  * @param {string} _email
  * @param {Object} _metadata
  */
-async function processCryptoPayment(
+export async function processCryptoPayment(
   userId,
   paymentId,
   cryptoAmount,

@@ -36,6 +36,10 @@ router.get(
 // Payment creation - requires internal auth (website verifies user session)
 router.post("/create", internalAuth, apiCreatePayment);
 
+// Web3 Verification - requires internal auth
+import { apiVerifyWeb3Payment } from "../../controllers/PaymentProcessingController.js";
+router.post("/web3/verify", internalAuth, apiVerifyWeb3Payment);
+
 // Buy Me a Coffee code generation - requires internal auth
 router.post("/buymeacoffee/generate-code", internalAuth, apiGenerateBMACCode);
 
