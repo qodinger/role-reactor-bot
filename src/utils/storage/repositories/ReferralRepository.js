@@ -272,8 +272,8 @@ export class ReferralRepository extends BaseRepository {
           referrerBonusCores,
         );
         if (paymentRepo) {
-          await paymentRepo.createPayment({
-            userId: referrerDoc.userId,
+          await paymentRepo.create({
+            discordId: referrerDoc.userId,
             paymentId: `ref_bonus_${Date.now()}_${referrerDoc.userId}`,
             provider: "referral_bonus",
             type: "referrer_bonus",
@@ -289,8 +289,8 @@ export class ReferralRepository extends BaseRepository {
       if (isFirstPurchase && refereeBonusCores > 0 && coreCreditsRepo) {
         await coreCreditsRepo.updateCredits(refereeId, refereeBonusCores);
         if (paymentRepo) {
-          await paymentRepo.createPayment({
-            userId: refereeId,
+          await paymentRepo.create({
+            discordId: refereeId,
             paymentId: `ref_welcome_${Date.now()}_${refereeId}`,
             provider: "referral_bonus",
             type: "referee_welcome_bonus",

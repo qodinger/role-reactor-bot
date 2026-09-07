@@ -359,6 +359,37 @@ describe("handleBMACWebhook", () => {
       );
       expect(mockStorageManager.setCoreCredits).not.toHaveBeenCalled();
     });
+
+    it("rejects concurrent deliveries when the compare-and-swap claim loses", async () => {
+      // First check passes (code appears unused), but the atomic claim
+      // matches nothing — another request claimed it in between.
+      pendingCodes.updateOne.mockResolvedValue({ matchedCount: 0 });
+
+      await handleBMACWebhook(makeReq(createBMACBody()), res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ status: "already_processed" }),
+      );
+      expect(mockStorageManager.setCoreCredits).not.toHaveBeenCalled();
+      expect(mockStorageManager.completePayment).not.toHaveBeenCalled();
+    });
+
+    it("releases the code claim when crediting fails so a retry can process", async () => {
+      mockStorageManager.setCoreCredits.mockRejectedValue(
+        new Error("db write failed"),
+      );
+
+      await handleBMACWebhook(makeReq(createBMACBody()), res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      // Claim released (second updateOne rolls used back to false)
+      expect(pendingCodes.updateOne).toHaveBeenLastCalledWith(
+        { code: "RR-ABC123", used: true },
+        { $set: { used: false }, $unset: { usedAt: "", paymentData: "" } },
+      );
+      expect(mockStorageManager.completePayment).not.toHaveBeenCalled();
+    });
   });
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -375,9 +406,9 @@ describe("handleBMACWebhook", () => {
         expect.objectContaining({ credits: 150 }),
       );
 
-      // Code atomically marked as used
+      // Code atomically claimed (compare-and-swap) before crediting
       expect(pendingCodes.updateOne).toHaveBeenCalledWith(
-        { code: "RR-ABC123" },
+        { code: "RR-ABC123", used: { $ne: true } },
         expect.objectContaining({
           $set: expect.objectContaining({ used: true }),
         }),

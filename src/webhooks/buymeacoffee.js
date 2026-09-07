@@ -226,54 +226,11 @@ export async function handleBMACWebhook(req, res) {
     const { withCreditLock } = await import("../utils/ai/aiCreditManager.js");
 
     const result = await withCreditLock(userId, async () => {
-      const existingData = await storage.getCoreCredits(userId);
-      const userData = existingData || {
-        credits: 0,
-        totalGenerated: 0,
-        lastUpdated: new Date().toISOString(),
-      };
-
-      // Calculate cores based on fiat amount
-      const coresToAdd =
-        typeof config.calculateCores === "function"
-          ? config.calculateCores(paymentAmount)
-          : Math.floor(
-              paymentAmount *
-                (config.corePricing?.coreSystem?.conversionRate || 15),
-            );
-
-      // Update balance and historical total
-      userData.credits = formatCoreCredits(
-        (userData.credits || 0) + coresToAdd,
-      );
-      userData.totalGenerated = (userData.totalGenerated || 0) + coresToAdd;
-
-      // Track BMAC-specific payment metadata
-      if (!userData.bmacPayments) userData.bmacPayments = [];
-      userData.bmacPayments.push({
-        code,
-        type: "payment",
-        fiatAmount: paymentAmount,
-        currency,
-        cores: coresToAdd,
-        provider: "buymeacoffee",
-        supporterName,
-        transactionId,
-        bmacPaymentId,
-        timestamp: new Date().toISOString(),
-        processed: true,
-      });
-
-      userData.lastUpdated = new Date().toISOString();
-      await storage.setCoreCredits(userId, userData);
-
-      return { coresToAdd, newBalance: userData.credits };
-    });
-
-    // 8. Mark code as used
-    try {
-      await pendingCodes.updateOne(
-        { code },
+      // 7a. Atomically claim the code BEFORE crediting (compare-and-swap).
+      // A concurrent delivery of the same code fails the match and is rejected,
+      // guaranteeing cores are credited exactly once.
+      const claim = await pendingCodes.updateOne(
+        { code, used: { $ne: true } },
         {
           $set: {
             used: true,
@@ -288,12 +245,78 @@ export async function handleBMACWebhook(req, res) {
           },
         },
       );
-    } catch (markError) {
-      logger.error(
-        `❌ BMAC webhook: failed to mark code as used "${code}":`,
-        markError,
+      if (claim.matchedCount !== 1) {
+        return { alreadyProcessed: true };
+      }
+
+      try {
+        const existingData = await storage.getCoreCredits(userId);
+        const userData = existingData || {
+          credits: 0,
+          totalGenerated: 0,
+          lastUpdated: new Date().toISOString(),
+        };
+
+        // Calculate cores based on fiat amount
+        const coresToAdd =
+          typeof config.calculateCores === "function"
+            ? config.calculateCores(paymentAmount)
+            : Math.floor(
+                paymentAmount *
+                  (config.corePricing?.coreSystem?.conversionRate || 15),
+              );
+
+        // Update balance and historical total
+        userData.credits = formatCoreCredits(
+          (userData.credits || 0) + coresToAdd,
+        );
+        userData.totalGenerated = (userData.totalGenerated || 0) + coresToAdd;
+
+        // Track BMAC-specific payment metadata
+        if (!userData.bmacPayments) userData.bmacPayments = [];
+        userData.bmacPayments.push({
+          code,
+          type: "payment",
+          fiatAmount: paymentAmount,
+          currency,
+          cores: coresToAdd,
+          provider: "buymeacoffee",
+          supporterName,
+          transactionId,
+          bmacPaymentId,
+          timestamp: new Date().toISOString(),
+          processed: true,
+        });
+
+        userData.lastUpdated = new Date().toISOString();
+        await storage.setCoreCredits(userId, userData);
+
+        return { coresToAdd, newBalance: userData.credits };
+      } catch (creditError) {
+        // Release the claim so a retry can process the payment
+        try {
+          await pendingCodes.updateOne(
+            { code, used: true },
+            {
+              $set: { used: false },
+              $unset: { usedAt: "", paymentData: "" },
+            },
+          );
+        } catch (rollbackError) {
+          logger.error(
+            `❌ BMAC webhook: failed to release code claim "${code}" — manual review needed:`,
+            rollbackError,
+          );
+        }
+        throw creditError;
+      }
+    });
+
+    if (result.alreadyProcessed) {
+      logger.info(
+        `🔄 BMAC webhook: code "${code}" already claimed by a concurrent delivery for user ${userId}`,
       );
-      // Non-critical - cores were already added
+      return res.status(200).json({ status: "already_processed" });
     }
 
     // 9. Store payment record in payments collection (audit trail)

@@ -338,7 +338,7 @@ describe("ReferralRepository", () => {
 
     beforeEach(() => {
       coreCreditsRepo = { updateCredits: vi.fn().mockResolvedValue(true) };
-      paymentRepo = { createPayment: vi.fn().mockResolvedValue(true) };
+      paymentRepo = { create: vi.fn().mockResolvedValue(true) };
     });
 
     it("skips purchases below $10 minimum", async () => {
@@ -396,6 +396,21 @@ describe("ReferralRepository", () => {
       expect(result.refereeBonusCores).toBe(10);
       expect(coreCreditsRepo.updateCredits).toHaveBeenCalledWith("referrer_001", 15);
       expect(coreCreditsRepo.updateCredits).toHaveBeenCalledWith("referee_002", 10);
+      expect(paymentRepo.create).toHaveBeenCalledTimes(2);
+      expect(paymentRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          discordId: "referrer_001",
+          type: "referrer_bonus",
+          coresGranted: 15,
+        }),
+      );
+      expect(paymentRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          discordId: "referee_002",
+          type: "referee_welcome_bonus",
+          coresGranted: 10,
+        }),
+      );
     });
 
     it("grants 15% referrer bonus only on repeat purchases (no referee welcome bonus)", async () => {
