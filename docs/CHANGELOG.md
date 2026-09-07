@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **License**: Relicensed from MIT to **AGPL-3.0-or-later**. The bot remains fully open source and self-hostable; anyone offering it as a hosted service must now make their modified source available under the same license.
+- **Vote Rewards**: Voting for the bot on top.gg now earns **Sparks** ⚡ (earned currency) instead of Core credits — starting at 5 Sparks per vote and scaling with your voting streak up to 8 (12-hour cooldown).
 
 ### Added
 
