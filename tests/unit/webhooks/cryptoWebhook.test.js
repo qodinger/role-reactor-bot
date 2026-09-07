@@ -8,12 +8,19 @@ const mockPlisioPay = {
 
 const mockStorageManager = {
   getCoreCredits: vi.fn().mockResolvedValue(null),
-  setCoreCredits: vi.fn().mockResolvedValue(true),
   createPayment: vi.fn().mockResolvedValue(true),
   completePayment: vi.fn().mockResolvedValue(true),
 };
 
 const mockDbManager = {
+  coreCredits: {
+    collection: {
+      findOneAndUpdate: vi.fn().mockResolvedValue({ credits: 150 }),
+    },
+  },
+  referrals: {
+    processPurchaseBonus: vi.fn(),
+  },
   payments: {
     complete: vi.fn().mockResolvedValue({}),
     create: vi.fn().mockResolvedValue({}),
@@ -24,7 +31,7 @@ const mockDbManager = {
 };
 
 const mockConfig = {
-  calculateCores: (amount) => Math.floor(amount * 15),
+  calculateCores: amount => Math.floor(amount * 15),
   corePricing: {
     coreSystem: { conversionRate: 15 },
   },
@@ -54,11 +61,6 @@ vi.mock("../../../src/config/emojis.js", () => ({
   },
 }));
 
-vi.mock("../../../src/utils/ai/aiCreditManager.js", () => ({
-  formatCoreCredits: (val) => val,
-  withCreditLock: (_userId, fn) => fn(),
-}));
-
 vi.mock("../../../src/utils/storage/databaseManager.js", () => ({
   getDatabaseManager: vi.fn().mockResolvedValue(mockDbManager),
 }));
@@ -73,9 +75,7 @@ vi.mock("../../../src/features/premium/PremiumManager.js", () => ({
 
 // ─── Import AFTER mocks ─────────────────────────────────────────────────────
 
-const { handleCryptoWebhook } = await import(
-  "../../../src/webhooks/crypto.js"
-);
+const { handleCryptoWebhook } = await import("../../../src/webhooks/crypto.js");
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -115,9 +115,11 @@ describe("handleCryptoWebhook", () => {
     res = createMockRes();
     mockPlisioPay.verifyWebhook.mockReturnValue(true);
     mockStorageManager.getCoreCredits.mockResolvedValue(null);
-    mockStorageManager.setCoreCredits.mockResolvedValue(true);
     mockStorageManager.completePayment.mockResolvedValue(true);
     mockDbManager.payments.complete.mockResolvedValue({});
+    mockDbManager.coreCredits.collection.findOneAndUpdate.mockResolvedValue({
+      credits: 75,
+    });
   });
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -173,8 +175,11 @@ describe("handleCryptoWebhook", () => {
       await handleCryptoWebhook(req, res);
 
       // Should use metadata.discordId, not the one from order_number
-      expect(mockStorageManager.setCoreCredits).toHaveBeenCalledWith(
-        "111222333444555666",
+      expect(
+        mockDbManager.coreCredits.collection.findOneAndUpdate,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: "111222333444555666" }),
+        expect.anything(),
         expect.anything(),
       );
     });
@@ -211,7 +216,9 @@ describe("handleCryptoWebhook", () => {
 
       // Should store the raw record but NOT process the payment
       expect(mockDbManager.payments.complete).toHaveBeenCalled();
-      expect(mockStorageManager.setCoreCredits).not.toHaveBeenCalled();
+      expect(
+        mockDbManager.coreCredits.collection.findOneAndUpdate,
+      ).not.toHaveBeenCalled();
 
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({ status: "ignored" });
@@ -224,7 +231,9 @@ describe("handleCryptoWebhook", () => {
 
       await handleCryptoWebhook(req, res);
 
-      expect(mockStorageManager.setCoreCredits).toHaveBeenCalled();
+      expect(
+        mockDbManager.coreCredits.collection.findOneAndUpdate,
+      ).toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(200);
     });
 
@@ -235,7 +244,9 @@ describe("handleCryptoWebhook", () => {
 
       await handleCryptoWebhook(req, res);
 
-      expect(mockStorageManager.setCoreCredits).toHaveBeenCalled();
+      expect(
+        mockDbManager.coreCredits.collection.findOneAndUpdate,
+      ).toHaveBeenCalled();
     });
   });
 
@@ -336,29 +347,27 @@ describe("handleCryptoWebhook", () => {
       await handleCryptoWebhook(req, res);
 
       // $5.03 × 15 = 75 cores (Math.floor(5.03 * 15) = 75)
-      expect(mockStorageManager.setCoreCredits).toHaveBeenCalledWith(
-        "930964921116680304",
+      // Filter carries the atomic dedupe (CAS) — chargeId must not exist
+      expect(
+        mockDbManager.coreCredits.collection.findOneAndUpdate,
+      ).toHaveBeenCalledWith(
+        {
+          userId: "930964921116680304",
+          "cryptoPayments.chargeId": {
+            $ne: "930964921116680304_1774809683267",
+          },
+        },
         expect.objectContaining({
-          credits: 75,
-          totalGenerated: 75,
-          cryptoPayments: expect.arrayContaining([
-            expect.objectContaining({
-              chargeId: "930964921116680304_1774809683267",
-              fiatAmount: 5.03,
-              cores: 75,
-              provider: "plisio",
-              processed: true,
-            }),
-          ]),
+          $inc: { credits: 75, totalGenerated: 75 },
         }),
+        { upsert: true, returnDocument: "after" },
       );
     });
 
     it("prevents duplicate credit processing", async () => {
-      // User already has this payment in their history
+      // Pre-check finds existing payment in user's record
       mockStorageManager.getCoreCredits.mockResolvedValue({
         credits: 75,
-        totalGenerated: 75,
         cryptoPayments: [
           {
             chargeId: "930964921116680304_1774809683267",
@@ -373,8 +382,52 @@ describe("handleCryptoWebhook", () => {
 
       await handleCryptoWebhook(req, res);
 
-      // setCoreCredits should NOT be called again
-      expect(mockStorageManager.setCoreCredits).not.toHaveBeenCalled();
+      // findOneAndUpdate should NOT be called (early return)
+      expect(
+        mockDbManager.coreCredits.collection.findOneAndUpdate,
+      ).not.toHaveBeenCalled();
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ message: "Already processed" }),
+      );
+    });
+
+    it("atomically rejects duplicates when the fast-path check misses (CAS)", async () => {
+      // Fast-path misses (stale read / concurrent delivery): no prior data
+      mockStorageManager.getCoreCredits.mockResolvedValue(null);
+      // CAS lost: the write matched nothing — already credited by a
+      // concurrent delivery
+      mockDbManager.coreCredits.collection.findOneAndUpdate.mockResolvedValue(
+        null,
+      );
+
+      const req = {
+        body: createPlisioWebhookBody({ status: "completed" }),
+      };
+
+      await handleCryptoWebhook(req, res);
+
+      // The atomic dedupe filter was used
+      expect(
+        mockDbManager.coreCredits.collection.findOneAndUpdate,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: "930964921116680304",
+          "cryptoPayments.chargeId": {
+            $ne: "930964921116680304_1774809683267",
+          },
+        }),
+        expect.anything(),
+        expect.anything(),
+      );
+
+      // No ledger entry, no referral bonus, no notification for a dupe
+      expect(mockStorageManager.completePayment).not.toHaveBeenCalled();
+      expect(
+        mockDbManager.referrals.processPurchaseBonus,
+      ).not.toHaveBeenCalled();
+      expect(mockDbManager.notifications.create).not.toHaveBeenCalled();
 
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(
@@ -404,11 +457,9 @@ describe("handleCryptoWebhook", () => {
     });
 
     it("adds to existing user balance instead of replacing it", async () => {
-      // User already has 50 cores from a previous purchase
-      mockStorageManager.getCoreCredits.mockResolvedValue({
-        credits: 50,
-        totalGenerated: 50,
-        cryptoPayments: [],
+      // findOneAndUpdate returns doc with the new total after $inc
+      mockDbManager.coreCredits.collection.findOneAndUpdate.mockResolvedValue({
+        credits: 125,
       });
 
       const req = {
@@ -417,13 +468,15 @@ describe("handleCryptoWebhook", () => {
 
       await handleCryptoWebhook(req, res);
 
-      // New balance should be 50 + 75 = 125
-      expect(mockStorageManager.setCoreCredits).toHaveBeenCalledWith(
-        "930964921116680304",
+      // New balance should be 50 + 75 = 125 (atomic $inc adds to existing)
+      expect(
+        mockDbManager.coreCredits.collection.findOneAndUpdate,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: "930964921116680304" }),
         expect.objectContaining({
-          credits: 125,
-          totalGenerated: 125,
+          $inc: expect.objectContaining({ credits: 75, totalGenerated: 75 }),
         }),
+        expect.objectContaining({ upsert: true, returnDocument: "after" }),
       );
     });
   });
@@ -450,7 +503,9 @@ describe("handleCryptoWebhook", () => {
         }),
       );
       // Should NOT credit the user yet
-      expect(mockStorageManager.setCoreCredits).not.toHaveBeenCalled();
+      expect(
+        mockDbManager.coreCredits.collection.findOneAndUpdate,
+      ).not.toHaveBeenCalled();
 
       vi.clearAllMocks();
 
@@ -467,12 +522,15 @@ describe("handleCryptoWebhook", () => {
       // Should store the completed audit record
       expect(mockDbManager.payments.complete).toHaveBeenCalled();
 
-      // Should credit user with cores
-      expect(mockStorageManager.setCoreCredits).toHaveBeenCalledWith(
-        "930964921116680304",
+      // Should credit user with cores (atomic $inc)
+      expect(
+        mockDbManager.coreCredits.collection.findOneAndUpdate,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: "930964921116680304" }),
         expect.objectContaining({
-          credits: 75, // $5 × 15
+          $inc: expect.objectContaining({ credits: 75, totalGenerated: 75 }),
         }),
+        expect.objectContaining({ upsert: true, returnDocument: "after" }),
       );
 
       // Should update the payment ledger to "completed"

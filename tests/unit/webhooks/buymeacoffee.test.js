@@ -6,8 +6,6 @@ import crypto from "crypto";
 const SECRET = "test-bmac-secret";
 
 const mockStorageManager = {
-  getCoreCredits: vi.fn().mockResolvedValue(null),
-  setCoreCredits: vi.fn().mockResolvedValue(true),
   getUserByDiscordId: vi.fn().mockResolvedValue(null),
   completePayment: vi.fn().mockResolvedValue(true),
 };
@@ -29,6 +27,11 @@ const mockDb = {
 
 const mockDbManager = {
   connectionManager: { db: mockDb },
+  coreCredits: {
+    collection: {
+      findOneAndUpdate: vi.fn().mockResolvedValue({ credits: 150 }),
+    },
+  },
   referrals: {
     processPurchaseBonus: vi.fn().mockResolvedValue({ processed: true }),
   },
@@ -157,10 +160,11 @@ describe("handleBMACWebhook", () => {
     vi.clearAllMocks();
     res = createMockRes();
     mockConfig.payments.buymeacoffeeWebhookSecret = SECRET;
-    mockStorageManager.getCoreCredits.mockResolvedValue(null);
-    mockStorageManager.setCoreCredits.mockResolvedValue(true);
     mockStorageManager.getUserByDiscordId.mockResolvedValue(null);
     mockStorageManager.completePayment.mockResolvedValue(true);
+    mockDbManager.coreCredits.collection.findOneAndUpdate.mockResolvedValue({
+      credits: 150,
+    });
     pendingCodes.findOne.mockResolvedValue(validCodeRecord());
     pendingCodes.updateOne.mockResolvedValue({ matchedCount: 1 });
   });
@@ -329,7 +333,7 @@ describe("handleBMACWebhook", () => {
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({ status: "not_found" }),
       );
-      expect(mockStorageManager.setCoreCredits).not.toHaveBeenCalled();
+      expect(mockDbManager.coreCredits.collection.findOneAndUpdate).not.toHaveBeenCalled();
     });
 
     it("returns expired for past-expiry codes", async () => {
@@ -345,7 +349,7 @@ describe("handleBMACWebhook", () => {
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({ status: "expired" }),
       );
-      expect(mockStorageManager.setCoreCredits).not.toHaveBeenCalled();
+      expect(mockDbManager.coreCredits.collection.findOneAndUpdate).not.toHaveBeenCalled();
     });
 
     it("returns already_processed for used codes without double-crediting", async () => {
@@ -357,7 +361,7 @@ describe("handleBMACWebhook", () => {
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({ status: "already_processed" }),
       );
-      expect(mockStorageManager.setCoreCredits).not.toHaveBeenCalled();
+      expect(mockDbManager.coreCredits.collection.findOneAndUpdate).not.toHaveBeenCalled();
     });
 
     it("rejects concurrent deliveries when the compare-and-swap claim loses", async () => {
@@ -371,12 +375,12 @@ describe("handleBMACWebhook", () => {
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({ status: "already_processed" }),
       );
-      expect(mockStorageManager.setCoreCredits).not.toHaveBeenCalled();
+      expect(mockDbManager.coreCredits.collection.findOneAndUpdate).not.toHaveBeenCalled();
       expect(mockStorageManager.completePayment).not.toHaveBeenCalled();
     });
 
     it("releases the code claim when crediting fails so a retry can process", async () => {
-      mockStorageManager.setCoreCredits.mockRejectedValue(
+      mockDbManager.coreCredits.collection.findOneAndUpdate.mockRejectedValue(
         new Error("db write failed"),
       );
 
@@ -400,10 +404,15 @@ describe("handleBMACWebhook", () => {
     it("credits cores, marks the code used, and audits the payment", async () => {
       await handleBMACWebhook(makeReq(createBMACBody()), res);
 
-      // Cores granted: $10 × 15 conversion rate = 150
-      expect(mockStorageManager.setCoreCredits).toHaveBeenCalledWith(
-        "123456",
-        expect.objectContaining({ credits: 150 }),
+      // Cores granted: $10 × 15 conversion rate = 150 (atomic $inc)
+      expect(
+        mockDbManager.coreCredits.collection.findOneAndUpdate,
+      ).toHaveBeenCalledWith(
+        { userId: "123456" },
+        expect.objectContaining({
+          $inc: expect.objectContaining({ credits: 150, totalGenerated: 150 }),
+        }),
+        expect.objectContaining({ upsert: true, returnDocument: "after" }),
       );
 
       // Code atomically claimed (compare-and-swap) before crediting
@@ -432,16 +441,20 @@ describe("handleBMACWebhook", () => {
     });
 
     it("adds to an existing balance instead of resetting it", async () => {
-      mockStorageManager.getCoreCredits.mockResolvedValue({
-        credits: 50,
-        totalGenerated: 50,
+      mockDbManager.coreCredits.collection.findOneAndUpdate.mockResolvedValue({
+        credits: 200,
       });
 
       await handleBMACWebhook(makeReq(createBMACBody()), res);
 
-      expect(mockStorageManager.setCoreCredits).toHaveBeenCalledWith(
-        "123456",
-        expect.objectContaining({ credits: 200, totalGenerated: 200 }),
+      expect(
+        mockDbManager.coreCredits.collection.findOneAndUpdate,
+      ).toHaveBeenCalledWith(
+        { userId: "123456" },
+        expect.objectContaining({
+          $inc: expect.objectContaining({ credits: 150, totalGenerated: 150 }),
+        }),
+        expect.objectContaining({ upsert: true, returnDocument: "after" }),
       );
     });
 
@@ -464,9 +477,14 @@ describe("handleBMACWebhook", () => {
         res,
       );
 
-      expect(mockStorageManager.setCoreCredits).toHaveBeenCalledWith(
-        "123456",
-        expect.objectContaining({ credits: 75 }),
+      expect(
+        mockDbManager.coreCredits.collection.findOneAndUpdate,
+      ).toHaveBeenCalledWith(
+        { userId: "123456" },
+        expect.objectContaining({
+          $inc: expect.objectContaining({ credits: 75 }),
+        }),
+        expect.objectContaining({ upsert: true, returnDocument: "after" }),
       );
       expect(res.status).toHaveBeenCalledWith(200);
     });

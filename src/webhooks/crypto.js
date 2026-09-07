@@ -1,6 +1,5 @@
 import { getStorageManager } from "../utils/storage/storageManager.js";
 import { getLogger } from "../utils/logger.js";
-import { formatCoreCredits } from "../utils/ai/aiCreditManager.js";
 import { plisioPay } from "../utils/payments/plisio.js";
 import { emojiConfig } from "../config/emojis.js";
 
@@ -71,7 +70,7 @@ export async function handleCryptoWebhook(req, res) {
     return res.status(200).json({ status: "no_user_linked" });
   }
 
-  // Fast-path: Check for duplicate before expensive lock acquisition
+  // Fast-path: Check for duplicate before processing
   try {
     const storage = await getStorageManager();
     const existingData = await storage.getCoreCredits(userId);
@@ -171,186 +170,180 @@ export async function processCryptoPayment(
   _email,
   _metadata,
 ) {
-  // We use the same locking mechanism as AI credits to prevent races
-  const { withCreditLock } = await import("../utils/ai/aiCreditManager.js");
+  const storage = await getStorageManager();
+  const configModule = await import("../config/config.js").catch(() => null);
+  const config =
+    configModule?.config || configModule?.default || configModule || {};
 
-  return withCreditLock(userId, async () => {
-    const storage = await getStorageManager();
-    const configModule = await import("../config/config.js").catch(() => null);
-    const config =
-      configModule?.config || configModule?.default || configModule || {};
-
-    // Check for duplicate payment
-    const existingData = await storage.getCoreCredits(userId);
-    if (existingData?.cryptoPayments?.some(p => p.chargeId === paymentId)) {
-      logger.info(
-        `🔄 Duplicate payment attempt: ${paymentId} already credited to user ${userId}.`,
-      );
-      return { success: true, message: "Already processed" };
-    }
-
-    const userData = existingData || {
-      credits: 0,
-      totalGenerated: 0,
-      lastUpdated: new Date().toISOString(),
-    };
-
-    // ─── Use the fiat (source) amount for Core calculation ───
-    // Plisio's `source_amount` is the USD value the user actually paid.
-    // Fall back to cryptoAmount only if source_amount is missing (shouldn't happen).
-    const fiatAmount = parseFloat(sourceAmount) || 0;
-    const cryptoAmt = parseFloat(cryptoAmount) || 0;
-    const paymentAmount = fiatAmount > 0 ? fiatAmount : cryptoAmt;
-
-    // Use centralized calculateCores method from config
-    const coresToAdd =
-      typeof config.calculateCores === "function"
-        ? config.calculateCores(paymentAmount)
-        : Math.floor(
-            paymentAmount *
-              (config.corePricing?.coreSystem?.conversionRate || 50),
-          );
-
-    // Update balance and historical total
-    userData.credits = formatCoreCredits((userData.credits || 0) + coresToAdd);
-    userData.totalGenerated = (userData.totalGenerated || 0) + coresToAdd;
-
-    // Track the crypto specific payment metadata
-    if (!userData.cryptoPayments) userData.cryptoPayments = [];
-    userData.cryptoPayments.push({
-      chargeId: paymentId,
-      type: "payment",
-      fiatAmount: paymentAmount,
-      cryptoAmount: cryptoAmt,
-      currency,
-      sourceCurrency: sourceCurrency || "USD",
-      cores: coresToAdd,
-      provider: "plisio",
-      timestamp: new Date().toISOString(),
-      processed: true,
-    });
-
-    userData.lastUpdated = new Date().toISOString();
-    await storage.setCoreCredits(userId, userData);
-
-    // Update separate payments ledger (Upsert/Complete)
-    try {
-      await storage.completePayment({
-        paymentId: paymentId,
-        discordId: userId,
-        provider: "plisio",
-        type: "one_time",
-        status: "completed",
-        amount: paymentAmount,
-        cryptoAmount: cryptoAmt,
-        currency: currency,
-        sourceCurrency: sourceCurrency || "USD",
-        coresGranted: coresToAdd,
-        email: _email,
-        metadata: _metadata,
-      });
-      logger.debug(`📝 Payment ${paymentId} logged to payments collection`);
-    } catch (logError) {
-      logger.error(
-        `Failed to log payment ${paymentId} to payments collection:`,
-        logError,
-      );
-    }
-
-    // Process ongoing referral bonus if eligible ($10+ minimum)
-    try {
-      const { getDatabaseManager } = await import(
-        "../utils/storage/databaseManager.js"
-      );
-      const dbManager = await getDatabaseManager();
-      if (dbManager?.referrals) {
-        await dbManager.referrals.processPurchaseBonus({
-          refereeId: userId,
-          paymentId: paymentId,
-          purchaseAmount: paymentAmount,
-          coresGranted: coresToAdd,
-          coreCreditsRepo: dbManager.coreCredits,
-          paymentRepo: dbManager.payments,
-        });
-      }
-    } catch (refError) {
-      logger.error(`Failed to process referral bonus for ${userId}:`, refError);
-    }
-
+  // Check for duplicate payment
+  const existingData = await storage.getCoreCredits(userId);
+  if (existingData?.cryptoPayments?.some(p => p.chargeId === paymentId)) {
     logger.info(
-      `✅ Added ${coresToAdd} Cores to user ${userId} via Crypto ($${paymentAmount} ${sourceCurrency || "USD"} / ${cryptoAmt} ${currency})`,
+      `🔄 Duplicate payment attempt: ${paymentId} already credited to user ${userId}.`,
     );
+    return { success: true, message: "Already processed" };
+  }
 
-    // Create in-app notification
-    try {
-      const { getDatabaseManager } = await import(
-        "../utils/storage/databaseManager.js"
-      );
-      const dbManager = await getDatabaseManager();
-      if (dbManager?.notifications) {
-        await dbManager.notifications.create({
-          userId,
-          type: "balance_added",
-          title: "Balance Replenished!",
-          message: `+${coresToAdd} Cores from your $${paymentAmount} crypto purchase`,
-          icon: "core",
-          metadata: {
-            coresGranted: coresToAdd,
-            fiatAmount: paymentAmount,
-            cryptoAmount: cryptoAmt,
-            currency,
-            provider: "plisio",
-          },
-        });
-      }
-    } catch (_e) {
-      /* non-critical */
+  const fiatAmount = parseFloat(sourceAmount) || 0;
+  const cryptoAmt = parseFloat(cryptoAmount) || 0;
+  const paymentAmount = fiatAmount > 0 ? fiatAmount : cryptoAmt;
+
+  const coresToAdd =
+    typeof config.calculateCores === "function"
+      ? config.calculateCores(paymentAmount)
+      : Math.floor(
+          paymentAmount *
+            (config.corePricing?.coreSystem?.conversionRate || 50),
+        );
+
+  // Atomic credit + atomic dedupe in one op: the filter only matches
+  // if this chargeId is NOT already in cryptoPayments, so concurrent
+  // deliveries of the same payment can never double-credit.
+  const { getDatabaseManager } = await import(
+    "../utils/storage/databaseManager.js"
+  );
+  const dbManager = await getDatabaseManager();
+
+  const updated = await dbManager.coreCredits.collection.findOneAndUpdate(
+    { userId, "cryptoPayments.chargeId": { $ne: paymentId } },
+    {
+      $inc: { credits: coresToAdd, totalGenerated: coresToAdd },
+      $push: {
+        cryptoPayments: {
+          chargeId: paymentId,
+          type: "payment",
+          fiatAmount: paymentAmount,
+          cryptoAmount: cryptoAmt,
+          currency,
+          sourceCurrency: sourceCurrency || "USD",
+          cores: coresToAdd,
+          provider: "plisio",
+          timestamp: new Date().toISOString(),
+          processed: true,
+        },
+      },
+      $set: { lastUpdated: new Date().toISOString() },
+    },
+    { upsert: true, returnDocument: "after" },
+  );
+
+  // CAS lost: another delivery credited this payment first
+  if (!updated) {
+    logger.info(
+      `🔄 Duplicate payment attempt: ${paymentId} already credited to user ${userId}.`,
+    );
+    return { success: true, message: "Already processed" };
+  }
+
+  const newBalance = updated?.credits ?? coresToAdd;
+
+  // Update separate payments ledger (Upsert/Complete)
+  try {
+    await storage.completePayment({
+      paymentId: paymentId,
+      discordId: userId,
+      provider: "plisio",
+      type: "one_time",
+      status: "completed",
+      amount: paymentAmount,
+      cryptoAmount: cryptoAmt,
+      currency: currency,
+      sourceCurrency: sourceCurrency || "USD",
+      coresGranted: coresToAdd,
+      email: _email,
+      metadata: _metadata,
+    });
+    logger.debug(`📝 Payment ${paymentId} logged to payments collection`);
+  } catch (logError) {
+    logger.error(
+      `Failed to log payment ${paymentId} to payments collection:`,
+      logError,
+    );
+  }
+
+  // Process ongoing referral bonus if eligible ($10+ minimum)
+  try {
+    if (dbManager?.referrals) {
+      await dbManager.referrals.processPurchaseBonus({
+        refereeId: userId,
+        paymentId: paymentId,
+        purchaseAmount: paymentAmount,
+        coresGranted: coresToAdd,
+        coreCreditsRepo: dbManager.coreCredits,
+        paymentRepo: dbManager.payments,
+      });
     }
+  } catch (refError) {
+    logger.error(`Failed to process referral bonus for ${userId}:`, refError);
+  }
 
-    // Send Discord DM notification to user
-    try {
-      const { getPremiumManager } = await import(
-        "../features/premium/PremiumManager.js"
-      );
-      const premiumManager = getPremiumManager();
-      if (premiumManager?.client) {
-        const user = await premiumManager.client.users
-          .fetch(userId)
+  logger.info(
+    `✅ Added ${coresToAdd} Cores to user ${userId} via Crypto ($${paymentAmount} ${sourceCurrency || "USD"} / ${cryptoAmt} ${currency})`,
+  );
+
+  // Create in-app notification
+  try {
+    if (dbManager?.notifications) {
+      await dbManager.notifications.create({
+        userId,
+        type: "balance_added",
+        title: "Balance Replenished!",
+        message: `+${coresToAdd} Cores from your $${paymentAmount} crypto purchase`,
+        icon: "core",
+        metadata: {
+          coresGranted: coresToAdd,
+          fiatAmount: paymentAmount,
+          cryptoAmount: cryptoAmt,
+          currency,
+          provider: "plisio",
+        },
+      });
+    }
+  } catch (_e) {
+    /* non-critical */
+  }
+
+  // Send Discord DM notification to user
+  try {
+    const { getPremiumManager } = await import(
+      "../features/premium/PremiumManager.js"
+    );
+    const premiumManager = getPremiumManager();
+    if (premiumManager?.client) {
+      const user = await premiumManager.client.users
+        .fetch(userId)
+        .catch(() => null);
+      if (user) {
+        await user
+          .send({
+            embeds: [
+              {
+                title: `${emojiConfig.customEmojis.core} Cores Added!`,
+                description: `You received **${coresToAdd} Cores** from your crypto payment of **$${paymentAmount} ${sourceCurrency || "USD"}**.`,
+                color: 0x00d26a,
+                fields: [
+                  {
+                    name: "Crypto Amount",
+                    value: `${cryptoAmt} ${currency}`,
+                    inline: true,
+                  },
+                  {
+                    name: "New Balance",
+                    value: `${newBalance} ${emojiConfig.customEmojis.core}`,
+                    inline: true,
+                  },
+                ],
+                timestamp: new Date().toISOString(),
+              },
+            ],
+          })
           .catch(() => null);
-        if (user) {
-          await user
-            .send({
-              embeds: [
-                {
-                  title: `${emojiConfig.customEmojis.core} Cores Added!`,
-                  description: `You received **${coresToAdd} Cores** from your crypto payment of **$${paymentAmount} ${sourceCurrency || "USD"}**.`,
-                  color: 0x00d26a,
-                  fields: [
-                    {
-                      name: "Crypto Amount",
-                      value: `${cryptoAmt} ${currency}`,
-                      inline: true,
-                    },
-                    {
-                      name: "New Balance",
-                      value: `${userData.credits} ${emojiConfig.customEmojis.core}`,
-                      inline: true,
-                    },
-                  ],
-                  timestamp: new Date().toISOString(),
-                },
-              ],
-            })
-            .catch(() => null);
-          logger.info(
-            `📬 Sent DM notification to ${userId} for crypto payment`,
-          );
-        }
+        logger.info(`📬 Sent DM notification to ${userId} for crypto payment`);
       }
-    } catch (_e) {
-      /* non-critical — DM may fail if user has DMs disabled */
     }
+  } catch (_e) {
+    /* non-critical — DM may fail if user has DMs disabled */
+  }
 
-    return { success: true, message: "Credited", credits: coresToAdd };
-  });
+  return { success: true, message: "Credited", credits: coresToAdd };
 }

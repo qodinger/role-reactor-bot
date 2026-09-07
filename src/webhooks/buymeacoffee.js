@@ -1,6 +1,5 @@
 import crypto from "crypto";
 import { getLogger } from "../utils/logger.js";
-import { formatCoreCredits } from "../utils/ai/aiCreditManager.js";
 import { config } from "../config/config.js";
 import { emojiConfig } from "../config/emojis.js";
 
@@ -250,13 +249,6 @@ export async function handleBMACWebhook(req, res) {
       }
 
       try {
-        const existingData = await storage.getCoreCredits(userId);
-        const userData = existingData || {
-          credits: 0,
-          totalGenerated: 0,
-          lastUpdated: new Date().toISOString(),
-        };
-
         // Calculate cores based on fiat amount
         const coresToAdd =
           typeof config.calculateCores === "function"
@@ -266,32 +258,34 @@ export async function handleBMACWebhook(req, res) {
                   (config.corePricing?.coreSystem?.conversionRate || 15),
               );
 
-        // Update balance and historical total
-        userData.credits = formatCoreCredits(
-          (userData.credits || 0) + coresToAdd,
-        );
-        userData.totalGenerated = (userData.totalGenerated || 0) + coresToAdd;
+        // Atomic credit — $inc + $push in one op; no stale-read, no
+        // whole-doc replaceOne that could overwrite concurrent writers.
+        const updated =
+          await dbManager.coreCredits.collection.findOneAndUpdate(
+            { userId },
+            {
+              $inc: { credits: coresToAdd, totalGenerated: coresToAdd },
+              $push: {
+                bmacPayments: {
+                  code,
+                  type: "payment",
+                  fiatAmount: paymentAmount,
+                  currency,
+                  cores: coresToAdd,
+                  provider: "buymeacoffee",
+                  supporterName,
+                  transactionId,
+                  bmacPaymentId,
+                  timestamp: new Date().toISOString(),
+                  processed: true,
+                },
+              },
+              $set: { lastUpdated: new Date().toISOString() },
+            },
+            { upsert: true, returnDocument: "after" },
+          );
 
-        // Track BMAC-specific payment metadata
-        if (!userData.bmacPayments) userData.bmacPayments = [];
-        userData.bmacPayments.push({
-          code,
-          type: "payment",
-          fiatAmount: paymentAmount,
-          currency,
-          cores: coresToAdd,
-          provider: "buymeacoffee",
-          supporterName,
-          transactionId,
-          bmacPaymentId,
-          timestamp: new Date().toISOString(),
-          processed: true,
-        });
-
-        userData.lastUpdated = new Date().toISOString();
-        await storage.setCoreCredits(userId, userData);
-
-        return { coresToAdd, newBalance: userData.credits };
+        return { coresToAdd, newBalance: updated?.credits ?? coresToAdd };
       } catch (creditError) {
         // Release the claim so a retry can process the payment
         try {
