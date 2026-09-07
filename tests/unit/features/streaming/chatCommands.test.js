@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import { hasPermission } from "../../../../src/features/streaming/StreamingManager.js";
 
 // Helper: build a mock chat message with given badge flags
@@ -10,14 +10,6 @@ function msg({ broadcaster = false, mod = false, vip = false, subscriber = false
     isSubscriber: subscriber,
     messageId: "msg-123",
     userLogin: "testuser",
-  };
-}
-
-// Helper: build a mock platform
-function mockPlatform() {
-  return {
-    sendMessage: vi.fn().mockResolvedValue(true),
-    connection: { platformUserId: "user123" },
   };
 }
 
@@ -38,18 +30,7 @@ function mockConnection(overrides = {}) {
 
 describe("Chat Command Handlers", () => {
   describe("handleSetTitleCommand", () => {
-    it("rejects non-mod users trying to set title", async () => {
-      const platform = mockPlatform();
-      const message = msg();
-      const args = ["New", "Title"];
-
-      // Dynamic import the handler
-      const { handleSetTitleCommand } = await import(
-        "../../../../src/commands/admin/stream/handlers.js"
-      );
-
-      // We need to test the StreamingManager handler, but it's complex
-      // Instead, test the permission logic directly
+    it("rejects non-mod users trying to set title", () => {
       expect(hasPermission("moderator", msg())).toBe(false);
       expect(hasPermission("moderator", msg({ mod: true }))).toBe(true);
     });
