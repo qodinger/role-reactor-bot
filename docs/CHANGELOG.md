@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Live Reactor**: Connect your streaming channel to Discord with go-live alerts, real-time chat relay, customizable timers, stream commands, and quote system. Supports Twitch and YouTube.
 - **Dual-Balance Economy**: Earn **Sparks** ⚡ through voting and activity; purchase **Cores** for premium features.
 - **Core Gifting**: Send Cores to other users with `/balance send` (a 10% burn tax applies).
+- **Referral System**: Claim a friend's referral code for a **+25 Sparks** ⚡ welcome bonus and **+10% bonus Cores** on your first $10+ purchase. Referrers earn **15% bonus Cores** on every qualifying purchase made by users they referred.
 - **Ticket Management Dashboard**: Build and manage ticket panels from the web dashboard.
 - **Goodbye System Dashboard**: Configure goodbye messages, channels, and settings from the web dashboard.
 
