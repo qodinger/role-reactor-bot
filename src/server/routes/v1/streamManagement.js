@@ -19,6 +19,8 @@ import {
   apiAddTimer,
   apiDeleteTimer,
   apiGetDiagnostics,
+  apiGenerateOverlayToken,
+  apiVerifyMod,
 } from "../../controllers/StreamController.js";
 import { internalAuth } from "../../middleware/internalAuth.js";
 import {
@@ -156,6 +158,22 @@ router.get(
   internalAuth,
   requireGuildMembership,
   apiGetDiagnostics,
+);
+
+// Overlay token generation
+router.post(
+  "/guilds/:guildId/overlay-token",
+  internalAuth,
+  requireGuildPermission,
+  apiGenerateOverlayToken,
+);
+
+// Verify bot moderator status
+router.get(
+  "/guilds/:guildId/verify-mod",
+  internalAuth,
+  requireGuildMembership,
+  apiVerifyMod,
 );
 
 export default router;

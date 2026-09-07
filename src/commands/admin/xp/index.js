@@ -210,9 +210,7 @@ export const data = new SlashCommandBuilder()
           ),
       )
       .addSubcommand(sub =>
-        sub
-          .setName("list")
-          .setDescription("View all no-XP channels and roles"),
+        sub.setName("list").setDescription("View all no-XP channels and roles"),
       ),
   );
 

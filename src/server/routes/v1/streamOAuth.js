@@ -51,7 +51,10 @@ router.get("/callback/twitch", async (req, res) => {
   }
 
   // Validate state (CSRF protection)
-  if (!global.twitchOAuthStates || !global.twitchOAuthStates.has(state)) {
+  const { hasTwitchUserState, getTwitchUserState } = await import(
+    "../../../utils/oauthStateStore.js"
+  );
+  if (!hasTwitchUserState(state)) {
     logger.error("Twitch OAuth invalid state", { state });
     return res
       .type("html")
@@ -59,8 +62,7 @@ router.get("/callback/twitch", async (req, res) => {
       .send(renderErrorPage("Invalid state. Please try connecting again."));
   }
 
-  const stateData = global.twitchOAuthStates.get(state);
-  global.twitchOAuthStates.delete(state);
+  const stateData = getTwitchUserState(state);
 
   // Check state expiry (10 minutes)
   if (Date.now() - stateData.timestamp > 10 * 60 * 1000) {
@@ -129,27 +131,6 @@ router.get("/callback/twitch", async (req, res) => {
       `Twitch account connected for user ${userId} in guild ${guildId}: ${userInfo.login}`,
     );
 
-    // Notify the user via Discord DM (no external website dependency)
-    try {
-      const discordUser = await streamingManager.client.users.fetch(userId);
-      if (discordUser) {
-        const { EmbedBuilder } = await import("discord.js");
-        const embed = new EmbedBuilder()
-          .setTitle("✅ Twitch Connected!")
-          .setDescription(
-            `Your Twitch account **${userInfo.login}** is now linked.\n\n` +
-              "Stream alerts will start once you set an alert channel with " +
-              "`/stream config alert_channel:#channel`.",
-          )
-          .setColor("#9146FF")
-          .setFooter({ text: "You can close this tab now." })
-          .setTimestamp();
-        await discordUser.send({ embeds: [embed] });
-      }
-    } catch (dmError) {
-      logger.warn("Could not DM user after Twitch connect", dmError);
-    }
-
     const targetDomain =
       process.env.WEBSITE_URL ||
       process.env.BOT_WEBSITE_URL ||
@@ -209,7 +190,10 @@ router.get("/callback/bot", async (req, res) => {
       .send(renderErrorPage("Missing code or state."));
   }
 
-  if (!global.twitchBotOAuthStates || !global.twitchBotOAuthStates.has(state)) {
+  const { hasTwitchBotState, getTwitchBotState } = await import(
+    "../../../utils/oauthStateStore.js"
+  );
+  if (!hasTwitchBotState(state)) {
     logger.error("Twitch bot OAuth invalid state", { state });
     return res
       .type("html")
@@ -217,7 +201,7 @@ router.get("/callback/bot", async (req, res) => {
       .send(renderErrorPage("Invalid state. Please try again."));
   }
 
-  global.twitchBotOAuthStates.delete(state);
+  getTwitchBotState(state);
 
   try {
     const botRedirectUri = config.twitch.redirectUri.replace(
@@ -275,6 +259,137 @@ router.get("/callback/bot", async (req, res) => {
       .type("html")
       .status(500)
       .send(renderErrorPage(err.message || "Unknown error"));
+  }
+});
+
+/**
+ * YouTube OAuth callback endpoint
+ * Handles the redirect from Google after user authorization
+ */
+router.get("/callback/youtube", async (req, res) => {
+  const {
+    code: rawCode,
+    state: rawState,
+    error,
+    error_description: errorDescription,
+  } = req.query;
+  const code = typeof rawCode === "string" ? rawCode : undefined;
+  const state = typeof rawState === "string" ? rawState : undefined;
+
+  // Handle OAuth errors
+  if (error) {
+    logger.error("YouTube OAuth error", { error, errorDescription });
+    return res
+      .type("html")
+      .status(400)
+      .send(renderErrorPage(String(errorDescription || error)));
+  }
+
+  if (!code) {
+    logger.error("YouTube OAuth callback missing code");
+    return res
+      .type("html")
+      .status(400)
+      .send(renderErrorPage("Missing authorization code."));
+  }
+
+  if (!state) {
+    logger.error("YouTube OAuth callback missing state");
+    return res
+      .type("html")
+      .status(400)
+      .send(renderErrorPage("Missing state parameter."));
+  }
+
+  // Validate state (CSRF protection)
+  const { hasYouTubeUserState, getYouTubeUserState } = await import(
+    "../../../utils/oauthStateStore.js"
+  );
+  if (!hasYouTubeUserState(state)) {
+    logger.error("YouTube OAuth invalid state", { state });
+    return res
+      .type("html")
+      .status(400)
+      .send(renderErrorPage("Invalid state. Please try connecting again."));
+  }
+
+  const stateData = getYouTubeUserState(state);
+
+  // Check state expiry (10 minutes)
+  if (Date.now() - stateData.createdAt > 10 * 60 * 1000) {
+    logger.error("YouTube OAuth state expired");
+    return res
+      .type("html")
+      .status(400)
+      .send(
+        renderErrorPage(
+          "The authorization session expired. Please try connecting again.",
+        ),
+      );
+  }
+
+  const { userId, guildId } = stateData;
+
+  try {
+    // Exchange code for tokens
+    const { exchangeYouTubeCodeForToken } = await import(
+      "../../../features/streaming/utils/youtubeOauth.js"
+    );
+    const tokens = await exchangeYouTubeCodeForToken(code);
+
+    // Validate token and get user info
+    const { validateYouTubeToken, getYouTubeChannelInfo } = await import(
+      "../../../features/streaming/utils/youtubeOauth.js"
+    );
+    const validation = await validateYouTubeToken(tokens.accessToken);
+    if (!validation) {
+      throw new Error("Token validation failed");
+    }
+
+    // Get channel info
+    const channelInfo = await getYouTubeChannelInfo(tokens.accessToken);
+
+    // Get streaming manager and connect account
+    const { getStorageManager } = await import(
+      "../../../utils/storage/storageManager.js"
+    );
+    const storage = await getStorageManager();
+    const { getStreamingManager } = await import(
+      "../../../features/streaming/StreamingManager.js"
+    );
+    const streamingManager = getStreamingManager(storage.client);
+
+    // Calculate expiry time
+    const expiresAt = Date.now() + tokens.expiresIn * 1000;
+
+    await streamingManager.connectAccount(guildId, userId, "youtube", {
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      expiresAt,
+    }, {
+      id: validation.id,
+      login: validation.name,
+      displayName: channelInfo?.title || validation.name,
+    });
+
+    // Return to dashboard
+    const targetDomain =
+      process.env.WEBSITE_URL ||
+      process.env.BOT_WEBSITE_URL ||
+      "http://localhost:8080";
+
+    return res.redirect(
+      `${targetDomain}/dashboard/${guildId}/live-reactor?connected=youtube`,
+    );
+  } catch (err) {
+    logger.error("YouTube OAuth callback failed", err);
+    const targetDomain =
+      process.env.WEBSITE_URL ||
+      process.env.BOT_WEBSITE_URL ||
+      "http://localhost:8080";
+    return res.redirect(
+      `${targetDomain}/dashboard/${guildId}/live-reactor?error=${encodeURIComponent(err.message || "YouTube authorization failed")}`,
+    );
   }
 });
 

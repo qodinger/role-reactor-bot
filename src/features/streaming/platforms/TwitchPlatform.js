@@ -503,6 +503,44 @@ class TwitchPlatform extends Platform {
   }
 
   /**
+   * Check if the bot is a moderator in the channel.
+   * Uses the user's access token with moderation:read scope.
+   * @returns {Promise<boolean>} True if the bot is a moderator
+   */
+  async isModerator() {
+    try {
+      const botUserId = config.twitch.botUserId;
+      if (!botUserId) {
+        logger.warn("No bot user ID configured");
+        return false;
+      }
+
+      const response = await fetch(
+        `https://api.twitch.tv/helix/moderation/moderators?broadcaster_id=${this.connection.platformUserId}&user_id=${botUserId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${this.connection.accessToken}`,
+            "Client-Id": config.twitch.clientId,
+          },
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        logger.warn("Failed to check moderator status", data);
+        return false;
+      }
+
+      // If data array is not empty, the bot is a moderator
+      return (data.data?.length ?? 0) > 0;
+    } catch (error) {
+      logger.error("Failed to check moderator status", error);
+      return false;
+    }
+  }
+
+  /**
    * Get channel info via Helix API
    * @returns {Promise<Object|null>} Channel info
    */

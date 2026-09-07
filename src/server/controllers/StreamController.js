@@ -66,7 +66,14 @@ export async function apiGetStreamStatus(req, res) {
       };
     });
 
-    return ok(res, { connections: enriched });
+    const { config } = await import("../../config/config.js");
+    const platforms = {
+      twitch: { enabled: true },
+      youtube: { enabled: config.youtube.enabled },
+      kick: { enabled: false },
+    };
+
+    return ok(res, { connections: enriched, platforms });
   } catch (error) {
     logger.error("Failed to get stream status", error);
     return err(res, "Failed to get stream status", 500, error.message);
@@ -76,14 +83,38 @@ export async function apiGetStreamStatus(req, res) {
 export async function apiGenerateConnectUrl(req, res) {
   logRequest("Stream connect", req);
   const { guildId } = req.params;
+  const { platform } = req.query;
   const userId = req.user?.id;
 
   if (!userId) return err(res, "Authentication required", 401);
 
   try {
     const state = `${guildId}:${userId}:${Date.now()}`;
-    if (!global.twitchOAuthStates) global.twitchOAuthStates = new Map();
-    global.twitchOAuthStates.set(state, {
+    const { setTwitchUserState, setYouTubeUserState } = await import(
+      "../../utils/oauthStateStore.js"
+    );
+
+    if (platform === "youtube") {
+      const { config } = await import("../../config/config.js");
+      if (!config.youtube.enabled) {
+        return err(res, "YouTube is not enabled", 400);
+      }
+
+      setYouTubeUserState(state, {
+        guildId,
+        userId,
+        createdAt: Date.now(),
+      });
+
+      const { generateYouTubeAuthUrl } = await import(
+        "../../features/streaming/utils/youtubeOauth.js"
+      );
+      const url = generateYouTubeAuthUrl(state);
+      return ok(res, { url });
+    }
+
+    // Default to Twitch
+    setTwitchUserState(state, {
       guildId,
       userId,
       createdAt: Date.now(),
@@ -100,6 +131,7 @@ export async function apiGenerateConnectUrl(req, res) {
 export async function apiDisconnectPlatform(req, res) {
   logRequest("Stream disconnect", req);
   const { guildId } = req.params;
+  const { platform } = req.query;
   const userId = req.user?.id;
 
   if (!userId) return err(res, "Authentication required", 401);
@@ -108,7 +140,7 @@ export async function apiDisconnectPlatform(req, res) {
     const sm = getSm();
     if (!sm) return err(res, "Streaming manager not available", 503);
 
-    await sm.disconnectAccount(guildId, userId, "twitch");
+    await sm.disconnectAccount(guildId, userId, platform || "twitch");
     return ok(res, { message: "Disconnected successfully" });
   } catch (error) {
     logger.error("Failed to disconnect stream", error);
@@ -519,5 +551,62 @@ export async function apiGetDiagnostics(req, res) {
   } catch (error) {
     logger.error("Failed to get diagnostics", error);
     return err(res, "Failed to get diagnostics", 500, error.message);
+  }
+}
+
+/**
+ * POST /stream/guilds/:guildId/overlay-token — Generate overlay URL token
+ */
+export async function apiGenerateOverlayToken(req, res) {
+  const { guildId } = req.params;
+  const { widget, expiresIn } = req.body || {};
+
+  logRequest("Generate Overlay Token", req, {}, "🔗");
+
+  if (!widget) {
+    return err(res, "widget parameter required (alerts, chat, activity, stats)", 400);
+  }
+
+  try {
+    const { generateOverlayToken } = await import("../utils/overlayToken.js");
+    const { token, expiresAt } = generateOverlayToken(
+      guildId,
+      widget,
+      expiresIn ? parseInt(expiresIn, 10) * 1000 : undefined,
+    );
+
+    const baseUrl = process.env.BOT_WEBSITE_URL || process.env.WEBSITE_URL || "";
+    const overlayPath = `/overlay/${guildId}/${widget}`;
+    const url = baseUrl ? `${baseUrl}${overlayPath}?token=${token}` : overlayPath;
+
+    return ok(res, { token, url, expiresAt, widget });
+  } catch (error) {
+    logger.error("Failed to generate overlay token", error);
+    return err(res, error.message || "Failed to generate overlay token", 500);
+  }
+}
+
+/**
+ * GET /stream/guilds/:guildId/verify-mod — Verify if bot is a moderator
+ */
+export async function apiVerifyMod(req, res) {
+  const { guildId } = req.params;
+
+  logRequest("Verify Mod Status", req);
+
+  try {
+    const sm = getSm();
+    if (!sm) return err(res, "Streaming manager not available", 503);
+
+    const twitchPlatform = sm.platforms.get(guildId)?.get("twitch");
+    if (!twitchPlatform) {
+      return err(res, "Twitch not connected for this guild", 404);
+    }
+
+    const isMod = await twitchPlatform.isModerator();
+    return ok(res, { isMod });
+  } catch (error) {
+    logger.error("Failed to verify mod status", error);
+    return err(res, "Failed to verify mod status", 500, error.message);
   }
 }

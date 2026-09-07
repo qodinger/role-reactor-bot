@@ -242,6 +242,7 @@ class Config {
         "moderator:manage:banned_users",
         "moderator:manage:chat_messages",
         "moderator:read:chatters",
+        "moderation:read",
       ],
       // Scopes requested when the dedicated RoleReactor bot account authorizes.
       // These let the bot send chat as itself (a separate account from the
@@ -267,6 +268,11 @@ class Config {
       clientSecret: process.env.YOUTUBE_CLIENT_SECRET || "",
       enabled: process.env.YOUTUBE_STREAMING_ENABLED === "true",
       redirectUri: process.env.YOUTUBE_REDIRECT_URI || "",
+      scopes: [
+        "https://www.googleapis.com/auth/youtube.readonly",
+        "https://www.googleapis.com/auth/youtube.force-ssl",
+        "https://www.googleapis.com/auth/userinfo.profile",
+      ],
     };
   }
 
@@ -394,6 +400,7 @@ class Config {
           key,
           {
             ...pkg,
+            price,
             totalCores,
             rate: parseFloat(rate.toFixed(2)),
           },
@@ -514,11 +521,23 @@ class Config {
   }
 
   /**
+   * Get Web3 receiver wallet address
+   * @returns {string} Web3 receiver address
+   */
+  get web3ReceiverAddress() {
+    return (
+      process.env.WEB3_RECEIVER_ADDRESS ||
+      "0xC850f03295Bb614d52038FB83f78f72ed8f7c65d"
+    );
+  }
+
+  /**
    * Get payment configurations
    * @returns {Object} Payments config object
    */
   get payments() {
     return {
+      web3ReceiverAddress: this.web3ReceiverAddress,
       plisio: {
         secretKey: process.env.PLISIO_SECRET_KEY,
         enabled: !!process.env.PLISIO_SECRET_KEY,

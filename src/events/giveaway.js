@@ -32,6 +32,7 @@ import {
   canManageGiveaways,
 } from "../utils/giveaway/utils.js";
 import { getLogger } from "../utils/logger.js";
+import { sseBroadcaster } from "../utils/sseBroadcaster.js";
 
 const logger = getLogger();
 
@@ -672,6 +673,16 @@ export function setupGiveawayEvents(manager, client) {
       }
 
       await announceWinners(channel, giveaway, winners, client);
+
+      // Broadcast activity event to SSE clients
+      sseBroadcaster.broadcast(giveaway.guildId, "activity", {
+        type: "giveaway_ended",
+        username: giveaway.hostUsername || "Unknown",
+        details: `Won by ${winners.map(w => w.username || "Unknown").join(", ")}`,
+        prize: giveaway.prize,
+        winnerCount: winners.length,
+        timestamp: Date.now(),
+      });
     } catch (error) {
       logger.error("❌ Error in giveawayEnded event:", error);
     }
@@ -692,6 +703,16 @@ export function setupGiveawayEvents(manager, client) {
       }
 
       await announceWinners(channel, giveaway, winners, client, true);
+
+      // Broadcast activity event to SSE clients
+      sseBroadcaster.broadcast(giveaway.guildId, "activity", {
+        type: "giveaway_reroll",
+        username: giveaway.hostUsername || "Unknown",
+        details: `Rerolled, won by ${winners.map(w => w.username || "Unknown").join(", ")}`,
+        prize: giveaway.prize,
+        winnerCount: winners.length,
+        timestamp: Date.now(),
+      });
     } catch (error) {
       logger.error("❌ Error in giveawayRerolled event:", error);
     }

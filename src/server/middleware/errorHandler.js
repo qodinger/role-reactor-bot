@@ -50,7 +50,9 @@ export function errorHandler(error, req, res, _next) {
 
   // Respect explicit client-error status codes when set (e.g., by middleware)
   const status =
-    Number.isInteger(error.statusCode) && error.statusCode >= 400 && error.statusCode < 500
+    Number.isInteger(error.statusCode) &&
+    error.statusCode >= 400 &&
+    error.statusCode < 500
       ? error.statusCode
       : 500;
 

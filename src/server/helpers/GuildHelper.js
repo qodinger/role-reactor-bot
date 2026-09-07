@@ -316,8 +316,11 @@ export class GuildHelper {
 
       // Preserve multi-role arrays if present
       if (typeof roleConfig === "object") {
-        const roleIds = roleConfig.roleIds || (roleConfig.roleId ? [roleConfig.roleId] : []);
-        const roleNames = roleConfig.roleNames || (roleConfig.roleName ? [roleConfig.roleName] : []);
+        const roleIds =
+          roleConfig.roleIds || (roleConfig.roleId ? [roleConfig.roleId] : []);
+        const roleNames =
+          roleConfig.roleNames ||
+          (roleConfig.roleName ? [roleConfig.roleName] : []);
 
         // Build roleColors array with actual Discord role colors
         const roleColors = roleIds.map((id, i) => {

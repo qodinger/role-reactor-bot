@@ -12,43 +12,80 @@
 
 ---
 
+A powerful Discord bot for server management with role assignment, AI features, moderation tools, and community engagement. Built with Discord.js v14, featuring enterprise-grade logging, health monitoring, and scalable MongoDB integration.
+
 ## 📋 Table of Contents
 
 - [Features](#-features)
+- [Commands](#-commands)
 - [Quick Start](#-quick-start)
 - [Configuration](#-configuration)
-- [Troubleshooting](#-troubleshooting)
 - [Production Deployment](#-production-deployment)
-- [Monitoring](#-monitoring)
+- [Pro Engine](#-pro-engine)
 - [Documentation](#-documentation)
-- [Development Workflow](#-development-workflow)
-- [Changelog](#-changelog)
 - [Contributing](#-contributing)
-
-A powerful Discord bot that helps you manage your server with role management, AI features, moderation tools, and community engagement features. Perfect for communities of all sizes. Built with Discord.js v14, featuring enterprise-grade logging, health monitoring, and scalable MongoDB integration.
 
 ## ✨ Features
 
 - **🎯 Self-Assignable Roles**: Users can assign/remove roles by reacting to messages
-- **📦 Role Bundles**: Create reusable groups of roles and use them in role-reaction setups
+- **📦 Role Bundles**: Create reusable groups of roles for role-reaction setups
 - **⏰ Temporary Roles**: Auto-expire roles after a set time with smart notifications
-- **📅 Schedule Roles**: Schedule automatic role assignments and removals with one-time or recurring schedules
-- **🎁 Giveaway System**: Full-featured giveaways with bonus entries, claim periods, requirements, and rerolling
-- **🎉 Welcome System**: Auto-welcome new members with customizable messages and auto-role assignment
-- **👋 Goodbye System**: Auto-goodbye messages when members leave with customizable placeholders
-<!-- - **🛡️ Auto-Mod System**: Automatic content filtering with bad words, links, spam, mention spam, and invite link filters -->
-- **🛡️ Moderation System**: Bulk timeout, warn, ban, kick, purge, and history tracking (up to 15 users at once)
-- **⭐ Starboard System**: Highlight the best messages in your server with a community-driven hall of fame
+- **📅 Schedule Roles**: Schedule automatic role assignments with one-time or recurring schedules
+- **🎁 Giveaway System**: Full-featured giveaways with bonus entries, claim periods, and rerolling
+- **🎉 Welcome System**: Auto-welcome new members with customizable messages and auto-role
+- **👋 Goodbye System**: Auto-goodbye messages when members leave
+- **🛡️ Moderation System**: Bulk timeout, warn, ban, kick, purge, and history tracking
+- **⭐ Starboard System**: Highlight the best messages with a community-driven hall of fame
 - **🎫 Ticket System**: Complete support ticket system with panels, transcripts, and lifecycle management
-- **🎙️ Voice Control**: Automatically manage users in voice channels based on roles (disconnect, mute, deafen, move)
+- **🎙️ Voice Control**: Automatically manage users in voice channels based on roles
 - **📊 XP System**: Configurable experience system with level progression and leaderboards
-- **📊 Poll System**: Create and manage native Discord polls with interactive forms
-- **💎 Core Credit System**: Credit-based economy with crypto payment integration and Pro Engine upgrades
-- **🗳️ Voting Rewards**: Earn Core Credits automatically by voting for the bot on top.gg
-<!-- - **🎨 AI Avatar Generation**: AI-powered avatar generation with multiple style options -->
-- **🔔 Notification System**: Web dashboard notifications for balance, purchases, and Pro Engine status
-- **📈 Health Monitoring**: Built-in health checks and performance metrics
-- **📝 Structured Logging**: Enterprise-grade logging with file output
+- **📊 Poll System**: Create and manage native Discord polls
+- **💎 Core Credit System**: Credit-based economy with crypto payment integration
+- **🗳️ Voting Rewards**: Earn Core Credits by voting on top.gg
+
+## 📋 Commands
+
+### Admin Commands
+
+| Command | Description |
+|---------|-------------|
+| `/role-reactions` | Setup, list, delete, and update reaction role menus |
+| `/role-bundle` | Create, delete, list, and view reusable role bundles |
+| `/temp-roles` | Assign, list, and remove temporary roles |
+| `/schedule-role` | Create, list, view, cancel, and delete scheduled roles |
+| `/giveaway` | Create, list, end, reroll, cancel, and edit giveaways |
+| `/welcome` | Setup and configure welcome messages |
+| `/goodbye` | Setup and configure goodbye messages |
+| `/moderation` | Timeout, warn, ban, kick, purge, and view history |
+| `/ticket` | Setup and manage support ticket system |
+| `/voice-roles` | Manage auto voice channel role assignments |
+| `/xp` | Configure XP settings, rewards, and level roles |
+| `/starboard` | Setup and configure the starboard feature |
+| `/automod` | Configure auto-moderation filters |
+| `/dashboard` | Open the server dashboard |
+
+### General Commands
+
+| Command | Description |
+|---------|-------------|
+| `/help` | Get help and information about bot commands |
+| `/ping` | Check bot latency and connection status |
+| `/invite` | Get the bot's invite link |
+| `/support` | Get support and help information |
+| `/level` | View your current level and XP progress |
+| `/leaderboard` | View the XP leaderboard |
+| `/balance` | Check your Core Credits balance and send to others |
+| `/engine` | Manage Pro Engine status and vault |
+| `/premium` | View Pro Engine features, start trial, or upgrade |
+| `/vote` | Vote on top.gg and earn rewards |
+| `/poll` | Create, list, end, and delete polls |
+| `/avatar` | Generate AI anime-style avatars |
+| `/rps` | Challenge someone to Rock Paper Scissors |
+| `/8ball` | Ask the magic 8-ball |
+| `/wyr` | Get a random "Would You Rather" question |
+| `/userinfo` | Display detailed user information |
+| `/serverinfo` | Display detailed server information |
+| `/stats` | View bot statistics and usage |
 
 ## 🚀 Quick Start
 
@@ -61,294 +98,107 @@ A powerful Discord bot that helps you manage your server with role management, A
 
 ### Installation
 
-1. **Clone the repository**
+```bash
+git clone https://github.com/rolereactor/bot.git
+cd bot
+pnpm install
+cp env.example .env
+```
 
-   ```bash
-   git clone https://github.com/rolereactor/bot.git
-   cd bot
-   ```
+Edit `.env` with your configuration:
 
-2. **Install dependencies**
+```env
+DISCORD_TOKEN=your_bot_token_here
+DISCORD_CLIENT_ID=your_client_id_here
+MONGODB_URI=mongodb://localhost:27017
+```
 
-   ```bash
-   pnpm install
-   ```
+Deploy slash commands and start:
 
-3. **Configure environment variables**
+```bash
+pnpm run deploy:prod  # Production (excludes dev commands)
+pnpm start
+```
 
-   ```bash
-   cp env.example .env
-   ```
+### Docker
 
-   Edit `.env` with your configuration:
-
-   ```env
-   DISCORD_TOKEN=your_bot_token_here
-   DISCORD_CLIENT_ID=your_client_id_here
-   MONGODB_URI=mongodb://localhost:27017
-   ```
-
-4. **Deploy slash commands**
-
-   ```bash
-   # Development (includes developer commands)
-   pnpm run deploy:dev
-
-   # Production (excludes developer commands)
-   pnpm run deploy:prod
-   ```
-
-5. **Start the bot**
-   ```bash
-   pnpm start
-   ```
+```bash
+pnpm run docker:build   # Build image
+pnpm run docker:prod    # Start with Docker Compose
+pnpm run docker:logs    # View logs
+```
 
 ## 🔧 Configuration
 
-### Environment Variables
-
-| Variable             | Description                          | Required | Default                     |
-| -------------------- | ------------------------------------ | -------- | --------------------------- |
-| `DISCORD_TOKEN`      | Discord bot token                    | Yes      | -                           |
-| `DISCORD_CLIENT_ID`  | Discord application client ID        | Yes      | -                           |
-| `DISCORD_GUILD_ID`   | Target guild ID (for dev)            | No       | -                           |
-| `DISCORD_DEVELOPERS` | Developer user IDs (comma-separated) | No       | -                           |
-| `MONGODB_URI`        | MongoDB connection URI               | No       | `mongodb://localhost:27017` |
-| `MONGODB_DB`         | MongoDB database name                | No       | `role-reactor-bot`          |
-| `LOG_LEVEL`          | Log level (ERROR, WARN, INFO, DEBUG) | No       | `INFO`                      |
-| `LOG_FILE`           | Log file path                        | No       | Console only                |
-| `LOG_CONSOLE`        | Enable console logging               | No       | `true`                      |
-
-### Bot Permissions
-
-Required Discord bot permissions:
-
-- **Manage Roles**: To assign/remove roles and auto-roles
-- **Manage Messages**: To add reactions and purge messages
-- **Add Reactions**: To add emoji reactions
-- **Read Message History**: To access reaction events
-- **View Channel**: To read channel content
-- **Send Messages**: To send welcome messages
-- **Embed Links**: To create rich embeds
-- **Attach Files**: To send image attachments (avatar generation, imagine command)
-- **Manage Server**: To manage server settings
-- **Use External Emojis**: To use emojis from other servers
-- **Moderate Members**: To timeout users (for moderation commands)
-- **Ban Members**: To ban and unban users (for moderation commands)
-- **Kick Members**: To kick users from the server (for moderation commands)
-- **Move Members**: To disconnect and move users in voice channels (for voice control and moderation)
-- **Mute Members**: To mute users in voice channels (for voice control)
-- **Deafen Members**: To deafen users in voice channels (for voice control)
-
-## 🔧 Troubleshooting
-
-### Common Issues
-
-- **Bot not responding**: Check permissions and ensure bot is online
-- **Roles not assigning**: Verify bot role is higher than target roles
-- **Database errors**: Check MongoDB connection and credentials
-- **Command not found**: Ensure slash commands are deployed (`pnpm run deploy:prod`)
-- **Avatar generation fails**: Check Core credits balance and AI service status
-- **XP not tracking**: Verify XP system is enabled in `/xp settings`
-
-### Performance Issues
-
-- **Slow responses**: Check server resources and database connection
-- **Memory usage high**: Check Docker/container resource limits and bot logs
-- **Rate limiting**: Bot automatically handles Discord rate limits
-
-### Getting Help
-
-- Check the [GitHub Issues](https://github.com/rolereactor/bot/issues) for known problems
-- Join our [Support Server](https://discord.gg/D8tYkU75Ry) for real-time help
-- Review the [Deployment Guide](./docs/setup/deployment.md) for setup issues
+| Variable | Description | Required | Default |
+|----------|-------------|----------|---------|
+| `DISCORD_TOKEN` | Discord bot token | Yes | - |
+| `DISCORD_CLIENT_ID` | Discord application client ID | Yes | - |
+| `DISCORD_GUILD_ID` | Target guild ID (for dev) | No | - |
+| `DISCORD_DEVELOPERS` | Developer user IDs (comma-separated) | No | - |
+| `MONGODB_URI` | MongoDB connection URI | No | `mongodb://localhost:27017` |
+| `MONGODB_DB` | MongoDB database name | No | `role-reactor-bot` |
+| `LOG_LEVEL` | Log level (ERROR, WARN, INFO, DEBUG) | No | `INFO` |
 
 ## 🚀 Production Deployment
 
-### Architecture
-
-Production runs on a VPS with Caddy handling SSL and domain routing automatically:
+Production runs on a VPS with Caddy handling SSL:
 
 ```
 Internet → Caddy (SSL + api.rolereactor.xyz) → Docker container:3030
 ```
 
-### Deploy
-
 ```bash
-# Deploy latest version (pulls, builds, and starts)
-pnpm run docker:deploy
-
-# View logs
-pnpm run docker:logs
+pnpm run docker:deploy    # Pull, build, and start
+pnpm run docker:logs      # View logs
 ```
 
-For the full setup including DNS, firewall, and Caddy configuration, see the **[Deployment Guide](./docs/setup/deployment.md)**.
-
-### Developer Configuration
-
-To enable developer-only features (hidden commands and debug logging), configure developer IDs:
-
-1. **Find your Discord User ID** (enable Developer Mode in Discord, right-click your username, Copy ID)
-2. **Add to `.env` file:**
-   ```env
-   DISCORD_DEVELOPERS=123456789012345678
-   ```
-3. **Restart the bot**
-
-**Note:** Developer features are hidden from the Discord UI and only accessible to authorized users via runtime permission checks.
-
-## 📊 Monitoring
-
-### Health Checks
-
-The bot includes comprehensive health monitoring:
-
-- **Database connectivity** checks
-- **Memory usage** monitoring
-- **Performance metrics** tracking
-- **Error rate** monitoring
-- **Uptime** tracking
-
-**Note:** Bot health and performance monitoring is handled automatically. Developers can access detailed metrics through bot logs and the unified API server.
+See the [Deployment Guide](./docs/setup/deployment.md) for full setup.
 
 ## 💎 Pro Engine
 
-Upgrade your server with the **Pro Engine** for enhanced limits and features:
+Upgrade your server with **Pro Engine** for enhanced limits:
 
-| Feature            | Free Tier          | Pro Engine ✨           |
-| :----------------- | :----------------- | :---------------------- |
-| Giveaway Entries   | 2,500              | **10,000**              |
-| Giveaway Winners   | 5                  | **10**                  |
-| Giveaway Active    | 3                  | **20**                  |
-| Scheduled Roles    | 25 active          | **100 active**          |
-| Temp Roles         | 25 active          | **100 active**          |
-| Temp Roles Bulk    | 25 users           | **100 users**           |
-| Role Bundles       | 5 roles            | **20 roles**            |
-| Role Reactions     | 10 emojis, 5 menus | **20 emojis, 15 menus** |
-| XP Rewards         | 5 (Stack)          | **Unlimited**           |
-| Ticket Transcripts | Text               | **HTML/JSON**           |
-<!-- | Auto-Mod Filters   | 5                  | **7 advanced**          | -->
+| Feature | Free Tier | Pro Engine |
+|:--------|:----------|:-----------|
+| Giveaway Entries | 2,500 | **10,000** |
+| Giveaway Winners | 5 | **10** |
+| Giveaway Active | 3 | **20** |
+| Scheduled Roles | 25 active | **100 active** |
+| Temp Roles | 25 active | **100 active** |
+| Role Bundles | 5 roles | **20 roles** |
+| Role Reactions | 10 emojis, 5 menus | **20 emojis, 15 menus** |
+| XP Rewards | 5 (Stack) | **Unlimited** |
+| Ticket Transcripts | Text | **HTML/JSON** |
 
-<!--
-### Auto-Mod Pro Features:
-
-- Domain Allowlisting (whitelist trusted domains)
-- Caps Lock Filter (block ALL CAPS messages)
-- Wildcard/Regex (advanced pattern matching)
-- Per-Channel Filtering
-- Analytics & Statistics
-- Export Moderation Logs
--->
-
-See [Core Energy Guide](./docs/CORE_ENERGY.md) for details on activation and pricing.
+See [Core Energy Guide](./docs/CORE_ENERGY.md) for details.
 
 ## 📖 Documentation
 
-- **[📘 Command Reference](https://rolereactor.xyz/docs)** - Full command usage and examples
-- **[🚀 Deployment Guide](./docs/setup/deployment.md)** - Production deployment instructions
-- **[💎 Core Energy & Pro Engine](./docs/CORE_ENERGY.md)** - Credits, voting, and Pro Engine guide
-- **[🗳️ top.gg Voting Setup](./docs/integrations/topgg.md)** - Voting rewards webhook integration
-- **[🤝 Contributing Guidelines](./docs/CONTRIBUTING.md)** - How to contribute to the project
-
-## 📝 Changelog
-
-See [CHANGELOG.md](./docs/CHANGELOG.md) for detailed version history and updates.
+- [Command Reference](https://rolereactor.xyz/docs)
+- [Deployment Guide](./docs/setup/deployment.md)
+- [Core Energy & Pro Engine](./docs/CORE_ENERGY.md)
+- [Contributing Guidelines](./docs/CONTRIBUTING.md)
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guidelines](./docs/CONTRIBUTING.md) for detailed information. All contributors must adhere to our [Code of Conduct](CODE_OF_CONDUCT.md).
-
-### Quick Development Setup
+See [Contributing Guidelines](./docs/CONTRIBUTING.md).
 
 ```bash
-# Install dependencies
 pnpm install
-
-# Start development mode
 pnpm dev
-
-# Run linting
 pnpm lint
-
-# Run tests
 pnpm test
 ```
 
-## 🔀 Development Workflow
-
-This project follows a structured Git workflow for organized development and collaboration.
-
-### Branch Strategy
-
-- **`main`** - Production-ready, stable code
-- **`dev`** - Development integration branch
-- **`feature/*`** - Feature development branches
-- **`fix/*`** - Bug fix branches
-- **`hotfix/*`** - Critical production fixes
-
-### Quick Start
-
-**For small fixes/updates:**
-
-```bash
-git checkout dev && git pull origin dev
-# Make changes
-git commit -m "fix(scope): description"
-git push origin dev
-```
-
-**For new features:**
-
-```bash
-# Using Git helpers (recommended)
-source scripts/git-helpers.sh
-git-feature feature-name
-# ... develop ...
-git-finish-feature
-```
-
-### Git Helper Scripts
-
-The project includes helper scripts to streamline common Git operations:
-
-```bash
-# Source the helpers
-source scripts/git-helpers.sh
-
-# Available commands
-git-feature <name>          # Create feature branch
-git-finish-feature           # Merge feature to dev
-git-fix <name>               # Create fix branch
-git-finish-fix               # Merge fix to main
-git-hotfix <name>            # Create hotfix branch
-git-finish-hotfix            # Merge hotfix to main and dev
-git-sync-main                # Sync current branch with main
-git-sync-dev                 # Sync current branch with dev
-git-workflow-help            # Show all available commands
-```
-
-See [Git Workflow Guide](./docs/development/workflow.md) for detailed instructions.
-
 ## 🔒 Security
 
-This bot implements enterprise-grade security measures to protect your community:
+- **Multi-Layer Authentication**: Discord OAuth + API key + guild permission verification
+- **Rate Limiting**: Prevents abuse of sensitive endpoints
+- **Audit Logging**: All API requests logged with user context
+- **Input Validation**: Strict validation on all API inputs
 
-- **🛡️ Multi-Layer Authentication** - Discord OAuth + API key + guild permission verification
-- **🔐 Authorization Checks** - Users must have ManageRoles permission to manage role reactions
-- **⏱️ Rate Limiting** - Prevents abuse of sensitive endpoints (10 requests/15min for role management)
-- **📝 Audit Logging** - All API requests logged with user context for security monitoring
-- **🚫 Input Validation** - Strict validation on all API inputs to prevent injection attacks
-
-### Security Vulnerability Disclosure
-
-In April 2026, a critical security vulnerability was discovered and immediately fixed:
-
-- **Issue**: API endpoints could be exploited to assign unauthorized roles
-- **Fix**: Implemented multi-layer authentication and authorization
-- **Status**: ✅ Fixed in version 1.7.0+
-
-To report a security issue, please contact us privately before public disclosure.
+To report a security issue, contact us privately before public disclosure.
 
 ## 📄 License
 

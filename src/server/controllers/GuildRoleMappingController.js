@@ -182,7 +182,9 @@ function mergeReactionRoles(reactions) {
     if (r.roleIds?.length > 0) {
       group.roleIds.push(...r.roleIds);
       group.roleNames.push(...(r.roleNames || []));
-      group.roleColors.push(...(r.roleColors || r.roleIds.map(() => r.roleColor || 0)));
+      group.roleColors.push(
+        ...(r.roleColors || r.roleIds.map(() => r.roleColor || 0)),
+      );
     } else if (r.roleId) {
       group.roleIds.push(r.roleId);
       group.roleNames.push(r.roleName || "");

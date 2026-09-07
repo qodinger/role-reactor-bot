@@ -41,37 +41,36 @@ export class GuildSettingsRepository extends BaseRepository {
       if (cached) return structuredClone(cached);
 
       const settings = await this.collection.findOne({ guildId });
-      const result =
-        settings || {
-          guildId,
-          experienceSystem: {
-            enabled: false,
-            messageXP: true,
-            commandXP: true,
-            roleXP: true,
-            voiceXP: true,
-            messageXPAmount: { min: 15, max: 25 },
-            commandXPAmount: {
-              base: 8,
-            },
-            roleXPAmount: 50,
-            messageCooldown: 60,
-            commandCooldown: 30,
-            levelUpMessages: true,
-            levelUpChannel: null,
-            noXpChannels: [],
-            noXpRoles: [],
-            voiceXpSettings: {
-              ignoreMuted: true,
-              ignoreDeafened: true,
-              minOthers: 1,
-            },
-            // Level formula is fixed at 100 * level^1.5 - no longer configurable
+      const result = settings || {
+        guildId,
+        experienceSystem: {
+          enabled: false,
+          messageXP: true,
+          commandXP: true,
+          roleXP: true,
+          voiceXP: true,
+          messageXPAmount: { min: 15, max: 25 },
+          commandXPAmount: {
+            base: 8,
           },
-          disabledCommands: [],
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
+          roleXPAmount: 50,
+          messageCooldown: 60,
+          commandCooldown: 30,
+          levelUpMessages: true,
+          levelUpChannel: null,
+          noXpChannels: [],
+          noXpRoles: [],
+          voiceXpSettings: {
+            ignoreMuted: true,
+            ignoreDeafened: true,
+            minOthers: 1,
+          },
+          // Level formula is fixed at 100 * level^1.5 - no longer configurable
+        },
+        disabledCommands: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
 
       this.cache?.set(cacheKey, structuredClone(result));
       return result;

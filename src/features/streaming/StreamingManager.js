@@ -4,6 +4,7 @@ import { getLogger } from "../../utils/logger.js";
 import config from "../../config/config.js";
 import { THEME, UI_COMPONENTS } from "../../config/theme.js";
 import { getStorageManager } from "../../utils/storage/storageManager.js";
+import { sseBroadcaster } from "../../utils/sseBroadcaster.js";
 import {
   DEFAULT_STREAM_CONFIG,
   upsertStreamConnection,
@@ -308,6 +309,21 @@ class StreamingManager extends EventEmitter {
       message,
     );
     if (filterResult.violated) return; // message blocked by filter
+
+    // Broadcast chat message to SSE clients (dashboard, overlays)
+    sseBroadcaster.broadcast(guildId, "stream.chat", {
+      username: message.username,
+      userLogin: message.userLogin,
+      message: message.message,
+      color: message.color,
+      badges: message.badges,
+      isBroadcaster: message.isBroadcaster,
+      isMod: message.isMod,
+      isSubscriber: message.isSubscriber,
+      isVip: message.isVip,
+      platform: connection.platform,
+      timestamp: Date.now(),
+    });
 
     if (connection.commandsEnabled) {
       await this.handleTwitchCommand(
@@ -1050,6 +1066,34 @@ class StreamingManager extends EventEmitter {
 
       if (embed) {
         await channel.send({ embeds: [embed] });
+      }
+
+      // Broadcast alert to SSE clients (dashboard, overlays)
+      sseBroadcaster.broadcast(guildId, "stream.alert", {
+        type: alertType,
+        username:
+          event.event?.user_name ||
+          event.event?.from_broadcaster_user_name ||
+          "Unknown",
+        message: event.event?.message?.text,
+        tier: event.event?.tier,
+        viewers: event.event?.viewers,
+        cumulativeMonths: event.event?.cumulative_months,
+        total: event.event?.total,
+        timestamp: Date.now(),
+      });
+
+      // Broadcast stream status change for online/offline events
+      if (
+        event.subscription?.type === "stream.online" ||
+        event.subscription?.type === "stream.offline"
+      ) {
+        sseBroadcaster.broadcast(guildId, "stream.status", {
+          isLive: event.subscription.type === "stream.online",
+          platform: connection.platform,
+          platformLogin: connection.platformLogin,
+          timestamp: Date.now(),
+        });
       }
     } catch (error) {
       logger.error("Failed to send stream alert to Discord", error);

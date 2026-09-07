@@ -45,7 +45,10 @@ export default class WebSocket extends EventEmitter {
   on(event: "error", cb: (err: Error) => void): this;
   on(event: string, cb: (...args: any[]) => void): this;
 
-  send(data: string | Buffer | ArrayBuffer | Uint8Array, cb?: (err?: Error) => void): void;
+  send(
+    data: string | Buffer | ArrayBuffer | Uint8Array,
+    cb?: (err?: Error) => void,
+  ): void;
   ping(data?: any, mask?: boolean, cb?: () => void): void;
   pong(data?: any, mask?: boolean, cb?: () => void): void;
   close(code?: number, data?: string): void;

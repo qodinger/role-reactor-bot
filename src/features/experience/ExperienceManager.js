@@ -65,15 +65,15 @@ class ExperienceCache {
         // Normalize: the repository default uses `xp`, and a brand-new user
         // has no persisted `totalXP` — without this the += below yields NaN
         if (typeof userData.totalXP !== "number") {
-          userData.totalXP =
-            typeof userData.xp === "number" ? userData.xp : 0;
+          userData.totalXP = typeof userData.xp === "number" ? userData.xp : 0;
         }
 
         // Carry over profile snapshot fields that only live in the in-memory copy
         const cached = this.get(guildId, userId);
         if (cached) {
           if (cached.username) userData.username = cached.username;
-          if (cached.discriminator) userData.discriminator = cached.discriminator;
+          if (cached.discriminator)
+            userData.discriminator = cached.discriminator;
           if (cached.avatarUrl) userData.avatarUrl = cached.avatarUrl;
         }
 
@@ -619,7 +619,9 @@ class ExperienceManager {
     const cachedData = experienceCache.get(guildId, userId);
     let lastEarned = null;
     if (cachedData) {
-      lastEarned = cachedData.lastEarned ? new Date(cachedData.lastEarned) : null;
+      lastEarned = cachedData.lastEarned
+        ? new Date(cachedData.lastEarned)
+        : null;
     } else {
       const userData = await this.getUserData(guildId, userId);
       lastEarned = userData.lastEarned ? new Date(userData.lastEarned) : null;
@@ -876,7 +878,13 @@ class ExperienceManager {
    * @param {string} commandName - Name of the command used
    * @returns {Promise<object|null>} Awarded XP data or null if cooldown active
    */
-  async awardCommandXP(guildId, userId, commandName, client = null, context = {}) {
+  async awardCommandXP(
+    guildId,
+    userId,
+    commandName,
+    client = null,
+    context = {},
+  ) {
     this.logger.debug(
       `🎯 ExperienceManager: Awarding command XP for user ${userId} in guild ${guildId} for command ${commandName}`,
     );

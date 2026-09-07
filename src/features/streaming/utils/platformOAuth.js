@@ -13,7 +13,6 @@ const YOUTUBE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const YOUTUBE_SCOPES = [
   "https://www.googleapis.com/auth/youtube.readonly",
   "https://www.googleapis.com/auth/youtube.force-ssl",
-  "https://www.googleapis.com/auth/youtube.channel.moderate",
   "https://www.googleapis.com/auth/userinfo.profile",
 ];
 

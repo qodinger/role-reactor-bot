@@ -7,25 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-
-- **Live Reactor (Twitch Integration)**: Connect your Twitch channel to Discord with go-live alerts, real-time chat relay, customizable timers, stream commands, and quote system—perfect for streamers and communities.
-- **Dual-Balance Economy**: Earn **Sparks** ⚡ through voting, referrals, and activity; purchase **Cores** for premium features. Two separate currencies make it clear which rewards are earned vs. purchased.
-- **Core Gifting**: Transfer Cores to members using `/core gift` (a 10% transfer tax applies). Share your premium currency with your community and watch engagement grow.
-- **Referral System**: Invite new members and earn rewards when they join. Grow your server while earning credits—a win-win referral flow.
-- **Ticket Management Dashboard**: Build and manage ticket panels from the web dashboard—create, edit, and refresh panels, organize category buttons, and configure staff roles, transcript channels, auto-close, and ticket messages without leaving the browser.
-- **Goodbye System Dashboard**: Configure goodbye messages, channels, and settings from the web dashboard with the same ease as the welcome system.
-
 ### Changed
 
 - **License**: Relicensed from MIT to **AGPL-3.0-or-later**. The bot remains fully open source and self-hostable; anyone offering it as a hosted service must now make their modified source available under the same license.
-- **Vote Rewards Clarity**: Voting for the bot now explicitly grants **+5 Sparks** (earned currency). Members can see exactly what they get every 12 hours.
-- **Streamlined Balance Tracking**: Core and Sparks balances are now tracked separately and reliably across the dashboard and bot commands.
 
-### Fixed
+### Added
 
-- **Premium Subscription Reliability**: Fixed issues where subscription status and renewal logic were inconsistent between the web dashboard and Discord commands.
-- **Balance Update Accuracy**: Resolved naming mismatches and missing balance updates so credits appear instantly and correctly when earned or purchased.
+- **Live Reactor**: Connect your streaming channel to Discord with go-live alerts, real-time chat relay, customizable timers, stream commands, and quote system. Supports Twitch and YouTube.
+- **Dual-Balance Economy**: Earn **Sparks** ⚡ through voting and activity; purchase **Cores** for premium features.
+- **Core Gifting**: Send Cores to other users with `/balance send` (a 10% burn tax applies).
+- **Ticket Management Dashboard**: Build and manage ticket panels from the web dashboard.
+- **Goodbye System Dashboard**: Configure goodbye messages, channels, and settings from the web dashboard.
 
 ## [1.8.0] - 2026-07-23
 

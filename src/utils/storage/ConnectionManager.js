@@ -27,6 +27,8 @@ export class ConnectionManager {
       // Close old client before reconnecting to prevent orphaned connections
       if (this.client) {
         await this.client.close().catch(() => {});
+        this.client = null;
+        this.db = null;
       }
       this.logger.info("🔌 Attempting to connect to MongoDB...");
       this.client = new MongoClient(this.config.uri, {
@@ -94,35 +96,15 @@ export class ConnectionManager {
         this.logger.warn(
           "🌐 DNS resolution timeout - this may be a temporary network issue",
         );
-        // Increase delay for DNS-related errors
-        this.reconnectDelay = Math.min(this.reconnectDelay * 1.5, 30000);
       } else if (error.message.includes("ETIMEOUT")) {
         this.logger.warn("⏱️ Connection timeout - network may be slow");
-        this.reconnectDelay = Math.min(this.reconnectDelay * 1.2, 20000);
       } else if (error.message.includes("ENOTFOUND")) {
         this.logger.warn(
           "🔍 DNS lookup failed - check MongoDB URI configuration",
         );
-        this.reconnectDelay = Math.min(this.reconnectDelay * 2, 60000);
       }
 
-      // Attempt reconnection if we haven't exceeded max attempts
-      if (this.reconnectAttempts < this.maxReconnectAttempts) {
-        this.reconnectAttempts++;
-        this.logger.info(
-          `🔄 Attempting reconnection ${this.reconnectAttempts}/${this.maxReconnectAttempts}...`,
-        );
-
-        setTimeout(() => {
-          this.connectionPromise = null; // Reset promise to allow retry
-          this.connect();
-        }, this.reconnectDelay * this.reconnectAttempts);
-      } else {
-        this.logger.error(
-          "❌ Max reconnection attempts reached. Manual restart required.",
-        );
-        throw error;
-      }
+      throw error;
     } finally {
       if (timeoutId) clearTimeout(timeoutId);
     }
@@ -137,13 +119,8 @@ export class ConnectionManager {
     // Set up periodic health checks
     this.healthCheckInterval = setInterval(async () => {
       try {
-        if (this.client && this.db) {
+        if (this.client && this.db && this.isConnected) {
           await this.db.admin().ping();
-          if (!this.isConnected) {
-            this.logger.success("✅ MongoDB connection restored");
-            this.isConnected = true;
-            this.reconnectAttempts = 0;
-          }
         }
       } catch (_error) {
         if (this.isConnected) {
@@ -151,6 +128,7 @@ export class ConnectionManager {
             "⚠️ MongoDB connection lost, attempting to reconnect...",
           );
           this.isConnected = false;
+          this.connectionPromise = null; // Reset promise to allow retry
           this._attemptReconnect();
         }
       }
@@ -166,18 +144,18 @@ export class ConnectionManager {
     }
 
     this.reconnectAttempts++;
+    const delay = this.reconnectDelay * this.reconnectAttempts;
     this.logger.info(
-      `🔄 Attempting reconnection ${this.reconnectAttempts}/${this.maxReconnectAttempts}...`,
+      `🔄 Attempting reconnection ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${delay}ms...`,
     );
 
     setTimeout(async () => {
       try {
-        this.connectionPromise = null; // Reset promise
         await this._connect();
       } catch (error) {
-        this.logger.error("❌ Reconnection attempt failed", error);
+        this.logger.error("❌ Reconnection attempt failed", error?.message);
       }
-    }, this.reconnectDelay * this.reconnectAttempts);
+    }, delay);
   }
 
   async _dropOldIndexes() {

@@ -43,8 +43,10 @@ import healthRouter from "./routes/v1/health.js";
 import transcriptsRouter from "./routes/v1/transcripts.js";
 import ticketsRouter from "./routes/v1/tickets.js";
 import imageToolsRouter from "./routes/v1/imageTools.js";
-import streamRouter from "./routes/v1/stream.js";
-import streamApiRouter from "./routes/v1/streamApi.js";
+import streamRouter from "./routes/v1/streamOAuth.js";
+import streamApiRouter from "./routes/v1/streamManagement.js";
+import eventsSseRouter from "./routes/v1/eventsSse.js";
+import overlaysRouter from "./routes/v1/overlays.js";
 
 // Import services
 import { SupportersService } from "./services/supporters/SupportersService.js";
@@ -294,6 +296,14 @@ function initializeRoutes() {
   // Register streaming management API routes (internal auth + guild permission)
   app.use(`${API_PREFIX}/stream`, streamApiRouter);
   logger.info("✅ Streaming API routes enabled");
+
+  // Register SSE events endpoint (real-time streaming events)
+  app.use(`${API_PREFIX}`, eventsSseRouter);
+  logger.info("✅ SSE events endpoint enabled");
+
+  // Register OBS overlay token verification (no internal auth — uses signed tokens)
+  app.use("/overlay", overlaysRouter);
+  logger.info("✅ Overlay token verification enabled");
 
   // Register SupportersService (always available)
   const supportersService = new SupportersService();

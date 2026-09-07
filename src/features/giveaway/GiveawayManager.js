@@ -486,10 +486,7 @@ class GiveawayManager extends EventEmitter {
       }
 
       const userEntry = updated.entries.find(e => e.userId === userId);
-      const totalEntries = updated.entries.reduce(
-        (sum, e) => sum + e.count,
-        0,
-      );
+      const totalEntries = updated.entries.reduce((sum, e) => sum + e.count, 0);
 
       return {
         success: true,

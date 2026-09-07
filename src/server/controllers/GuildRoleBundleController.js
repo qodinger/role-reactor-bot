@@ -90,10 +90,7 @@ export async function apiCreateRoleBundle(req, res) {
       "../../features/premium/PremiumManager.js"
     );
     const premiumManager = getPremiumManager();
-    const isPro = await premiumManager.isFeatureActive(
-      guildId,
-      "pro_engine",
-    );
+    const isPro = await premiumManager.isFeatureActive(guildId, "pro_engine");
 
     const currentBundles = await roleBundleManager.count(guildId);
     const maxBundles = isPro

@@ -210,6 +210,7 @@ const envSchema = z
       .transform(v => v === "true")
       .default("false"),
     PLISIO_SECRET_KEY: z.string().optional(),
+    WEB3_RECEIVER_ADDRESS: z.string().optional(),
     BUYMEACOFFEE_PAGE_URL: z.string().optional(),
     BUYMEACOFFEE_WEBHOOK_SECRET: z.string().optional(),
     BUYMEACOFFEE_API_TOKEN: z.string().optional(),
@@ -237,14 +238,12 @@ export function validateEnv() {
   const result = envSchema.safeParse(process.env);
 
   if (!result.success) {
-    const formatted = result.error.format();
+    const { fieldErrors } = result.error.flatten();
     const required = [];
     const warnings = [];
 
-    for (const [key, issues] of Object.entries(formatted)) {
-      if (key.startsWith("_")) continue;
-      const msgs = issues._errors || [];
-      if (msgs.length === 0) continue;
+    for (const [key, msgs] of Object.entries(fieldErrors)) {
+      if (!msgs || msgs.length === 0) continue;
 
       // DISCORD_TOKEN and DISCORD_CLIENT_ID are hard requirements
       if (key === "DISCORD_TOKEN" || key === "DISCORD_CLIENT_ID") {

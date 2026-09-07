@@ -122,7 +122,16 @@ class VoiceTracker {
         const noXpRoles = guildSettings.experienceSystem.noXpRoles || [];
 
         // Anti-AFK: evaluate the user's CURRENT voice state
-        if (client && !this._isVoiceEngaged(guildId, userId, noXpRoles, client, guildSettings)) {
+        if (
+          client &&
+          !this._isVoiceEngaged(
+            guildId,
+            userId,
+            noXpRoles,
+            client,
+            guildSettings,
+          )
+        ) {
           continue;
         }
 
