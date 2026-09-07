@@ -159,9 +159,9 @@ export async function apiVerifyWeb3Payment(req, res) {
   logRequest("Verify Web3 payment", req);
 
   try {
-    const { txHash, packageId, chainId, discordId, email, username } = req.body;
+    const { txHash, packageId, chainId, discordId, senderAddress, email, username } = req.body;
 
-    if (!txHash || !packageId || !chainId || !discordId) {
+    if (!txHash || !packageId || !chainId || !discordId || !senderAddress) {
       const { statusCode, response } = createErrorResponse("Missing required fields", 400);
       return res.status(statusCode).json(response);
     }
@@ -188,8 +188,12 @@ export async function apiVerifyWeb3Payment(req, res) {
     }
 
     const expectedUsdAmount = packageConfig.price;
-    const expectedTokenAmount = expectedUsdAmount * Math.pow(10, stablecoin.decimals);
+    // BigInt math via integer cents — avoids float drift like 0.1 * 1e6 === 100000.00000000001
+    const expectedTokenAmount =
+      BigInt(Math.round(expectedUsdAmount * 100)) *
+      10n ** BigInt(stablecoin.decimals - 2);
     const receiverAddress = config.web3ReceiverAddress.toLowerCase();
+    const normalizedSender = String(senderAddress).toLowerCase();
 
     // Check if txHash was already processed in DB
     const dbModule = await import("../../utils/storage/databaseManager.js").catch(() => null);
@@ -206,9 +210,12 @@ export async function apiVerifyWeb3Payment(req, res) {
     const { createPublicClient, http, decodeEventLog, parseAbiItem } = await import("viem");
     
     const publicClient = createPublicClient({ transport: http(rpcUrl) });
-    const receipt = await publicClient.waitForTransactionReceipt({ 
+    // confirmations: guard against reorgs (esp. Polygon/Optimism) wiping the
+    // transfer after Cores were already granted
+    const receipt = await publicClient.waitForTransactionReceipt({
       hash: txHash,
-      timeout: 30000 // Wait up to 30 seconds to account for RPC sync delays
+      confirmations: 3,
+      timeout: 45000,
     }).catch((err) => {
       logger.warn(`Transaction receipt not found or timed out: ${err.message}`);
       return null;
@@ -239,21 +246,28 @@ export async function apiVerifyWeb3Payment(req, res) {
 
           if (decoded.eventName === 'Transfer') {
             const to = decoded.args.to.toLowerCase();
-            const value = Number(decoded.args.value);
-            
-            if (to === receiverAddress && value >= expectedTokenAmount) {
+            const from = decoded.args.from.toLowerCase();
+
+            // Payer binding: the transfer must originate from the wallet
+            // the claiming user connected — otherwise anyone could claim
+            // any public on-chain transfer to the receiver address.
+            if (
+              to === receiverAddress &&
+              from === normalizedSender &&
+              decoded.args.value >= expectedTokenAmount
+            ) {
               isValidTransfer = true;
               break;
             }
           }
-        } catch (e) {
+        } catch (_e) {
           // Ignore logs that don't match our ABI
         }
       }
     }
 
     if (!isValidTransfer) {
-      const { statusCode, response } = createErrorResponse("Invalid transaction amount or receiver", 400);
+      const { statusCode, response } = createErrorResponse("Invalid transaction (amount, receiver, or sender mismatch)", 400);
       return res.status(statusCode).json(response);
     }
 
