@@ -237,31 +237,74 @@ async function processVote(vote, client) {
   }
 
   const COOLDOWN_MS = 12 * 60 * 60 * 1000; // 12 hours
-  const userCredits = await dbManager.coreCredits.collection.findOne({
-    userId,
-  });
+  const now = Date.now();
+  const cooldownCutoff = now - COOLDOWN_MS;
 
-  if (userCredits && userCredits.lastVote) {
-    const timeSinceVote = Date.now() - userCredits.lastVote;
-    if (timeSinceVote < COOLDOWN_MS) {
-      const remaining = COOLDOWN_MS - timeSinceVote;
-      const hours = Math.floor(remaining / (60 * 60 * 1000));
-      const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
+  // Atomically claim the vote: conditionally advance lastVote so two
+  // concurrent webhook deliveries cannot both pass the cooldown check.
+  // `previous` is the document BEFORE the claim (for streak math).
+  let previous = await dbManager.coreCredits.collection.findOneAndUpdate(
+    { userId, lastVote: { $lte: cooldownCutoff } },
+    { $set: { lastVote: now }, $inc: { totalVotes: 1 } },
+    { returnDocument: "before" },
+  );
 
-      logger.info(
-        `⏰ top.gg: User ${userId} voted too soon (${hours}h ${minutes}m remaining)`,
-      );
-      return; // Cooldown active, don't reward
+  if (!previous) {
+    // No eligible prior vote: never voted, on cooldown, or lost a race.
+    const existing = await dbManager.coreCredits.collection.findOne({ userId });
+
+    if (existing?.lastVote) {
+      const timeSinceVote = Date.now() - existing.lastVote;
+      if (timeSinceVote < COOLDOWN_MS) {
+        const remaining = COOLDOWN_MS - timeSinceVote;
+        const hours = Math.floor(remaining / (60 * 60 * 1000));
+        const minutes = Math.floor(
+          (remaining % (60 * 60 * 1000)) / (60 * 1000),
+        );
+
+        logger.info(
+          `⏰ top.gg: User ${userId} voted too soon (${hours}h ${minutes}m remaining)`,
+        );
+      } else {
+        logger.info(
+          `⏰ top.gg: User ${userId} vote claim lost to a concurrent delivery`,
+        );
+      }
+      return; // Cooldown active or another delivery already claimed this vote
     }
+
+    // First-ever vote — claim only while lastVote is still unset
+    let firstVote;
+    try {
+      firstVote = await dbManager.coreCredits.collection.updateOne(
+        { userId, lastVote: { $exists: false } },
+        {
+          $set: {
+            lastVote: now,
+            voteStreak: 1,
+            totalVotes: 1,
+            lastUpdated: new Date().toISOString(),
+          },
+          $setOnInsert: { sparks: 0, credits: 0 },
+        },
+        { upsert: true },
+      );
+    } catch (raceError) {
+      if (raceError.code === 11000) return; // concurrent first-vote insert won
+      throw raceError;
+    }
+    if (!firstVote.matchedCount && !firstVote.upsertedCount) return;
+
+    previous = null; // first vote → streak starts at 1
   }
 
   // Calculate Vote Streak (36h grace window to maintain streak)
   const STREAK_WINDOW_MS = 36 * 60 * 60 * 1000;
   let voteStreak = 1;
-  if (userCredits && userCredits.lastVote) {
-    const timeSinceLastVote = Date.now() - userCredits.lastVote;
+  if (previous?.lastVote) {
+    const timeSinceLastVote = now - previous.lastVote;
     if (timeSinceLastVote <= STREAK_WINDOW_MS) {
-      voteStreak = (userCredits.voteStreak || 1) + 1;
+      voteStreak = (previous.voteStreak || 1) + 1;
     } else {
       voteStreak = 1; // Expired, reset
     }
@@ -284,18 +327,14 @@ async function processVote(vote, client) {
   // Credit Sparks for voting
   await dbManager.coreCredits.updateSparks(userId, REWARD_AMOUNT);
 
-  // Update vote metadata and streak
-  await dbManager.coreCredits.collection.updateOne(
-    { userId },
-    {
-      $set: {
-        lastVote: Date.now(),
-        totalVotes: (userCredits?.totalVotes || 0) + 1,
-        voteStreak: voteStreak,
-      },
-    },
-    { upsert: true },
-  );
+  // Persist the streak (totalVotes/lastVote were already set by the claim)
+  if (previous) {
+    await dbManager.coreCredits.collection.updateOne(
+      { userId },
+      { $set: { voteStreak: voteStreak } },
+    );
+  }
+  const totalVotes = (previous?.totalVotes || 0) + 1;
 
   // Log transaction in payments collection for dashboard history
   if (dbManager.payments) {
@@ -312,7 +351,7 @@ async function processVote(vote, client) {
         tier: "vote_reward",
         metadata: {
           username: username || null,
-          totalVotes: (userCredits?.totalVotes || 0) + 1,
+          totalVotes: totalVotes,
           voteStreak: voteStreak,
         },
       });
@@ -324,7 +363,7 @@ async function processVote(vote, client) {
   }
 
   logger.info(
-    `✅ top.gg: Rewarded ${userId} with ${REWARD_AMOUNT} Sparks ⚡ (Streak: ${voteStreak}, Total votes: ${(userCredits?.totalVotes || 0) + 1})`,
+    `✅ top.gg: Rewarded ${userId} with ${REWARD_AMOUNT} Sparks ⚡ (Streak: ${voteStreak}, Total votes: ${totalVotes})`,
   );
 
   // Create in-app notification
@@ -338,7 +377,7 @@ async function processVote(vote, client) {
         icon: "vote",
         metadata: {
           sparksGranted: REWARD_AMOUNT,
-          totalVotes: (userCredits?.totalVotes || 0) + 1,
+          totalVotes: totalVotes,
         },
       });
     } catch (notifError) {

@@ -38,6 +38,7 @@ function createMockDb({
     coreCredits: {
       getByUserId: vi.fn().mockResolvedValue({ credits }),
       updateCredits: vi.fn().mockResolvedValue(true),
+      deductCredits: vi.fn().mockResolvedValue({ success: true, credits: 80 }),
     },
     payments: {
       create: vi.fn().mockResolvedValue(true),
@@ -207,10 +208,10 @@ describe("PremiumManager", () => {
       const result = await pm.activateFeature("g1", "pro_engine", "u1");
 
       expect(result.success).toBe(true);
-      // Cores should be deducted
-      expect(db.coreCredits.updateCredits).toHaveBeenCalledWith(
+      // Cores should be deducted atomically
+      expect(db.coreCredits.deductCredits).toHaveBeenCalledWith(
         "u1",
-        -PremiumFeatures.PRO.cost,
+        PremiumFeatures.PRO.cost,
       );
       // Guild settings should be updated
       expect(db.guildSettings.set).toHaveBeenCalled();
@@ -232,7 +233,7 @@ describe("PremiumManager", () => {
 
       await pm.activateFeature("g1", "pro_engine", "u1");
 
-      expect(db.coreCredits.updateCredits).toHaveBeenCalledWith("u1", -20);
+      expect(db.coreCredits.deductCredits).toHaveBeenCalledWith("u1", 20);
     });
 
     it("sets nextDeductionDate 7 days in the future", async () => {
@@ -403,7 +404,7 @@ describe("PremiumManager", () => {
       await pm.processRenewals();
 
       // Cores should be deducted
-      expect(db.coreCredits.updateCredits).toHaveBeenCalledWith("u1", -20);
+      expect(db.coreCredits.deductCredits).toHaveBeenCalledWith("u1", 20);
       // Guild settings should be updated with a new nextDeductionDate
       expect(db.guildSettings.set).toHaveBeenCalled();
       // Transaction should be logged
@@ -473,7 +474,7 @@ describe("PremiumManager", () => {
       await pm.processRenewals();
 
       // Should NOT deduct — insufficient balance
-      expect(db.coreCredits.updateCredits).not.toHaveBeenCalled();
+      expect(db.coreCredits.deductCredits).not.toHaveBeenCalled();
     });
 
     it("disables the feature after grace period expires", async () => {
@@ -666,7 +667,7 @@ describe("PremiumManager", () => {
         const result = await pm.activateFeature("g1", featureId, "u1");
 
         expect(result.success).toBe(true);
-        expect(db.coreCredits.updateCredits).toHaveBeenCalledWith("u1", -cost);
+        expect(db.coreCredits.deductCredits).toHaveBeenCalledWith("u1", cost);
       });
 
       it(`deducts exactly ${cost} Cores`, async () => {
@@ -679,7 +680,7 @@ describe("PremiumManager", () => {
 
         await pm.activateFeature("g1", featureId, "u1");
 
-        expect(db.coreCredits.updateCredits).toHaveBeenCalledWith("u1", -cost);
+        expect(db.coreCredits.deductCredits).toHaveBeenCalledWith("u1", cost);
       });
 
       it(`sets nextDeductionDate ${periodDays} days in the future`, async () => {
@@ -761,7 +762,7 @@ describe("PremiumManager", () => {
 
         await pm.processRenewals();
 
-        expect(db.coreCredits.updateCredits).toHaveBeenCalledWith("u1", -cost);
+        expect(db.coreCredits.deductCredits).toHaveBeenCalledWith("u1", cost);
         expect(db.payments.create).toHaveBeenCalledWith(
           expect.objectContaining({ type: "renewal" }),
         );
@@ -854,8 +855,13 @@ describe("PremiumManager", () => {
 
       expect(res.success).toBe(true);
       expect(res.newVaultBalance).toBe(20);
-      expect(db.coreCredits.updateCredits).toHaveBeenCalledWith("u1", -20);
-      expect(db.guildSettings.depositVaultCores).toHaveBeenCalledWith("g1", "u1", 20, "Alex");
+      expect(db.coreCredits.deductCredits).toHaveBeenCalledWith("u1", 20);
+      expect(db.guildSettings.depositVaultCores).toHaveBeenCalledWith(
+        "g1",
+        "u1",
+        20,
+        "Alex",
+      );
     });
 
     it("depositToGuildVault fails if user balance is insufficient", async () => {
@@ -865,7 +871,7 @@ describe("PremiumManager", () => {
 
       expect(res.success).toBe(false);
       expect(res.message).toContain("Insufficient Cores");
-      expect(db.coreCredits.updateCredits).not.toHaveBeenCalled();
+      expect(db.coreCredits.deductCredits).not.toHaveBeenCalled();
     });
 
     it("processRenewals uses Vault balance before user balance if available", async () => {
@@ -891,16 +897,19 @@ describe("PremiumManager", () => {
         }),
       };
 
-      db.guildSettings.getVaultData = vi.fn().mockResolvedValue({ balance: 40, history: [] });
-      db.guildSettings.deductVaultCores = vi.fn().mockResolvedValue({ success: true, newBalance: 20 });
+      db.guildSettings.getVaultData = vi
+        .fn()
+        .mockResolvedValue({ balance: 40, history: [] });
+      db.guildSettings.deductVaultCores = vi
+        .fn()
+        .mockResolvedValue({ success: true, newBalance: 20 });
       db.guildSettings.set = vi.fn().mockResolvedValue(true);
 
       await pm.processRenewals();
 
       expect(db.guildSettings.deductVaultCores).toHaveBeenCalledWith("g1", 20);
       // User's personal balance should NOT be charged when Vault covers it
-      expect(db.coreCredits.updateCredits).not.toHaveBeenCalled();
+      expect(db.coreCredits.deductCredits).not.toHaveBeenCalled();
     });
   });
 });
-

@@ -125,6 +125,41 @@ export class CoreCreditsRepository extends BaseRepository {
     }
   }
 
+  /**
+   * Atomically deduct Cores, refusing to drive the balance negative.
+   * The deduction and the balance check happen in one conditional update,
+   * so concurrent spenders cannot double-spend the same Cores.
+   * @param {string} userId - Discord user ID
+   * @param {number} amount - Positive Cores amount to deduct
+   * @returns {Promise<{success: boolean, credits?: number}>} Updated balance on success
+   */
+  async deductCredits(userId, amount) {
+    try {
+      const roundedAmount = Math.round(amount * 100) / 100;
+
+      const updated = await this.collection.findOneAndUpdate(
+        { userId, credits: { $gte: roundedAmount } },
+        {
+          $inc: { credits: -roundedAmount },
+          $set: { lastUpdated: new Date().toISOString() },
+        },
+        { returnDocument: "after" },
+      );
+
+      if (!updated) {
+        return { success: false };
+      }
+
+      this.cache.delete(`core_credits_${userId}`);
+      this.cache.delete("core_credits_all");
+
+      return { success: true, credits: updated.credits };
+    } catch (error) {
+      this.logger.error(`Failed to deduct credits for user ${userId}`, error);
+      return { success: false };
+    }
+  }
+
   async deleteByUserId(userId) {
     try {
       const result = await this.collection.deleteOne({ userId });

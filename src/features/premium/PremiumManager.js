@@ -136,13 +136,13 @@ export class PremiumManager {
         };
       }
 
-      // 2. Deduct credits (round to 2 decimal places to prevent floating point errors)
+      // 2. Deduct credits atomically (conditional — cannot go negative)
       const cost = Math.round(feature.cost * 100) / 100;
-      const deducted = await db.coreCredits.updateCredits(userId, -cost);
-      if (!deducted) {
+      const deduction = await db.coreCredits.deductCredits(userId, cost);
+      if (!deduction.success) {
         return {
           success: false,
-          message: "Failed to deduct Cores. Please try again.",
+          message: `Insufficient Cores. You need ${feature.cost} Cores, but you only have ${balance}.`,
         };
       }
 
@@ -624,9 +624,15 @@ export class PremiumManager {
     const credits = await db.coreCredits.getByUserId(sub.payerUserId);
     const balance = Math.round((credits?.credits || 0) * 100) / 100;
 
-    if (balance >= feature.cost) {
+    // Conditional deduct — cannot go negative even if the balance changed
+    // since the read above
+    const renewal =
+      balance >= feature.cost
+        ? await db.coreCredits.deductCredits(sub.payerUserId, feature.cost)
+        : null;
+
+    if (renewal?.success) {
       // Deduct and renew
-      await db.coreCredits.updateCredits(sub.payerUserId, -feature.cost);
 
       const nextDate = new Date(sub.nextDeductionDate);
       nextDate.setDate(nextDate.getDate() + feature.periodDays);
@@ -713,15 +719,15 @@ export class PremiumManager {
         };
       }
 
-      // Deduct from user
-      const deducted = await db.coreCredits.updateCredits(
+      // Deduct from user (conditional — cannot go negative)
+      const deducted = await db.coreCredits.deductCredits(
         userId,
-        -roundedAmount,
+        roundedAmount,
       );
-      if (!deducted) {
+      if (!deducted.success) {
         return {
           success: false,
-          message: "Failed to deduct Cores from your balance.",
+          message: `Insufficient Cores. You have **${balance.toFixed(2)} Cores**, but tried to deposit **${roundedAmount.toFixed(2)} Cores**.`,
         };
       }
 

@@ -47,24 +47,27 @@ export class SupportersService extends BaseService {
   }
 
   async handleLeaderboard(req, res) {
-    const { getStorageManager } = await import(
-      "../../../utils/storage/storageManager.js"
+    const { getDatabaseManager } = await import(
+      "../../../utils/storage/databaseManager.js"
     );
-    const storage = await getStorageManager();
-    const coreCredits = (await storage.get("core_credit")) || {};
+    const dbManager = await getDatabaseManager();
+    const coreCredits = (await dbManager.coreCredits.getAll()) || {};
 
     // Aggregate supporter data
     const supporters = [];
     let totalRaised = 0;
 
     for (const [userId, userData] of Object.entries(coreCredits)) {
-      const payments = userData.cryptoPayments || [];
+      const payments = [
+        ...(userData.cryptoPayments || []),
+        ...(userData.bmacPayments || []),
+      ];
 
       if (payments.length === 0) continue;
 
       // Calculate totals
       const totalDonated = payments.reduce(
-        (sum, p) => sum + (p.amount || 0),
+        (sum, p) => sum + (p.fiatAmount || p.amount || 0),
         0,
       );
       const totalCores = payments.reduce((sum, p) => sum + (p.cores || 0), 0);
@@ -138,11 +141,11 @@ export class SupportersService extends BaseService {
 
     try {
       // Check storage connectivity
-      const { getStorageManager } = await import(
-        "../../../utils/storage/storageManager.js"
+      const { getDatabaseManager } = await import(
+        "../../../utils/storage/databaseManager.js"
       );
-      const storage = await getStorageManager();
-      await storage.get("core_credit"); // Test read access
+      const dbManager = await getDatabaseManager();
+      await dbManager.coreCredits.getAll(); // Test read access
 
       return {
         ...baseStatus,

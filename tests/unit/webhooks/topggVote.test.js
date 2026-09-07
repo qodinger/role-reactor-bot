@@ -18,7 +18,12 @@ const mockDbManager = {
   coreCredits: {
     collection: {
       findOne: vi.fn(),
-      updateOne: vi.fn().mockResolvedValue({ acknowledged: true }),
+      findOneAndUpdate: vi.fn(),
+      updateOne: vi.fn().mockResolvedValue({
+        acknowledged: true,
+        matchedCount: 1,
+        upsertedCount: 0,
+      }),
     },
     updateSparks: vi.fn().mockResolvedValue(true),
   },
@@ -75,6 +80,9 @@ describe("topgg getVoteStatus — missed-webhook self-heal", () => {
     process.env.TOPGG_API_TOKEN = "test-token";
     process.env.DISCORD_CLIENT_ID = "1392714201558159431";
     mockDbManager.coreCredits.collection.findOne.mockResolvedValue(makeDoc());
+    mockDbManager.coreCredits.collection.findOneAndUpdate.mockResolvedValue(
+      null,
+    );
   });
 
   afterEach(() => {
@@ -89,23 +97,34 @@ describe("topgg getVoteStatus — missed-webhook self-heal", () => {
     const staleDoc = makeDoc();
     mockDbManager.coreCredits.collection.findOne
       .mockResolvedValueOnce(staleDoc) // initial status read
-      .mockResolvedValueOnce(staleDoc) // processVote cooldown read
       .mockResolvedValueOnce(
-        makeDoc({ lastVote: Date.now(), totalVotes: 3, voteStreak: 2 })
+        makeDoc({ lastVote: Date.now(), totalVotes: 3, voteStreak: 2 }),
       ); // heal re-read
+    // Atomic vote claim returns the pre-update document
+    mockDbManager.coreCredits.collection.findOneAndUpdate.mockResolvedValue(
+      staleDoc,
+    );
 
     const status = await getVoteStatus("u1");
 
-    expect(mockDbManager.coreCredits.updateSparks).toHaveBeenCalledWith("u1", 5);
+    // The claim advances lastVote/totalVotes conditionally in one update
+    expect(
+      mockDbManager.coreCredits.collection.findOneAndUpdate,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: "u1" }),
+      expect.objectContaining({
+        $set: expect.objectContaining({ lastVote: expect.any(Number) }),
+        $inc: expect.objectContaining({ totalVotes: 1 }),
+      }),
+      expect.objectContaining({ returnDocument: "before" }),
+    );
+    expect(mockDbManager.coreCredits.updateSparks).toHaveBeenCalledWith(
+      "u1",
+      5,
+    );
     expect(mockDbManager.coreCredits.collection.updateOne).toHaveBeenCalledWith(
       { userId: "u1" },
-      expect.objectContaining({
-        $set: expect.objectContaining({
-          totalVotes: 3,
-          voteStreak: 2,
-        }),
-      }),
-      { upsert: true }
+      { $set: { voteStreak: 2 } },
     );
     expect(status.hasVoted).toBe(true);
     expect(status.canVote).toBe(false);
@@ -114,8 +133,11 @@ describe("topgg getVoteStatus — missed-webhook self-heal", () => {
 
   it("does NOT credit when DB already shows a recent reward (webhook worked)", async () => {
     mockTopggApiVoted(1);
-    mockDbManager.coreCredits.collection.findOne.mockResolvedValue(
-      makeDoc({ lastVote: Date.now() - 1 * HOURS })
+    const recentDoc = makeDoc({ lastVote: Date.now() - 1 * HOURS });
+    mockDbManager.coreCredits.collection.findOne.mockResolvedValue(recentDoc);
+    // Claim misses (cooldown filter) and the existing doc confirms cooldown
+    mockDbManager.coreCredits.collection.findOneAndUpdate.mockResolvedValue(
+      null,
     );
 
     const status = await getVoteStatus("u1");
@@ -128,7 +150,7 @@ describe("topgg getVoteStatus — missed-webhook self-heal", () => {
   it("does NOT credit when top.gg says user has not voted", async () => {
     mockTopggApiVoted(0);
     mockDbManager.coreCredits.collection.findOne.mockResolvedValue(
-      makeDoc({ lastVote: Date.now() - 13 * HOURS })
+      makeDoc({ lastVote: Date.now() - 13 * HOURS }),
     );
 
     const status = await getVoteStatus("u1");
@@ -141,7 +163,7 @@ describe("topgg getVoteStatus — missed-webhook self-heal", () => {
   it("falls back to DB when top.gg API is unavailable (no heal attempt)", async () => {
     mockTopggApiDown();
     mockDbManager.coreCredits.collection.findOne.mockResolvedValue(
-      makeDoc({ lastVote: Date.now() - 1 * HOURS })
+      makeDoc({ lastVote: Date.now() - 1 * HOURS }),
     );
 
     const status = await getVoteStatus("u1");
@@ -153,22 +175,62 @@ describe("topgg getVoteStatus — missed-webhook self-heal", () => {
 
   it("credits first-ever vote even without a DB record", async () => {
     mockTopggApiVoted(1);
-    // No document at all until heal (upsert), then healed doc appears
+    const healedDoc = makeDoc({
+      lastVote: Date.now(),
+      totalVotes: 1,
+      voteStreak: 1,
+    });
+    // No document at all until the first-vote claim (upsert), then healed doc
     mockDbManager.coreCredits.collection.findOne
       .mockResolvedValueOnce(null) // initial status read
-      .mockResolvedValueOnce(null) // processVote cooldown read
-      .mockResolvedValueOnce(
-        makeDoc({ lastVote: Date.now(), totalVotes: 1, voteStreak: 1 })
-      ); // heal re-read
+      .mockResolvedValueOnce(null) // processVote: no existing doc
+      .mockResolvedValueOnce(healedDoc); // heal re-read
+    mockDbManager.coreCredits.collection.findOneAndUpdate.mockResolvedValue(
+      null,
+    ); // no eligible prior vote
+    mockDbManager.coreCredits.collection.updateOne.mockResolvedValueOnce({
+      acknowledged: true,
+      matchedCount: 0,
+      upsertedCount: 1,
+    }); // first-vote claim inserts the doc
 
     const status = await getVoteStatus("u1");
 
-    expect(mockDbManager.coreCredits.updateSparks).toHaveBeenCalledWith("u1", 5);
+    expect(mockDbManager.coreCredits.updateSparks).toHaveBeenCalledWith(
+      "u1",
+      5,
+    );
     expect(status.totalVotes).toBe(1);
+  });
+
+  it("does NOT double-credit when the claim loses to a concurrent delivery", async () => {
+    mockTopggApiVoted(1);
+    const justClaimed = makeDoc({
+      lastVote: Date.now(),
+      totalVotes: 3,
+      voteStreak: 2,
+    });
+    mockDbManager.coreCredits.collection.findOne
+      .mockResolvedValueOnce(makeDoc()) // initial status read: looks eligible
+      .mockResolvedValueOnce(justClaimed) // existing check: someone else claimed
+      .mockResolvedValueOnce(justClaimed); // heal re-read
+    mockDbManager.coreCredits.collection.findOneAndUpdate.mockResolvedValue(
+      null,
+    ); // atomic claim loses the race
+
+    const status = await getVoteStatus("u1");
+
+    expect(mockDbManager.coreCredits.updateSparks).not.toHaveBeenCalled();
+    expect(status.hasVoted).toBe(true);
+    expect(status.canVote).toBe(false);
   });
 
   it("concurrent status calls only credit the reward once", async () => {
     mockTopggApiVoted(1);
+    // Claim succeeds for the one delivery that reaches the heal
+    mockDbManager.coreCredits.collection.findOneAndUpdate.mockResolvedValue(
+      makeDoc(),
+    );
 
     const [statusA, statusB] = await Promise.all([
       getVoteStatus("u1"),
@@ -182,8 +244,11 @@ describe("topgg getVoteStatus — missed-webhook self-heal", () => {
 
   it("logs and continues when retroactive credit fails", async () => {
     mockTopggApiVoted(1);
+    mockDbManager.coreCredits.collection.findOneAndUpdate.mockResolvedValue(
+      makeDoc(),
+    ); // claim succeeds so the sparks award path runs
     mockDbManager.coreCredits.updateSparks.mockRejectedValueOnce(
-      new Error("db write failed")
+      new Error("db write failed"),
     );
     // processVote's updateSparks throws → caught inside getVoteStatus heal block
 

@@ -296,16 +296,18 @@ async function handleSend(interaction) {
         return;
       }
 
-      // Re-verify sender balance before executing transfer
-      const freshSenderData =
-        await dbManager.coreCredits.getByUserId(senderUserId);
-      const freshCredits = freshSenderData?.credits || 0;
-      if (freshCredits < amount) {
+      // Atomic Balance Transfers — the conditional deduct refuses to go
+      // negative, so balance changes during the confirmation window are safe
+      const deduction = await dbManager.coreCredits.deductCredits(
+        senderUserId,
+        amount,
+      );
+      if (!deduction.success) {
         await confirmation.update({
           embeds: [
             createErrorEmbed(
               "Insufficient Cores",
-              `Your balance changed. You currently have **${freshCredits.toFixed(2)} Paid Cores 🔮**, but tried to send **${amount.toFixed(2)} Cores**.`,
+              "Your balance changed — you no longer have enough Paid Cores 🔮 for this transfer. No Cores were sent.",
               interaction.client.user.displayAvatarURL(),
             ),
           ],
@@ -313,9 +315,6 @@ async function handleSend(interaction) {
         });
         return;
       }
-
-      // Atomic Balance Transfers
-      await dbManager.coreCredits.updateCredits(senderUserId, -amount);
       await dbManager.coreCredits.updateCredits(targetUserId, netAmount);
 
       const sendEmbed = createSendSuccessEmbed({
