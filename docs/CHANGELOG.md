@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **License**: Relicensed from MIT to **AGPL-3.0-or-later**. The bot remains fully open source and self-hostable; anyone offering it as a hosted service must now make their modified source available under the same license.
 - **Vote Rewards Clarity**: Voting for the bot now explicitly grants **+5 Sparks** (earned currency). Members can see exactly what they get every 12 hours.
 - **Streamlined Balance Tracking**: Core and Sparks balances are now tracked separately and reliably across the dashboard and bot commands.
 

@@ -6,7 +6,7 @@
 
 <div align="center">
 
-[![Node.js](https://img.shields.io/badge/Node.js-22+-green.svg)](https://nodejs.org/) [![Discord.js](https://img.shields.io/badge/Discord.js-14.22.1-blue.svg)](https://discord.js.org/) [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE) [![Documentation](https://img.shields.io/badge/Documentation-rolereactor.xyz-blue.svg)](https://rolereactor.xyz/docs)
+[![Node.js](https://img.shields.io/badge/Node.js-22+-green.svg)](https://nodejs.org/) [![Discord.js](https://img.shields.io/badge/Discord.js-14.22.1-blue.svg)](https://discord.js.org/) [![License](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE) [![Documentation](https://img.shields.io/badge/Documentation-rolereactor.xyz-blue.svg)](https://rolereactor.xyz/docs)
 
 </div>
 
@@ -352,4 +352,6 @@ To report a security issue, please contact us privately before public disclosure
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **GNU Affero General Public License v3.0** (AGPL-3.0-or-later) — see the [LICENSE](LICENSE) file for details.
+
+In short: you are free to use, study, modify, and self-host this bot, but if you offer it (modified or not) as a network service, you must release your modified source code under the same license. For commercial licensing inquiries, contact us.

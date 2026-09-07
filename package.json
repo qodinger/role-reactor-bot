@@ -42,7 +42,7 @@
     "email": "sengphachanh.dev@gmail.com",
     "url": "https://github.com/tyecode"
   },
-  "license": "MIT",
+  "license": "AGPL-3.0-or-later",
   "repository": {
     "type": "git",
     "url": "https://github.com/rolereactor/bot.git"
